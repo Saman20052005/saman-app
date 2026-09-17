@@ -1,0 +1,46 @@
+services:
+  # Web Service
+  - type: web
+    name: health-ai-backend
+    runtime: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /
+    
+    # Environment variables (set these in Render dashboard)
+    envVars:
+      - key: ENVIRONMENT
+        value: production
+      - key: FOOD_CLASSIFIER_PROVIDER
+        value: mock  # Use mock to avoid model loading issues
+      - key: MOCK_CLASSIFIER_MODE
+        value: normal
+      - key: MONGO_URI
+        sync: false  # Set in Render dashboard
+      - key: DB_NAME
+        value: saman_fitness
+      - key: JWT_SECRET
+        sync: false  # Set in Render dashboard
+      - key: GEMINI_API_KEY
+        sync: false  # Set in Render dashboard
+        
+    # Auto-deploy configuration
+    autoDeploy: true
+    
+    # Build optimization
+    buildFilter:
+      paths:
+        - ./**
+      ignoredPaths:
+        - .git/**
+        - .venv/**
+        - __pycache__/**
+        - "*.pyc"
+        - .DS_Store
+        
+    # Resource limits for free tier
+    disk:
+      name: health-ai-backend-disk
+      mountPath: /opt/render/project/src
+      sizeGB: 1

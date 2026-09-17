@@ -1,0 +1,99 @@
+HƯỚNG DẪN TRIỂN KHAI FOOD-101 MODEL - CHECKLIST NHANH
+
+=== CÁC BƯỚC BẮT BUỘC ===
+
+1️⃣ CHUẨN BỊ DATASET
+□ Upload Food-101 dataset vào Google Drive
+□ Đảm bảo cấu trúc: /food-101/images/[class_name]/image.jpg
+□ Upload file labels_to_macro.csv (101 dòng)
+
+2️⃣ CÀI ĐẶT MÔI TRƯỜNG (Google Colab)
+□ Mount Google Drive: drive.mount('/content/drive')
+□ Install packages: pip install torch torchvision tqdm pandas matplotlib seaborn scikit-learn pillow
+□ Tạo thư mục làm việc: mkdir -p /content/food101_pipeline
+
+3️⃣ UPLOAD SCRIPTS
+□ Copy tất cả file .py vào /content/food101_pipeline
+□ File cần thiết:
+  - validate_dataset.py
+  - train.py  
+  - inference.py
+  - export_torchscript.py
+  - verify_all.py
+
+4️⃣ KIỂM TRA DATASET
+□ Chạy: python validate_dataset.py --dataset_path /content/food-101/images --output_dir /content/dataset_analysis
+□ Kiểm tra file tạo ra: per_class_counts.csv, train.txt, val.txt, test.txt
+
+5️⃣ HUẤN LUYỆN MODEL
+□ Chạy training (chọn 1 trong 2):
+  • EfficientNet-B0 (khuyên dùng):
+    python train.py --data_path /content/food-101 --split_dir /content/dataset_analysis --model efficientnet_b0 --batch_size 32 --epochs 30
+  • MobileNetV2 (nhẹ hơn):
+    python train.py --data_path /content/food-101 --split_dir /content/dataset_analysis --model mobilenet_v2 --batch_size 64 --epochs 30
+
+6️⃣ XUẤT MODEL CHO MOBILE
+□ Chạy: python export_torchscript.py --checkpoint /content/training_output/food101_model_fullinfo.pth --output_dir /content/exports --quantize
+□ File tạo ra: food101_mobile_trace.pt, food101_mobile_trace_quantized.pt
+
+7️⃣ KIỂM TRA KẾT QUẢ
+□ Chạy: python verify_all.py --checkpoint /content/training_output/food101_model_fullinfo.pth --torchscript_model /content/exports/food101_mobile_trace.pt --labels_file /content/training_output/labels.txt --macro_csv /content/labels_to_macro.csv --training_dir /content/training_output
+□ Đảm bảo overall_status: "PASS"
+
+8️⃣ LƯU KẾT QUẢ LÊN DRIVE
+□ Copy toàn bộ thư mục kết quả:
+  !cp -r /content/training_output /content/drive/MyDrive/food101_results/
+  !cp -r /content/exports /content/drive/MyDrive/food101_results/
+  !cp /content/verify_report.json /content/drive/MyDrive/food101_results/
+
+=== CÁC FILE CẦN UPLOAD LÊN DRIVE ===
+
+✅ THƯ MỤC training_output/
+□ food101_model_fullinfo.pth (model hoàn chỉnh)
+□ labels.txt (danh sách 101 lớp)
+□ training_curve.csv (đồ thị huấn luyện)
+□ confusion_matrix.png (ma trận nhầm lẫn)
+□ per_class_counts.csv (số ảnh mỗi lớp)
+
+✅ THƯ MỤC exports/
+□ food101_mobile_trace.pt (model cho mobile)
+□ food101_mobile_trace_quantized.pt (model nén)
+□ export_report.json (báo cáo xuất model)
+
+✅ FILE KIỂM TRA
+□ verify_report.json (báo cáo xác thực)
+□ dataset_summary.json (thống kê dataset)
+
+=== TIÊU CHUẨN CHẤT LƯỢNG ===
+
+□ Validation accuracy ≥ 60% (target ≥ 65%)
+□ Model size < 50MB (chưa nén)
+□ Quantized model size < 25MB
+□ Macro coverage ≥ 95% classes
+□ TorchScript load thành công
+
+=== LỖI THƯỜNG GẶP ===
+
+❌ CUDA out of memory → Giảm batch_size xuống 16
+❌ Dataset path sai → Kiểm tra /content/food-101/images/ có 101 thư mục con
+❌ Macro CSV thiếu lớp → Bổ sung vào labels_to_macro.csv
+❌ Export thất bại → Thử --method script thay vì trace
+
+=== THỜI GIAN DỰ KIẾN ===
+
+□ Dataset validation: 5-10 phút
+□ Training (EfficientNet-B0): 2-3 giờ (GPU T4)
+□ Export & quantization: 5-10 phút
+□ Verification: 2-5 phút
+
+=== GHI CHÚ QUAN TRỌNG ===
+
+• Luôn dùng seed=42 để kết quả tái lập được
+• Ưu tiên EfficientNet-B0 cho accuracy cao hơn
+• Dùng quantized model cho mobile production
+• Kiểm tra verify_report.json trước khi deploy
+• Backup toàn bộ kết quả lên Drive
+
+=== HOÀN THÀNH ✅===
+
+Khi checklist này đầy đủ, model đã sẵn sàng tích hợp vào mobile app!

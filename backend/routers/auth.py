@@ -1,0 +1,322 @@
+from fastapi import APIRouter, HTTPException, BackgroundTasks, Depends, Request
+from pydantic import BaseModel, EmailStr, Field
+import datetime
+import jwt
+import os
+import random
+import string
+import logging
+import sys
+import smtplib
+import requests # Cần request để verify Facebook/Apple
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
+
+# Thư viện verify token Google & Apple
+from google.oauth2 import id_token
+from google.auth.transport import requests as google_requests
+from jwt.algorithms import RSAAlgorithm # Cho Apple Sign In
+
+from backend.app.database import users_collection, db
+from backend.app.models.user import UserAuth
+
+logger = logging.getLogger(__name__)
+from backend.auth_utils import hash_password, verify_password, SECRET_KEY
+
+# ==============================================================================
+# CONFIG & CONSTANTS
+# ==============================================================================
+SENDER_EMAIL = os.getenv("EMAIL_ADDRESS")
+APP_PASSWORD = os.getenv("EMAIL_PASSWORD")
+
+GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID", "501146398294-uu3k94aukcmmik9j64huamsfaf9q9056.apps.googleusercontent.com") 
+
+# Helper functions for database operations when DB is None
+def safe_find_one(collection, query):
+    if collection is None:
+        return None
+    return collection.find_one(query)
+
+def safe_insert_one(collection, document):
+    if collection is None:
+        return None
+    return collection.insert_one(document)
+
+def safe_update_one(collection, query, update):
+    if collection is None:
+        return None
+    return collection.update_one(query, update)
+
+otp_collection = db["otps"] if db is not None else None 
+router = APIRouter(prefix="/api/auth", tags=["Authentication"])
+
+# --- MODELS ---
+class ForgotPasswordRequest(BaseModel):
+    email: EmailStr
+
+class ResetPasswordRequest(BaseModel):
+    email: EmailStr
+    otp: str = Field(..., min_length=6, max_length=6)
+    new_password: str = Field(..., min_length=6)
+
+class SocialLoginRequest(BaseModel):
+    provider: str  # 'google', 'facebook', 'apple'
+    token: str     # id_token hoặc access_token
+    email: str | None = None
+    full_name: str | None = None
+
+# --- UTILS: EMAIL & OTP ---
+def generate_otp(length=6) -> str:
+    return ''.join(random.choices(string.digits, k=length))
+
+def send_email_real(to_email: str, otp: str):
+    try:
+        if not SENDER_EMAIL or not APP_PASSWORD:
+            print("❌ Email credentials not configured in environment variables")
+            return
+            
+        if "DIEN_EMAIL" in SENDER_EMAIL: return
+        
+        subject = "SAMAN - Mã xác thực đặt lại mật khẩu"
+        body = f"""
+        <html>
+            <body style="font-family: Arial, sans-serif; padding: 20px; color: #333; background-color: #f9f9f9;">
+                <div style="max-width: 500px; margin: 0 auto; background: #fff; padding: 30px; border-radius: 10px;">
+                    <h2 style="color: #1E1E1E; text-align: center;">SAMAN ID</h2>
+                    <p>Mã OTP của bạn là: <b style="font-size: 24px; letter-spacing: 5px;">{otp}</b></p>
+                    <p>Mã có hiệu lực trong 5 phút.</p>
+                </div>
+            </body>
+        </html>
+        """
+        msg = MIMEMultipart()
+        msg["From"] = f"SAMAN Support <{SENDER_EMAIL}>"
+        msg["To"] = to_email
+        msg["Subject"] = subject
+        msg.attach(MIMEText(body, "html"))
+
+        server = smtplib.SMTP_SSL("smtp.gmail.com", 465)
+        server.login(SENDER_EMAIL, APP_PASSWORD)
+        server.sendmail(SENDER_EMAIL, to_email, msg.as_string())
+        server.quit()
+        print(f"✅ Email sent to {to_email}")
+    except Exception as e:
+        print(f"❌ Error sending email: {e}")
+
+# --- UTILS: SOCIAL VERIFICATION ---
+
+def verify_google(token: str) -> dict:
+    # Cách 1: Thử verify như là ID Token (Dành cho Mobile App)
+    try:
+        idinfo = id_token.verify_oauth2_token(token, google_requests.Request(), GOOGLE_CLIENT_ID)
+        return {
+            "email": idinfo['email'],
+            "name": idinfo.get('name'),
+            "picture": idinfo.get('picture')
+        }
+    except Exception:
+        # Cách 2: Nếu lỗi, thử verify như là Access Token (Dành cho Web App)
+        try:
+            # Gọi Google API để lấy info từ Access Token
+            user_info_url = "https://www.googleapis.com/oauth2/v3/userinfo"
+            response = requests.get(user_info_url, params={"access_token": token})
+            
+            if response.status_code == 200:
+                data = response.json()
+                return {
+                    "email": data.get('email'),
+                    "name": data.get('name'),
+                    "picture": data.get('picture')
+                }
+        except:
+            pass
+        
+        # Nếu cả 2 cách đều không được
+        logger.warning("Google Verify Failed")
+        raise HTTPException(status_code=401, detail="Invalid Google Token")
+
+def verify_facebook(token: str) -> dict:
+    try:
+        # Verify access_token với Facebook Graph API
+        url = "https://graph.facebook.com/me"
+        params = {
+            "access_token": token,
+            "fields": "id,name,email,picture"
+        }
+        response = requests.get(url, params=params)
+        data = response.json()
+        
+        if "error" in data:
+            raise HTTPException(status_code=401, detail="Invalid Facebook Token")
+            
+        return {
+            "email": data.get('email'), 
+            "name": data.get('name'),
+            "picture": data.get('picture', {}).get('data', {}).get('url')
+        }
+    except Exception as e:
+        raise HTTPException(status_code=401, detail=f"Facebook Error: {str(e)}")
+
+def verify_apple(token: str) -> dict:
+    try:
+        # 1. Lấy Public Keys của Apple
+        apple_keys_url = "https://appleid.apple.com/auth/keys"
+        keys_response = requests.get(apple_keys_url).json()
+        keys = keys_response['keys']
+
+        # 2. Decode header của token để tìm key ID (kid)
+        header = jwt.get_unverified_header(token)
+        kid = header['kid']
+
+        # 3. Tìm key phù hợp
+        key_data = next(k for k in keys if k['kid'] == kid)
+        public_key = RSAAlgorithm.from_jwk(key_data)
+
+        # 4. Verify signature
+        payload = jwt.decode(token, public_key, algorithms=['RS256'], audience=None, options={"verify_aud": False}) 
+        
+        return {
+            "email": payload.get('email'),
+            "name": None # Apple không trả tên trong token, client phải gửi kèm
+        }
+    except Exception as e:
+        logger.warning(f"Apple Verify Error: {e}")
+        raise HTTPException(status_code=401, detail="Invalid Apple Token")
+
+# --- ENDPOINTS ---
+
+@router.post("/social-login")
+def social_login(req: SocialLoginRequest):
+    verified_data = {}
+
+    # 1. Verify Token phía Server
+    if req.provider == 'google':
+        verified_data = verify_google(req.token)
+    elif req.provider == 'facebook':
+        verified_data = verify_facebook(req.token)
+    elif req.provider == 'apple':
+        verified_data = verify_apple(req.token)
+    else:
+        raise HTTPException(status_code=400, detail="Unsupported provider")
+
+    # 2. Xử lý Email
+    email = verified_data.get('email') or req.email
+    if not email:
+        raise HTTPException(status_code=400, detail="Cannot retrieve email from provider")
+
+    full_name = verified_data.get('name') or req.full_name or "User"
+
+    # 3. Find or Create User
+    user = safe_find_one(users_collection, {"email": email})
+    
+    if not user:
+        new_user = {
+            "email": email,
+            "full_name": full_name,
+            "auth_provider": req.provider,
+            "avatar": verified_data.get('picture'),
+            "created_at": datetime.datetime.utcnow(),
+            "password": None
+        }
+        result = safe_insert_one(users_collection, new_user)
+        user = new_user 
+    else:
+        # Update avatar nếu cần
+        pass
+
+    # 4. Tạo JWT của hệ thống SAMAN
+    token = jwt.encode({
+        "email": email,
+        "exp": datetime.datetime.utcnow() + datetime.timedelta(days=30)
+    }, SECRET_KEY, algorithm="HS256")
+
+    return {
+        "access_token": token,
+        "token_type": "bearer",
+        "user": {
+            "email": email,
+            "full_name": user.get("full_name"),
+            "avatar": user.get("avatar")
+        }
+    }
+
+@router.post("/register")
+def register(user: UserAuth):
+    if safe_find_one(users_collection, {"email": user.email}):
+        raise HTTPException(status_code=400, detail="Email already exists")
+    hashed_pass = hash_password(user.password)
+    safe_insert_one(users_collection, {
+        "email": user.email, 
+        "password": hashed_pass,
+        "full_name": user.full_name, 
+        "auth_provider": "local",
+        "created_at": datetime.datetime.utcnow()
+    })
+    return {"message": "User registered successfully"}
+
+@router.post("/login")
+def login(user: UserAuth):
+    db_user = safe_find_one(users_collection, {"email": user.email})
+    
+    if not db_user:
+        raise HTTPException(status_code=401, detail="Invalid email or password")
+        
+    if db_user.get("password") is None:
+        raise HTTPException(status_code=400, detail="This email uses Social Login (Google/FB/Apple). Please sign in with that.")
+
+    if not verify_password(user.password, db_user["password"]):
+        raise HTTPException(status_code=401, detail="Invalid email or password")
+    
+    token = jwt.encode({
+        "email": user.email,
+        "exp": datetime.datetime.utcnow() + datetime.timedelta(days=7)
+    }, SECRET_KEY, algorithm="HS256")
+    
+    return {
+        "access_token": token, 
+        "token_type": "bearer", 
+        "user_info": {
+            "email": db_user["email"],
+            "full_name": db_user.get("full_name", "User")
+        }
+    }
+
+@router.post("/forgot-password")
+def forgot_password(request: ForgotPasswordRequest, background_tasks: BackgroundTasks):
+    user = safe_find_one(users_collection, {"email": request.email})
+    if user and user.get("password") is None:
+        raise HTTPException(status_code=400, detail="Cannot reset password for Social Login accounts")
+
+    if not user:
+        return {"message": "OTP has been sent"}
+
+    otp = generate_otp()
+    expiry_time = datetime.datetime.utcnow() + datetime.timedelta(minutes=5)
+
+    if otp_collection is not None:
+        otp_collection.update_one(
+        {"email": request.email},
+        {"$set": {"otp": otp, "expires_at": expiry_time}},
+        upsert=True
+    )
+
+    background_tasks.add_task(send_email_real, request.email, otp)
+    return {"message": "OTP has been sent"}
+
+@router.post("/reset-password")
+def reset_password(request: ResetPasswordRequest):
+    record = safe_find_one(otp_collection, {"email": request.email})
+    if not record or record["otp"] != request.otp:
+        raise HTTPException(status_code=400, detail="Invalid or expired OTP")
+    
+    if datetime.datetime.utcnow() > record["expires_at"]:
+        raise HTTPException(status_code=400, detail="OTP has expired")
+
+    new_hashed_pass = hash_password(request.new_password)
+    safe_update_one(users_collection,
+        {"email": request.email},
+        {"$set": {"password": new_hashed_pass, "auth_provider": "local"}}
+    )
+    if otp_collection is not None:
+        otp_collection.delete_one({"email": request.email})
+    return {"message": "Password reset successfully"}

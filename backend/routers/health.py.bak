@@ -1,0 +1,104 @@
+# [File: routers/health.py]
+from fastapi import APIRouter, Depends, HTTPException
+from datetime import datetime, date
+from typing import Dict, Any
+import pydantic as pd
+import os
+import pathlib
+
+# Import dependencies
+from auth_utils import verify_token
+from app.repositories.user_repository import UserRepository
+
+router = APIRouter(prefix="/api/health", tags=["Health"])
+
+# Initialize services
+user_repo = UserRepository()
+
+class HealthStatus(pd.BaseModel):
+    status: str
+    timestamp: str
+    user_id: str
+    health_metrics: Dict[str, Any]
+
+@router.get("")
+async def get_health_status(
+    email: str = Depends(verify_token)
+):
+    """Get overall health status"""
+    try:
+        user = user_repo.get_by_email(email)
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        # Mock health data
+        health_data = {
+            "status": "healthy",
+            "timestamp": datetime.now().isoformat(),
+            "user_id": email,
+            "health_metrics": {
+                "bmi": user.get("health_stats", {}).get("bmi", 0),
+                "daily_calorie_goal": user.get("health_stats", {}).get("daily_calorie_needs", 2000),
+                "water_intake_today": 1200,  # ml
+                "workout_streak": 0,
+                "nutrition_score": 85,
+                "sleep_hours": 7.5,
+                "stress_level": "low"
+            },
+            "recommendations": [
+                "Increase water intake to 2L per day",
+                "Add 15 minutes of moderate exercise",
+                "Maintain current sleep schedule"
+            ]
+        }
+        
+        return health_data
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/summary")
+async def get_health_summary(
+    period: str = "week",  # week, month, year
+    email: str = Depends(verify_token)
+):
+    """Get health summary for a period"""
+    try:
+        user = user_repo.get_by_email(email)
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        # Mock summary data
+        return {
+            "period": period,
+            "start_date": date.today().isoformat(),
+            "summary": {
+                "total_workouts": 0,
+                "total_calories_consumed": 0,
+                "avg_daily_calories": 0,
+                "water_intake_total": 0,
+                "nutrition_score_avg": 85,
+                "weight_change": 0.0,
+                "fitness_improvement": "stable"
+            },
+            "achievements": [],
+            "areas_for_improvement": [
+                "Consistent workout routine",
+                "Better hydration tracking"
+            ]
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/ml")
+def health_ml():
+    """ML-specific health check (no auth required)"""
+    model_path = os.getenv("MODEL_PATH", "models/placeholder_model.pt")
+    exists = model_path and pathlib.Path(model_path).exists()
+    use_mock = os.getenv("USE_MOCK", "true").lower() in ("1", "true", "yes")
+    
+    return {
+        "model_path": model_path,
+        "model_exists": bool(exists),
+        "use_mock": use_mock,
+        "ml_status": "mock" if use_mock else ("ready" if exists else "missing")
+    }

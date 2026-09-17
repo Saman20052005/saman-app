@@ -1,0 +1,345 @@
+# [File: routers/nutrition.py]
+from fastapi import APIRouter, Depends, HTTPException, Query
+from datetime import datetime, date, timedelta
+from typing import Optional, List, Dict, Any
+import pydantic as pd
+
+# Import dependencies
+from auth_utils import verify_token
+from app.repositories.user_repository import UserRepository
+from services.meal_generator import MealGenerator
+
+router = APIRouter(prefix="/api/nutrition", tags=["Nutrition"])
+
+# Initialize services
+user_repo = UserRepository()
+meal_generator = MealGenerator()
+
+# ===== SCHEMAS =====
+class FoodSearchResult(pd.BaseModel):
+    id: str
+    name: str
+    calories: float
+    protein: float
+    carbs: float
+    fat: float
+    tags: List[str]
+
+class FoodCreate(pd.BaseModel):
+    name: str
+    calories: float
+    protein: float
+    carbs: float
+    fat: float
+    tags: List[str] = []
+
+class NutritionEntry(pd.BaseModel):
+    food_name: str
+    calories: int
+    protein: float
+    carbs: float
+    fat: float
+    meal_type: str  # breakfast, lunch, dinner, snack
+
+class DailyNutrition(pd.BaseModel):
+    date: str
+    entries: List[NutritionEntry]
+    total_calories: int
+    total_protein: float
+    total_carbs: float
+    total_fat: float
+
+class NutritionPlanRequest(pd.BaseModel):
+    target_calories: int
+    dietary_preferences: List[str] = []
+    allergies: List[str] = []
+    goal: str = "maintain"  # lose, gain, maintain
+
+class NutritionLog(pd.BaseModel):
+    date: str
+    meal_type: str
+    foods: List[Dict[str, Any]]
+    total_calories: int
+    notes: Optional[str] = None
+
+class WaterLog(pd.BaseModel):
+    date: str
+    amount_ml: int
+    time: Optional[str] = None
+
+class MealSwapRequest(pd.BaseModel):
+    log_id: str
+    food_index: int
+    replacement_food_id: str
+
+# ===== FOODS ENDPOINTS =====
+@router.get("/foods/search")
+async def search_foods(
+    q: str = Query(..., min_length=2),
+    limit: int = Query(10, ge=1, le=50),
+    email: str = Depends(verify_token)
+):
+    """Search foods in database"""
+    try:
+        # Mock data for now
+        mock_foods = [
+            {
+                "id": "food_1",
+                "name": f"Apple ({q})",
+                "calories": 52.0,
+                "protein": 0.3,
+                "carbs": 14.0,
+                "fat": 0.2,
+                "tags": ["fruit", "low_calorie"]
+            },
+            {
+                "id": "food_2", 
+                "name": f"Rice ({q})",
+                "calories": 130.0,
+                "protein": 2.7,
+                "carbs": 28.0,
+                "fat": 0.3,
+                "tags": ["grain", "high_carb"]
+            }
+        ]
+        
+        return {
+            "foods": mock_foods[:limit],
+            "total": len(mock_foods),
+            "query": q
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/foods")
+async def create_food(
+    food: FoodCreate,
+    email: str = Depends(verify_token)
+):
+    """Create new food item"""
+    try:
+        # TODO: Implement actual food creation
+        return {
+            "id": f"food_{datetime.now().timestamp()}",
+            "message": "Food created successfully",
+            "food": food.dict(),
+            "status": "mock_implementation"
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+# ===== LOGS ENDPOINTS =====
+@router.post("/logs")
+async def create_nutrition_log(
+    log: NutritionLog,
+    email: str = Depends(verify_token)
+):
+    """Create nutrition log entry"""
+    try:
+        # TODO: Implement actual nutrition logging
+        return {
+            "id": f"log_{datetime.now().timestamp()}",
+            "message": "Nutrition log created successfully",
+            "log": log.dict(),
+            "created_at": datetime.now().isoformat(),
+            "status": "mock_implementation"
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/logs/{date}")
+async def get_nutrition_logs(
+    date: str,
+    email: str = Depends(verify_token)
+):
+    """Get nutrition logs for specific date"""
+    try:
+        # TODO: Implement actual log retrieval
+        return {
+            "date": date,
+            "logs": [],
+            "total_calories": 0,
+            "total_protein": 0.0,
+            "message": "Mock data - implement database integration"
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.put("/logs/{log_id}/confirm")
+async def confirm_nutrition_log(
+    log_id: str,
+    email: str = Depends(verify_token)
+):
+    """Confirm nutrition log"""
+    try:
+        return {
+            "id": log_id,
+            "status": "confirmed",
+            "confirmed_at": datetime.now().isoformat(),
+            "message": "Nutrition log confirmed"
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.put("/logs/{log_id}/swap")
+async def swap_meal(
+    log_id: str,
+    request: MealSwapRequest,
+    email: str = Depends(verify_token)
+):
+    """Swap meal in nutrition log"""
+    try:
+        return {
+            "id": log_id,
+            "message": "Meal swapped successfully",
+            "swap_details": request.dict(),
+            "swapped_at": datetime.now().isoformat()
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.delete("/logs/{log_id}")
+async def delete_nutrition_log(
+    log_id: str,
+    email: str = Depends(verify_token)
+):
+    """Delete nutrition log"""
+    try:
+        return {
+            "id": log_id,
+            "message": "Nutrition log deleted successfully",
+            "deleted_at": datetime.now().isoformat()
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+# ===== WATER ENDPOINTS =====
+@router.post("/water")
+async def log_water_intake(
+    water_log: WaterLog,
+    email: str = Depends(verify_token)
+):
+    """Log water intake"""
+    try:
+        return {
+            "id": f"water_{datetime.now().timestamp()}",
+            "message": "Water intake logged successfully",
+            "log": water_log.dict(),
+            "logged_at": datetime.now().isoformat()
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+# ===== LEGACY ENDPOINTS (Keep for compatibility) =====
+@router.get("/{date}")
+async def get_nutrition_by_date(
+    date: str,
+    email: str = Depends(verify_token)
+):
+    """Get nutrition data for a specific date (Legacy)"""
+    try:
+        user = user_repo.get_by_email(email)
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        # For now, return mock data
+        # TODO: Implement actual nutrition data retrieval from database
+        return {
+            "date": date,
+            "entries": [],
+            "total_calories": 0,
+            "total_protein": 0.0,
+            "total_carbs": 0.0,
+            "total_fat": 0.0,
+            "message": "Mock data - implement database integration"
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/generate-plan")
+async def generate_nutrition_plan(
+    request: NutritionPlanRequest,
+    email: str = Depends(verify_token)
+):
+    """Generate personalized nutrition plan"""
+    try:
+        user = user_repo.get_by_email(email)
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        # Generate meal plan
+        meal_plan = meal_generator.generate_daily_plan(
+            target_calories=request.target_calories,
+            dietary_preferences=request.dietary_preferences,
+            allergies=request.allergies,
+            goal=request.goal
+        )
+        
+        return {
+            "plan": meal_plan,
+            "generated_at": datetime.now().isoformat(),
+            "user_preferences": {
+                "target_calories": request.target_calories,
+                "dietary_preferences": request.dietary_preferences,
+                "allergies": request.allergies,
+                "goal": request.goal
+            }
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/report/weekly")
+async def get_weekly_nutrition_report(
+    start_date: Optional[str] = Query(None),
+    email: str = Depends(verify_token)
+):
+    """Get weekly nutrition report"""
+    try:
+        user = user_repo.get_by_email(email)
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        # Default to last 7 days if no start date provided
+        if not start_date:
+            start_date = (date.today() - timedelta(days=7)).isoformat()
+        
+        # For now, return mock data
+        # TODO: Implement actual weekly report generation
+        return {
+            "period": {
+                "start_date": start_date,
+                "end_date": (date.fromisoformat(start_date) + timedelta(days=6)).isoformat()
+            },
+            "summary": {
+                "avg_daily_calories": 0,
+                "avg_daily_protein": 0.0,
+                "avg_daily_carbs": 0.0,
+                "avg_daily_fat": 0.0,
+                "total_days_tracked": 0
+            },
+            "daily_data": [],
+            "message": "Mock data - implement database integration"
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/log")
+async def log_nutrition_entry(
+    entry: NutritionEntry,
+    email: str = Depends(verify_token)
+):
+    """Log a nutrition entry (Legacy)"""
+    try:
+        user = user_repo.get_by_email(email)
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        # TODO: Implement actual nutrition logging to database
+        return {
+            "message": "Nutrition entry logged successfully",
+            "entry": entry.dict(),
+            "logged_at": datetime.now().isoformat(),
+            "status": "mock_implementation"
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))

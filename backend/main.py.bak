@@ -1,0 +1,83 @@
+# [File: main.py]
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from contextlib import asynccontextmanager
+import logging
+import os
+from dotenv import load_dotenv
+
+# 1. Import các router (Thêm nutrition, workout, và health)
+from backend.routers import (
+    auth_router,
+    user_router,
+    chat_router,
+    food_analysis_router,
+    nutrition_router,
+    workout_router,
+    health_router,
+)
+
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+load_dotenv()
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Application lifespan events for model warm-up"""
+    # Startup: Initialize services
+    logger.info("Starting up application...")
+    try:
+        # Initialize classification service (will use mock or pytorch based on config)
+        from backend.app.services.classification_provider_factory import create_classification_service
+        service = create_classification_service()
+        logger.info(f"Classification service initialized: {type(service).__name__}")
+        
+        logger.info("Application startup completed successfully")
+    except Exception as e:
+        logger.error(f"Failed to initialize services during startup: {e}")
+    
+    yield
+    
+    # Shutdown: Cleanup resources
+    logger.info("Shutting down application...")
+
+
+app = FastAPI(
+    title="Health AI Backend", 
+    version="6.5 - Food Recognition Integration",
+    lifespan=lifespan
+)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"] if os.getenv("ENVIRONMENT", "development") == "development" else [os.getenv("FRONTEND_URL", "https://your-frontend-domain.com")],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# Include các router
+app.include_router(auth_router)
+app.include_router(user_router)
+app.include_router(chat_router)
+app.include_router(food_analysis_router)
+app.include_router(nutrition_router)
+app.include_router(workout_router)
+app.include_router(health_router)
+
+# DEBUG: Print all registered routes
+print("\n=== REGISTERED ROUTES ===")
+for route in app.routes:
+    if hasattr(route, 'path') and hasattr(route, 'methods'):
+        methods = getattr(route, 'methods', set())
+        print(f"{route.path} -> {route.name} [{','.join(methods)}]")
+    else:
+        print(f"{route} -> {type(route).__name__}")
+print("=== END ROUTES ===\n")
+
+@app.get("/")
+def read_root():
+    return {"status": "online", "message": "Backend updated to Clean Architecture!"}

@@ -1,0 +1,256 @@
+import random
+from typing import List, Optional, Dict, Any
+
+# Safe imports - remove dependency on app.models
+try:
+    from bson import ObjectId
+    from app.models.common import Goal, FoodTag
+except ImportError:
+    ObjectId = str
+    # Fallback definitions if imports fail
+    class Goal:
+        MAINTAIN = "maintain_weight"
+        WEIGHT_LOSS = "lose_weight"
+        MUSCLE_GAIN = "gain_muscle"
+    
+    class FoodTag:
+        HIGH_FAT = "High Fat"
+        HIGH_CARB = "High Carb"
+        HIGH_PROTEIN = "High Protein"
+
+class MealGenerator:
+    """Mock MealGenerator for deployment without database dependency"""
+    
+    def __init__(self, config=None):
+        self.config = config or {}
+    
+    def generate_daily_plan(self, target_calories: int, dietary_preferences: List[str] = [], 
+                          allergies: List[str] = [], goal: str = "maintain") -> Dict[str, Any]:
+        """Generate daily meal plan (mock implementation)"""
+        return {
+            "date": "2026-03-03",
+            "target_calories": target_calories,
+            "meals": [
+                {
+                    "meal_type": "Breakfast",
+                    "time": "07:00",
+                    "foods": [
+                        {"name": "Oatmeal", "calories": int(target_calories * 0.15), "protein": 10.0, "carbs": 30.0, "fat": 5.0}
+                    ]
+                },
+                {
+                    "meal_type": "Lunch", 
+                    "time": "12:00",
+                    "foods": [
+                        {"name": "Grilled Chicken", "calories": int(target_calories * 0.35), "protein": 35.0, "carbs": 25.0, "fat": 10.0}
+                    ]
+                },
+                {
+                    "meal_type": "Dinner",
+                    "time": "19:00", 
+                    "foods": [
+                        {"name": "Salmon", "calories": int(target_calories * 0.35), "protein": 30.0, "carbs": 20.0, "fat": 15.0}
+                    ]
+                }
+            ],
+            "total_calories": target_calories,
+            "nutrition_summary": {
+                "protein": 75.0,
+                "carbs": 75.0, 
+                "fat": 30.0
+            }
+        }
+
+# Legacy class for backward compatibility
+class MealGeneratorService:
+    """Legacy MealGeneratorService for backward compatibility"""
+    
+    def __init__(self, db_collection=None):
+        self.db = db_collection
+    
+    def generate_plan(self, request_data: dict) -> List[dict]:
+        """Generate meal plan (legacy implementation)"""
+        target_calories = request_data.get("target_calories", 2000)
+        allergies = request_data.get("allergies", [])
+        goal = request_data.get("goal", "maintain")
+        
+        # Use the new MealGenerator
+        generator = MealGenerator()
+        plan = generator.generate_daily_plan(target_calories, [], allergies, goal)
+        
+        # Convert to expected format
+        return plan.get("meals", [])
+
+class MealGeneratorService:
+    def __init__(self, db_collection):
+        self.db = db_collection
+
+    def _normalize_text(self, text: str) -> str:
+        return text.lower().strip() if text else ""
+
+    def _calculate_score(self, food: dict, goal: str) -> float:
+        score = 0.0
+        p = food.get("protein", 0)
+        c = food.get("carbs", 0)
+        f = food.get("fat", 0)
+        tags = food.get("tags", [])
+
+        if goal == Goal.WEIGHT_LOSS:
+            score += p * 2.0
+            score -= c * 1.0
+            score -= f * 1.5
+            if FoodTag.HIGH_FAT in tags: score -= 50
+            if FoodTag.HIGH_CARB in tags: score -= 30
+            
+        elif goal == Goal.MUSCLE_GAIN:
+            score += p * 2.0
+            score += c * 1.0
+            score -= f * 0.5
+            if FoodTag.HIGH_PROTEIN in tags: score += 20
+
+        else: # MAINTAIN
+            score += p * 1.0
+            score -= abs(c - 30) * 0.5
+            
+        return score
+
+    def _fetch_candidates(self, group: str, allergies: List[str], goal: str = Goal.MAINTAIN) -> List[dict]:
+        query = {"group": group}
+        if allergies:
+            safe_allergies = [self._normalize_text(a) for a in allergies if a.strip()]
+            if safe_allergies:
+                pattern = "|".join(safe_allergies)
+                query["name"] = {"$not": {"$regex": pattern, "$options": "i"}}
+
+        projection = {
+            "name": 1, "calories": 1, "protein": 1, "carbs": 1, "fat": 1, 
+            "image": 1, "tags": 1, "_id": 1
+        }
+        
+        candidates = list(self.db.find(query, projection))
+        if not candidates: return []
+
+        for food in candidates:
+            food["_score"] = self._calculate_score(food, goal)
+
+        candidates.sort(key=lambda x: x["_score"], reverse=True)
+        top_n = max(5, int(len(candidates) * 0.2))
+        return candidates[:top_n]
+
+    def _calculate_serving(self, food: dict, target_cal: int) -> dict:
+        base_cal = food.get("calories", 0)
+        if base_cal <= 0: return food 
+        
+        ratio = target_cal / base_cal
+        ratio = max(0.5, min(ratio, 4.0))
+        
+        return {
+            "name": food["name"],
+            "calories": int(base_cal * ratio),
+            "protein": round(food.get("protein", 0) * ratio, 1),
+            "carbs": round(food.get("carbs", 0) * ratio, 1),
+            "fat": round(food.get("fat", 0) * ratio, 1),
+            "tags": food.get("tags", []),
+            "weight_grams": int(100 * ratio),
+            "food_id": str(food["_id"]),
+            "image": food.get("image", None)
+        }
+
+    # --- LOGIC MỚI CHO STEP 2 ---
+    def swap_single_meal(self, swap_data: dict) -> Optional[dict]:
+        """
+        Đổi 1 món cụ thể, giữ nguyên calories target của slot đó.
+        Input: swap_data (từ SwapMealRequest)
+        """
+        meal_type = swap_data.get("meal_type")
+        old_id = swap_data.get("old_food_id")
+        allergies = swap_data.get("allergies", [])
+        goal = swap_data.get("goal", Goal.MAINTAIN)
+        target_calories = swap_data.get("target_calories", 500)
+
+        # 1. Map Meal Type -> Food Group
+        # Logic: Sáng ăn Carb/Dish, Trưa Tối ăn Dish, Snack ăn Vitamin
+        if meal_type == "Breakfast":
+            # Random chọn nhóm Dish hoặc Carb cho phong phú
+            group = random.choice(["Dish", "Carb"])
+        elif meal_type == "Snack":
+            group = "Vitamin"
+        else: # Lunch / Dinner
+            group = "Dish"
+
+        # 2. Fetch Candidates (đã sort theo Goal Score)
+        candidates = self._fetch_candidates(group, allergies, goal)
+        
+        # 3. Filter món cũ ra
+        filtered = [c for c in candidates if str(c["_id"]) != old_id]
+
+        if not filtered:
+            # Nếu lọc xong không còn gì (hiếm), thử tìm group khác
+            # Fallback: Nếu thiếu Dish thì tìm Carb đỡ
+            if group == "Dish": 
+                candidates = self._fetch_candidates("Carb", allergies, goal)
+                filtered = [c for c in candidates if str(c["_id"]) != old_id]
+
+        if not filtered:
+            return None # Không tìm thấy món thay thế
+
+        # 4. Chọn món thay thế (Random trong top candidates còn lại)
+        choice = random.choice(filtered)
+
+        # 5. Tính toán Serving để khớp calories cũ
+        new_meal = self._calculate_serving(choice, target_calories)
+        new_meal["meal_type"] = meal_type
+        
+        # Giữ nguyên time nếu cần (Frontend tự handle hoặc gán default)
+        return new_meal
+
+    def generate_plan(self, request_data: dict) -> List[dict]:
+        # (Giữ nguyên logic generate_plan của STEP 1)
+        target_calories = request_data.get("target_calories", 2000)
+        allergies = request_data.get("allergies", [])
+        goal = request_data.get("goal", Goal.MAINTAIN)
+        
+        cal_breakfast = int(target_calories * 0.30)
+        cal_lunch = int(target_calories * 0.35)
+        cal_dinner = int(target_calories * 0.35)
+
+        generated_meals = []
+
+        candidates_bf = self._fetch_candidates("Dish", allergies, goal) + self._fetch_candidates("Carb", allergies, goal)
+        if candidates_bf:
+            choice = random.choice(candidates_bf)
+            meal = self._calculate_serving(choice, cal_breakfast)
+            meal["meal_type"] = "Breakfast"
+            meal["time"] = "07:00"
+            generated_meals.append(meal)
+
+        candidates_lunch = self._fetch_candidates("Dish", allergies, goal)
+        if candidates_lunch:
+            choice = random.choice(candidates_lunch)
+            meal = self._calculate_serving(choice, cal_lunch)
+            meal["meal_type"] = "Lunch"
+            meal["time"] = "12:00"
+            generated_meals.append(meal)
+
+        if candidates_lunch:
+            lunch_name = generated_meals[-1]["name"] if generated_meals else ""
+            remaining = [f for f in candidates_lunch if f["name"] != lunch_name]
+            if not remaining: remaining = candidates_lunch
+            choice = random.choice(remaining)
+            meal = self._calculate_serving(choice, cal_dinner)
+            meal["meal_type"] = "Dinner"
+            meal["time"] = "19:00"
+            generated_meals.append(meal)
+
+        current_total = sum(m["calories"] for m in generated_meals)
+        deficit = target_calories - current_total
+        if deficit > 150:
+            fruits = self._fetch_candidates("Vitamin", allergies, goal)
+            if fruits:
+                choice = random.choice(fruits)
+                meal = self._calculate_serving(choice, deficit)
+                meal["meal_type"] = "Snack"
+                meal["time"] = "15:30"
+                generated_meals.append(meal)
+
+        return generated_meals

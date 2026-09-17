@@ -1,0 +1,42 @@
+{
+  "classification": {
+    "model_name": "efficientnet_b3",
+    "model_path": "food_classification_efficientnet_b3.pth",
+    "model_url": null,
+    "num_classes": 101,
+    "input_size": [300, 300],
+    "device": "auto",
+    "confidence_threshold": 0.3,
+    "batch_size": 1,
+    "max_image_size": 1024,
+    "supported_formats": ["JPEG", "JPG", "PNG", "WEBP"]
+  },
+  "portion_estimation": {
+    "model_name": "portion_regressor",
+    "model_path": "portion_estimation_regressor.pth",
+    "model_url": null,
+    "num_classes": 1,
+    "input_size": [224, 224],
+    "device": "auto",
+    "confidence_threshold": 0.2,
+    "batch_size": 1,
+    "max_image_size": 1024,
+    "supported_formats": ["JPEG", "JPG", "PNG", "WEBP"]
+  },
+  "mongo_uri": "mongodb://localhost:27017",
+  "db_name": "saman_fitness",
+  "nutrition_collection": "foods",
+  "max_concurrent_requests": 10,
+  "request_timeout": 30.0,
+  "cache_ttl": 3600,
+  "classification_threshold": 0.3,
+  "portion_threshold": 0.2,
+  "overall_threshold": 0.4,
+  "enable_batch_processing": true,
+  "max_batch_size": 8,
+  "enable_gpu": true,
+  "log_level": "INFO",
+  "enable_metrics": true,
+  "metrics_port": 8001,
+  "model_base_path": "models"
+}

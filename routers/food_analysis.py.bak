@@ -1,0 +1,309 @@
+from fastapi import APIRouter, HTTPException, Depends, UploadFile, File, Form
+from fastapi.responses import JSONResponse
+from PIL import Image
+import io
+import logging
+from typing import Optional, List
+import time
+
+from app.services import FoodAnalysisEnsemble, get_config, ConfigManager, update_config
+from auth_utils import verify_token
+
+logger = logging.getLogger(__name__)
+
+router = APIRouter(prefix="/api/food", tags=["Food Analysis"])
+
+# Global ensemble instance
+food_analyzer = None
+
+def get_food_analyzer():
+    """Get or create food analyzer instance"""
+    global food_analyzer
+    if food_analyzer is None:
+        config = get_config()
+        model_paths = config_manager.get_model_paths()
+        
+        food_analyzer = FoodAnalysisEnsemble(
+            classification_model_path=model_paths.get('classification'),
+            portion_model_path=model_paths.get('portion_estimation'),
+            mongo_uri=config.mongo_uri,
+            db_name=config.db_name
+        )
+    return food_analyzer
+
+@router.post("/analyze")
+async def analyze_food_image(
+    image: UploadFile = File(...),
+    user_id: Optional[str] = Form(None),
+    top_k: int = Form(3),
+    include_nutrition: bool = Form(True),
+    email: str = Depends(verify_token)
+):
+    """
+    Analyze food image for classification, portion estimation, and nutrition calculation
+    
+    Args:
+        image: Food image file (JPEG, PNG, WEBP)
+        user_id: Optional user ID for personalization
+        top_k: Number of top food predictions to return
+        include_nutrition: Whether to include nutrition calculations
+        email: User email (from authentication)
+    
+    Returns:
+        Complete food analysis result
+    """
+    try:
+        # Validate image file
+        if not image.content_type.startswith('image/'):
+            raise HTTPException(status_code=400, detail="File must be an image")
+        
+        # Check file size (10MB limit)
+        if image.size and image.size > 10 * 1024 * 1024:
+            raise HTTPException(status_code=413, detail="Image too large (max 10MB)")
+        
+        # Read and validate image
+        image_data = await image.read()
+        try:
+            pil_image = Image.open(io.BytesIO(image_data))
+            # Convert to RGB if necessary
+            if pil_image.mode != 'RGB':
+                pil_image = pil_image.convert('RGB')
+        except Exception as e:
+            raise HTTPException(status_code=422, detail=f"Invalid image format: {str(e)}")
+        
+        # Get food analyzer and perform analysis
+        analyzer = get_food_analyzer()
+        result = analyzer.analyze_image(
+            image=pil_image,
+            top_k=top_k,
+            include_nutrition=include_nutrition,
+            user_id=user_id or email
+        )
+        
+        # Add user email to result for tracking
+        result['user_email'] = email
+        
+        return result
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Food analysis failed: {e}")
+        raise HTTPException(status_code=500, detail=f"Analysis failed: {str(e)}")
+
+@router.post("/analyze-batch")
+async def analyze_food_images_batch(
+    images: List[UploadFile] = File(...),
+    user_id: Optional[str] = Form(None),
+    top_k: int = Form(3),
+    include_nutrition: bool = Form(True),
+    email: str = Depends(verify_token)
+):
+    """
+    Analyze multiple food images in parallel
+    
+    Args:
+        images: List of food image files
+        user_id: Optional user ID for personalization
+        top_k: Number of top food predictions per image
+        include_nutrition: Whether to include nutrition calculations
+        email: User email (from authentication)
+    
+    Returns:
+        List of analysis results
+    """
+    try:
+        # Validate number of images
+        if len(images) > 8:
+            raise HTTPException(status_code=400, detail="Too many images (max 8)")
+        
+        # Validate all images
+        pil_images = []
+        for img_file in images:
+            if not img_file.content_type.startswith('image/'):
+                raise HTTPException(status_code=400, detail=f"File {img_file.filename} is not an image")
+            
+            if img_file.size and img_file.size > 10 * 1024 * 1024:
+                raise HTTPException(status_code=413, detail=f"Image {img_file.filename} too large")
+            
+            image_data = await img_file.read()
+            try:
+                pil_image = Image.open(io.BytesIO(image_data))
+                if pil_image.mode != 'RGB':
+                    pil_image = pil_image.convert('RGB')
+                pil_images.append(pil_image)
+            except Exception as e:
+                raise HTTPException(status_code=422, detail=f"Invalid image {img_file.filename}: {str(e)}")
+        
+        # Get analyzer and perform batch analysis
+        analyzer = get_food_analyzer()
+        results = analyzer.analyze_batch(
+            images=pil_images,
+            max_workers=4
+        )
+        
+        # Add user email to all results
+        for result in results:
+            result['user_email'] = email
+        
+        return {
+            'results': results,
+            'total_images': len(images),
+            'processing_time_ms': sum(r.get('processing_time_ms', 0) for r in results)
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Batch food analysis failed: {e}")
+        raise HTTPException(status_code=500, detail=f"Batch analysis failed: {str(e)}")
+
+@router.get("/health")
+async def health_check():
+    """Health check for food analysis services"""
+    try:
+        analyzer = get_food_analyzer()
+        health_status = analyzer.health_check()
+        
+        # Add additional system info
+        config = get_config()
+        health_status['system'] = {
+            'gpu_available': config.enable_gpu,
+            'model_paths': config_manager.get_model_paths(),
+            'performance_stats': analyzer.get_performance_stats()
+        }
+        
+        return health_status
+        
+    except Exception as e:
+        logger.error(f"Health check failed: {e}")
+        return JSONResponse(
+            status_code=503,
+            content={
+                'overall': 'unhealthy',
+                'error': str(e),
+                'timestamp': time.time()
+            }
+        )
+
+@router.get("/models/info")
+async def get_model_info():
+    """Get information about loaded models"""
+    try:
+        analyzer = get_food_analyzer()
+        
+        # Get model versions
+        model_info = analyzer._get_model_versions()
+        
+        # Add configuration info
+        config = get_config()
+        model_info['configuration'] = {
+            'classification_threshold': config.classification_threshold,
+            'portion_threshold': config.portion_threshold,
+            'overall_threshold': config.overall_threshold,
+            'max_concurrent_requests': config.max_concurrent_requests,
+            'enable_batch_processing': config.enable_batch_processing
+        }
+        
+        return model_info
+        
+    except Exception as e:
+        logger.error(f"Failed to get model info: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to get model info: {str(e)}")
+
+@router.post("/models/reload")
+async def reload_models():
+    """Reload all models (admin only)"""
+    try:
+        global food_analyzer
+        food_analyzer = None
+        
+        # Create new analyzer instance
+        analyzer = get_food_analyzer()
+        
+        return {
+            'message': 'Models reloaded successfully',
+            'health': analyzer.health_check(),
+            'timestamp': time.time()
+        }
+        
+    except Exception as e:
+        logger.error(f"Failed to reload models: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to reload models: {str(e)}")
+
+@router.get("/performance/stats")
+async def get_performance_stats():
+    """Get performance statistics"""
+    try:
+        analyzer = get_food_analyzer()
+        stats = analyzer.get_performance_stats()
+        
+        return stats
+        
+    except Exception as e:
+        logger.error(f"Failed to get performance stats: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to get performance stats: {str(e)}")
+
+@router.post("/config/update")
+async def update_configuration(
+    classification_threshold: Optional[float] = Form(None),
+    portion_threshold: Optional[float] = Form(None),
+    overall_threshold: Optional[float] = Form(None)
+):
+    """Update configuration thresholds (admin only)"""
+    try:
+        config_updates = {}
+        
+        if classification_threshold is not None:
+            config_updates['classification_threshold'] = classification_threshold
+        if portion_threshold is not None:
+            config_updates['portion_threshold'] = portion_threshold
+        if overall_threshold is not None:
+            config_updates['overall_threshold'] = overall_threshold
+        
+        if not config_updates:
+            raise HTTPException(status_code=400, detail="No configuration updates provided")
+        
+        # Update global configuration
+        update_config(**config_updates)
+        
+        # Update analyzer thresholds
+        analyzer = get_food_analyzer()
+        analyzer.update_confidence_thresholds(
+            classification=classification_threshold,
+            portion=portion_threshold,
+            overall=overall_threshold
+        )
+        
+        return {
+            'message': 'Configuration updated successfully',
+            'updates': config_updates,
+            'current_config': get_config().__dict__,
+            'timestamp': time.time()
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to update configuration: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to update configuration: {str(e)}")
+
+@router.get("/nutrition/search")
+async def search_similar_foods(
+    food_name: str,
+    limit: int = 5
+):
+    """Search for similar foods in nutrition database"""
+    try:
+        analyzer = get_food_analyzer()
+        similar_foods = analyzer.nutrition_mapper.search_similar_foods(food_name, limit)
+        
+        return {
+            'query': food_name,
+            'results': similar_foods,
+            'count': len(similar_foods)
+        }
+        
+    except Exception as e:
+        logger.error(f"Food search failed: {e}")
+        raise HTTPException(status_code=500, detail=f"Food search failed: {str(e)}")

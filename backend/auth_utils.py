@@ -1,0 +1,46 @@
+# [File: auth_utils.py]
+import os
+import jwt
+import bcrypt
+import random
+import string
+from fastapi import HTTPException, Depends, status
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from dotenv import load_dotenv
+
+# 1. Thêm import Database để lấy thông tin User
+from backend.app.database import users_collection
+from backend.auth.config import JWT_ALGORITHM, JWT_SECRET
+
+load_dotenv()
+
+SECRET_KEY = JWT_SECRET
+security = HTTPBearer()
+
+# --- Helper Functions ---
+
+def hash_password(password: str) -> str:
+    return bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+
+def verify_password(plain_password: str, hashed_password: str) -> bool:
+    return bcrypt.checkpw(plain_password.encode('utf-8'), hashed_password.encode('utf-8'))
+
+# Dependency: Giải mã Token lấy Email
+def verify_token(credentials: HTTPAuthorizationCredentials = Depends(security)) -> str:
+    try:
+        payload = jwt.decode(credentials.credentials, SECRET_KEY, algorithms=[JWT_ALGORITHM])
+        return payload.get("email")
+    except Exception:
+        raise HTTPException(status_code=401, detail="Token invalid")
+
+# 🔥 [MỚI] Dependency: Lấy Full User Info từ Token
+# Hàm này sẽ được dùng trong Nutrition Routes
+def get_current_user(email: str = Depends(verify_token)):
+    user = users_collection.find_one({"email": email})
+    if not user:
+        raise HTTPException(status_code=401, detail="User not found")
+    return user
+
+# Hàm tạo OTP 6 số
+def generate_otp(length=6) -> str:
+    return ''.join(random.choices(string.digits, k=length))

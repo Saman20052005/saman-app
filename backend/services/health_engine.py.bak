@@ -1,0 +1,87 @@
+from app.models.user import UserProfileInput, UserHealthStats
+from app.models.common import Gender, ActivityLevel, Goal
+from datetime import datetime
+
+class HealthEngine:
+    @staticmethod
+    def calculate_stats(profile: UserProfileInput) -> UserHealthStats:
+        """
+        Tính toán tất cả chỉ số sức khoẻ dựa trên Profile đầu vào.
+        Sử dụng công thức Mifflin-St Jeor (Chuẩn y khoa hiện nay).
+        """
+        
+        # 1. Tính BMI (Body Mass Index)
+        # Công thức: Cân nặng (kg) / (Chiều cao (m) ^ 2)
+        height_m = profile.height / 100
+        bmi = round(profile.weight / (height_m ** 2), 1)
+
+        # 2. Tính BMR (Basal Metabolic Rate - Calo nền)
+        # Công thức Mifflin-St Jeor
+        # Nam: (10 * weight) + (6.25 * height) - (5 * age) + 5
+        # Nữ: (10 * weight) + (6.25 * height) - (5 * age) - 161
+        bmr = (10 * profile.weight) + (6.25 * profile.height) - (5 * profile.age)
+        
+        if profile.gender == Gender.MALE:
+            bmr += 5
+        elif profile.gender == Gender.FEMALE:
+            bmr -= 161
+        else:
+            # Nếu giới tính khác, lấy trung bình
+            bmr -= 78 
+
+        # 3. Tính TDEE (Total Daily Energy Expenditure) dựa trên vận động
+        # TDEE = BMR * Activity Multiplier
+        activity_multipliers = {
+            ActivityLevel.LOW: 1.2,      # Ít vận động, làm văn phòng
+            ActivityLevel.MEDIUM: 1.55,  # Tập 3-5 ngày/tuần
+            ActivityLevel.HIGH: 1.725    # Tập 6-7 ngày/tuần hoặc lao động nặng
+        }
+        multiplier = activity_multipliers.get(profile.activity_level, 1.2)
+        tdee = int(bmr * multiplier)
+
+        # 4. Điều chỉnh Calo theo Mục tiêu (Goal)
+        target_calories = tdee
+        
+        if profile.goal == Goal.LOSE_WEIGHT:
+            target_calories -= 500  # Thâm hụt 500 calo để giảm ~0.5kg/tuần
+        elif profile.goal == Goal.GAIN_MUSCLE:
+            target_calories += 300  # Dư 300 calo để xây cơ nạc
+        
+        # Đảm bảo không xuống dưới mức an toàn (1200 cho nữ, 1500 cho nam)
+        min_safe_calories = 1500 if profile.gender == Gender.MALE else 1200
+        target_calories = max(target_calories, min_safe_calories)
+
+        # 5. Tính Macros (Protein / Carbs / Fat)
+        # Tỷ lệ % năng lượng tuỳ theo mục tiêu
+        if profile.goal == Goal.GAIN_MUSCLE:
+            # Tăng cơ: High Protein, Moderate Carbs
+            p_ratio, c_ratio, f_ratio = 0.30, 0.45, 0.25
+        elif profile.goal == Goal.LOSE_WEIGHT:
+            # Giảm cân: High Protein (giữ cơ), Low Carbs
+            p_ratio, c_ratio, f_ratio = 0.40, 0.30, 0.30
+        else:
+            # Giữ cân: Balanced
+            p_ratio, c_ratio, f_ratio = 0.30, 0.40, 0.30
+
+        # Quy đổi ra gram:
+        # Protein = 4 calo/g
+        # Carbs = 4 calo/g
+        # Fat = 9 calo/g
+        target_protein = int((target_calories * p_ratio) / 4)
+        target_carbs = int((target_calories * c_ratio) / 4)
+        target_fat = int((target_calories * f_ratio) / 9)
+
+        # 6. Tính lượng nước cần uống (Water Intake)
+        # Công thức: Cân nặng (kg) * 35ml
+        water_target = int(profile.weight * 35)
+
+        return UserHealthStats(
+            bmi=bmi,
+            bmr=int(bmr),
+            tdee=target_calories, # Trả về TDEE mục tiêu (đã cộng/trừ theo goal)
+            water_target_ml=water_target,
+            target_protein=target_protein,
+            target_carbs=target_carbs,
+            target_fat=target_fat,
+            updated_at=datetime.utcnow()
+        )

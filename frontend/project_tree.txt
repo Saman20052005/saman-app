@@ -1,0 +1,272 @@
+.
+├── .DS_Store
+├── .flutter-plugins-dependencies
+├── .gitignore
+├── .idea
+│   ├── libraries
+│   │   ├── Dart_SDK.xml
+│   │   └── KotlinJavaRuntime.xml
+│   ├── modules.xml
+│   ├── runConfigurations
+│   │   └── main_dart.xml
+│   └── workspace.xml
+├── .metadata
+├── .vscode
+│   └── settings.json
+├── analysis_options.yaml
+├── assets
+│   ├── .DS_Store
+│   └── icons
+│       └── google.png
+├── devtools_options.yaml
+├── features
+│   └── profile
+│       ├── data
+│       │   └── repositories
+│       │       └── profile_repository_impl.dart
+│       └── domain
+│           └── repositories
+│               └── profile_repository.dart
+├── health_ai_app.iml
+├── lib
+│   ├── .DS_Store
+│   ├── config
+│   │   ├── api_config.dart
+│   │   ├── app_translations.dart
+│   │   ├── routes.dart
+│   │   └── theme_provider.dart
+│   ├── controllers
+│   │   └── chat_controller.dart
+│   ├── features
+│   │   ├── .DS_Store
+│   │   ├── nutrition
+│   │   │   ├── .DS_Store
+│   │   │   ├── data
+│   │   │   │   ├── models
+│   │   │   │   │   └── meal_log_model.dart
+│   │   │   │   └── repositories
+│   │   │   │       └── nutrition_repository_impl.dart
+│   │   │   ├── domain
+│   │   │   │   ├── .DS_Store
+│   │   │   │   ├── entities
+│   │   │   │   │   ├── daily_nutrition.dart
+│   │   │   │   │   └── meal_log.dart
+│   │   │   │   ├── repositories
+│   │   │   │   │   └── nutrition_repository.dart
+│   │   │   │   └── usecases
+│   │   │   │       ├── get_daily_nutrition_usecase.dart
+│   │   │   │       ├── get_daily_nutrition_usecase.g.dart
+│   │   │   │       ├── get_daily_stories_usecase.dart
+│   │   │   │       ├── get_daily_stories.dart
+│   │   │   │       ├── log_meal_story_usecase.dart
+│   │   │   │       └── log_meal_story.dart
+│   │   │   └── presentation
+│   │   │       ├── .DS_Store
+│   │   │       ├── controllers
+│   │   │       │   ├── daily_nutrition_controller.dart
+│   │   │       │   ├── daily_nutrition_controller.g.dart
+│   │   │       │   └── daily_story_controller.dart
+│   │   │       ├── providers
+│   │   │       │   └── nutrition_providers.dart
+│   │   │       ├── screens
+│   │   │       │   ├── add_meal_screen.dart
+│   │   │       │   └── nutrition_dashboard_screen.dart
+│   │   │       └── widgets
+│   │   │           ├── log_meal_sheet.dart
+│   │   │           └── story_timeline.dart
+│   │   ├── profile
+│   │   │   ├── data
+│   │   │   │   ├── datasources
+│   │   │   │   │   ├── profile_local_data_source.dart
+│   │   │   │   │   └── profile_remote_data_source.dart
+│   │   │   │   ├── models
+│   │   │   │   │   └── profile_model.dart
+│   │   │   │   └── repositories
+│   │   │   │       └── profile_repository_impl.dart
+│   │   │   └── domain
+│   │   │       ├── entities
+│   │   │       │   └── profile_entity.dart
+│   │   │       └── repositories
+│   │   │           └── profile_repository.dart
+│   │   ├── report
+│   │   │   ├── data
+│   │   │   │   └── repositories
+│   │   │   │       └── report_repository_impl.dart
+│   │   │   ├── domain
+│   │   │   │   └── entities
+│   │   │   │       └── weekly_report_entity.dart
+│   │   │   └── presentation
+│   │   │       └── providers
+│   │   │           └── report_provider.dart
+│   │   └── workout
+│   │       ├── .DS_Store
+│   │       ├── data
+│   │       │   ├── .DS_Store
+│   │       │   ├── datasources
+│   │       │   │   └── workout_remote_source.dart
+│   │       │   ├── models
+│   │       │   │   ├── workout_log_request.dart
+│   │       │   │   └── workout_plan_model.dart
+│   │       │   └── repositories
+│   │       │       └── workout_repository_impl.dart
+│   │       ├── domain
+│   │       │   ├── .DS_Store
+│   │       │   ├── entities
+│   │       │   │   └── workout_plan.dart
+│   │       │   └── repositories
+│   │       │       └── workout_repository.dart
+│   │       └── presentation
+│   │           ├── .DS_Store
+│   │           └── controllers
+│   │               ├── workout_controller.dart
+│   │               └── workout_controller.g.dart
+│   ├── main.dart
+│   ├── models
+│   │   ├── food_model.dart
+│   │   ├── nutrition_model.dart
+│   │   └── report_model.dart
+│   ├── providers
+│   │   ├── .DS_Store
+│   │   ├── nutrition_provider.dart
+│   │   └── profile_provider.dart
+│   ├── screens
+│   │   ├── .DS_Store
+│   │   ├── active_workout_screen.dart
+│   │   ├── chat_screen.dart
+│   │   ├── create_plan_screen.dart
+│   │   ├── food_log_screen.dart
+│   │   ├── home_screen.dart
+│   │   ├── login
+│   │   │   ├── .DS_Store
+│   │   │   ├── login_controller.dart
+│   │   │   ├── login_screen.dart
+│   │   │   └── widgets
+│   │   │       ├── forgot_password_sheet.dart
+│   │   │       ├── login_form.dart
+│   │   │       └── social_login_row.dart
+│   │   ├── main_screen.dart
+│   │   ├── nutrition
+│   │   │   ├── .DS_Store
+│   │   │   ├── nutrition_screen.dart
+│   │   │   └── widgets
+│   │   │       ├── date_selector.dart
+│   │   │       ├── meal_card.dart
+│   │   │       └── nutrition_summary.dart
+│   │   ├── plan_screen.dart
+│   │   ├── profile_screen.dart
+│   │   ├── report_screen.dart
+│   │   ├── splash_screen.dart
+│   │   └── workout_screen.dart
+│   ├── services
+│   │   ├── calorie_calculator.dart
+│   │   ├── nutrient_calculator.dart
+│   │   ├── nutrition_service.dart
+│   │   └── report_service.dart
+│   └── widgets
+│       ├── app_logo.dart
+│       ├── trend_chart_card.dart
+│       └── weekly_chart.dart
+├── linux
+│   ├── .gitignore
+│   ├── CMakeLists.txt
+│   ├── flutter
+│   │   ├── CMakeLists.txt
+│   │   ├── ephemeral
+│   │   │   └── .plugin_symlinks
+│   │   │       ├── file_selector_linux -> /Users/nguyenvanan/.pub-cache/hosted/pub.dev/file_selector_linux-0.9.4/
+│   │   │       ├── flutter_secure_storage_linux -> /Users/nguyenvanan/.pub-cache/hosted/pub.dev/flutter_secure_storage_linux-1.2.3/
+│   │   │       ├── image_picker_linux -> /Users/nguyenvanan/.pub-cache/hosted/pub.dev/image_picker_linux-0.2.2/
+│   │   │       ├── path_provider_linux -> /Users/nguyenvanan/.pub-cache/hosted/pub.dev/path_provider_linux-2.2.1/
+│   │   │       └── shared_preferences_linux -> /Users/nguyenvanan/.pub-cache/hosted/pub.dev/shared_preferences_linux-2.4.1/
+│   │   ├── generated_plugin_registrant.cc
+│   │   ├── generated_plugin_registrant.h
+│   │   └── generated_plugins.cmake
+│   └── runner
+│       ├── CMakeLists.txt
+│       ├── main.cc
+│       ├── my_application.cc
+│       └── my_application.h
+├── macos
+│   ├── .DS_Store
+│   ├── .gitignore
+│   ├── Flutter
+│   │   ├── ephemeral
+│   │   │   ├── flutter_export_environment.sh
+│   │   │   └── Flutter-Generated.xcconfig
+│   │   ├── Flutter-Debug.xcconfig
+│   │   ├── Flutter-Release.xcconfig
+│   │   └── GeneratedPluginRegistrant.swift
+│   ├── Runner
+│   │   ├── AppDelegate.swift
+│   │   ├── Assets.xcassets
+│   │   │   └── AppIcon.appiconset
+│   │   │       ├── app_icon_1024.png
+│   │   │       ├── app_icon_128.png
+│   │   │       ├── app_icon_16.png
+│   │   │       ├── app_icon_256.png
+│   │   │       ├── app_icon_32.png
+│   │   │       ├── app_icon_512.png
+│   │   │       ├── app_icon_64.png
+│   │   │       └── Contents.json
+│   │   ├── Base.lproj
+│   │   │   └── MainMenu.xib
+│   │   ├── Configs
+│   │   │   ├── AppInfo.xcconfig
+│   │   │   ├── Debug.xcconfig
+│   │   │   ├── Release.xcconfig
+│   │   │   └── Warnings.xcconfig
+│   │   ├── DebugProfile.entitlements
+│   │   ├── Info.plist
+│   │   ├── MainFlutterWindow.swift
+│   │   └── Release.entitlements
+│   ├── Runner.xcodeproj
+│   │   ├── project.pbxproj
+│   │   ├── project.xcworkspace
+│   │   │   └── xcshareddata
+│   │   │       └── IDEWorkspaceChecks.plist
+│   │   └── xcshareddata
+│   │       └── xcschemes
+│   │           └── Runner.xcscheme
+│   ├── Runner.xcworkspace
+│   │   ├── contents.xcworkspacedata
+│   │   └── xcshareddata
+│   │       └── IDEWorkspaceChecks.plist
+│   └── RunnerTests
+│       └── RunnerTests.swift
+├── project_tree.txt
+├── pubspec.lock
+├── pubspec.yaml
+├── README.md
+├── test
+│   └── widget_test.dart
+└── windows
+    ├── .gitignore
+    ├── CMakeLists.txt
+    ├── flutter
+    │   ├── CMakeLists.txt
+    │   ├── ephemeral
+    │   │   └── .plugin_symlinks
+    │   │       ├── file_selector_windows -> /Users/nguyenvanan/.pub-cache/hosted/pub.dev/file_selector_windows-0.9.3+5/
+    │   │       ├── flutter_secure_storage_windows -> /Users/nguyenvanan/.pub-cache/hosted/pub.dev/flutter_secure_storage_windows-3.1.2/
+    │   │       ├── image_picker_windows -> /Users/nguyenvanan/.pub-cache/hosted/pub.dev/image_picker_windows-0.2.2/
+    │   │       ├── path_provider_windows -> /Users/nguyenvanan/.pub-cache/hosted/pub.dev/path_provider_windows-2.3.0/
+    │   │       └── shared_preferences_windows -> /Users/nguyenvanan/.pub-cache/hosted/pub.dev/shared_preferences_windows-2.4.1/
+    │   ├── generated_plugin_registrant.cc
+    │   ├── generated_plugin_registrant.h
+    │   └── generated_plugins.cmake
+    └── runner
+        ├── CMakeLists.txt
+        ├── flutter_window.cpp
+        ├── flutter_window.h
+        ├── main.cpp
+        ├── resource.h
+        ├── resources
+        │   └── app_icon.ico
+        ├── runner.exe.manifest
+        ├── Runner.rc
+        ├── utils.cpp
+        ├── utils.h
+        ├── win32_window.cpp
+        └── win32_window.h
+
+102 directories, 168 files

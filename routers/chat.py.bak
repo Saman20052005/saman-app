@@ -1,0 +1,110 @@
+# [File: routers/chat.py]
+from fastapi import APIRouter, HTTPException, Depends
+from pydantic import BaseModel
+import os
+import logging
+
+# 🔥 IMPORT REPOSITORY (Thay vì gọi DB trực tiếp)
+from app.repositories.user_repository import UserRepository
+
+# Import Auth
+from auth_utils import verify_token
+
+router = APIRouter(prefix="/api/chat", tags=["AI Chat"])
+
+# Khởi tạo Repo
+user_repo = UserRepository()
+
+# 🔑 KEY CỦA BẠN (Nên đưa vào biến môi trường nếu có thể)
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+
+# Biến lưu client đã chọn
+current_client = None
+
+def configure_gemini():
+    global current_client
+    try:
+        from google import genai
+        
+        if not GEMINI_API_KEY:
+            logging.warning("GEMINI_API_KEY not found, using mock client")
+            return None
+            
+        # Use new Client API (NOT genai.configure)
+        client = genai.Client(api_key=GEMINI_API_KEY)
+        
+        # Test the client
+        try:
+            models = client.models.list()
+            logging.info(f"✅ Gemini client initialized successfully")
+            return client
+        except Exception as e:
+            logging.error(f"❌ Gemini client test failed: {e}")
+            return None
+            
+    except ImportError as e:
+        logging.error(f"❌ Google GenAI import failed: {e}")
+        return None
+    except Exception as e:
+        logging.error(f"⚠️ Gemini Config Error: {e}")
+        return None
+
+from typing import Optional, List, Dict
+
+# Khởi tạo client lần đầu
+current_client = configure_gemini()
+
+class ChatRequest(BaseModel):
+    message: str
+    context: Optional[Dict] = None
+    history: Optional[List] = None
+
+@router.post("")
+async def chat_with_ai(request: ChatRequest, email: str = Depends(verify_token)):
+    global current_client
+    
+    # Nếu chưa có client, thử cấu hình lại
+    if not current_client:
+        current_client = configure_gemini()
+        if not current_client:
+            return {"reply": "Lỗi cấu hình AI (Server chưa tìm thấy Model).", "status": "error"}
+
+    try:
+        # 🔥 REFACTOR: Dùng Repository để lấy thông tin User
+        user = user_repo.get_by_email(email)
+        
+        user_context_str = ""
+        if user and "profile" in user and user["profile"]:
+            p = user["profile"]
+            stats = user.get("health_stats", {})
+            user_context_str = f"""
+            HỒ SƠ NGƯỜI DÙNG:
+            - Tên: {user.get('full_name', 'Bạn')}
+            - Cân nặng: {p.get('weight')}kg
+            - Mục tiêu: {p.get('goal', 'sống khỏe')}
+            - TDEE (Calo tiêu thụ mỗi ngày): {stats.get('tdee', 'chưa tính')} kcal
+            """
+        
+        # 2. Gửi prompt
+        full_prompt = f"{user_context_str}\nUSER HỎI: {request.message}\nTRẢ LỜI NGẮN GỌN (Dưới 100 từ):"
+        
+        # Use the new genai client API
+        from google import genai
+        response = current_client.models.generate_content(
+            model="gemini-1.5-flash",
+            contents=full_prompt
+        )
+        
+        return {
+            "reply": response.text,
+            "status": "success"
+        }
+
+    except Exception as e:
+        logging.error(f"Chat Error: {e}")
+        # Reset client phòng trường hợp lỗi kết nối
+        current_client = None 
+        return {
+            "reply": f"Lỗi AI: {str(e)}", 
+            "status": "error"
+        }

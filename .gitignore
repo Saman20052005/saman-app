@@ -1,0 +1,99 @@
+## Flutter/Dart
+
+**/.dart_tool/
+
+**/.flutter-plugins
+
+**/.flutter-plugins-dependencies
+
+**/.packages
+
+**/build/
+
+**/.pub-cache/
+
+**/.pub/
+
+## iOS
+
+**/ios/Pods/
+
+**/ios/Flutter/Flutter.framework
+
+**/ios/Flutter/Flutter.podspec
+
+**/ios/.symlinks/
+
+## Android
+
+**/android/.gradle/
+
+**/android/local.properties
+
+**/android/**/gradle-wrapper.jar
+
+## macOS
+
+**/macos/Pods/
+
+## IDE
+
+.vscode/
+
+.idea/
+
+*.iml
+
+## OS
+
+.DS_Store
+
+## Secrets (phòng khi sau này thêm .env)
+
+**/.env
+
+**/*.env.local
+
+**/secrets.dart
+
+## Python/backend
+
+**pycache**/
+
+*.py[cod]
+
+*$py.class
+
+.venv/
+
+venv/
+
+env/
+
+*.egg-info/
+
+.pytest_cache/
+
+.mypy_cache/
+
+## Model weights (placeholder/dummy, không nên nằm trong Git)
+
+*.pt
+
+*.pth
+
+*.onnx
+
+*.h5
+
+## Secrets
+
+.env
+
+.env.*
+
+!.env.example
+
+*.pem
+
+*.key
