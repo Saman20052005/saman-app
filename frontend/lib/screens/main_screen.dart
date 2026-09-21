@@ -10,6 +10,9 @@ import 'chat_screen.dart';
 import 'nutrition/nutrition_screen.dart';
 import 'profile_screen.dart';
 
+import 'home/tokens/saman_home_tokens.dart';
+import 'home/widgets/saman_bottom_navigation_bar.dart';
+
 // Import Provider
 import '../providers/profile_provider.dart';
 
@@ -57,59 +60,15 @@ class _MainScreenState extends ConsumerState<MainScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
-
     return Scaffold(
-      backgroundColor: colors.surface,
+      backgroundColor: SamanHomeTokens.canvas,
       body: IndexedStack(
         index: _currentIndex,
         children: _screens,
       ),
-      bottomNavigationBar: Container(
-        decoration: BoxDecoration(
-          color: colors.surface,
-          border: Border(top: BorderSide(color: colors.outline, width: 1)),
-        ),
-        child: BottomNavigationBar(
-          currentIndex: _currentIndex,
-          onTap: _onTabTapped,
-          type: BottomNavigationBarType.fixed,
-          backgroundColor: colors.surface,
-          elevation: 0,
-          selectedItemColor: colors.primary,
-          unselectedItemColor: colors.onSurface.withOpacity(0.6),
-          selectedLabelStyle: const TextStyle(
-              fontWeight: FontWeight.w700, fontSize: 12, height: 1.5),
-          unselectedLabelStyle: const TextStyle(
-              fontWeight: FontWeight.w500, fontSize: 12, height: 1.5),
-          items: const [
-            BottomNavigationBarItem(
-              icon: Icon(Icons.home_outlined),
-              activeIcon: Icon(Icons.home_rounded),
-              label: 'Home',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.fitness_center_outlined),
-              activeIcon: Icon(Icons.fitness_center_rounded),
-              label: 'Workout',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.chat_bubble_outline_rounded),
-              activeIcon: Icon(Icons.chat_bubble_rounded),
-              label: 'AI Coach',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.pie_chart_outline_rounded),
-              activeIcon: Icon(Icons.pie_chart_rounded),
-              label: 'Nutrition',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.person_outline_rounded),
-              activeIcon: Icon(Icons.person_rounded),
-              label: 'Profile',
-            ),
-          ],
-        ),
+      bottomNavigationBar: SamanBottomNavigationBar(
+        currentIndex: _currentIndex,
+        onTap: _onTabTapped,
       ),
     );
   }
