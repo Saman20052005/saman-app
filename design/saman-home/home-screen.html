@@ -1,0 +1,332 @@
+<!DOCTYPE html><html class="dark" lang="en" style=""><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport">
+<title>Saman - AI Fitness &amp; Nutrition</title>
+<!-- Tailwind CSS v3 with Forms & Container Queries -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Tailwind Custom Configuration -->
+<script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            surface: {
+              base: '#0c0d0e',
+              card: '#16171a',
+              cardHover: '#1c1d22',
+              elevated: '#212329',
+              border: '#26282f',
+              borderSubtle: 'rgba(255, 255, 255, 0.07)'
+            }
+          },
+          fontFamily: {
+            sans: ['-apple-system', 'BlinkMacSystemFont', '"SF Pro Text"', '"SF Pro Display"', 'Inter', 'sans-serif']
+          }
+        }
+      }
+    }
+  </script>
+<!-- BEGIN: Base & Layout Styles -->
+<style data-purpose="base-layout">
+    body {
+      background-color: #0c0d0e;
+      color: #f3f4f6;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    /* Hide standard scrollbars for sleek app-like feel */
+    .no-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+    .no-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+  </style>
+<!-- END: Base & Layout Styles -->
+</head>
+<body class="bg-[#0c0d0e] text-[#f3f4f6] min-h-screen flex justify-center selection:bg-neutral-800">
+<!-- BEGIN: Mobile Viewport Container (~393px width portrait phone) -->
+<div class="w-full max-w-[420px] min-h-screen bg-[#0c0d0e] flex flex-col border-x border-[#1a1b1f] relative shadow-2xl pb-24">
+<!-- BEGIN: iOS Status Bar -->
+<header class="w-full pt-3 px-6 pb-2 flex justify-between items-center text-xs tracking-tight text-neutral-400 select-none z-20">
+<span class="font-semibold text-sm text-neutral-200">9:41</span>
+<div class="flex items-center space-x-2">
+<!-- Cellular Signal -->
+<svg class="w-3.5 h-3.5 fill-current text-neutral-300" viewBox="0 0 24 24">
+<path d="M2 20h2v-4H2v4zm4 0h2v-8H6v8zm4 0h2v-12h-2v12zm4 0h2v-16h-2v16zm4 0h2V0h-2v20z"></path>
+</svg>
+<!-- Wifi Icon -->
+<svg class="w-3.5 h-3.5 fill-current text-neutral-300" viewBox="0 0 24 24">
+<path d="M12 4C7.31 4 3.07 5.9 0 8.98L12 21 24 8.98C20.93 5.9 16.69 4 12 4zm0 3.66c3.78 0 7.2 1.48 9.77 3.91L12 19.33 2.23 11.57C4.8 9.14 8.22 7.66 12 7.66z"></path>
+</svg>
+<!-- Battery Icon -->
+<div class="w-5 h-2.5 border border-neutral-400 rounded-sm p-0.5 flex items-center">
+<div class="h-full bg-neutral-200 rounded-[1px] w-3/4"></div>
+</div>
+</div>
+</header>
+<!-- END: iOS Status Bar -->
+<!-- BEGIN: 1. Main Header Bar (Compact & uncluttered) -->
+<section class="px-5 pt-2 pb-2 flex items-center justify-between" data-purpose="user-header">
+<div>
+<h1 class="text-2xl font-bold tracking-tight text-white leading-tight">Hello, Saman</h1>
+<p class="text-xs text-[#94979e] font-medium tracking-normal mt-0.5">Tuesday, Oct 24 • Recovery &amp; Power</p>
+</div>
+<!-- Action Pill Buttons -->
+<div class="flex items-center space-x-2">
+<!-- Notification Button -->
+<button aria-label="Notifications" class="relative w-9 h-9 rounded-xl bg-[#16171a] border border-[#26282f] flex items-center justify-center text-neutral-300 hover:text-white transition active:scale-95">
+<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+<path d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+</svg>
+<span class="absolute top-2 right-2 w-1.5 h-1.5 bg-emerald-500 rounded-full ring-2 ring-[#16171a]"></span>
+</button>
+<!-- Profile/Settings Button -->
+<button aria-label="Settings" class="w-9 h-9 rounded-xl bg-[#16171a] border border-[#26282f] flex items-center justify-center text-neutral-300 hover:text-white transition active:scale-95">
+<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+<path d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+<path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+</svg>
+</button>
+</div>
+</section>
+<!-- END: 1. Main Header Bar -->
+<!-- BEGIN: 2. Minimal AI Coach Line (Quiet coaching line) -->
+<section class="px-5 pt-1 pb-3" data-purpose="minimal-ai-coach">
+<div class="flex items-center justify-between gap-3 text-xs bg-[#131417] border border-[#23252a] px-3.5 py-2.5 rounded-xl">
+<div class="flex items-center space-x-2 min-w-0">
+<svg class="w-3.5 h-3.5 text-neutral-300 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+<path d="M13 10V3L4 14h7v7l9-11h-7z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+</svg>
+<p class="text-neutral-300 text-[11.5px] leading-tight"><span class="text-white font-medium">Saman:</span> Leg Day ready. Aim for 40g protein before 2 PM.</p>
+</div>
+<a class="text-neutral-400 hover:text-white text-xs font-medium whitespace-nowrap flex items-center space-x-0.5 transition flex-shrink-0" href="#coach">
+<span class="">Ask Saman</span>
+<span class="text-[11px]">→</span>
+</a>
+</div>
+</section>
+<!-- END: 2. Minimal AI Coach Line -->
+<!-- Scrollable Main Content -->
+<main class="flex-1 px-4 space-y-4 overflow-y-auto no-scrollbar pb-6">
+<!-- BEGIN: 3. Dominant HERO: Today's Workout -->
+<section class="relative" data-purpose="workout-hero"><div class="flex gap-3.5 overflow-x-auto snap-x snap-mandatory no-scrollbar -mx-4 px-4 pb-1"><div class="w-[88%] flex-shrink-0 snap-center rounded-2xl border border-[#272930] relative overflow-hidden shadow-lg group bg-[#16171b]"><div class="relative w-full aspect-[4/3] max-h-[300px] overflow-hidden bg-[#16171b]"><img alt="Moody gym training session" class="w-full h-full object-cover object-top opacity-60" src="https://lh3.googleusercontent.com/aida/AEtjO1XAlNawiaZeoY-wujCifjo0BKFUrggIKf0AJ0o6BO3iW0FvGkcLFMZpuMwPGaXLCeUW3Eda_UgPyn_yJ-BE3RffFkdHqyqmcEjqW7f--_RYPEuPk6sPgJvrZo2iCFephHOC2gvsYNw5Js7l8eHYRKShXi36GsN2ETxm7uhy-zuBhoOjl03Dd8TybqVF06qyyCgIRhOR2AQxVK_gUhuJwfbfcK86kJ2QH_w68WfTjqI"><div class="absolute inset-0 bg-gradient-to-t from-[#0c0d0e] via-[#0c0d0e]/60 to-transparent"></div><div class="absolute inset-0 bg-[#0c0d0e]/30"></div><div class="absolute inset-0 p-4 flex flex-col justify-between"><div class="flex items-center justify-between"><span class="inline-flex items-center px-2.5 py-1 rounded-full bg-[#1b1d22]/90 border border-white/10 text-[11px] font-medium text-neutral-200 tracking-wide">Recommended for today</span><span class="text-[11px] font-medium text-neutral-300 bg-black/40 backdrop-blur-sm px-2.5 py-1 rounded-md border border-white/5">Week 2 of 4</span></div><div class="space-y-2.5 pt-4"><div><p class="text-[10px] font-medium tracking-wider uppercase text-neutral-400 mb-0.5">Best match for your recovery</p><h2 class="text-xl font-bold tracking-tight text-white leading-tight">Leg Day &amp; Posterior Chain</h2><p class="text-xs text-neutral-300 mt-1 font-normal">45 min · 5 compound exercises · Target RPE 8.5</p></div><div class="flex items-center gap-1.5 flex-wrap"><span class="px-2 py-0.5 rounded bg-black/50 border border-white/10 text-[10.5px] text-neutral-300">Squat (4×8)</span><span class="px-2 py-0.5 rounded bg-black/50 border border-white/10 text-[10.5px] text-neutral-300">RDL (3×10)</span><span class="px-2 py-0.5 rounded bg-black/50 border border-white/10 text-[10.5px] text-neutral-300">Bulgarian Split</span></div><button class="w-full bg-neutral-800 hover:bg-neutral-700 text-white font-medium text-xs px-5 py-3 rounded-xl border border-neutral-700/80 transition flex items-center justify-center space-x-2 active:scale-[0.99] shadow-sm mt-1"><svg class="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"></path></svg><span class="font-semibold text-sm">Start Workout →</span></button></div></div></div></div><div class="w-[72%] flex-shrink-0 snap-center rounded-2xl border border-[#272930] relative overflow-hidden shadow-lg group bg-[#16171b]"><div class="relative w-full aspect-[4/3] max-h-[300px] overflow-hidden bg-[#16171b]"><img alt="Upper strength workout" class="w-full h-full object-cover object-top opacity-50" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDXP2jCVUpChOrJVpkrSWyRKg47mJZ6Xz_N2K-ceGoArdCRu3b44PmXByTI2-7bp8Qvd8Bajkv3A7DdDtIBU0mb65KK7e1NfwxojTlGdQrrP0WSvT6445RuZdATaB1yUG_O5Q5XbDjChryD7wIQdIz7ssJDvBBc-xXQQuDA06DO77ITs9Lg10LZqouDjsQdV1ScVbxz1yvbqN_fpO5rwO-aICAIuoOyWf98Vw741xU"><div class="absolute inset-0 bg-gradient-to-t from-[#0c0d0e] via-[#0c0d0e]/60 to-transparent"></div><div class="absolute inset-0 bg-[#0c0d0e]/40"></div><div class="absolute inset-0 p-4 flex flex-col justify-between"><div><span class="inline-flex items-center px-2 py-0.5 rounded-full bg-[#1b1d22]/90 border border-white/10 text-[10.5px] font-medium text-neutral-300">Program option</span></div><div class="space-y-2"><div><h2 class="text-lg font-bold tracking-tight text-white leading-tight">Upper Strength</h2><p class="text-xs text-neutral-400 mt-1 font-normal">40 min · Push &amp; Pull</p></div><a class="inline-flex items-center text-xs font-semibold text-neutral-200 hover:text-white pt-1 transition" href="#workout-upper">View workout →</a></div></div></div></div><div class="w-[72%] flex-shrink-0 snap-center rounded-2xl border border-[#272930] relative overflow-hidden shadow-lg group bg-[#16171b]"><div class="relative w-full aspect-[4/3] max-h-[300px] overflow-hidden bg-[#16171b]"><img alt="Full body express workout" class="w-full h-full object-cover object-top opacity-50" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBpHhDBXqh5q8LbgmhdcUmi4z-7J4aFIQshf2WRVJpFbKKxSJLGLFA2js7HuPfqPelu1Y9n775wNLuu308QkcncdNc27sZqcGB4hGpEmBRk0heV8YvfKCRwI3C6orhbHiIPNjbl5rE8mSc-OiXYiR-m62Khv_JFnzb1tUjNMmHX5ZJ1FE6fMSPqAz2wnavfMgMKE4s1c37y_DgQjncsuRfN_e2vGfzB-ra6-oQWM5A"><div class="absolute inset-0 bg-gradient-to-t from-[#0c0d0e] via-[#0c0d0e]/60 to-transparent"></div><div class="absolute inset-0 bg-[#0c0d0e]/40"></div><div class="absolute inset-0 p-4 flex flex-col justify-between"><div><span class="inline-flex items-center px-2 py-0.5 rounded-full bg-[#1b1d22]/90 border border-white/10 text-[10.5px] font-medium text-neutral-300">Time saver</span></div><div class="space-y-2"><div><h2 class="text-lg font-bold tracking-tight text-white leading-tight">Full Body Express</h2><p class="text-xs text-neutral-400 mt-1 font-normal">25 min · Efficient compound work</p></div><a class="inline-flex items-center text-xs font-semibold text-neutral-200 hover:text-white pt-1 transition" href="#workout-express">View workout →</a></div></div></div></div><div class="w-[72%] flex-shrink-0 snap-center rounded-2xl border border-[#272930] relative overflow-hidden shadow-lg group bg-[#16171b]"><div class="relative w-full aspect-[4/3] max-h-[300px] overflow-hidden bg-[#16171b]"><img alt="Active recovery session" class="w-full h-full object-cover object-top opacity-50" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCJohtHWutgCwgJ6HQWyGNU8FmXxqlhgQkgN-FOzH1wT6xfxV7NdnZEaPO0qOzpiboFmqc6BebVmDZY8QNEThBvqT2r15BXVovhTclsmfdHctA_BXtUSHGNEQLfUxTt52c6U6f2li6hvZRPB-b3FDDgoseGdmbwI6cqyBcVN3196AsQAGwGdTfrP-Qhcdgw3WjgHcxT4B0dImFHJQTx1R6AZPkUU7XHulMb78RhnKI"><div class="absolute inset-0 bg-gradient-to-t from-[#0c0d0e] via-[#0c0d0e]/60 to-transparent"></div><div class="absolute inset-0 bg-[#0c0d0e]/40"></div><div class="absolute inset-0 p-4 flex flex-col justify-between"><div><span class="inline-flex items-center px-2 py-0.5 rounded-full bg-[#1b1d22]/90 border border-white/10 text-[10.5px] font-medium text-neutral-300">Low intensity</span></div><div class="space-y-2"><div><h2 class="text-lg font-bold tracking-tight text-white leading-tight">Active Recovery</h2><p class="text-xs text-neutral-400 mt-1 font-normal">20 min · Mobility &amp; light conditioning</p></div><a class="inline-flex items-center text-xs font-semibold text-neutral-200 hover:text-white pt-1 transition" href="#workout-recovery">View workout →</a></div></div></div></div></div></section>
+<!-- END: 3. Dominant HERO: Today's Workout -->
+<!-- BEGIN: 4. Today at a glance (Exactly three compact metrics in one clean row) -->
+<section class="rounded-2xl bg-[#16171b] border border-[#272930] p-4" data-purpose="daily-targets"><div class="flex items-center justify-between mb-4"><h3 class="text-xs font-semibold uppercase tracking-wider text-neutral-300">DAILY TARGETS</h3><div class="flex items-center space-x-2.5"><span class="text-[11px] font-medium text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full">2 on track</span><a class="text-xs text-neutral-400 hover:text-white transition font-medium" href="#nutrition">Nutrition details →</a></div></div><div class="space-y-3.5"><div class="space-y-1.5"><div class="flex items-center justify-between"><span class="text-sm font-medium text-neutral-200">Calories</span><div class="flex items-center space-x-1.5"><span class="text-sm font-semibold text-white">1,850 <span class="text-neutral-400 font-normal text-xs">/ 2,500 kcal</span></span><span class="text-neutral-500 text-xs">·</span><span class="text-xs text-neutral-300 font-medium">74%</span></div></div><div class="w-full h-1 rounded-full bg-neutral-800 overflow-hidden"><div class="h-full bg-neutral-200 rounded-full" style="width: 74%"></div></div></div><div class="border-t border-neutral-800/80"></div><div class="grid grid-cols-3 gap-3 pt-0.5"><div class="space-y-1.5"><div class="flex items-center justify-between text-[11px]"><span class="text-neutral-400 font-semibold tracking-wider text-[10px] uppercase">Protein</span><span class="text-emerald-400 font-medium text-[10.5px]">75%</span></div><div class="text-xs font-semibold text-white tracking-tight">120g <span class="text-neutral-400 font-normal text-[10.5px]">/ 160g</span></div><div class="w-full h-1 rounded-full bg-neutral-800 overflow-hidden"><div class="h-full bg-emerald-500 rounded-full" style="width: 75%"></div></div></div><div class="space-y-1.5"><div class="flex items-center justify-between text-[11px]"><span class="text-neutral-400 font-semibold tracking-wider text-[10px] uppercase">Carbs</span><span class="text-[#f59e0b] font-medium text-[10.5px]">80%</span></div><div class="text-xs font-semibold text-white tracking-tight">210g <span class="text-neutral-400 font-normal text-[10.5px]">/ 260g</span></div><div class="w-full h-1 rounded-full bg-neutral-800 overflow-hidden"><div class="h-full rounded-full" style="width: 80%; background-color: #f59e0b"></div></div></div><div class="space-y-1.5"><div class="flex items-center justify-between text-[11px]"><span class="text-neutral-400 font-semibold tracking-wider text-[10px] uppercase">Fat</span><span class="text-[#a855f7] font-medium text-[10.5px]">78%</span></div><div class="text-xs font-semibold text-white tracking-tight">55g <span class="text-neutral-400 font-normal text-[10.5px]">/ 70g</span></div><div class="w-full h-1 rounded-full bg-neutral-800 overflow-hidden"><div class="h-full rounded-full" style="width: 78%; background-color: #a855f7"></div></div></div></div><div class="border-t border-neutral-800/80"></div><div class="space-y-1.5 pt-0.5"><div class="flex items-center justify-between"><span class="text-sm font-medium text-neutral-200">Water</span><div class="flex items-center space-x-1.5"><span class="text-sm font-semibold text-white">1.8L <span class="text-neutral-400 font-normal text-xs">/ 2.5L</span></span><span class="text-neutral-500 text-xs">·</span><span class="text-xs text-neutral-300 font-medium">72%</span></div></div><div class="w-full h-1 rounded-full bg-neutral-800 overflow-hidden"><div class="h-full bg-neutral-300 rounded-full" style="width: 72%"></div></div></div></div></section>
+<!-- END: 4. Today at a glance -->
+<!-- BEGIN: 5. Two Compact Quick Actions Only -->
+<section data-purpose="quick-actions" class=""><div class="grid grid-cols-2 gap-2.5"><button class="bg-[#16171b] border border-[#272930] hover:border-neutral-700 rounded-xl px-3 py-2.5 flex items-center gap-2.5 transition active:scale-[0.98] text-left"><div class="w-7 h-7 rounded-lg bg-neutral-800 border border-white/5 flex items-center justify-center text-neutral-300 flex-shrink-0"><svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M12 4v16m8-8H4" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg></div><span class="text-xs font-medium text-white tracking-wide">Log meal</span></button><button class="bg-[#16171b] border border-[#272930] hover:border-neutral-700 rounded-xl px-3 py-2.5 flex items-center gap-2.5 transition active:scale-[0.98] text-left" title="Add 250ml water"><div class="w-7 h-7 rounded-lg bg-neutral-800 border border-white/5 flex items-center justify-center text-neutral-300 flex-shrink-0"><svg class="w-3.5 h-3.5 text-neutral-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M20 14c0 4.418-3.582 8-8 8s-8-3.582-8-8c0-3.834 5.333-10.667 8-14 2.667 3.333 8 10.166 8 14z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg></div><span class="text-xs font-medium text-white tracking-wide">Add water</span></button></div></section>
+<!-- END: 5. Two Compact Quick Actions Only -->
+<!-- BEGIN: 6. Minimal Weekly Progress Preview -->
+<section class="rounded-2xl bg-[#16171b] border border-[#272930] p-4" data-purpose="weekly-progress"><!-- Header row -->
+<div class="flex items-center justify-between mb-3">
+  <div class="flex items-center space-x-1.5">
+    <svg class="w-3.5 h-3.5 text-emerald-400 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" d="M3 13.5l4.5-4.5 4 4L21 4.5M21 4.5H16M21 4.5V9.5"></path>
+    </svg>
+    <h3 class="text-xs font-medium uppercase tracking-wider text-neutral-400">WEEKLY CONSISTENCY</h3>
+  </div>
+  <span class="text-sm font-semibold text-neutral-200">3 / 4 sessions</span>
+</div>
+
+<!-- 3-Column Summary Metrics -->
+<div class="grid grid-cols-3 py-2 border-y border-[#23252a]">
+  <div class="pr-2 border-r border-[#23252a]">
+    <span class="text-[11px] text-neutral-400 uppercase tracking-wider block">Sessions</span>
+    <div class="text-base font-semibold text-neutral-200 mt-0.5">3 / 4</div>
+  </div>
+  <div class="px-2.5 border-r border-[#23252a]">
+    <span class="text-[11px] text-neutral-400 uppercase tracking-wider block">Completion</span>
+    <div class="text-base font-semibold text-emerald-400 mt-0.5">75%</div>
+  </div>
+  <div class="pl-2.5">
+    <span class="text-[11px] text-neutral-400 uppercase tracking-wider block">Streak</span>
+    <div class="text-base font-semibold text-neutral-200 mt-0.5">3 days</div>
+  </div>
+</div>
+
+<!-- Performance Line Chart -->
+<div class="pt-3">
+  <div class="w-full">
+    <svg class="w-full h-20 overflow-visible" viewBox="0 0 320 70" fill="none">
+      <!-- Horizontal subtle grid lines -->
+      <line x1="16" y1="10" x2="304" y2="10" stroke="#26282f" stroke-dasharray="2 3" stroke-width="1"></line>
+      <line x1="16" y1="35" x2="304" y2="35" stroke="#26282f" stroke-dasharray="2 3" stroke-width="1"></line>
+      <line x1="16" y1="60" x2="304" y2="60" stroke="#26282f" stroke-dasharray="2 3" stroke-width="1"></line>
+      
+      <!-- Line 2: Target line (muted off-white/gray dashed curve) -->
+      <path d="M 20 44 C 40 40, 50 36, 68 32 C 86 28, 96 36, 116 34 C 136 32, 146 26, 164 24 C 182 22, 192 30, 212 30 C 232 30, 242 22, 260 20 C 278 18, 288 22, 300 24" stroke="#71717a" stroke-width="1.5" stroke-dasharray="3 3" fill="none"></path>
+      
+      <!-- Line 1: Actual activity line (emerald-500 athletic curve) -->
+      <path d="M 20 52 C 40 44, 50 22, 68 20 C 86 18, 96 38, 116 40 C 136 42, 146 30, 164 28 C 182 26, 192 48, 212 50 C 232 52, 242 34, 260 32 C 278 30, 288 38, 300 38" stroke="#10b981" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"></path>
+      
+      <!-- Actual Data points (Mon: 20, Tue: 68, Wed: 116, Thu: 164, Fri: 212, Sat: 260, Sun: 300) -->
+      <circle cx="20" cy="52" r="3" fill="#10b981"></circle>
+      <!-- Tue (Active day indicator ring) -->
+      <circle cx="68" cy="20" r="5" fill="#16171b" stroke="#10b981" stroke-width="2"></circle>
+      <circle cx="68" cy="20" r="2.5" fill="#ffffff"></circle>
+      <circle cx="116" cy="40" r="3" fill="#10b981"></circle>
+      <circle cx="164" cy="28" r="3" fill="#10b981"></circle>
+      <circle cx="212" cy="50" r="3" fill="#10b981"></circle>
+      <circle cx="260" cy="32" r="3" fill="#10b981"></circle>
+      <circle cx="300" cy="38" r="3" fill="#10b981"></circle>
+    </svg>
+  </div>
+  
+  <!-- Day labels (X-axis) -->
+  <div class="flex justify-between items-center px-1 pt-1 text-[11px]">
+    <span class="text-neutral-500 font-normal">Mon</span>
+    <span class="text-white font-semibold">Tue</span>
+    <span class="text-neutral-500 font-normal">Wed</span>
+    <span class="text-neutral-500 font-normal">Thu</span>
+    <span class="text-neutral-500 font-normal">Fri</span>
+    <span class="text-neutral-500 font-normal">Sat</span>
+    <span class="text-neutral-500 font-normal">Sun</span>
+  </div>
+</div>
+
+<!-- Next Session Footer Row -->
+<div class="pt-3 mt-3 border-t border-[#23252a] flex items-center justify-between">
+  <div>
+    <span class="text-[10px] uppercase tracking-wider text-neutral-400 font-medium block">Next session</span>
+    <p class="text-xs font-medium text-neutral-200 mt-0.5">Upper Hypertrophy</p>
+  </div>
+  <a class="text-xs text-neutral-400 hover:text-neutral-200 transition font-medium flex items-center space-x-1" href="#progress">
+    <span class="">View progress</span>
+    <span class="text-[11px]">→</span>
+  </a>
+</div></section><!-- BEGIN: Saman Picks Carousel Section -->
+<section data-purpose="saman-picks" class="space-y-3 pt-1">
+  <div class="flex items-start justify-between px-1">
+    <div>
+      <h3 class="text-xs font-semibold uppercase tracking-wider text-neutral-400">SAMAN PICKS</h3>
+      <p class="text-xs text-neutral-400 mt-0.5">Useful for your training today</p>
+    </div>
+    <a href="#picks" class="text-xs font-medium text-neutral-300 hover:text-white transition pt-0.5 flex items-center space-x-0.5">
+      <span class="">Explore</span>
+      <span class="text-[11px]">→</span>
+    </a>
+  </div>
+  <div class="flex gap-3 overflow-x-auto snap-x snap-mandatory no-scrollbar -mx-4 px-4 pb-1">
+    <!-- Card 1: Saman Journal -->
+    <div class="w-[84%] flex-shrink-0 snap-start bg-[#16171b] border border-[#23252a] rounded-2xl p-4 flex gap-3.5 items-center justify-between">
+      <div class="min-w-0 flex-1">
+        <span class="block text-[10px] tracking-wider uppercase font-semibold text-emerald-400">SAMAN JOURNAL</span>
+        <h4 class="text-sm font-semibold text-white mt-1 leading-tight">Recover better after Leg Day</h4>
+        <p class="text-xs text-neutral-400 mt-1 leading-tight">Three simple habits to support tomorrow’s session.</p>
+        <a href="#journal-guide" class="text-xs font-medium text-neutral-300 hover:text-white mt-2.5 inline-flex items-center space-x-1 transition">
+          <span class="">Read guide</span>
+          <span class="text-[11px]">→</span>
+        </a>
+      </div>
+      <div class="w-20 h-20 flex-shrink-0 rounded-xl overflow-hidden bg-neutral-800 border border-[#272930]">
+        <img src="https://lh3.googleusercontent.com/aida/AEtjO1WT8kV-NZp5oSex2gk-uRm_lQomzMBSazWD2y6ew7qHl7-GHrTrzL42Qc0-AL_wLAcHBmbV73bDiqDze3fTHGpEUVBOy3c84i2EvLjCRwDYtadrZRuOPlnPuCBnlxaTOlUjomDjHRWCq7RvEu6B8pmyxS8BNKm9AOE4N5AfskOR09BOXDhXf9oIGkGji7qSzPEM0l09k0PQ7un4jLpJzWzBJjU1EEN8_4I5YT2csjg" alt="Recovery athlete stretching" class="w-full h-full object-cover opacity-90">
+      </div>
+    </div>
+    <!-- Card 2: Saman Shop -->
+    <div class="w-[84%] flex-shrink-0 snap-start bg-[#16171b] border border-[#23252a] rounded-2xl p-4 flex gap-3.5 items-center justify-between">
+      <div class="min-w-0 flex-1">
+        <span class="block text-[10px] tracking-wider uppercase font-semibold text-neutral-400">SAMAN SHOP</span>
+        <h4 class="text-sm font-semibold text-white mt-1 leading-tight">Recovery essentials, picked for your plan</h4>
+        <p class="text-xs text-neutral-400 mt-1 leading-tight">Curated to support your current training week.</p>
+        <a href="#shop-picks" class="text-xs font-medium text-neutral-300 hover:text-white mt-2.5 inline-flex items-center space-x-1 transition">
+          <span class="">Explore picks</span>
+          <span class="text-[11px]">→</span>
+        </a>
+      </div>
+      <div class="w-20 h-20 flex-shrink-0 rounded-xl overflow-hidden bg-neutral-800 border border-[#272930]">
+        <img src="https://lh3.googleusercontent.com/aida-public/AB6AXuB-CaevPTWFKjeUjZgBQbpQxkPm1KaB-ThbWa0aRjPVKsjYY0krQBcXJ19ZTucWHhWnyG5T6ePc9XCBnGLpLpFrHzgEavNNpiSsP7_c-_3k4qbmbGcY_5tXF-bOrZXeyFp48w7NyJi50DlmPFRlpxE7ETZBdFn3BjRqB0uY-o3Xv7fg0nsgaa7oBXMsVbRRMoUMVH3DuOLU24Qze_7hajI5sQD6Ap1zXx6XAh-V80g" alt="Lifting straps and dark shaker bottle" class="w-full h-full object-cover opacity-90">
+      </div>
+    </div>
+  </div>
+</section>
+<!-- END: Saman Picks Carousel Section -->
+<!-- END: 6. Minimal Weekly Progress Preview -->
+</main>
+<!-- END: Scrollable Main Content -->
+<!-- BEGIN: 7. Fixed Bottom Navigation Bar (Monochrome dark) -->
+<nav class="fixed bottom-0 max-w-[420px] w-full bg-[#0c0d0e] border-t border-[#23252a] px-2 pt-2 pb-5 flex justify-around items-center z-30" data-purpose="bottom-nav">
+<!-- 1. Home (Active) -->
+<a class="flex flex-col items-center flex-1 text-center group" href="#home">
+<div class="py-0.5 flex items-center justify-center text-white">
+<svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24">
+<path d="M3 10.5l9-7 9 7v9.5a1 1 0 01-1 1h-5v-6h-6v6H4a1 1 0 01-1-1v-9.5z"></path>
+</svg>
+</div>
+<span class="text-[10px] font-semibold text-white mt-0.5 tracking-tight">Home</span>
+<span class="w-1 h-1 bg-white rounded-full mt-0.5"></span>
+</a>
+<!-- 2. Workout -->
+<a class="flex flex-col items-center flex-1 text-center group text-neutral-400 hover:text-neutral-200 transition" href="#workout">
+<div class="py-0.5 flex items-center justify-center text-neutral-400 group-hover:text-neutral-200 transition">
+<svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24">
+<path d="M6 5v14M18 5v14M2 9v6M22 9v6M6 12h12"></path>
+</svg>
+</div>
+<span class="text-[10px] font-medium text-neutral-400 mt-0.5 tracking-tight group-hover:text-neutral-200 transition">Workout</span>
+<span class="w-1 h-1 bg-transparent rounded-full mt-0.5"></span>
+</a>
+<!-- 3. AI Coach (Saman) -->
+<a class="flex flex-col items-center flex-1 text-center group text-neutral-400 hover:text-neutral-200 transition" href="#coach">
+<div class="py-0.5 flex items-center justify-center text-neutral-400 group-hover:text-neutral-200 transition">
+<svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" viewBox="0 0 24 24"><path d="M17.5 7.5A4.5 4.5 0 0 0 8 6c-3 1.8-3.5 5-1 7.2l2.5 1.8"></path><path d="M6.5 16.5A4.5 4.5 0 0 0 16 18c3-1.8 3.5-5 1-7.2l-2.5-1.8"></path></svg>
+</div>
+<span class="text-[10px] font-medium text-neutral-400 mt-0.5 tracking-tight group-hover:text-neutral-200 transition">Saman</span>
+<span class="w-1 h-1 bg-transparent rounded-full mt-0.5"></span>
+</a>
+<!-- 4. Nutrition -->
+<a class="flex flex-col items-center flex-1 text-center group text-neutral-400 hover:text-neutral-200 transition" href="#nutrition">
+<div class="py-0.5 flex items-center justify-center text-neutral-400 group-hover:text-neutral-200 transition">
+<svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24">
+<path d="M18 3v5a3 3 0 01-3 3h-1m4-8h-4m4 0v18M6 3v6a2.5 2.5 0 005 0V3M8.5 11.5V21"></path>
+</svg>
+</div>
+<span class="text-[10px] font-medium text-neutral-400 mt-0.5 tracking-tight group-hover:text-neutral-200 transition">Nutrition</span>
+<span class="w-1 h-1 bg-transparent rounded-full mt-0.5"></span>
+</a>
+<!-- 5. Profile -->
+<a class="flex flex-col items-center flex-1 text-center group text-neutral-400 hover:text-neutral-200 transition" href="#profile">
+<div class="py-0.5 flex items-center justify-center text-neutral-400 group-hover:text-neutral-200 transition">
+<svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24">
+<circle cx="12" cy="7" r="4"></circle>
+<path d="M5.5 20.5a6.5 6.5 0 0113 0"></path>
+</svg>
+</div>
+<span class="text-[10px] font-medium text-neutral-400 mt-0.5 tracking-tight group-hover:text-neutral-200 transition">Profile</span>
+<span class="w-1 h-1 bg-transparent rounded-full mt-0.5"></span>
+</a>
+</nav>
+<!-- END: 7. Fixed Bottom Navigation Bar -->
+</div>
+<!-- END: Mobile Viewport Container -->
+<!-- BEGIN: Interactive Feedback Handling Script -->
+<script data-purpose="interaction-handlers">
+    document.addEventListener('DOMContentLoaded', () => {
+      // Water button tap micro-interaction
+      const waterButton = document.querySelector('button[title="Add 250ml water"]');
+      if (waterButton) {
+        waterButton.addEventListener('click', () => {
+          waterButton.classList.add('scale-95', 'bg-neutral-800');
+          setTimeout(() => {
+            waterButton.classList.remove('scale-95', 'bg-neutral-800');
+          }, 150);
+        });
+      }
+    });
+  </script>
+<!-- END: Interactive Feedback Handling Script -->
+
+
+
+
+
+
+
+
+</body></html>
