@@ -2,8 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 import '../config/app_theme.dart';
-import '../widgets/app_logo.dart';
 import '../controllers/chat_controller.dart';
+import 'chat/tokens/saman_chat_tokens.dart';
+import 'chat/widgets/widgets.dart';
 
 class ChatScreen extends ConsumerStatefulWidget {
   final String? initialMessage;
@@ -18,13 +19,6 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   final TextEditingController _textController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
-
-  final List<String> _quickSuggestions = [
-    "🥗 Thực đơn giảm cân?",
-    "💪 Bài tập bụng tại nhà",
-    "😫 Đau lưng nên tập gì?",
-    "🍎 Calo trong 1 quả táo?",
-  ];
 
   @override
   void initState() {
@@ -44,52 +38,25 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   @override
   Widget build(BuildContext context) {
     final chatState = ref.watch(chatControllerProvider);
-    final colors = Theme.of(context).colorScheme;
-    final textTheme = Theme.of(context).textTheme;
 
     _scrollToBottom();
 
     return Scaffold(
       key: _scaffoldKey,
-      backgroundColor: context.bgColor,
+      backgroundColor: SamanChatTokens.canvas,
       drawer: _buildModernDrawer(),
-      appBar: AppBar(
-        // 🔥 UPDATE: Title Branding
-        title: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            AppLogo(size: 24, color: colors.primary),
-            const SizedBox(width: AppSpacing.sm),
-            Text(
-              'AI Coach',
-              style: textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.w700,
-                letterSpacing: -0.3,
-              ),
-            ),
-          ],
-        ),
-        centerTitle: true,
-        backgroundColor: context.bgColor,
-        elevation: 0,
-        leading: IconButton(
-          icon:
-              Icon(Icons.dashboard_customize_outlined, color: colors.onSurface),
-          onPressed: () => _scaffoldKey.currentState?.openDrawer(),
-        ),
-        actions: [
-          IconButton(
-            icon: Icon(Icons.delete_outline, color: colors.onSurface),
-            onPressed: () =>
-                ref.read(chatControllerProvider.notifier).clearChat(),
-          )
-        ],
+      appBar: SamanChatHeader(
+        onMenuTap: () => _scaffoldKey.currentState?.openDrawer(),
+        onNewChat: () =>
+            ref.read(chatControllerProvider.notifier).clearChat(),
       ),
       body: Column(
         children: [
           Expanded(
             child: chatState.messages.isEmpty
-                ? _buildEmptyState()
+                ? SamanChatEmptyState(
+                    onPromptSelected: _handlePromptSelected,
+                  )
                 : ListView.builder(
                     controller: _scrollController,
                     padding: const EdgeInsets.symmetric(
@@ -102,7 +69,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                     },
                   ),
           ),
-          _buildInputArea(chatState.isLoading),
+          _buildComposerArea(chatState.isLoading, chatState.messages.isEmpty),
         ],
       ),
     );
@@ -110,44 +77,35 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
 
   // --- UI COMPONENTS ---
 
-  Widget _buildEmptyState() {
-    final colors = Theme.of(context).colorScheme;
-    final textTheme = Theme.of(context).textTheme;
-    final extension = Theme.of(context).extension<AppThemeExtension>()!;
+  void _handlePromptSelected(String prompt) {
+    ref.read(chatControllerProvider.notifier).sendMessage(prompt);
+  }
 
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xxxl),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              width: 88,
-              height: 88,
-              decoration: BoxDecoration(
-                color: context.trackColor,
-                borderRadius: BorderRadius.circular(AppRadius.lg),
-                border: Border.all(color: colors.outline),
+  Widget _buildComposerArea(bool isLoading, bool isEmptyState) {
+    return Container(
+      color: SamanChatTokens.canvas,
+      padding: const EdgeInsets.fromLTRB(16.0, 4.0, 16.0, 12.0),
+      child: SafeArea(
+        top: false,
+        bottom: true,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 480.0),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (isEmptyState && !isLoading) ...[
+                SamanChatRapidChips(
+                  onChipSelected: _handlePromptSelected,
+                ),
+                const SizedBox(height: 8.0),
+              ],
+              SamanChatComposer(
+                controller: _textController,
+                onSend: _handleSend,
+                isLoading: isLoading,
               ),
-              alignment: Alignment.center,
-              child: AppLogo(size: 56, color: colors.primary),
-            ),
-            const SizedBox(height: AppSpacing.xl),
-            Text(
-              'Your coach is ready',
-              style: textTheme.headlineMedium?.copyWith(
-                fontWeight: FontWeight.w700,
-                letterSpacing: -0.6,
-              ),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: AppSpacing.sm),
-            Text(
-              'Ask about training, recovery, meals, or your next step.',
-              style: textTheme.bodyMedium?.copyWith(color: extension.inkMuted),
-              textAlign: TextAlign.center,
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -165,18 +123,10 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           if (!isUser) ...[
-            Container(
-              width: 32,
-              height: 32,
-              decoration: BoxDecoration(
-                color: colors.primary,
-                borderRadius: BorderRadius.circular(AppRadius.sm),
-              ),
-              child: Icon(
-                Icons.smart_toy_outlined,
-                size: 17,
-                color: colors.onPrimary,
-              ),
+            const SamanMonogram(
+              size: 28,
+              borderRadius: 6,
+              fontSize: 13,
             ),
             const SizedBox(width: AppSpacing.sm),
           ],
@@ -244,120 +194,6 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     );
   }
 
-  Widget _buildInputArea(bool isLoading) {
-    final colors = Theme.of(context).colorScheme;
-    final textTheme = Theme.of(context).textTheme;
-    return Container(
-      decoration: BoxDecoration(
-        color: context.surfaceColor,
-        border: Border(top: BorderSide(color: colors.outline)),
-      ),
-      child: SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (!isLoading)
-              SizedBox(
-                height: 50,
-                child: ListView.separated(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: AppSpacing.xl,
-                    vertical: AppSpacing.sm,
-                  ),
-                  scrollDirection: Axis.horizontal,
-                  itemCount: _quickSuggestions.length,
-                  separatorBuilder: (_, __) => const SizedBox(width: 8),
-                  itemBuilder: (context, index) {
-                    return ActionChip(
-                      label: Text(
-                        _quickSuggestions[index],
-                        style: textTheme.labelSmall?.copyWith(
-                          color: colors.onSurface,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      backgroundColor: context.trackColor,
-                      side: BorderSide(color: colors.outline),
-                      onPressed: () {
-                        _textController.text = _quickSuggestions[index];
-                        _handleSend();
-                      },
-                    );
-                  },
-                ),
-              ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(
-                AppSpacing.xl,
-                AppSpacing.sm,
-                AppSpacing.xl,
-                AppSpacing.md,
-              ),
-              child: Row(
-                children: [
-                  IconButton(
-                    icon: Icon(
-                      Icons.add_circle_outline,
-                      color: colors.secondary,
-                    ),
-                    onPressed: () {
-                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-                          content:
-                              Text("Tính năng Gửi ảnh/Tool sẽ sớm ra mắt!")));
-                    },
-                  ),
-                  Expanded(
-                    child: TextField(
-                      controller: _textController,
-                      style: textTheme.bodyLarge,
-                      decoration: InputDecoration(
-                        hintText: 'Hỏi AI Coach...',
-                        filled: true,
-                        fillColor: context.trackColor,
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(AppRadius.lg),
-                          borderSide: BorderSide(color: colors.outline),
-                        ),
-                        contentPadding: const EdgeInsets.symmetric(
-                          horizontal: AppSpacing.lg,
-                          vertical: AppSpacing.md,
-                        ),
-                      ),
-                      enabled: !isLoading,
-                      onSubmitted: isLoading ? null : (_) => _handleSend(),
-                    ),
-                  ),
-                  const SizedBox(width: AppSpacing.sm),
-                  InkWell(
-                    borderRadius: BorderRadius.circular(AppRadius.md),
-                    onTap: isLoading ? null : _handleSend,
-                    child: Container(
-                      width: 44,
-                      height: 44,
-                      decoration: BoxDecoration(
-                        color: isLoading
-                            ? colors.onSurface.withOpacity(0.12)
-                            : colors.primary,
-                        borderRadius: BorderRadius.circular(AppRadius.md),
-                      ),
-                      child: Icon(
-                        Icons.arrow_upward,
-                        color: isLoading
-                            ? colors.onSurface.withOpacity(0.38)
-                            : colors.onPrimary,
-                        size: 22,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
   void _handleSend() {
     final text = _textController.text.trim();
     if (text.isEmpty) return;
@@ -378,49 +214,55 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     });
   }
 
-  // --- DRAWER (Giữ nguyên logic cũ, chỉ cập nhật Header Drawer nếu cần) ---
+  // --- DRAWER ---
   Widget _buildModernDrawer() {
     final colors = Theme.of(context).colorScheme;
-    final extension = Theme.of(context).extension<AppThemeExtension>()!;
+    final extension = Theme.of(context).extension<AppThemeExtension>();
     return Drawer(
-      backgroundColor: context.insightCardColor,
+      backgroundColor: const Color(0xFF111215),
       child: Column(
         children: [
-          DrawerHeader(
+          const DrawerHeader(
             decoration: BoxDecoration(
-              color: context.insightCardColor,
+              color: Color(0xFF111215),
               border: Border(
-                bottom: BorderSide(color: colors.onPrimary.withOpacity(0.12)),
+                bottom: BorderSide(color: SamanChatTokens.borderSubtle),
               ),
             ),
             child: Row(
               children: [
-                AppLogo(size: 50, color: colors.primary),
-                const SizedBox(width: AppSpacing.lg),
+                SamanMonogram(size: 40, borderRadius: 10, fontSize: 18),
+                SizedBox(width: AppSpacing.lg),
                 Expanded(
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'SAMAN',
+                        'Saman Coach',
                         style: TextStyle(
-                          color: colors.onPrimary,
-                          fontSize: 20,
+                          color: SamanChatTokens.textWhite,
+                          fontSize: 18,
                           fontWeight: FontWeight.w700,
-                          letterSpacing: 1.2,
+                          letterSpacing: -0.2,
                         ),
                       ),
-                      Text("Premium Member",
-                          style:
-                              TextStyle(color: colors.primary, fontSize: 12)),
+                      SizedBox(height: 2),
+                      Text(
+                        'Adaptive AI',
+                        style: TextStyle(
+                          color: SamanChatTokens.greenAccent,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w500,
+                          letterSpacing: 0.5,
+                        ),
+                      ),
                     ],
                   ),
                 )
               ],
             ),
           ),
-          // ... (Phần còn lại của Drawer giữ nguyên)
           Expanded(
             child: ListView(
               padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
@@ -450,7 +292,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                   icon: Icons.restaurant_menu,
                   title: "Gợi ý thực đơn hôm nay",
                   subtitle: "Dựa trên TDEE của tôi",
-                  color: extension.aiAccent,
+                  color: extension?.aiAccent ?? SamanChatTokens.greenAccent,
                   onTap: () {
                     _handlePromptAction(
                         "Hãy gợi ý cho tôi thực đơn chi tiết 3 bữa cho ngày hôm nay. Tính toán sao cho phù hợp với TDEE và mục tiêu cân nặng của tôi. Trình bày dạng bảng.");
@@ -485,7 +327,13 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   // ... (Các hàm helper _buildSectionTitle, _buildDrawerItem, _handlePromptAction, _showPersonaDialog, _buildPersonaOption giữ nguyên)
   Widget _buildSectionTitle(String title) {
     final colors = Theme.of(context).colorScheme;
-    final extension = Theme.of(context).extension<AppThemeExtension>()!;
+    final extension = Theme.of(context).extension<AppThemeExtension>();
+    final baseStyle = extension?.labelCaps ??
+        const TextStyle(
+          fontSize: 11,
+          fontWeight: FontWeight.w600,
+          letterSpacing: 0.5,
+        );
     return Padding(
       padding: const EdgeInsets.fromLTRB(
         AppSpacing.xl,
@@ -495,7 +343,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       ),
       child: Text(
         title,
-        style: extension.labelCaps.copyWith(
+        style: baseStyle.copyWith(
           color: colors.onPrimary.withOpacity(0.5),
         ),
       ),
