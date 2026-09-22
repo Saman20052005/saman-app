@@ -8,6 +8,7 @@ import 'package:health_ai_app/controllers/chat_controller.dart';
 import 'package:health_ai_app/models/saman_nudge.dart';
 import 'package:health_ai_app/screens/chat/tokens/saman_chat_tokens.dart';
 import 'package:health_ai_app/screens/chat/widgets/saman_chat_drawer.dart';
+import 'package:health_ai_app/screens/chat/widgets/saman_chat_empty_state.dart';
 import 'package:health_ai_app/screens/chat/widgets/saman_chat_header.dart';
 import 'package:health_ai_app/screens/chat/widgets/saman_monogram.dart';
 import 'package:health_ai_app/screens/chat/widgets/saman_reminder_nudge.dart';
@@ -313,6 +314,78 @@ void main() {
 
       expect(tester.takeException(), isNull);
       expect(find.byType(SamanReminderNudge), findsOneWidget);
+    });
+
+    testWidgets('16. When nudge timestamp is null, timestamp is omitted entirely',
+        (tester) async {
+      final notifier = _FakeNudgeChatNotifier();
+      const nudge = SamanNudge(
+        id: 'no_timestamp_nudge',
+        message: 'Quick nutrition check.',
+        supportingLine: '• 500 kcal remaining',
+        timestamp: null,
+        primaryLabel: 'Plan dinner',
+        secondaryLabel: 'Later',
+        promptToSend: 'Plan dinner',
+      );
+
+      await tester.pumpWidget(
+        _buildWrapper(notifier: notifier, initialNudge: nudge),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.byType(SamanReminderNudge), findsOneWidget);
+      // Fallback '6:15 PM' must NOT be rendered when timestamp is null
+      expect(find.text('6:15 PM'), findsNothing);
+      // No timestamp Text widget rendered inside the header row
+      final nudgeFinder = find.byType(SamanReminderNudge);
+      expect(
+        find.descendant(
+          of: nudgeFinder,
+          matching: find.text('Saman'),
+        ),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets(
+        '17. New conversation clears active nudge, removes notification dots, and resets to empty state',
+        (tester) async {
+      final notifier = _FakeNudgeChatNotifier();
+      final nudge = _createSampleNudge();
+
+      await tester.pumpWidget(
+        _buildWrapper(notifier: notifier, initialNudge: nudge),
+      );
+      await tester.pumpAndSettle();
+
+      // Nudge and green dot are present
+      expect(find.byType(SamanReminderNudge), findsOneWidget);
+      final headerFinder = find.byType(SamanChatHeader);
+      final dotPredicate = find.descendant(
+        of: headerFinder,
+        matching: find.byWidgetPredicate(
+          (w) =>
+              w is Container &&
+              w.decoration is BoxDecoration &&
+              (w.decoration as BoxDecoration).color ==
+                  SamanChatTokens.greenAccent &&
+              (w.decoration as BoxDecoration).shape == BoxShape.circle,
+        ),
+      );
+      expect(dotPredicate, findsOneWidget);
+
+      // Trigger New conversation from Header
+      final editBtn = find.byIcon(Icons.edit_square);
+      await tester.tap(editBtn);
+      await tester.pumpAndSettle();
+
+      // Active nudge is dismissed
+      expect(find.byType(SamanReminderNudge), findsNothing);
+      // Green dot is gone
+      expect(dotPredicate, findsNothing);
+      // Chat state reset to empty state
+      expect(find.byType(SamanChatEmptyState), findsOneWidget);
     });
   });
 }

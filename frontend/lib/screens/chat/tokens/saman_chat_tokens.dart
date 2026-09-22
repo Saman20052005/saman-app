@@ -20,7 +20,7 @@ class SamanChatTokens {
   static const Color surface = SamanHomeTokens.cardSurface; // #16171B
   static const Color surfaceElevated = SamanHomeTokens.cardSurfaceElevated; // #1B1D22
   static const Color iconContainerBg = SamanHomeTokens.iconContainerBg; // #212328
-  static const Color chipBackground = Color(0xFF16171B);
+  static const Color chipBackground = SamanHomeTokens.cardSurface;
   static const Color drawerBg = Color(0xFF111215);
   static const Color drawerScrim = Color(0x99000000);
 
@@ -30,13 +30,13 @@ class SamanChatTokens {
 
   // ─── Chat Bubble Palettes ────────────────────────────────────────────
   static const Color userBubble = Color(0xFF1E2024);
-  static const Color userBubbleBorder = Color(0xFF23252A);
-  static const Color assistantBubble = Color(0xFF16171B);
-  static const Color assistantBubbleBorder = Color(0xFF23252A);
+  static const Color userBubbleBorder = SamanHomeTokens.borderSubtle;
+  static const Color assistantBubble = SamanHomeTokens.cardSurface;
+  static const Color assistantBubbleBorder = SamanHomeTokens.borderSubtle;
 
   // ─── Composer Specific ───────────────────────────────────────────────
-  static const Color composerBg = Color(0xFF16171B);
-  static const Color composerBorder = Color(0xFF23252A);
+  static const Color composerBg = SamanHomeTokens.cardSurface;
+  static const Color composerBorder = SamanHomeTokens.borderSubtle;
 
   /// Default send button is strictly neutral / monochrome
   static const Color composerSendBg = Color(0xFFE3E2E6);

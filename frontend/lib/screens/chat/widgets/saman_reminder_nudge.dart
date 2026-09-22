@@ -21,8 +21,7 @@ class SamanReminderNudge extends StatelessWidget {
     required this.nudge,
   });
 
-  String _formatTimestamp(DateTime? dt) {
-    if (dt == null) return '6:15 PM';
+  String _formatTimestamp(DateTime dt) {
     return DateFormat('h:mm a').format(dt);
   }
 
@@ -53,14 +52,15 @@ class SamanReminderNudge extends StatelessWidget {
                       ),
                     ],
                   ),
-                  Text(
-                    _formatTimestamp(nudge.timestamp),
-                    style: const TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w400,
-                      color: SamanChatTokens.textMuted,
+                  if (nudge.timestamp != null)
+                    Text(
+                      _formatTimestamp(nudge.timestamp!),
+                      style: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w400,
+                        color: SamanChatTokens.textMuted,
+                      ),
                     ),
-                  ),
                 ],
               ),
             ),

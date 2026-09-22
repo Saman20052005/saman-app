@@ -39,6 +39,9 @@ class _SamanFoodAnalysisLoadingState extends State<SamanFoodAnalysisLoading>
 
   @override
   Widget build(BuildContext context) {
+    final disableAnimations =
+        MediaQuery.maybeOf(context)?.disableAnimations ?? false;
+
     return Align(
       alignment: Alignment.centerLeft,
       child: Padding(
@@ -92,8 +95,10 @@ class _SamanFoodAnalysisLoadingState extends State<SamanFoodAnalysisLoading>
                     builder: (context, child) {
                       final delay = i * 0.2;
                       final progress = (_dotController.value - delay) % 1.0;
-                      final opacity = (0.3 + 0.7 * (1.0 - (progress - 0.5).abs() * 2.0))
-                          .clamp(0.2, 1.0);
+                      final opacity = disableAnimations
+                          ? 0.7
+                          : (0.3 + 0.7 * (1.0 - (progress - 0.5).abs() * 2.0))
+                              .clamp(0.2, 1.0);
                       return Container(
                         margin: EdgeInsets.only(right: i < 2 ? 6.0 : 0.0),
                         width: 6.0,

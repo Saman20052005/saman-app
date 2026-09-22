@@ -212,7 +212,7 @@ void main() {
       expect(find.text('Coaching tone & response style'), findsOneWidget);
       expect(find.text('Strict PT'), findsOneWidget);
       expect(find.text('Nutrition Doctor'), findsOneWidget);
-      expect(find.text('AI Best Friend'), findsOneWidget);
+      expect(find.text('Supportive Coach'), findsOneWidget);
 
       // Tapping a persona style dispatches prompt
       await tester.tap(find.text('Strict PT'));
