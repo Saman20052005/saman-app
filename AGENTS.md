@@ -90,3 +90,16 @@ The Pull Request must include:
 - Test and analysis results
 - Known limitations or unresolved blockers
 - Confirmation that no files outside the allowed scope were changed
+
+## Code Review Rules
+
+- Review only the changes included in the Pull Request.
+- Confirm every modified file is inside the allowed paths defined by the linked GitHub Issue.
+- Flag unrelated refactors, cleanup, dependency changes, generated files, or configuration changes.
+- Flag secrets, tokens, credentials, private keys, `.env` content, or sensitive data.
+- Flag changes that may break authentication, stored user data, database schemas, APIs, or existing application behavior.
+- Require appropriate tests when application behavior changes.
+- For Flutter changes, verify compatibility with Flutter `3.22.0` and Dart `3.4.0`.
+- Confirm the Pull Request reports the verification commands and their results.
+- Never approve direct changes to `main` or automatic merging.
+- If requirements are unclear or conflict with the Issue, report the blocker instead of guessing.
