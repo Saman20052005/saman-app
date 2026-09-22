@@ -1,9 +1,12 @@
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../config/api_config.dart';
+import '../models/ai_analysis_result.dart';
 import '../services/api_client.dart';
+import '../services/nutrition_service.dart';
 
 // --- 1. MODEL TIN NHẮN ---
 class ChatMessage {
@@ -18,18 +21,68 @@ class ChatMessage {
   });
 }
 
-// --- 2. STATE ---
+// --- 2. FOOD PHOTO ANALYSIS STATE ---
+enum FoodAnalysisStatus {
+  idle,
+  analyzing,
+  success,
+  failure,
+}
+
+class ChatFoodAnalysisState {
+  final FoodAnalysisStatus status;
+  final String? imagePath;
+  final XFile? imageFile;
+  final String? userCaption;
+  final AIAnalysisResult? result;
+  final String? errorMessage;
+  final bool isMealLogged;
+
+  const ChatFoodAnalysisState({
+    required this.status,
+    this.imagePath,
+    this.imageFile,
+    this.userCaption,
+    this.result,
+    this.errorMessage,
+    this.isMealLogged = false,
+  });
+
+  ChatFoodAnalysisState copyWith({
+    FoodAnalysisStatus? status,
+    String? imagePath,
+    XFile? imageFile,
+    String? userCaption,
+    AIAnalysisResult? result,
+    String? errorMessage,
+    bool? isMealLogged,
+  }) {
+    return ChatFoodAnalysisState(
+      status: status ?? this.status,
+      imagePath: imagePath ?? this.imagePath,
+      imageFile: imageFile ?? this.imageFile,
+      userCaption: userCaption ?? this.userCaption,
+      result: result ?? this.result,
+      errorMessage: errorMessage ?? this.errorMessage,
+      isMealLogged: isMealLogged ?? this.isMealLogged,
+    );
+  }
+}
+
+// --- 3. STATE ---
 class ChatState {
   final List<ChatMessage> messages;
   final bool isLoading;
   final String? errorMessage;
   final String? failedUserMessage;
+  final ChatFoodAnalysisState? foodAnalysisState;
 
   ChatState({
     this.messages = const [],
     this.isLoading = false,
     this.errorMessage,
     this.failedUserMessage,
+    this.foodAnalysisState,
   });
 
   ChatState copyWith({
@@ -39,6 +92,8 @@ class ChatState {
     bool clearError = false,
     String? failedUserMessage,
     bool clearFailedUserMessage = false,
+    ChatFoodAnalysisState? foodAnalysisState,
+    bool clearFoodAnalysis = false,
   }) {
     return ChatState(
       messages: messages ?? this.messages,
@@ -47,15 +102,21 @@ class ChatState {
       failedUserMessage: clearFailedUserMessage
           ? null
           : (failedUserMessage ?? this.failedUserMessage),
+      foodAnalysisState: clearFoodAnalysis
+          ? null
+          : (foodAnalysisState ?? this.foodAnalysisState),
     );
   }
 }
 
-// --- 3. CONTROLLER TỐI ƯU ---
+// --- 4. CONTROLLER TỐI ƯU ---
 class ChatController extends StateNotifier<ChatState> {
   final Ref ref;
+  final NutritionService _nutritionService;
 
-  ChatController(this.ref) : super(ChatState(messages: []));
+  ChatController(this.ref, {NutritionService? nutritionService})
+      : _nutritionService = nutritionService ?? NutritionService(),
+        super(ChatState(messages: []));
 
   Future<void> sendMessage(String text) async {
     final trimmed = text.trim();
@@ -143,8 +204,75 @@ class ChatController extends StateNotifier<ChatState> {
     }
   }
 
+  Future<void> analyzeFoodPhoto(XFile file, {String? caption}) async {
+    state = state.copyWith(
+      foodAnalysisState: ChatFoodAnalysisState(
+        status: FoodAnalysisStatus.analyzing,
+        imagePath: file.path,
+        imageFile: file,
+        userCaption: caption ?? 'Can I fit this into today?',
+      ),
+      clearError: true,
+      clearFailedUserMessage: true,
+    );
+
+    try {
+      final analysisResult = await _nutritionService.analyzeFoodImage(file);
+
+      if (analysisResult == null ||
+          (analysisResult.calories <= 0 && analysisResult.lowConfidence)) {
+        state = state.copyWith(
+          foodAnalysisState: ChatFoodAnalysisState(
+            status: FoodAnalysisStatus.failure,
+            imagePath: file.path,
+            imageFile: file,
+            userCaption: caption ?? 'Can I fit this into today?',
+            errorMessage:
+                "I couldn't estimate this meal confidently from the photo.",
+          ),
+        );
+      } else {
+        state = state.copyWith(
+          foodAnalysisState: ChatFoodAnalysisState(
+            status: FoodAnalysisStatus.success,
+            imagePath: file.path,
+            imageFile: file,
+            userCaption: caption ?? 'Can I fit this into today?',
+            result: analysisResult,
+          ),
+        );
+      }
+    } catch (e) {
+      debugPrint("Food photo analysis error: $e");
+      state = state.copyWith(
+        foodAnalysisState: ChatFoodAnalysisState(
+          status: FoodAnalysisStatus.failure,
+          imagePath: file.path,
+          imageFile: file,
+          userCaption: caption ?? 'Can I fit this into today?',
+          errorMessage:
+              "I couldn't estimate this meal confidently from the photo.",
+        ),
+      );
+    }
+  }
+
+  void markMealLogged() {
+    if (state.foodAnalysisState != null) {
+      state = state.copyWith(
+        foodAnalysisState: state.foodAnalysisState!.copyWith(
+          isMealLogged: true,
+        ),
+      );
+    }
+  }
+
+  void clearFoodAnalysis() {
+    state = state.copyWith(clearFoodAnalysis: true);
+  }
+
   void clearChat() {
-    state = ChatState(messages: []);
+    state = ChatState(messages: [], foodAnalysisState: null);
   }
 
   // --- HELPER: XÂY DỰNG NGỮ CẢNH (ĐÃ FIX LỖI PARSE TYPE) ---

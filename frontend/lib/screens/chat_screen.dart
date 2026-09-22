@@ -1,9 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:intl/intl.dart';
 import '../config/app_theme.dart';
 import '../controllers/chat_controller.dart';
+import '../providers/daily_story_provider.dart';
 import 'chat/tokens/saman_chat_tokens.dart';
 import 'chat/widgets/widgets.dart';
+import 'food_log_screen.dart';
+import 'nutrition/widgets/meal_review_dialog.dart';
 
 class ChatScreen extends ConsumerStatefulWidget {
   final String? initialMessage;
@@ -58,7 +63,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       body: Column(
         children: [
           Expanded(
-            child: chatState.messages.isEmpty
+            child: (chatState.messages.isEmpty && chatState.foodAnalysisState == null)
                 ? SamanChatEmptyState(
                     onPromptSelected: _handlePromptSelected,
                   )
@@ -69,9 +74,19 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                     errorMessage: chatState.errorMessage,
                     onRetry: _handleRetry,
                     onEditQuestion: _handleEditQuestion,
+                    foodAnalysisState: chatState.foodAnalysisState,
+                    onLogMeal: _handleLogMeal,
+                    onRetakeFoodPhoto: _handleAttachmentFlow,
+                    onManualMealEntry: _handleManualMealEntry,
                   ),
           ),
-          _buildComposerArea(chatState.isLoading, chatState.messages.isEmpty),
+          _buildComposerArea(
+            isLoading: chatState.isLoading,
+            isAnalyzingFood: chatState.foodAnalysisState?.status ==
+                FoodAnalysisStatus.analyzing,
+            isEmptyState: chatState.messages.isEmpty &&
+                chatState.foodAnalysisState == null,
+          ),
         ],
       ),
     );
@@ -83,7 +98,13 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     ref.read(chatControllerProvider.notifier).sendMessage(prompt);
   }
 
-  Widget _buildComposerArea(bool isLoading, bool isEmptyState) {
+  Widget _buildComposerArea({
+    required bool isLoading,
+    required bool isAnalyzingFood,
+    required bool isEmptyState,
+  }) {
+    final isBusy = isLoading || isAnalyzingFood;
+
     return Container(
       color: SamanChatTokens.canvas,
       padding: const EdgeInsets.fromLTRB(16.0, 4.0, 16.0, 12.0),
@@ -95,7 +116,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              if (isEmptyState && !isLoading) ...[
+              if (isEmptyState && !isBusy) ...[
                 SamanChatRapidChips(
                   onChipSelected: _handlePromptSelected,
                 ),
@@ -104,7 +125,11 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
               SamanChatComposer(
                 controller: _textController,
                 onSend: _handleSend,
-                isLoading: isLoading,
+                isLoading: isBusy,
+                loadingHintText: isAnalyzingFood
+                    ? 'Saman is looking at your meal...'
+                    : 'Saman is responding...',
+                onAttachmentTap: _handleAttachmentFlow,
               ),
             ],
           ),
@@ -137,6 +162,68 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       );
     }
     ref.read(chatControllerProvider.notifier).clearError();
+  }
+
+  Future<void> _handleAttachmentFlow() async {
+    final source = await SamanAttachmentSheet.show(context);
+    if (source == null || !mounted) return;
+
+    final picker = ImagePicker();
+    final picked = await picker.pickImage(
+      source: source,
+      imageQuality: 70,
+      maxWidth: 1024,
+      maxHeight: 1024,
+    );
+
+    if (picked != null && mounted) {
+      ref.read(chatControllerProvider.notifier).analyzeFoodPhoto(picked);
+    }
+  }
+
+  Future<void> _handleLogMeal() async {
+    final foodState = ref.read(chatControllerProvider).foodAnalysisState;
+    if (foodState?.result == null) return;
+
+    final confirmed = await MealReviewDialog.show(context, foodState!.result!);
+    if (confirmed != null && mounted) {
+      try {
+        final todayStr = DateFormat('yyyy-MM-dd').format(DateTime.now());
+        await ref
+            .read(dailyStoryControllerProvider(todayStr).notifier)
+            .confirmLog(confirmed, imageFile: foodState.imageFile);
+
+        ref.read(chatControllerProvider.notifier).markMealLogged();
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Meal logged successfully!'),
+              backgroundColor: SamanChatTokens.surfaceElevated,
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Failed to log meal: $e'),
+              backgroundColor: SamanChatTokens.surfaceElevated,
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+        }
+      }
+    }
+  }
+
+  void _handleManualMealEntry() {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => const FoodLogScreen(),
+      ),
+    );
   }
 
   void _scrollToBottom() {

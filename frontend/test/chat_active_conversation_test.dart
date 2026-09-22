@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
+import 'package:image_picker/image_picker.dart';
 
 import 'package:health_ai_app/config/app_theme.dart';
 import 'package:health_ai_app/controllers/chat_controller.dart';
@@ -58,6 +59,15 @@ class _FakeActiveChatNotifier extends StateNotifier<ChatState>
   void clearError() {
     state = state.copyWith(clearError: true, clearFailedUserMessage: true);
   }
+
+  @override
+  Future<void> analyzeFoodPhoto(XFile file, {String? caption}) async {}
+
+  @override
+  void markMealLogged() {}
+
+  @override
+  void clearFoodAnalysis() {}
 }
 
 Widget _buildActiveTestWrapper({

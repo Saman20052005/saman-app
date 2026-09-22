@@ -14,6 +14,7 @@ class SamanChatComposer extends StatefulWidget {
   final TextEditingController controller;
   final VoidCallback onSend;
   final bool isLoading;
+  final String? loadingHintText;
   final VoidCallback? onAttachmentTap;
   final VoidCallback? onVoiceTap;
 
@@ -22,6 +23,7 @@ class SamanChatComposer extends StatefulWidget {
     required this.controller,
     required this.onSend,
     this.isLoading = false,
+    this.loadingHintText,
     this.onAttachmentTap,
     this.onVoiceTap,
   });
@@ -165,7 +167,7 @@ class _SamanChatComposerState extends State<SamanChatComposer> {
               maxLines: 4,
               decoration: InputDecoration(
                 hintText: widget.isLoading
-                    ? 'Saman is responding...'
+                    ? (widget.loadingHintText ?? 'Saman is responding...')
                     : 'Ask Saman about training, meals, recovery...',
                 hintStyle: SamanChatTokens.composerHint,
                 isDense: true,
@@ -217,7 +219,7 @@ class _SamanChatComposerState extends State<SamanChatComposer> {
           // Right: Monochrome Send / Neutral Stop button
           if (widget.isLoading)
             Semantics(
-              label: 'Saman is responding',
+              label: widget.loadingHintText ?? 'Saman is responding',
               child: Container(
                 width: 36,
                 height: 36,

@@ -1,4 +1,5 @@
 export 'saman_assistant_response.dart';
+export 'saman_attachment_sheet.dart';
 export 'saman_chat_action_row.dart';
 export 'saman_chat_composer.dart';
 export 'saman_chat_context_card.dart';
@@ -7,7 +8,12 @@ export 'saman_chat_empty_state.dart';
 export 'saman_chat_header.dart';
 export 'saman_chat_rapid_chips.dart';
 export 'saman_error_response.dart';
+export 'saman_food_analysis_loading.dart';
+export 'saman_food_failure.dart';
+export 'saman_food_result.dart';
 export 'saman_generating_indicator.dart';
+export 'saman_meal_estimate_card.dart';
 export 'saman_message_list.dart';
 export 'saman_monogram.dart';
 export 'saman_user_message.dart';
+export 'saman_user_photo_message.dart';

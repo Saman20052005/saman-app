@@ -35,6 +35,15 @@ class SamanMonogram extends StatelessWidget {
         borderColor = SamanChatTokens.borderSubtle,
         textColor = SamanChatTokens.textWhite;
 
+  /// Factory constructor for assistant chat response monogram (20x20)
+  const SamanMonogram.chat({super.key})
+      : size = 20.0,
+        fontSize = 11.0,
+        borderRadius = 6.0,
+        backgroundColor = SamanChatTokens.surface,
+        borderColor = SamanChatTokens.borderSubtle,
+        textColor = SamanChatTokens.textWhite;
+
   /// Factory constructor for hero empty state monogram (44x44)
   const SamanMonogram.hero({super.key})
       : size = SamanChatTokens.heroMonogramSize,
