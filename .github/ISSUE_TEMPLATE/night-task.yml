@@ -1,0 +1,134 @@
+name: Night Task
+description: Giao một task có giới hạn rõ ràng để AI thực hiện tự động.
+title: "[Night Task] "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Điền rõ phạm vi và điều kiện hoàn thành. AI chỉ được tạo Pull Request, không tự merge vào main.
+
+  - type: dropdown
+    id: task_type
+    attributes:
+      label: Loại task
+      options:
+        - UI / Flutter
+        - Backend / Python
+        - Bug fix
+        - Full-stack
+        - Refactor
+        - Documentation
+    validations:
+      required: true
+
+  - type: textarea
+    id: goal
+    attributes:
+      label: Mục tiêu cuối cùng
+      description: Mô tả kết quả cụ thể cần đạt được.
+      placeholder: Ví dụ: Hoàn thiện 3 trạng thái của màn hình Saman Chat Drawer.
+    validations:
+      required: true
+
+  - type: textarea
+    id: current_context
+    attributes:
+      label: Ngữ cảnh hiện tại
+      description: Những thông tin AI cần biết trước khi code.
+      placeholder: Screen hiện tại, hành vi đang có, vấn đề cần giải quyết...
+    validations:
+      required: true
+
+  - type: textarea
+    id: allowed_paths
+    attributes:
+      label: File hoặc thư mục được phép sửa
+      placeholder: |
+        frontend/lib/screens/chat/
+        frontend/test/
+    validations:
+      required: true
+
+  - type: textarea
+    id: forbidden_changes
+    attributes:
+      label: Không được phép thay đổi
+      value: |
+        - Không sửa file ngoài phạm vi cho phép.
+        - Không thay đổi secrets, token hoặc file .env.
+        - Không push trực tiếp vào main.
+        - Không tự merge Pull Request.
+    validations:
+      required: true
+
+  - type: textarea
+    id: acceptance_criteria
+    attributes:
+      label: Điều kiện hoàn thành
+      placeholder: |
+        - [ ] Giao diện đúng reference.
+        - [ ] Không làm hỏng chức năng hiện tại.
+        - [ ] Flutter analyze thành công.
+        - [ ] Các test liên quan thành công.
+    validations:
+      required: true
+
+  - type: textarea
+    id: verification
+    attributes:
+      label: Lệnh kiểm tra
+      value: |
+        cd frontend
+        flutter analyze --no-fatal-infos --no-fatal-warnings
+        flutter test
+    validations:
+      required: true
+
+  - type: textarea
+    id: references
+    attributes:
+      label: Reference và tài liệu liên quan
+      description: Link Stitch, Figma, screenshot, GitHub Issue hoặc tài liệu thiết kế.
+
+  - type: input
+    id: branch_name
+    attributes:
+      label: Tên branch AI phải sử dụng
+      placeholder: agent/night-chat-drawer
+    validations:
+      required: true
+
+  - type: dropdown
+    id: max_attempts
+    attributes:
+      label: Số vòng sửa lỗi tối đa
+      description: AI phải dừng và báo cáo nếu vẫn thất bại sau số vòng này.
+      options:
+        - "1"
+        - "2"
+        - "3"
+      default: 1
+    validations:
+      required: true
+
+  - type: textarea
+    id: stop_conditions
+    attributes:
+      label: Điều kiện phải dừng
+      value: |
+        - Cần thay đổi ngoài phạm vi được cho phép.
+        - Phát hiện nguy cơ mất dữ liệu hoặc lộ thông tin bí mật.
+        - Test vẫn thất bại sau số vòng sửa lỗi tối đa.
+        - Yêu cầu không đủ rõ để đưa ra quyết định an toàn.
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: confirmation
+    attributes:
+      label: Xác nhận quyền hạn
+      options:
+        - label: AI chỉ được commit, push branch và tạo Pull Request.
+          required: true
+        - label: Chỉ con người mới được merge vào main.
+          required: true
