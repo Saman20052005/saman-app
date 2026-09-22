@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import '../../../controllers/chat_controller.dart';
+import '../../../models/saman_nudge.dart';
 import 'saman_assistant_response.dart';
 import 'saman_error_response.dart';
 import 'saman_food_analysis_loading.dart';
 import 'saman_food_failure.dart';
 import 'saman_food_result.dart';
 import 'saman_generating_indicator.dart';
+import 'saman_reminder_nudge.dart';
 import 'saman_user_message.dart';
 import 'saman_user_photo_message.dart';
 
@@ -23,6 +25,7 @@ class SamanMessageList extends StatelessWidget {
   final VoidCallback? onRetakeFoodPhoto;
   final VoidCallback? onManualMealEntry;
   final List<SamanAssistantAction>? latestAssistantActions;
+  final SamanNudge? activeNudge;
 
   const SamanMessageList({
     super.key,
@@ -37,16 +40,16 @@ class SamanMessageList extends StatelessWidget {
     this.onRetakeFoodPhoto,
     this.onManualMealEntry,
     this.latestAssistantActions,
+    this.activeNudge,
   });
 
   @override
   Widget build(BuildContext context) {
-    final hasError = errorMessage != null;
-    final showGenerating =
-        !hasError && isLoading && messages.isNotEmpty && messages.last.role == 'user';
-    final extraCount = (hasError || showGenerating) ? 1 : 0;
     final foodCount = foodAnalysisState != null ? 2 : 0;
-    final totalCount = foodCount + messages.length + extraCount;
+    final hasError = errorMessage != null && errorMessage!.isNotEmpty;
+    final extraCount = (isLoading || hasError) ? 1 : 0;
+    final nudgeCount = activeNudge != null ? 1 : 0;
+    final totalCount = foodCount + messages.length + extraCount + nudgeCount;
 
     return Center(
       child: ConstrainedBox(
@@ -100,7 +103,15 @@ class SamanMessageList extends StatelessWidget {
               );
             }
 
-            // 4. Text error or generating indicator
+            // 4. Proactive Coaching Reminder / Nudge
+            final nudgeIndex = foodCount + messages.length;
+            if (activeNudge != null && index == nudgeIndex) {
+              return SamanReminderNudge(
+                nudge: activeNudge!,
+              );
+            }
+
+            // 5. Text error or generating indicator
             if (hasError) {
               return SamanErrorResponse(
                 errorMessage: errorMessage!,

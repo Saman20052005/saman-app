@@ -12,8 +12,13 @@ import 'nutrition/widgets/meal_review_dialog.dart';
 
 class ChatScreen extends ConsumerStatefulWidget {
   final String? initialMessage;
+  final SamanNudge? initialNudge;
 
-  const ChatScreen({super.key, this.initialMessage});
+  const ChatScreen({
+    super.key,
+    this.initialMessage,
+    this.initialNudge,
+  });
 
   @override
   ConsumerState<ChatScreen> createState() => _ChatScreenState();
@@ -23,10 +28,12 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   final TextEditingController _textController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
+  SamanNudge? _activeNudge;
 
   @override
   void initState() {
     super.initState();
+    _activeNudge = widget.initialNudge;
     if (widget.initialMessage != null) {
       _textController.text = widget.initialMessage!;
     }
@@ -39,31 +46,65 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     super.dispose();
   }
 
+  void _handleNudgePrimary(SamanNudge nudge) {
+    setState(() {
+      _activeNudge = null;
+    });
+    if (nudge.onPrimary != null) {
+      nudge.onPrimary!();
+    } else {
+      final prompt = nudge.promptToSend ??
+          'Plan a high-protein dinner based on my remaining nutrition targets.';
+      _handlePromptSelected(prompt);
+    }
+  }
+
+  void _handleNudgeSecondary(SamanNudge nudge) {
+    setState(() {
+      _activeNudge = null;
+    });
+    nudge.onSecondary?.call();
+  }
+
   @override
   Widget build(BuildContext context) {
     final chatState = ref.watch(chatControllerProvider);
 
     _scrollToBottom();
 
+    final hasNudge = _activeNudge != null;
+
     return Scaffold(
       key: _scaffoldKey,
       backgroundColor: SamanChatTokens.canvas,
       drawerScrimColor: SamanChatTokens.drawerScrim,
       drawer: SamanChatDrawer(
-        onNewChat: () =>
-            ref.read(chatControllerProvider.notifier).clearChat(),
+        onNewChat: () {
+          setState(() {
+            _activeNudge = null;
+          });
+          ref.read(chatControllerProvider.notifier).clearChat();
+        },
         onPromptSelected: _handlePromptSelected,
         onOpenPreferences: _showPersonaDialog,
+        hasActiveReminders: hasNudge,
       ),
       appBar: SamanChatHeader(
         onMenuTap: () => _scaffoldKey.currentState?.openDrawer(),
-        onNewChat: () =>
-            ref.read(chatControllerProvider.notifier).clearChat(),
+        onNewChat: () {
+          setState(() {
+            _activeNudge = null;
+          });
+          ref.read(chatControllerProvider.notifier).clearChat();
+        },
+        hasActiveReminders: hasNudge,
       ),
       body: Column(
         children: [
           Expanded(
-            child: (chatState.messages.isEmpty && chatState.foodAnalysisState == null)
+            child: (chatState.messages.isEmpty &&
+                    chatState.foodAnalysisState == null &&
+                    !hasNudge)
                 ? SamanChatEmptyState(
                     onPromptSelected: _handlePromptSelected,
                   )
@@ -78,6 +119,13 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                     onLogMeal: _handleLogMeal,
                     onRetakeFoodPhoto: _handleAttachmentFlow,
                     onManualMealEntry: _handleManualMealEntry,
+                    activeNudge: hasNudge
+                        ? _activeNudge!.copyWith(
+                            onPrimary: () => _handleNudgePrimary(_activeNudge!),
+                            onSecondary: () =>
+                                _handleNudgeSecondary(_activeNudge!),
+                          )
+                        : null,
                   ),
           ),
           _buildComposerArea(
@@ -85,7 +133,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
             isAnalyzingFood: chatState.foodAnalysisState?.status ==
                 FoodAnalysisStatus.analyzing,
             isEmptyState: chatState.messages.isEmpty &&
-                chatState.foodAnalysisState == null,
+                chatState.foodAnalysisState == null &&
+                !hasNudge,
           ),
         ],
       ),

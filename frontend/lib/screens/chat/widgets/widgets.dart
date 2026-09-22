@@ -15,5 +15,7 @@ export 'saman_generating_indicator.dart';
 export 'saman_meal_estimate_card.dart';
 export 'saman_message_list.dart';
 export 'saman_monogram.dart';
+export 'saman_reminder_nudge.dart';
 export 'saman_user_message.dart';
 export 'saman_user_photo_message.dart';
+export '../../../models/saman_nudge.dart';

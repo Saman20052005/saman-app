@@ -15,12 +15,14 @@ class SamanChatDrawer extends StatelessWidget {
   final VoidCallback onNewChat;
   final ValueChanged<String> onPromptSelected;
   final VoidCallback onOpenPreferences;
+  final bool hasActiveReminders;
 
   const SamanChatDrawer({
     super.key,
     required this.onNewChat,
     required this.onPromptSelected,
     required this.onOpenPreferences,
+    this.hasActiveReminders = false,
   });
 
   static const String weeklyReviewPrompt =
@@ -276,6 +278,7 @@ class SamanChatDrawer extends StatelessWidget {
                 _DrawerUtilityRow(
                   icon: Icons.access_time_rounded,
                   title: 'Reminders',
+                  hasActiveDot: hasActiveReminders,
                   onTap: () => _handleRemindersPlaceholder(context),
                 ),
 
@@ -414,12 +417,14 @@ class _DrawerUtilityRow extends StatelessWidget {
   final String title;
   final String? subtitle;
   final VoidCallback onTap;
+  final bool hasActiveDot;
 
   const _DrawerUtilityRow({
     required this.icon,
     required this.title,
     this.subtitle,
     required this.onTap,
+    this.hasActiveDot = false,
   });
 
   @override
@@ -468,6 +473,16 @@ class _DrawerUtilityRow extends StatelessWidget {
                   ],
                 ),
               ),
+              if (hasActiveDot)
+                Container(
+                  width: 6,
+                  height: 6,
+                  margin: const EdgeInsets.only(right: 8.0),
+                  decoration: const BoxDecoration(
+                    color: SamanChatTokens.greenAccent,
+                    shape: BoxShape.circle,
+                  ),
+                ),
               const Icon(
                 Icons.chevron_right_rounded,
                 size: 18,
