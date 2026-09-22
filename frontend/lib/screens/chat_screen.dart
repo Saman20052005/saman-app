@@ -205,10 +205,11 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
           );
         }
       } catch (e) {
+        debugPrint('Meal logging error: $e');
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Failed to log meal: $e'),
+            const SnackBar(
+              content: Text("I couldn't log this meal. Please try again."),
               backgroundColor: SamanChatTokens.surfaceElevated,
               behavior: SnackBarBehavior.floating,
             ),

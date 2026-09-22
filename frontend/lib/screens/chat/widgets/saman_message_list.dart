@@ -22,6 +22,7 @@ class SamanMessageList extends StatelessWidget {
   final VoidCallback? onLogMeal;
   final VoidCallback? onRetakeFoodPhoto;
   final VoidCallback? onManualMealEntry;
+  final List<SamanAssistantAction>? latestAssistantActions;
 
   const SamanMessageList({
     super.key,
@@ -35,6 +36,7 @@ class SamanMessageList extends StatelessWidget {
     this.onLogMeal,
     this.onRetakeFoodPhoto,
     this.onManualMealEntry,
+    this.latestAssistantActions,
   });
 
   @override
@@ -91,7 +93,11 @@ class SamanMessageList extends StatelessWidget {
               if (msg.role == 'user') {
                 return SamanUserMessage(message: msg);
               }
-              return SamanAssistantResponse(message: msg);
+              final isLatestAssistant = msgIndex == messages.length - 1;
+              return SamanAssistantResponse(
+                message: msg,
+                actions: isLatestAssistant ? latestAssistantActions : null,
+              );
             }
 
             // 4. Text error or generating indicator
