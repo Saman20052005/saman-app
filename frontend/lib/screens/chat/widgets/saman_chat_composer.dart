@@ -156,31 +156,46 @@ class _SamanChatComposerState extends State<SamanChatComposer> {
 
           // Center: Text input
           Expanded(
-            child: TextField(
-              controller: widget.controller,
-              enabled: !widget.isLoading,
-              style: SamanChatTokens.composerInput,
-              cursorColor: SamanChatTokens.textWhite,
-              textCapitalization: TextCapitalization.sentences,
-              keyboardType: TextInputType.text,
-              minLines: 1,
-              maxLines: 4,
-              decoration: InputDecoration(
-                hintText: widget.isLoading
-                    ? (widget.loadingHintText ?? 'Saman is responding...')
-                    : 'Ask Saman about training, meals, recovery...',
-                hintStyle: SamanChatTokens.composerHint,
-                isDense: true,
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 4.0,
-                  vertical: 8.0,
+            child: Theme(
+              data: Theme.of(context).copyWith(
+                inputDecorationTheme: const InputDecorationTheme(
+                  filled: true,
+                  fillColor: Colors.transparent,
+                  border: InputBorder.none,
+                  enabledBorder: InputBorder.none,
+                  focusedBorder: InputBorder.none,
+                  disabledBorder: InputBorder.none,
                 ),
-                border: InputBorder.none,
-                enabledBorder: InputBorder.none,
-                focusedBorder: InputBorder.none,
-                disabledBorder: InputBorder.none,
               ),
-              onSubmitted: canSend ? (_) => widget.onSend() : null,
+              child: TextField(
+                controller: widget.controller,
+                enabled: !widget.isLoading,
+                style: SamanChatTokens.composerInput,
+                cursorColor: SamanChatTokens.textWhite,
+                textCapitalization: TextCapitalization.sentences,
+                keyboardType: TextInputType.text,
+                minLines: 1,
+                maxLines: 4,
+                decoration: InputDecoration(
+                  filled: true,
+                  fillColor: Colors.transparent,
+                  hoverColor: Colors.transparent,
+                  hintText: widget.isLoading
+                      ? (widget.loadingHintText ?? 'Saman is responding...')
+                      : 'Ask Saman about training, meals, recovery...',
+                  hintStyle: SamanChatTokens.composerHint,
+                  isDense: true,
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 4.0,
+                    vertical: 8.0,
+                  ),
+                  border: InputBorder.none,
+                  enabledBorder: InputBorder.none,
+                  focusedBorder: InputBorder.none,
+                  disabledBorder: InputBorder.none,
+                ),
+                onSubmitted: canSend ? (_) => widget.onSend() : null,
+              ),
             ),
           ),
 

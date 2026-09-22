@@ -281,5 +281,35 @@ void main() {
 
       expect(tester.takeException(), isNull);
     });
+
+    testWidgets(
+        '11. Composer TextField explicitly defines transparent fill and rejects global theme fill',
+        (tester) async {
+      final fakeNotifier = _FakeActiveChatNotifier();
+      // Pump with light theme (which defines white/off-white filled inputDecorationTheme)
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            chatControllerProvider.overrideWith((ref) => fakeNotifier),
+          ],
+          child: MaterialApp(
+            debugShowCheckedModeBanner: false,
+            theme: SamanTheme.light(),
+            home: const SizedBox(
+              width: 390,
+              height: 844,
+              child: ChatScreen(),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final textFieldFinder = find.byType(TextField);
+      expect(textFieldFinder, findsOneWidget);
+      final textField = tester.widget<TextField>(textFieldFinder);
+      expect(textField.decoration?.filled, isTrue);
+      expect(textField.decoration?.fillColor, Colors.transparent);
+    });
   });
 }
