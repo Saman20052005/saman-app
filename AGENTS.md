@@ -31,6 +31,13 @@ If information is missing or unsafe, stop and report the blocker instead of gues
 - Do not delete data or perform destructive operations.
 - Do not modify production services or external databases.
 
+## Codex review rules
+
+- Codex checks Pull Request scope against issue task requirements and allowed paths.
+- Codex flags secrets, credentials, tokens, and unsafe or destructive changes.
+- Codex checks test execution and Flutter compatibility.
+- Human review remains required before any merge into main.
+
 ## Git rules
 
 - Never push directly to `main`.
