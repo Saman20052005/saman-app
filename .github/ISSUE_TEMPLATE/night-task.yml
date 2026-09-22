@@ -1,6 +1,8 @@
 name: Night Task
 description: Giao một task có giới hạn rõ ràng để AI thực hiện tự động.
 title: "[Night Task] "
+labels:
+  - jules
 body:
   - type: markdown
     attributes:
