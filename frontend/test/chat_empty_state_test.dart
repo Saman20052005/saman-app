@@ -5,7 +5,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:health_ai_app/config/app_theme.dart';
 import 'package:health_ai_app/controllers/chat_controller.dart';
 import 'package:health_ai_app/screens/chat/tokens/saman_chat_tokens.dart';
-import 'package:health_ai_app/screens/chat/widgets/widgets.dart';
 import 'package:health_ai_app/screens/chat_screen.dart';
 
 class _FakeChatNotifier extends StateNotifier<ChatState>
@@ -149,8 +148,15 @@ void main() {
       expect(find.byIcon(Icons.favorite_rounded), findsOneWidget);
     });
 
-    testWidgets('7. Tapping suggested action dispatches message to controller',
+    testWidgets('7. Tapping suggested actions dispatches approved prompts',
         (tester) async {
+      tester.view.physicalSize = const Size(390 * 3, 844 * 3);
+      tester.view.devicePixelRatio = 3.0;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+
       final fakeNotifier = _FakeChatNotifier();
       await tester.pumpWidget(_buildTestWrapper(notifier: fakeNotifier));
       await tester.pumpAndSettle();
@@ -162,6 +168,28 @@ void main() {
       expect(
         fakeNotifier.sentMessages.first,
         "Review today's workout briefing: cues and volume.",
+      );
+
+      // Reset to empty state for Plan next meal
+      fakeNotifier.clearChat();
+      await tester.pumpAndSettle();
+      await tester.ensureVisible(find.text("Plan next meal"));
+      await tester.tap(find.text("Plan next meal"));
+      await tester.pumpAndSettle();
+      expect(
+        fakeNotifier.sentMessages.last,
+        "Plan my next meal based on today's remaining nutrition targets.",
+      );
+
+      // Reset to empty state for Check recovery
+      fakeNotifier.clearChat();
+      await tester.pumpAndSettle();
+      await tester.ensureVisible(find.text("Check recovery"));
+      await tester.tap(find.text("Check recovery"));
+      await tester.pumpAndSettle();
+      expect(
+        fakeNotifier.sentMessages.last,
+        "Check my recovery today and suggest how hard I should train.",
       );
     });
 

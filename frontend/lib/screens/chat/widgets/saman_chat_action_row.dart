@@ -27,13 +27,13 @@ class SamanChatActionItem {
       icon: Icons.restaurant_rounded,
       iconColor: SamanChatTokens.amberAccent, // #F59E0B
       title: "Plan next meal",
-      prompt: "Plan my next post-workout meal to hit 35g protein.",
+      prompt: "Plan my next meal based on today's remaining nutrition targets.",
     ),
     SamanChatActionItem(
       icon: Icons.favorite_rounded,
       iconColor: SamanChatTokens.violetAccent, // #A855F7
       title: "Check recovery",
-      prompt: "Check recovery status and strain index for today.",
+      prompt: "Check my recovery today and suggest how hard I should train.",
     ),
   ];
 }

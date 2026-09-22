@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_markdown/flutter_markdown.dart';
 import '../config/app_theme.dart';
 import '../controllers/chat_controller.dart';
 import 'chat/tokens/saman_chat_tokens.dart';
@@ -57,16 +56,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                 ? SamanChatEmptyState(
                     onPromptSelected: _handlePromptSelected,
                   )
-                : ListView.builder(
-                    controller: _scrollController,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: AppSpacing.xl,
-                      vertical: AppSpacing.xl,
-                    ),
-                    itemCount: chatState.messages.length,
-                    itemBuilder: (context, index) {
-                      return _buildMessageBubble(chatState.messages[index]);
-                    },
+                : SamanMessageList(
+                    messages: chatState.messages,
+                    scrollController: _scrollController,
                   ),
           ),
           _buildComposerArea(chatState.isLoading, chatState.messages.isEmpty),
@@ -107,89 +99,6 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
             ],
           ),
         ),
-      ),
-    );
-  }
-
-  Widget _buildMessageBubble(ChatMessage msg) {
-    final isUser = msg.role == 'user';
-    final colors = Theme.of(context).colorScheme;
-    final textTheme = Theme.of(context).textTheme;
-    return Padding(
-      padding: const EdgeInsets.only(bottom: AppSpacing.lg),
-      child: Row(
-        mainAxisAlignment:
-            isUser ? MainAxisAlignment.end : MainAxisAlignment.start,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          if (!isUser) ...[
-            const SamanMonogram(
-              size: 28,
-              borderRadius: 6,
-              fontSize: 13,
-            ),
-            const SizedBox(width: AppSpacing.sm),
-          ],
-          Flexible(
-            child: Container(
-              padding: const EdgeInsets.all(AppSpacing.lg),
-              decoration: BoxDecoration(
-                color: isUser ? colors.primary : context.surfaceColor,
-                borderRadius: BorderRadius.only(
-                  topLeft: const Radius.circular(AppRadius.lg),
-                  topRight: const Radius.circular(AppRadius.lg),
-                  bottomLeft:
-                      Radius.circular(isUser ? AppRadius.lg : AppRadius.sm),
-                  bottomRight:
-                      Radius.circular(isUser ? AppRadius.sm : AppRadius.lg),
-                ),
-                border: isUser ? null : Border.all(color: colors.outline),
-              ),
-              child: isUser
-                  ? Text(
-                      msg.content,
-                      style: textTheme.bodyLarge?.copyWith(
-                        color: colors.onPrimary,
-                        height: 1.45,
-                      ),
-                    )
-                  : Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        MarkdownBody(
-                          data: msg.content,
-                          styleSheet: MarkdownStyleSheet(
-                            p: TextStyle(
-                              color: colors.onSurface,
-                              fontSize: 15,
-                              height: 1.5,
-                            ),
-                            strong: TextStyle(
-                              fontWeight: FontWeight.w700,
-                              color: colors.primary,
-                            ),
-                            tableBody: TextStyle(color: colors.onSurface),
-                            tableHead: TextStyle(
-                              fontWeight: FontWeight.w700,
-                              color: colors.onSurface,
-                            ),
-                            tableBorder: TableBorder.all(color: colors.outline),
-                          ),
-                        ),
-                        if (msg.isTyping)
-                          Padding(
-                            padding: const EdgeInsets.only(top: AppSpacing.sm),
-                            child: SizedBox(
-                                width: 10,
-                                height: 10,
-                                child: CircularProgressIndicator(
-                                    strokeWidth: 2, color: colors.primary)),
-                          )
-                      ],
-                    ),
-            ),
-          ),
-        ],
       ),
     );
   }

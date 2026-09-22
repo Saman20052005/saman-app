@@ -126,4 +126,25 @@ class SamanChatTokens {
     fontWeight: FontWeight.w400,
     color: textMuted,
   );
+
+  static const TextStyle userMessage = TextStyle(
+    fontSize: 14,
+    fontWeight: FontWeight.w500,
+    color: textWhite,
+    height: 1.45,
+  );
+
+  static const TextStyle assistantName = TextStyle(
+    fontSize: 12,
+    fontWeight: FontWeight.w600,
+    letterSpacing: 0.3,
+    color: textSecondary,
+  );
+
+  static const TextStyle assistantBody = TextStyle(
+    fontSize: 14,
+    fontWeight: FontWeight.w400,
+    color: textWhite,
+    height: 1.55,
+  );
 }
