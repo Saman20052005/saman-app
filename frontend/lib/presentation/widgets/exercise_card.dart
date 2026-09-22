@@ -2,8 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import '../../data/models/exercise.dart';
-import '../../core/constants/app_dimens.dart';
-import '../../core/constants/app_colors.dart';
+import '../../config/app_theme.dart';
 
 class ExerciseCard extends StatelessWidget {
   final Exercise exercise;
@@ -17,33 +16,48 @@ class ExerciseCard extends StatelessWidget {
     this.trailing,
   });
 
-  Color _getDifficultyColor(String diff) {
+  Color _getDifficultyColor(
+    String diff,
+    ColorScheme colors,
+    AppThemeExtension extension,
+  ) {
     switch (diff) {
       case 'beginner':
-        return AppColors.success;
+        return colors.primary;
       case 'intermediate':
-        return AppColors.warning;
+        return extension.warning;
       case 'advanced':
-        return AppColors.error;
+        return colors.error;
       default:
-        return Colors.grey;
+        return colors.secondary;
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+    final extension = Theme.of(context).extension<AppThemeExtension>()!;
+    final difficultyColor = _getDifficultyColor(
+      exercise.difficulty,
+      colors,
+      extension,
+    );
+
     return Material(
-      color: Colors.transparent,
+      color: colors.surface,
+      borderRadius: BorderRadius.circular(AppRadius.lg),
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(AppDimens.radiusL),
-        child: Card(
-          elevation: 0,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(AppDimens.radiusL),
+        borderRadius: BorderRadius.circular(AppRadius.lg),
+        child: Ink(
+          decoration: BoxDecoration(
+            color: colors.surface,
+            borderRadius: BorderRadius.circular(AppRadius.lg),
+            border: Border.all(color: colors.outline),
           ),
           child: Padding(
-            padding: const EdgeInsets.all(12),
+            padding: const EdgeInsets.all(AppSpacing.md),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -51,7 +65,7 @@ class ExerciseCard extends StatelessWidget {
                 Hero(
                   tag: 'exercise_${exercise.slug}',
                   child: ClipRRect(
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(AppRadius.md),
                     child: CachedNetworkImage(
                       imageUrl: exercise.thumbnailUrl,
                       width: 80,
@@ -60,21 +74,28 @@ class ExerciseCard extends StatelessWidget {
                       placeholder: (context, url) => Container(
                         width: 80,
                         height: 80,
-                        color: Colors.grey[200],
-                        child: const Center(
-                          child: CircularProgressIndicator(strokeWidth: 2),
+                        color: context.trackColor,
+                        child: Center(
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: colors.primary,
+                          ),
                         ),
                       ),
                       errorWidget: (context, url, error) => Container(
                         width: 80,
                         height: 80,
-                        color: Colors.grey[200],
-                        child: const Icon(Icons.fitness_center, size: 32),
+                        color: context.trackColor,
+                        child: Icon(
+                          Icons.fitness_center_outlined,
+                          size: 32,
+                          color: colors.secondary,
+                        ),
                       ),
                     ),
                   ),
                 ),
-                const SizedBox(width: 16),
+                const SizedBox(width: AppSpacing.lg),
 
                 // Info
                 Expanded(
@@ -83,23 +104,23 @@ class ExerciseCard extends StatelessWidget {
                     children: [
                       Text(
                         exercise.name,
-                        style:
-                            Theme.of(context).textTheme.titleMedium?.copyWith(
-                                  fontWeight: FontWeight.w700,
-                                ),
+                        style: textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: -0.2,
+                        ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
                       const SizedBox(height: 2),
                       Text(
                         exercise.nameVi,
-                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                              color: Colors.grey[600],
-                            ),
+                        style: textTheme.bodyMedium?.copyWith(
+                          color: colors.secondary,
+                        ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
-                      const SizedBox(height: 8),
+                      const SizedBox(height: AppSpacing.sm),
                       Row(
                         children: [
                           // Difficulty badge
@@ -109,20 +130,19 @@ class ExerciseCard extends StatelessWidget {
                               vertical: 4,
                             ),
                             decoration: BoxDecoration(
-                              color: _getDifficultyColor(exercise.difficulty)
-                                  .withOpacity(0.1),
-                              borderRadius: BorderRadius.circular(999),
+                              color: difficultyColor.withOpacity(0.12),
+                              borderRadius: BorderRadius.circular(AppRadius.sm),
                             ),
                             child: Text(
                               exercise.difficulty.toUpperCase(),
                               style: TextStyle(
                                 fontSize: 12,
                                 fontWeight: FontWeight.w700,
-                                color: _getDifficultyColor(exercise.difficulty),
+                                color: difficultyColor,
                               ),
                             ),
                           ),
-                          const SizedBox(width: 8),
+                          const SizedBox(width: AppSpacing.sm),
 
                           // CV badge
                           if (exercise.cvSupported)
@@ -132,13 +152,14 @@ class ExerciseCard extends StatelessWidget {
                                 vertical: 4,
                               ),
                               decoration: BoxDecoration(
-                                color: Colors.black,
-                                borderRadius: BorderRadius.circular(999),
+                                color: context.trackColor,
+                                borderRadius:
+                                    BorderRadius.circular(AppRadius.sm),
                               ),
-                              child: const Text(
+                              child: Text(
                                 'CV',
                                 style: TextStyle(
-                                  color: Colors.white,
+                                  color: colors.onSurface,
                                   fontSize: 12,
                                   fontWeight: FontWeight.bold,
                                 ),
@@ -149,14 +170,17 @@ class ExerciseCard extends StatelessWidget {
                           // Sets x Reps
                           Text(
                             '${exercise.defaultSets} sets × ${exercise.defaultReps}',
-                            style: Theme.of(context).textTheme.bodySmall,
+                            style: textTheme.bodySmall?.copyWith(
+                              color: colors.secondary,
+                              fontWeight: FontWeight.w600,
+                            ),
                           ),
                         ],
                       ),
                     ],
                   ),
                 ),
-                const SizedBox(width: 16),
+                const SizedBox(width: AppSpacing.lg),
                 // Optional trailing widget
                 if (trailing != null) trailing!,
               ],

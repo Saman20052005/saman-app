@@ -1,8 +1,5 @@
 // lib/screens/profile_screen.dart
-// Hoàn thiện với accent tím nhạt, đồng bộ light/dark theme
-
 import 'package:flutter/material.dart';
-import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../utils/auth_helper.dart';
@@ -11,6 +8,7 @@ import '../utils/auth_helper.dart';
 import '../features/profile/domain/entities/profile_entity.dart';
 import '../providers/profile_provider.dart';
 import '../config/app_translations.dart';
+import '../config/app_theme.dart';
 import '../config/theme_provider.dart';
 import 'login/login_screen.dart';
 
@@ -114,19 +112,21 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
     showModalBottomSheet(
       context: context,
-      backgroundColor: Colors.transparent,
+      backgroundColor: colors.surface,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(AppRadius.lg)),
       ),
       builder: (ctx) {
         return Container(
           decoration: BoxDecoration(
             color: colors.surface,
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+            borderRadius: const BorderRadius.vertical(
+              top: Radius.circular(AppRadius.lg),
+            ),
           ),
           child: SafeArea(
             child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 16),
+              padding: const EdgeInsets.symmetric(vertical: AppSpacing.lg),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -138,16 +138,16 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                       borderRadius: BorderRadius.circular(2),
                     ),
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: AppSpacing.lg),
                   Text(
                     tr('language'),
                     style: TextStyle(
                       fontSize: 16,
-                      fontWeight: FontWeight.bold,
+                      fontWeight: FontWeight.w700,
                       color: colors.onSurface,
                     ),
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: AppSpacing.sm),
                   ListTile(
                     leading: const Text('🇬🇧', style: TextStyle(fontSize: 24)),
                     title: const Text('English'),
@@ -201,7 +201,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           ElevatedButton(
             onPressed: () => Navigator.pop(context, true),
             style: ElevatedButton.styleFrom(
-              backgroundColor: colors.primary,
+              backgroundColor: colors.error,
               foregroundColor: colors.onPrimary,
             ),
             child: Text(tr('logout')),
@@ -242,7 +242,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     });
 
     return Scaffold(
-      backgroundColor: colors.background,
+      backgroundColor: context.bgColor,
       extendBodyBehindAppBar: true,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
@@ -252,9 +252,11 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
-          'SAMAN ID',
-          style:
-              TextStyle(color: colors.onSurface, fontWeight: FontWeight.w900),
+          'Profile',
+          style: textTheme.titleLarge?.copyWith(
+            fontWeight: FontWeight.w700,
+            letterSpacing: -0.3,
+          ),
         ),
         centerTitle: true,
         actions: [
@@ -272,19 +274,23 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             children: [
               _buildHeader(profileState, colors, textTheme),
               Padding(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+                padding: const EdgeInsets.fromLTRB(
+                  AppSpacing.xl,
+                  AppSpacing.xl,
+                  AppSpacing.xl,
+                  AppSpacing.xxxl,
+                ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     _buildSectionHeader(tr('body_stats'),
                         Icons.accessibility_new, colors, textTheme),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: AppSpacing.lg),
                     _buildStatsGrid(colors, textTheme),
-                    const SizedBox(height: 30),
+                    const SizedBox(height: AppSpacing.xxl),
                     _buildSectionHeader(
                         tr('goal_lifestyle'), Icons.flag, colors, textTheme),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: AppSpacing.lg),
                     _buildSelectionCard(
                         tr('main_goal'),
                         Goal.values,
@@ -292,7 +298,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                         (val) => setState(() => _selectedGoal = val),
                         colors,
                         textTheme),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: AppSpacing.md),
                     _buildSelectionCard(
                         tr('activity_level'),
                         ActivityLevel.values,
@@ -300,7 +306,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                         (val) => setState(() => _selectedActivity = val),
                         colors,
                         textTheme),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: AppSpacing.md),
                     _buildSelectionCard(
                         tr('gender'),
                         Gender.values,
@@ -308,10 +314,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                         (val) => setState(() => _selectedGender = val),
                         colors,
                         textTheme),
-                    const SizedBox(height: 30),
+                    const SizedBox(height: AppSpacing.xxl),
                     _buildSectionHeader(tr('medical_notes'),
                         Icons.medical_services_outlined, colors, textTheme),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: AppSpacing.md),
                     TextFormField(
                       controller: _allergiesController,
                       style: TextStyle(color: colors.onSurface),
@@ -319,24 +325,24 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                         hintText: tr('allergies_hint'),
                         hintStyle: TextStyle(color: colors.secondary),
                         filled: true,
-                        fillColor: colors.surface,
+                        fillColor: context.surfaceColor,
                         border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: BorderRadius.circular(AppRadius.md),
                           borderSide: BorderSide(color: colors.outline),
                         ),
                         enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: BorderRadius.circular(AppRadius.md),
                           borderSide: BorderSide(color: colors.outline),
                         ),
                         focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: BorderRadius.circular(AppRadius.md),
                           borderSide: BorderSide(color: colors.primary),
                         ),
                       ),
                     ),
-                    const SizedBox(height: 30),
+                    const SizedBox(height: AppSpacing.xxl),
                     _buildSettingsGroup(colors, textTheme),
-                    const SizedBox(height: 40),
+                    const SizedBox(height: AppSpacing.xxl),
                     SizedBox(
                       width: double.infinity,
                       height: 56,
@@ -346,7 +352,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                           backgroundColor: colors.primary,
                           foregroundColor: colors.onPrimary,
                           shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(16)),
+                              borderRadius:
+                                  BorderRadius.circular(AppRadius.md)),
                         ),
                         child: profileState.isLoading
                             ? CircularProgressIndicator(color: colors.onPrimary)
@@ -355,7 +362,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                                     fontSize: 16, fontWeight: FontWeight.bold)),
                       ),
                     ),
-                    const SizedBox(height: 30),
+                    const SizedBox(height: AppSpacing.xl),
                   ],
                 ),
               ),
@@ -378,34 +385,40 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.fromLTRB(20, 110, 20, 30),
+      padding: const EdgeInsets.fromLTRB(
+        AppSpacing.xl,
+        110,
+        AppSpacing.xl,
+        AppSpacing.xxl,
+      ),
       decoration: BoxDecoration(
-        color: colors.surface,
-        borderRadius: const BorderRadius.vertical(bottom: Radius.circular(32)),
-        boxShadow: [
-          BoxShadow(
-            color: colors.shadow,
-            blurRadius: 20,
-            offset: const Offset(0, 8),
-          ),
-        ],
+        color: context.surfaceColor,
+        borderRadius: const BorderRadius.vertical(
+          bottom: Radius.circular(AppRadius.lg),
+        ),
+        border: Border(bottom: BorderSide(color: colors.outline)),
       ),
       child: Column(
         children: [
           CircleAvatar(
             radius: 45,
-            backgroundColor: colors.primary.withOpacity(0.2), // tím nhạt
+            backgroundColor: context.trackColor,
+            foregroundColor: colors.primary,
             child: Text(
               _userName.isNotEmpty ? _userName[0].toUpperCase() : "U",
               style: textTheme.displayLarge
                   ?.copyWith(fontSize: 36, color: colors.onSurface),
             ),
-          ).animate().scale(curve: Curves.elasticOut),
-          const SizedBox(height: 16),
-          Text(_userName,
-              style: textTheme.headlineMedium
-                  ?.copyWith(fontWeight: FontWeight.bold)),
-          const SizedBox(height: 4),
+          ),
+          const SizedBox(height: AppSpacing.lg),
+          Text(
+            _userName,
+            style: textTheme.headlineMedium?.copyWith(
+              fontWeight: FontWeight.w700,
+              letterSpacing: -0.6,
+            ),
+          ),
+          const SizedBox(height: AppSpacing.xs),
           Text(
             "$_email • $bmiText",
             style: textTheme.bodyMedium?.copyWith(color: colors.secondary),
@@ -421,11 +434,11 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         Expanded(
             child: _buildStatCard(
                 tr('age'), _ageController, "", colors, textTheme)),
-        const SizedBox(width: 12),
+        const SizedBox(width: AppSpacing.md),
         Expanded(
             child: _buildStatCard(
                 tr('height'), _heightController, "cm", colors, textTheme)),
-        const SizedBox(width: 12),
+        const SizedBox(width: AppSpacing.md),
         Expanded(
             child: _buildStatCard(
                 tr('weight'), _weightController, "kg", colors, textTheme,
@@ -443,36 +456,34 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         isHighlight ? colors.onPrimary.withOpacity(0.7) : colors.secondary;
 
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(AppSpacing.lg),
       decoration: BoxDecoration(
         color: bgColor,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: colors.shadow,
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
+        borderRadius: BorderRadius.circular(AppRadius.md),
+        border: Border.all(
+          color: isHighlight ? colors.primary : colors.outline,
+        ),
       ),
       child: Column(
         children: [
           Text(label, style: textTheme.labelSmall?.copyWith(color: labelColor)),
-          const SizedBox(height: 8),
+          const SizedBox(height: AppSpacing.sm),
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              SizedBox(
-                width: 45,
-                child: TextFormField(
-                  controller: controller,
-                  keyboardType: TextInputType.number,
-                  textAlign: TextAlign.center,
-                  style: textTheme.bodyLarge?.copyWith(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: textColor),
-                  decoration: const InputDecoration.collapsed(hintText: '0'),
+              Flexible(
+                child: SizedBox(
+                  width: 45,
+                  child: TextFormField(
+                    controller: controller,
+                    keyboardType: TextInputType.number,
+                    textAlign: TextAlign.center,
+                    style: textTheme.bodyLarge?.copyWith(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: textColor),
+                    decoration: const InputDecoration.collapsed(hintText: '0'),
+                  ),
                 ),
               ),
               if (suffix.isNotEmpty)
@@ -490,8 +501,11 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     return Row(
       children: [
         Icon(icon, size: 20, color: colors.primary),
-        const SizedBox(width: 10),
-        Text(title, style: textTheme.titleMedium),
+        const SizedBox(width: AppSpacing.md),
+        Text(
+          title,
+          style: textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+        ),
       ],
     );
   }
@@ -504,10 +518,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       ColorScheme colors,
       TextTheme textTheme) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(AppSpacing.lg),
       decoration: BoxDecoration(
-        color: colors.surface,
-        borderRadius: BorderRadius.circular(16),
+        color: context.surfaceColor,
+        borderRadius: BorderRadius.circular(AppRadius.md),
         border: Border.all(color: colors.outline),
       ),
       child: Column(
@@ -516,25 +530,26 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           Text(title,
               style:
                   textTheme.labelSmall?.copyWith(fontWeight: FontWeight.w500)),
-          const SizedBox(height: 12),
+          const SizedBox(height: AppSpacing.md),
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
             child: Row(
               children: options.map((option) {
                 final isSelected = currentVal == option;
                 return Padding(
-                  padding: const EdgeInsets.only(right: 8),
+                  padding: const EdgeInsets.only(right: AppSpacing.sm),
                   child: InkWell(
+                    borderRadius: BorderRadius.circular(AppRadius.sm),
                     onTap: () => onSelect(option),
                     child: AnimatedContainer(
-                      duration: 200.ms,
+                      duration: const Duration(milliseconds: 200),
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 16, vertical: 10),
+                        horizontal: AppSpacing.lg,
+                        vertical: AppSpacing.md,
+                      ),
                       decoration: BoxDecoration(
-                        color: isSelected
-                            ? colors.primary
-                            : colors.tertiary.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(12),
+                        color: isSelected ? colors.primary : context.trackColor,
+                        borderRadius: BorderRadius.circular(AppRadius.sm),
                         border: Border.all(
                           color: isSelected ? colors.primary : colors.outline,
                         ),
@@ -561,8 +576,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   Widget _buildSettingsGroup(ColorScheme colors, TextTheme textTheme) {
     return Container(
       decoration: BoxDecoration(
-        color: colors.surface,
-        borderRadius: BorderRadius.circular(16),
+        color: context.surfaceColor,
+        borderRadius: BorderRadius.circular(AppRadius.md),
         border: Border.all(color: colors.outline),
       ),
       child: Column(
@@ -583,12 +598,12 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       {bool isDestructive = false}) {
     return ListTile(
       leading: Container(
-        padding: const EdgeInsets.all(8),
+        padding: const EdgeInsets.all(AppSpacing.sm),
         decoration: BoxDecoration(
           color: isDestructive
               ? colors.error.withOpacity(0.1)
-              : colors.primary.withOpacity(0.1), // tím nhạt cho icon bg
-          borderRadius: BorderRadius.circular(8),
+              : colors.primary.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(AppRadius.sm),
         ),
         child: Icon(
           icon,

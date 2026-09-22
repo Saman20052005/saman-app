@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart'; // thêm vào pubspec.yaml
+import '../../../config/app_theme.dart';
 import '../../../models/nutrition_model.dart';
 import '../../../services/nutrition_service.dart';
+import '../../../widgets/nutrition_primitives.dart';
 
 class WeeklyReportScreen extends StatefulWidget {
   const WeeklyReportScreen({super.key});
@@ -31,11 +33,14 @@ class _WeeklyReportScreenState extends State<WeeklyReportScreen> {
     try {
       final service = NutritionService();
       final response = await service.getWeeklyReport(startDate);
+      if (!mounted) return;
       setState(() {
         _report = WeeklyReport.fromJson(response);
         _loading = false;
+        _error = null;
       });
     } catch (e) {
+      if (!mounted) return;
       setState(() {
         _error = e.toString();
         _loading = false;
@@ -45,12 +50,44 @@ class _WeeklyReportScreenState extends State<WeeklyReportScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
+    final tokens = theme.extension<AppThemeExtension>()!;
+
     return Scaffold(
-      appBar: AppBar(title: const Text('Báo cáo tuần')),
+      backgroundColor: context.bgColor,
+      appBar: AppBar(
+        title: const Text('Báo cáo tuần'),
+        backgroundColor: context.bgColor,
+      ),
       body: _loading
-          ? const Center(child: CircularProgressIndicator())
+          ? Center(child: CircularProgressIndicator(color: colors.primary))
           : _error != null
-              ? Center(child: Text('Lỗi: $_error'))
+              ? Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(AppSpacing.xl),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          'Không thể tải báo cáo tuần.',
+                          textAlign: TextAlign.center,
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            color: tokens.inkMuted,
+                          ),
+                        ),
+                        const SizedBox(height: AppSpacing.sm),
+                        TextButton(
+                          onPressed: () {
+                            setState(() => _loading = true);
+                            _loadReport();
+                          },
+                          child: const Text('Thử lại'),
+                        ),
+                      ],
+                    ),
+                  ),
+                )
               : _buildReport(),
     );
   }
@@ -60,44 +97,45 @@ class _WeeklyReportScreenState extends State<WeeklyReportScreen> {
     return RefreshIndicator(
       onRefresh: _loadReport,
       child: ListView(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(AppSpacing.lg),
         children: [
-          // Header
+          const NutritionSectionHeader(label: 'Week'),
+          const SizedBox(height: AppSpacing.md),
           _WeekRangeHeader(
             startDate: r.startDate,
             endDate: r.endDate,
             daysLogged: r.daysLogged,
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: AppSpacing.xl),
 
           // Calories bar chart
-          _SectionTitle('Calories theo ngày'),
-          const SizedBox(height: 8),
+          const NutritionSectionHeader(label: 'Calories theo ngày'),
+          const SizedBox(height: AppSpacing.sm),
           _CaloriesBarChart(
             daily: r.daily,
             targetCalories: r.macroTargets.calories.toDouble(),
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: AppSpacing.xl),
 
           // Macro tổng tuần
-          _SectionTitle('Macro tổng tuần'),
-          const SizedBox(height: 8),
+          const NutritionSectionHeader(label: 'Macro tổng tuần'),
+          const SizedBox(height: AppSpacing.sm),
           _MacroSummaryRow(
             totals: r.weeklyTotals,
             targets: r.macroTargets,
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: AppSpacing.xl),
 
           // Average calories
           _AverageCaloriesCard(
             avg: r.avgCalories,
             target: r.macroTargets.calories.toDouble(),
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: AppSpacing.xl),
 
           // Daily breakdown list
-          _SectionTitle('Chi tiết từng ngày'),
-          const SizedBox(height: 8),
+          const NutritionSectionHeader(label: 'Chi tiết từng ngày'),
+          const SizedBox(height: AppSpacing.sm),
           ...r.daily.map((d) => _DailyRow(day: d, target: r.macroTargets)),
         ],
       ),
@@ -118,16 +156,45 @@ class _WeekRangeHeader extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) => Row(
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
+    final tokens = theme.extension<AppThemeExtension>()!;
+
+    return Container(
+      padding: const EdgeInsets.all(AppSpacing.lg),
+      decoration: BoxDecoration(
+        color: colors.surface,
+        borderRadius: BorderRadius.circular(AppRadius.lg),
+        border: Border.all(color: tokens.hairline),
+      ),
+      child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(
-            '$startDate → $endDate',
-            style: Theme.of(context).textTheme.titleMedium,
+          Expanded(
+            child: Text(
+              '$startDate → $endDate',
+              style: theme.textTheme.titleMedium,
+              overflow: TextOverflow.ellipsis,
+            ),
           ),
-          Chip(label: Text('$daysLogged/7 ngày')),
+          const SizedBox(width: AppSpacing.md),
+          Container(
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppSpacing.sm,
+              vertical: AppSpacing.xs,
+            ),
+            decoration: BoxDecoration(
+              color: tokens.surfaceElevated,
+              borderRadius: BorderRadius.circular(AppRadius.pill),
+              border: Border.all(color: tokens.hairline),
+            ),
+            child: Text('$daysLogged/7 ngày', style: theme.textTheme.bodySmall),
+          ),
         ],
-      );
+      ),
+    );
+  }
 }
 
 class _CaloriesBarChart extends StatelessWidget {
@@ -139,74 +206,96 @@ class _CaloriesBarChart extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     const days = ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'];
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
+    final tokens = theme.extension<AppThemeExtension>()!;
+    final maxDailyCalories = daily.fold<double>(
+      1,
+      (maximum, day) => day.calories > maximum ? day.calories : maximum,
+    );
+    final chartMax = (targetCalories > maxDailyCalories
+            ? targetCalories
+            : maxDailyCalories) *
+        1.2;
 
-    return SizedBox(
-      height: 180,
-      child: BarChart(
-        BarChartData(
-          maxY: (targetCalories * 1.3).ceilToDouble(),
-          barGroups: daily.asMap().entries.map((e) {
-            final idx = e.key;
-            final d = e.value;
-            return BarChartGroupData(
-              x: idx,
-              barRods: [
-                BarChartRodData(
-                  toY: d.calories,
-                  color: d.calories > targetCalories
-                      ? Colors.red.shade400
-                      : Colors.blue.shade400,
-                  width: 18,
-                  borderRadius:
-                      const BorderRadius.vertical(top: Radius.circular(4)),
-                ),
-              ],
-            );
-          }).toList(),
+    return Container(
+      padding: const EdgeInsets.all(AppSpacing.lg),
+      decoration: BoxDecoration(
+        color: colors.surface,
+        borderRadius: BorderRadius.circular(AppRadius.lg),
+        border: Border.all(color: tokens.hairline),
+      ),
+      child: SizedBox(
+        height: 180,
+        child: BarChart(
+          BarChartData(
+            maxY: chartMax.ceilToDouble(),
+            barGroups: daily.asMap().entries.map((e) {
+              final idx = e.key;
+              final d = e.value;
+              return BarChartGroupData(
+                x: idx,
+                barRods: [
+                  BarChartRodData(
+                    toY: d.calories,
+                    color: d.calories > targetCalories
+                        ? colors.error
+                        : colors.primary,
+                    width: 18,
+                    borderRadius: const BorderRadius.vertical(
+                      top: Radius.circular(AppRadius.sm),
+                    ),
+                  ),
+                ],
+              );
+            }).toList(),
 
-          // Target line
-          extraLinesData: ExtraLinesData(horizontalLines: [
-            HorizontalLine(
-              y: targetCalories,
-              color: Colors.orange,
-              strokeWidth: 1.5,
-              dashArray: [6, 4],
-              label: HorizontalLineLabel(
-                show: true,
-                alignment: Alignment.topRight,
-                labelResolver: (_) => '${targetCalories.toInt()} target',
-                style: const TextStyle(fontSize: 10, color: Colors.orange),
+            // Target line
+            extraLinesData: ExtraLinesData(horizontalLines: [
+              HorizontalLine(
+                y: targetCalories,
+                color: tokens.warning,
+                strokeWidth: 1.5,
+                dashArray: [6, 4],
+                label: HorizontalLineLabel(
+                  show: true,
+                  alignment: Alignment.topRight,
+                  labelResolver: (_) => '${targetCalories.toInt()} target',
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: tokens.warning,
+                  ),
+                ),
               ),
-            ),
-          ]),
+            ]),
 
-          titlesData: FlTitlesData(
-            bottomTitles: AxisTitles(
-              sideTitles: SideTitles(
-                showTitles: true,
-                getTitlesWidget: (v, _) => Text(
-                  days[v.toInt() % 7],
-                  style: const TextStyle(fontSize: 11),
+            titlesData: FlTitlesData(
+              bottomTitles: AxisTitles(
+                sideTitles: SideTitles(
+                  showTitles: true,
+                  getTitlesWidget: (v, _) => Text(
+                    days[v.toInt() % 7],
+                    style: theme.textTheme.bodySmall,
+                  ),
                 ),
               ),
-            ),
-            leftTitles: AxisTitles(
-              sideTitles: SideTitles(
-                showTitles: true,
-                reservedSize: 40,
-                getTitlesWidget: (v, _) => Text(
-                  '${v.toInt()}',
-                  style: const TextStyle(fontSize: 10),
+              leftTitles: AxisTitles(
+                sideTitles: SideTitles(
+                  showTitles: true,
+                  reservedSize: 40,
+                  getTitlesWidget: (v, _) => Text(
+                    '${v.toInt()}',
+                    style: theme.textTheme.bodySmall,
+                  ),
                 ),
               ),
+              topTitles:
+                  const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+              rightTitles:
+                  const AxisTitles(sideTitles: SideTitles(showTitles: false)),
             ),
-            topTitles:
-                const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-            rightTitles:
-                const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+            gridData: const FlGridData(show: true, drawVerticalLine: false),
+            borderData: FlBorderData(show: false),
           ),
-          gridData: FlGridData(show: true, drawVerticalLine: false),
-          borderData: FlBorderData(show: false),
         ),
       ),
     );
@@ -218,78 +307,54 @@ class _MacroSummaryRow extends StatelessWidget {
   const _MacroSummaryRow({required this.totals, required this.targets});
 
   @override
-  Widget build(BuildContext context) => Row(children: [
-        _MacroProgressCard(
-          label: 'Protein',
-          actual: totals.protein,
-          target: targets.protein * 7, // target tuần = target ngày × 7
-          color: Colors.blue,
-          unit: 'g',
-        ),
-        const SizedBox(width: 8),
-        _MacroProgressCard(
-          label: 'Carbs',
-          actual: totals.carbs,
-          target: targets.carbs * 7,
-          color: Colors.orange,
-          unit: 'g',
-        ),
-        const SizedBox(width: 8),
-        _MacroProgressCard(
-          label: 'Fat',
-          actual: totals.fat,
-          target: targets.fat * 7,
-          color: Colors.red,
-          unit: 'g',
-        ),
-      ]);
-}
-
-class _MacroProgressCard extends StatelessWidget {
-  final String label, unit;
-  final double actual, target;
-  final Color color;
-  const _MacroProgressCard({
-    required this.label,
-    required this.unit,
-    required this.actual,
-    required this.target,
-    required this.color,
-  });
-
-  @override
   Widget build(BuildContext context) {
-    final pct = target > 0 ? (actual / target).clamp(0.0, 1.0) : 0.0;
-    return Expanded(
-      child: Container(
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: color.withOpacity(0.08),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: color.withOpacity(0.2)),
+    final proteinTarget = targets.protein * 7;
+    final carbsTarget = targets.carbs * 7;
+    final fatTarget = targets.fat * 7;
+
+    return Container(
+      padding: const EdgeInsets.all(AppSpacing.lg),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surface,
+        borderRadius: BorderRadius.circular(AppRadius.lg),
+        border: Border.all(
+          color: Theme.of(context).extension<AppThemeExtension>()!.hairline,
         ),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text(label, style: TextStyle(fontSize: 12, color: color)),
-          const SizedBox(height: 4),
-          Text(
-            '${actual.toStringAsFixed(0)}$unit',
-            style: TextStyle(
-                fontSize: 18, fontWeight: FontWeight.w700, color: color),
+      ),
+      child: Column(
+        children: [
+          NutritionMacroProgress(
+            label: 'Protein',
+            consumed: '${totals.protein.toStringAsFixed(0)}g',
+            target: '${proteinTarget.toStringAsFixed(0)}g',
+            progress: proteinTarget > 0
+                ? (totals.protein / proteinTarget).clamp(0.0, 1.0)
+                : 0.0,
+            remaining:
+                '${((proteinTarget - totals.protein).clamp(0, proteinTarget)).toStringAsFixed(0)}g remaining',
           ),
-          const SizedBox(height: 6),
-          LinearProgressIndicator(
-            value: pct,
-            backgroundColor: color.withOpacity(0.15),
-            valueColor: AlwaysStoppedAnimation(color),
-            minHeight: 4,
-            borderRadius: BorderRadius.circular(2),
+          const SizedBox(height: AppSpacing.lg),
+          NutritionMacroProgress(
+            label: 'Carbs',
+            consumed: '${totals.carbs.toStringAsFixed(0)}g',
+            target: '${carbsTarget.toStringAsFixed(0)}g',
+            progress: carbsTarget > 0
+                ? (totals.carbs / carbsTarget).clamp(0.0, 1.0)
+                : 0.0,
+            remaining:
+                '${((carbsTarget - totals.carbs).clamp(0, carbsTarget)).toStringAsFixed(0)}g remaining',
           ),
-          const SizedBox(height: 4),
-          Text(
-            '${(pct * 100).toInt()}% of ${target.toStringAsFixed(0)}$unit',
-            style: const TextStyle(fontSize: 10, color: Colors.grey),
+          const SizedBox(height: AppSpacing.lg),
+          NutritionMacroProgress(
+            label: 'Fat',
+            consumed: '${totals.fat.toStringAsFixed(0)}g',
+            target: '${fatTarget.toStringAsFixed(0)}g',
+            progress:
+                fatTarget > 0 ? (totals.fat / fatTarget).clamp(0.0, 1.0) : 0.0,
+            remaining:
+                '${((fatTarget - totals.fat).clamp(0, fatTarget)).toStringAsFixed(0)}g remaining',
           ),
-        ]),
+        ],
       ),
     );
   }
@@ -301,33 +366,34 @@ class _AverageCaloriesCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
+    final tokens = theme.extension<AppThemeExtension>()!;
     final diff = avg - target;
     final isOver = diff > 0;
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(AppSpacing.lg),
       decoration: BoxDecoration(
-        color: Colors.grey.shade50,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey.shade200),
+        color: colors.surface,
+        borderRadius: BorderRadius.circular(AppRadius.lg),
+        border: Border.all(color: tokens.hairline),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            const Text('Trung bình / ngày', style: TextStyle(fontSize: 13)),
+            Text('Trung bình / ngày', style: tokens.labelCaps),
             Text(
               '${avg.toStringAsFixed(0)} kcal',
-              style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w700),
+              style: tokens.statValue,
             ),
           ]),
           Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
-            const Text('So với target', style: TextStyle(fontSize: 13)),
+            Text('So với target', style: tokens.labelCaps),
             Text(
               '${isOver ? "+" : ""}${diff.toStringAsFixed(0)} kcal',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-                color: isOver ? Colors.red : Colors.green,
+              style: theme.textTheme.titleMedium?.copyWith(
+                color: isOver ? colors.error : colors.primary,
               ),
             ),
           ]),
@@ -344,6 +410,9 @@ class _DailyRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
+    final tokens = theme.extension<AppThemeExtension>()!;
     final pct = target.calories > 0
         ? (day.calories / target.calories).clamp(0.0, 1.5)
         : 0.0;
@@ -351,11 +420,14 @@ class _DailyRow extends StatelessWidget {
 
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.md,
+        vertical: AppSpacing.sm,
+      ),
       decoration: BoxDecoration(
-        color: day.hasData ? null : Colors.grey.shade50,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: Colors.grey.shade200),
+        color: day.hasData ? colors.surface : tokens.surfaceElevated,
+        borderRadius: BorderRadius.circular(AppRadius.md),
+        border: Border.all(color: tokens.hairline),
       ),
       child: Row(children: [
         // Ngày
@@ -363,7 +435,7 @@ class _DailyRow extends StatelessWidget {
           width: 36,
           child: Text(
             day.date.substring(8), // lấy DD
-            style: const TextStyle(fontWeight: FontWeight.w600),
+            style: theme.textTheme.titleMedium,
           ),
         ),
         // Progress bar
@@ -372,51 +444,34 @@ class _DailyRow extends StatelessWidget {
               Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             LinearProgressIndicator(
               value: pct.toDouble(),
-              backgroundColor: Colors.grey.shade200,
-              valueColor: AlwaysStoppedAnimation(
-                over ? Colors.red.shade400 : Colors.blue.shade400,
+              backgroundColor: tokens.surfaceElevated,
+              valueColor: AlwaysStoppedAnimation<Color>(
+                over ? colors.error : colors.primary,
               ),
-              minHeight: 6,
-              borderRadius: BorderRadius.circular(3),
+              minHeight: AppSpacing.sm,
+              borderRadius: BorderRadius.circular(AppRadius.sm),
             ),
-            const SizedBox(height: 4),
+            const SizedBox(height: AppSpacing.xs),
             Text(
               day.hasData
                   ? 'P${day.protein.toStringAsFixed(0)}g  C${day.carbs.toStringAsFixed(0)}g  F${day.fat.toStringAsFixed(0)}g'
                   : 'Chưa có dữ liệu',
-              style: TextStyle(
-                fontSize: 11,
-                color:
-                    day.hasData ? Colors.grey.shade600 : Colors.grey.shade400,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: day.hasData ? tokens.inkMuted : tokens.inkSubtle,
               ),
             ),
           ]),
         ),
-        const SizedBox(width: 10),
+        const SizedBox(width: AppSpacing.md),
         // Calories
         Text(
           day.hasData ? '${day.calories.toStringAsFixed(0)}\nkcal' : '—',
           textAlign: TextAlign.right,
-          style: TextStyle(
-            fontSize: 13,
-            fontWeight: FontWeight.w600,
-            color: over ? Colors.red : null,
+          style: theme.textTheme.bodyMedium?.copyWith(
+            color: over ? colors.error : colors.onSurface,
           ),
         ),
       ]),
     );
   }
-}
-
-class _SectionTitle extends StatelessWidget {
-  final String text;
-  const _SectionTitle(this.text);
-  @override
-  Widget build(BuildContext context) => Text(
-        text,
-        style: Theme.of(context)
-            .textTheme
-            .titleSmall
-            ?.copyWith(fontWeight: FontWeight.w600),
-      );
 }

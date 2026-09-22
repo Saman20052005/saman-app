@@ -97,3 +97,9 @@ env/
 *.pem
 
 *.key
+
+## Platform Ephemeral & Local Tooling
+**/ephemeral/
+**/ios/Flutter/flutter_export_environment.sh
+.aider-desk/
+

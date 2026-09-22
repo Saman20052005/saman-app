@@ -7,7 +7,8 @@ import '../features/report/presentation/providers/report_provider.dart';
 import '../features/report/domain/entities/weekly_report_entity.dart';
 import '../providers/profile_provider.dart';
 import '../models/report_model.dart';
-// IMPORT WIDGET MỚI
+import '../config/app_theme.dart';
+import '../widgets/nutrition_primitives.dart';
 import '../widgets/trend_chart_card.dart';
 
 class ReportScreen extends ConsumerStatefulWidget {
@@ -23,6 +24,9 @@ class _ReportScreenState extends ConsumerState<ReportScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
+    final tokens = theme.extension<AppThemeExtension>()!;
     final profileState = ref.watch(profileProvider);
     final targetCalories = profileState.targetCalories;
     final targetProtein = profileState.targetProtein;
@@ -32,35 +36,33 @@ class _ReportScreenState extends ConsumerState<ReportScreen> {
     final reportAsync = ref.watch(weeklyReportProvider(_selectedDate));
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F9FA), // Nền xám nhạt hiện đại
+      backgroundColor: context.bgColor,
       appBar: AppBar(
-        backgroundColor: Colors.transparent,
+        backgroundColor: context.bgColor,
         elevation: 0,
         centerTitle: false,
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text("Report",
-                style: Theme.of(context)
-                    .textTheme
-                    .headlineSmall
-                    ?.copyWith(fontWeight: FontWeight.bold)),
+            Text('Report', style: theme.textTheme.headlineSmall),
             Text(
               "Week of ${DateFormat('MMM dd').format(_selectedDate.subtract(const Duration(days: 6)))} - ${DateFormat('MMM dd').format(_selectedDate)}",
-              style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: tokens.inkMuted,
+              ),
             )
           ],
         ),
         actions: [
           Container(
-            margin: const EdgeInsets.only(right: 16),
+            margin: const EdgeInsets.only(right: AppSpacing.lg),
             decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.grey.shade200)),
+              color: colors.surface,
+              borderRadius: BorderRadius.circular(AppRadius.md),
+              border: Border.all(color: tokens.hairline),
+            ),
             child: IconButton(
-              icon: const Icon(Icons.calendar_today_outlined,
-                  size: 20, color: Colors.black87),
+              icon: const Icon(Icons.calendar_today_outlined, size: 20),
               onPressed: () async {
                 final picked = await showDatePicker(
                   context: context,
@@ -75,8 +77,32 @@ class _ReportScreenState extends ConsumerState<ReportScreen> {
         ],
       ),
       body: reportAsync.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (err, stack) => Center(child: Text("Error: $err")),
+        loading: () => Center(
+          child: CircularProgressIndicator(color: colors.primary),
+        ),
+        error: (err, stack) => Center(
+          child: Padding(
+            padding: const EdgeInsets.all(AppSpacing.xl),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  'We could not load this report.',
+                  textAlign: TextAlign.center,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: tokens.inkMuted,
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.sm),
+                TextButton(
+                  onPressed: () =>
+                      ref.invalidate(weeklyReportProvider(_selectedDate)),
+                  child: const Text('Retry'),
+                ),
+              ],
+            ),
+          ),
+        ),
         data: (report) {
           final consumedData = report.days
               .map((e) => DailyReportItem(
@@ -97,17 +123,23 @@ class _ReportScreenState extends ConsumerState<ReportScreen> {
               .toList();
 
           return SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppSpacing.lg,
+              vertical: AppSpacing.sm,
+            ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 // 1. FILTER TABS (Tăng tính tương tác)
                 _buildFilterTabs(),
-                const SizedBox(height: 20),
+                const SizedBox(height: AppSpacing.lg),
 
                 // 2. SUMMARY CARD (Design mới gọn hơn)
                 _buildModernSummaryCard(report, targetCalories),
-                const SizedBox(height: 24),
+                const SizedBox(height: AppSpacing.xl),
+
+                const NutritionSectionHeader(label: 'Weekly trends'),
+                const SizedBox(height: AppSpacing.md),
 
                 // 3. CHARTS AREA
                 // Logic hiển thị theo Tab
@@ -116,7 +148,7 @@ class _ReportScreenState extends ConsumerState<ReportScreen> {
                     title: "Calories Consumed",
                     data: consumedData,
                     targetValue: targetCalories.toDouble(),
-                    baseColor: Colors.orange,
+                    baseColor: tokens.warning,
                     unit: "kcal",
                   ),
                 ],
@@ -126,7 +158,7 @@ class _ReportScreenState extends ConsumerState<ReportScreen> {
                     title: "Calories Burned",
                     data: burnedData,
                     targetValue: targetBurned.toDouble(),
-                    baseColor: Colors.redAccent,
+                    baseColor: colors.error,
                     unit: "kcal",
                   ),
                 ],
@@ -136,12 +168,12 @@ class _ReportScreenState extends ConsumerState<ReportScreen> {
                     title: "Protein Intake",
                     data: consumedData,
                     targetValue: targetProtein.toDouble(),
-                    baseColor: Colors.teal,
+                    baseColor: colors.primary,
                     unit: "g",
                   ),
                 ],
 
-                const SizedBox(height: 40),
+                const SizedBox(height: AppSpacing.xxxl),
               ],
             ),
           );
@@ -151,6 +183,9 @@ class _ReportScreenState extends ConsumerState<ReportScreen> {
   }
 
   Widget _buildFilterTabs() {
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
+    final tokens = theme.extension<AppThemeExtension>()!;
     final tabs = ["Overview", "Nutrition", "Activity"];
     return Row(
       children: tabs.asMap().entries.map((e) {
@@ -158,19 +193,21 @@ class _ReportScreenState extends ConsumerState<ReportScreen> {
         return GestureDetector(
           onTap: () => setState(() => _selectedIndex = e.key),
           child: Container(
-            margin: const EdgeInsets.only(right: 12),
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            margin: const EdgeInsets.only(right: AppSpacing.md),
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppSpacing.lg,
+              vertical: AppSpacing.sm,
+            ),
             decoration: BoxDecoration(
-              color: isActive ? Colors.black87 : Colors.white,
-              borderRadius: BorderRadius.circular(20),
-              border: isActive ? null : Border.all(color: Colors.grey.shade300),
+              color: isActive ? colors.primary : colors.surface,
+              borderRadius: BorderRadius.circular(AppRadius.pill),
+              border: isActive ? null : Border.all(color: tokens.hairline),
             ),
             child: Text(
               e.value,
-              style: TextStyle(
-                  color: isActive ? Colors.white : Colors.grey.shade700,
-                  fontWeight: FontWeight.w600,
-                  fontSize: 13),
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: isActive ? colors.onPrimary : colors.onSurface,
+              ),
             ),
           ),
         );
@@ -179,26 +216,20 @@ class _ReportScreenState extends ConsumerState<ReportScreen> {
   }
 
   Widget _buildModernSummaryCard(WeeklyReportEntity report, int dailyTarget) {
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
+    final tokens = theme.extension<AppThemeExtension>()!;
     // Tính toán đơn giản
     final avg = report.avgCaloriesIn.toInt();
     final isGood = avg <= dailyTarget + 100 && avg >= dailyTarget - 200;
 
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.all(AppSpacing.xl),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [const Color(0xFF4A90E2), const Color(0xFF007AFF)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(24),
-        boxShadow: [
-          BoxShadow(
-              color: const Color(0xFF007AFF).withOpacity(0.3),
-              blurRadius: 15,
-              offset: const Offset(0, 8))
-        ],
+        color: colors.surface,
+        borderRadius: BorderRadius.circular(AppRadius.lg),
+        border: Border.all(color: tokens.hairline),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -206,36 +237,41 @@ class _ReportScreenState extends ConsumerState<ReportScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text("Weekly Average",
-                  style: TextStyle(color: Colors.white70, fontSize: 14)),
+              Text('Weekly Average', style: tokens.labelCaps),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppSpacing.sm,
+                  vertical: AppSpacing.xs,
+                ),
                 decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.2),
-                    borderRadius: BorderRadius.circular(8)),
-                child: Text(isGood ? "On Track 👍" : "Needs Attention ⚠️",
-                    style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 10,
-                        fontWeight: FontWeight.bold)),
+                  color: isGood
+                      ? colors.primary.withOpacity(0.12)
+                      : tokens.warning.withOpacity(0.12),
+                  borderRadius: BorderRadius.circular(AppRadius.sm),
+                ),
+                child: Text(
+                  isGood ? 'On Track' : 'Needs Attention',
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: isGood ? colors.primary : tokens.warning,
+                  ),
+                ),
               )
             ],
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: AppSpacing.md),
           Row(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              Text("$avg",
-                  style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 36,
-                      fontWeight: FontWeight.bold,
-                      height: 1.0)),
-              const SizedBox(width: 8),
-              const Padding(
-                padding: EdgeInsets.only(bottom: 6),
-                child: Text("kcal/day",
-                    style: TextStyle(color: Colors.white70, fontSize: 14)),
+              Text("$avg", style: tokens.heroNumeric),
+              const SizedBox(width: AppSpacing.sm),
+              Padding(
+                padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+                child: Text(
+                  'kcal/day',
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: tokens.inkMuted,
+                  ),
+                ),
               )
             ],
           ),

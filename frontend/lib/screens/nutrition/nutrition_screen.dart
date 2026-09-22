@@ -20,6 +20,7 @@ import 'widgets/plan_generator_sheet.dart';
 
 import 'widgets/log_meal_sheet.dart';
 import 'widgets/story_timeline.dart';
+import '../../../widgets/nutrition_primitives.dart';
 
 import 'weekly_report_screen.dart';
 
@@ -194,7 +195,7 @@ class _NutritionScreenState extends ConsumerState<NutritionScreen> {
         backgroundColor: context.bgColor,
         body: Center(
           child: Padding(
-            padding: const EdgeInsets.all(32),
+            padding: const EdgeInsets.all(AppSpacing.xxl),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
@@ -216,16 +217,17 @@ class _NutritionScreenState extends ConsumerState<NutritionScreen> {
                   'Thiếu thông tin Profile',
                   style: TextStyle(
                     fontSize: 20,
-                    fontWeight: FontWeight.w800,
+                    fontWeight: FontWeight.w700,
                     color: colors.onSurface,
-                    letterSpacing: -0.5,
                   ),
                 ),
                 const SizedBox(height: 8),
                 Text(
                   'Vui lòng cập nhật thông tin cá nhân để tiếp tục.',
                   textAlign: TextAlign.center,
-                  style: TextStyle(color: colors.secondary, fontSize: 14),
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: colors.secondary,
+                      ),
                 ),
                 const SizedBox(height: 24),
                 ElevatedButton(
@@ -318,17 +320,17 @@ class _NutritionScreenState extends ConsumerState<NutritionScreen> {
   // ─── Loading (Skeleton) ──────────────────────────────────────────
   Widget _buildLoading() {
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(AppSpacing.lg),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _buildSkeletonBox(
               height: 100, width: double.infinity), // Story section
-          const SizedBox(height: 24),
+          const SizedBox(height: AppSpacing.xl),
           _buildSkeletonBox(height: 180, width: double.infinity), // Summary
-          const SizedBox(height: 24),
+          const SizedBox(height: AppSpacing.xl),
           _buildSkeletonBox(height: 80, width: double.infinity), // Water
-          const SizedBox(height: 24),
+          const SizedBox(height: AppSpacing.xl),
           _buildSkeletonBox(height: 120, width: double.infinity), // Meal plan
         ],
       ),
@@ -358,7 +360,7 @@ class _NutritionScreenState extends ConsumerState<NutritionScreen> {
     final colors = Theme.of(context).colorScheme;
     return Center(
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 40),
+        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xxl),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
@@ -376,7 +378,7 @@ class _NutritionScreenState extends ConsumerState<NutritionScreen> {
               'Chưa có kế hoạch nào',
               style: TextStyle(
                 fontSize: 20,
-                fontWeight: FontWeight.w800,
+                fontWeight: FontWeight.w700,
                 color: colors.onSurface,
               ),
             ),
@@ -422,7 +424,7 @@ class _NutritionScreenState extends ConsumerState<NutritionScreen> {
     final colors = Theme.of(context).colorScheme;
     return Center(
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 40),
+        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xxl),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
@@ -433,7 +435,7 @@ class _NutritionScreenState extends ConsumerState<NutritionScreen> {
               'Không thể tải dữ liệu',
               style: TextStyle(
                   fontSize: 18,
-                  fontWeight: FontWeight.bold,
+                  fontWeight: FontWeight.w600,
                   color: colors.onSurface),
             ),
             const SizedBox(height: 8),
@@ -457,29 +459,34 @@ class _NutritionScreenState extends ConsumerState<NutritionScreen> {
   // ─── Main content ────────────────────────────────────────────────
   Widget _buildContent(dynamic plan, ProfileState profileState) {
     return SingleChildScrollView(
-      padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
+      padding: const EdgeInsets.fromLTRB(
+        AppSpacing.lg,
+        AppSpacing.lg,
+        AppSpacing.lg,
+        AppSpacing.lg,
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Story log
-          _buildSectionHeader('NHẬT KÝ ĂN UỐNG (STORY)'),
-          const SizedBox(height: 10),
+          const NutritionSectionHeader(label: 'Nhật ký ăn uống (Story)'),
+          const SizedBox(height: AppSpacing.md),
           StoryTimeline(date: _selectedDate),
           _buildEntriesSection(plan),
           Divider(height: 1, color: context.trackColor),
-          const SizedBox(height: 24),
+          const SizedBox(height: AppSpacing.xl),
 
           // Summary
           NutritionSummary(plan: plan, profile: profileState),
-          const SizedBox(height: 20),
+          const SizedBox(height: AppSpacing.lg),
 
           // Water tracker
           _buildWaterTracker(plan, profileState),
-          const SizedBox(height: 24),
+          const SizedBox(height: AppSpacing.xl),
 
           // Meal plan
-          _buildSectionHeader('KẾ HOẠCH GỢI Ý (MEAL PLAN)'),
-          const SizedBox(height: 12),
+          const NutritionSectionHeader(label: 'Kế hoạch gợi ý (Meal Plan)'),
+          const SizedBox(height: AppSpacing.md),
           if (ref.watch(nutritionProvider.notifier).isMealPlanGenerating)
             _buildSkeletonBox(height: 200, width: double.infinity)
           else if (plan.meals.isEmpty)
@@ -487,21 +494,8 @@ class _NutritionScreenState extends ConsumerState<NutritionScreen> {
           else
             ...plan.meals.map((meal) => MealCard(meal: meal)),
 
-          const SizedBox(height: 100),
+          const SizedBox(height: AppSpacing.xxxl),
         ],
-      ),
-    );
-  }
-
-  // ─── Section header label ────────────────────────────────────────
-  Widget _buildSectionHeader(String label) {
-    return Text(
-      label,
-      style: TextStyle(
-        fontSize: 11,
-        fontWeight: FontWeight.w700,
-        color: Theme.of(context).colorScheme.secondary,
-        letterSpacing: 1.3,
       ),
     );
   }
@@ -516,7 +510,7 @@ class _NutritionScreenState extends ConsumerState<NutritionScreen> {
         const SizedBox(height: 16),
         Row(
           children: [
-            Icon(Icons.check_circle_outline,
+            const Icon(Icons.check_circle_outline,
                 size: 16, color: SamanTheme.success),
             const SizedBox(width: 8),
             Text(
@@ -658,76 +652,71 @@ class _NutritionScreenState extends ConsumerState<NutritionScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Macro gap summary — monochrome
-        Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: context.surfaceColor,
-            borderRadius: BorderRadius.circular(16),
-            boxShadow: [context.softShadow],
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Icon(Icons.bar_chart_rounded,
-                      size: 15, color: colors.secondary),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      'Đã ăn $consumed kcal — còn thiếu hôm nay:',
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                        color: colors.onSurface,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  _buildGapChip('Protein', '${remainPro}g'),
-                  const SizedBox(width: 8),
-                  _buildGapChip('Carbs', '${remainCarbs}g'),
-                  const SizedBox(width: 8),
-                  _buildGapChip('Fat', '${remainFat}g'),
-                  const SizedBox(width: 8),
-                  _buildGapChip('Kcal', '$remaining'),
-                ],
-              ),
-              if (plan.rolloverCalories > 0) ...[
-                const SizedBox(height: 10),
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                  decoration: BoxDecoration(
-                    color: context.trackColor,
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(Icons.arrow_forward,
-                          size: 13, color: colors.secondary),
-                      const SizedBox(width: 6),
-                      Text(
-                        'Rollover từ hôm qua: +${plan.rolloverCalories} kcal',
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                          color: colors.secondary,
-                        ),
-                      ),
-                    ],
+        NutritionMetricCard(
+          label: 'Calories remaining',
+          value: '$remaining',
+          unit: 'kcal',
+          icon: Icons.local_fire_department_outlined,
+        ),
+        const SizedBox(height: AppSpacing.lg),
+        NutritionMacroProgress(
+          label: 'Protein',
+          consumed: '${plan.totalProteinConsumed.toInt()}g',
+          target: '${profile.targetProtein.toInt()}g',
+          progress: profile.targetProtein > 0
+              ? (plan.totalProteinConsumed / profile.targetProtein)
+                  .clamp(0.0, 1.0)
+              : 0,
+          remaining: '${remainPro}g remaining',
+        ),
+        const SizedBox(height: AppSpacing.lg),
+        NutritionMacroProgress(
+          label: 'Carbs',
+          consumed: '${plan.totalCarbsConsumed.toInt()}g',
+          target: '${profile.targetCarbs.toInt()}g',
+          progress: profile.targetCarbs > 0
+              ? (plan.totalCarbsConsumed / profile.targetCarbs).clamp(0.0, 1.0)
+              : 0,
+          remaining: '${remainCarbs}g remaining',
+        ),
+        const SizedBox(height: AppSpacing.lg),
+        NutritionMacroProgress(
+          label: 'Fat',
+          consumed: '${plan.totalFatConsumed.toInt()}g',
+          target: '${profile.targetFat.toInt()}g',
+          progress: profile.targetFat > 0
+              ? (plan.totalFatConsumed / profile.targetFat).clamp(0.0, 1.0)
+              : 0,
+          remaining: '${remainFat}g remaining',
+        ),
+        if (plan.rolloverCalories > 0) ...[
+          const SizedBox(height: AppSpacing.md),
+          Container(
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppSpacing.md,
+              vertical: AppSpacing.sm,
+            ),
+            decoration: BoxDecoration(
+              color: context.trackColor,
+              borderRadius: BorderRadius.circular(AppRadius.sm),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.arrow_forward, size: 13, color: colors.secondary),
+                const SizedBox(width: AppSpacing.sm),
+                Text(
+                  'Rollover từ hôm qua: +${plan.rolloverCalories} kcal',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: colors.secondary,
                   ),
                 ),
               ],
-            ],
+            ),
           ),
-        ),
+        ],
 
         const SizedBox(height: 12),
 
@@ -812,14 +801,14 @@ class _NutritionScreenState extends ConsumerState<NutritionScreen> {
                     style: const TextStyle(fontWeight: FontWeight.w700),
                   ),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.white,
-                    foregroundColor: Colors.black,
-                    disabledBackgroundColor: Colors.white.withOpacity(0.15),
-                    disabledForegroundColor: Colors.white54,
+                    backgroundColor: colors.primary,
+                    foregroundColor: colors.onPrimary,
+                    disabledBackgroundColor: colors.onPrimary.withOpacity(0.15),
+                    disabledForegroundColor: colors.onPrimary.withOpacity(0.54),
                     elevation: 0,
                     padding: const EdgeInsets.symmetric(vertical: 13),
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(AppRadius.md),
                     ),
                   ),
                 ),
@@ -828,37 +817,6 @@ class _NutritionScreenState extends ConsumerState<NutritionScreen> {
           ),
         ),
       ],
-    );
-  }
-
-  // ─── Gap chip — monochrome ───────────────────────────────────────
-  Widget _buildGapChip(String label, String value) {
-    final colors = Theme.of(context).colorScheme;
-    return Expanded(
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
-        decoration: BoxDecoration(
-          color: context.trackColor,
-          borderRadius: BorderRadius.circular(10),
-        ),
-        child: Column(
-          children: [
-            Text(
-              value,
-              style: TextStyle(
-                color: colors.onSurface,
-                fontWeight: FontWeight.w800,
-                fontSize: 13,
-              ),
-            ),
-            const SizedBox(height: 2),
-            Text(
-              label,
-              style: TextStyle(color: colors.secondary, fontSize: 10),
-            ),
-          ],
-        ),
-      ),
     );
   }
 

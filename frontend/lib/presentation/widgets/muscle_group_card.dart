@@ -101,12 +101,14 @@ class _Icon extends StatelessWidget {
         borderRadius: BorderRadius.circular(AppDimens.radiusLg),
       ),
       alignment: Alignment.center,
-      child: SvgPicture.asset(
-        assetPath,
-        width: AppDimens.iconSize,
-        height: AppDimens.iconSize,
-        colorFilter: ColorFilter.mode(color, BlendMode.srcIn),
-      ),
+      child: assetPath.endsWith('.svg')
+          ? SvgPicture.asset(
+              assetPath,
+              width: AppDimens.iconSize,
+              height: AppDimens.iconSize,
+              colorFilter: ColorFilter.mode(color, BlendMode.srcIn),
+            )
+          : Icon(Icons.fitness_center, size: AppDimens.iconSize, color: color),
     );
   }
 }

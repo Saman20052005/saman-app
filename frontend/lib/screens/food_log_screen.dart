@@ -2,10 +2,12 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart'; // ✅ Thêm Riverpod
+import '../config/app_theme.dart';
 import '../services/nutrition_service.dart';
 import '../models/food_model.dart';
 import '../providers/nutrition_provider.dart'; // ✅ Import Provider
 import '../features/nutrition/domain/entities/food.dart';
+import '../widgets/nutrition_primitives.dart';
 
 class FoodLogScreen extends ConsumerStatefulWidget {
   final String userGoal;
@@ -29,6 +31,7 @@ class _FoodLogScreenState extends ConsumerState<FoodLogScreen> {
   Timer? _debounce;
   List<FoodModel> _results = [];
   bool _isLoading = false;
+  int _searchRequest = 0;
   String _selectedMealType = "Snack";
   ScaffoldMessengerState? _scaffoldMessenger;
 
@@ -61,18 +64,33 @@ class _FoodLogScreenState extends ConsumerState<FoodLogScreen> {
 
   void _onSearchChanged(String query) {
     if (_debounce?.isActive ?? false) _debounce!.cancel();
+    final request = ++_searchRequest;
     if (query.trim().isEmpty) {
-      setState(() => _results = []);
+      setState(() {
+        _results = [];
+        _isLoading = false;
+      });
       return;
     }
     _debounce = Timer(const Duration(milliseconds: 500), () async {
+      if (!mounted || request != _searchRequest) return;
       setState(() => _isLoading = true);
-      final foods = await _apiService.searchFoods(query);
-      if (mounted)
-        setState(() {
-          _results = foods.map(_toFoodModel).toList();
-          _isLoading = false;
-        });
+      try {
+        final foods = await _apiService.searchFoods(query);
+        if (mounted && request == _searchRequest) {
+          setState(() {
+            _results = foods.map(_toFoodModel).toList();
+            _isLoading = false;
+          });
+        }
+      } catch (_) {
+        if (mounted && request == _searchRequest) {
+          setState(() {
+            _results = [];
+            _isLoading = false;
+          });
+        }
+      }
     });
   }
 
@@ -96,22 +114,26 @@ class _FoodLogScreenState extends ConsumerState<FoodLogScreen> {
             children: [
               TextField(
                 controller: nameCtrl,
-                decoration: const InputDecoration(
-                    labelText: "Tên món ăn", border: OutlineInputBorder()),
+                decoration: InputDecoration(
+                  labelText: "Tên món ăn",
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(AppRadius.md),
+                  ),
+                ),
               ),
-              const SizedBox(height: 10),
+              const SizedBox(height: AppSpacing.sm),
               Row(
                 children: [
                   Expanded(child: _buildNumInput(calCtrl, "Calories")),
-                  const SizedBox(width: 10),
+                  const SizedBox(width: AppSpacing.sm),
                   Expanded(child: _buildNumInput(proCtrl, "Protein (g)")),
                 ],
               ),
-              const SizedBox(height: 10),
+              const SizedBox(height: AppSpacing.sm),
               Row(
                 children: [
                   Expanded(child: _buildNumInput(carbCtrl, "Carbs (g)")),
-                  const SizedBox(width: 10),
+                  const SizedBox(width: AppSpacing.sm),
                   Expanded(child: _buildNumInput(fatCtrl, "Fat (g)")),
                 ],
               ),
@@ -159,7 +181,12 @@ class _FoodLogScreenState extends ConsumerState<FoodLogScreen> {
       controller: ctrl,
       keyboardType: TextInputType.number,
       decoration: InputDecoration(
-          labelText: label, border: const OutlineInputBorder(), isDense: true),
+        labelText: label,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(AppRadius.md),
+        ),
+        isDense: true,
+      ),
     );
   }
 
@@ -194,15 +221,17 @@ class _FoodLogScreenState extends ConsumerState<FoodLogScreen> {
                   }
                 },
               ),
-              const SizedBox(height: 10),
+              const SizedBox(height: AppSpacing.sm),
               TextField(
                 controller: qtyCtrl,
                 keyboardType: TextInputType.number,
                 inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                decoration: const InputDecoration(
+                decoration: InputDecoration(
                     labelText: 'Khối lượng (g)',
                     suffixText: 'g',
-                    border: OutlineInputBorder()),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(AppRadius.md),
+                    )),
               ),
             ],
           );
@@ -251,23 +280,32 @@ class _FoodLogScreenState extends ConsumerState<FoodLogScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
+    final tokens = theme.extension<AppThemeExtension>()!;
+
     return Container(
       height: MediaQuery.of(context).size.height * 0.9,
-      decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      decoration: BoxDecoration(
+        color: colors.surface,
+        borderRadius: const BorderRadius.vertical(
+          top: Radius.circular(AppRadius.lg),
+        ),
+      ),
       child: Column(
         children: [
-          const SizedBox(height: 16),
+          const SizedBox(height: AppSpacing.lg),
           Container(
-              width: 40,
-              height: 4,
-              decoration: BoxDecoration(
-                  color: Colors.grey[300],
-                  borderRadius: BorderRadius.circular(2))),
-          const SizedBox(height: 16),
+            width: 40,
+            height: 4,
+            decoration: BoxDecoration(
+              color: tokens.hairline,
+              borderRadius: BorderRadius.circular(AppRadius.sm),
+            ),
+          ),
+          const SizedBox(height: AppSpacing.lg),
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20),
+            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
             child: TextField(
               controller: _searchCtrl,
               onChanged: _onSearchChanged,
@@ -276,40 +314,57 @@ class _FoodLogScreenState extends ConsumerState<FoodLogScreen> {
                 hintText: 'Tìm món ăn...',
                 prefixIcon: _isLoading
                     ? const Padding(
-                        padding: EdgeInsets.all(12),
+                        padding: EdgeInsets.all(AppSpacing.md),
                         child: CircularProgressIndicator(strokeWidth: 2))
                     : const Icon(Icons.search),
                 filled: true,
-                fillColor: Colors.grey.shade100,
+                fillColor: tokens.surfaceElevated,
                 border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide.none),
+                  borderRadius: BorderRadius.circular(AppRadius.md),
+                  borderSide: BorderSide.none,
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(AppRadius.md),
+                  borderSide: BorderSide.none,
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(AppRadius.md),
+                  borderSide: BorderSide(color: colors.primary),
+                ),
               ),
             ),
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: AppSpacing.lg),
+          const Padding(
+            padding: EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+            child: NutritionSectionHeader(label: 'Meal type'),
+          ),
+          const SizedBox(height: AppSpacing.sm),
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(horizontal: 20),
+            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
             child: Row(
               children: ["Breakfast", "Lunch", "Dinner", "Snack"].map((type) {
                 final isSel = _selectedMealType == type;
                 return Padding(
-                  padding: const EdgeInsets.only(right: 8),
+                  padding: const EdgeInsets.only(right: AppSpacing.sm),
                   child: ChoiceChip(
                     label: Text(type),
                     selected: isSel,
                     onSelected: (val) =>
                         setState(() => _selectedMealType = type),
-                    selectedColor: Colors.green.shade100,
+                    selectedColor: colors.primary,
+                    side: BorderSide(color: tokens.hairline),
+                    shape: const StadiumBorder(),
                     labelStyle: TextStyle(
-                        color: isSel ? Colors.green.shade900 : Colors.black),
+                      color: isSel ? colors.onPrimary : colors.onSurface,
+                    ),
                   ),
                 );
               }).toList(),
             ),
           ),
-          const Divider(),
+          Divider(color: tokens.hairline),
           Expanded(
             child: _results.isEmpty
                 ? Center(
@@ -320,44 +375,58 @@ class _FoodLogScreenState extends ConsumerState<FoodLogScreen> {
                             _searchCtrl.text.isEmpty
                                 ? "Nhập tên món để tìm"
                                 : "Không tìm thấy kết quả",
-                            style: const TextStyle(color: Colors.grey)),
+                            style: theme.textTheme.bodyMedium?.copyWith(
+                              color: tokens.inkMuted,
+                            )),
                         if (_searchCtrl.text.isNotEmpty) ...[
-                          const SizedBox(height: 16),
+                          const SizedBox(height: AppSpacing.lg),
                           ElevatedButton.icon(
                             onPressed: _showCreateFoodDialog,
                             icon: const Icon(Icons.add),
                             label: const Text("Tự tạo món mới"),
                             style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.green,
-                                foregroundColor: Colors.white),
+                              backgroundColor: colors.primary,
+                              foregroundColor: colors.onPrimary,
+                            ),
                           )
                         ]
                       ],
                     ),
                   )
                 : ListView.builder(
-                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppSpacing.lg,
+                    ),
                     itemCount: _results.length,
                     itemBuilder: (context, index) {
                       final item = _results[index];
                       return ListTile(
                         contentPadding: EdgeInsets.zero,
                         leading: Container(
-                          padding: const EdgeInsets.all(8),
+                          padding: const EdgeInsets.all(AppSpacing.sm),
                           decoration: BoxDecoration(
-                              color: Colors.green.shade50,
-                              borderRadius: BorderRadius.circular(8)),
-                          child:
-                              const Icon(Icons.restaurant, color: Colors.green),
+                            color: tokens.surfaceElevated,
+                            borderRadius: BorderRadius.circular(AppRadius.sm),
+                          ),
+                          child: Icon(
+                            Icons.restaurant,
+                            color: colors.primary,
+                          ),
                         ),
-                        title: Text(item.name,
-                            style:
-                                const TextStyle(fontWeight: FontWeight.bold)),
+                        title: Text(
+                          item.name,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: theme.textTheme.titleMedium,
+                        ),
                         subtitle: Row(
                           children: [
-                            const Icon(Icons.local_fire_department,
-                                size: 14, color: Colors.orange),
-                            const SizedBox(width: 4),
+                            Icon(
+                              Icons.local_fire_department,
+                              size: 14,
+                              color: tokens.inkMuted,
+                            ),
+                            const SizedBox(width: AppSpacing.xs),
                             Expanded(
                               child: Text(
                                 "${item.calories.toInt()} kcal",
@@ -365,24 +434,29 @@ class _FoodLogScreenState extends ConsumerState<FoodLogScreen> {
                                 maxLines: 1,
                               ),
                             ),
-                            const SizedBox(width: 8),
-                            const Icon(Icons.fitness_center,
-                                size: 14, color: Colors.blue),
-                            const SizedBox(width: 4),
+                            const SizedBox(width: AppSpacing.sm),
+                            Icon(
+                              Icons.fitness_center,
+                              size: 14,
+                              color: tokens.inkMuted,
+                            ),
+                            const SizedBox(width: AppSpacing.xs),
                             Expanded(
                               child: Text(
                                 "${item.protein.toInt()}g pro",
                                 overflow: TextOverflow.ellipsis,
                                 maxLines: 1,
-                                style: const TextStyle(
-                                    color: Colors.blue,
-                                    fontWeight: FontWeight.w500),
+                                style: theme.textTheme.bodyMedium?.copyWith(
+                                  color: tokens.inkMuted,
+                                ),
                               ),
                             ),
                           ],
                         ),
-                        trailing: const Icon(Icons.add_circle_outline,
-                            color: Colors.green),
+                        trailing: Icon(
+                          Icons.add_circle_outline,
+                          color: colors.primary,
+                        ),
                         onTap: () => _checkAndSelectFood(item),
                       );
                     },

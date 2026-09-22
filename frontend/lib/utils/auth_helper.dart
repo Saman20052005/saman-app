@@ -7,15 +7,6 @@ class AuthHelper {
   static const String _nameKey = 'user_fullname';
   static const _storage = FlutterSecureStorage();
 
-  static void logToken(String? token) {
-    if (kReleaseMode) return;
-    if (token == null || token.isEmpty) return;
-    final visible = token.length > 10
-        ? '${token.substring(0, 6)}...${token.substring(token.length - 4)}'
-        : '***';
-    print('[AUTH] token preview: $visible');
-  }
-
   static Future<bool> isLoggedIn() async {
     final token = await _storage.read(key: _tokenKey);
     return token != null && token.isNotEmpty;
@@ -40,19 +31,11 @@ class AuthHelper {
   }
 
   static Future<void> printAuthStatus() async {
-    if (kReleaseMode) return;
+    if (!kDebugMode) return;
     final token = await _storage.read(key: _tokenKey);
-    final email = await _storage.read(key: _emailKey);
-    final name = await _storage.read(key: _nameKey);
-
-    print('🔍 [AUTH] ===== AUTH STATUS =====');
-    print('🔍 [AUTH] Logged in: ${token != null ? "YES" : "NO"}');
-    if (token != null) {
-      print('🔍 [AUTH] Token length: ${token.length}');
-      logToken(token);
-    }
-    print('🔍 [AUTH] Email: ${email ?? "NULL"}');
-    print('🔍 [AUTH] Name: ${name ?? "NULL"}');
-    print('🔍 [AUTH] =========================');
+    debugPrint(
+      '🔍 [AUTH] Logged in: '
+      '${token != null && token.isNotEmpty ? "YES" : "NO"}',
+    );
   }
 }

@@ -31,19 +31,28 @@ class ApiClient {
             options.headers['Authorization'] = 'Bearer $token';
           }
           options.headers['Cache-Control'] = 'no-cache';
-          if (!kReleaseMode && ApiConfig.isDebug) {
-            print('[DIO] Request: ${options.method} ${options.uri}');
+          if (kDebugMode) {
+            debugPrint('[DIO] Request: ${options.method} ${options.uri.path}');
           }
           return handler.next(options);
         },
-        onError: (DioException e, handler) {
-          if (e.response?.statusCode == 401) {
-            print('Token hết hạn hoặc không hợp lệ - Chuyển hướng Login');
+        onResponse: (response, handler) {
+          if (kDebugMode) {
+            debugPrint(
+              '[DIO] Response: ${response.statusCode} '
+              '${response.requestOptions.method} '
+              '${response.requestOptions.uri.path}',
+            );
           }
-          if (!kReleaseMode && ApiConfig.isDebug) {
-            print('[DIO] Error: ${e.message}');
-            print(
-                '[DIO] Status: ${e.response?.statusCode} ${e.requestOptions.uri}');
+          return handler.next(response);
+        },
+        onError: (DioException e, handler) {
+          if (kDebugMode) {
+            debugPrint(
+              '[DIO] Error: ${e.type.name} '
+              'status=${e.response?.statusCode ?? 'none'} '
+              '${e.requestOptions.method} ${e.requestOptions.uri.path}',
+            );
           }
           return handler.next(e);
         },

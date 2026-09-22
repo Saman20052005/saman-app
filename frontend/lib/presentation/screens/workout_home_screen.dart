@@ -4,7 +4,7 @@ import '../providers/workout_home_providers.dart';
 import '../providers/muscle_group_providers.dart';
 import '../widgets/exercise_card.dart';
 import '../widgets/muscle_group_card.dart';
-import '../../core/constants/app_dimens.dart';
+import '../../config/app_theme.dart';
 import '../../data/models/exercise.dart';
 import 'create_plan_screen.dart';
 import 'muscle_group_screen.dart';
@@ -37,14 +37,20 @@ class _WorkoutHomeScreenState extends ConsumerState<WorkoutHomeScreen> {
     final popularAsync = ref.watch(popularExercisesProvider);
     final weeklyGoal = ref.watch(weeklyGoalNotifierProvider);
     final muscleGroupsAsync = ref.watch(featuredMuscleGroupsProvider);
+    final colors = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text(
+        title: Text(
           'Workout',
-          style: TextStyle(fontSize: 32, fontWeight: FontWeight.w800),
+          style: textTheme.headlineMedium?.copyWith(
+            fontSize: 28,
+            fontWeight: FontWeight.w700,
+            letterSpacing: -0.8,
+          ),
         ),
-        backgroundColor: Colors.white,
+        backgroundColor: context.bgColor,
         elevation: 0,
         actions: [
           IconButton(
@@ -62,35 +68,53 @@ class _WorkoutHomeScreenState extends ConsumerState<WorkoutHomeScreen> {
         ],
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(AppDimens.paddingL),
+        padding: const EdgeInsets.fromLTRB(
+          AppSpacing.xl,
+          AppSpacing.sm,
+          AppSpacing.xl,
+          AppSpacing.xxxl,
+        ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // 1. Search Bar (tích hợp navigate tới Library)
-            GestureDetector(
-              onTap: () => _navigateToLibrary(context),
-              child: Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                decoration: BoxDecoration(
-                  color: Colors.grey[100],
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Row(
-                  children: [
-                    const Icon(Icons.search, color: Colors.grey),
-                    const SizedBox(width: 12),
-                    Text(
-                      'Search workouts or exercises...',
-                      style: TextStyle(color: Colors.grey[600]),
-                    ),
-                    const Spacer(),
-                    const Icon(Icons.mic, color: Colors.grey),
-                  ],
+            Material(
+              color: context.surfaceColor,
+              borderRadius: BorderRadius.circular(AppRadius.md),
+              child: InkWell(
+                borderRadius: BorderRadius.circular(AppRadius.md),
+                onTap: () => _navigateToLibrary(context),
+                child: Ink(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.lg,
+                    vertical: AppSpacing.md,
+                  ),
+                  decoration: BoxDecoration(
+                    color: context.trackColor,
+                    borderRadius: BorderRadius.circular(AppRadius.md),
+                    border: Border.all(color: colors.outline),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.search, color: colors.secondary),
+                      const SizedBox(width: AppSpacing.md),
+                      Expanded(
+                        child: Text(
+                          'Search workouts or exercises...',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: textTheme.bodyMedium?.copyWith(
+                            color: colors.secondary,
+                          ),
+                        ),
+                      ),
+                      Icon(Icons.mic_outlined, color: colors.secondary),
+                    ],
+                  ),
                 ),
               ),
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: AppSpacing.xl),
 
             // 2. Filter Chips
             SingleChildScrollView(
@@ -99,16 +123,19 @@ class _WorkoutHomeScreenState extends ConsumerState<WorkoutHomeScreen> {
                 children: _filters.map((filter) {
                   final isSelected = _selectedFilter == filter;
                   return Padding(
-                    padding: const EdgeInsets.only(right: 8),
+                    padding: const EdgeInsets.only(right: AppSpacing.sm),
                     child: FilterChip(
                       label: Text(filter),
                       selected: isSelected,
                       onSelected: (_) =>
                           setState(() => _selectedFilter = filter),
-                      backgroundColor: Colors.grey[100],
-                      selectedColor: Colors.black,
+                      backgroundColor: context.surfaceColor,
+                      selectedColor: colors.primary,
+                      side: BorderSide(
+                        color: isSelected ? colors.primary : colors.outline,
+                      ),
                       labelStyle: TextStyle(
-                        color: isSelected ? Colors.white : Colors.black,
+                        color: isSelected ? colors.onPrimary : colors.onSurface,
                         fontWeight: isSelected ? FontWeight.w600 : null,
                       ),
                     ),
@@ -116,23 +143,25 @@ class _WorkoutHomeScreenState extends ConsumerState<WorkoutHomeScreen> {
                 }).toList(),
               ),
             ),
-            const SizedBox(height: 32),
+            const SizedBox(height: AppSpacing.xxl),
 
             // 3. Featured Workout
             _buildFeaturedWorkout(context),
-            const SizedBox(height: 32),
+            const SizedBox(height: AppSpacing.xxl),
 
             // 4. Weekly Goal
             _buildWeeklyGoal(weeklyGoal, ref),
-            const SizedBox(height: 32),
+            const SizedBox(height: AppSpacing.xxl),
 
             // 5. Popular Exercises
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text(
+                Text(
                   'Popular exercises',
-                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
+                  style: textTheme.titleLarge?.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
                 TextButton(
                   onPressed: () => _navigateToLibrary(context),
@@ -140,24 +169,35 @@ class _WorkoutHomeScreenState extends ConsumerState<WorkoutHomeScreen> {
                 ),
               ],
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: AppSpacing.md),
             popularAsync.when(
               data: (exercises) => ListView.separated(
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
                 itemCount: exercises.length,
-                separatorBuilder: (_, __) => const SizedBox(height: 12),
+                separatorBuilder: (_, __) =>
+                    const SizedBox(height: AppSpacing.md),
                 itemBuilder: (context, i) => ExerciseCard(
                   exercise: exercises[i],
                   onTap: () => _navigateToExerciseDetail(context, exercises[i]),
                 ),
               ),
-              loading: () => const Center(child: CircularProgressIndicator()),
+              loading: () => Padding(
+                padding: const EdgeInsets.symmetric(vertical: AppSpacing.xl),
+                child: Center(
+                  child: CircularProgressIndicator(color: colors.primary),
+                ),
+              ),
               error: (err, stack) => Center(
                 child: Column(
                   children: [
-                    const Text('Unable to load popular exercises'),
-                    const SizedBox(height: 8),
+                    Text(
+                      'Unable to load popular exercises',
+                      style: textTheme.bodyMedium?.copyWith(
+                        color: colors.secondary,
+                      ),
+                    ),
+                    const SizedBox(height: AppSpacing.sm),
                     TextButton(
                       onPressed: () => ref.invalidate(popularExercisesProvider),
                       child: const Text('Retry'),
@@ -166,15 +206,17 @@ class _WorkoutHomeScreenState extends ConsumerState<WorkoutHomeScreen> {
                 ),
               ),
             ),
-            const SizedBox(height: 32),
+            const SizedBox(height: AppSpacing.xxl),
 
             // 6. Browse by muscle
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text(
+                Text(
                   'Browse by muscle',
-                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
+                  style: textTheme.titleLarge?.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
                 TextButton(
                   onPressed: () => _navigateToLibrary(context),
@@ -182,16 +224,16 @@ class _WorkoutHomeScreenState extends ConsumerState<WorkoutHomeScreen> {
                 ),
               ],
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: AppSpacing.md),
             muscleGroupsAsync.when(
               data: (groups) => GridView.builder(
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
                 gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                   crossAxisCount: 2,
-                  crossAxisSpacing: 12,
-                  mainAxisSpacing: 12,
-                  childAspectRatio: 1.6,
+                  crossAxisSpacing: AppSpacing.md,
+                  mainAxisSpacing: AppSpacing.md,
+                  childAspectRatio: 0.95,
                 ),
                 itemCount: groups.length,
                 itemBuilder: (context, index) {
@@ -204,8 +246,16 @@ class _WorkoutHomeScreenState extends ConsumerState<WorkoutHomeScreen> {
                   );
                 },
               ),
-              loading: () => const Center(child: CircularProgressIndicator()),
-              error: (_, __) => const Text('Unable to load muscle groups'),
+              loading: () => Padding(
+                padding: const EdgeInsets.symmetric(vertical: AppSpacing.xl),
+                child: Center(
+                  child: CircularProgressIndicator(color: colors.primary),
+                ),
+              ),
+              error: (_, __) => Text(
+                'Unable to load muscle groups',
+                style: textTheme.bodyMedium?.copyWith(color: colors.secondary),
+              ),
             ),
           ],
         ),
@@ -214,51 +264,51 @@ class _WorkoutHomeScreenState extends ConsumerState<WorkoutHomeScreen> {
         onPressed: () => _navigateToCreatePlan(context),
         icon: const Icon(Icons.add),
         label: const Text('Create Plan'),
-        elevation: 2,
+        elevation: 0,
       ),
     );
   }
 
   Widget _buildFeaturedWorkout(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+    final extension = Theme.of(context).extension<AppThemeExtension>()!;
+
     return Container(
-      height: 200,
+      height: 208,
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [Color(0xFF1A1A1A), Color(0xFF2D2D2D)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(24),
+        color: context.insightCardColor,
+        borderRadius: BorderRadius.circular(AppRadius.lg),
       ),
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(AppSpacing.xl),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
+          Text(
             'WORKOUT',
-            style: TextStyle(
-              color: Colors.white60,
-              fontSize: 12,
-              letterSpacing: 1.5,
-            ),
+            style: extension.labelCaps
+                .copyWith(color: colors.onPrimary.withOpacity(0.7)),
           ),
-          const SizedBox(height: 8),
-          const Text(
+          const SizedBox(height: AppSpacing.sm),
+          Text(
             'Full Body Power',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 28,
-              fontWeight: FontWeight.w800,
+            style: textTheme.headlineMedium?.copyWith(
+              color: colors.onPrimary,
+              fontSize: 26,
+              fontWeight: FontWeight.w700,
+              letterSpacing: -0.8,
             ),
           ),
-          const SizedBox(height: 8),
-          const Text(
+          const SizedBox(height: AppSpacing.sm),
+          Text(
             '45 Min · Intermediate · Boost your overall strength',
-            style: TextStyle(color: Colors.white70, fontSize: 16),
+            style: textTheme.bodyMedium?.copyWith(
+              color: colors.onPrimary.withOpacity(0.72),
+            ),
           ),
           const Spacer(),
           SizedBox(
-            height: 44,
+            height: 48,
             child: ElevatedButton(
               onPressed: () async {
                 final popularExercises =
@@ -287,10 +337,10 @@ class _WorkoutHomeScreenState extends ConsumerState<WorkoutHomeScreen> {
                 );
               },
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.white,
-                foregroundColor: Colors.black,
+                backgroundColor: colors.primary,
+                foregroundColor: colors.onPrimary,
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(30),
+                  borderRadius: BorderRadius.circular(AppRadius.md),
                 ),
               ),
               child: const Text('Start',
@@ -306,44 +356,45 @@ class _WorkoutHomeScreenState extends ConsumerState<WorkoutHomeScreen> {
     final activeDays = weeklyGoal.where((e) => e).length;
     final target = 7;
     final progress = activeDays / target;
+    final colors = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+    final extension = Theme.of(context).extension<AppThemeExtension>()!;
 
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(AppSpacing.xl),
       decoration: BoxDecoration(
-        color: Colors.black,
-        borderRadius: BorderRadius.circular(24),
+        color: context.insightCardColor,
+        borderRadius: BorderRadius.circular(AppRadius.lg),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
+          Text(
             'WEEKLY GOAL',
-            style: TextStyle(
-              color: Colors.white60,
-              fontSize: 12,
-              letterSpacing: 2,
-            ),
+            style: extension.labelCaps
+                .copyWith(color: colors.onPrimary.withOpacity(0.7)),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: AppSpacing.sm),
           Text(
             '$activeDays/$target Days Active',
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 28,
+            style: textTheme.headlineMedium?.copyWith(
+              color: colors.onPrimary,
+              fontSize: 26,
               fontWeight: FontWeight.w700,
+              letterSpacing: -0.8,
             ),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: AppSpacing.md),
           ClipRRect(
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: BorderRadius.circular(AppRadius.sm),
             child: LinearProgressIndicator(
               value: progress,
-              backgroundColor: Colors.white24,
-              color: Colors.green,
+              backgroundColor: colors.onPrimary.withOpacity(0.2),
+              color: colors.primary,
               minHeight: 8,
             ),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: AppSpacing.lg),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: List.generate(7, (index) {
@@ -355,21 +406,25 @@ class _WorkoutHomeScreenState extends ConsumerState<WorkoutHomeScreen> {
                     width: 36,
                     height: 36,
                     decoration: BoxDecoration(
-                      color: active ? Colors.green : Colors.transparent,
+                      color: active ? colors.primary : Colors.transparent,
                       shape: BoxShape.circle,
                       border: Border.all(
-                        color: active ? Colors.green : Colors.white38,
+                        color: active
+                            ? colors.primary
+                            : colors.onPrimary.withOpacity(0.35),
                         width: 2,
                       ),
                     ),
                     child: active
-                        ? const Icon(Icons.check, color: Colors.white, size: 20)
+                        ? Icon(Icons.check, color: colors.onPrimary, size: 20)
                         : null,
                   ),
-                  const SizedBox(height: 4),
+                  const SizedBox(height: AppSpacing.xs),
                   Text(
                     day,
-                    style: const TextStyle(color: Colors.white70, fontSize: 12),
+                    style: textTheme.labelSmall?.copyWith(
+                      color: colors.onPrimary.withOpacity(0.72),
+                    ),
                   ),
                 ],
               );

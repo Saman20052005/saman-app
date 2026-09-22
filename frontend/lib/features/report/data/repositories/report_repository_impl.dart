@@ -1,5 +1,5 @@
 import 'dart:convert';
-import 'dart:developer';
+import 'package:flutter/foundation.dart';
 import 'package:intl/intl.dart';
 import 'package:health_ai_app/config/api_config.dart';
 import 'package:health_ai_app/features/report/domain/entities/weekly_report_entity.dart';
@@ -13,7 +13,6 @@ abstract class ReportRepository {
 class ReportRepositoryImpl implements ReportRepository {
   @override
   Future<WeeklyReportEntity> getWeeklyReport(DateTime endDate) async {
-    print("🔥🔥🔥 STARTING REPORT REPO IMPL - LOGIC MOI 🔥🔥🔥");
     final token = await AuthHelper.getToken();
     if (token == null) throw Exception("Unauthorized");
 
@@ -24,8 +23,6 @@ class ReportRepositoryImpl implements ReportRepository {
     final workoutUrl = '${ApiConfig.baseUrl}/api/workouts/report/weekly';
 
     try {
-      print("🔥🔥🔥 CALLING API... 🔥🔥🔥");
-
       // 2. GỌI API SONG SONG (Đã sửa lỗi cú pháp tại đây)
       final responses = await Future.wait([
         ApiClient.dio
@@ -36,8 +33,12 @@ class ReportRepositoryImpl implements ReportRepository {
       final nutritionResponse = responses[0];
       final workoutResponse = responses[1];
 
-      print("🔥🔥🔥 API DONE. STATUS: ${responses[1].statusCode} 🔥🔥🔥");
-      print("🔥🔥🔥 WORKOUT BODY: ${responses[1].data} 🔥🔥🔥");
+      if (kDebugMode) {
+        debugPrint(
+          '[REPORT] Responses: nutrition=${nutritionResponse.statusCode} '
+          'workout=${workoutResponse.statusCode}',
+        );
+      }
 
       // 3. XỬ LÝ DỮ LIỆU NUTRITION
       Map<String, dynamic> nutritionMap = {};
@@ -68,8 +69,6 @@ class ReportRepositoryImpl implements ReportRepository {
           list = decoded['items'] as List? ?? [];
         }
 
-        print("🔍 WORKOUT DATA LIST: $list"); // Log kiểm tra data sau khi parse
-
         for (var item in list) {
           if (item is Map && item['date'] != null) {
             final val = item['calories'];
@@ -78,8 +77,12 @@ class ReportRepositoryImpl implements ReportRepository {
           }
         }
       } else {
-        print(
-            "❌ Workout API Failed: ${workoutResponse.statusCode} - ${workoutResponse.data}");
+        if (kDebugMode) {
+          debugPrint(
+            '[REPORT] Workout request failed: '
+            'status=${workoutResponse.statusCode}',
+          );
+        }
       }
 
       // 5. MERGE DỮ LIỆU VÀO ENTITY
@@ -123,7 +126,10 @@ class ReportRepositoryImpl implements ReportRepository {
         avgProtein: totalProtein / 7,
       );
     } catch (e, stack) {
-      log("Error fetching report: $e", stackTrace: stack);
+      if (kDebugMode) {
+        debugPrint('[REPORT] Request failed: ${e.runtimeType}');
+        debugPrintStack(stackTrace: stack);
+      }
       return WeeklyReportEntity(
           days: [], avgCaloriesIn: 0, avgCaloriesBurned: 0, avgProtein: 0);
     }

@@ -1,0 +1,95 @@
+{
+  "schema_version": 2,
+  "diagram_type": "workflow",
+  "meta": {
+    "title": "Saman Codebase Runtime Workflow",
+    "locale": "en",
+    "animation": "none",
+    "quality_profile": "showcase",
+    "legend": {
+      "mode": "all",
+      "entries": {
+        "frontend": { "label": "Flutter / frontend", "visible": true },
+        "backend": { "label": "FastAPI / backend", "visible": true },
+        "database": { "label": "Database / storage", "visible": true },
+        "cloud": { "label": "Cloud storage", "visible": true },
+        "external": { "label": "AI / external API", "visible": true },
+        "messagebus": { "label": "Deployment / infrastructure", "visible": true },
+        "security": { "label": "Mismatch / disconnected", "visible": true }
+      }
+    }
+  },
+  "lanes": [
+    { "id": "auth", "label": "A · Startup and authentication" },
+    { "id": "food", "label": "B · Food analysis" },
+    { "id": "media_ai", "label": "C–D · Story persistence and AI Coach" },
+    { "id": "deploy", "label": "E · Deployment and repository status" }
+  ],
+  "phases": [
+    { "id": "entry", "label": "USER", "fromCol": 0, "toCol": 0 },
+    { "id": "flutter", "label": "FLUTTER APPLICATION", "fromCol": 1, "toCol": 1, "variant": "emphasis" },
+    { "id": "network", "label": "NETWORK / API", "fromCol": 2, "toCol": 2 },
+    { "id": "fastapi", "label": "FASTAPI BACKEND", "fromCol": 3, "toCol": 3, "variant": "emphasis" },
+    { "id": "services", "label": "DATA, AI & SERVICES", "fromCol": 4, "toCol": 4 },
+    { "id": "return", "label": "RESPONSE TO FLUTTER", "fromCol": 5, "toCol": 5, "variant": "dashed" }
+  ],
+  "groups": [
+    { "id": "auth_flutter", "label": "Flutter application", "lane": "auth", "fromCol": 1, "toCol": 2, "variant": "dashed" },
+    { "id": "auth_backend", "label": "Authentication", "lane": "auth", "fromCol": 3, "toCol": 3, "variant": "dashed" },
+    { "id": "food_flow", "label": "Classifier + nutrition", "lane": "food", "fromCol": 3, "toCol": 4, "variant": "dashed" },
+    { "id": "media_flow", "label": "Persistence + profile-aware AI", "lane": "media_ai", "fromCol": 3, "toCol": 4, "variant": "dashed" },
+    { "id": "deployment_boundary", "label": "Hugging Face deployment", "lane": "deploy", "fromCol": 0, "toCol": 4, "variant": "dashed" }
+  ],
+  "mainPath": ["user", "flutter_entry", "dio_auth", "fastapi_auth", "user_profile", "main_shell"],
+  "nodes": [
+    { "id": "user", "lane": "auth", "col": 0, "type": "external", "label": "User", "sublabel": "opens Saman", "width": 118 },
+    { "id": "flutter_entry", "lane": "auth", "col": 1, "type": "frontend", "label": "Startup + login", "sublabel": "main.dart · splash", "tag": "auth decision · SharedPreferences", "width": 140 },
+    { "id": "dio_auth", "lane": "auth", "col": 2, "type": "frontend", "label": "Dio API client", "sublabel": "services/api_client.dart", "tag": "Bearer · FlutterSecureStorage", "width": 132 },
+    { "id": "fastapi_auth", "lane": "auth", "col": 3, "type": "backend", "label": "FastAPI auth", "sublabel": "auth.py · auth_utils.py", "tag": "JWT create / validate", "width": 144 },
+    { "id": "user_profile", "lane": "auth", "col": 4, "type": "database", "label": "MongoDB user profile", "sublabel": "users collection", "tag": "profile retrieval", "width": 148 },
+    { "id": "main_shell", "lane": "auth", "col": 5, "type": "frontend", "label": "JWT session + shell", "sublabel": "Home · Workout · AI Coach", "tag": "Nutrition · Profile · main_screen.dart", "width": 150 },
+
+    { "id": "food_input", "lane": "food", "col": 0, "type": "frontend", "label": "Food photo", "sublabel": "image picker", "width": 118 },
+    { "id": "food_flutter", "lane": "food", "col": 1, "type": "frontend", "label": "Nutrition feature", "sublabel": "screens · Riverpod", "tag": "controller · repository", "width": 140 },
+    { "id": "food_backend", "lane": "food", "col": 3, "type": "backend", "label": "Food analyze route", "sublabel": "/api/food/analyze", "tag": "FoodClassifier", "width": 144 },
+    { "id": "nutrition_apis", "lane": "food", "col": 4, "type": "external", "label": "Nutrition lookup", "sublabel": "OpenFoodFacts → USDA", "tag": "static fallback", "width": 148 },
+    { "id": "food_result", "lane": "food", "col": 5, "type": "frontend", "label": "Review + result", "sublabel": "nutrition response", "width": 142 },
+
+    { "id": "media_input", "lane": "media_ai", "col": 0, "type": "frontend", "label": "Media / prompt", "sublabel": "story · AI Coach", "width": 118 },
+    { "id": "media_flutter", "lane": "media_ai", "col": 1, "type": "frontend", "label": "Flutter features", "sublabel": "Nutrition · chat screen", "tag": "providers · repositories", "width": 140 },
+    { "id": "media_request", "lane": "media_ai", "col": 2, "type": "frontend", "label": "Dio requests", "sublabel": "analyze_* / swap*: gaps", "tag": "no route · story/chat verified", "width": 132 },
+    { "id": "media_backend", "lane": "media_ai", "col": 3, "type": "backend", "label": "Story + chat routes", "sublabel": "log-story · chat service", "tag": "services · repos · models · schemas", "width": 144 },
+    { "id": "media_services", "lane": "media_ai", "col": 4, "type": "cloud", "label": "Storage + AI services", "sublabel": "Cloudinary · MongoDB · Gemini", "tag": "secure_url · OpenAI fallback", "width": 148 },
+    { "id": "media_result", "lane": "media_ai", "col": 5, "type": "frontend", "label": "Saved story / reply", "sublabel": "safe URL · coach response", "width": 148 },
+
+    { "id": "dockerfile", "lane": "deploy", "col": 0, "type": "messagebus", "label": "Dockerfile", "sublabel": "root · Docker SDK", "width": 118 },
+    { "id": "hf_space", "lane": "deploy", "col": 1, "type": "messagebus", "label": "HF Space", "sublabel": "README.md · Docker SDK", "tag": "live revision uncertain", "width": 140 },
+    { "id": "uvicorn", "lane": "deploy", "col": 2, "type": "messagebus", "label": "Uvicorn", "sublabel": "port 7860", "width": 130 },
+    { "id": "backend_runtime", "lane": "deploy", "col": 3, "type": "backend", "label": "backend.main:app", "sublabel": "backend/main.py", "tag": "active Docker entry", "width": 144 },
+    { "id": "startup_core", "lane": "deploy", "col": 4, "type": "backend", "label": "Backend startup", "sublabel": "lifespan · routers · services", "tag": "classifier model loading", "width": 148 },
+    { "id": "inactive_code", "lane": "deploy", "col": 5, "type": "security", "label": "Pull-up CV", "sublabel": "Not implemented", "tag": "disconnected · root mirror duplicate", "width": 150 }
+  ],
+  "edges": [
+    { "id": "user_entry", "from": "user", "to": "flutter_entry", "variant": "default", "role": "main", "route": "straight" },
+    { "id": "entry_dio", "from": "flutter_entry", "to": "dio_auth", "label": "login", "variant": "emphasis", "role": "main", "route": "straight" },
+    { "id": "dio_fastapi_auth", "from": "dio_auth", "to": "fastapi_auth", "label": "public / Bearer", "variant": "default", "role": "main", "route": "straight" },
+    { "id": "auth_profile", "from": "fastapi_auth", "to": "user_profile", "label": "JWT", "variant": "default", "role": "main", "route": "straight" },
+    { "id": "profile_shell", "from": "user_profile", "to": "main_shell", "label": "profile", "variant": "emphasis", "role": "main", "route": "straight" },
+
+    { "id": "food_pick", "from": "food_input", "to": "food_flutter", "variant": "default", "route": "straight" },
+    { "id": "food_upload", "from": "food_flutter", "to": "food_backend", "label": "multipart", "variant": "default", "route": "straight" },
+    { "id": "food_lookup", "from": "food_backend", "to": "nutrition_apis", "label": "label + grams", "variant": "default", "route": "straight" },
+    { "id": "food_return", "from": "nutrition_apis", "to": "food_result", "label": "nutrition", "variant": "emphasis", "role": "return", "route": "straight" },
+
+    { "id": "media_to_flutter", "from": "media_input", "to": "media_flutter", "variant": "default", "route": "straight" },
+    { "id": "media_payload", "from": "media_flutter", "to": "media_request", "variant": "security", "role": "error", "route": "straight" },
+    { "id": "media_route", "from": "media_request", "to": "media_backend", "label": "Bearer", "variant": "default", "route": "straight" },
+    { "id": "media_integrations", "from": "media_backend", "to": "media_services", "label": "upload / prompt", "variant": "default", "route": "straight" },
+    { "id": "media_return", "from": "media_services", "to": "media_result", "label": "URL / reply", "variant": "emphasis", "role": "return", "route": "straight" },
+
+    { "id": "docker_space", "from": "dockerfile", "to": "hf_space", "label": "build", "variant": "dashed", "route": "straight" },
+    { "id": "space_uvicorn", "from": "hf_space", "to": "uvicorn", "label": "start", "variant": "dashed", "route": "straight" },
+    { "id": "uvicorn_app", "from": "uvicorn", "to": "backend_runtime", "label": "ASGI", "variant": "dashed", "route": "straight" },
+    { "id": "app_startup", "from": "backend_runtime", "to": "startup_core", "label": "lifespan", "variant": "default", "route": "straight" }
+  ]
+}

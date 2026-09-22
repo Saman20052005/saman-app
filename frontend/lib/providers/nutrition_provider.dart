@@ -233,9 +233,9 @@ class NutritionNotifier extends StateNotifier<AsyncValue<NutritionPlan?>> {
       final mappedGoal = goalMap[goal] ?? 'maintain';
 
       try {
-        debugPrint(
-          '🤖 Generating plan: date=$dateStr cal=$targetCalories goal=$mappedGoal',
-        );
+        if (kDebugMode) {
+          debugPrint('[NUTRITION] Generating plan');
+        }
 
         final plan = await _repository.generatePlan(
           goal: mappedGoal,
@@ -279,13 +279,16 @@ class NutritionNotifier extends StateNotifier<AsyncValue<NutritionPlan?>> {
         }
         state = AsyncValue.data(planWithWater);
 
-        debugPrint(
-          '✅ Plan generated: ${plan.meals.length} meals, water: $currentWater/$targetWater',
-        );
+        if (kDebugMode) {
+          debugPrint('[NUTRITION] Plan generated successfully');
+        }
       } on DioException catch (e) {
-        debugPrint(
-          '❌ generateAutoPlan DioError: ${e.response?.statusCode} ${e.response?.data}',
-        );
+        if (kDebugMode) {
+          debugPrint(
+            '[NUTRITION] Plan request failed: '
+            'status=${e.response?.statusCode ?? 'none'} type=${e.type.name}',
+          );
+        }
         state = AsyncValue.error(e, e.stackTrace);
       } catch (e, st) {
         debugPrint('❌ generateAutoPlan error: $e');
@@ -543,9 +546,9 @@ class NutritionNotifier extends StateNotifier<AsyncValue<NutritionPlan?>> {
       }
       state = AsyncValue.data(merged);
 
-      debugPrint(
-        '✅ SmartPlan: ${plan.meals.length} meals · $style · ${mealCount}x',
-      );
+      if (kDebugMode) {
+        debugPrint('[NUTRITION] Smart plan generated successfully');
+      }
     } catch (e, st) {
       debugPrint('❌ generateSmartPlan error: $e');
       // If error, we might want to show error to user, but let's keep previous data

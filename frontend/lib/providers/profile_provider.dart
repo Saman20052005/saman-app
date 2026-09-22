@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -140,9 +140,9 @@ class ProfileNotifier extends StateNotifier<ProfileState> {
       final fat = _toInt(healthStats['target_fat']);
       final water = _toInt(healthStats['water_target_ml']);
 
-      debugPrint('⚡ UI SYNCING DATA: ${profile.weight}kg, ${profile.height}cm');
-      debugPrint(
-          '📊 Backend stats: cal=$calories pro=$protein carbs=$carbs fat=$fat water=$water');
+      if (kDebugMode) {
+        debugPrint('[PROFILE] Profile and health stats synchronized');
+      }
 
       if (mounted) {
         state = ProfileState(

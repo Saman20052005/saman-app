@@ -5,6 +5,7 @@
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import '../config/app_theme.dart';
 import '../models/report_model.dart';
 
 class TrendChartCard extends StatefulWidget {
@@ -31,7 +32,7 @@ class _TrendChartCardState extends State<TrendChartCard> {
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final tokens = Theme.of(context).extension<AppThemeExtension>()!;
 
     // Tìm max Y để scale biểu đồ không bị tràn
     double maxY = widget.data.fold(0, (max, e) {
@@ -40,24 +41,20 @@ class _TrendChartCardState extends State<TrendChartCard> {
       return val > max ? val : max;
     });
 
-    // Đảm bảo đường Goal luôn nằm trong khung hình
+    // Keep an empty or all-zero report renderable: fl_chart requires a
+    // positive range and an empty series cannot have a negative max X.
     if (widget.targetValue > maxY) maxY = widget.targetValue;
-    maxY = maxY * 1.2; // Thêm 20% khoảng trống phía trên
+    maxY = maxY > 0 ? maxY * 1.2 : 1;
+    final maxX =
+        widget.data.length > 1 ? (widget.data.length - 1).toDouble() : 1.0;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 24),
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        // BUG FIX: Colors.white → theme-aware (không còn white block ở dark mode)
-        borderRadius: BorderRadius.circular(24),
-        // BUG FIX: shadow chuẩn hóa — cùng giá trị với các card khác trong app
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(isDark ? 0.3 : 0.06),
-            blurRadius: 16,
-            offset: const Offset(0, 4),
-          ),
-        ],
+        color: colors.surface,
+        borderRadius: BorderRadius.circular(AppRadius.lg),
+        border: Border.all(color: tokens.hairline),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -99,9 +96,7 @@ class _TrendChartCardState extends State<TrendChartCard> {
                   horizontalInterval: maxY / 4, // Chia làm 4 dòng kẻ ngang
                   getDrawingHorizontalLine: (value) {
                     return FlLine(
-                      color: isDark
-                          ? const Color(0xFF333333)
-                          : const Color(0xFFEEEEEE),
+                      color: tokens.hairline,
                       strokeWidth: 1,
                     );
                   },
@@ -143,7 +138,7 @@ class _TrendChartCardState extends State<TrendChartCard> {
                 ),
                 borderData: FlBorderData(show: false),
                 minX: 0,
-                maxX: (widget.data.length - 1).toDouble(),
+                maxX: maxX,
                 minY: 0,
                 maxY: maxY,
                 // Đường Goal (Nét đứt màu xám/đỏ nhạt)
@@ -197,14 +192,15 @@ class _TrendChartCardState extends State<TrendChartCard> {
                 // Hiệu ứng khi chạm (Tooltip)
                 lineTouchData: LineTouchData(
                   touchTooltipData: LineTouchTooltipData(
-                    tooltipBgColor: isDark ? colors.onSurface : colors.surface,
+                    tooltipBgColor: colors.onSurface,
                     tooltipRoundedRadius: 8,
                     getTooltipItems: (List<LineBarSpot> touchedBarSpots) {
                       return touchedBarSpots.map((barSpot) {
                         return LineTooltipItem(
                           "${barSpot.y.toInt()} ${widget.unit}",
-                          const TextStyle(
-                              color: Colors.white, fontWeight: FontWeight.bold),
+                          TextStyle(
+                              color: colors.surface,
+                              fontWeight: FontWeight.bold),
                         );
                       }).toList();
                     },
@@ -220,6 +216,7 @@ class _TrendChartCardState extends State<TrendChartCard> {
   }
 
   Widget _buildLegend() {
+    final tokens = Theme.of(context).extension<AppThemeExtension>()!;
     return Row(
       children: [
         Container(
@@ -229,8 +226,7 @@ class _TrendChartCardState extends State<TrendChartCard> {
               BoxDecoration(color: widget.baseColor, shape: BoxShape.circle),
         ),
         const SizedBox(width: 6),
-        const Text("Actual",
-            style: TextStyle(fontSize: 12, color: Colors.grey)),
+        Text("Actual", style: TextStyle(fontSize: 12, color: tokens.inkMuted)),
       ],
     );
   }

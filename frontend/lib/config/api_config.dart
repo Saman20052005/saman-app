@@ -67,21 +67,11 @@ class ApiConfig {
 
   // ==================== CONFIG ====================
   static const Duration requestTimeout = Duration(seconds: 120);
-  static const bool isDebug = true;
+  static const bool isDebug = kDebugMode;
 
   static void printDebug(String message) {
-    if (isDebug) {
-      print('🔍 [API] $message');
+    if (kDebugMode) {
+      debugPrint('🔍 [API] $message');
     }
-  }
-
-  static void _logTokenPreview(String? token) {
-    if (kReleaseMode) return;
-    if (!isDebug) return;
-    if (token == null || token.isEmpty) return;
-    final visible = token.length > 10
-        ? '${token.substring(0, 6)}...${token.substring(token.length - 4)}'
-        : '***';
-    print('[API] token preview: $visible');
   }
 }
