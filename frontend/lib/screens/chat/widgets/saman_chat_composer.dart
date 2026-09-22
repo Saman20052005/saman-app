@@ -217,8 +217,7 @@ class _SamanChatComposerState extends State<SamanChatComposer> {
           // Right: Monochrome Send / Neutral Stop button
           if (widget.isLoading)
             Semantics(
-              button: true,
-              label: 'Stop response',
+              label: 'Saman is responding',
               child: Container(
                 width: 36,
                 height: 36,

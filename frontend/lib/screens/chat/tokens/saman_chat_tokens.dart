@@ -21,6 +21,8 @@ class SamanChatTokens {
   static const Color surfaceElevated = SamanHomeTokens.cardSurfaceElevated; // #1B1D22
   static const Color iconContainerBg = SamanHomeTokens.iconContainerBg; // #212328
   static const Color chipBackground = Color(0xFF16171B);
+  static const Color drawerBg = Color(0xFF111215);
+  static const Color drawerScrim = Color(0x99000000);
 
   // ─── Borders & Hairlines ─────────────────────────────────────────────
   static const Color border = SamanHomeTokens.border; // #26282F
