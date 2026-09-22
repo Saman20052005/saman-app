@@ -45,9 +45,10 @@ jobs:
         working-directory: frontend
         shell: bash
         run: |
-          mapfile -d '' tests < <(find test -name '*_test.dart' ! -name 
-'render_*_test.dart' -print0)
-          flutter test "${tests[@]}"
+          find test -name '*_test.dart' \
+            ! -name 'render_*_test.dart' \
+            -print0 |
+            xargs -0 -r flutter test
 
       - name: Check Python syntax
         run: python3 -m compileall -q backend
