@@ -26,7 +26,7 @@ body:
     attributes:
       label: Mục tiêu cuối cùng
       description: Mô tả kết quả cụ thể cần đạt được.
-      placeholder: Ví dụ: Hoàn thiện 3 trạng thái của màn hình Saman Chat Drawer.
+      placeholder: "Ví dụ: Hoàn thiện 3 trạng thái của màn hình Saman Chat Drawer."
     validations:
       required: true
 
