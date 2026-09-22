@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../config/api_config.dart';
@@ -21,13 +22,31 @@ class ChatMessage {
 class ChatState {
   final List<ChatMessage> messages;
   final bool isLoading;
+  final String? errorMessage;
+  final String? failedUserMessage;
 
-  ChatState({this.messages = const [], this.isLoading = false});
+  ChatState({
+    this.messages = const [],
+    this.isLoading = false,
+    this.errorMessage,
+    this.failedUserMessage,
+  });
 
-  ChatState copyWith({List<ChatMessage>? messages, bool? isLoading}) {
+  ChatState copyWith({
+    List<ChatMessage>? messages,
+    bool? isLoading,
+    String? errorMessage,
+    bool clearError = false,
+    String? failedUserMessage,
+    bool clearFailedUserMessage = false,
+  }) {
     return ChatState(
       messages: messages ?? this.messages,
       isLoading: isLoading ?? this.isLoading,
+      errorMessage: clearError ? null : (errorMessage ?? this.errorMessage),
+      failedUserMessage: clearFailedUserMessage
+          ? null
+          : (failedUserMessage ?? this.failedUserMessage),
     );
   }
 }
@@ -39,13 +58,47 @@ class ChatController extends StateNotifier<ChatState> {
   ChatController(this.ref) : super(ChatState(messages: []));
 
   Future<void> sendMessage(String text) async {
-    if (text.trim().isEmpty) return;
+    final trimmed = text.trim();
+    if (trimmed.isEmpty) return;
 
     // 1. UI: Hiện tin nhắn User ngay lập tức
-    final userMsg = ChatMessage(role: 'user', content: text);
-    state =
-        state.copyWith(messages: [...state.messages, userMsg], isLoading: true);
+    final userMsg = ChatMessage(role: 'user', content: trimmed);
+    state = state.copyWith(
+      messages: [...state.messages, userMsg],
+      isLoading: true,
+      clearError: true,
+      clearFailedUserMessage: true,
+    );
 
+    await _sendRequest(trimmed);
+  }
+
+  /// Retries sending the failed user message without duplicating it in messages list
+  Future<void> retry() async {
+    final textToRetry = state.failedUserMessage ??
+        (state.messages.isNotEmpty && state.messages.last.role == 'user'
+            ? state.messages.last.content
+            : null);
+    if (textToRetry == null) return;
+
+    state = state.copyWith(
+      isLoading: true,
+      clearError: true,
+      clearFailedUserMessage: true,
+    );
+
+    await _sendRequest(textToRetry);
+  }
+
+  /// Clears the visible recoverable error state
+  void clearError() {
+    state = state.copyWith(
+      clearError: true,
+      clearFailedUserMessage: true,
+    );
+  }
+
+  Future<void> _sendRequest(String text) async {
     try {
       final prefs = await SharedPreferences.getInstance();
 
@@ -71,17 +124,22 @@ class ChatController extends StateNotifier<ChatState> {
 
         final botMsg = ChatMessage(role: 'assistant', content: aiReply);
 
-        state = state
-            .copyWith(messages: [...state.messages, botMsg], isLoading: false);
+        state = state.copyWith(
+          messages: [...state.messages, botMsg],
+          isLoading: false,
+          clearError: true,
+          clearFailedUserMessage: true,
+        );
       } else {
         throw Exception("Server Error: ${response.statusCode}");
       }
     } catch (e) {
-      state = state.copyWith(messages: [
-        ...state.messages,
-        ChatMessage(role: 'assistant', content: "⚠️ Có lỗi xảy ra: $e")
-      ], isLoading: false);
-      print("Chat Error: $e");
+      debugPrint("Chat Error: $e");
+      state = state.copyWith(
+        isLoading: false,
+        errorMessage: "I couldn't complete that response.",
+        failedUserMessage: text,
+      );
     }
   }
 

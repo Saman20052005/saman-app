@@ -59,6 +59,10 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                 : SamanMessageList(
                     messages: chatState.messages,
                     scrollController: _scrollController,
+                    isLoading: chatState.isLoading,
+                    errorMessage: chatState.errorMessage,
+                    onRetry: _handleRetry,
+                    onEditQuestion: _handleEditQuestion,
                   ),
           ),
           _buildComposerArea(chatState.isLoading, chatState.messages.isEmpty),
@@ -108,6 +112,25 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     if (text.isEmpty) return;
     _textController.clear();
     ref.read(chatControllerProvider.notifier).sendMessage(text);
+  }
+
+  void _handleRetry() {
+    ref.read(chatControllerProvider.notifier).retry();
+  }
+
+  void _handleEditQuestion() {
+    final chatState = ref.read(chatControllerProvider);
+    final failedText = chatState.failedUserMessage ??
+        (chatState.messages.isNotEmpty && chatState.messages.last.role == 'user'
+            ? chatState.messages.last.content
+            : null);
+    if (failedText != null) {
+      _textController.text = failedText;
+      _textController.selection = TextSelection.fromPosition(
+        TextPosition(offset: failedText.length),
+      );
+    }
+    ref.read(chatControllerProvider.notifier).clearError();
   }
 
   void _scrollToBottom() {

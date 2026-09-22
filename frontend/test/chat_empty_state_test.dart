@@ -32,6 +32,14 @@ class _FakeChatNotifier extends StateNotifier<ChatState>
     clearChatCalled = true;
     state = ChatState(messages: []);
   }
+
+  @override
+  Future<void> retry() async {}
+
+  @override
+  void clearError() {
+    state = state.copyWith(clearError: true, clearFailedUserMessage: true);
+  }
 }
 
 Widget _buildTestWrapper({

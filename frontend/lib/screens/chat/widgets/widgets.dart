@@ -5,6 +5,8 @@ export 'saman_chat_context_card.dart';
 export 'saman_chat_empty_state.dart';
 export 'saman_chat_header.dart';
 export 'saman_chat_rapid_chips.dart';
+export 'saman_error_response.dart';
+export 'saman_generating_indicator.dart';
 export 'saman_message_list.dart';
 export 'saman_monogram.dart';
 export 'saman_user_message.dart';

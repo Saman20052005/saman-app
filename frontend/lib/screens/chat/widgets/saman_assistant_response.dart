@@ -125,33 +125,6 @@ class SamanAssistantResponse extends StatelessWidget {
                 const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
           ),
         ),
-
-        // 3. Subtle typing indicator if active
-        if (message.isTyping)
-          const Padding(
-            padding: EdgeInsets.only(top: 10.0),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                SizedBox(
-                  width: 12,
-                  height: 12,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    color: SamanChatTokens.greenAccent,
-                  ),
-                ),
-                SizedBox(width: 8.0),
-                Text(
-                  'Saman is thinking...',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: SamanChatTokens.textMuted,
-                  ),
-                ),
-              ],
-            ),
-          ),
       ],
     );
   }

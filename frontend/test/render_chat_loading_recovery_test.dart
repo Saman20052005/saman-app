@@ -11,34 +11,9 @@ import 'package:health_ai_app/screens/chat/tokens/saman_chat_tokens.dart';
 import 'package:health_ai_app/screens/chat_screen.dart';
 import 'package:health_ai_app/screens/home/widgets/saman_bottom_navigation_bar.dart';
 
-class _FakeActiveChatNotifier extends StateNotifier<ChatState>
+class _FakeVisualChatNotifier extends StateNotifier<ChatState>
     implements ChatController {
-  _FakeActiveChatNotifier()
-      : super(
-          ChatState(
-            messages: [
-              ChatMessage(
-                role: 'user',
-                content: 'Should I train heavy today?',
-              ),
-              ChatMessage(
-                role: 'assistant',
-                content:
-                    "Your recovery is slightly below baseline today. I’d keep the session, but reduce the top-set intensity to around RPE 7–7.5.",
-              ),
-              ChatMessage(
-                role: 'user',
-                content: 'What should I eat after?',
-              ),
-              ChatMessage(
-                role: 'assistant',
-                content:
-                    "You still have room in today’s nutrition target. A protein-focused meal with moderate carbs would fit well.",
-              ),
-            ],
-            isLoading: false,
-          ),
-        );
+  _FakeVisualChatNotifier(super.initialState);
 
   @override
   Ref get ref => throw UnimplementedError();
@@ -47,16 +22,14 @@ class _FakeActiveChatNotifier extends StateNotifier<ChatState>
   Future<void> sendMessage(String text) async {}
 
   @override
-  void clearChat() {
-    state = ChatState(messages: []);
-  }
-
-  @override
   Future<void> retry() async {}
 
   @override
-  void clearError() {
-    state = state.copyWith(clearError: true, clearFailedUserMessage: true);
+  void clearError() {}
+
+  @override
+  void clearChat() {
+    state = ChatState(messages: []);
   }
 }
 
@@ -76,7 +49,7 @@ Future<void> _capturePng(
 }
 
 void main() {
-  testWidgets('Capture visual render of Saman Chat Active Conversation at 390x844',
+  testWidgets('Capture visual render of State 05 Typing/Generating at 390x844',
       (tester) async {
     const mobileWidth = 390.0;
     const mobileHeight = 844.0;
@@ -88,9 +61,93 @@ void main() {
 
     final repaintKey = GlobalKey();
     const outputPath =
-        '/Users/saman/.gemini/antigravity-ide/brain/3f6beed2-836f-4f92-acf2-501da675c85b/saman_chat_active_conversation_render.png';
+        '/Users/saman/.gemini/antigravity-ide/brain/3f6beed2-836f-4f92-acf2-501da675c85b/saman_chat_state_05_typing_render.png';
 
-    final fakeChat = _FakeActiveChatNotifier();
+    final fakeChat = _FakeVisualChatNotifier(
+      ChatState(
+        messages: [
+          ChatMessage(
+            role: 'user',
+            content:
+                "Should I reduce today's squat load? Lower back felt tight during morning warmup.",
+          ),
+        ],
+        isLoading: true,
+      ),
+    );
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          chatControllerProvider.overrideWith((ref) => fakeChat),
+        ],
+        child: MaterialApp(
+          debugShowCheckedModeBanner: false,
+          theme: ThemeData.dark().copyWith(
+            scaffoldBackgroundColor: SamanChatTokens.canvas,
+            extensions: const [
+              AppThemeExtension(
+                aiAccent: SamanChatTokens.greenAccent,
+                primaryPressed: Color(0xFF0B7249),
+                warning: Color(0xFFD97706),
+                inkMuted: Color(0xFF888888),
+                inkSubtle: Color(0xFF555555),
+                hairline: Color(0xFF2A2A2A),
+                surfaceElevated: Color(0xFF222222),
+                heroNumeric: TextStyle(fontSize: 44),
+                labelCaps: TextStyle(fontSize: 11),
+                statValue: TextStyle(fontSize: 17),
+              ),
+            ],
+          ),
+          home: RepaintBoundary(
+            key: repaintKey,
+            child: Scaffold(
+              backgroundColor: SamanChatTokens.canvas,
+              body: const ChatScreen(),
+              bottomNavigationBar: SamanBottomNavigationBar(
+                currentIndex: 2,
+                onTap: (_) {},
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+
+    await _capturePng(tester, repaintKey, outputPath);
+  });
+
+  testWidgets('Capture visual render of State 07 Recoverable Error at 390x844',
+      (tester) async {
+    const mobileWidth = 390.0;
+    const mobileHeight = 844.0;
+    tester.view.physicalSize =
+        const Size(mobileWidth * 2.0, mobileHeight * 2.0);
+    tester.view.devicePixelRatio = 2.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final repaintKey = GlobalKey();
+    const outputPath =
+        '/Users/saman/.gemini/antigravity-ide/brain/3f6beed2-836f-4f92-acf2-501da675c85b/saman_chat_state_07_error_render.png';
+
+    final fakeChat = _FakeVisualChatNotifier(
+      ChatState(
+        messages: [
+          ChatMessage(
+            role: 'user',
+            content: "Can you adjust today's workout?",
+          ),
+        ],
+        isLoading: false,
+        errorMessage: "I couldn't complete that response.",
+        failedUserMessage: "Can you adjust today's workout?",
+      ),
+    );
 
     await tester.pumpWidget(
       ProviderScope(

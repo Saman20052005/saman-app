@@ -41,6 +41,8 @@ class SamanChatTokens {
   static const Color composerSendIcon = Color(0xFF121316);
   static const Color composerSendDisabledBg = Color(0xFF292A2D);
   static const Color composerSendDisabledIcon = Color(0xFF71717A);
+  static const Color composerStopBg = Color(0xFF292A2D);
+  static const Color composerStopIcon = Color(0xFFE3E2E6);
 
   // ─── Semantic Accents ────────────────────────────────────────────────
   static const Color greenAccent = SamanHomeTokens.greenAccent; // #10B981
@@ -146,5 +148,12 @@ class SamanChatTokens {
     fontWeight: FontWeight.w400,
     color: textWhite,
     height: 1.55,
+  );
+
+  static const TextStyle assistantHelper = TextStyle(
+    fontSize: 13,
+    fontWeight: FontWeight.w400,
+    color: textMuted,
+    height: 1.4,
   );
 }

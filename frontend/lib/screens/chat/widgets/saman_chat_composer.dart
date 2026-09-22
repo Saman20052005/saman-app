@@ -163,11 +163,13 @@ class _SamanChatComposerState extends State<SamanChatComposer> {
               keyboardType: TextInputType.text,
               minLines: 1,
               maxLines: 4,
-              decoration: const InputDecoration(
-                hintText: 'Ask Saman about training, meals, recovery...',
+              decoration: InputDecoration(
+                hintText: widget.isLoading
+                    ? 'Saman is responding...'
+                    : 'Ask Saman about training, meals, recovery...',
                 hintStyle: SamanChatTokens.composerHint,
                 isDense: true,
-                contentPadding: EdgeInsets.symmetric(
+                contentPadding: const EdgeInsets.symmetric(
                   horizontal: 4.0,
                   vertical: 8.0,
                 ),
@@ -212,37 +214,61 @@ class _SamanChatComposerState extends State<SamanChatComposer> {
 
           const SizedBox(width: 4.0),
 
-          // Right: Monochrome Send button
-          Semantics(
-            button: true,
-            label: 'Send message',
-            child: Material(
-              color: Colors.transparent,
-              child: InkWell(
-                borderRadius: BorderRadius.circular(18.0),
-                onTap: canSend ? widget.onSend : null,
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 150),
-                  width: 36,
-                  height: 36,
-                  decoration: BoxDecoration(
-                    color: canSend
-                        ? SamanChatTokens.composerSendBg
-                        : SamanChatTokens.composerSendDisabledBg,
-                    shape: BoxShape.circle,
+          // Right: Monochrome Send / Neutral Stop button
+          if (widget.isLoading)
+            Semantics(
+              button: true,
+              label: 'Stop response',
+              child: Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  color: SamanChatTokens.composerStopBg,
+                  borderRadius: BorderRadius.circular(10.0),
+                  border: Border.all(
+                    color: SamanChatTokens.borderSubtle,
+                    width: 1.0,
                   ),
-                  alignment: Alignment.center,
-                  child: Icon(
-                    Icons.arrow_upward_rounded,
-                    color: canSend
-                        ? SamanChatTokens.composerSendIcon
-                        : SamanChatTokens.composerSendDisabledIcon,
-                    size: 18,
+                ),
+                alignment: Alignment.center,
+                child: const Icon(
+                  Icons.stop_rounded,
+                  color: SamanChatTokens.composerStopIcon,
+                  size: 18,
+                ),
+              ),
+            )
+          else
+            Semantics(
+              button: true,
+              label: 'Send message',
+              child: Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(18.0),
+                  onTap: canSend ? widget.onSend : null,
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 150),
+                    width: 36,
+                    height: 36,
+                    decoration: BoxDecoration(
+                      color: canSend
+                          ? SamanChatTokens.composerSendBg
+                          : SamanChatTokens.composerSendDisabledBg,
+                      shape: BoxShape.circle,
+                    ),
+                    alignment: Alignment.center,
+                    child: Icon(
+                      Icons.arrow_upward_rounded,
+                      color: canSend
+                          ? SamanChatTokens.composerSendIcon
+                          : SamanChatTokens.composerSendDisabledIcon,
+                      size: 18,
+                    ),
                   ),
                 ),
               ),
             ),
-          ),
         ],
       ),
     );
