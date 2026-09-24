@@ -13,16 +13,11 @@ import 'profile_screen.dart';
 import 'home/tokens/saman_home_tokens.dart';
 import 'home/widgets/saman_bottom_navigation_bar.dart';
 
-import '../utils/auth_helper.dart';
-import 'login/login_screen.dart';
-
 // Import Provider
 import '../providers/profile_provider.dart';
 
 class MainScreen extends ConsumerStatefulWidget {
-  const MainScreen({super.key, this.onUnauthorizedLogout});
-
-  final VoidCallback? onUnauthorizedLogout;
+  const MainScreen({super.key});
 
   @override
   ConsumerState<MainScreen> createState() => _MainScreenState();
@@ -30,53 +25,10 @@ class MainScreen extends ConsumerStatefulWidget {
 
 class _MainScreenState extends ConsumerState<MainScreen> {
   int _currentIndex = 0;
-  bool _isHandlingUnauthorized = false;
 
-  @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) return;
-      if (ref.read(profileProvider).status == ProfileStatus.unauthorized) {
-        _handleUnauthorized();
-      } else {
-        ref.read(profileProvider.notifier).loadProfile();
-      }
-    });
-  }
-
-  Future<void> _handleUnauthorized() async {
-    if (_isHandlingUnauthorized || !mounted) return;
-    _isHandlingUnauthorized = true;
-
-    ScaffoldMessenger.of(context).hideCurrentSnackBar();
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Session expired. Please sign in again.'),
-        backgroundColor: Colors.redAccent,
-        behavior: SnackBarBehavior.floating,
-      ),
-    );
-
-    await AuthHelper.logout(ref);
-
-    if (mounted) {
-      if (widget.onUnauthorizedLogout != null) {
-        widget.onUnauthorizedLogout!();
-      } else {
-        Navigator.pushAndRemoveUntil(
-          context,
-          MaterialPageRoute(builder: (_) => const LoginScreen()),
-          (route) => false,
-        );
-      }
-    }
-  }
-
-  late final List<Widget> _screens = [
-    HomeScreen(
-      onOpenProfile: () => setState(() => _currentIndex = 4),
-    ),
+  // FIX: Bỏ từ khóa 'const' ở đây để tránh lỗi nếu các màn hình con không phải hằng số
+  final List<Widget> _screens = [
+    const HomeScreen(),
     const WorkoutHomeScreen(),
     const ChatScreen(),
     const NutritionScreen(), // Index 3 (shifted)
@@ -88,8 +40,7 @@ class _MainScreenState extends ConsumerState<MainScreen> {
     if (index == 3) {
       final profileState = ref.read(profileProvider);
 
-      // Nutrition treats initial/loading as unresolved, not invalid.
-      if (!profileState.isLoading && !profileState.isProfileValid) {
+      if (!profileState.isProfileValid) {
         ScaffoldMessenger.of(context).hideCurrentSnackBar();
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -109,13 +60,6 @@ class _MainScreenState extends ConsumerState<MainScreen> {
 
   @override
   Widget build(BuildContext context) {
-    ref.listen<ProfileState>(profileProvider, (previous, next) {
-      if (next.status == ProfileStatus.unauthorized &&
-          (previous == null || previous.status != ProfileStatus.unauthorized)) {
-        _handleUnauthorized();
-      }
-    });
-
     return Scaffold(
       backgroundColor: SamanHomeTokens.canvas,
       body: IndexedStack(

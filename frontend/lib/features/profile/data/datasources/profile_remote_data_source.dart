@@ -1,25 +1,18 @@
 import 'package:dio/dio.dart';
-import 'package:health_ai_app/config/api_config.dart';
+import 'package:health_ai_app/config/api_config.dart'; // Để lấy URL endpoint
 import 'package:health_ai_app/features/profile/data/models/profile_model.dart';
-import 'package:health_ai_app/features/profile/data/models/profile_snapshot_model.dart';
-
-class UnauthorizedException implements Exception {
-  final String message;
-  const UnauthorizedException([this.message = 'Unauthorized']);
-  @override
-  String toString() => message;
-}
 
 abstract class ProfileRemoteDataSource {
   Future<bool> updateProfile(ProfileModel profile);
-  Future<ProfileSnapshotModel?> getProfileSnapshot();
   Future<ProfileModel?> getProfile();
 }
 
 class ProfileRemoteDataSourceImpl implements ProfileRemoteDataSource {
   final Dio dio;
 
+  // Dio instance này cần được cấu hình sẵn Interceptor để tự add Token
   ProfileRemoteDataSourceImpl({required this.dio}) {
+    // Configure timeouts
     dio.options.connectTimeout = const Duration(seconds: 60);
     dio.options.receiveTimeout = const Duration(seconds: 60);
     dio.options.sendTimeout = const Duration(seconds: 60);
@@ -30,16 +23,15 @@ class ProfileRemoteDataSourceImpl implements ProfileRemoteDataSource {
   Future<bool> updateProfile(ProfileModel profile) async {
     try {
       final response = await dio.post(
-        ApiConfig.profileUpdateEndpoint,
-        data: profile.toUpdateJson(),
+        ApiConfig
+            .profileUpdateEndpoint, // Đảm bảo endpoint là string: '/api/profile/update'
+        data: profile.toJson(),
         options: Options(contentType: Headers.jsonContentType),
       );
 
       return response.statusCode == 200 || response.statusCode == 201;
     } on DioException catch (e) {
-      if (e.response?.statusCode == 401) {
-        throw const UnauthorizedException('Session expired');
-      }
+      // Ném lỗi để Repository hoặc Controller xử lý
       throw Exception(
         'Lỗi Server: ${e.response?.statusCode} - ${e.response?.statusMessage}',
       );
@@ -47,37 +39,30 @@ class ProfileRemoteDataSourceImpl implements ProfileRemoteDataSource {
   }
 
   @override
-  Future<ProfileSnapshotModel?> getProfileSnapshot() async {
+  Future<ProfileModel?> getProfile() async {
     try {
       final response = await dio.get(ApiConfig.getProfileEndpoint);
 
       if (response.statusCode == 200) {
-        final data = response.data;
+        final data = response.data; // Dio tự decode JSON thành Map
+
+        // Logic cũ của bạn: check key 'profile' hoặc lấy trực tiếp
         if (data is Map<String, dynamic>) {
-          return ProfileSnapshotModel.fromJson(data);
+          if (data['profile'] != null) {
+            return ProfileModel.fromJson(data['profile']);
+          } else if (data.containsKey('height')) {
+            // Giả định nếu có key 'height' thì là object profile phẳng
+            return ProfileModel.fromJson(data);
+          }
         }
       }
       return null;
     } on DioException catch (e) {
-      if (e.response?.statusCode == 401) {
-        throw const UnauthorizedException('Session expired');
-      }
-      if (e.response?.statusCode == 404) {
+      // Nếu 401 (Unauthorized) hoặc 404 (Not found), trả về null để app dùng cache
+      if (e.response?.statusCode == 404 || e.response?.statusCode == 401) {
         return null;
       }
       rethrow;
     }
-  }
-
-  @override
-  Future<ProfileModel?> getProfile() async {
-    final snapshot = await getProfileSnapshot();
-    if (snapshot != null) {
-      if (snapshot.profile is ProfileModel) {
-        return snapshot.profile as ProfileModel;
-      }
-      return ProfileModel.fromEntity(snapshot.profile);
-    }
-    return null;
   }
 }

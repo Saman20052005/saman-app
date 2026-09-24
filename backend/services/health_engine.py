@@ -51,22 +51,13 @@ class HealthEngine:
         Sử dụng công thức Mifflin-St Jeor (Chuẩn y khoa hiện nay).
         """
         
-        if (
-            profile.weight is None
-            or profile.height is None
-            or profile.age is None
-            or profile.gender is None
-            or profile.height <= 0
-            or profile.weight <= 0
-        ):
-            raise ValueError(
-                "Missing or invalid required profile fields for health metrics calculation (height, weight, age, and gender are required)"
-            )
-
         # 1. Tính BMI (Body Mass Index)
         # Công thức: Cân nặng (kg) / (Chiều cao (m) ^ 2)
         height_m = profile.height / 100
         bmi = round(profile.weight / (height_m ** 2), 1)
+
+        if profile.weight is None or profile.height is None or profile.age is None or profile.gender is None:
+            raise ValueError("Missing required profile fields for TDEE calculation")
 
         gender_str = profile.gender.value if hasattr(profile.gender, "value") else str(profile.gender)
         if gender_str not in ("male", "female"):

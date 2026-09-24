@@ -7,7 +7,6 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:health_ai_app/config/app_theme.dart';
 import 'package:health_ai_app/features/profile/data/repositories/profile_repository_impl.dart';
 import 'package:health_ai_app/features/profile/domain/entities/profile_entity.dart';
-import 'package:health_ai_app/features/profile/domain/entities/profile_snapshot.dart';
 import 'package:health_ai_app/models/nutrition_model.dart';
 import 'package:health_ai_app/providers/nutrition_provider.dart';
 import 'package:health_ai_app/providers/profile_provider.dart';
@@ -32,22 +31,6 @@ class _FakeProfileRepository implements ProfileRepository {
           goal: Goal.gain_muscle,
         )
       : ProfileEntity.empty();
-
-  @override
-  Future<void> clearLocalProfile() async {}
-
-  @override
-  Future<void> cacheSnapshot(ProfileSnapshot snapshot) async {}
-
-  @override
-  Future<ProfileSnapshot?> fetchProfileSnapshot(
-      {bool cacheOnSuccess = false}) async {
-    final profile = await fetchProfile();
-    if (profile == null) return null;
-    return ProfileSnapshot(
-      profile: profile,
-    );
-  }
 }
 
 class FakeProfileNotifier extends ProfileNotifier {
@@ -120,8 +103,7 @@ class FakeNutritionNotifier extends StateNotifier<AsyncValue<NutritionPlan?>>
 }
 
 void main() {
-  testWidgets(
-      'MainScreen renders approved 5-tab Saman navigation bar with wired tabs',
+  testWidgets('MainScreen renders approved 5-tab Saman navigation bar with wired tabs',
       (tester) async {
     tester.view.physicalSize = const Size(1080, 2400);
     tester.view.devicePixelRatio = 2.5;
@@ -140,8 +122,7 @@ void main() {
         overrides: [
           sharedPreferencesProvider.overrideWithValue(sharedPrefs),
           secureStorageProvider.overrideWithValue(const FlutterSecureStorage()),
-          profileProvider
-              .overrideWith((ref) => FakeProfileNotifier(isValid: true)),
+          profileProvider.overrideWith((ref) => FakeProfileNotifier(isValid: true)),
           nutritionProvider.overrideWith((ref) => FakeNutritionNotifier()),
         ],
         child: MaterialApp(
@@ -181,8 +162,7 @@ void main() {
     }
   });
 
-  testWidgets(
-      'SamanBottomNavigationBar renders all 5 tabs and calls onTap callback',
+  testWidgets('SamanBottomNavigationBar renders all 5 tabs and calls onTap callback',
       (tester) async {
     int tappedIndex = -1;
 

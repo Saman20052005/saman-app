@@ -13,7 +13,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:health_ai_app/features/profile/data/repositories/profile_repository_impl.dart';
 import 'package:health_ai_app/features/profile/domain/entities/profile_entity.dart';
-import 'package:health_ai_app/features/profile/domain/entities/profile_snapshot.dart';
 import 'package:health_ai_app/main.dart';
 import 'package:health_ai_app/providers/profile_provider.dart';
 
@@ -23,17 +22,6 @@ class _TestProfileRepository implements ProfileRepository {
 
   @override
   Future<ProfileEntity?> fetchProfile() async => ProfileEntity.empty();
-
-  @override
-  Future<ProfileSnapshot?> fetchProfileSnapshot(
-      {bool cacheOnSuccess = false}) async =>
-      const ProfileSnapshot(profile: ProfileEntity());
-
-  @override
-  Future<void> cacheSnapshot(ProfileSnapshot snapshot) async {}
-
-  @override
-  Future<void> clearLocalProfile() async {}
 }
 
 class TestProfileNotifier extends ProfileNotifier {
