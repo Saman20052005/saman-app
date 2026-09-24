@@ -1,38 +1,25 @@
 // lib/screens/profile_screen.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import '../utils/auth_helper.dart';
 
-// Import Feature Profile
-import '../features/profile/domain/entities/profile_entity.dart';
 import '../providers/profile_provider.dart';
 import '../config/app_translations.dart';
 import '../config/app_theme.dart';
 import '../config/theme_provider.dart';
 import 'login/login_screen.dart';
+import 'profile/edit_health_profile_screen.dart';
 
 class ProfileScreen extends ConsumerStatefulWidget {
   const ProfileScreen({super.key});
+
   @override
   ConsumerState<ProfileScreen> createState() => _ProfileScreenState();
 }
 
 class _ProfileScreenState extends ConsumerState<ProfileScreen> {
-  final _formKey = GlobalKey<FormState>();
-
-  final _ageController = TextEditingController();
-  final _heightController = TextEditingController();
-  final _weightController = TextEditingController();
-  final _allergiesController = TextEditingController();
-
-  Gender _selectedGender = Gender.male;
-  ActivityLevel _selectedActivity = ActivityLevel.medium;
-  Goal _selectedGoal = Goal.maintain_weight;
-
   String _userName = "User";
   String _email = "";
-  bool _isInit = false;
 
   @override
   void initState() {
@@ -43,6 +30,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   Future<void> _loadUserInfo() async {
     final name = await AuthHelper.getUserName();
     final email = await AuthHelper.getUserEmail();
+    if (!mounted) return;
     setState(() {
       _userName = name ?? "User";
       _email = email ?? "";
@@ -50,59 +38,20 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     });
   }
 
-  String tr(String key) {
+  String _tr(String key, {String? fallback}) {
     final locale = ref.read(languageProvider);
-    return AppTranslations.text(key, locale);
-  }
-
-  void _syncDataFromProvider(ProfileState state) {
-    if (state.isProfileValid) {
-      final p = state.profile;
-      _ageController.text = p.age?.toString() ?? '';
-      _heightController.text = p.height?.toString() ?? '';
-      _weightController.text = p.weight?.toString() ?? '';
-      _allergiesController.text = p.allergies.join(', ');
-
-      setState(() {
-        _selectedGender = p.gender;
-        _selectedActivity = p.activityLevel;
-        _selectedGoal = p.goal;
-        _isInit = true;
-      });
+    final text = AppTranslations.text(key, locale);
+    if (text == key && fallback != null) {
+      return fallback;
     }
+    return text;
   }
 
-  Future<void> _saveProfile() async {
-    if (!_formKey.currentState!.validate()) return;
-
-    final newProfile = ProfileEntity(
-      age: int.tryParse(_ageController.text),
-      height: double.tryParse(_heightController.text),
-      weight: double.tryParse(_weightController.text),
-      gender: _selectedGender,
-      activityLevel: _selectedActivity,
-      goal: _selectedGoal,
-      allergies:
-          _allergiesController.text.split(',').map((e) => e.trim()).toList(),
-    );
-
-    try {
-      await ref.read(profileProvider.notifier).updateProfile(newProfile);
-      final newState = ref.read(profileProvider);
-      _showSnackBar("Đã lưu! Mục tiêu: ${newState.targetCalories} kcal");
-    } catch (e) {
-      _showSnackBar("Lỗi cập nhật: $e", isError: true);
-    }
-  }
-
-  void _showSnackBar(String message, {bool isError = false}) {
-    if (!mounted) return;
-    final colors = Theme.of(context).colorScheme;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message, style: TextStyle(color: colors.onPrimary)),
-        backgroundColor: isError ? colors.error : colors.primary,
-        behavior: SnackBarBehavior.floating,
+  void _navigateToEditProfile() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => const EditHealthProfileScreen(),
       ),
     );
   }
@@ -140,7 +89,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   ),
                   const SizedBox(height: AppSpacing.lg),
                   Text(
-                    tr('language'),
+                    _tr('language'),
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w700,
@@ -158,7 +107,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                       await ref
                           .read(languageProvider.notifier)
                           .changeLanguage('en');
-                      if (mounted) Navigator.pop(ctx);
+                      if (ctx.mounted) Navigator.pop(ctx);
                     },
                   ),
                   ListTile(
@@ -171,7 +120,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                       await ref
                           .read(languageProvider.notifier)
                           .changeLanguage('vi');
-                      if (mounted) Navigator.pop(ctx);
+                      if (ctx.mounted) Navigator.pop(ctx);
                     },
                   ),
                 ],
@@ -189,14 +138,18 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: colors.surface,
-        title:
-            Text(tr('logout'), style: Theme.of(context).textTheme.titleMedium),
+        title: Text(
+          _tr('logout'),
+          style: Theme.of(context).textTheme.titleMedium,
+        ),
         content: const Text('Are you sure you want to log out?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child:
-                Text(tr('cancel'), style: TextStyle(color: colors.secondary)),
+            child: Text(
+              _tr('cancel'),
+              style: TextStyle(color: colors.secondary),
+            ),
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(context, true),
@@ -204,15 +157,14 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               backgroundColor: colors.error,
               foregroundColor: colors.onPrimary,
             ),
-            child: Text(tr('logout')),
+            child: Text(_tr('logout')),
           ),
         ],
       ),
     );
 
     if (confirmed == true && mounted) {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.clear();
+      await AuthHelper.logout(ref);
       if (mounted) {
         Navigator.pushAndRemoveUntil(
           context,
@@ -231,15 +183,16 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     final textTheme = Theme.of(context).textTheme;
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    if (!_isInit && profileState.isProfileValid) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        _syncDataFromProvider(profileState);
-      });
-    }
+    final profile = profileState.profile;
+    final isValid = profileState.isProfileValid;
 
-    ref.listen<ProfileState>(profileProvider, (previous, next) {
-      if (next.profile.isValid && !_isInit) _syncDataFromProvider(next);
-    });
+    String bmiText = "BMI: --";
+    if (isValid && profile.height != null && profile.weight != null) {
+      final h = profile.height! / 100;
+      final w = profile.weight!;
+      final bmi = w / (h * h);
+      bmiText = "BMI: ${bmi.toStringAsFixed(1)}";
+    }
 
     return Scaffold(
       backgroundColor: context.bgColor,
@@ -247,12 +200,14 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: colors.onSurface),
-          onPressed: () => Navigator.pop(context),
-        ),
+        leading: Navigator.canPop(context)
+            ? IconButton(
+                icon: Icon(Icons.arrow_back, color: colors.onSurface),
+                onPressed: () => Navigator.pop(context),
+              )
+            : null,
         title: Text(
-          'Profile',
+          _tr('profile_title', fallback: 'Profile'),
           style: textTheme.titleLarge?.copyWith(
             fontWeight: FontWeight.w700,
             letterSpacing: -0.3,
@@ -261,243 +216,240 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         centerTitle: true,
         actions: [
           IconButton(
-            icon: Icon(isDark ? Icons.dark_mode : Icons.light_mode,
-                color: colors.onSurface),
+            icon: Icon(
+              isDark ? Icons.dark_mode : Icons.light_mode,
+              color: colors.onSurface,
+            ),
             onPressed: () => ref.read(themeProvider.notifier).toggleTheme(),
-          )
+          ),
         ],
       ),
       body: SingleChildScrollView(
-        child: Form(
-          key: _formKey,
-          child: Column(
-            children: [
-              _buildHeader(profileState, colors, textTheme),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(
-                  AppSpacing.xl,
-                  AppSpacing.xl,
-                  AppSpacing.xl,
-                  AppSpacing.xxxl,
+        child: Column(
+          children: [
+            // User Header
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.fromLTRB(
+                AppSpacing.xl,
+                110,
+                AppSpacing.xl,
+                AppSpacing.xxl,
+              ),
+              decoration: BoxDecoration(
+                color: context.surfaceColor,
+                borderRadius: const BorderRadius.vertical(
+                  bottom: Radius.circular(AppRadius.lg),
                 ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _buildSectionHeader(tr('body_stats'),
-                        Icons.accessibility_new, colors, textTheme),
-                    const SizedBox(height: AppSpacing.lg),
-                    _buildStatsGrid(colors, textTheme),
-                    const SizedBox(height: AppSpacing.xxl),
-                    _buildSectionHeader(
-                        tr('goal_lifestyle'), Icons.flag, colors, textTheme),
-                    const SizedBox(height: AppSpacing.lg),
-                    _buildSelectionCard(
-                        tr('main_goal'),
-                        Goal.values,
-                        _selectedGoal,
-                        (val) => setState(() => _selectedGoal = val),
-                        colors,
-                        textTheme),
-                    const SizedBox(height: AppSpacing.md),
-                    _buildSelectionCard(
-                        tr('activity_level'),
-                        ActivityLevel.values,
-                        _selectedActivity,
-                        (val) => setState(() => _selectedActivity = val),
-                        colors,
-                        textTheme),
-                    const SizedBox(height: AppSpacing.md),
-                    _buildSelectionCard(
-                        tr('gender'),
-                        Gender.values,
-                        _selectedGender,
-                        (val) => setState(() => _selectedGender = val),
-                        colors,
-                        textTheme),
-                    const SizedBox(height: AppSpacing.xxl),
-                    _buildSectionHeader(tr('medical_notes'),
-                        Icons.medical_services_outlined, colors, textTheme),
-                    const SizedBox(height: AppSpacing.md),
-                    TextFormField(
-                      controller: _allergiesController,
-                      style: TextStyle(color: colors.onSurface),
-                      decoration: InputDecoration(
-                        hintText: tr('allergies_hint'),
-                        hintStyle: TextStyle(color: colors.secondary),
-                        filled: true,
-                        fillColor: context.surfaceColor,
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(AppRadius.md),
-                          borderSide: BorderSide(color: colors.outline),
-                        ),
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(AppRadius.md),
-                          borderSide: BorderSide(color: colors.outline),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(AppRadius.md),
-                          borderSide: BorderSide(color: colors.primary),
-                        ),
+                border: Border(bottom: BorderSide(color: colors.outline)),
+              ),
+              child: Column(
+                children: [
+                  CircleAvatar(
+                    radius: 45,
+                    backgroundColor: context.trackColor,
+                    foregroundColor: colors.primary,
+                    child: Text(
+                      _userName.isNotEmpty ? _userName[0].toUpperCase() : "U",
+                      style: textTheme.displayLarge?.copyWith(
+                        fontSize: 36,
+                        color: colors.onSurface,
                       ),
                     ),
+                  ),
+                  const SizedBox(height: AppSpacing.lg),
+                  Text(
+                    _userName,
+                    style: textTheme.headlineMedium?.copyWith(
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: -0.6,
+                    ),
+                  ),
+                  const SizedBox(height: AppSpacing.xs),
+                  Text(
+                    "$_email • $bmiText",
+                    style: textTheme.bodyMedium?.copyWith(
+                      color: colors.secondary,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            Padding(
+              padding: const EdgeInsets.fromLTRB(
+                AppSpacing.xl,
+                AppSpacing.xl,
+                AppSpacing.xl,
+                AppSpacing.xxxl,
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Health Profile Status Banner / Card
+                  if (!isValid)
+                    _IncompleteProfileCard(
+                      onCompleteTap: _navigateToEditProfile,
+                    )
+                  else ...[
+                    _ProfileSectionTitle(
+                      title: _tr('body_stats'),
+                      icon: Icons.accessibility_new,
+                    ),
+                    const SizedBox(height: AppSpacing.md),
+                    _ReadOnlyStatsRow(
+                      age: profile.age?.toString() ?? '--',
+                      height: profile.height != null
+                          ? '${profile.height! % 1 == 0 ? profile.height!.toInt() : profile.height} cm'
+                          : '--',
+                      weight: profile.weight != null
+                          ? '${profile.weight! % 1 == 0 ? profile.weight!.toInt() : profile.weight} kg'
+                          : '--',
+                      ageLabel: _tr('age'),
+                      heightLabel: _tr('height'),
+                      weightLabel: _tr('weight'),
+                    ),
                     const SizedBox(height: AppSpacing.xxl),
-                    _buildSettingsGroup(colors, textTheme),
-                    const SizedBox(height: AppSpacing.xxl),
-                    SizedBox(
-                      width: double.infinity,
-                      height: 56,
-                      child: ElevatedButton(
-                        onPressed: profileState.isLoading ? null : _saveProfile,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: colors.primary,
-                          foregroundColor: colors.onPrimary,
-                          shape: RoundedRectangleBorder(
-                              borderRadius:
-                                  BorderRadius.circular(AppRadius.md)),
-                        ),
-                        child: profileState.isLoading
-                            ? CircularProgressIndicator(color: colors.onPrimary)
-                            : Text(tr('save_changes'),
-                                style: TextStyle(
-                                    fontSize: 16, fontWeight: FontWeight.bold)),
-                      ),
+                    _ProfileSectionTitle(
+                      title: _tr('goal_lifestyle'),
+                      icon: Icons.flag,
+                    ),
+                    const SizedBox(height: AppSpacing.md),
+                    _ReadOnlyLifestyleCard(
+                      goalLabel: profile.hasGoal ? _tr(profile.goal.name) : '-',
+                      activityLabel: profile.hasActivityLevel ? _tr(profile.activityLevel.name) : '-',
+                      genderLabel: profile.hasGender ? _tr(profile.gender.name) : '-',
+                      goalTitle: _tr('main_goal'),
+                      activityTitle: _tr('activity_level'),
+                      genderTitle: _tr('gender'),
                     ),
                     const SizedBox(height: AppSpacing.xl),
+                    // Edit Profile CTA
+                    SizedBox(
+                      width: double.infinity,
+                      height: 52,
+                      child: OutlinedButton.icon(
+                        key: const Key('edit_profile_cta_button'),
+                        onPressed: _navigateToEditProfile,
+                        icon: const Icon(Icons.edit_outlined, size: 20),
+                        label: Text(
+                          _tr('edit_profile', fallback: 'Chỉnh sửa hồ sơ'),
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: colors.primary,
+                          side: BorderSide(color: colors.primary, width: 1.5),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(AppRadius.md),
+                          ),
+                        ),
+                      ),
+                    ),
                   ],
-                ),
+
+                  const SizedBox(height: AppSpacing.xxl),
+
+                  // Settings Group
+                  _ProfileSettingsCard(
+                    onLanguageTap: () => _showLanguageBottomSheet(colors),
+                    onLogoutTap: _logout,
+                    languageLabel: _tr('language'),
+                    logoutLabel: _tr('logout'),
+                  ),
+                ],
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
   }
+}
 
-  Widget _buildHeader(
-      ProfileState state, ColorScheme colors, TextTheme textTheme) {
-    String bmiText = "BMI: --";
-    if (state.profile.isValid) {
-      final h = state.profile.height! / 100;
-      final w = state.profile.weight!;
-      final bmi = w / (h * h);
-      bmiText = "BMI: ${bmi.toStringAsFixed(1)}";
-    }
+class _IncompleteProfileCard extends StatelessWidget {
+  const _IncompleteProfileCard({required this.onCompleteTap});
+
+  final VoidCallback onCompleteTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
 
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.fromLTRB(
-        AppSpacing.xl,
-        110,
-        AppSpacing.xl,
-        AppSpacing.xxl,
-      ),
+      padding: const EdgeInsets.all(AppSpacing.xl),
       decoration: BoxDecoration(
-        color: context.surfaceColor,
-        borderRadius: const BorderRadius.vertical(
-          bottom: Radius.circular(AppRadius.lg),
-        ),
-        border: Border(bottom: BorderSide(color: colors.outline)),
+        color: colors.error.withOpacity(0.08),
+        borderRadius: BorderRadius.circular(AppRadius.lg),
+        border: Border.all(color: colors.error.withOpacity(0.3)),
       ),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          CircleAvatar(
-            radius: 45,
-            backgroundColor: context.trackColor,
-            foregroundColor: colors.primary,
-            child: Text(
-              _userName.isNotEmpty ? _userName[0].toUpperCase() : "U",
-              style: textTheme.displayLarge
-                  ?.copyWith(fontSize: 36, color: colors.onSurface),
-            ),
-          ),
-          const SizedBox(height: AppSpacing.lg),
-          Text(
-            _userName,
-            style: textTheme.headlineMedium?.copyWith(
-              fontWeight: FontWeight.w700,
-              letterSpacing: -0.6,
-            ),
-          ),
-          const SizedBox(height: AppSpacing.xs),
-          Text(
-            "$_email • $bmiText",
-            style: textTheme.bodyMedium?.copyWith(color: colors.secondary),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildStatsGrid(ColorScheme colors, TextTheme textTheme) {
-    return Row(
-      children: [
-        Expanded(
-            child: _buildStatCard(
-                tr('age'), _ageController, "", colors, textTheme)),
-        const SizedBox(width: AppSpacing.md),
-        Expanded(
-            child: _buildStatCard(
-                tr('height'), _heightController, "cm", colors, textTheme)),
-        const SizedBox(width: AppSpacing.md),
-        Expanded(
-            child: _buildStatCard(
-                tr('weight'), _weightController, "kg", colors, textTheme,
-                isHighlight: true)),
-      ],
-    );
-  }
-
-  Widget _buildStatCard(String label, TextEditingController controller,
-      String suffix, ColorScheme colors, TextTheme textTheme,
-      {bool isHighlight = false}) {
-    final bgColor = isHighlight ? colors.primary : colors.surface;
-    final textColor = isHighlight ? colors.onPrimary : colors.onSurface;
-    final labelColor =
-        isHighlight ? colors.onPrimary.withOpacity(0.7) : colors.secondary;
-
-    return Container(
-      padding: const EdgeInsets.all(AppSpacing.lg),
-      decoration: BoxDecoration(
-        color: bgColor,
-        borderRadius: BorderRadius.circular(AppRadius.md),
-        border: Border.all(
-          color: isHighlight ? colors.primary : colors.outline,
-        ),
-      ),
-      child: Column(
-        children: [
-          Text(label, style: textTheme.labelSmall?.copyWith(color: labelColor)),
-          const SizedBox(height: AppSpacing.sm),
           Row(
-            mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Flexible(
-                child: SizedBox(
-                  width: 45,
-                  child: TextFormField(
-                    controller: controller,
-                    keyboardType: TextInputType.number,
-                    textAlign: TextAlign.center,
-                    style: textTheme.bodyLarge?.copyWith(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: textColor),
-                    decoration: const InputDecoration.collapsed(hintText: '0'),
+              Icon(Icons.warning_amber_rounded, color: colors.error, size: 28),
+              const SizedBox(width: AppSpacing.md),
+              Expanded(
+                child: Text(
+                  'Hồ sơ chưa hoàn thiện',
+                  style: textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w700,
+                    color: colors.error,
                   ),
                 ),
               ),
-              if (suffix.isNotEmpty)
-                Text(suffix,
-                    style: textTheme.bodySmall?.copyWith(color: labelColor)),
             ],
+          ),
+          const SizedBox(height: AppSpacing.sm),
+          Text(
+            'Vui lòng cập nhật đầy đủ tuổi, chiều cao và cân nặng để hệ thống tính toán lượng calo chính xác.',
+            style: textTheme.bodyMedium?.copyWith(
+              color: colors.onSurface.withOpacity(0.8),
+            ),
+          ),
+          const SizedBox(height: AppSpacing.lg),
+          SizedBox(
+            width: double.infinity,
+            height: 48,
+            child: ElevatedButton.icon(
+              key: const Key('complete_profile_cta_button'),
+              onPressed: onCompleteTap,
+              icon: const Icon(Icons.arrow_forward, size: 18),
+              label: const Text(
+                'Hoàn thiện hồ sơ',
+                style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+              ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: colors.primary,
+                foregroundColor: colors.onPrimary,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(AppRadius.md),
+                ),
+              ),
+            ),
           ),
         ],
       ),
     );
   }
+}
 
-  Widget _buildSectionHeader(
-      String title, IconData icon, ColorScheme colors, TextTheme textTheme) {
+class _ProfileSectionTitle extends StatelessWidget {
+  const _ProfileSectionTitle({required this.title, required this.icon});
+
+  final String title;
+  final IconData icon;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+
     return Row(
       children: [
         Icon(icon, size: 20, color: colors.primary),
@@ -509,14 +461,129 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       ],
     );
   }
+}
 
-  Widget _buildSelectionCard<T extends Enum>(
-      String title,
-      List<T> options,
-      T currentVal,
-      Function(T) onSelect,
-      ColorScheme colors,
-      TextTheme textTheme) {
+class _ReadOnlyStatsRow extends StatelessWidget {
+  const _ReadOnlyStatsRow({
+    required this.age,
+    required this.height,
+    required this.weight,
+    required this.ageLabel,
+    required this.heightLabel,
+    required this.weightLabel,
+  });
+
+  final String age;
+  final String height;
+  final String weight;
+  final String ageLabel;
+  final String heightLabel;
+  final String weightLabel;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Expanded(
+          child: _StatDisplayCard(
+            label: ageLabel,
+            value: age,
+          ),
+        ),
+        const SizedBox(width: AppSpacing.md),
+        Expanded(
+          child: _StatDisplayCard(
+            label: heightLabel,
+            value: height,
+          ),
+        ),
+        const SizedBox(width: AppSpacing.md),
+        Expanded(
+          child: _StatDisplayCard(
+            label: weightLabel,
+            value: weight,
+            isHighlight: true,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _StatDisplayCard extends StatelessWidget {
+  const _StatDisplayCard({
+    required this.label,
+    required this.value,
+    this.isHighlight = false,
+  });
+
+  final String label;
+  final String value;
+  final bool isHighlight;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+    final bgColor = isHighlight ? colors.primary : context.surfaceColor;
+    final textColor = isHighlight ? colors.onPrimary : colors.onSurface;
+    final labelColor =
+        isHighlight ? colors.onPrimary.withOpacity(0.7) : colors.secondary;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.md,
+        vertical: AppSpacing.lg,
+      ),
+      decoration: BoxDecoration(
+        color: bgColor,
+        borderRadius: BorderRadius.circular(AppRadius.md),
+        border: Border.all(
+          color: isHighlight ? colors.primary : colors.outline,
+        ),
+      ),
+      child: Column(
+        children: [
+          Text(
+            label,
+            style: textTheme.labelSmall?.copyWith(color: labelColor),
+          ),
+          const SizedBox(height: AppSpacing.sm),
+          Text(
+            value,
+            style: textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.bold,
+              color: textColor,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ReadOnlyLifestyleCard extends StatelessWidget {
+  const _ReadOnlyLifestyleCard({
+    required this.goalLabel,
+    required this.activityLabel,
+    required this.genderLabel,
+    required this.goalTitle,
+    required this.activityTitle,
+    required this.genderTitle,
+  });
+
+  final String goalLabel;
+  final String activityLabel;
+  final String genderLabel;
+  final String goalTitle;
+  final String activityTitle;
+  final String genderTitle;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+
     return Container(
       padding: const EdgeInsets.all(AppSpacing.lg),
       decoration: BoxDecoration(
@@ -525,55 +592,85 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         border: Border.all(color: colors.outline),
       ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(title,
-              style:
-                  textTheme.labelSmall?.copyWith(fontWeight: FontWeight.w500)),
-          const SizedBox(height: AppSpacing.md),
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Row(
-              children: options.map((option) {
-                final isSelected = currentVal == option;
-                return Padding(
-                  padding: const EdgeInsets.only(right: AppSpacing.sm),
-                  child: InkWell(
-                    borderRadius: BorderRadius.circular(AppRadius.sm),
-                    onTap: () => onSelect(option),
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 200),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: AppSpacing.lg,
-                        vertical: AppSpacing.md,
-                      ),
-                      decoration: BoxDecoration(
-                        color: isSelected ? colors.primary : context.trackColor,
-                        borderRadius: BorderRadius.circular(AppRadius.sm),
-                        border: Border.all(
-                          color: isSelected ? colors.primary : colors.outline,
-                        ),
-                      ),
-                      child: Text(
-                        option.name.toUpperCase().replaceAll('_', ' '),
-                        style: textTheme.labelMedium?.copyWith(
-                          color:
-                              isSelected ? colors.onPrimary : colors.onSurface,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                  ),
-                );
-              }).toList(),
-            ),
+          _LifestyleRow(
+            title: goalTitle,
+            value: goalLabel,
+            colors: colors,
+            textTheme: textTheme,
+          ),
+          Divider(height: AppSpacing.lg, color: colors.outline),
+          _LifestyleRow(
+            title: activityTitle,
+            value: activityLabel,
+            colors: colors,
+            textTheme: textTheme,
+          ),
+          Divider(height: AppSpacing.lg, color: colors.outline),
+          _LifestyleRow(
+            title: genderTitle,
+            value: genderLabel,
+            colors: colors,
+            textTheme: textTheme,
           ),
         ],
       ),
     );
   }
+}
 
-  Widget _buildSettingsGroup(ColorScheme colors, TextTheme textTheme) {
+class _LifestyleRow extends StatelessWidget {
+  const _LifestyleRow({
+    required this.title,
+    required this.value,
+    required this.colors,
+    required this.textTheme,
+  });
+
+  final String title;
+  final String value;
+  final ColorScheme colors;
+  final TextTheme textTheme;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(
+          title,
+          style: textTheme.bodyMedium?.copyWith(color: colors.secondary),
+        ),
+        Text(
+          value,
+          style: textTheme.bodyMedium?.copyWith(
+            fontWeight: FontWeight.w600,
+            color: colors.onSurface,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _ProfileSettingsCard extends StatelessWidget {
+  const _ProfileSettingsCard({
+    required this.onLanguageTap,
+    required this.onLogoutTap,
+    required this.languageLabel,
+    required this.logoutLabel,
+  });
+
+  final VoidCallback onLanguageTap;
+  final VoidCallback onLogoutTap;
+  final String languageLabel;
+  final String logoutLabel;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+
     return Container(
       decoration: BoxDecoration(
         color: context.surfaceColor,
@@ -582,45 +679,55 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       ),
       child: Column(
         children: [
-          _buildSettingsItem(Icons.language, tr('language'),
-              () => _showLanguageBottomSheet(colors), colors, textTheme),
+          ListTile(
+            leading: Container(
+              padding: const EdgeInsets.all(AppSpacing.sm),
+              decoration: BoxDecoration(
+                color: colors.primary.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(AppRadius.sm),
+              ),
+              child: Icon(Icons.language, size: 20, color: colors.primary),
+            ),
+            title: Text(
+              languageLabel,
+              style: textTheme.bodyMedium?.copyWith(
+                fontWeight: FontWeight.w600,
+                color: colors.onSurface,
+              ),
+            ),
+            trailing: Icon(
+              Icons.arrow_forward_ios,
+              size: 14,
+              color: colors.secondary,
+            ),
+            onTap: onLanguageTap,
+          ),
           Divider(height: 1, color: colors.outline),
-          _buildSettingsItem(
-              Icons.logout, tr('logout'), _logout, colors, textTheme,
-              isDestructive: true),
+          ListTile(
+            leading: Container(
+              padding: const EdgeInsets.all(AppSpacing.sm),
+              decoration: BoxDecoration(
+                color: colors.error.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(AppRadius.sm),
+              ),
+              child: Icon(Icons.logout, size: 20, color: colors.error),
+            ),
+            title: Text(
+              logoutLabel,
+              style: textTheme.bodyMedium?.copyWith(
+                fontWeight: FontWeight.w600,
+                color: colors.error,
+              ),
+            ),
+            trailing: Icon(
+              Icons.arrow_forward_ios,
+              size: 14,
+              color: colors.secondary,
+            ),
+            onTap: onLogoutTap,
+          ),
         ],
       ),
-    );
-  }
-
-  Widget _buildSettingsItem(IconData icon, String title, VoidCallback onTap,
-      ColorScheme colors, TextTheme textTheme,
-      {bool isDestructive = false}) {
-    return ListTile(
-      leading: Container(
-        padding: const EdgeInsets.all(AppSpacing.sm),
-        decoration: BoxDecoration(
-          color: isDestructive
-              ? colors.error.withOpacity(0.1)
-              : colors.primary.withOpacity(0.1),
-          borderRadius: BorderRadius.circular(AppRadius.sm),
-        ),
-        child: Icon(
-          icon,
-          size: 20,
-          color: isDestructive ? colors.error : colors.primary,
-        ),
-      ),
-      title: Text(
-        title,
-        style: textTheme.bodyMedium?.copyWith(
-          fontWeight: FontWeight.w600,
-          color: isDestructive ? colors.error : colors.onSurface,
-        ),
-      ),
-      trailing:
-          Icon(Icons.arrow_forward_ios, size: 14, color: colors.secondary),
-      onTap: onTap,
     );
   }
 }

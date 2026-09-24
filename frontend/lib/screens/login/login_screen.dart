@@ -9,7 +9,6 @@ import 'widgets/login_form.dart';
 import 'widgets/social_login_row.dart';
 import 'widgets/forgot_password_sheet.dart'; // Bạn cần tạo file này dựa trên code cũ (đã tách)
 import '../../config/routes.dart';
-import '../../providers/profile_provider.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -31,9 +30,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       }
       if (next.isSuccess && next.successMessage != null) {
         Fluttertoast.showToast(msg: next.successMessage!);
-        // Nếu login thành công -> Chuyển màn hình
+        // Nếu login thành công -> Chuyển màn hình (MainScreen sẽ tải profile)
         if (_isLoginMode) {
-          ref.read(profileProvider.notifier).loadProfile();
           Navigator.pushReplacementNamed(context, AppRoutes.main);
         } else {
           // Nếu Register thành công -> Chuyển sang Tab Login
