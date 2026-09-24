@@ -27,9 +27,9 @@ class ProfileEntity {
     this.allergies = const [],
   });
 
-  // Logic nghiệp vụ: Kiểm tra profile hợp lệ
+  // Logic nghiệp vụ: Kiểm tra profile hợp lệ (Tuổi 13-120 đồng bộ với backend)
   bool get isValid {
-    return (age != null && age! >= 10 && age! <= 100) &&
+    return (age != null && age! >= 13 && age! <= 120) &&
         (height != null && height! >= 50 && height! <= 250) &&
         (weight != null && weight! > 0);
   }

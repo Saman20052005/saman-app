@@ -1,7 +1,6 @@
 // lib/screens/profile_screen.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import '../utils/auth_helper.dart';
 
 // Import Feature Profile
@@ -211,8 +210,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     );
 
     if (confirmed == true && mounted) {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.clear();
+      await AuthHelper.logout(ref);
       if (mounted) {
         Navigator.pushAndRemoveUntil(
           context,
