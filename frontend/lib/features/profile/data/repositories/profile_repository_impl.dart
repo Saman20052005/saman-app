@@ -24,7 +24,10 @@ class ProfileRepositoryImpl implements ProfileRepository {
         (profile is ProfileModel) ? profile : ProfileModel.fromEntity(profile);
 
     // 1. Send update to remote backend
-    await remoteDataSource.updateProfile(model);
+    final success = await remoteDataSource.updateProfile(model);
+    if (!success) {
+      throw Exception('Cập nhật hồ sơ không thành công');
+    }
 
     // 2. Fetch fresh server calculated snapshot to ensure consistency
     try {

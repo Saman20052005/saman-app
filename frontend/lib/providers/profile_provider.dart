@@ -321,21 +321,21 @@ class ProfileNotifier extends StateNotifier<ProfileState> {
             : maintenance.round();
   }
 
-  int _calcLocalProtein(int calories, Goal goal) {
+  int _calcLocalProtein(int calories, Goal? goal) {
     final ratio = goal == Goal.gain_muscle
         ? 0.30
         : (goal == Goal.lose_weight ? 0.40 : 0.25);
     return ((calories * ratio) / 4).round();
   }
 
-  int _calcLocalCarbs(int calories, Goal goal) {
+  int _calcLocalCarbs(int calories, Goal? goal) {
     final ratio = goal == Goal.gain_muscle
         ? 0.45
         : (goal == Goal.lose_weight ? 0.30 : 0.50);
     return ((calories * ratio) / 4).round();
   }
 
-  int _calcLocalFat(int calories, Goal goal) {
+  int _calcLocalFat(int calories, Goal? goal) {
     final ratio = goal == Goal.gain_muscle
         ? 0.25
         : (goal == Goal.lose_weight ? 0.30 : 0.25);

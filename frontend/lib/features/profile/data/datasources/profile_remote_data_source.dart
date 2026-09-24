@@ -31,7 +31,7 @@ class ProfileRemoteDataSourceImpl implements ProfileRemoteDataSource {
     try {
       final response = await dio.post(
         ApiConfig.profileUpdateEndpoint,
-        data: profile.toJson(),
+        data: profile.toUpdateJson(),
         options: Options(contentType: Headers.jsonContentType),
       );
 
