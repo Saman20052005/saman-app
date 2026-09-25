@@ -74,22 +74,28 @@ class _SettingsSquareButton extends StatelessWidget {
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(SamanHomeTokens.radiusMd),
-        child: Container(
-          width: 38,
-          height: 38,
-          decoration: BoxDecoration(
-            color: SamanHomeTokens.cardSurfaceElevated,
-            borderRadius: BorderRadius.circular(SamanHomeTokens.radiusMd),
-            border: Border.all(
-              color: SamanHomeTokens.border,
-              width: 1,
-            ),
-          ),
-          child: const Center(
-            child: Icon(
-              Icons.settings_outlined,
-              size: 19,
-              color: SamanHomeTokens.textSecondary,
+        child: SizedBox(
+          width: 48,
+          height: 48,
+          child: Center(
+            child: Container(
+              width: 38,
+              height: 38,
+              decoration: BoxDecoration(
+                color: SamanHomeTokens.cardSurfaceElevated,
+                borderRadius: BorderRadius.circular(SamanHomeTokens.radiusMd),
+                border: Border.all(
+                  color: SamanHomeTokens.border,
+                  width: 1,
+                ),
+              ),
+              child: const Center(
+                child: Icon(
+                  Icons.settings_outlined,
+                  size: 19,
+                  color: SamanHomeTokens.textSecondary,
+                ),
+              ),
             ),
           ),
         ),

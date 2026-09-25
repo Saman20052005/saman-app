@@ -1,15 +1,31 @@
 // lib/screens/profile_screen.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../utils/auth_helper.dart';
 
+import '../features/profile/domain/entities/profile_entity.dart';
 import '../providers/profile_provider.dart';
 import '../config/app_translations.dart';
 import '../config/app_theme.dart';
 import '../config/theme_provider.dart';
+import '../utils/auth_helper.dart';
+import 'home/tokens/saman_home_tokens.dart';
 import 'login/login_screen.dart';
 import 'profile/edit_health_profile_screen.dart';
+import 'profile/widgets/profile_widgets.dart';
 
+/// Redesigned Profile Screen adhering strictly to the Calm Athleticism design system (Stitch export).
+///
+/// Features composed Stitch components:
+/// 1. [ProfileHeader] - Authoritative header with Settings shortcut
+/// 2. [PersonalIdentityCard] - Athlete credentials, circular avatar, clean edit action
+/// 3. Incomplete Profile Notice (when biometrics missing) with safe call-to-action
+/// 4. [ProgressSnapshotCard] - Long-term consistency metrics (real/dash fallbacks)
+/// 5. [SamanPlusCard] - Understated premium opportunity (Coming Soon)
+/// 6. [ProfileSectionGroup] ("HEALTH & GOALS") - Real biometric data summaries
+/// 7. [ProfileSectionGroup] ("PREFERENCES") - Language, theme, units, notification rows
+/// 8. [ProfileSectionGroup] ("ACCOUNT & SUPPORT") - Account management & feedback rows
+/// 9. [LogoutRow] - Quiet muted-red destructive action
+/// 10. Generous scroll clearance (~140px) above MainScreen persistent navigation bar
 class ProfileScreen extends ConsumerStatefulWidget {
   const ProfileScreen({super.key});
 
@@ -34,7 +50,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     setState(() {
       _userName = name ?? "User";
       _email = email ?? "";
-      if (_userName.isEmpty) _userName = "Fitness Member";
+      if (_userName.isEmpty) _userName = "Athlete";
     });
   }
 
@@ -61,47 +77,50 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
     showModalBottomSheet(
       context: context,
-      backgroundColor: colors.surface,
+      backgroundColor: SamanHomeTokens.cardSurfaceElevated,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(AppRadius.lg)),
       ),
       builder: (ctx) {
         return Container(
-          decoration: BoxDecoration(
-            color: colors.surface,
-            borderRadius: const BorderRadius.vertical(
+          decoration: const BoxDecoration(
+            color: SamanHomeTokens.cardSurfaceElevated,
+            borderRadius: BorderRadius.vertical(
               top: Radius.circular(AppRadius.lg),
             ),
           ),
           child: SafeArea(
             child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: AppSpacing.lg),
+              padding: const EdgeInsets.symmetric(vertical: SamanHomeTokens.spacingLg),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Container(
-                    width: 40,
+                    width: 36,
                     height: 4,
                     decoration: BoxDecoration(
-                      color: colors.outline,
+                      color: SamanHomeTokens.borderHigh,
                       borderRadius: BorderRadius.circular(2),
                     ),
                   ),
-                  const SizedBox(height: AppSpacing.lg),
+                  const SizedBox(height: SamanHomeTokens.spacingLg),
                   Text(
-                    _tr('language'),
-                    style: TextStyle(
+                    _tr('language', fallback: 'Language'),
+                    style: const TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w700,
-                      color: colors.onSurface,
+                      color: SamanHomeTokens.textWhite,
                     ),
                   ),
-                  const SizedBox(height: AppSpacing.sm),
+                  const SizedBox(height: SamanHomeTokens.spacingSm),
                   ListTile(
-                    leading: const Text('🇬🇧', style: TextStyle(fontSize: 24)),
-                    title: const Text('English'),
+                    leading: const Text('🇬🇧', style: TextStyle(fontSize: 22)),
+                    title: const Text(
+                      'English',
+                      style: TextStyle(color: SamanHomeTokens.textWhite),
+                    ),
                     trailing: currentLocale.languageCode == 'en'
-                        ? Icon(Icons.check_circle, color: colors.primary)
+                        ? const Icon(Icons.check_circle, color: SamanHomeTokens.greenAccent)
                         : null,
                     onTap: () async {
                       await ref
@@ -111,10 +130,13 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     },
                   ),
                   ListTile(
-                    leading: const Text('🇻🇳', style: TextStyle(fontSize: 24)),
-                    title: const Text('Tiếng Việt'),
+                    leading: const Text('🇻🇳', style: TextStyle(fontSize: 22)),
+                    title: const Text(
+                      'Tiếng Việt',
+                      style: TextStyle(color: SamanHomeTokens.textWhite),
+                    ),
                     trailing: currentLocale.languageCode == 'vi'
-                        ? Icon(Icons.check_circle, color: colors.primary)
+                        ? const Icon(Icons.check_circle, color: SamanHomeTokens.greenAccent)
                         : null,
                     onTap: () async {
                       await ref
@@ -133,31 +155,47 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   }
 
   Future<void> _logout() async {
-    final colors = Theme.of(context).colorScheme;
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: colors.surface,
-        title: Text(
-          _tr('logout'),
-          style: Theme.of(context).textTheme.titleMedium,
+        backgroundColor: SamanHomeTokens.cardSurfaceElevated,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(SamanHomeTokens.radiusLg),
+          side: const BorderSide(color: SamanHomeTokens.border, width: 1),
         ),
-        content: const Text('Are you sure you want to log out?'),
+        title: Text(
+          _tr('logout', fallback: 'Log out'),
+          style: const TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.w700,
+            color: SamanHomeTokens.textWhite,
+          ),
+        ),
+        content: const Text(
+          'Are you sure you want to log out of your Saman account?',
+          style: TextStyle(
+            fontSize: 14,
+            color: SamanHomeTokens.textSecondary,
+          ),
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
             child: Text(
-              _tr('cancel'),
-              style: TextStyle(color: colors.secondary),
+              _tr('cancel', fallback: 'Cancel'),
+              style: const TextStyle(color: SamanHomeTokens.textSecondary),
             ),
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(context, true),
             style: ElevatedButton.styleFrom(
-              backgroundColor: colors.error,
-              foregroundColor: colors.onPrimary,
+              backgroundColor: const Color(0xFFEF4444),
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(SamanHomeTokens.radiusMd),
+              ),
             ),
-            child: Text(_tr('logout')),
+            child: Text(_tr('logout', fallback: 'Log out')),
           ),
         ],
       ),
@@ -175,558 +213,410 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     }
   }
 
-  @override
-  Widget build(BuildContext context) {
-    ref.watch(languageProvider);
-    final profileState = ref.watch(profileProvider);
-    final colors = Theme.of(context).colorScheme;
-    final textTheme = Theme.of(context).textTheme;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+  String _formatGoal(Goal? goal) {
+    if (goal == null) return '—';
+    switch (goal) {
+      case Goal.lose_weight:
+        return _tr('goal_lose_weight', fallback: 'Lose weight');
+      case Goal.maintain_weight:
+        return _tr('goal_maintain_weight', fallback: 'Maintain weight');
+      case Goal.gain_muscle:
+        return _tr('goal_build_muscle', fallback: 'Build muscle');
+    }
+  }
 
-    final profile = profileState.profile;
-    final isValid = profileState.isProfileValid;
+  String _formatActivityLevel(ActivityLevel? level) {
+    if (level == null) return '—';
+    switch (level) {
+      case ActivityLevel.low:
+        return _tr('activity_low', fallback: 'Low');
+      case ActivityLevel.medium:
+        return _tr('activity_medium', fallback: 'Moderate');
+      case ActivityLevel.high:
+        return _tr('activity_high', fallback: 'High');
+    }
+  }
 
-    String bmiText = "BMI: --";
-    if (isValid && profile.height != null && profile.weight != null) {
-      final h = profile.height! / 100;
-      final w = profile.weight!;
-      final bmi = w / (h * h);
-      bmiText = "BMI: ${bmi.toStringAsFixed(1)}";
+  String _formatNutritionTargets(ProfileState state) {
+    if (state.targetCalories <= 0 && state.targetProtein <= 0) {
+      return '—';
+    }
+    final parts = <String>[];
+    if (state.targetCalories > 0) {
+      parts.add('${state.targetCalories} kcal');
+    }
+    if (state.targetProtein > 0) {
+      parts.add('${state.targetProtein}g protein');
+    }
+    return parts.join(' · ');
+  }
+
+  Widget _buildBodyProfileValue(ProfileEntity profile) {
+    final hasHeight = profile.height != null && profile.height! > 0;
+    final hasWeight = profile.weight != null && profile.weight! > 0;
+    final hasAge = profile.age != null && profile.age! > 0;
+
+    if (!hasHeight && !hasWeight && !hasAge) {
+      return const Text(
+        '—',
+        style: TextStyle(
+          fontSize: 12,
+          fontWeight: FontWeight.w400,
+          color: SamanHomeTokens.textSecondary,
+        ),
+      );
     }
 
-    return Scaffold(
-      backgroundColor: context.bgColor,
-      extendBodyBehindAppBar: true,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        leading: Navigator.canPop(context)
-            ? IconButton(
-                icon: Icon(Icons.arrow_back, color: colors.onSurface),
-                onPressed: () => Navigator.pop(context),
-              )
-            : null,
-        title: Text(
-          _tr('profile_title', fallback: 'Profile'),
-          style: textTheme.titleLarge?.copyWith(
-            fontWeight: FontWeight.w700,
-            letterSpacing: -0.3,
-          ),
-        ),
-        centerTitle: true,
-        actions: [
-          IconButton(
-            icon: Icon(
-              isDark ? Icons.dark_mode : Icons.light_mode,
-              color: colors.onSurface,
-            ),
-            onPressed: () => ref.read(themeProvider.notifier).toggleTheme(),
-          ),
-        ],
-      ),
-      body: SingleChildScrollView(
-        child: Column(
-          children: [
-            // User Header
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.fromLTRB(
-                AppSpacing.xl,
-                110,
-                AppSpacing.xl,
-                AppSpacing.xxl,
-              ),
-              decoration: BoxDecoration(
-                color: context.surfaceColor,
-                borderRadius: const BorderRadius.vertical(
-                  bottom: Radius.circular(AppRadius.lg),
-                ),
-                border: Border(bottom: BorderSide(color: colors.outline)),
-              ),
-              child: Column(
-                children: [
-                  CircleAvatar(
-                    radius: 45,
-                    backgroundColor: context.trackColor,
-                    foregroundColor: colors.primary,
-                    child: Text(
-                      _userName.isNotEmpty ? _userName[0].toUpperCase() : "U",
-                      style: textTheme.displayLarge?.copyWith(
-                        fontSize: 36,
-                        color: colors.onSurface,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: AppSpacing.lg),
-                  Text(
-                    _userName,
-                    style: textTheme.headlineMedium?.copyWith(
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: -0.6,
-                    ),
-                  ),
-                  const SizedBox(height: AppSpacing.xs),
-                  Text(
-                    "$_email • $bmiText",
-                    style: textTheme.bodyMedium?.copyWith(
-                      color: colors.secondary,
-                    ),
-                  ),
-                ],
-              ),
-            ),
+    String? bmiString;
+    if (hasHeight && hasWeight) {
+      final h = profile.height! / 100.0;
+      final bmi = profile.weight! / (h * h);
+      bmiString = bmi.toStringAsFixed(1);
+    }
 
-            Padding(
-              padding: const EdgeInsets.fromLTRB(
-                AppSpacing.xl,
-                AppSpacing.xl,
-                AppSpacing.xl,
-                AppSpacing.xxxl,
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Health Profile Status Banner / Card
-                  if (!isValid)
-                    _IncompleteProfileCard(
-                      onCompleteTap: _navigateToEditProfile,
-                    )
-                  else ...[
-                    _ProfileSectionTitle(
-                      title: _tr('body_stats'),
-                      icon: Icons.accessibility_new,
-                    ),
-                    const SizedBox(height: AppSpacing.md),
-                    _ReadOnlyStatsRow(
-                      age: profile.age?.toString() ?? '--',
-                      height: profile.height != null
-                          ? '${profile.height! % 1 == 0 ? profile.height!.toInt() : profile.height} cm'
-                          : '--',
-                      weight: profile.weight != null
-                          ? '${profile.weight! % 1 == 0 ? profile.weight!.toInt() : profile.weight} kg'
-                          : '--',
-                      ageLabel: _tr('age'),
-                      heightLabel: _tr('height'),
-                      weightLabel: _tr('weight'),
-                    ),
-                    const SizedBox(height: AppSpacing.xxl),
-                    _ProfileSectionTitle(
-                      title: _tr('goal_lifestyle'),
-                      icon: Icons.flag,
-                    ),
-                    const SizedBox(height: AppSpacing.md),
-                    _ReadOnlyLifestyleCard(
-                      goalLabel: profile.hasGoal ? _tr(profile.goal.name) : '-',
-                      activityLabel: profile.hasActivityLevel ? _tr(profile.activityLevel.name) : '-',
-                      genderLabel: profile.hasGender ? _tr(profile.gender.name) : '-',
-                      goalTitle: _tr('main_goal'),
-                      activityTitle: _tr('activity_level'),
-                      genderTitle: _tr('gender'),
-                    ),
-                    const SizedBox(height: AppSpacing.xl),
-                    // Edit Profile CTA
-                    SizedBox(
-                      width: double.infinity,
-                      height: 52,
-                      child: OutlinedButton.icon(
-                        key: const Key('edit_profile_cta_button'),
-                        onPressed: _navigateToEditProfile,
-                        icon: const Icon(Icons.edit_outlined, size: 20),
-                        label: Text(
-                          _tr('edit_profile', fallback: 'Chỉnh sửa hồ sơ'),
-                          style: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: colors.primary,
-                          side: BorderSide(color: colors.primary, width: 1.5),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(AppRadius.md),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
+    const textStyle = TextStyle(
+      fontSize: 12,
+      fontWeight: FontWeight.w400,
+      color: SamanHomeTokens.textSecondary,
+    );
+    const dotStyle = TextStyle(
+      fontSize: 12,
+      fontWeight: FontWeight.w400,
+      color: SamanHomeTokens.textMuted,
+    );
 
-                  const SizedBox(height: AppSpacing.xxl),
-
-                  // Settings Group
-                  _ProfileSettingsCard(
-                    onLanguageTap: () => _showLanguageBottomSheet(colors),
-                    onLogoutTap: _logout,
-                    languageLabel: _tr('language'),
-                    logoutLabel: _tr('logout'),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
+    return Wrap(
+      spacing: 5,
+      runSpacing: 2,
+      crossAxisAlignment: WrapCrossAlignment.center,
+      children: [
+        if (hasAge) Text('${profile.age}', style: textStyle),
+        if (hasAge && hasHeight) const Text('·', style: dotStyle),
+        if (hasHeight) Text('${profile.height!.round()} cm', style: textStyle),
+        if (hasHeight && hasWeight) const Text('·', style: dotStyle),
+        if (hasWeight) Text('${profile.weight!.round()} kg', style: textStyle),
+        if (bmiString != null) const Text('·', style: dotStyle),
+        if (bmiString != null) Text('BMI $bmiString', style: textStyle),
+      ],
     );
   }
-}
-
-class _IncompleteProfileCard extends StatelessWidget {
-  const _IncompleteProfileCard({required this.onCompleteTap});
-
-  final VoidCallback onCompleteTap;
 
   @override
   Widget build(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
-    final textTheme = Theme.of(context).textTheme;
+    final currentLocale = ref.watch(languageProvider);
+    final profileState = ref.watch(profileProvider);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final profile = profileState.profile;
 
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(AppSpacing.xl),
-      decoration: BoxDecoration(
-        color: colors.error.withOpacity(0.08),
-        borderRadius: BorderRadius.circular(AppRadius.lg),
-        border: Border.all(color: colors.error.withOpacity(0.3)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
+    final goalText = profile.hasGoal ? _formatGoal(profile.rawGoal) : '—';
+    final activityText = profile.hasActivityLevel
+        ? _formatActivityLevel(profile.rawActivityLevel)
+        : '—';
+    final nutritionText = _formatNutritionTargets(profileState);
+    final languageText =
+        currentLocale.languageCode == 'vi' ? 'Tiếng Việt' : 'English';
+    final appearanceText = isDark ? 'Dark Obsidian' : 'Light';
+
+    final isIncomplete = !profileState.isProfileValid ||
+        profileState.status == ProfileStatus.incomplete;
+
+    return Scaffold(
+      backgroundColor: SamanHomeTokens.canvas,
+      body: SafeArea(
+        bottom: false,
+        child: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Icon(Icons.warning_amber_rounded, color: colors.error, size: 28),
-              const SizedBox(width: AppSpacing.md),
-              Expanded(
-                child: Text(
-                  'Hồ sơ chưa hoàn thiện',
-                  style: textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w700,
-                    color: colors.error,
+              const SizedBox(height: SamanHomeTokens.spacingSm),
+
+              // 1. Profile Header
+              ProfileHeader(
+                title: _tr('profile_title', fallback: 'Profile'),
+                subtitle: _tr('profile_subtitle', fallback: 'Your health, progress & account'),
+                onSettingsTap: () =>
+                    _showLanguageBottomSheet(Theme.of(context).colorScheme),
+              ),
+              const SizedBox(height: SamanHomeTokens.spacingLg),
+
+              // 2. Personal Identity Card
+              PersonalIdentityCard(
+                userName: _userName,
+                userEmail: _email,
+                planLabel: null, // Avoid fake metrics when absent from backend
+                memberSince: null,
+                onEditProfileTap: _navigateToEditProfile,
+              ),
+
+              // Incomplete Profile Banner (shown only when required biometrics are missing)
+              if (isIncomplete) ...[
+                const SizedBox(height: SamanHomeTokens.spacingLg),
+                Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: SamanHomeTokens.spacingLg,
+                  ),
+                  child: Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(SamanHomeTokens.spacingLg),
+                    decoration: BoxDecoration(
+                      color: SamanHomeTokens.cardSurface,
+                      borderRadius:
+                          BorderRadius.circular(SamanHomeTokens.radiusLg),
+                      border: Border.all(
+                        color: const Color(0xFFEF4444).withOpacity(0.4),
+                        width: 1,
+                      ),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Row(
+                          children: [
+                            Icon(
+                              Icons.warning_amber_rounded,
+                              color: Color(0xFFEF4444),
+                              size: 22,
+                            ),
+                            SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                'Hồ sơ chưa hoàn thiện',
+                                style: TextStyle(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w700,
+                                  color: SamanHomeTokens.textWhite,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 6),
+                        const Text(
+                          'Vui lòng cập nhật đầy đủ tuổi, chiều cao và cân nặng để cá nhân hóa lộ trình tập luyện.',
+                          style: TextStyle(
+                            fontSize: 12,
+                            height: 1.35,
+                            color: SamanHomeTokens.textSecondary,
+                          ),
+                        ),
+                        const SizedBox(height: SamanHomeTokens.spacingMd),
+                        SizedBox(
+                          width: double.infinity,
+                          height: 48,
+                          child: ElevatedButton(
+                            key: const Key('complete_profile_cta_button'),
+                            onPressed: _navigateToEditProfile,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: SamanHomeTokens.greenAccent,
+                              foregroundColor: const Color(0xFF003824),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(
+                                    SamanHomeTokens.radiusMd),
+                              ),
+                              elevation: 0,
+                            ),
+                            child: const Text(
+                              'Hoàn thiện hồ sơ',
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
+              ],
+              const SizedBox(height: SamanHomeTokens.spacingLg),
+
+              // 3. Your Progress
+              // Long-term consistency snapshot; shows em-dash when backend source is absent
+              const ProgressSnapshotCard(
+                workoutsCount: null,
+                streakDays: null,
+                adherencePercent: null,
+                onViewProgressTap: null, // No fake route
               ),
+              const SizedBox(height: SamanHomeTokens.spacingLg),
+
+              // 4. Saman+ Membership Card
+              const SamanPlusCard(
+                actionLabel: 'Coming soon',
+                isComingSoon: true,
+                onExploreTap: null,
+              ),
+              const SizedBox(height: SamanHomeTokens.spacingLg),
+
+              // 5. Health & Goals Group
+              ProfileSectionGroup(
+                title: 'HEALTH & GOALS',
+                children: [
+                  ProfileNavRow(
+                    icon: Icons.straighten_outlined,
+                    title: 'Body profile',
+                    valueWidget: _buildBodyProfileValue(profile),
+                    isTwoLine: true,
+                    showChevron: true,
+                    onTap: _navigateToEditProfile,
+                  ),
+                  ProfileNavRow(
+                    icon: Icons.flag_outlined,
+                    title: 'Primary goal',
+                    value: goalText,
+                    showChevron: true,
+                    onTap: _navigateToEditProfile,
+                  ),
+                  ProfileNavRow(
+                    icon: Icons.bolt_outlined,
+                    title: 'Activity level',
+                    value: activityText,
+                    showChevron: true,
+                    onTap: _navigateToEditProfile,
+                  ),
+                  ProfileNavRow(
+                    icon: Icons.restaurant_outlined,
+                    title: 'Nutrition targets',
+                    value: nutritionText,
+                    isTwoLine: true,
+                    showChevron: true,
+                    onTap: _navigateToEditProfile,
+                  ),
+                  const ProfileNavRow(
+                    icon: Icons.health_and_safety_outlined,
+                    title: 'Medical information',
+                    valueWidget: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.lock_outline_rounded,
+                          size: 13,
+                          color: SamanHomeTokens.textSecondary,
+                        ),
+                        SizedBox(width: 4),
+                        Text(
+                          'Private',
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w400,
+                            color: SamanHomeTokens.textSecondary,
+                          ),
+                        ),
+                      ],
+                    ),
+                    showChevron: false,
+                    onTap: null,
+                  ),
+                  const ProfileNavRow(
+                    icon: Icons.photo_camera_outlined,
+                    title: 'Measurements & photos',
+                    value: 'Track body progress',
+                    showChevron: false,
+                    showDivider: false,
+                    onTap: null,
+                  ),
+                ],
+              ),
+              const SizedBox(height: SamanHomeTokens.spacingLg),
+
+              // 6. Preferences Group
+              ProfileSectionGroup(
+                title: 'PREFERENCES',
+                children: [
+                  ProfileNavRow(
+                    icon: Icons.translate_outlined,
+                    title: 'Language',
+                    value: languageText,
+                    showChevron: true,
+                    onTap: () => _showLanguageBottomSheet(
+                        Theme.of(context).colorScheme),
+                  ),
+                  const ProfileNavRow(
+                    icon: Icons.tune_outlined,
+                    title: 'Units',
+                    value: 'Metric',
+                    showChevron: false,
+                    onTap: null,
+                  ),
+                  ProfileNavRow(
+                    icon: isDark
+                        ? Icons.dark_mode_outlined
+                        : Icons.light_mode_outlined,
+                    title: 'Appearance',
+                    value: appearanceText,
+                    showChevron: true,
+                    onTap: () =>
+                        ref.read(themeProvider.notifier).toggleTheme(),
+                  ),
+                  const ProfileNavRow(
+                    icon: Icons.notifications_outlined,
+                    title: 'Notifications',
+                    value: '—',
+                    showChevron: false,
+                    onTap: null,
+                  ),
+                  const ProfileNavRow(
+                    icon: Icons.sync_alt_outlined,
+                    title: 'Connected apps',
+                    value: '—',
+                    showChevron: false,
+                    showDivider: false,
+                    onTap: null,
+                  ),
+                ],
+              ),
+              const SizedBox(height: SamanHomeTokens.spacingLg),
+
+              // 7. Account & Support Group
+              const ProfileSectionGroup(
+                title: 'ACCOUNT & SUPPORT',
+                children: [
+                  ProfileNavRow(
+                    icon: Icons.card_membership_outlined,
+                    title: 'Manage membership',
+                    value: 'Coming soon',
+                    showChevron: false,
+                    onTap: null,
+                  ),
+                  ProfileNavRow(
+                    icon: Icons.security_outlined,
+                    title: 'Privacy & security',
+                    showChevron: false,
+                    onTap: null,
+                  ),
+                  ProfileNavRow(
+                    icon: Icons.download_outlined,
+                    title: 'Export data log',
+                    showChevron: false,
+                    onTap: null,
+                  ),
+                  ProfileNavRow(
+                    icon: Icons.help_outline_rounded,
+                    title: 'Help & feedback',
+                    showChevron: false,
+                    onTap: null,
+                  ),
+                  ProfileNavRow(
+                    icon: Icons.info_outline_rounded,
+                    title: 'About Saman',
+                    value: 'v3.8',
+                    showChevron: false,
+                    showDivider: false,
+                    onTap: null,
+                  ),
+                ],
+              ),
+              const SizedBox(height: SamanHomeTokens.spacingLg),
+
+              // 8. Logout Row
+              LogoutRow(onTap: _logout),
+
+              // 9. Generous scroll clearance above MainScreen persistent navigation bar
+              const SizedBox(height: 140),
             ],
           ),
-          const SizedBox(height: AppSpacing.sm),
-          Text(
-            'Vui lòng cập nhật đầy đủ tuổi, chiều cao và cân nặng để hệ thống tính toán lượng calo chính xác.',
-            style: textTheme.bodyMedium?.copyWith(
-              color: colors.onSurface.withOpacity(0.8),
-            ),
-          ),
-          const SizedBox(height: AppSpacing.lg),
-          SizedBox(
-            width: double.infinity,
-            height: 48,
-            child: ElevatedButton.icon(
-              key: const Key('complete_profile_cta_button'),
-              onPressed: onCompleteTap,
-              icon: const Icon(Icons.arrow_forward, size: 18),
-              label: const Text(
-                'Hoàn thiện hồ sơ',
-                style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
-              ),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: colors.primary,
-                foregroundColor: colors.onPrimary,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(AppRadius.md),
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _ProfileSectionTitle extends StatelessWidget {
-  const _ProfileSectionTitle({required this.title, required this.icon});
-
-  final String title;
-  final IconData icon;
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
-    final textTheme = Theme.of(context).textTheme;
-
-    return Row(
-      children: [
-        Icon(icon, size: 20, color: colors.primary),
-        const SizedBox(width: AppSpacing.md),
-        Text(
-          title,
-          style: textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
         ),
-      ],
-    );
-  }
-}
-
-class _ReadOnlyStatsRow extends StatelessWidget {
-  const _ReadOnlyStatsRow({
-    required this.age,
-    required this.height,
-    required this.weight,
-    required this.ageLabel,
-    required this.heightLabel,
-    required this.weightLabel,
-  });
-
-  final String age;
-  final String height;
-  final String weight;
-  final String ageLabel;
-  final String heightLabel;
-  final String weightLabel;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Expanded(
-          child: _StatDisplayCard(
-            label: ageLabel,
-            value: age,
-          ),
-        ),
-        const SizedBox(width: AppSpacing.md),
-        Expanded(
-          child: _StatDisplayCard(
-            label: heightLabel,
-            value: height,
-          ),
-        ),
-        const SizedBox(width: AppSpacing.md),
-        Expanded(
-          child: _StatDisplayCard(
-            label: weightLabel,
-            value: weight,
-            isHighlight: true,
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _StatDisplayCard extends StatelessWidget {
-  const _StatDisplayCard({
-    required this.label,
-    required this.value,
-    this.isHighlight = false,
-  });
-
-  final String label;
-  final String value;
-  final bool isHighlight;
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
-    final textTheme = Theme.of(context).textTheme;
-    final bgColor = isHighlight ? colors.primary : context.surfaceColor;
-    final textColor = isHighlight ? colors.onPrimary : colors.onSurface;
-    final labelColor =
-        isHighlight ? colors.onPrimary.withOpacity(0.7) : colors.secondary;
-
-    return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppSpacing.md,
-        vertical: AppSpacing.lg,
-      ),
-      decoration: BoxDecoration(
-        color: bgColor,
-        borderRadius: BorderRadius.circular(AppRadius.md),
-        border: Border.all(
-          color: isHighlight ? colors.primary : colors.outline,
-        ),
-      ),
-      child: Column(
-        children: [
-          Text(
-            label,
-            style: textTheme.labelSmall?.copyWith(color: labelColor),
-          ),
-          const SizedBox(height: AppSpacing.sm),
-          Text(
-            value,
-            style: textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.bold,
-              color: textColor,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _ReadOnlyLifestyleCard extends StatelessWidget {
-  const _ReadOnlyLifestyleCard({
-    required this.goalLabel,
-    required this.activityLabel,
-    required this.genderLabel,
-    required this.goalTitle,
-    required this.activityTitle,
-    required this.genderTitle,
-  });
-
-  final String goalLabel;
-  final String activityLabel;
-  final String genderLabel;
-  final String goalTitle;
-  final String activityTitle;
-  final String genderTitle;
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
-    final textTheme = Theme.of(context).textTheme;
-
-    return Container(
-      padding: const EdgeInsets.all(AppSpacing.lg),
-      decoration: BoxDecoration(
-        color: context.surfaceColor,
-        borderRadius: BorderRadius.circular(AppRadius.md),
-        border: Border.all(color: colors.outline),
-      ),
-      child: Column(
-        children: [
-          _LifestyleRow(
-            title: goalTitle,
-            value: goalLabel,
-            colors: colors,
-            textTheme: textTheme,
-          ),
-          Divider(height: AppSpacing.lg, color: colors.outline),
-          _LifestyleRow(
-            title: activityTitle,
-            value: activityLabel,
-            colors: colors,
-            textTheme: textTheme,
-          ),
-          Divider(height: AppSpacing.lg, color: colors.outline),
-          _LifestyleRow(
-            title: genderTitle,
-            value: genderLabel,
-            colors: colors,
-            textTheme: textTheme,
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _LifestyleRow extends StatelessWidget {
-  const _LifestyleRow({
-    required this.title,
-    required this.value,
-    required this.colors,
-    required this.textTheme,
-  });
-
-  final String title;
-  final String value;
-  final ColorScheme colors;
-  final TextTheme textTheme;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text(
-          title,
-          style: textTheme.bodyMedium?.copyWith(color: colors.secondary),
-        ),
-        Text(
-          value,
-          style: textTheme.bodyMedium?.copyWith(
-            fontWeight: FontWeight.w600,
-            color: colors.onSurface,
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _ProfileSettingsCard extends StatelessWidget {
-  const _ProfileSettingsCard({
-    required this.onLanguageTap,
-    required this.onLogoutTap,
-    required this.languageLabel,
-    required this.logoutLabel,
-  });
-
-  final VoidCallback onLanguageTap;
-  final VoidCallback onLogoutTap;
-  final String languageLabel;
-  final String logoutLabel;
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
-    final textTheme = Theme.of(context).textTheme;
-
-    return Container(
-      decoration: BoxDecoration(
-        color: context.surfaceColor,
-        borderRadius: BorderRadius.circular(AppRadius.md),
-        border: Border.all(color: colors.outline),
-      ),
-      child: Column(
-        children: [
-          ListTile(
-            leading: Container(
-              padding: const EdgeInsets.all(AppSpacing.sm),
-              decoration: BoxDecoration(
-                color: colors.primary.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(AppRadius.sm),
-              ),
-              child: Icon(Icons.language, size: 20, color: colors.primary),
-            ),
-            title: Text(
-              languageLabel,
-              style: textTheme.bodyMedium?.copyWith(
-                fontWeight: FontWeight.w600,
-                color: colors.onSurface,
-              ),
-            ),
-            trailing: Icon(
-              Icons.arrow_forward_ios,
-              size: 14,
-              color: colors.secondary,
-            ),
-            onTap: onLanguageTap,
-          ),
-          Divider(height: 1, color: colors.outline),
-          ListTile(
-            leading: Container(
-              padding: const EdgeInsets.all(AppSpacing.sm),
-              decoration: BoxDecoration(
-                color: colors.error.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(AppRadius.sm),
-              ),
-              child: Icon(Icons.logout, size: 20, color: colors.error),
-            ),
-            title: Text(
-              logoutLabel,
-              style: textTheme.bodyMedium?.copyWith(
-                fontWeight: FontWeight.w600,
-                color: colors.error,
-              ),
-            ),
-            trailing: Icon(
-              Icons.arrow_forward_ios,
-              size: 14,
-              color: colors.secondary,
-            ),
-            onTap: onLogoutTap,
-          ),
-        ],
       ),
     );
   }

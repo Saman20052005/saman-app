@@ -13,19 +13,29 @@ import '../../home/tokens/saman_home_tokens.dart';
 class ProgressSnapshotCard extends StatelessWidget {
   const ProgressSnapshotCard({
     super.key,
-    this.workoutsCount = 24,
-    this.streakDays = 7,
-    this.adherencePercent = 82,
+    this.workoutsCount,
+    this.streakDays,
+    this.adherencePercent,
+    this.workoutsValue,
+    this.streakValue,
+    this.adherenceValue,
     this.onViewProgressTap,
   });
 
-  final int workoutsCount;
-  final int streakDays;
-  final int adherencePercent;
+  final int? workoutsCount;
+  final int? streakDays;
+  final int? adherencePercent;
+  final String? workoutsValue;
+  final String? streakValue;
+  final String? adherenceValue;
   final VoidCallback? onViewProgressTap;
 
   @override
   Widget build(BuildContext context) {
+    final resolvedWorkouts = workoutsValue ?? (workoutsCount != null ? '$workoutsCount' : '—');
+    final resolvedStreak = streakValue ?? (streakDays != null ? '${streakDays}d' : '—');
+    final resolvedAdherence = adherenceValue ?? (adherencePercent != null ? '$adherencePercent%' : '—');
+
     return Padding(
       padding: const EdgeInsets.symmetric(
         horizontal: SamanHomeTokens.spacingLg,
@@ -55,25 +65,27 @@ class ProgressSnapshotCard extends StatelessWidget {
                     // Workouts Metric
                     Expanded(
                       child: _MetricItem(
-                        value: '$workoutsCount',
+                        value: resolvedWorkouts,
                         label: 'Workouts',
                         valueColor: SamanHomeTokens.textWhite,
                       ),
                     ),
                     const _VerticalDivider(),
-                    // Current Streak Metric (Saman Green)
+                    // Current Streak Metric (Saman Green if present)
                     Expanded(
                       child: _MetricItem(
-                        value: '${streakDays}d',
+                        value: resolvedStreak,
                         label: 'Current streak',
-                        valueColor: SamanHomeTokens.greenAccent,
+                        valueColor: resolvedStreak != '—'
+                            ? SamanHomeTokens.greenAccent
+                            : SamanHomeTokens.textWhite,
                       ),
                     ),
                     const _VerticalDivider(),
                     // Plan Adherence Metric
                     Expanded(
                       child: _MetricItem(
-                        value: '$adherencePercent%',
+                        value: resolvedAdherence,
                         label: 'Plan adherence',
                         valueColor: SamanHomeTokens.textWhite,
                       ),
@@ -88,35 +100,49 @@ class ProgressSnapshotCard extends StatelessWidget {
                 const SizedBox(height: SamanHomeTokens.spacingSm),
                 Align(
                   alignment: Alignment.centerLeft,
-                  child: Material(
-                    color: Colors.transparent,
-                    child: InkWell(
-                      onTap: onViewProgressTap,
-                      borderRadius: BorderRadius.circular(SamanHomeTokens.radiusXs),
-                      child: const Padding(
-                        padding: EdgeInsets.symmetric(vertical: 4, horizontal: 2),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text(
-                              'View progress',
-                              style: TextStyle(
-                                fontSize: 13,
-                                fontWeight: FontWeight.w500,
-                                color: SamanHomeTokens.textSecondary,
+                  child: onViewProgressTap != null
+                      ? Material(
+                          color: Colors.transparent,
+                          child: InkWell(
+                            onTap: onViewProgressTap,
+                            borderRadius: BorderRadius.circular(SamanHomeTokens.radiusXs),
+                            child: const Padding(
+                              padding: EdgeInsets.symmetric(vertical: 4, horizontal: 2),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Text(
+                                    'View progress',
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w500,
+                                      color: SamanHomeTokens.textSecondary,
+                                    ),
+                                  ),
+                                  SizedBox(width: 4),
+                                  Icon(
+                                    Icons.arrow_forward_rounded,
+                                    size: 14,
+                                    color: SamanHomeTokens.textSecondary,
+                                  ),
+                                ],
                               ),
                             ),
-                            SizedBox(width: 4),
-                            Icon(
-                              Icons.arrow_forward_rounded,
-                              size: 14,
-                              color: SamanHomeTokens.textSecondary,
+                          ),
+                        )
+                      : const Padding(
+                          padding: EdgeInsets.symmetric(vertical: 4, horizontal: 2),
+                          child: Text(
+                            'View progress · Coming soon',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w400,
+                              color: SamanHomeTokens.textMuted,
                             ),
-                          ],
+                          ),
                         ),
-                      ),
-                    ),
-                  ),
                 ),
               ],
             ),

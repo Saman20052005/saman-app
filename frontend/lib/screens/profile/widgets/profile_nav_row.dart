@@ -110,8 +110,10 @@ class ProfileNavRow extends StatelessWidget {
                             ],
                           )
                         : Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              Expanded(
+                              Flexible(
+                                flex: 3,
                                 child: Text(
                                   title,
                                   maxLines: 1,
@@ -126,16 +128,29 @@ class ProfileNavRow extends StatelessWidget {
                               ),
                               const SizedBox(width: 8),
                               if (valueWidget != null)
-                                valueWidget!
+                                Flexible(
+                                  flex: 4,
+                                  child: Align(
+                                    alignment: Alignment.centerRight,
+                                    child: FittedBox(
+                                      fit: BoxFit.scaleDown,
+                                      child: valueWidget!,
+                                    ),
+                                  ),
+                                )
                               else if (value != null && value!.isNotEmpty)
-                                Text(
-                                  value!,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: const TextStyle(
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.w400,
-                                    color: SamanHomeTokens.textSecondary,
+                                Flexible(
+                                  flex: 4,
+                                  child: Text(
+                                    value!,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    textAlign: TextAlign.right,
+                                    style: const TextStyle(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w400,
+                                      color: SamanHomeTokens.textSecondary,
+                                    ),
                                   ),
                                 ),
                             ],

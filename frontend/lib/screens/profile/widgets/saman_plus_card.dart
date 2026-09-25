@@ -16,9 +16,13 @@ import '../../home/tokens/saman_home_tokens.dart';
 class SamanPlusCard extends StatelessWidget {
   const SamanPlusCard({
     super.key,
+    this.actionLabel = 'Coming soon',
+    this.isComingSoon = true,
     this.onExploreTap,
   });
 
+  final String actionLabel;
+  final bool isComingSoon;
   final VoidCallback? onExploreTap;
 
   @override
@@ -99,36 +103,54 @@ class SamanPlusCard extends StatelessWidget {
           ),
           const SizedBox(height: SamanHomeTokens.spacingMd),
 
-          // CTA Link
-          Material(
-            color: Colors.transparent,
-            child: InkWell(
-              onTap: onExploreTap,
-              borderRadius: BorderRadius.circular(SamanHomeTokens.radiusXs),
-              child: const Padding(
-                padding: EdgeInsets.symmetric(vertical: 2, horizontal: 2),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      'Explore Saman+',
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
+          // CTA / Coming soon indicator
+          if (!isComingSoon && onExploreTap != null)
+            Material(
+              color: Colors.transparent,
+              child: InkWell(
+                onTap: onExploreTap,
+                borderRadius: BorderRadius.circular(SamanHomeTokens.radiusXs),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 2, horizontal: 2),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        actionLabel,
+                        style: const TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: SamanHomeTokens.greenAccent,
+                        ),
+                      ),
+                      const SizedBox(width: 4),
+                      const Icon(
+                        Icons.arrow_forward_rounded,
+                        size: 14,
                         color: SamanHomeTokens.greenAccent,
                       ),
-                    ),
-                    SizedBox(width: 4),
-                    Icon(
-                      Icons.arrow_forward_rounded,
-                      size: 14,
-                      color: SamanHomeTokens.greenAccent,
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
+            )
+          else
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 2, horizontal: 2),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    actionLabel,
+                    style: const TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: SamanHomeTokens.greenAccent,
+                    ),
+                  ),
+                ],
+              ),
             ),
-          ),
         ],
       ),
     );

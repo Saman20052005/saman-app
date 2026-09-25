@@ -36,25 +36,28 @@ class LogoutRow extends StatelessWidget {
               horizontal: SamanHomeTokens.spacingSm,
               vertical: 12,
             ),
-            child: const Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(
-                  Icons.logout_rounded,
-                  size: 18,
-                  color: _mutedRed,
-                ),
-                SizedBox(width: 8),
-                Text(
-                  'Log out',
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
+            child: const FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.logout_rounded,
+                    size: 18,
                     color: _mutedRed,
-                    letterSpacing: 0.1,
                   ),
-                ),
-              ],
+                  SizedBox(width: 8),
+                  Text(
+                    'Log out',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: _mutedRed,
+                      letterSpacing: 0.1,
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ),
