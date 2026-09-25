@@ -1,13 +1,13 @@
 import 'package:flutter/foundation.dart';
-import '../../domain/entities/profile_entity.dart';
-import '../../domain/entities/profile_snapshot.dart';
-import '../../domain/repositories/profile_repository.dart';
-import '../models/profile_model.dart';
-import '../models/profile_snapshot_model.dart';
-import '../datasources/profile_remote_data_source.dart';
-import '../datasources/profile_local_data_source.dart';
+import 'package:health_ai_app/features/profile/domain/entities/profile_entity.dart';
+import 'package:health_ai_app/features/profile/domain/entities/profile_snapshot.dart';
+import 'package:health_ai_app/features/profile/domain/repositories/profile_repository.dart';
+import 'package:health_ai_app/features/profile/data/models/profile_model.dart';
+import 'package:health_ai_app/features/profile/data/models/profile_snapshot_model.dart';
+import 'package:health_ai_app/features/profile/data/datasources/profile_remote_data_source.dart';
+import 'package:health_ai_app/features/profile/data/datasources/profile_local_data_source.dart';
 
-export '../../domain/repositories/profile_repository.dart';
+export 'package:health_ai_app/features/profile/domain/repositories/profile_repository.dart';
 
 class ProfileRepositoryImpl implements ProfileRepository {
   final ProfileRemoteDataSource remoteDataSource;

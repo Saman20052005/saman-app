@@ -1,5 +1,5 @@
-import '../entities/profile_entity.dart';
-import '../entities/profile_snapshot.dart';
+import 'package:health_ai_app/features/profile/domain/entities/profile_entity.dart';
+import 'package:health_ai_app/features/profile/domain/entities/profile_snapshot.dart';
 
 abstract class ProfileRepository {
   Future<dynamic> syncProfile(ProfileEntity profile);
