@@ -8,3 +8,8 @@ abstract class ProfileRepository {
   Future<ProfileEntity?> fetchProfile();
   Future<void> clearLocalProfile();
 }
+
+abstract class IProfileRepository {
+  Future<ProfileEntity> getProfile();
+  Future<void> saveProfile(ProfileEntity profile);
+}
