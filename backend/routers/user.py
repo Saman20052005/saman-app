@@ -83,6 +83,13 @@ async def update_profile(profile_input: UserProfileInput, current_user: dict = D
             "health_stats": health_stats.dict()
         }
 
+    except ValueError as e:
+        logger.warning(
+            "Validation error updating profile for user=%s error=%s",
+            current_user.get("email", "unknown"),
+            str(e),
+        )
+        raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         logger.exception(
             "Error updating profile for user=%s error=%s",
