@@ -30,6 +30,8 @@ water_collection = None
 supplements_collection = None
 user_foods_collection = None   # ✅ NEW: My Food per-user
 exercises_collection = None    # ✅ NEW: Exercise library
+conversations_collection = None # Checkpoint 3
+messages_collection = None      # Checkpoint 3
 
 try:
     if "localhost" in MONGO_URI or "127.0.0.1" in MONGO_URI:
@@ -52,6 +54,8 @@ try:
     supplements_collection        = db["supplement_logs"]
     user_foods_collection         = db["user_foods"]   # ✅ NEW
     exercises_collection          = db["exercises"]     # ✅ NEW
+    conversations_collection      = db["conversations"] # Checkpoint 3
+    messages_collection           = db["messages"]      # Checkpoint 3
 
     client.admin.command('ping')
     print("✅ Successfully connected to MongoDB!")
@@ -72,3 +76,5 @@ except Exception as e:
     supplements_collection = None
     user_foods_collection = None
     exercises_collection = None
+    conversations_collection = None
+    messages_collection = None

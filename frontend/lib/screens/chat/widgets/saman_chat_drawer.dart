@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../controllers/chat_controller.dart';
 import '../tokens/saman_chat_tokens.dart';
 
 /// Approved Full-Height Drawer component for Saman Chat (State 10).
@@ -16,6 +17,9 @@ class SamanChatDrawer extends StatelessWidget {
   final ValueChanged<String> onPromptSelected;
   final VoidCallback onOpenPreferences;
   final bool hasActiveReminders;
+  final List<ChatConversationSummary> recentConversations;
+  final String? activeConversationId;
+  final ValueChanged<String>? onSelectConversation;
 
   const SamanChatDrawer({
     super.key,
@@ -23,6 +27,9 @@ class SamanChatDrawer extends StatelessWidget {
     required this.onPromptSelected,
     required this.onOpenPreferences,
     this.hasActiveReminders = false,
+    this.recentConversations = const [],
+    this.activeConversationId,
+    this.onSelectConversation,
   });
 
   static const String weeklyReviewPrompt =
@@ -169,30 +176,29 @@ class SamanChatDrawer extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(height: 6.0),
-                      _RecentConversationRow(
-                        title: 'Upper body form check',
-                        timestamp: 'Yesterday',
-                        isSelected: true,
-                        onTap: () => Navigator.pop(context),
-                      ),
-                      _RecentConversationRow(
-                        title: 'Post-workout meal plan',
-                        timestamp: 'Mon',
-                        isSelected: false,
-                        onTap: () => _handleRecentPlaceholder(context),
-                      ),
-                      _RecentConversationRow(
-                        title: 'Lower-back adjustment',
-                        timestamp: 'Sun',
-                        isSelected: false,
-                        onTap: () => _handleRecentPlaceholder(context),
-                      ),
-                      _RecentConversationRow(
-                        title: 'Macro review',
-                        timestamp: 'Last week',
-                        isSelected: false,
-                        onTap: () => _handleRecentPlaceholder(context),
-                      ),
+                      if (recentConversations.isEmpty)
+                        const Padding(
+                          padding: EdgeInsets.symmetric(horizontal: 10.0, vertical: 8.0),
+                          child: Text(
+                            'No recent conversations',
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: SamanChatTokens.textMuted,
+                            ),
+                          ),
+                        )
+                      else
+                        ...recentConversations.map(
+                          (c) => _RecentConversationRow(
+                            title: c.title,
+                            timestamp: _formatTimestamp(c.updatedAt),
+                            isSelected: c.id == activeConversationId,
+                            onTap: () {
+                              Navigator.pop(context);
+                              onSelectConversation?.call(c.id);
+                            },
+                          ),
+                        ),
                       const SizedBox(height: 4.0),
                       InkWell(
                         borderRadius: BorderRadius.circular(8.0),
@@ -493,5 +499,26 @@ class _DrawerUtilityRow extends StatelessWidget {
         ),
       ),
     );
+  }
+}
+
+String _formatTimestamp(String? val) {
+  if (val == null || val.isEmpty) return '';
+  try {
+    final dt = DateTime.parse(val).toLocal();
+    final now = DateTime.now();
+    final diff = now.difference(dt);
+    if (diff.inDays == 0 && dt.day == now.day) {
+      return '${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
+    } else if (diff.inDays < 2 && dt.day == now.day - 1) {
+      return 'Yesterday';
+    } else if (diff.inDays < 7) {
+      const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+      return days[dt.weekday - 1];
+    } else {
+      return '${dt.day}/${dt.month}';
+    }
+  } catch (_) {
+    return val;
   }
 }

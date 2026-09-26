@@ -11,9 +11,37 @@ class _FakeChatNotifier extends StateNotifier<ChatState>
     implements ChatController {
   final List<String> sentMessages = [];
   bool clearChatCalled = false;
+  bool newConversationCalled = false;
+  String? loadedConversationId;
 
   _FakeChatNotifier({ChatState? initialState})
-      : super(initialState ?? ChatState(messages: []));
+      : super(initialState ??
+            ChatState(
+              messages: [],
+              recentConversations: [
+                ChatConversationSummary(
+                  id: 'c1',
+                  title: 'Upper body form check',
+                  updatedAt: 'Yesterday',
+                ),
+                ChatConversationSummary(
+                  id: 'c2',
+                  title: 'Post-workout meal plan',
+                  updatedAt: 'Mon',
+                ),
+                ChatConversationSummary(
+                  id: 'c3',
+                  title: 'Lower-back adjustment',
+                  updatedAt: 'Sun',
+                ),
+                ChatConversationSummary(
+                  id: 'c4',
+                  title: 'Macro review',
+                  updatedAt: 'Last week',
+                ),
+              ],
+              activeConversationId: 'c1',
+            ));
 
   @override
   Ref get ref => throw UnimplementedError();
@@ -30,7 +58,26 @@ class _FakeChatNotifier extends StateNotifier<ChatState>
   @override
   void clearChat() {
     clearChatCalled = true;
-    state = ChatState(messages: []);
+    newConversation();
+  }
+
+  @override
+  void newConversation() {
+    newConversationCalled = true;
+    clearChatCalled = true;
+    state = state.copyWith(
+      messages: [],
+      clearActiveConversation: true,
+    );
+  }
+
+  @override
+  Future<void> loadConversations({bool loadLatest = false}) async {}
+
+  @override
+  Future<void> loadConversation(String conversationId) async {
+    loadedConversationId = conversationId;
+    state = state.copyWith(activeConversationId: conversationId);
   }
 
   @override
@@ -277,6 +324,22 @@ void main() {
       expect(drawerSize.width, lessThan(390.0));
       expect(drawerSize.width, greaterThanOrEqualTo(280.0));
       expect(drawerSize.width, lessThanOrEqualTo(340.0));
+    });
+
+    testWidgets(
+        '15. Tapping a recent conversation calls loadConversation and closes drawer',
+        (tester) async {
+      final fakeNotifier = _FakeChatNotifier();
+      await tester.pumpWidget(_buildTestWrapper(notifier: fakeNotifier));
+      await tester.pumpAndSettle();
+
+      await _openDrawer(tester);
+
+      await tester.tap(find.text('Post-workout meal plan'));
+      await tester.pumpAndSettle();
+
+      expect(fakeNotifier.loadedConversationId, 'c2');
+      expect(find.byType(SamanChatDrawer), findsNothing);
     });
   });
 }

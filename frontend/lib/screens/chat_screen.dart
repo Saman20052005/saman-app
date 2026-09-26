@@ -37,6 +37,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     if (widget.initialMessage != null) {
       _textController.text = widget.initialMessage!;
     }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(chatControllerProvider.notifier).loadConversations(loadLatest: true);
+    });
   }
 
   @override
@@ -83,11 +86,19 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
           setState(() {
             _activeNudge = null;
           });
-          ref.read(chatControllerProvider.notifier).clearChat();
+          ref.read(chatControllerProvider.notifier).newConversation();
         },
         onPromptSelected: _handlePromptSelected,
         onOpenPreferences: _showPersonaDialog,
         hasActiveReminders: hasNudge,
+        recentConversations: chatState.recentConversations,
+        activeConversationId: chatState.activeConversationId,
+        onSelectConversation: (id) {
+          setState(() {
+            _activeNudge = null;
+          });
+          ref.read(chatControllerProvider.notifier).loadConversation(id);
+        },
       ),
       appBar: SamanChatHeader(
         onMenuTap: () => _scaffoldKey.currentState?.openDrawer(),
@@ -95,7 +106,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
           setState(() {
             _activeNudge = null;
           });
-          ref.read(chatControllerProvider.notifier).clearChat();
+          ref.read(chatControllerProvider.notifier).newConversation();
         },
         hasActiveReminders: hasNudge,
       ),

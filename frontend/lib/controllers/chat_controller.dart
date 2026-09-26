@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../config/api_config.dart';
@@ -19,6 +20,30 @@ class ChatMessage {
     required this.content,
     this.isTyping = false,
   });
+}
+
+// --- 1b. MODEL CONVERSATION SUMMARY ---
+class ChatConversationSummary {
+  final String id;
+  final String title;
+  final String updatedAt;
+  final String createdAt;
+
+  ChatConversationSummary({
+    required this.id,
+    required this.title,
+    this.updatedAt = '',
+    this.createdAt = '',
+  });
+
+  factory ChatConversationSummary.fromJson(Map<String, dynamic> json) {
+    return ChatConversationSummary(
+      id: json['id']?.toString() ?? '',
+      title: json['title']?.toString() ?? 'Cuộc trò chuyện',
+      updatedAt: json['updated_at']?.toString() ?? json['created_at']?.toString() ?? '',
+      createdAt: json['created_at']?.toString() ?? '',
+    );
+  }
 }
 
 // --- 2. FOOD PHOTO ANALYSIS STATE ---
@@ -76,6 +101,9 @@ class ChatState {
   final String? errorMessage;
   final String? failedUserMessage;
   final ChatFoodAnalysisState? foodAnalysisState;
+  final String? activeConversationId;
+  final List<ChatConversationSummary> recentConversations;
+  final bool isLoadingHistory;
 
   ChatState({
     this.messages = const [],
@@ -83,6 +111,9 @@ class ChatState {
     this.errorMessage,
     this.failedUserMessage,
     this.foodAnalysisState,
+    this.activeConversationId,
+    this.recentConversations = const [],
+    this.isLoadingHistory = false,
   });
 
   ChatState copyWith({
@@ -94,6 +125,10 @@ class ChatState {
     bool clearFailedUserMessage = false,
     ChatFoodAnalysisState? foodAnalysisState,
     bool clearFoodAnalysis = false,
+    String? activeConversationId,
+    bool clearActiveConversation = false,
+    List<ChatConversationSummary>? recentConversations,
+    bool? isLoadingHistory,
   }) {
     return ChatState(
       messages: messages ?? this.messages,
@@ -105,6 +140,11 @@ class ChatState {
       foodAnalysisState: clearFoodAnalysis
           ? null
           : (foodAnalysisState ?? this.foodAnalysisState),
+      activeConversationId: clearActiveConversation
+          ? null
+          : (activeConversationId ?? this.activeConversationId),
+      recentConversations: recentConversations ?? this.recentConversations,
+      isLoadingHistory: isLoadingHistory ?? this.isLoadingHistory,
     );
   }
 }
@@ -113,6 +153,8 @@ class ChatState {
 class ChatController extends StateNotifier<ChatState> {
   final Ref ref;
   final NutritionService _nutritionService;
+  int _requestEpoch = 0;
+  String? _currentAccountToken;
 
   ChatController(this.ref, {NutritionService? nutritionService})
       : _nutritionService = nutritionService ?? NutritionService(),
@@ -160,6 +202,7 @@ class ChatController extends StateNotifier<ChatState> {
   }
 
   Future<void> _sendRequest(String text) async {
+    final epoch = ++_requestEpoch;
     try {
       final prefs = await SharedPreferences.getInstance();
 
@@ -167,14 +210,23 @@ class ChatController extends StateNotifier<ChatState> {
       final userContext = await _buildUserContext(prefs);
 
       // 3. API: Gửi Payload
+      final payload = <String, dynamic>{
+        "message": text,
+        "context": userContext,
+        "history": _getLastMessages(5),
+      };
+      if (state.activeConversationId != null &&
+          state.activeConversationId!.isNotEmpty) {
+        payload["conversation_id"] = state.activeConversationId;
+      }
+
       final response = await ApiClient.dio.post(
         "${ApiConfig.baseUrl}/api/chat",
-        data: {
-          "message": text,
-          "context": userContext,
-          "history": _getLastMessages(5)
-        },
+        data: payload,
       );
+
+      // Ngăn response tải muộn khôi phục chat cũ sau New conversation hoặc đổi tài khoản
+      if (_requestEpoch != epoch || !mounted) return;
 
       // 4. Xử lý phản hồi
       if (response.statusCode == 200) {
@@ -182,19 +234,33 @@ class ChatController extends StateNotifier<ChatState> {
             ? jsonDecode(response.data as String)
             : response.data;
         final aiReply = data['reply'];
+        final returnedConvId = data['conversation_id']?.toString();
 
         final botMsg = ChatMessage(role: 'assistant', content: aiReply);
 
+        String? nextActiveId = state.activeConversationId;
+        if (returnedConvId != null && returnedConvId.isNotEmpty) {
+          nextActiveId = returnedConvId;
+        }
+
+        if (!mounted || _requestEpoch != epoch) return;
         state = state.copyWith(
           messages: [...state.messages, botMsg],
+          activeConversationId: nextActiveId,
           isLoading: false,
           clearError: true,
           clearFailedUserMessage: true,
         );
+
+        // Cập nhật danh sách conversations gần đây để hiển thị title mới
+        if (mounted) {
+          loadConversations(loadLatest: false);
+        }
       } else {
         throw Exception("Server Error: ${response.statusCode}");
       }
     } catch (e) {
+      if (_requestEpoch != epoch || !mounted) return;
       debugPrint("Chat Error: $e");
       state = state.copyWith(
         isLoading: false,
@@ -202,6 +268,128 @@ class ChatController extends StateNotifier<ChatState> {
         failedUserMessage: text,
       );
     }
+  }
+
+  /// Tải danh sách conversations gần đây của user
+  Future<void> loadConversations({bool loadLatest = false}) async {
+    final epoch = ++_requestEpoch;
+    try {
+      const storage = FlutterSecureStorage();
+      final token = await storage.read(key: 'auth_token') ??
+          await storage.read(key: 'jwt_token');
+
+      // Chống rò rỉ state khi đổi tài khoản: nếu token đổi, xóa sạch state cũ
+      if (_currentAccountToken != token) {
+        if (_currentAccountToken != null || state.messages.isNotEmpty) {
+          if (!mounted) return;
+          state = ChatState(messages: [], recentConversations: []);
+        }
+      }
+      _currentAccountToken = token;
+
+      final response = await ApiClient.dio.get(
+        "${ApiConfig.baseUrl}/api/chat/conversations",
+      );
+
+      if (_requestEpoch != epoch || !mounted) return;
+
+      if (response.statusCode == 200) {
+        final data = response.data is String
+            ? jsonDecode(response.data as String)
+            : response.data;
+
+        List rawList = [];
+        if (data is List) {
+          rawList = data;
+        } else if (data is Map && data['conversations'] is List) {
+          rawList = data['conversations'] as List;
+        }
+
+        final summaries = rawList
+            .map((item) => ChatConversationSummary.fromJson(
+                item is Map<String, dynamic>
+                    ? item
+                    : Map<String, dynamic>.from(item as Map)))
+            .toList();
+
+        if (!mounted || _requestEpoch != epoch) return;
+        state = state.copyWith(recentConversations: summaries);
+
+        // Mở Chat: tải conversation gần nhất nếu chưa có active ID
+        if (loadLatest && state.activeConversationId == null && summaries.isNotEmpty) {
+          await loadConversation(summaries.first.id);
+        }
+      }
+    } catch (e) {
+      debugPrint("Failed to load conversations: $e");
+    }
+  }
+
+  /// Tải lịch sử tin nhắn của một conversation cụ thể
+  Future<void> loadConversation(String conversationId) async {
+    final epoch = ++_requestEpoch;
+    if (!mounted) return;
+    state = state.copyWith(
+      activeConversationId: conversationId,
+      isLoadingHistory: true,
+      clearError: true,
+      clearFailedUserMessage: true,
+    );
+
+    try {
+      final response = await ApiClient.dio.get(
+        "${ApiConfig.baseUrl}/api/chat/conversations/$conversationId",
+      );
+
+      if (_requestEpoch != epoch || !mounted) return;
+
+      if (response.statusCode == 200) {
+        final data = response.data is String
+            ? jsonDecode(response.data as String)
+            : response.data;
+
+        final rawMessages = data['messages'] as List? ?? [];
+        final loadedMessages = rawMessages.map<ChatMessage>((m) {
+          final role = m['role']?.toString() ?? 'user';
+          final content = m['content']?.toString() ?? '';
+          return ChatMessage(role: role, content: content);
+        }).toList();
+
+        if (!mounted || _requestEpoch != epoch) return;
+        state = state.copyWith(
+          messages: loadedMessages,
+          activeConversationId: conversationId,
+          isLoadingHistory: false,
+          isLoading: false,
+          clearError: true,
+          clearFailedUserMessage: true,
+        );
+      } else {
+        throw Exception("Status ${response.statusCode}");
+      }
+    } catch (e) {
+      if (_requestEpoch != epoch || !mounted) return;
+      debugPrint("Failed to load conversation details: $e");
+      state = state.copyWith(
+        isLoadingHistory: false,
+        isLoading: false,
+        errorMessage: "I couldn't load that conversation.",
+      );
+    }
+  }
+
+  /// Bắt đầu cuộc trò chuyện mới, xóa ID đang chọn và hủy các response cũ
+  void newConversation() {
+    _requestEpoch++;
+    state = state.copyWith(
+      messages: [],
+      clearActiveConversation: true,
+      clearError: true,
+      clearFailedUserMessage: true,
+      clearFoodAnalysis: true,
+      isLoading: false,
+      isLoadingHistory: false,
+    );
   }
 
   Future<void> analyzeFoodPhoto(XFile file, {String? caption}) async {
@@ -272,7 +460,7 @@ class ChatController extends StateNotifier<ChatState> {
   }
 
   void clearChat() {
-    state = ChatState(messages: [], foodAnalysisState: null);
+    newConversation();
   }
 
   // --- HELPER: XÂY DỰNG NGỮ CẢNH (ĐÃ FIX LỖI PARSE TYPE) ---
