@@ -472,6 +472,10 @@ async def chat_with_ai(
     email = current_user.get("email") or ""
     user_id = str(current_user.get("_id")) if current_user.get("_id") is not None else None
 
+    query_or: List[Dict[str, Any]] = [{"user_email": email}]
+    if user_id:
+        query_or.append({"user_id": user_id})
+
     # Checkpoint 3: Validate conversation_id if provided
     conv = None
     if request.conversation_id:
@@ -482,10 +486,6 @@ async def chat_with_ai(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Conversation not found",
             )
-
-        query_or: List[Dict[str, Any]] = [{"user_email": email}]
-        if user_id:
-            query_or.append({"user_id": user_id})
 
         query = {
             "_id": obj_id,
@@ -536,24 +536,48 @@ async def chat_with_ai(
     reply = await _generate_ai_reply(full_prompt)
 
     # Checkpoint 3: Persist messages to DB after AI succeeds
+    if conversations_col is None:
+        logger.error("Conversations collection is not available")
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Chat storage unavailable",
+        )
+
     now_iso = datetime.now(timezone.utc).isoformat()
     user_msg_doc = {"role": "user", "content": trimmed_message, "created_at": now_iso}
     ai_msg_doc = {"role": "assistant", "content": reply, "created_at": now_iso}
 
     conv_id_str = ""
     if conv:
-        conv_id_str = str(conv["_id"])
-        if conversations_col is not None:
-            try:
-                conversations_col.update_one(
-                    {"_id": conv["_id"]},
-                    {
-                        "$push": {"messages": {"$each": [user_msg_doc, ai_msg_doc]}},
-                        "$set": {"updated_at": now_iso},
-                    },
+        # Giữ owner trong điều kiện update và kiểm tra kết quả ghi
+        update_query = {
+            "_id": conv["_id"],
+            "$or": query_or,
+        }
+        try:
+            update_res = conversations_col.update_one(
+                update_query,
+                {
+                    "$push": {"messages": {"$each": [user_msg_doc, ai_msg_doc]}},
+                    "$set": {"updated_at": now_iso},
+                },
+            )
+            matched_count = getattr(update_res, "matched_count", None)
+            if matched_count is not None and matched_count == 0:
+                logger.warning("Conversation update matched 0 documents")
+                raise HTTPException(
+                    status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                    detail="Chat storage unavailable",
                 )
-            except Exception as e:
-                logger.error("Failed to append message to conversation: %s", e)
+            conv_id_str = str(conv["_id"])
+        except HTTPException:
+            raise
+        except Exception as e:
+            logger.error("Failed to append message to conversation: %s", type(e).__name__)
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail="Chat storage unavailable",
+            )
     else:
         title = trimmed_message[:40] + ("..." if len(trimmed_message) > 40 else "")
         new_conv_doc = {
@@ -564,12 +588,20 @@ async def chat_with_ai(
             "created_at": now_iso,
             "updated_at": now_iso,
         }
-        if conversations_col is not None:
-            try:
-                res = conversations_col.insert_one(new_conv_doc)
-                conv_id_str = str(res.inserted_id)
-            except Exception as e:
-                logger.error("Failed to insert new conversation: %s", e)
+        try:
+            res = conversations_col.insert_one(new_conv_doc)
+            inserted_id = getattr(res, "inserted_id", None)
+            if not res or not inserted_id:
+                raise RuntimeError("Failed to obtain inserted_id")
+            conv_id_str = str(inserted_id)
+        except HTTPException:
+            raise
+        except Exception as e:
+            logger.error("Failed to insert new conversation: %s", type(e).__name__)
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail="Chat storage unavailable",
+            )
 
     return {
         "reply": reply,

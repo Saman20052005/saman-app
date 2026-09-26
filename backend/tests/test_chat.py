@@ -267,7 +267,10 @@ class FakeConversationsCollection:
     def update_one(self, query, update):
         matches = self._match(query)
         if not matches:
-            return
+            class FakeUpdateResultNotFound:
+                matched_count = 0
+                modified_count = 0
+            return FakeUpdateResultNotFound()
         target = matches[0]
 
         if "$push" in update:
@@ -282,6 +285,11 @@ class FakeConversationsCollection:
         if "$set" in update:
             for k, val in update["$set"].items():
                 target[k] = val
+
+        class FakeUpdateResultFound:
+            matched_count = 1
+            modified_count = 1
+        return FakeUpdateResultFound()
 
     def _match(self, query):
         results = []
@@ -1067,6 +1075,108 @@ class TestChatCheckpoint1And2(unittest.TestCase):
 
         asyncio.run(_test())
 
+    # ═════════════════════════════════════════════════════════════
+    # CHECKPOINT 3 PERSISTENCE FAILURE TESTS (HTTP 503)
+    # ═════════════════════════════════════════════════════════════
+
+    def test_checkpoint3_storage_col_none_returns_503(self):
+        """When conversations_col is None, chat_with_ai raises HTTP 503 instead of 200."""
+        user = {"_id": "u100", "email": "userA@example.com"}
+        req = ChatRequest(message="Chào bạn!")
+
+        async def _test():
+            os.environ["GEMINI_API_KEY"] = "mock_key"
+            chat_module.conversations_col = None
+            try:
+                with patch.object(chat_module, "_call_gemini_sync", return_value="Chào bạn! Tôi có thể giúp gì?"):
+                    with self.assertRaises(HTTPException) as ctx:
+                        await chat_with_ai(req, current_user=user)
+                    self.assertNotEqual(ctx.exception.status_code, 200)
+                    self.assertEqual(ctx.exception.status_code, 503)
+                    self.assertIn("Chat storage unavailable", ctx.exception.detail)
+            finally:
+                chat_module.conversations_col = self.mock_conversations_col
+
+        asyncio.run(_test())
+
+    def test_checkpoint3_insert_exception_returns_503(self):
+        """When insert_one raises an exception, chat_with_ai raises HTTP 503 instead of 200."""
+        user = {"_id": "u100", "email": "userA@example.com"}
+        req = ChatRequest(message="Hôm nay tập gì?")
+
+        async def _test():
+            os.environ["GEMINI_API_KEY"] = "mock_key"
+            with patch.object(chat_module, "_call_gemini_sync", return_value="Hôm nay tập ngực."):
+                with patch.object(self.mock_conversations_col, "insert_one", side_effect=Exception("Database connection error")):
+                    with self.assertRaises(HTTPException) as ctx:
+                        await chat_with_ai(req, current_user=user)
+                    self.assertNotEqual(ctx.exception.status_code, 200)
+                    self.assertEqual(ctx.exception.status_code, 503)
+                    self.assertIn("Chat storage unavailable", ctx.exception.detail)
+
+        asyncio.run(_test())
+
+    def test_checkpoint3_update_exception_returns_503(self):
+        """When update_one raises an exception, chat_with_ai raises HTTP 503 instead of 200."""
+        user = {"_id": "u100", "email": "userA@example.com"}
+        conv_id = ObjectId()
+        self.mock_conversations_col.docs = [
+            {
+                "_id": conv_id,
+                "user_email": "userA@example.com",
+                "title": "Existing Chat",
+                "messages": [{"role": "user", "content": "Hi", "created_at": "2026-09-26T00:00:00Z"}],
+                "created_at": "2026-09-26T00:00:00Z",
+                "updated_at": "2026-09-26T00:00:00Z",
+            }
+        ]
+        req = ChatRequest(message="Tiếp tục tư vấn nhé", conversation_id=str(conv_id))
+
+        async def _test():
+            os.environ["GEMINI_API_KEY"] = "mock_key"
+            with patch.object(chat_module, "_call_gemini_sync", return_value="Vâng, tiếp tục nào."):
+                with patch.object(self.mock_conversations_col, "update_one", side_effect=Exception("Update write concern failed")):
+                    with self.assertRaises(HTTPException) as ctx:
+                        await chat_with_ai(req, current_user=user)
+                    self.assertNotEqual(ctx.exception.status_code, 200)
+                    self.assertEqual(ctx.exception.status_code, 503)
+                    self.assertIn("Chat storage unavailable", ctx.exception.detail)
+
+        asyncio.run(_test())
+
+    def test_checkpoint3_update_unmatched_document_returns_503(self):
+        """When update_one matches 0 documents, chat_with_ai raises HTTP 503 instead of 200."""
+        user = {"_id": "u100", "email": "userA@example.com"}
+        conv_id = ObjectId()
+        self.mock_conversations_col.docs = [
+            {
+                "_id": conv_id,
+                "user_email": "userA@example.com",
+                "title": "Existing Chat",
+                "messages": [{"role": "user", "content": "Hi", "created_at": "2026-09-26T00:00:00Z"}],
+                "created_at": "2026-09-26T00:00:00Z",
+                "updated_at": "2026-09-26T00:00:00Z",
+            }
+        ]
+        req = ChatRequest(message="Tiếp tục tư vấn nhé", conversation_id=str(conv_id))
+
+        class MockZeroMatchResult:
+            matched_count = 0
+            modified_count = 0
+
+        async def _test():
+            os.environ["GEMINI_API_KEY"] = "mock_key"
+            with patch.object(chat_module, "_call_gemini_sync", return_value="Vâng, tiếp tục nào."):
+                with patch.object(self.mock_conversations_col, "update_one", return_value=MockZeroMatchResult()):
+                    with self.assertRaises(HTTPException) as ctx:
+                        await chat_with_ai(req, current_user=user)
+                    self.assertNotEqual(ctx.exception.status_code, 200)
+                    self.assertEqual(ctx.exception.status_code, 503)
+                    self.assertIn("Chat storage unavailable", ctx.exception.detail)
+
+        asyncio.run(_test())
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)
+
