@@ -1,5 +1,6 @@
 # [File: backend/routers/chat.py]
 import os
+import re
 import logging
 import asyncio
 from typing import Optional, Dict, List, Any
@@ -19,6 +20,7 @@ from backend.app.database import (
     workout_history_collection,
     conversations_collection,
     messages_collection,
+    water_collection,
 )
 
 # Auth dependency
@@ -36,6 +38,7 @@ nutrition_col = nutrition_collection
 workout_history_col = workout_history_collection
 conversations_col = conversations_collection
 messages_col = messages_collection
+water_col = water_collection
 
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
@@ -368,6 +371,62 @@ class ChatRequest(BaseModel):
     history: Optional[List[Any]] = None
 
 
+class ActionDecisionRequest(BaseModel):
+    conversation_id: str
+    action_id: str
+    decision: Optional[str] = "confirm"
+
+
+def _detect_log_water_intent(message: str) -> bool:
+    """
+    Chỉ nhận diện một yêu cầu rõ ràng muốn log thêm 250 ml nước.
+    Câu nói mơ hồ, hỏi đáp, tư vấn hoặc lượng nước khác 250ml tuyệt đối không tạo action.
+    """
+    if not message:
+        return False
+
+    raw = message.strip().lower()
+
+    # Phủ định hoặc hỏi đáp, tư vấn, so sánh
+    inquiry_patterns = [
+        r"\?",
+        r"\bcó nên\b",
+        r"\bbao nhiêu\b",
+        r"\bđược không\b",
+        r"\bphải không\b",
+        r"\bthế nào\b",
+        r"\btại sao\b",
+        r"\blàm sao\b",
+        r"\bnhỉ\b",
+        r"\bkhông\s*\?",
+        r"\bchưa\b",
+    ]
+    for pat in inquiry_patterns:
+        if re.search(pat, raw):
+            return False
+
+    # Phải có số 250 (không phải 2500 hay 1250)
+    has_250_amount = bool(
+        re.search(r"\b250(?:\s*(?:ml|mili|milli|mililit|mili\s*lít|lít))?(?!\d)\b", raw)
+        or re.search(r"\b250\s*ml\b", raw)
+    )
+    if not has_250_amount:
+        return False
+
+    has_water = any(w in raw for w in ["nước", "nuoc", "water"])
+    if not has_water:
+        return False
+
+    # Phải có hành động log / thêm / uống rõ ràng
+    action_keywords = [
+        "uống", "thêm", "ghi", "log", "cộng", "lưu", "nhập", "note", "uong", "them", "ghi", "cong"
+    ]
+    if not any(kw in raw for kw in action_keywords):
+        return False
+
+    return True
+
+
 @router.get("/conversations")
 async def list_conversations(
     current_user: dict = Depends(get_current_chat_user),
@@ -447,7 +506,7 @@ async def get_conversation_details(
             "created_at": m.get("created_at", ""),
         })
 
-    return {
+    res_dict = {
         "id": str(conv["_id"]),
         "title": conv.get("title") or "Cuộc trò chuyện",
         "messages": messages,
@@ -455,6 +514,9 @@ async def get_conversation_details(
         "updated_at": conv.get("updated_at", ""),
         "status": "success",
     }
+    if conv.get("pending_action"):
+        res_dict["pending_action"] = conv.get("pending_action")
+    return res_dict
 
 
 @router.post("")
@@ -503,6 +565,95 @@ async def chat_with_ai(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Conversation not found",
             )
+
+    # Checkpoint 4a: Check for clear water log intent (250 ml water)
+    is_water_intent = _detect_log_water_intent(trimmed_message)
+    if is_water_intent:
+        if conversations_col is None:
+            logger.error("Conversations collection is not available")
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail="Chat storage unavailable",
+            )
+
+        now_iso = datetime.now(timezone.utc).isoformat()
+        action_id = str(ObjectId())
+        action_data = {
+            "id": action_id,
+            "type": "log_water",
+            "amount_ml": 250,
+            "status": "pending",
+            "created_at": now_iso,
+        }
+        reply = "Bạn có muốn thêm 250 ml nước không?"
+        user_msg_doc = {"role": "user", "content": trimmed_message, "created_at": now_iso}
+        ai_msg_doc = {"role": "assistant", "content": reply, "created_at": now_iso}
+
+        conv_id_str = ""
+        if conv:
+            update_query = {
+                "_id": conv["_id"],
+                "$or": query_or,
+            }
+            try:
+                update_res = conversations_col.update_one(
+                    update_query,
+                    {
+                        "$push": {"messages": {"$each": [user_msg_doc, ai_msg_doc]}},
+                        "$set": {
+                            "updated_at": now_iso,
+                            "pending_action": action_data,
+                        },
+                    },
+                )
+                matched_count = getattr(update_res, "matched_count", None)
+                if matched_count is not None and matched_count == 0:
+                    logger.warning("Conversation update matched 0 documents")
+                    raise HTTPException(
+                        status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                        detail="Chat storage unavailable",
+                    )
+                conv_id_str = str(conv["_id"])
+            except HTTPException:
+                raise
+            except Exception as e:
+                logger.error("Failed to append message to conversation: %s", type(e).__name__)
+                raise HTTPException(
+                    status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                    detail="Chat storage unavailable",
+                )
+        else:
+            title = trimmed_message[:40] + ("..." if len(trimmed_message) > 40 else "")
+            new_conv_doc = {
+                "user_email": email,
+                "user_id": user_id,
+                "title": title,
+                "messages": [user_msg_doc, ai_msg_doc],
+                "pending_action": action_data,
+                "created_at": now_iso,
+                "updated_at": now_iso,
+            }
+            try:
+                res = conversations_col.insert_one(new_conv_doc)
+                inserted_id = getattr(res, "inserted_id", None)
+                if not res or not inserted_id:
+                    raise RuntimeError("Failed to obtain inserted_id")
+                conv_id_str = str(inserted_id)
+            except HTTPException:
+                raise
+            except Exception as e:
+                logger.error("Failed to insert new conversation: %s", type(e).__name__)
+                raise HTTPException(
+                    status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                    detail="Chat storage unavailable",
+                )
+
+        return {
+            "reply": reply,
+            "status": "success",
+            "conversation_id": conv_id_str,
+            "action": action_data,
+        }
 
     # Checkpoint 2: Build server-authoritative read-only health context.
     # Note: request.context and request.history are ignored for prompt construction.
@@ -607,4 +758,232 @@ async def chat_with_ai(
         "reply": reply,
         "status": "success",
         "conversation_id": conv_id_str,
+        "action": None,
     }
+
+
+# ─────────────────────────────────────────────────────────────
+# CHECKPOINT 4A: ACTION CONFIRMATION & CANCELLATION
+# ─────────────────────────────────────────────────────────────
+
+async def _process_action_decision(
+    conversation_id: str,
+    action_id: str,
+    decision: str,
+    current_user: dict,
+) -> Dict[str, Any]:
+    if not conversation_id or not action_id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Missing conversation_id or action_id",
+        )
+
+    try:
+        conv_obj_id = ObjectId(conversation_id)
+    except Exception:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Conversation not found",
+        )
+
+    if conversations_col is None:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Chat storage unavailable",
+        )
+
+    email = current_user.get("email") or ""
+    user_id = str(current_user.get("_id")) if current_user.get("_id") is not None else None
+    query_or: List[Dict[str, Any]] = [{"user_email": email}]
+    if user_id:
+        query_or.append({"user_id": user_id})
+
+    # 1. Verify conversation exists and belongs to owner
+    conv = conversations_col.find_one({"_id": conv_obj_id, "$or": query_or})
+    if not conv:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Conversation not found",
+        )
+
+    # 2. Verify pending action exists and matches action_id
+    pending = conv.get("pending_action")
+    if not pending or pending.get("id") != action_id:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Action not found or expired",
+        )
+
+    current_status = pending.get("status")
+    if current_status != "pending":
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=f"Action already {current_status}",
+        )
+
+    now_iso = datetime.now(timezone.utc).isoformat()
+
+    # 3. Handle Cancel
+    if decision == "cancel":
+        update_cancel = conversations_col.update_one(
+            {
+                "_id": conv_obj_id,
+                "$or": query_or,
+                "pending_action.id": action_id,
+                "pending_action.status": "pending",
+            },
+            {
+                "$set": {
+                    "pending_action.status": "cancelled",
+                    "pending_action.cancelled_at": now_iso,
+                    "updated_at": now_iso,
+                }
+            }
+        )
+        matched_count = getattr(update_cancel, "matched_count", None)
+        if matched_count is not None and matched_count == 0:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Action already processed",
+            )
+
+        cancel_msg = "Đã hủy thao tác thêm nước."
+        ai_msg_doc = {"role": "assistant", "content": cancel_msg, "created_at": now_iso}
+        try:
+            conversations_col.update_one(
+                {"_id": conv_obj_id},
+                {
+                    "$push": {"messages": ai_msg_doc},
+                    "$set": {"updated_at": now_iso},
+                }
+            )
+        except Exception as e:
+            logger.warning("Failed to record cancel message: %s", type(e).__name__)
+
+        return {
+            "status": "cancelled",
+            "message": cancel_msg,
+            "action_id": action_id,
+            "conversation_id": str(conv_obj_id),
+        }
+
+    # 4. Handle Confirm: require water_col
+    if water_col is None:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Water storage unavailable",
+        )
+
+    # Atomic lock: transition pending -> confirmed
+    update_lock = conversations_col.update_one(
+        {
+            "_id": conv_obj_id,
+            "$or": query_or,
+            "pending_action.id": action_id,
+            "pending_action.status": "pending",
+        },
+        {
+            "$set": {
+                "pending_action.status": "confirmed",
+                "pending_action.confirmed_at": now_iso,
+                "updated_at": now_iso,
+            }
+        }
+    )
+    matched_count = getattr(update_lock, "matched_count", None)
+    if matched_count is not None and matched_count == 0:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Action already processed",
+        )
+
+    today_vn = datetime.now(VN_TZ).strftime("%Y-%m-%d")
+    now_utc = datetime.utcnow()
+    amount_to_add = int(pending.get("amount_ml") or 250)
+
+    try:
+        existing_water = water_col.find_one({"user_email": email, "date": today_vn})
+        if existing_water:
+            current_total = int(existing_water.get("amount_ml") or 0)
+            new_total = current_total + amount_to_add
+            water_col.update_one(
+                {"_id": existing_water["_id"]},
+                {
+                    "$set": {
+                        "amount_ml": new_total,
+                        "updated_at": now_utc,
+                    }
+                }
+            )
+        else:
+            new_total = amount_to_add
+            water_col.insert_one(
+                {
+                    "user_email": email,
+                    "date": today_vn,
+                    "amount_ml": new_total,
+                    "created_at": now_utc,
+                    "updated_at": now_utc,
+                }
+            )
+    except Exception as e:
+        # Rollback action status so it is not left falsely marked as confirmed
+        try:
+            conversations_col.update_one(
+                {"_id": conv_obj_id},
+                {"$set": {"pending_action.status": "pending"}}
+            )
+        except Exception:
+            pass
+        logger.error("Failed to write water log: %s", type(e).__name__)
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Database error while logging water",
+        )
+
+    confirm_msg = f"Đã thêm {amount_to_add} ml nước vào nhật ký hôm nay của bạn. Tổng hiện tại: {new_total} ml."
+    ai_msg_doc = {"role": "assistant", "content": confirm_msg, "created_at": now_iso}
+    try:
+        conversations_col.update_one(
+            {"_id": conv_obj_id},
+            {
+                "$push": {"messages": ai_msg_doc},
+                "$set": {"updated_at": now_iso},
+            }
+        )
+    except Exception as e:
+        logger.warning("Failed to record confirmation message: %s", type(e).__name__)
+
+    return {
+        "status": "success",
+        "message": confirm_msg,
+        "amount_ml": new_total,
+        "added_ml": amount_to_add,
+        "action_id": action_id,
+        "conversation_id": str(conv_obj_id),
+    }
+
+
+@router.post("/actions/confirm")
+async def confirm_action(
+    request: ActionDecisionRequest,
+    current_user: dict = Depends(get_current_chat_user),
+):
+    return await _process_action_decision(request.conversation_id, request.action_id, "confirm", current_user)
+
+
+@router.post("/actions/cancel")
+async def cancel_action(
+    request: ActionDecisionRequest,
+    current_user: dict = Depends(get_current_chat_user),
+):
+    return await _process_action_decision(request.conversation_id, request.action_id, "cancel", current_user)
+
+
+@router.post("/action")
+async def handle_action(
+    request: ActionDecisionRequest,
+    current_user: dict = Depends(get_current_chat_user),
+):
+    decision = (request.decision or "confirm").lower().strip()
+    return await _process_action_decision(request.conversation_id, request.action_id, decision, current_user)

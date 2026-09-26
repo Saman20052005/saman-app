@@ -104,6 +104,7 @@ class ChatState {
   final String? activeConversationId;
   final List<ChatConversationSummary> recentConversations;
   final bool isLoadingHistory;
+  final Map<String, dynamic>? pendingAction;
 
   ChatState({
     this.messages = const [],
@@ -114,6 +115,7 @@ class ChatState {
     this.activeConversationId,
     this.recentConversations = const [],
     this.isLoadingHistory = false,
+    this.pendingAction,
   });
 
   ChatState copyWith({
@@ -129,6 +131,8 @@ class ChatState {
     bool clearActiveConversation = false,
     List<ChatConversationSummary>? recentConversations,
     bool? isLoadingHistory,
+    Map<String, dynamic>? pendingAction,
+    bool clearPendingAction = false,
   }) {
     return ChatState(
       messages: messages ?? this.messages,
@@ -145,6 +149,9 @@ class ChatState {
           : (activeConversationId ?? this.activeConversationId),
       recentConversations: recentConversations ?? this.recentConversations,
       isLoadingHistory: isLoadingHistory ?? this.isLoadingHistory,
+      pendingAction: clearPendingAction
+          ? null
+          : (pendingAction ?? this.pendingAction),
     );
   }
 }
@@ -171,6 +178,7 @@ class ChatController extends StateNotifier<ChatState> {
       isLoading: true,
       clearError: true,
       clearFailedUserMessage: true,
+      clearPendingAction: true,
     );
 
     await _sendRequest(trimmed);
@@ -188,6 +196,7 @@ class ChatController extends StateNotifier<ChatState> {
       isLoading: true,
       clearError: true,
       clearFailedUserMessage: true,
+      clearPendingAction: true,
     );
 
     await _sendRequest(textToRetry);
@@ -235,6 +244,9 @@ class ChatController extends StateNotifier<ChatState> {
             : response.data;
         final aiReply = data['reply'];
         final returnedConvId = data['conversation_id']?.toString();
+        final returnedAction = data['action'] is Map
+            ? Map<String, dynamic>.from(data['action'] as Map)
+            : null;
 
         final botMsg = ChatMessage(role: 'assistant', content: aiReply);
 
@@ -247,6 +259,8 @@ class ChatController extends StateNotifier<ChatState> {
         state = state.copyWith(
           messages: [...state.messages, botMsg],
           activeConversationId: nextActiveId,
+          pendingAction: returnedAction,
+          clearPendingAction: returnedAction == null,
           isLoading: false,
           clearError: true,
           clearFailedUserMessage: true,
@@ -266,6 +280,104 @@ class ChatController extends StateNotifier<ChatState> {
         isLoading: false,
         errorMessage: "I couldn't complete that response.",
         failedUserMessage: text,
+      );
+    }
+  }
+
+  /// Checkpoint 4a: Xác nhận pending action (thêm 250 ml nước)
+  Future<void> _confirmAction(String conversationId, String actionId) async {
+    if (conversationId.isEmpty || actionId.isEmpty) return;
+    final epoch = ++_requestEpoch;
+    state = state.copyWith(
+      isLoading: true,
+      clearError: true,
+      clearFailedUserMessage: true,
+    );
+
+    try {
+      final response = await ApiClient.dio.post(
+        "${ApiConfig.baseUrl}/api/chat/actions/confirm",
+        data: {
+          "conversation_id": conversationId,
+          "action_id": actionId,
+        },
+      );
+
+      if (_requestEpoch != epoch || !mounted) return;
+
+      if (response.statusCode == 200) {
+        final data = response.data is String
+            ? jsonDecode(response.data as String)
+            : response.data;
+        final message = data['message']?.toString() ??
+            "Đã thêm 250 ml nước vào nhật ký hôm nay của bạn.";
+
+        final botMsg = ChatMessage(role: 'assistant', content: message);
+        state = state.copyWith(
+          messages: [...state.messages, botMsg],
+          clearPendingAction: true,
+          isLoading: false,
+          clearError: true,
+          clearFailedUserMessage: true,
+        );
+      } else {
+        throw Exception("Server Error: ${response.statusCode}");
+      }
+    } catch (e) {
+      if (_requestEpoch != epoch || !mounted) return;
+      debugPrint("Confirm Action Error: $e");
+      state = state.copyWith(
+        isLoading: false,
+        errorMessage: "I couldn't confirm that action.",
+      );
+    }
+  }
+
+  /// Checkpoint 4a: Hủy pending action
+  Future<void> _cancelAction(String conversationId, String actionId) async {
+    if (conversationId.isEmpty || actionId.isEmpty) return;
+    final epoch = ++_requestEpoch;
+    state = state.copyWith(
+      isLoading: true,
+      clearError: true,
+      clearFailedUserMessage: true,
+    );
+
+    try {
+      final response = await ApiClient.dio.post(
+        "${ApiConfig.baseUrl}/api/chat/actions/cancel",
+        data: {
+          "conversation_id": conversationId,
+          "action_id": actionId,
+        },
+      );
+
+      if (_requestEpoch != epoch || !mounted) return;
+
+      if (response.statusCode == 200) {
+        final data = response.data is String
+            ? jsonDecode(response.data as String)
+            : response.data;
+        final message =
+            data['message']?.toString() ?? "Đã hủy thao tác thêm nước.";
+
+        final botMsg = ChatMessage(role: 'assistant', content: message);
+        state = state.copyWith(
+          messages: [...state.messages, botMsg],
+          clearPendingAction: true,
+          isLoading: false,
+          clearError: true,
+          clearFailedUserMessage: true,
+        );
+      } else {
+        throw Exception("Server Error: ${response.statusCode}");
+      }
+    } catch (e) {
+      if (_requestEpoch != epoch || !mounted) return;
+      debugPrint("Cancel Action Error: $e");
+      state = state.copyWith(
+        isLoading: false,
+        errorMessage: "I couldn't cancel that action.",
       );
     }
   }
@@ -355,10 +467,16 @@ class ChatController extends StateNotifier<ChatState> {
           return ChatMessage(role: role, content: content);
         }).toList();
 
+        final rawPendingAction = data['pending_action'] is Map
+            ? Map<String, dynamic>.from(data['pending_action'] as Map)
+            : null;
+
         if (!mounted || _requestEpoch != epoch) return;
         state = state.copyWith(
           messages: loadedMessages,
           activeConversationId: conversationId,
+          pendingAction: rawPendingAction,
+          clearPendingAction: rawPendingAction == null,
           isLoadingHistory: false,
           isLoading: false,
           clearError: true,
@@ -384,6 +502,7 @@ class ChatController extends StateNotifier<ChatState> {
     state = state.copyWith(
       messages: [],
       clearActiveConversation: true,
+      clearPendingAction: true,
       clearError: true,
       clearFailedUserMessage: true,
       clearFoodAnalysis: true,
@@ -576,3 +695,31 @@ final chatControllerProvider =
     StateNotifierProvider<ChatController, ChatState>((ref) {
   return ChatController(ref);
 });
+
+// --- 5. ACTION EXTENSION & DELEGATE (Checkpoint 4a) ---
+/// Optional delegate interface allowing test doubles to intercept actions
+/// without modifying the class interface of ChatController.
+abstract class ChatActionDelegate {
+  Future<void> handleConfirmAction(String conversationId, String actionId);
+  Future<void> handleCancelAction(String conversationId, String actionId);
+}
+
+// Giữ confirmAction và cancelAction dưới dạng extension để không làm thay đổi
+// implicit class interface của ChatController, bảo vệ các test/mock hiện có.
+extension ChatControllerActionExtension on ChatController {
+  Future<void> confirmAction(String conversationId, String actionId) {
+    if (this is ChatActionDelegate) {
+      return (this as ChatActionDelegate)
+          .handleConfirmAction(conversationId, actionId);
+    }
+    return _confirmAction(conversationId, actionId);
+  }
+
+  Future<void> cancelAction(String conversationId, String actionId) {
+    if (this is ChatActionDelegate) {
+      return (this as ChatActionDelegate)
+          .handleCancelAction(conversationId, actionId);
+    }
+    return _cancelAction(conversationId, actionId);
+  }
+}

@@ -9,6 +9,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:health_ai_app/config/app_theme.dart';
 import 'package:health_ai_app/controllers/chat_controller.dart';
 import 'package:health_ai_app/screens/chat/widgets/saman_chat_drawer.dart';
+import 'package:health_ai_app/screens/chat_screen.dart';
 import 'package:health_ai_app/services/api_client.dart';
 
 void main() {
@@ -505,4 +506,275 @@ void main() {
       expect(find.text('No recent conversations'), findsOneWidget);
     });
   });
+
+  group('Checkpoint 4a - Water Action Confirmation & Rejection', () {
+    Interceptor? mockInterceptor;
+
+    setUp(() {
+      SharedPreferences.setMockInitialValues({
+        'user_name': 'Tester',
+        'user_height': 175,
+        'user_weight': 70.0,
+      });
+      FlutterSecureStorage.setMockInitialValues({
+        'auth_token': 'mock-token-user-a',
+      });
+    });
+
+    tearDown(() {
+      if (mockInterceptor != null) {
+        ApiClient.dio.interceptors.remove(mockInterceptor);
+      }
+    });
+
+    test('ChatState pendingAction copyWith and clearPendingAction works', () {
+      final initial = ChatState();
+      expect(initial.pendingAction, isNull);
+
+      final withAction = initial.copyWith(
+        pendingAction: {
+          'id': 'act_101',
+          'type': 'log_water',
+          'amount_ml': 250,
+          'status': 'pending',
+        },
+      );
+      expect(withAction.pendingAction?['id'], 'act_101');
+      expect(withAction.pendingAction?['status'], 'pending');
+
+      final cleared = withAction.copyWith(clearPendingAction: true);
+      expect(cleared.pendingAction, isNull);
+    });
+
+    test('ChatController receives pending action from /api/chat proposal', () async {
+      mockInterceptor = InterceptorsWrapper(
+        onRequest: (options, handler) {
+          if (options.uri.path.endsWith('/api/chat/conversations')) {
+            return handler.resolve(Response(
+              requestOptions: options,
+              statusCode: 200,
+              data: {'status': 'success', 'conversations': []},
+            ));
+          } else if (options.uri.path.endsWith('/api/chat')) {
+            return handler.resolve(Response(
+              requestOptions: options,
+              statusCode: 200,
+              data: {
+                'status': 'success',
+                'reply': 'Bạn có muốn thêm 250 ml nước không?',
+                'conversation_id': 'c_water_1',
+                'action': {
+                  'id': 'act_water_1',
+                  'type': 'log_water',
+                  'amount_ml': 250,
+                  'status': 'pending',
+                },
+              },
+            ));
+          }
+          return handler.next(options);
+        },
+      );
+      ApiClient.dio.interceptors.insert(0, mockInterceptor!);
+
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+
+      final controller = container.read(chatControllerProvider.notifier);
+      await controller.sendMessage('Tôi vừa uống 250ml nước');
+
+      final state = container.read(chatControllerProvider);
+      expect(state.pendingAction, isNotNull);
+      expect(state.pendingAction!['id'], 'act_water_1');
+      expect(state.pendingAction!['status'], 'pending');
+      expect(state.messages.last.content, 'Bạn có muốn thêm 250 ml nước không?');
+    });
+
+    test('ChatController confirmAction appends message and clears pendingAction on success', () async {
+      mockInterceptor = InterceptorsWrapper(
+        onRequest: (options, handler) {
+          if (options.uri.path.endsWith('/api/chat/actions/confirm')) {
+            final data = options.data as Map;
+            expect(data['conversation_id'], 'c_water_1');
+            expect(data['action_id'], 'act_water_1');
+            return handler.resolve(Response(
+              requestOptions: options,
+              statusCode: 200,
+              data: {
+                'status': 'success',
+                'message': 'Đã thêm 250 ml nước vào nhật ký hôm nay của bạn. (Tổng: 750 ml)',
+                'amount_ml': 750,
+                'action_id': 'act_water_1',
+                'conversation_id': 'c_water_1',
+              },
+            ));
+          }
+          return handler.next(options);
+        },
+      );
+      ApiClient.dio.interceptors.insert(0, mockInterceptor!);
+
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+
+      final controller = container.read(chatControllerProvider.notifier);
+      controller.state = ChatState(
+        activeConversationId: 'c_water_1',
+        messages: [ChatMessage(role: 'assistant', content: 'Bạn có muốn thêm 250 ml nước không?')],
+        pendingAction: {'id': 'act_water_1', 'status': 'pending'},
+      );
+
+      await controller.confirmAction('c_water_1', 'act_water_1');
+
+      final state = container.read(chatControllerProvider);
+      expect(state.pendingAction, isNull);
+      expect(state.messages.length, 2);
+      expect(state.messages.last.content, contains('Đã thêm 250 ml nước'));
+      expect(state.errorMessage, isNull);
+    });
+
+    test('ChatController confirmAction error shows error without adding fake success message', () async {
+      mockInterceptor = InterceptorsWrapper(
+        onRequest: (options, handler) {
+          if (options.uri.path.endsWith('/api/chat/actions/confirm')) {
+            return handler.reject(DioException(
+              requestOptions: options,
+              response: Response(
+                requestOptions: options,
+                statusCode: 503,
+                data: {'detail': 'Water storage unavailable'},
+              ),
+            ));
+          }
+          return handler.next(options);
+        },
+      );
+      ApiClient.dio.interceptors.insert(0, mockInterceptor!);
+
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+
+      final controller = container.read(chatControllerProvider.notifier);
+      controller.state = ChatState(
+        activeConversationId: 'c_water_1',
+        messages: [ChatMessage(role: 'assistant', content: 'Bạn có muốn thêm 250 ml nước không?')],
+        pendingAction: {'id': 'act_water_1', 'status': 'pending'},
+      );
+
+      await controller.confirmAction('c_water_1', 'act_water_1');
+
+      final state = container.read(chatControllerProvider);
+      // Length remains 1: NO fake success message added!
+      expect(state.messages.length, 1);
+      expect(state.errorMessage, isNotNull);
+    });
+
+    test('ChatController cancelAction appends cancellation message and clears pendingAction', () async {
+      mockInterceptor = InterceptorsWrapper(
+        onRequest: (options, handler) {
+          if (options.uri.path.endsWith('/api/chat/actions/cancel')) {
+            final data = options.data as Map;
+            expect(data['conversation_id'], 'c_water_1');
+            expect(data['action_id'], 'act_water_1');
+            return handler.resolve(Response(
+              requestOptions: options,
+              statusCode: 200,
+              data: {
+                'status': 'cancelled',
+                'message': 'Đã hủy thao tác thêm nước.',
+                'action_id': 'act_water_1',
+                'conversation_id': 'c_water_1',
+              },
+            ));
+          }
+          return handler.next(options);
+        },
+      );
+      ApiClient.dio.interceptors.insert(0, mockInterceptor!);
+
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+
+      final controller = container.read(chatControllerProvider.notifier);
+      controller.state = ChatState(
+        activeConversationId: 'c_water_1',
+        messages: [ChatMessage(role: 'assistant', content: 'Bạn có muốn thêm 250 ml nước không?')],
+        pendingAction: {'id': 'act_water_1', 'status': 'pending'},
+      );
+
+      await controller.cancelAction('c_water_1', 'act_water_1');
+
+      final state = container.read(chatControllerProvider);
+      expect(state.pendingAction, isNull);
+      expect(state.messages.length, 2);
+      expect(state.messages.last.content, 'Đã hủy thao tác thêm nước.');
+    });
+
+    testWidgets('ChatScreen renders Confirm and Cancel action buttons and dispatches actions',
+        (tester) async {
+      final notifier = _TestChatNotifier(
+        ChatState(
+          activeConversationId: 'c_water_1',
+          messages: [
+            ChatMessage(role: 'user', content: 'Tôi vừa uống 250ml nước'),
+            ChatMessage(role: 'assistant', content: 'Bạn có muốn thêm 250 ml nước không?'),
+          ],
+          pendingAction: {
+            'id': 'act_water_1',
+            'type': 'log_water',
+            'amount_ml': 250,
+            'status': 'pending',
+          },
+        ),
+      );
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            chatControllerProvider.overrideWith((ref) => notifier),
+          ],
+          child: MaterialApp(
+            theme: SamanTheme.dark(),
+            home: const ChatScreen(),
+          ),
+        ),
+      );
+      await tester.pump();
+
+      expect(find.text('Xác nhận (+250 ml nước)'), findsOneWidget);
+      expect(find.text('Hủy'), findsOneWidget);
+
+      await tester.tap(find.text('Xác nhận (+250 ml nước)'));
+      await tester.pump();
+      expect(notifier.confirmCalled, isTrue);
+
+      await tester.tap(find.text('Hủy'));
+      await tester.pump();
+      expect(notifier.cancelCalled, isTrue);
+    });
+  });
+}
+
+class _TestChatNotifier extends StateNotifier<ChatState>
+    implements ChatController, ChatActionDelegate {
+  _TestChatNotifier(super.state);
+
+  bool confirmCalled = false;
+  bool cancelCalled = false;
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+
+  @override
+  Future<void> handleConfirmAction(String conversationId, String actionId) async {
+    confirmCalled = true;
+  }
+
+  @override
+  Future<void> handleCancelAction(String conversationId, String actionId) async {
+    cancelCalled = true;
+  }
+
+  @override
+  Future<void> loadConversations({bool loadLatest = false}) async {}
 }

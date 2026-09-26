@@ -130,6 +130,31 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                     onLogMeal: _handleLogMeal,
                     onRetakeFoodPhoto: _handleAttachmentFlow,
                     onManualMealEntry: _handleManualMealEntry,
+                    latestAssistantActions: (chatState.pendingAction != null &&
+                            chatState.pendingAction!['status'] == 'pending')
+                        ? [
+                            SamanAssistantAction(
+                              label: 'Xác nhận (+250 ml nước)',
+                              icon: Icons.check_circle_outline,
+                              isPrimary: true,
+                              onTap: () {
+                                final actionId = chatState.pendingAction!['id']?.toString() ?? '';
+                                final convId = chatState.activeConversationId ?? '';
+                                ref.read(chatControllerProvider.notifier).confirmAction(convId, actionId);
+                              },
+                            ),
+                            SamanAssistantAction(
+                              label: 'Hủy',
+                              icon: Icons.close,
+                              isPrimary: false,
+                              onTap: () {
+                                final actionId = chatState.pendingAction!['id']?.toString() ?? '';
+                                final convId = chatState.activeConversationId ?? '';
+                                ref.read(chatControllerProvider.notifier).cancelAction(convId, actionId);
+                              },
+                            ),
+                          ]
+                        : null,
                     activeNudge: hasNudge
                         ? _activeNudge!.copyWith(
                             onPrimary: () => _handleNudgePrimary(_activeNudge!),

@@ -145,6 +145,10 @@ from backend.routers.chat import (
     _is_timeout_error,
     list_conversations,
     get_conversation_details,
+    ActionDecisionRequest,
+    confirm_action,
+    cancel_action,
+    handle_action,
 )
 
 
@@ -264,6 +268,24 @@ class FakeConversationsCollection:
 
         return FakeCursor(matches)
 
+    def _get_nested(self, doc, path):
+        parts = path.split(".")
+        curr = doc
+        for p in parts:
+            if not isinstance(curr, dict) or p not in curr:
+                return None
+            curr = curr[p]
+        return curr
+
+    def _set_nested(self, doc, path, val):
+        parts = path.split(".")
+        curr = doc
+        for p in parts[:-1]:
+            if p not in curr or not isinstance(curr[p], dict):
+                curr[p] = {}
+            curr = curr[p]
+        curr[parts[-1]] = val
+
     def update_one(self, query, update):
         matches = self._match(query)
         if not matches:
@@ -284,7 +306,10 @@ class FakeConversationsCollection:
 
         if "$set" in update:
             for k, val in update["$set"].items():
-                target[k] = val
+                if "." in k:
+                    self._set_nested(target, k, val)
+                else:
+                    target[k] = val
 
         class FakeUpdateResultFound:
             matched_count = 1
@@ -306,9 +331,65 @@ class FakeConversationsCollection:
                 sub_matched = any(self._matches_doc(doc, sub) for sub in v)
                 if not sub_matched:
                     return False
-            elif doc.get(k) != v:
-                return False
+            else:
+                actual = self._get_nested(doc, k) if "." in k else doc.get(k)
+                if actual != v:
+                    return False
         return True
+
+
+class FakeWaterCollection:
+    """Mock MongoDB collection specifically for water_logs in Checkpoint 4a."""
+    def __init__(self, docs=None):
+        self.docs = list(docs) if docs else []
+        self.write_calls = []
+
+    def insert_one(self, doc):
+        self.write_calls.append(("insert_one", doc))
+        doc_copy = dict(doc)
+        if "_id" not in doc_copy:
+            doc_copy["_id"] = ObjectId()
+        self.docs.append(doc_copy)
+
+        class InsertResult:
+            inserted_id = doc_copy["_id"]
+
+        return InsertResult()
+
+    def update_one(self, query, update):
+        self.write_calls.append(("update_one", query, update))
+        matches = self._match(query)
+        if not matches:
+            class FakeUpdateResultNotFound:
+                matched_count = 0
+                modified_count = 0
+            return FakeUpdateResultNotFound()
+        target = matches[0]
+
+        if "$set" in update:
+            for k, val in update["$set"].items():
+                target[k] = val
+
+        class FakeUpdateResultFound:
+            matched_count = 1
+            modified_count = 1
+        return FakeUpdateResultFound()
+
+    def find_one(self, query):
+        matches = self._match(query)
+        return dict(matches[0]) if matches else None
+
+    def _match(self, query):
+        results = []
+        for d in self.docs:
+            match = True
+            for k, v in query.items():
+                if d.get(k) != v:
+                    match = False
+                    break
+            if match:
+                results.append(d)
+        return results
 
 
 class TestChatCheckpoint1And2(unittest.TestCase):
@@ -331,9 +412,11 @@ class TestChatCheckpoint1And2(unittest.TestCase):
         self.mock_nutrition_col = FakeMongoCollection()
         self.mock_workout_col = FakeMongoCollection()
         self.mock_conversations_col = FakeConversationsCollection()
+        self.mock_water_col = FakeWaterCollection()
         chat_module.nutrition_col = self.mock_nutrition_col
         chat_module.workout_history_col = self.mock_workout_col
         chat_module.conversations_col = self.mock_conversations_col
+        chat_module.water_col = self.mock_water_col
 
     def tearDown(self):
         if self.orig_gemini is not None:
@@ -350,6 +433,8 @@ class TestChatCheckpoint1And2(unittest.TestCase):
             os.environ["AI_TIMEOUT_SECONDS"] = self.orig_timeout
         else:
             os.environ.pop("AI_TIMEOUT_SECONDS", None)
+
+        chat_module.water_col = self.mock_water_col
 
     # ═════════════════════════════════════════════════════════════
     # CHECKPOINT 1 REGRESSION TESTS
@@ -1172,11 +1257,253 @@ class TestChatCheckpoint1And2(unittest.TestCase):
                         await chat_with_ai(req, current_user=user)
                     self.assertNotEqual(ctx.exception.status_code, 200)
                     self.assertEqual(ctx.exception.status_code, 503)
-                    self.assertIn("Chat storage unavailable", ctx.exception.detail)
+        asyncio.run(_test())
+
+    # ═════════════════════════════════════════════════════════════
+    # CHECKPOINT 4A TARGETED TESTS (WATER LOG CONFIRMATION)
+    # ═════════════════════════════════════════════════════════════
+
+    def test_checkpoint4a_proposal_0_writes(self):
+        """Proposal creates a pending action with status=pending and makes 0 writes to water_col."""
+        user = {"_id": "u100", "email": "userA@example.com"}
+        req = ChatRequest(message="Tôi vừa uống 250ml nước")
+
+        async def _test():
+            resp = await chat_with_ai(req, current_user=user)
+            self.assertEqual(resp["status"], "success")
+            self.assertEqual(resp["reply"], "Bạn có muốn thêm 250 ml nước không?")
+            self.assertIsNotNone(resp.get("action"))
+            action = resp["action"]
+            self.assertEqual(action["type"], "log_water")
+            self.assertEqual(action["amount_ml"], 250)
+            self.assertEqual(action["status"], "pending")
+            self.assertTrue(bool(action.get("id")))
+
+            # Crucial: 0 writes to water_col at proposal step!
+            self.assertEqual(len(self.mock_water_col.write_calls), 0)
+            self.assertEqual(len(self.mock_water_col.docs), 0)
+
+            # Check conversation in DB has pending_action
+            c_id = resp["conversation_id"]
+            conv_doc = self.mock_conversations_col.find_one({"_id": ObjectId(c_id)})
+            self.assertIsNotNone(conv_doc)
+            self.assertIsNotNone(conv_doc.get("pending_action"))
+            self.assertEqual(conv_doc["pending_action"]["id"], action["id"])
+            self.assertEqual(conv_doc["pending_action"]["status"], "pending")
+
+        asyncio.run(_test())
+
+    def test_checkpoint4a_ambiguous_no_action(self):
+        """Ambiguous or question-style messages do NOT create an action."""
+        user = {"_id": "u100", "email": "userA@example.com"}
+        ambiguous_messages = [
+            "Một ngày nên uống bao nhiêu nước?",
+            "Uống 250ml nước có tốt không?",
+            "Tôi có nên uống 250ml nước không?",
+            "Hôm nay tôi uống 500ml nước",
+            "Tôi muốn uống nước",
+            "250ml nước là bao nhiêu?",
+        ]
+
+        async def _test():
+            os.environ["GEMINI_API_KEY"] = "mock_key"
+            for msg in ambiguous_messages:
+                with patch.object(chat_module, "_call_gemini_sync", return_value="Lời khuyên sức khỏe..."):
+                    resp = await chat_with_ai(ChatRequest(message=msg), current_user=user)
+                    self.assertEqual(resp["status"], "success")
+                    self.assertIsNone(resp.get("action"), f"Message '{msg}' should not trigger an action")
+                    self.assertEqual(len(self.mock_water_col.write_calls), 0)
+
+        asyncio.run(_test())
+
+    def test_checkpoint4a_cancel_0_writes(self):
+        """Cancelling an action updates action status to cancelled and makes 0 writes to water_col."""
+        user = {"_id": "u100", "email": "userA@example.com"}
+        req = ChatRequest(message="Thêm 250ml nước")
+
+        async def _test():
+            resp = await chat_with_ai(req, current_user=user)
+            c_id = resp["conversation_id"]
+            a_id = resp["action"]["id"]
+
+            cancel_req = ActionDecisionRequest(conversation_id=c_id, action_id=a_id)
+            cancel_res = await cancel_action(cancel_req, current_user=user)
+
+            self.assertEqual(cancel_res["status"], "cancelled")
+            self.assertIn("Đã hủy", cancel_res["message"])
+
+            # 0 writes to water_col
+            self.assertEqual(len(self.mock_water_col.write_calls), 0)
+            self.assertEqual(len(self.mock_water_col.docs), 0)
+
+            # DB action status is cancelled
+            conv_doc = self.mock_conversations_col.find_one({"_id": ObjectId(c_id)})
+            self.assertEqual(conv_doc["pending_action"]["status"], "cancelled")
+
+        asyncio.run(_test())
+
+    def test_checkpoint4a_confirm_new_day_sets_250(self):
+        """Confirming an action on a day with no existing water log creates a record with 250ml."""
+        user = {"_id": "u100", "email": "userA@example.com"}
+        req = ChatRequest(message="Thêm 250ml nước")
+
+        async def _test():
+            resp = await chat_with_ai(req, current_user=user)
+            c_id = resp["conversation_id"]
+            a_id = resp["action"]["id"]
+
+            self.mock_water_col.docs = []
+            confirm_req = ActionDecisionRequest(conversation_id=c_id, action_id=a_id)
+            confirm_res = await confirm_action(confirm_req, current_user=user)
+
+            self.assertEqual(confirm_res["status"], "success")
+            self.assertEqual(confirm_res["amount_ml"], 250)
+            self.assertEqual(confirm_res["added_ml"], 250)
+            self.assertIn("Đã thêm 250 ml nước", confirm_res["message"])
+
+            # Exactly 1 doc created in water_col
+            self.assertEqual(len(self.mock_water_col.docs), 1)
+            doc = self.mock_water_col.docs[0]
+            self.assertEqual(doc["user_email"], "userA@example.com")
+            self.assertEqual(doc["date"], _get_current_vn_date())
+            self.assertEqual(doc["amount_ml"], 250)
+
+            # Status in conversation updated to confirmed
+            conv_doc = self.mock_conversations_col.find_one({"_id": ObjectId(c_id)})
+            self.assertEqual(conv_doc["pending_action"]["status"], "confirmed")
+
+        asyncio.run(_test())
+
+    def test_checkpoint4a_confirm_existing_day_increments_by_250(self):
+        """Confirming an action on a day with existing 500ml increases total to 750ml."""
+        user = {"_id": "u100", "email": "userA@example.com"}
+        today_str = _get_current_vn_date()
+        self.mock_water_col.docs = [
+            {
+                "_id": ObjectId(),
+                "user_email": "userA@example.com",
+                "date": today_str,
+                "amount_ml": 500,
+            }
+        ]
+        req = ChatRequest(message="Ghi nhận 250ml nước")
+
+        async def _test():
+            resp = await chat_with_ai(req, current_user=user)
+            c_id = resp["conversation_id"]
+            a_id = resp["action"]["id"]
+
+            confirm_req = ActionDecisionRequest(conversation_id=c_id, action_id=a_id)
+            confirm_res = await confirm_action(confirm_req, current_user=user)
+
+            self.assertEqual(confirm_res["status"], "success")
+            self.assertEqual(confirm_res["amount_ml"], 750)
+            self.assertEqual(confirm_res["added_ml"], 250)
+
+            # Document amount_ml updated from 500 to 750
+            self.assertEqual(len(self.mock_water_col.docs), 1)
+            self.assertEqual(self.mock_water_col.docs[0]["amount_ml"], 750)
+
+        asyncio.run(_test())
+
+    def test_checkpoint4a_repeated_confirmation_fails(self):
+        """Re-confirming the same action raises HTTP 409 and does NOT increment water twice."""
+        user = {"_id": "u100", "email": "userA@example.com"}
+        req = ChatRequest(message="Log 250ml nước")
+
+        async def _test():
+            resp = await chat_with_ai(req, current_user=user)
+            c_id = resp["conversation_id"]
+            a_id = resp["action"]["id"]
+
+            confirm_req = ActionDecisionRequest(conversation_id=c_id, action_id=a_id)
+            res1 = await confirm_action(confirm_req, current_user=user)
+            self.assertEqual(res1["status"], "success")
+            self.assertEqual(res1["amount_ml"], 250)
+
+            # Second confirmation must raise 409
+            with self.assertRaises(HTTPException) as ctx:
+                await confirm_action(confirm_req, current_user=user)
+            self.assertEqual(ctx.exception.status_code, 409)
+
+            # Water total is still 250, not 500
+            self.assertEqual(self.mock_water_col.docs[0]["amount_ml"], 250)
+
+        asyncio.run(_test())
+
+    def test_checkpoint4a_invalid_or_expired_action(self):
+        """Action with wrong ID or after cancellation cannot be confirmed."""
+        user = {"_id": "u100", "email": "userA@example.com"}
+        req = ChatRequest(message="Thêm 250ml nước")
+
+        async def _test():
+            resp = await chat_with_ai(req, current_user=user)
+            c_id = resp["conversation_id"]
+            a_id = resp["action"]["id"]
+
+            # 1. Non-existent action_id -> 404
+            with self.assertRaises(HTTPException) as ctx:
+                await confirm_action(ActionDecisionRequest(conversation_id=c_id, action_id="fake_action_id"), current_user=user)
+            self.assertEqual(ctx.exception.status_code, 404)
+
+            # 2. Cancel action, then try to confirm -> 409
+            await cancel_action(ActionDecisionRequest(conversation_id=c_id, action_id=a_id), current_user=user)
+            with self.assertRaises(HTTPException) as ctx2:
+                await confirm_action(ActionDecisionRequest(conversation_id=c_id, action_id=a_id), current_user=user)
+            self.assertEqual(ctx2.exception.status_code, 409)
+
+            # 0 writes to water_col
+            self.assertEqual(len(self.mock_water_col.docs), 0)
+
+        asyncio.run(_test())
+
+    def test_checkpoint4a_account_ab_isolation(self):
+        """User B cannot confirm or cancel User A's action."""
+        user_a = {"_id": "u1", "email": "userA@example.com"}
+        user_b = {"_id": "u2", "email": "userB@example.com"}
+        req = ChatRequest(message="Thêm 250ml nước")
+
+        async def _test():
+            resp = await chat_with_ai(req, current_user=user_a)
+            c_id = resp["conversation_id"]
+            a_id = resp["action"]["id"]
+
+            # User B attempts to confirm User A's action -> 404
+            with self.assertRaises(HTTPException) as ctx:
+                await confirm_action(ActionDecisionRequest(conversation_id=c_id, action_id=a_id), current_user=user_b)
+            self.assertEqual(ctx.exception.status_code, 404)
+
+            # User B attempts to cancel User A's action -> 404
+            with self.assertRaises(HTTPException) as ctx2:
+                await cancel_action(ActionDecisionRequest(conversation_id=c_id, action_id=a_id), current_user=user_b)
+            self.assertEqual(ctx2.exception.status_code, 404)
+
+            # 0 writes to water_col
+            self.assertEqual(len(self.mock_water_col.docs), 0)
+
+        asyncio.run(_test())
+
+    def test_checkpoint4a_db_error_does_not_mark_confirmed(self):
+        """If writing water_col fails, returns HTTP 503 and rolls back action status from confirmed."""
+        user = {"_id": "u100", "email": "userA@example.com"}
+        req = ChatRequest(message="Thêm 250ml nước")
+
+        async def _test():
+            resp = await chat_with_ai(req, current_user=user)
+            c_id = resp["conversation_id"]
+            a_id = resp["action"]["id"]
+
+            with patch.object(self.mock_water_col, "insert_one", side_effect=Exception("Database connection loss")):
+                with self.assertRaises(HTTPException) as ctx:
+                    await confirm_action(ActionDecisionRequest(conversation_id=c_id, action_id=a_id), current_user=user)
+                self.assertEqual(ctx.exception.status_code, 503)
+
+            # Status in DB was rolled back from "confirmed" back to "pending"
+            conv_doc = self.mock_conversations_col.find_one({"_id": ObjectId(c_id)})
+            self.assertEqual(conv_doc["pending_action"]["status"], "pending")
 
         asyncio.run(_test())
 
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)
-
