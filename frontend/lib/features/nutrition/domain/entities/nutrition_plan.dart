@@ -13,6 +13,7 @@ class NutritionPlan extends Equatable {
   final List<Supplement> supplements;
   final int currentWater;
   final int targetWater;
+  final int waterVersion;
   final int totalCaloriesConsumed;
   final int totalProteinConsumed;
   final int totalCarbsConsumed;
@@ -28,6 +29,7 @@ class NutritionPlan extends Equatable {
     this.supplements = const [],
     this.currentWater = 0,
     this.targetWater = 2000,
+    this.waterVersion = 0,
     this.totalCaloriesConsumed = 0,
     this.totalProteinConsumed = 0,
     this.totalCarbsConsumed = 0,
@@ -45,6 +47,7 @@ class NutritionPlan extends Equatable {
         supplements,
         currentWater,
         targetWater,
+        waterVersion,
         totalCaloriesConsumed,
         totalProteinConsumed,
         totalCarbsConsumed,
@@ -61,6 +64,7 @@ class NutritionPlan extends Equatable {
     List<Supplement>? supplements,
     int? currentWater,
     int? targetWater,
+    int? waterVersion,
     int? totalCaloriesConsumed,
     int? totalProteinConsumed,
     int? totalCarbsConsumed,
@@ -76,6 +80,7 @@ class NutritionPlan extends Equatable {
       supplements: supplements ?? this.supplements,
       currentWater: currentWater ?? this.currentWater,
       targetWater: targetWater ?? this.targetWater,
+      waterVersion: waterVersion ?? this.waterVersion,
       totalCaloriesConsumed:
           totalCaloriesConsumed ?? this.totalCaloriesConsumed,
       totalProteinConsumed: totalProteinConsumed ?? this.totalProteinConsumed,

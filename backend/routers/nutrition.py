@@ -1,5 +1,5 @@
 
-from fastapi import APIRouter, Depends, HTTPException, Query, File, Form, UploadFile
+from fastapi import APIRouter, Depends, HTTPException, Query, File, Form, UploadFile, status
 from datetime import datetime, date, timedelta
 from typing import Optional, List, Dict, Any
 import pydantic as pd
@@ -165,7 +165,10 @@ class NutritionLog(pd.BaseModel):
 
 class WaterLog(pd.BaseModel):
     date: str
-    amount_ml: int
+    amount_ml: Optional[int] = None
+    delta_ml: Optional[int] = None
+    version: Optional[int] = None
+    idempotency_key: Optional[str] = None
     time: Optional[str] = None
 
 class MealSwapRequest(pd.BaseModel):
@@ -491,48 +494,244 @@ async def log_water_intake(
     water_log: WaterLog,
     user: dict = Depends(get_current_user),
 ):
-    """Log water intake — persist to water_logs collection."""
-    try:
-        if water_collection is None:
-            raise HTTPException(status_code=503, detail="Database not available")
+    """Log water intake — atomic delta addition or optimistic total update with version check."""
+    if water_collection is None:
+        raise HTTPException(status_code=503, detail="Database not available")
 
-        # Upsert: cộng dồn lượng nước trong ngày
-        existing = water_collection.find_one({
-            "user_email": user["email"],
-            "date":       water_log.date,
-        })
+    # Validation: must have either delta_ml or amount_ml
+    if water_log.delta_ml is None and water_log.amount_ml is None:
+        raise HTTPException(status_code=400, detail="Either amount_ml or delta_ml must be provided")
 
-        if existing:
-            # Overwrite với giá trị mới (Flutter gửi total, không phải delta)
-            water_collection.update_one(
-                {"_id": existing["_id"]},
-                {"$set": {
-                    "amount_ml":  water_log.amount_ml,
-                    "updated_at": datetime.utcnow(),
-                }},
-            )
-            doc_id = str(existing["_id"])
-        else:
-            result = water_collection.insert_one({
-                "user_email": user["email"],
-                "date":       water_log.date,
-                "amount_ml":  water_log.amount_ml,
-                "created_at": datetime.utcnow(),
-                "updated_at": datetime.utcnow(),
+    now_utc = datetime.utcnow()
+    email = user["email"]
+
+    # ─────────────────────────────────────────────────────────────
+    # Case 1: Thao tác thêm nước (delta) kèm idempotency key
+    # ─────────────────────────────────────────────────────────────
+    if water_log.delta_ml is not None:
+        delta = int(water_log.delta_ml)
+        key = water_log.idempotency_key
+
+        # Idempotency fast-path: check if key already applied
+        if key:
+            already = water_collection.find_one({
+                "user_email": email,
+                "date": water_log.date,
+                "applied_actions": key,
             })
-            doc_id = str(result.inserted_id)
+            if already:
+                return {
+                    "id": str(already["_id"]),
+                    "message": "Water intake already logged",
+                    "amount_ml": already.get("amount_ml", 0),
+                    "date": water_log.date,
+                    "version": already.get("version", 0),
+                    "status": "saved",
+                }
 
+        max_retries = 3
+        for attempt in range(max_retries):
+            try:
+                if key:
+                    already = water_collection.find_one({
+                        "user_email": email,
+                        "date": water_log.date,
+                        "applied_actions": key,
+                    })
+                    if already:
+                        break
+
+                doc = water_collection.find_one({
+                    "user_email": email,
+                    "date": water_log.date,
+                })
+                if doc:
+                    update_filter = {"_id": doc["_id"]}
+                    if key:
+                        update_filter["applied_actions"] = {"$ne": key}
+                    update_body = {
+                        "$inc": {"amount_ml": delta, "version": 1},
+                        "$set": {"updated_at": now_utc},
+                    }
+                    if key:
+                        update_body["$addToSet"] = {"applied_actions": key}
+                    res = water_collection.update_one(update_filter, update_body)
+                    if getattr(res, "matched_count", 1) == 0:
+                        if key and water_collection.find_one({
+                            "user_email": email,
+                            "date": water_log.date,
+                            "applied_actions": key,
+                        }):
+                            break
+                        continue
+                    break
+                else:
+                    upsert_filter = {
+                        "user_email": email,
+                        "date": water_log.date,
+                    }
+                    if key:
+                        upsert_filter["applied_actions"] = {"$ne": key}
+                    upsert_body = {
+                        "$inc": {"amount_ml": delta, "version": 1},
+                        "$setOnInsert": {
+                            "created_at": now_utc,
+                        },
+                        "$set": {
+                            "updated_at": now_utc,
+                        },
+                    }
+                    if key:
+                        upsert_body["$addToSet"] = {"applied_actions": key}
+                    water_collection.update_one(upsert_filter, upsert_body, upsert=True)
+                    break
+            except Exception as e:
+                err_str = str(e).lower()
+                if "duplicate key" in err_str or "e11000" in err_str:
+                    continue
+                raise HTTPException(status_code=503, detail="Database error while logging water")
+
+        if key:
+            verified_doc = water_collection.find_one({
+                "user_email": email,
+                "date": water_log.date,
+                "applied_actions": key,
+            })
+            if not verified_doc:
+                raise HTTPException(
+                    status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                    detail="Database error while logging water: marker not verified",
+                )
+            return {
+                "id": str(verified_doc["_id"]),
+                "message": "Water intake logged",
+                "amount_ml": verified_doc.get("amount_ml", 0),
+                "date": water_log.date,
+                "version": verified_doc.get("version", 0),
+                "status": "saved",
+            }
+
+        latest = water_collection.find_one({
+            "user_email": email,
+            "date": water_log.date,
+        })
+        if not latest:
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail="Database error while logging water",
+            )
         return {
-            "id":        doc_id,
-            "message":   "Water intake logged",
-            "amount_ml": water_log.amount_ml,
-            "date":      water_log.date,
-            "status":    "saved",
+            "id": str(latest["_id"]),
+            "message": "Water intake logged",
+            "amount_ml": latest.get("amount_ml", 0),
+            "date": water_log.date,
+            "version": latest.get("version", 0),
+            "status": "saved",
         }
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+
+    # ─────────────────────────────────────────────────────────────
+    # Case 2: Thao tác đặt/chỉnh tổng với optimistic locking (version)
+    # ─────────────────────────────────────────────────────────────
+    target_amount = max(0, int(water_log.amount_ml))
+    expected_version = water_log.version
+
+    doc = water_collection.find_one({
+        "user_email": email,
+        "date": water_log.date,
+    })
+
+    if doc:
+        current_version = doc.get("version", 0)
+        current_amount = doc.get("amount_ml", 0)
+        if expected_version is not None and expected_version != current_version:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail={
+                    "message": "Conflict: water total has been updated",
+                    "current_amount_ml": current_amount,
+                    "current_version": current_version,
+                },
+            )
+
+        filter_query = {"_id": doc["_id"]}
+        if expected_version is not None:
+            if expected_version == 0:
+                filter_query["$or"] = [
+                    {"version": 0},
+                    {"version": {"$exists": False}},
+                ]
+            else:
+                filter_query["version"] = expected_version
+
+        res = water_collection.update_one(
+            filter_query,
+            {
+                "$set": {
+                    "amount_ml": target_amount,
+                    "updated_at": now_utc,
+                },
+                "$inc": {"version": 1},
+            },
+        )
+        if getattr(res, "matched_count", 1) == 0:
+            latest = water_collection.find_one({"_id": doc["_id"]})
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail={
+                    "message": "Conflict: water total was updated concurrently",
+                    "current_amount_ml": latest.get("amount_ml", 0) if latest else 0,
+                    "current_version": latest.get("version", 0) if latest else 0,
+                },
+            )
+    else:
+        if expected_version is not None and expected_version > 0:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail={
+                    "message": "Conflict: no existing record for specified version",
+                    "current_amount_ml": 0,
+                    "current_version": 0,
+                },
+            )
+        try:
+            water_collection.insert_one({
+                "user_email": email,
+                "date": water_log.date,
+                "amount_ml": target_amount,
+                "version": 1,
+                "applied_actions": [],
+                "created_at": now_utc,
+                "updated_at": now_utc,
+            })
+        except Exception as e:
+            err_str = str(e).lower()
+            if "duplicate key" in err_str or "e11000" in err_str:
+                latest = water_collection.find_one({
+                    "user_email": email,
+                    "date": water_log.date,
+                })
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail={
+                        "message": "Conflict: record was created concurrently",
+                        "current_amount_ml": latest.get("amount_ml", 0) if latest else 0,
+                        "current_version": latest.get("version", 0) if latest else 0,
+                    },
+                )
+            raise HTTPException(status_code=503, detail="Database error while logging water")
+
+    latest = water_collection.find_one({
+        "user_email": email,
+        "date": water_log.date,
+    })
+    return {
+        "id": str(latest["_id"]) if latest else None,
+        "message": "Water intake logged",
+        "amount_ml": latest.get("amount_ml", 0) if latest else target_amount,
+        "date": water_log.date,
+        "version": latest.get("version", 0) if latest else 1,
+        "status": "saved",
+    }
 
 
 # ─────────────────────────────────────────
@@ -610,6 +809,7 @@ async def get_nutrition_by_date(
 
         # Lấy water log trong ngày
         current_water = 0
+        water_version = 0
         if water_collection is not None:
             water_doc = water_collection.find_one({
                 "user_email": current_user["email"],
@@ -617,6 +817,7 @@ async def get_nutrition_by_date(
             })
             if water_doc:
                 current_water = water_doc.get("amount_ml", 0)
+                water_version = water_doc.get("version", 0)
 
         # Lấy water_target từ profile
         user_data    = user_repo.get_by_email(current_user["email"])
@@ -656,6 +857,7 @@ async def get_nutrition_by_date(
             "total_carbs":    round(total_carbs,    1),
             "total_fat":      round(total_fat,      1),
             "current_water":  current_water,
+            "water_version":  water_version,
             "water_target":   water_target,
             "rollover_calories": rollover_calories,   # NEW — 0 if no deficit
         }

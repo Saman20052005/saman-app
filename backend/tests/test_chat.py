@@ -150,6 +150,18 @@ from backend.routers.chat import (
     cancel_action,
     handle_action,
 )
+import backend.routers.nutrition as nutrition_module
+from backend.routers.nutrition import (
+    log_water_intake,
+    get_nutrition_by_date,
+    WaterLog,
+)
+
+
+class FakeCursor(list):
+    """Cursor that supports MongoDB cursor methods like .sort()"""
+    def sort(self, *args, **kwargs):
+        return self
 
 
 class FakeMongoCollection:
@@ -184,7 +196,7 @@ class FakeMongoCollection:
                         break
             if match:
                 results.append(doc)
-        return results
+        return FakeCursor(results)
 
     def find_one(self, query=None):
         res = self.find(query)
@@ -343,9 +355,35 @@ class FakeWaterCollection:
     def __init__(self, docs=None):
         self.docs = list(docs) if docs else []
         self.write_calls = []
+        self.indexes = []
+
+    def create_index(self, keys, unique=False, name=None):
+        idx_name = name or "_".join(f"{k}_{v}" for k, v in keys)
+        self.indexes.append({"keys": keys, "unique": unique, "name": idx_name})
+        return idx_name
+
+    def aggregate(self, pipeline):
+        counts = {}
+        for d in self.docs:
+            key = (d.get("user_email"), d.get("date"))
+            counts[key] = counts.get(key, 0) + 1
+        results = []
+        for (u, dt), count in counts.items():
+            if count > 1:
+                results.append({"_id": {"user_email": u, "date": dt}, "count": count})
+        return results
 
     def insert_one(self, doc):
         self.write_calls.append(("insert_one", doc))
+        # Check unique index constraint
+        for idx in self.indexes:
+            if idx.get("unique"):
+                keys = idx["keys"]
+                for existing in self.docs:
+                    if all(existing.get(k) == doc.get(k) for k, _ in keys):
+                        from pymongo.errors import DuplicateKeyError
+                        raise DuplicateKeyError(f"E11000 duplicate key error on index: {idx['name']}")
+
         doc_copy = dict(doc)
         if "_id" not in doc_copy:
             doc_copy["_id"] = ObjectId()
@@ -356,19 +394,64 @@ class FakeWaterCollection:
 
         return InsertResult()
 
-    def update_one(self, query, update):
-        self.write_calls.append(("update_one", query, update))
+    def update_one(self, query, update, upsert=False):
+        self.write_calls.append(("update_one", query, update, upsert))
         matches = self._match(query)
         if not matches:
+            if upsert:
+                # Check unique index constraint for new document
+                for idx in self.indexes:
+                    if idx.get("unique"):
+                        keys = idx["keys"]
+                        for existing in self.docs:
+                            if all(existing.get(k) == query.get(k) for k, _ in keys):
+                                from pymongo.errors import DuplicateKeyError
+                                raise DuplicateKeyError(f"E11000 duplicate key error on index: {idx['name']}")
+
+                new_doc = {"_id": ObjectId()}
+                for k, v in query.items():
+                    if not isinstance(v, dict):
+                        new_doc[k] = v
+                if "$setOnInsert" in update:
+                    for k, v in update["$setOnInsert"].items():
+                        new_doc[k] = v
+                if "$set" in update:
+                    for k, v in update["$set"].items():
+                        new_doc[k] = v
+                if "$inc" in update:
+                    for k, v in update["$inc"].items():
+                        new_doc[k] = new_doc.get(k, 0) + v
+                if "$addToSet" in update:
+                    for k, v in update["$addToSet"].items():
+                        if k not in new_doc or not isinstance(new_doc[k], list):
+                            new_doc[k] = []
+                        if v not in new_doc[k]:
+                            new_doc[k].append(v)
+                self.docs.append(new_doc)
+                class UpsertResult:
+                    matched_count = 0
+                    modified_count = 0
+                    upserted_id = new_doc["_id"]
+                return UpsertResult()
+
             class FakeUpdateResultNotFound:
                 matched_count = 0
                 modified_count = 0
             return FakeUpdateResultNotFound()
-        target = matches[0]
 
+        target = matches[0]
         if "$set" in update:
             for k, val in update["$set"].items():
                 target[k] = val
+        if "$inc" in update:
+            for k, val in update["$inc"].items():
+                target[k] = target.get(k, 0) + val
+        if "$addToSet" in update:
+            for k, val in update["$addToSet"].items():
+                if k not in target or not isinstance(target[k], list):
+                    target[k] = []
+                if val not in target[k]:
+                    target[k].append(val)
 
         class FakeUpdateResultFound:
             matched_count = 1
@@ -384,9 +467,49 @@ class FakeWaterCollection:
         for d in self.docs:
             match = True
             for k, v in query.items():
-                if d.get(k) != v:
-                    match = False
-                    break
+                if k == "$or" and isinstance(v, list):
+                    branch_matches = False
+                    for branch in v:
+                        b_match = True
+                        for bk, bv in branch.items():
+                            if isinstance(bv, dict) and "$exists" in bv:
+                                if (bk in d) != bv["$exists"]:
+                                    b_match = False
+                                    break
+                            elif d.get(bk) != bv:
+                                b_match = False
+                                break
+                        if b_match:
+                            branch_matches = True
+                            break
+                    if not branch_matches:
+                        match = False
+                        break
+                elif isinstance(v, dict) and "$ne" in v:
+                    target_val = v["$ne"]
+                    val = d.get(k)
+                    if isinstance(val, list):
+                        if target_val in val:
+                            match = False
+                            break
+                    else:
+                        if val == target_val:
+                            match = False
+                            break
+                elif isinstance(v, dict) and "$exists" in v:
+                    if (k in d) != v["$exists"]:
+                        match = False
+                        break
+                else:
+                    val = d.get(k)
+                    if isinstance(val, list) and not isinstance(v, list):
+                        if v not in val:
+                            match = False
+                            break
+                    else:
+                        if val != v:
+                            match = False
+                            break
             if match:
                 results.append(d)
         return results
@@ -413,10 +536,18 @@ class TestChatCheckpoint1And2(unittest.TestCase):
         self.mock_workout_col = FakeMongoCollection()
         self.mock_conversations_col = FakeConversationsCollection()
         self.mock_water_col = FakeWaterCollection()
+        self.mock_db = {"day_resets": FakeMongoCollection()}
         chat_module.nutrition_col = self.mock_nutrition_col
         chat_module.workout_history_col = self.mock_workout_col
         chat_module.conversations_col = self.mock_conversations_col
         chat_module.water_col = self.mock_water_col
+        nutrition_module.db = self.mock_db
+        nutrition_module.water_collection = self.mock_water_col
+        nutrition_module.nutrition_collection = self.mock_nutrition_col
+        nutrition_module.user_repo.get_by_email = lambda email: {
+            "email": email,
+            "health_stats": {"water_target_ml": 2000, "daily_calories": 2000},
+        }
 
     def tearDown(self):
         if self.orig_gemini is not None:
@@ -435,6 +566,7 @@ class TestChatCheckpoint1And2(unittest.TestCase):
             os.environ.pop("AI_TIMEOUT_SECONDS", None)
 
         chat_module.water_col = self.mock_water_col
+        nutrition_module.water_collection = self.mock_water_col
 
     # ═════════════════════════════════════════════════════════════
     # CHECKPOINT 1 REGRESSION TESTS
@@ -1406,8 +1538,8 @@ class TestChatCheckpoint1And2(unittest.TestCase):
 
         asyncio.run(_test())
 
-    def test_checkpoint4a_repeated_confirmation_fails(self):
-        """Re-confirming the same action raises HTTP 409 and does NOT increment water twice."""
+    def test_checkpoint4a_repeated_confirmation_is_idempotent_and_does_not_increment_water(self):
+        """Re-confirming the same action is idempotent: returns success and does NOT increment water twice."""
         user = {"_id": "u100", "email": "userA@example.com"}
         req = ChatRequest(message="Log 250ml nước")
 
@@ -1420,13 +1552,16 @@ class TestChatCheckpoint1And2(unittest.TestCase):
             res1 = await confirm_action(confirm_req, current_user=user)
             self.assertEqual(res1["status"], "success")
             self.assertEqual(res1["amount_ml"], 250)
+            self.assertEqual(res1["added_ml"], 250)
 
-            # Second confirmation must raise 409
-            with self.assertRaises(HTTPException) as ctx:
-                await confirm_action(confirm_req, current_user=user)
-            self.assertEqual(ctx.exception.status_code, 409)
+            # Second confirmation must be idempotent (returns success with current total, does not increment water)
+            res2 = await confirm_action(confirm_req, current_user=user)
+            self.assertEqual(res2["status"], "success")
+            self.assertEqual(res2["amount_ml"], 250)
+            self.assertEqual(res2["added_ml"], 250)
 
             # Water total is still 250, not 500
+            self.assertEqual(len(self.mock_water_col.docs), 1)
             self.assertEqual(self.mock_water_col.docs[0]["amount_ml"], 250)
 
         asyncio.run(_test())
@@ -1484,7 +1619,10 @@ class TestChatCheckpoint1And2(unittest.TestCase):
         asyncio.run(_test())
 
     def test_checkpoint4a_db_error_does_not_mark_confirmed(self):
-        """If writing water_col fails, returns HTTP 503 and rolls back action status from confirmed."""
+        """If writing water_col fails, returns HTTP 503 and leaves action status as processing (no rollback to pending).
+
+        On retry after error, it safely completes and logs water exactly once.
+        """
         user = {"_id": "u100", "email": "userA@example.com"}
         req = ChatRequest(message="Thêm 250ml nước")
 
@@ -1493,14 +1631,969 @@ class TestChatCheckpoint1And2(unittest.TestCase):
             c_id = resp["conversation_id"]
             a_id = resp["action"]["id"]
 
-            with patch.object(self.mock_water_col, "insert_one", side_effect=Exception("Database connection loss")):
+            with patch.object(self.mock_water_col, "update_one", side_effect=Exception("Database connection loss")):
                 with self.assertRaises(HTTPException) as ctx:
                     await confirm_action(ActionDecisionRequest(conversation_id=c_id, action_id=a_id), current_user=user)
                 self.assertEqual(ctx.exception.status_code, 503)
 
-            # Status in DB was rolled back from "confirmed" back to "pending"
+            # Status in DB remains "processing" (NOT rolled back to pending, NOT falsely marked as confirmed)
             conv_doc = self.mock_conversations_col.find_one({"_id": ObjectId(c_id)})
-            self.assertEqual(conv_doc["pending_action"]["status"], "pending")
+            self.assertEqual(conv_doc["pending_action"]["status"], "processing")
+            self.assertEqual(len(self.mock_water_col.docs), 0)
+
+            # Retry after error: safely completes and increments exactly once
+            retry_res = await confirm_action(ActionDecisionRequest(conversation_id=c_id, action_id=a_id), current_user=user)
+            self.assertEqual(retry_res["status"], "success")
+            self.assertEqual(retry_res["amount_ml"], 250)
+
+            conv_doc_after = self.mock_conversations_col.find_one({"_id": ObjectId(c_id)})
+            self.assertEqual(conv_doc_after["pending_action"]["status"], "confirmed")
+            self.assertEqual(len(self.mock_water_col.docs), 1)
+            self.assertEqual(self.mock_water_col.docs[0]["amount_ml"], 250)
+
+        asyncio.run(_test())
+
+    def test_checkpoint4a_water_write_succeeded_client_exception_then_retry(self):
+        """Water write succeeded in DB, but client received exception before completion.
+
+        Retry must succeed and keep exact total without double-adding 250ml.
+        """
+        user = {"_id": "u100", "email": "userA@example.com"}
+        req = ChatRequest(message="Thêm 250ml nước")
+
+        async def _test():
+            resp = await chat_with_ai(req, current_user=user)
+            c_id = resp["conversation_id"]
+            a_id = resp["action"]["id"]
+
+            confirm_req = ActionDecisionRequest(conversation_id=c_id, action_id=a_id)
+
+            # Simulate: water write in water_col actually succeeds,
+            # but client experiences a network exception / timeout before receiving the response
+            orig_water_update = self.mock_water_col.update_one
+            first_attempt = True
+
+            def water_write_succeeds_then_network_drops(query, update, *args, **kwargs):
+                nonlocal first_attempt
+                res = orig_water_update(query, update, *args, **kwargs)
+                if first_attempt and "$inc" in update:
+                    first_attempt = False
+                    raise asyncio.TimeoutError("Client network connection timed out")
+                return res
+
+            with patch.object(self.mock_water_col, "update_one", side_effect=water_write_succeeds_then_network_drops):
+                with self.assertRaises(HTTPException) as ctx:
+                    await confirm_action(confirm_req, current_user=user)
+                self.assertEqual(ctx.exception.status_code, 503)
+
+            # Verification 1: Water write in water_col HAS ACTUALLY SUCCEEDED (amount_ml = 250)
+            self.assertEqual(len(self.mock_water_col.docs), 1)
+            water_doc = self.mock_water_col.docs[0]
+            self.assertEqual(water_doc["amount_ml"], 250)
+            self.assertIn(a_id, water_doc.get("applied_actions", []))
+
+            # Client RETRIES confirm_action
+            retry_res = await confirm_action(confirm_req, current_user=user)
+            self.assertEqual(retry_res["status"], "success")
+            self.assertEqual(retry_res["amount_ml"], 250)
+            self.assertEqual(retry_res["added_ml"], 250)
+
+            # Verification 2: Water total in DB is still EXACTLY 250ml (NOT 500ml)!
+            self.assertEqual(self.mock_water_col.docs[0]["amount_ml"], 250)
+
+            # Conversation status is confirmed
+            conv_doc_after = self.mock_conversations_col.find_one({"_id": ObjectId(c_id)})
+            self.assertEqual(conv_doc_after["pending_action"]["status"], "confirmed")
+
+        asyncio.run(_test())
+
+    def test_checkpoint4a_concurrent_confirm_and_cancel_never_adds_water_if_cancelled(self):
+        """Confirm and cancel running concurrently on the same action must never result in cancelled status with water added."""
+        user = {"_id": "u100", "email": "userA@example.com"}
+        req = ChatRequest(message="Thêm 250ml nước")
+
+        async def _test():
+            resp = await chat_with_ai(req, current_user=user)
+            c_id = resp["conversation_id"]
+            a_id = resp["action"]["id"]
+
+            confirm_req = ActionDecisionRequest(conversation_id=c_id, action_id=a_id)
+            cancel_req = ActionDecisionRequest(conversation_id=c_id, action_id=a_id)
+
+            results = await asyncio.gather(
+                confirm_action(confirm_req, current_user=user),
+                cancel_action(cancel_req, current_user=user),
+                return_exceptions=True,
+            )
+
+            confirm_outcome = results[0]
+            cancel_outcome = results[1]
+
+            # Exactly one must succeed, the other must fail with 409
+            if isinstance(confirm_outcome, dict):
+                # Confirm won
+                self.assertEqual(confirm_outcome["status"], "success")
+                self.assertIsInstance(cancel_outcome, HTTPException)
+                self.assertEqual(cancel_outcome.status_code, 409)
+                self.assertEqual(len(self.mock_water_col.docs), 1)
+                self.assertEqual(self.mock_water_col.docs[0]["amount_ml"], 250)
+            else:
+                # Cancel won
+                self.assertIsInstance(confirm_outcome, HTTPException)
+                self.assertEqual(confirm_outcome.status_code, 409)
+                self.assertIsInstance(cancel_outcome, dict)
+                self.assertEqual(cancel_outcome["status"], "cancelled")
+                # CRITICAL INVARIANT: 0 writes to water_col, 0 water added!
+                self.assertEqual(len(self.mock_water_col.docs), 0)
+
+        asyncio.run(_test())
+
+    def test_checkpoint4a_real_post_water_interaction_and_first_record_isolation(self):
+        """Test interaction with real POST /water logic (reading and $set total) and first record creation.
+
+        An action ID must never be added to two different documents.
+        """
+        user = {"_id": "u100", "email": "userA@example.com"}
+        today_str = _get_current_vn_date()
+
+        # Simulate real POST /water behavior from backend/routers/nutrition.py
+        def real_post_water_logic(col, email, date_str, amount_ml):
+            existing = col.find_one({"user_email": email, "date": date_str})
+            if existing:
+                col.update_one(
+                    {"_id": existing["_id"]},
+                    {"$set": {"amount_ml": amount_ml, "updated_at": datetime.utcnow()}},
+                )
+                return str(existing["_id"])
+            else:
+                res = col.insert_one({
+                    "user_email": email,
+                    "date": date_str,
+                    "amount_ml": amount_ml,
+                    "created_at": datetime.utcnow(),
+                    "updated_at": datetime.utcnow(),
+                })
+                return str(res.inserted_id)
+
+        async def _test():
+            # Scenario: Two concurrent requests attempting to create the first record of the day:
+            # Request 1: POST /water (e.g. Flutter sends 500ml)
+            # Request 2: Chat confirm (+250ml)
+            resp = await chat_with_ai(ChatRequest(message="Thêm 250ml nước"), current_user=user)
+            c_id = resp["conversation_id"]
+            a_id = resp["action"]["id"]
+
+            confirm_req = ActionDecisionRequest(conversation_id=c_id, action_id=a_id)
+
+            # Pre-simulate real POST /water creating the first record (500ml)
+            doc_id = real_post_water_logic(self.mock_water_col, "userA@example.com", today_str, 500)
+            self.assertEqual(len(self.mock_water_col.docs), 1)
+
+            # Now Chat confirms (+250ml)
+            confirm_res = await confirm_action(confirm_req, current_user=user)
+            self.assertEqual(confirm_res["status"], "success")
+
+            # Must update the existing document from 500 to 750 (not create a second document!)
+            self.assertEqual(len(self.mock_water_col.docs), 1)
+            self.assertEqual(self.mock_water_col.docs[0]["amount_ml"], 750)
+            self.assertEqual(str(self.mock_water_col.docs[0]["_id"]), doc_id)
+            self.assertIn(a_id, self.mock_water_col.docs[0].get("applied_actions", []))
+
+            # INVARIANT: Action ID is recorded in exactly ONE document
+            docs_with_action = [
+                d for d in self.mock_water_col.docs
+                if a_id in d.get("applied_actions", [])
+            ]
+            self.assertEqual(len(docs_with_action), 1)
+
+            # Even if a second document artificially exists for this date, retry NEVER adds action_id to the second document
+            extra_doc = {
+                "_id": ObjectId(),
+                "user_email": "userA@example.com",
+                "date": today_str,
+                "amount_ml": 100,
+                "applied_actions": [],
+            }
+            self.mock_water_col.docs.append(extra_doc)
+
+            # Retry confirm
+            retry_res = await confirm_action(confirm_req, current_user=user)
+            self.assertEqual(retry_res["status"], "success")
+
+            # Check that extra_doc was NOT modified and action_id was NOT added to it
+            self.assertEqual(extra_doc["amount_ml"], 100)
+            self.assertNotIn(a_id, extra_doc.get("applied_actions", []))
+
+            # Total docs with action_id remains strictly 1
+            docs_with_action_after = [
+                d for d in self.mock_water_col.docs
+                if a_id in d.get("applied_actions", [])
+            ]
+            self.assertEqual(len(docs_with_action_after), 1)
+
+        asyncio.run(_test())
+
+    def test_checkpoint4a_concurrent_water_updates_keep_exact_total(self):
+        """Concurrent water updates (Chat confirm + another water update) keep exact total without lost updates."""
+        user = {"_id": "u100", "email": "userA@example.com"}
+        today_str = _get_current_vn_date()
+        self.mock_water_col.docs = [
+            {
+                "_id": ObjectId(),
+                "user_email": "userA@example.com",
+                "date": today_str,
+                "amount_ml": 500,
+                "applied_actions": [],
+            }
+        ]
+        req = ChatRequest(message="Ghi nhận 250ml nước")
+
+        async def _test():
+            resp = await chat_with_ai(req, current_user=user)
+            c_id = resp["conversation_id"]
+            a_id = resp["action"]["id"]
+
+            confirm_req = ActionDecisionRequest(conversation_id=c_id, action_id=a_id)
+
+            # Concurrent water logging task (e.g. 300ml added simultaneously)
+            async def concurrent_intake():
+                self.mock_water_col.update_one(
+                    {"user_email": "userA@example.com", "date": today_str},
+                    {"$inc": {"amount_ml": 300}},
+                )
+
+            # Execute both concurrently
+            res1, _ = await asyncio.gather(
+                confirm_action(confirm_req, current_user=user),
+                concurrent_intake(),
+            )
+
+            self.assertEqual(res1["status"], "success")
+
+            # Initial 500 + 250 (Chat confirm) + 300 (Concurrent update) = 1050ml
+            water_doc = self.mock_water_col.docs[0]
+            self.assertEqual(water_doc["amount_ml"], 1050)
+            self.assertIn(a_id, water_doc.get("applied_actions", []))
+
+        asyncio.run(_test())
+
+    def test_checkpoint4a_index_creation_refuses_when_duplicates_exist(self):
+        """Index creation must fail with RuntimeError if duplicates exist, without deleting or merging them."""
+        from backend.app.database import ensure_water_logs_unique_index, check_water_logs_duplicates
+
+        today_str = _get_current_vn_date()
+        doc1 = {
+            "_id": ObjectId(),
+            "user_email": "dup@example.com",
+            "date": today_str,
+            "amount_ml": 250,
+            "applied_actions": ["a1"],
+        }
+        doc2 = {
+            "_id": ObjectId(),
+            "user_email": "dup@example.com",
+            "date": today_str,
+            "amount_ml": 500,
+            "applied_actions": ["a2"],
+        }
+        self.mock_water_col.docs = [doc1, doc2]
+
+        # 1. Duplicate check detects the group
+        dups = check_water_logs_duplicates(self.mock_water_col)
+        self.assertEqual(len(dups), 1)
+        self.assertEqual(dups[0]["count"], 2)
+
+        # 2. ensure_water_logs_unique_index must refuse and raise RuntimeError
+        with self.assertRaises(RuntimeError) as ctx:
+            ensure_water_logs_unique_index(self.mock_water_col)
+        self.assertIn("duplicate group", str(ctx.exception).lower())
+
+        # 3. Documents must NOT be silently deleted or merged (both remain intact)
+        self.assertEqual(len(self.mock_water_col.docs), 2)
+        self.assertEqual(self.mock_water_col.docs[0]["amount_ml"], 250)
+        self.assertEqual(self.mock_water_col.docs[1]["amount_ml"], 500)
+
+    def test_checkpoint4a_unique_index_prevents_duplicate_first_record(self):
+        """When unique index exists, two requests creating first record of the day cannot create 2 docs."""
+        from pymongo.errors import DuplicateKeyError
+        from backend.app.database import ensure_water_logs_unique_index
+
+        today_str = _get_current_vn_date()
+        self.mock_water_col.docs = []
+
+        # Create unique index
+        ensure_water_logs_unique_index(self.mock_water_col)
+
+        # Request 1 creates first record
+        self.mock_water_col.insert_one({
+            "user_email": "userA@example.com",
+            "date": today_str,
+            "amount_ml": 500,
+        })
+        self.assertEqual(len(self.mock_water_col.docs), 1)
+
+        # Request 2 (concurrent insert with same email and date) must raise DuplicateKeyError
+        with self.assertRaises(DuplicateKeyError):
+            self.mock_water_col.insert_one({
+                "user_email": "userA@example.com",
+                "date": today_str,
+                "amount_ml": 250,
+            })
+
+        # Collection must strictly retain only 1 record
+        self.assertEqual(len(self.mock_water_col.docs), 1)
+        self.assertEqual(self.mock_water_col.docs[0]["amount_ml"], 500)
+
+    def test_checkpoint4a_controlled_cancel_wins_before_confirm_no_water(self):
+        """Controlled interleaving: Cancel wins before Confirm -> 0 water logged, Confirm rejected with 409."""
+        user = {"_id": "u100", "email": "userA@example.com"}
+        req = ChatRequest(message="Thêm 250ml nước")
+
+        async def _test():
+            resp = await chat_with_ai(req, current_user=user)
+            c_id = resp["conversation_id"]
+            a_id = resp["action"]["id"]
+
+            confirm_req = ActionDecisionRequest(conversation_id=c_id, action_id=a_id)
+            cancel_req = ActionDecisionRequest(conversation_id=c_id, action_id=a_id)
+
+            # Step 1: Cancel runs first and wins
+            cancel_res = await cancel_action(cancel_req, current_user=user)
+            self.assertEqual(cancel_res["status"], "cancelled")
+
+            # Step 2: Confirm runs after Cancel has won
+            with self.assertRaises(HTTPException) as ctx:
+                await confirm_action(confirm_req, current_user=user)
+            self.assertEqual(ctx.exception.status_code, 409)
+            self.assertIn("cancelled", str(ctx.exception.detail).lower())
+
+            # INVARIANT: 0 writes to water_col, 0 water added
+            self.assertEqual(len(self.mock_water_col.docs), 0)
+
+            # Conversation status is cancelled
+            conv = self.mock_conversations_col.find_one({"_id": ObjectId(c_id)})
+            self.assertEqual(conv["pending_action"]["status"], "cancelled")
+
+        asyncio.run(_test())
+
+    def test_checkpoint4a_controlled_confirm_wins_before_cancel_cancel_rejected(self):
+        """Controlled interleaving: Confirm acquires processing lock -> concurrent Cancel is rejected with 409."""
+        user = {"_id": "u100", "email": "userA@example.com"}
+        req = ChatRequest(message="Thêm 250ml nước")
+
+        async def _test():
+            resp = await chat_with_ai(req, current_user=user)
+            c_id = resp["conversation_id"]
+            a_id = resp["action"]["id"]
+
+            confirm_req = ActionDecisionRequest(conversation_id=c_id, action_id=a_id)
+            cancel_req = ActionDecisionRequest(conversation_id=c_id, action_id=a_id)
+
+            cancel_rejected = False
+
+            # Hook into water_col write to simulate Cancel running while Confirm is in 'processing' state
+            orig_update_one = self.mock_water_col.update_one
+            async def cancel_during_processing(*args, **kwargs):
+                nonlocal cancel_rejected
+                # Attempt cancel while status is 'processing'
+                try:
+                    await cancel_action(cancel_req, current_user=user)
+                except HTTPException as e:
+                    if e.status_code == 409:
+                        cancel_rejected = True
+                return orig_update_one(*args, **kwargs)
+
+            # Manually run the interleaving:
+            # 1. Confirm transitions pending -> processing
+            self.mock_conversations_col.update_one(
+                {"_id": ObjectId(c_id), "pending_action.status": "pending"},
+                {"$set": {"pending_action.status": "processing"}}
+            )
+
+            # 2. Cancel runs while in processing state -> MUST BE REJECTED (409)
+            with self.assertRaises(HTTPException) as ctx:
+                await cancel_action(cancel_req, current_user=user)
+            self.assertEqual(ctx.exception.status_code, 409)
+
+            # 3. Confirm completes safely
+            confirm_res = await confirm_action(confirm_req, current_user=user)
+            self.assertEqual(confirm_res["status"], "success")
+            self.assertEqual(confirm_res["amount_ml"], 250)
+
+            # INVARIANT: Water was logged, status is confirmed
+            self.assertEqual(len(self.mock_water_col.docs), 1)
+            self.assertEqual(self.mock_water_col.docs[0]["amount_ml"], 250)
+            conv = self.mock_conversations_col.find_one({"_id": ObjectId(c_id)})
+            self.assertEqual(conv["pending_action"]["status"], "confirmed")
+
+        asyncio.run(_test())
+
+    def test_checkpoint4a_controlled_two_concurrent_confirms_increments_once(self):
+        """Controlled interleaving: Two concurrent confirms for same action_id increment 250ml only once."""
+        user = {"_id": "u100", "email": "userA@example.com"}
+        req = ChatRequest(message="Thêm 250ml nước")
+
+        async def _test():
+            resp = await chat_with_ai(req, current_user=user)
+            c_id = resp["conversation_id"]
+            a_id = resp["action"]["id"]
+
+            confirm_req = ActionDecisionRequest(conversation_id=c_id, action_id=a_id)
+
+            # Confirm 1 completes
+            res1 = await confirm_action(confirm_req, current_user=user)
+            self.assertEqual(res1["status"], "success")
+            self.assertEqual(res1["amount_ml"], 250)
+
+            # Confirm 2 (concurrent or repeated with same action_id)
+            res2 = await confirm_action(confirm_req, current_user=user)
+            self.assertEqual(res2["status"], "success")
+            self.assertEqual(res2["amount_ml"], 250)
+
+            # INVARIANT: Total is strictly 250ml, NOT 500ml
+            self.assertEqual(len(self.mock_water_col.docs), 1)
+            self.assertEqual(self.mock_water_col.docs[0]["amount_ml"], 250)
+            self.assertEqual(self.mock_water_col.docs[0]["applied_actions"], [a_id])
+
+        asyncio.run(_test())
+
+    def test_checkpoint4a_controlled_water_write_succeeds_but_errors_retry_does_not_increment(self):
+        """Controlled interleaving: Water write succeeds in DB but error is reported -> retry does not increment second time."""
+        user = {"_id": "u100", "email": "userA@example.com"}
+        req = ChatRequest(message="Thêm 250ml nước")
+
+        async def _test():
+            resp = await chat_with_ai(req, current_user=user)
+            c_id = resp["conversation_id"]
+            a_id = resp["action"]["id"]
+
+            confirm_req = ActionDecisionRequest(conversation_id=c_id, action_id=a_id)
+
+            orig_update = self.mock_water_col.update_one
+            first_attempt = True
+
+            def write_succeeds_then_connection_drops(query, update, *args, **kwargs):
+                nonlocal first_attempt
+                res = orig_update(query, update, *args, **kwargs)
+                if first_attempt and "$inc" in update:
+                    first_attempt = False
+                    raise asyncio.TimeoutError("Network dropped right after DB write")
+                return res
+
+            with patch.object(self.mock_water_col, "update_one", side_effect=write_succeeds_then_connection_drops):
+                with self.assertRaises(HTTPException) as ctx:
+                    await confirm_action(confirm_req, current_user=user)
+                self.assertEqual(ctx.exception.status_code, 503)
+
+            # INVARIANT 1: Water was actually written in DB (250ml)
+            self.assertEqual(len(self.mock_water_col.docs), 1)
+            self.assertEqual(self.mock_water_col.docs[0]["amount_ml"], 250)
+
+            # INVARIANT 2: Status was NOT rolled back to pending (remains processing)
+            conv = self.mock_conversations_col.find_one({"_id": ObjectId(c_id)})
+            self.assertEqual(conv["pending_action"]["status"], "processing")
+
+            # Client retries
+            retry_res = await confirm_action(confirm_req, current_user=user)
+            self.assertEqual(retry_res["status"], "success")
+            self.assertEqual(retry_res["amount_ml"], 250)
+
+            # INVARIANT 3: Total water in DB is still EXACTLY 250ml (NOT 500ml)
+            self.assertEqual(self.mock_water_col.docs[0]["amount_ml"], 250)
+            conv_after = self.mock_conversations_col.find_one({"_id": ObjectId(c_id)})
+            self.assertEqual(conv_after["pending_action"]["status"], "confirmed")
+
+        asyncio.run(_test())
+
+    def test_checkpoint4a_controlled_error_before_water_write_retry_increments_once(self):
+        """Controlled interleaving: Error occurs before water write -> retry increments exactly once."""
+        user = {"_id": "u100", "email": "userA@example.com"}
+        req = ChatRequest(message="Thêm 250ml nước")
+
+        async def _test():
+            resp = await chat_with_ai(req, current_user=user)
+            c_id = resp["conversation_id"]
+            a_id = resp["action"]["id"]
+
+            confirm_req = ActionDecisionRequest(conversation_id=c_id, action_id=a_id)
+
+            # Error happens before water write
+            with patch.object(self.mock_water_col, "update_one", side_effect=Exception("DB connection refused")):
+                with self.assertRaises(HTTPException) as ctx:
+                    await confirm_action(confirm_req, current_user=user)
+                self.assertEqual(ctx.exception.status_code, 503)
+
+            # INVARIANT 1: No water was written
+            self.assertEqual(len(self.mock_water_col.docs), 0)
+
+            # INVARIANT 2: Status remains processing (NOT rolled back to pending)
+            conv = self.mock_conversations_col.find_one({"_id": ObjectId(c_id)})
+            self.assertEqual(conv["pending_action"]["status"], "processing")
+
+            # Client retries -> successfully writes 250ml
+            retry_res = await confirm_action(confirm_req, current_user=user)
+            self.assertEqual(retry_res["status"], "success")
+            self.assertEqual(retry_res["amount_ml"], 250)
+
+            # INVARIANT 3: Exactly 250ml recorded, status confirmed
+            self.assertEqual(len(self.mock_water_col.docs), 1)
+            self.assertEqual(self.mock_water_col.docs[0]["amount_ml"], 250)
+            conv_after = self.mock_conversations_col.find_one({"_id": ObjectId(c_id)})
+            self.assertEqual(conv_after["pending_action"]["status"], "confirmed")
+
+        asyncio.run(_test())
+
+    def test_checkpoint4a_controlled_retry_past_midnight_writes_to_action_date(self):
+        """Controlled interleaving: Retry past midnight writes to the original action's date, not current date."""
+        user = {"_id": "u100", "email": "userA@example.com"}
+
+        async def _test():
+            # Create a pending action with a specific past date (e.g. yesterday: 2026-09-26)
+            yesterday_date = "2026-09-26"
+            a_id = str(ObjectId())
+            conv_doc = {
+                "_id": ObjectId(),
+                "user_id": user["_id"],
+                "user_email": user["email"],
+                "title": "Hỏi nước",
+                "messages": [],
+                "pending_action": {
+                    "id": a_id,
+                    "type": "log_water",
+                    "amount_ml": 250,
+                    "status": "pending",
+                    "date": yesterday_date,
+                    "created_at": "2026-09-26T23:55:00Z",
+                },
+                "created_at": "2026-09-26T23:55:00Z",
+                "updated_at": "2026-09-26T23:55:00Z",
+            }
+            self.mock_conversations_col.docs.append(conv_doc)
+
+            confirm_req = ActionDecisionRequest(conversation_id=str(conv_doc["_id"]), action_id=a_id)
+
+            # Confirm is executed now (current date: today)
+            confirm_res = await confirm_action(confirm_req, current_user=user)
+            self.assertEqual(confirm_res["status"], "success")
+            self.assertEqual(confirm_res["amount_ml"], 250)
+
+            # INVARIANT: Water is written to yesterday_date (2026-09-26), NOT today's date!
+            yesterday_doc = self.mock_water_col.find_one({"date": yesterday_date})
+            self.assertIsNotNone(yesterday_doc)
+            self.assertEqual(yesterday_doc["amount_ml"], 250)
+            self.assertIn(a_id, yesterday_doc["applied_actions"])
+
+            today_date = _get_current_vn_date()
+            if today_date != yesterday_date:
+                today_doc = self.mock_water_col.find_one({"date": today_date})
+                self.assertIsNone(today_doc)
+
+        asyncio.run(_test())
+
+    def test_checkpoint4a_controlled_upsert_hits_unique_index_retries_and_no_second_record(self):
+        """Controlled interleaving: Upsert collision on unique index retries safely without creating duplicate record."""
+        from pymongo.errors import DuplicateKeyError
+
+        user = {"_id": "u100", "email": "userA@example.com"}
+        req = ChatRequest(message="Thêm 250ml nước")
+
+        async def _test():
+            self.mock_water_col.create_index([("user_email", 1), ("date", 1)], unique=True)
+
+            resp = await chat_with_ai(req, current_user=user)
+            c_id = resp["conversation_id"]
+            a_id = resp["action"]["id"]
+            confirm_req = ActionDecisionRequest(conversation_id=c_id, action_id=a_id)
+
+            today_str = _get_current_vn_date()
+            orig_update = self.mock_water_col.update_one
+            first_upsert_attempt = True
+
+            def simulate_concurrent_upsert_collision(query, update, *args, **kwargs):
+                nonlocal first_upsert_attempt
+                if first_upsert_attempt and kwargs.get("upsert"):
+                    first_upsert_attempt = False
+                    # Another concurrent thread inserts the record first
+                    self.mock_water_col.docs.append({
+                        "_id": ObjectId(),
+                        "user_email": user["email"],
+                        "date": today_str,
+                        "amount_ml": 100,
+                        "applied_actions": [],
+                        "created_at": datetime.utcnow(),
+                        "updated_at": datetime.utcnow(),
+                    })
+                    # MongoDB throws DuplicateKeyError on the colliding upsert
+                    raise DuplicateKeyError("E11000 duplicate key error on index: user_email_1_date_1")
+                return orig_update(query, update, *args, **kwargs)
+
+            with patch.object(self.mock_water_col, "update_one", side_effect=simulate_concurrent_upsert_collision):
+                confirm_res = await confirm_action(confirm_req, current_user=user)
+                self.assertEqual(confirm_res["status"], "success")
+                # 100ml from colliding insert + 250ml from chat confirm = 350ml
+                self.assertEqual(confirm_res["amount_ml"], 350)
+
+            # INVARIANT: Exactly 1 record exists in water_col (no duplicate record!)
+            self.assertEqual(len(self.mock_water_col.docs), 1)
+            self.assertEqual(self.mock_water_col.docs[0]["amount_ml"], 350)
+            self.assertIn(a_id, self.mock_water_col.docs[0]["applied_actions"])
+
+        asyncio.run(_test())
+
+    def test_checkpoint4a_chat_confirm_then_nutrition_sends_old_total_returns_409_and_keeps_confirmed_water(self):
+        """Chat +250ml then Nutrition sends old total -> returns 409 Conflict and keeps confirmed +250ml."""
+        user = {"_id": "u100", "email": "userA@example.com"}
+        today_str = _get_current_vn_date()
+
+        async def _test():
+            # 1. User asks Chat to add 250ml water
+            resp = await chat_with_ai(ChatRequest(message="Thêm 250ml nước"), current_user=user)
+            self.assertEqual(resp["status"], "success")
+            c_id = resp["conversation_id"]
+            a_id = resp["action"]["id"]
+
+            # 2. User confirms action in Chat
+            confirm_req = ActionDecisionRequest(conversation_id=c_id, action_id=a_id)
+            confirm_res = await confirm_action(confirm_req, current_user=user)
+            self.assertEqual(confirm_res["status"], "success")
+            self.assertEqual(confirm_res["amount_ml"], 250)
+
+            # Invariant: DB document now has amount_ml=250 and version=1
+            doc = self.mock_water_col.find_one({"user_email": user["email"], "date": today_str})
+            self.assertIsNotNone(doc)
+            self.assertEqual(doc["amount_ml"], 250)
+            self.assertEqual(doc["version"], 1)
+
+            # 3. Nutrition screen (holding stale state with old version 0 or old total 0) sends edit total
+            stale_payload = WaterLog(date=today_str, amount_ml=0, version=0)
+            with self.assertRaises(HTTPException) as cm:
+                await log_water_intake(stale_payload, user=user)
+
+            # Invariant: HTTP 409 Conflict is raised with current amount and version
+            self.assertEqual(cm.exception.status_code, 409)
+            detail = cm.exception.detail
+            self.assertIn("current_amount_ml", detail)
+            self.assertEqual(detail["current_amount_ml"], 250)
+            self.assertEqual(detail["current_version"], 1)
+
+            # Invariant: The confirmed 250ml water is NOT overwritten or lost
+            doc_after = self.mock_water_col.find_one({"user_email": user["email"], "date": today_str})
+            self.assertEqual(doc_after["amount_ml"], 250)
+            self.assertEqual(doc_after["version"], 1)
+
+        asyncio.run(_test())
+
+    def test_checkpoint4a_concurrent_water_additions_do_not_lose_updates(self):
+        """Concurrent water additions (Chat confirm + Nutrition delta add) do not lose updates."""
+        user = {"_id": "u100", "email": "userA@example.com"}
+        today_str = _get_current_vn_date()
+
+        async def _test():
+            # Create a pending chat action
+            resp = await chat_with_ai(ChatRequest(message="Ghi nhận 250ml nước"), current_user=user)
+            c_id = resp["conversation_id"]
+            a_id = resp["action"]["id"]
+            confirm_req = ActionDecisionRequest(conversation_id=c_id, action_id=a_id)
+
+            # Nutrition delta request
+            nutrition_key = "nutri-delta-key-001"
+            nutrition_payload = WaterLog(date=today_str, delta_ml=250, idempotency_key=nutrition_key)
+
+            # Execute Chat confirm and Nutrition delta concurrently
+            res_chat, res_nutri = await asyncio.gather(
+                confirm_action(confirm_req, current_user=user),
+                log_water_intake(nutrition_payload, user=user),
+            )
+
+            self.assertEqual(res_chat["status"], "success")
+            self.assertEqual(res_nutri["status"], "saved")
+
+            # Invariant: Total is exactly 500ml, version is 2
+            doc = self.mock_water_col.find_one({"user_email": user["email"], "date": today_str})
+            self.assertIsNotNone(doc)
+            self.assertEqual(doc["amount_ml"], 500)
+            self.assertEqual(doc["version"], 2)
+            self.assertIn(a_id, doc["applied_actions"])
+            self.assertIn(nutrition_key, doc["applied_actions"])
+
+        asyncio.run(_test())
+
+    def test_checkpoint4a_nutrition_retry_same_idempotency_key_does_not_double_add(self):
+        """Nutrition retry with same idempotency_key does not add water a second time."""
+        user = {"_id": "u100", "email": "userA@example.com"}
+        today_str = _get_current_vn_date()
+        key = "idem-retry-999"
+        payload = WaterLog(date=today_str, delta_ml=250, idempotency_key=key)
+
+        async def _test():
+            # First attempt: successfully adds 250ml
+            res1 = await log_water_intake(payload, user=user)
+            self.assertEqual(res1["amount_ml"], 250)
+            self.assertEqual(res1["version"], 1)
+
+            # Second attempt (retry): same idempotency_key
+            res2 = await log_water_intake(payload, user=user)
+            self.assertEqual(res2["status"], "saved")
+            self.assertEqual(res2["message"], "Water intake already logged")
+            self.assertEqual(res2["amount_ml"], 250)
+            self.assertEqual(res2["version"], 1)
+
+            # Invariant: Document in DB has amount_ml=250 and version=1 (not 500 or 2)
+            doc = self.mock_water_col.find_one({"user_email": user["email"], "date": today_str})
+            self.assertEqual(doc["amount_ml"], 250)
+            self.assertEqual(doc["version"], 1)
+            self.assertEqual(doc["applied_actions"].count(key), 1)
+
+        asyncio.run(_test())
+
+    def test_checkpoint4a_nutrition_edit_total_decrease_with_new_version_succeeds(self):
+        """User can intentionally reduce total water intake after reloading latest version; no max(old, new)."""
+        user = {"_id": "u100", "email": "userA@example.com"}
+        today_str = _get_current_vn_date()
+
+        async def _test():
+            # Seed document with 750ml, version 2
+            self.mock_water_col.docs.append({
+                "_id": ObjectId(),
+                "user_email": user["email"],
+                "date": today_str,
+                "amount_ml": 750,
+                "version": 2,
+                "applied_actions": [],
+                "created_at": datetime.utcnow(),
+                "updated_at": datetime.utcnow(),
+            })
+
+            # User reloaded, got current_version=2. User intentionally decreases to 300ml.
+            decrease_payload = WaterLog(date=today_str, amount_ml=300, version=2)
+            res = await log_water_intake(decrease_payload, user=user)
+
+            self.assertEqual(res["status"], "saved")
+            self.assertEqual(res["amount_ml"], 300)
+            self.assertEqual(res["version"], 3)
+
+            # Invariant: DB document is updated to 300ml (NOT clamped to 750ml via max(old, new))
+            doc = self.mock_water_col.find_one({"user_email": user["email"], "date": today_str})
+            self.assertEqual(doc["amount_ml"], 300)
+            self.assertEqual(doc["version"], 3)
+
+        asyncio.run(_test())
+
+    def test_checkpoint4a_two_independent_user_accounts_isolated(self):
+        """Two user accounts update water independently without cross-talk or conflicting versions."""
+        userA = {"_id": "u1", "email": "userA@example.com"}
+        userB = {"_id": "u2", "email": "userB@example.com"}
+        today_str = _get_current_vn_date()
+
+        async def _test():
+            # User A logs delta +250ml
+            resA = await log_water_intake(
+                WaterLog(date=today_str, delta_ml=250, idempotency_key="keyA1"),
+                user=userA,
+            )
+            self.assertEqual(resA["amount_ml"], 250)
+            self.assertEqual(resA["version"], 1)
+
+            # User B logs delta +500ml
+            resB = await log_water_intake(
+                WaterLog(date=today_str, delta_ml=500, idempotency_key="keyB1"),
+                user=userB,
+            )
+            self.assertEqual(resB["amount_ml"], 500)
+            self.assertEqual(resB["version"], 1)
+
+            # User A confirms Chat action +250ml
+            respA = await chat_with_ai(ChatRequest(message="Thêm 250ml nước"), current_user=userA)
+            c_id = respA["conversation_id"]
+            a_id = respA["action"]["id"]
+            await confirm_action(ActionDecisionRequest(conversation_id=c_id, action_id=a_id), current_user=userA)
+
+            # User A is now 500ml, version 2
+            docA = self.mock_water_col.find_one({"user_email": userA["email"], "date": today_str})
+            self.assertEqual(docA["amount_ml"], 500)
+            self.assertEqual(docA["version"], 2)
+
+            # User B is completely untouched: still 500ml, version 1
+            docB = self.mock_water_col.find_one({"user_email": userB["email"], "date": today_str})
+            self.assertEqual(docB["amount_ml"], 500)
+            self.assertEqual(docB["version"], 1)
+
+            # User B updates total to 600ml with User B's version 1
+            resB2 = await log_water_intake(
+                WaterLog(date=today_str, amount_ml=600, version=1),
+                user=userB,
+            )
+            self.assertEqual(resB2["amount_ml"], 600)
+            self.assertEqual(resB2["version"], 2)
+
+            # User A is still 500ml, version 2
+            docA_after = self.mock_water_col.find_one({"user_email": userA["email"], "date": today_str})
+            self.assertEqual(docA_after["amount_ml"], 500)
+            self.assertEqual(docA_after["version"], 2)
+
+        asyncio.run(_test())
+
+    def test_checkpoint4a_flutter_backend_contract_matches(self):
+        """Verify Flutter and backend data contract matches for water log and daily nutrition plan."""
+        user = {"_id": "u1", "email": "user@example.com"}
+        today_str = _get_current_vn_date()
+
+        async def _test():
+            # 1. Validation: raising 400 when neither amount_ml nor delta_ml is provided
+            invalid_payload = WaterLog(date=today_str)
+            with self.assertRaises(HTTPException) as cm:
+                await log_water_intake(invalid_payload, user=user)
+            self.assertEqual(cm.exception.status_code, 400)
+
+            # 2. Add delta payload contract
+            delta_payload = WaterLog(
+                date=today_str,
+                delta_ml=250,
+                idempotency_key="contract-key-1",
+            )
+            res_delta = await log_water_intake(delta_payload, user=user)
+            self.assertIn("id", res_delta)
+            self.assertIn("message", res_delta)
+            self.assertIn("amount_ml", res_delta)
+            self.assertIn("date", res_delta)
+            self.assertIn("version", res_delta)
+            self.assertIn("status", res_delta)
+            self.assertEqual(res_delta["version"], 1)
+
+            # 3. GET daily nutrition plan contract: returns water_version
+            daily_plan = await get_nutrition_by_date(date=today_str, current_user=user)
+            self.assertIn("water_version", daily_plan)
+            self.assertIn("current_water", daily_plan)
+            self.assertEqual(daily_plan["current_water"], 250)
+            self.assertEqual(daily_plan["water_version"], 1)
+
+            # 4. Conflict response contract
+            conflict_payload = WaterLog(
+                date=today_str,
+                amount_ml=100,
+                version=999,  # Mismatched version
+            )
+            with self.assertRaises(HTTPException) as cm:
+                await log_water_intake(conflict_payload, user=user)
+            self.assertEqual(cm.exception.status_code, 409)
+            detail = cm.exception.detail
+            self.assertIn("message", detail)
+            self.assertIn("current_amount_ml", detail)
+            self.assertIn("current_version", detail)
+            self.assertEqual(detail["current_amount_ml"], 250)
+            self.assertEqual(detail["current_version"], 1)
+
+        asyncio.run(_test())
+
+    def test_checkpoint4a_legacy_water_doc_without_version_edit_total_succeeds_and_increments_version_once(self):
+        """Legacy water_logs without version field: editing total with expected version 0 succeeds and bumps version to 1."""
+        user = {"_id": "u100", "email": "userA@example.com"}
+        today_str = _get_current_vn_date()
+
+        async def _test():
+            # Seed legacy document without version field
+            legacy_doc = {
+                "_id": ObjectId(),
+                "user_email": user["email"],
+                "date": today_str,
+                "amount_ml": 500,
+                "applied_actions": [],
+                # "version" is absent
+                "created_at": datetime.utcnow(),
+                "updated_at": datetime.utcnow(),
+            }
+            self.mock_water_col.docs.append(legacy_doc)
+
+            # 1. Edit total to 600ml with expected version 0 (as read from legacy doc)
+            edit_payload = WaterLog(date=today_str, amount_ml=600, version=0)
+            res = await log_water_intake(edit_payload, user=user)
+
+            self.assertEqual(res["status"], "saved")
+            self.assertEqual(res["amount_ml"], 600)
+            self.assertEqual(res["version"], 1)
+
+            # Invariant: DB document now has amount_ml=600 and version=1 (increased exactly once)
+            doc_after = self.mock_water_col.find_one({"user_email": user["email"], "date": today_str})
+            self.assertIsNotNone(doc_after)
+            self.assertEqual(doc_after["amount_ml"], 600)
+            self.assertEqual(doc_after["version"], 1)
+
+            # 2. Subsequent edit using version 0 MUST fail with 409 Conflict because version is now 1
+            stale_payload = WaterLog(date=today_str, amount_ml=700, version=0)
+            with self.assertRaises(HTTPException) as cm:
+                await log_water_intake(stale_payload, user=user)
+            self.assertEqual(cm.exception.status_code, 409)
+            self.assertEqual(cm.exception.detail["current_version"], 1)
+            self.assertEqual(cm.exception.detail["current_amount_ml"], 600)
+
+        asyncio.run(_test())
+
+    def test_checkpoint4a_post_delta_succeeded_but_client_timed_out_retry_same_idempotency_key_does_not_double_count(self):
+        """POST delta committed in DB but client encountered timeout: retry with same idempotency_key returns success and does not add second time."""
+        user = {"_id": "u100", "email": "userA@example.com"}
+        today_str = _get_current_vn_date()
+        idem_key = "flutter-timeout-key-777"
+        payload = WaterLog(date=today_str, delta_ml=250, idempotency_key=idem_key)
+
+        async def _test():
+            # First attempt: backend commits to DB
+            res1 = await log_water_intake(payload, user=user)
+            self.assertEqual(res1["amount_ml"], 250)
+            self.assertEqual(res1["version"], 1)
+
+            # Simulate client experienced timeout right after server write.
+            # Client retries the same operation with the same idempotency key.
+            res2 = await log_water_intake(payload, user=user)
+            self.assertEqual(res2["status"], "saved")
+            self.assertEqual(res2["message"], "Water intake already logged")
+            self.assertEqual(res2["amount_ml"], 250)
+            self.assertEqual(res2["version"], 1)
+
+            # Invariant: DB document still has amount_ml=250 and version=1, NOT 500 or version 2
+            doc = self.mock_water_col.find_one({"user_email": user["email"], "date": today_str})
+            self.assertEqual(doc["amount_ml"], 250)
+            self.assertEqual(doc["version"], 1)
+            self.assertEqual(doc["applied_actions"], [idem_key])
+
+        asyncio.run(_test())
+
+    def test_checkpoint4a_post_delta_retries_exhausted_without_marker_raises_503_never_saved(self):
+        """When delta update retries are exhausted and marker has not appeared in water_collection, backend raises HTTP 503 and never returns saved."""
+        user = {"_id": "u100", "email": "userA@example.com"}
+        today_str = _get_current_vn_date()
+        key = "unwritten-marker-key"
+        payload = WaterLog(date=today_str, delta_ml=250, idempotency_key=key)
+
+        async def _test():
+            # Seed a document in water_col
+            self.mock_water_col.docs.append({
+                "_id": ObjectId(),
+                "user_email": user["email"],
+                "date": today_str,
+                "amount_ml": 500,
+                "version": 1,
+                "applied_actions": [],
+                "created_at": datetime.utcnow(),
+                "updated_at": datetime.utcnow(),
+            })
+
+            # Simulate update_one returning matched_count=0 so marker is never applied
+            class FakeNoMatchResult:
+                matched_count = 0
+                modified_count = 0
+
+            with patch.object(self.mock_water_col, "update_one", return_value=FakeNoMatchResult()):
+                with self.assertRaises(HTTPException) as cm:
+                    await log_water_intake(payload, user=user)
+
+                # Invariant: Must return controlled HTTP 503, never HTTP 200 or status saved
+                self.assertEqual(cm.exception.status_code, 503)
+                self.assertIn("marker not verified", cm.exception.detail)
+
+            # Invariant: DB document is untouched; amount_ml is still 500, key is NOT in applied_actions
+            doc = self.mock_water_col.find_one({"user_email": user["email"], "date": today_str})
+            self.assertEqual(doc["amount_ml"], 500)
+            self.assertNotIn(key, doc["applied_actions"])
 
         asyncio.run(_test())
 

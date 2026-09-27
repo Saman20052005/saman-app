@@ -578,11 +578,13 @@ async def chat_with_ai(
 
         now_iso = datetime.now(timezone.utc).isoformat()
         action_id = str(ObjectId())
+        action_date = datetime.now(VN_TZ).strftime("%Y-%m-%d")
         action_data = {
             "id": action_id,
             "type": "log_water",
             "amount_ml": 250,
             "status": "pending",
+            "date": action_date,
             "created_at": now_iso,
         }
         reply = "Bạn có muốn thêm 250 ml nước không?"
@@ -815,16 +817,46 @@ async def _process_action_decision(
         )
 
     current_status = pending.get("status")
-    if current_status != "pending":
+    if current_status == "cancelled":
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail=f"Action already {current_status}",
+            detail="Action already cancelled",
         )
 
+    today_vn = datetime.now(VN_TZ).strftime("%Y-%m-%d")
+    target_date = pending.get("date") or today_vn
+    now_utc = datetime.utcnow()
     now_iso = datetime.now(timezone.utc).isoformat()
+    amount_to_add = int(pending.get("amount_ml") or 250)
 
     # 3. Handle Cancel
     if decision == "cancel":
+        if current_status in ("processing", "confirmed"):
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Action already confirmed",
+            )
+        # Check if water was already applied for this action in water_col
+        if water_col is not None:
+            already_applied = water_col.find_one({
+                "user_email": email,
+                "date": target_date,
+                "applied_actions": action_id,
+            })
+            if already_applied:
+                # Water write already took place; cancel is forbidden
+                try:
+                    conversations_col.update_one(
+                        {"_id": conv_obj_id},
+                        {"$set": {"pending_action.status": "confirmed"}}
+                    )
+                except Exception:
+                    pass
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail="Action already confirmed",
+                )
+
         update_cancel = conversations_col.update_one(
             {
                 "_id": conv_obj_id,
@@ -874,73 +906,171 @@ async def _process_action_decision(
             detail="Water storage unavailable",
         )
 
-    # Atomic lock: transition pending -> confirmed
-    update_lock = conversations_col.update_one(
-        {
-            "_id": conv_obj_id,
-            "$or": query_or,
-            "pending_action.id": action_id,
-            "pending_action.status": "pending",
-        },
-        {
-            "$set": {
-                "pending_action.status": "confirmed",
-                "pending_action.confirmed_at": now_iso,
-                "updated_at": now_iso,
-            }
-        }
-    )
-    matched_count = getattr(update_lock, "matched_count", None)
-    if matched_count is not None and matched_count == 0:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail="Action already processed",
-        )
-
-    today_vn = datetime.now(VN_TZ).strftime("%Y-%m-%d")
-    now_utc = datetime.utcnow()
-    amount_to_add = int(pending.get("amount_ml") or 250)
-
-    try:
-        existing_water = water_col.find_one({"user_email": email, "date": today_vn})
-        if existing_water:
-            current_total = int(existing_water.get("amount_ml") or 0)
-            new_total = current_total + amount_to_add
-            water_col.update_one(
-                {"_id": existing_water["_id"]},
+    # Atomic lock: transition pending -> processing in conversations_col first
+    # This guarantees that if a concurrent cancel runs, exactly one of them wins the state transition.
+    # If cancel wins, confirm matched_count is 0, raising 409 WITHOUT writing to water_col.
+    if current_status == "pending":
+        try:
+            update_lock = conversations_col.update_one(
+                {
+                    "_id": conv_obj_id,
+                    "$or": query_or,
+                    "pending_action.id": action_id,
+                    "pending_action.status": "pending",
+                },
                 {
                     "$set": {
-                        "amount_ml": new_total,
-                        "updated_at": now_utc,
+                        "pending_action.status": "processing",
+                        "pending_action.processing_at": now_iso,
+                        "updated_at": now_iso,
                     }
                 }
             )
-        else:
-            new_total = amount_to_add
-            water_col.insert_one(
-                {
+        except Exception as e:
+            logger.error("Failed to update action lock: %s", type(e).__name__)
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail="Database error while confirming action",
+            )
+        matched_count = getattr(update_lock, "matched_count", None)
+        if matched_count is not None and matched_count == 0:
+            latest = conversations_col.find_one({"_id": conv_obj_id})
+            latest_status = (latest.get("pending_action") or {}).get("status") if latest else None
+            if latest_status == "cancelled":
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail="Action already cancelled",
+                )
+            if latest_status not in ("processing", "confirmed"):
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail="Action already processed",
+                )
+    elif current_status not in ("processing", "confirmed"):
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=f"Action already {current_status}",
+        )
+
+    # Step A: Check if action_id marker already exists in water_col
+    already_doc = water_col.find_one({
+        "user_email": email,
+        "date": target_date,
+        "applied_actions": action_id,
+    })
+
+    write_error = None
+    if not already_doc:
+        # Step B: Atomic write with bounded retry for upsert / DuplicateKeyError race
+        max_retries = 3
+        for attempt in range(max_retries):
+            try:
+                # Check if already applied (fast exit if concurrent write or prior attempt succeeded)
+                already_check = water_col.find_one({
                     "user_email": email,
-                    "date": today_vn,
-                    "amount_ml": new_total,
-                    "created_at": now_utc,
-                    "updated_at": now_utc,
-                }
-            )
-    except Exception as e:
-        # Rollback action status so it is not left falsely marked as confirmed
-        try:
-            conversations_col.update_one(
-                {"_id": conv_obj_id},
-                {"$set": {"pending_action.status": "pending"}}
-            )
-        except Exception:
-            pass
-        logger.error("Failed to write water log: %s", type(e).__name__)
+                    "date": target_date,
+                    "applied_actions": action_id,
+                })
+                if already_check:
+                    write_error = None
+                    break
+
+                doc = water_col.find_one({"user_email": email, "date": target_date})
+                if doc:
+                    res = water_col.update_one(
+                        {
+                            "_id": doc["_id"],
+                            "applied_actions": {"$ne": action_id},
+                        },
+                        {
+                            "$inc": {"amount_ml": amount_to_add, "version": 1},
+                            "$addToSet": {"applied_actions": action_id},
+                            "$set": {"updated_at": now_utc},
+                        }
+                    )
+                    if getattr(res, "matched_count", 1) == 0:
+                        if water_col.find_one({
+                            "user_email": email,
+                            "date": target_date,
+                            "applied_actions": action_id,
+                        }):
+                            write_error = None
+                            break
+                        continue
+                    write_error = None
+                    break
+                else:
+                    water_col.update_one(
+                        {
+                            "user_email": email,
+                            "date": target_date,
+                            "applied_actions": {"$ne": action_id},
+                        },
+                        {
+                            "$inc": {"amount_ml": amount_to_add, "version": 1},
+                            "$addToSet": {"applied_actions": action_id},
+                            "$setOnInsert": {
+                                "created_at": now_utc,
+                            },
+                            "$set": {
+                                "updated_at": now_utc,
+                            },
+                        },
+                        upsert=True,
+                    )
+                    write_error = None
+                    break
+            except Exception as e:
+                err_str = str(e).lower()
+                if "duplicate key" in err_str or "e11000" in err_str:
+                    logger.info("Upsert race caught DuplicateKeyError on attempt %d, retrying", attempt + 1)
+                    continue
+                logger.error("Error during water write attempt %d: %s", attempt + 1, type(e).__name__)
+                write_error = e
+                break
+
+    if write_error is not None:
+        logger.error("Water write encountered error without clean completion: %s", type(write_error).__name__)
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail="Database error while logging water",
         )
 
+    # Step C: Verify marker in water_logs. Only return confirmed/success when verified!
+    # DO NOT rollback processing to pending if write fails.
+    verified_doc = water_col.find_one({
+        "user_email": email,
+        "date": target_date,
+        "applied_actions": action_id,
+    })
+    if not verified_doc:
+        logger.error("Water marker verification failed for action_id=%s on date=%s", action_id, target_date)
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Database error while logging water",
+        )
+
+    # Step D: Marker verified, complete conversation status to confirmed
+    try:
+        conversations_col.update_one(
+            {
+                "_id": conv_obj_id,
+                "$or": query_or,
+                "pending_action.id": action_id,
+            },
+            {
+                "$set": {
+                    "pending_action.status": "confirmed",
+                    "pending_action.confirmed_at": now_iso,
+                    "updated_at": now_iso,
+                }
+            }
+        )
+    except Exception as e:
+        logger.warning("Failed to update conversation status to confirmed: %s", type(e).__name__)
+
+    # Step E: Record confirmation message in conversation history
+    new_total = int(verified_doc.get("amount_ml") or amount_to_add)
     confirm_msg = f"Đã thêm {amount_to_add} ml nước vào nhật ký hôm nay của bạn. Tổng hiện tại: {new_total} ml."
     ai_msg_doc = {"role": "assistant", "content": confirm_msg, "created_at": now_iso}
     try:

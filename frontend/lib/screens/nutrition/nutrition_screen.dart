@@ -34,6 +34,8 @@ class NutritionScreen extends ConsumerStatefulWidget {
 class _NutritionScreenState extends ConsumerState<NutritionScreen> {
   DateTime _selectedDate = DateTime.now();
   bool _isWaterUpdating = false;
+  String? _pendingWaterRetryKey;
+  String? _pendingWaterRetryDate;
 
   // ─── Logic: giữ nguyên hoàn toàn ──────────────────────────────
   @override
@@ -105,6 +107,44 @@ class _NutritionScreenState extends ConsumerState<NutritionScreen> {
         ],
       ),
     );
+  }
+
+  Future<void> _handleAddWater({String? retryKey, String? retryDate}) async {
+    setState(() => _isWaterUpdating = true);
+    final keyToUse = retryKey;
+    final dateStr = retryDate ?? DateFormat('yyyy-MM-dd').format(_selectedDate);
+    try {
+      await ref.read(nutritionProvider.notifier).addWater(
+            250,
+            date: dateStr,
+            idempotencyKey: keyToUse,
+          );
+      _pendingWaterRetryKey = null;
+      _pendingWaterRetryDate = null;
+    } catch (e) {
+      _pendingWaterRetryKey =
+          keyToUse ?? ref.read(nutritionProvider.notifier).lastFailedWaterKey;
+      _pendingWaterRetryDate = dateStr;
+      if (mounted) {
+        ScaffoldMessenger.of(context).hideCurrentSnackBar();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text(
+                '❌ Không thể cập nhật lượng nước. Vui lòng thử lại.'),
+            behavior: SnackBarBehavior.floating,
+            action: SnackBarAction(
+              label: 'Thử lại',
+              onPressed: () => _handleAddWater(
+                retryKey: _pendingWaterRetryKey,
+                retryDate: _pendingWaterRetryDate,
+              ),
+            ),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isWaterUpdating = false);
+    }
   }
 
   void _openSearch() async {
@@ -921,27 +961,7 @@ class _NutritionScreenState extends ConsumerState<NutritionScreen> {
               const SizedBox(width: 8),
               _buildWaterBtn(
                 Icons.add,
-                () async {
-                  setState(() => _isWaterUpdating = true);
-                  try {
-                    final dateStr =
-                        DateFormat('yyyy-MM-dd').format(_selectedDate);
-                    await ref.read(nutritionProvider.notifier).updateWater(
-                          plan.currentWater + 250,
-                          date: dateStr,
-                        );
-                  } catch (e) {
-                    if (mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                            content: Text(
-                                '❌ Không thể cập nhật lượng nước. Vui lòng thử lại.')),
-                      );
-                    }
-                  } finally {
-                    if (mounted) setState(() => _isWaterUpdating = false);
-                  }
-                },
+                () => _handleAddWater(),
                 colors,
               ),
             ],

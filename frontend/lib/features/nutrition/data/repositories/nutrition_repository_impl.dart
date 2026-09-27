@@ -70,8 +70,20 @@ class NutritionRepositoryImpl implements INutritionRepository {
   }
 
   @override
-  Future<bool> updateWater(String date, int amountMl) async {
-    return await _remoteDataSource.updateWater(date, amountMl);
+  Future<bool> updateWater(
+    String date,
+    int? amountMl, {
+    int? deltaMl,
+    int? version,
+    String? idempotencyKey,
+  }) async {
+    return await _remoteDataSource.updateWater(
+      date,
+      amountMl,
+      deltaMl: deltaMl,
+      version: version,
+      idempotencyKey: idempotencyKey,
+    );
   }
 
   @override

@@ -19,7 +19,13 @@ abstract class INutritionRepository {
   Future<NutritionPlan> swapMeal(String dateStr, Meal oldMeal, String goal);
   Future<bool> swapLoggedMealSimple(String dateStr, String logId);
   Future<bool> addMeal(Map<String, dynamic> body);
-  Future<bool> updateWater(String date, int amountMl);
+  Future<bool> updateWater(
+    String date,
+    int? amountMl, {
+    int? deltaMl,
+    int? version,
+    String? idempotencyKey,
+  });
   Future<bool> swapLoggedMeal({
     required String logId,
     required int foodIndex,

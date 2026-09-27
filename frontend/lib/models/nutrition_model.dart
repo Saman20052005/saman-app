@@ -78,6 +78,7 @@ class NutritionPlan {
   List<Supplement> supplements;
   int currentWater;
   int targetWater;
+  int waterVersion;
   final int totalCaloriesConsumed;
   final int totalProteinConsumed;
   final int totalCarbsConsumed;
@@ -92,6 +93,7 @@ class NutritionPlan {
     this.supplements = const [], // Default empty
     this.currentWater = 0,
     this.targetWater = 2000,
+    this.waterVersion = 0,
     this.totalCaloriesConsumed = 0,
     this.totalProteinConsumed = 0,
     this.totalCarbsConsumed = 0,
@@ -107,6 +109,7 @@ class NutritionPlan {
       targetWater: (json['water_target'] as num?)?.toInt() ??
           (json['target_water'] as num?)?.toInt() ??
           2000,
+      waterVersion: (json['water_version'] as num?)?.toInt() ?? 0,
       totalCaloriesConsumed: (json['total_calories'] as num?)?.toInt() ?? 0,
       totalProteinConsumed: (json['total_protein'] as num?)?.toInt() ?? 0,
       totalCarbsConsumed: (json['total_carbs'] as num?)?.toInt() ?? 0,
@@ -136,6 +139,7 @@ class NutritionPlan {
     List<Supplement>? supplements,
     int? currentWater,
     int? targetWater,
+    int? waterVersion,
     int? totalCaloriesConsumed,
     int? totalProteinConsumed,
     int? totalCarbsConsumed,
@@ -150,6 +154,7 @@ class NutritionPlan {
       supplements: supplements ?? this.supplements,
       currentWater: currentWater ?? this.currentWater,
       targetWater: targetWater ?? this.targetWater,
+      waterVersion: waterVersion ?? this.waterVersion,
       totalCaloriesConsumed:
           totalCaloriesConsumed ?? this.totalCaloriesConsumed,
       totalProteinConsumed: totalProteinConsumed ?? this.totalProteinConsumed,

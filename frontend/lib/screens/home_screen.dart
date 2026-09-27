@@ -40,6 +40,8 @@ class HomeScreen extends ConsumerStatefulWidget {
 class _HomeScreenState extends ConsumerState<HomeScreen> {
   Map<String, String>? _profile;
   bool _isLoading = false;
+  String? _pendingWaterRetryKey;
+  String? _pendingWaterRetryDate;
 
   @override
   void initState() {
@@ -220,36 +222,45 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     );
   }
 
-  Future<void> _handleAddWater() async {
+  Future<void> _handleAddWater({String? retryKey, String? retryDate}) async {
     final now = DateTime.now();
     final todayStr = DateFormat('yyyy-MM-dd').format(now);
-    final nutritionState = ref.read(nutritionProvider);
-    final currentWater = nutritionState.valueOrNull?.currentWater ?? 1800;
-    final newWater = currentWater + 250;
+    final dateToUse = retryDate ?? todayStr;
+    final keyToUse = retryKey;
 
     try {
       await ref
           .read(nutritionProvider.notifier)
-          .updateWater(newWater, date: todayStr);
+          .addWater(250, date: dateToUse, idempotencyKey: keyToUse);
+      _pendingWaterRetryKey = null;
+      _pendingWaterRetryDate = null;
       if (mounted) {
         ScaffoldMessenger.of(context).hideCurrentSnackBar();
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              '💧 +250ml water logged (${(newWater / 1000).toStringAsFixed(1)}L total)',
-            ),
-            duration: const Duration(seconds: 2),
+          const SnackBar(
+            content: Text('💧 +250ml water logged'),
+            duration: Duration(seconds: 2),
             behavior: SnackBarBehavior.floating,
           ),
         );
       }
     } catch (e) {
+      _pendingWaterRetryKey =
+          keyToUse ?? ref.read(nutritionProvider.notifier).lastFailedWaterKey;
+      _pendingWaterRetryDate = dateToUse;
       if (mounted) {
         ScaffoldMessenger.of(context).hideCurrentSnackBar();
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Failed to update water. Please try again.'),
+          SnackBar(
+            content: const Text('Failed to update water. Please try again.'),
             behavior: SnackBarBehavior.floating,
+            action: SnackBarAction(
+              label: 'Retry',
+              onPressed: () => _handleAddWater(
+                retryKey: _pendingWaterRetryKey,
+                retryDate: _pendingWaterRetryDate,
+              ),
+            ),
           ),
         );
       }

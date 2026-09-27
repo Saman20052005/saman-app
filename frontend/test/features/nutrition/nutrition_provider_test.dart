@@ -114,8 +114,13 @@ void main() {
       await notifier.loadDailyPlan(DateTime(2023, 10, 27));
 
       // Mock failure for update
-      when(() => mockRepository.updateWater(any(), any()))
-          .thenThrow(Exception('API Error'));
+      when(() => mockRepository.updateWater(
+            any(),
+            any(),
+            deltaMl: any(named: 'deltaMl'),
+            version: any(named: 'version'),
+            idempotencyKey: any(named: 'idempotencyKey'),
+          )).thenThrow(Exception('API Error'));
 
       // Trigger update
       final future = notifier.updateWater(1000, date: '2023-10-27');
