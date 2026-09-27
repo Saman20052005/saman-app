@@ -2597,6 +2597,145 @@ class TestChatCheckpoint1And2(unittest.TestCase):
 
         asyncio.run(_test())
 
+    def test_checkpoint4a_chat_water_logged_then_legacy_client_sends_stale_total_rejected_with_409(self):
+        """When Chat +250ml succeeded and applied_actions exists, legacy client without version gets 409 and Chat water is preserved."""
+        user = {"_id": "u100", "email": "userA@example.com"}
+        today_str = _get_current_vn_date()
+
+        async def _test():
+            # 1. Chat delta logs 250ml successfully with idempotency key
+            chat_payload = WaterLog(date=today_str, delta_ml=250, idempotency_key="chat-action-water-1")
+            res_chat = await log_water_intake(chat_payload, user=user)
+            self.assertEqual(res_chat["status"], "saved")
+            self.assertEqual(res_chat["amount_ml"], 250)
+            self.assertEqual(res_chat["version"], 1)
+
+            # 2. Legacy client (Nutrition cũ) sends stale total amount (e.g. 500ml) WITHOUT version (version=None)
+            legacy_payload = WaterLog(date=today_str, amount_ml=500)  # version is None
+            with self.assertRaises(HTTPException) as cm:
+                await log_water_intake(legacy_payload, user=user)
+
+            # Invariant: Raises HTTP 409 Conflict, reporting current amount (250) and current version (1)
+            self.assertEqual(cm.exception.status_code, 409)
+            self.assertEqual(cm.exception.detail["current_amount_ml"], 250)
+            self.assertEqual(cm.exception.detail["current_version"], 1)
+            self.assertIn("applied chat actions", cm.exception.detail["message"])
+
+            # Invariant: DB document is NOT overwritten to 500ml; Chat water (250ml) is strictly preserved
+            doc = self.mock_water_col.find_one({"user_email": user["email"], "date": today_str})
+            self.assertIsNotNone(doc)
+            self.assertEqual(doc["amount_ml"], 250)
+            self.assertEqual(doc["version"], 1)
+            self.assertEqual(doc["applied_actions"], ["chat-action-water-1"])
+
+        asyncio.run(_test())
+
+    def test_checkpoint4a_chat_intervenes_between_legacy_read_and_update_matched_count_zero_raises_409(self):
+        """When Chat writes delta between legacy client read and update, matched_count=0 triggers 409 and Chat water is preserved."""
+        user = {"_id": "u100", "email": "userA@example.com"}
+        today_str = _get_current_vn_date()
+
+        async def _test():
+            # Seed initial doc in water_col without applied actions: 500ml, version 1
+            doc_id = ObjectId()
+            self.mock_water_col.docs.append({
+                "_id": doc_id,
+                "user_email": user["email"],
+                "date": today_str,
+                "amount_ml": 500,
+                "version": 1,
+                "applied_actions": [],
+                "created_at": datetime.utcnow(),
+                "updated_at": datetime.utcnow(),
+            })
+
+            # Hook update_one to simulate Chat writing concurrently right before legacy update_one executes
+            orig_update_one = self.mock_water_col.update_one
+            chat_intervened = False
+
+            def concurrent_update_one(query, update, upsert=False):
+                nonlocal chat_intervened
+                if not chat_intervened and query.get("_id") == doc_id:
+                    chat_intervened = True
+                    # Concurrent Chat action adds +250ml, bumps version to 2, records action
+                    for d in self.mock_water_col.docs:
+                        if d.get("_id") == doc_id:
+                            d["amount_ml"] += 250
+                            d["version"] += 1
+                            d["applied_actions"].append("chat-concurrent-action-99")
+                return orig_update_one(query, update, upsert)
+
+            with patch.object(self.mock_water_col, "update_one", side_effect=concurrent_update_one):
+                # Legacy client tries to update total to 600ml without version
+                legacy_payload = WaterLog(date=today_str, amount_ml=600)  # version is None
+                with self.assertRaises(HTTPException) as cm:
+                    await log_water_intake(legacy_payload, user=user)
+
+                # Invariant: Raises HTTP 409 Conflict due to matched_count=0
+                self.assertEqual(cm.exception.status_code, 409)
+                self.assertEqual(cm.exception.detail["current_amount_ml"], 750)
+                self.assertEqual(cm.exception.detail["current_version"], 2)
+                self.assertIn("updated concurrently", cm.exception.detail["message"])
+
+            # Invariant: DB document is NOT overwritten to 600ml; Chat water (500 + 250 = 750ml) is strictly preserved
+            doc = self.mock_water_col.find_one({"user_email": user["email"], "date": today_str})
+            self.assertIsNotNone(doc)
+            self.assertEqual(doc["amount_ml"], 750)
+            self.assertEqual(doc["version"], 2)
+            self.assertEqual(doc["applied_actions"], ["chat-concurrent-action-99"])
+
+        asyncio.run(_test())
+
+    def test_checkpoint4a_chat_intervenes_on_legacy_doc_missing_version_field_raises_409(self):
+        """When legacy document initially lacks version field and Chat writes before update, matched_count=0 raises 409."""
+        user = {"_id": "u100", "email": "userA@example.com"}
+        today_str = _get_current_vn_date()
+
+        async def _test():
+            # Seed legacy document without version field
+            doc_id = ObjectId()
+            self.mock_water_col.docs.append({
+                "_id": doc_id,
+                "user_email": user["email"],
+                "date": today_str,
+                "amount_ml": 500,
+                # "version" is absent
+                "applied_actions": [],
+                "created_at": datetime.utcnow(),
+                "updated_at": datetime.utcnow(),
+            })
+
+            orig_update_one = self.mock_water_col.update_one
+            chat_intervened = False
+
+            def concurrent_update_one(query, update, upsert=False):
+                nonlocal chat_intervened
+                if not chat_intervened and query.get("_id") == doc_id:
+                    chat_intervened = True
+                    # Concurrent Chat action sets version=1, adds +250ml
+                    for d in self.mock_water_col.docs:
+                        if d.get("_id") == doc_id:
+                            d["amount_ml"] += 250
+                            d["version"] = 1
+                            d["applied_actions"].append("chat-concurrent-action-100")
+                return orig_update_one(query, update, upsert)
+
+            with patch.object(self.mock_water_col, "update_one", side_effect=concurrent_update_one):
+                legacy_payload = WaterLog(date=today_str, amount_ml=600)  # version is None
+                with self.assertRaises(HTTPException) as cm:
+                    await log_water_intake(legacy_payload, user=user)
+
+                self.assertEqual(cm.exception.status_code, 409)
+                self.assertEqual(cm.exception.detail["current_amount_ml"], 750)
+                self.assertEqual(cm.exception.detail["current_version"], 1)
+
+            # Invariant: DB document is NOT overwritten to 600ml; Chat water (750ml) is preserved
+            doc = self.mock_water_col.find_one({"user_email": user["email"], "date": today_str})
+            self.assertEqual(doc["amount_ml"], 750)
+            self.assertEqual(doc["version"], 1)
+
+        asyncio.run(_test())
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)

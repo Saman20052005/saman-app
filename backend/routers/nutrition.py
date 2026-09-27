@@ -643,18 +643,44 @@ async def log_water_intake(
     if doc:
         current_version = doc.get("version", 0)
         current_amount = doc.get("amount_ml", 0)
-        if expected_version is not None and expected_version != current_version:
-            raise HTTPException(
-                status_code=status.HTTP_409_CONFLICT,
-                detail={
-                    "message": "Conflict: water total has been updated",
-                    "current_amount_ml": current_amount,
-                    "current_version": current_version,
-                },
-            )
+        applied_actions = doc.get("applied_actions") or []
 
-        filter_query = {"_id": doc["_id"]}
-        if expected_version is not None:
+        if expected_version is None:
+            # Client cũ không gửi version:
+            # 1. Nếu bản ghi ngày đó đã có applied_actions, trả 409 và không ghi đè
+            if applied_actions:
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail={
+                        "message": "Conflict: water log has applied chat actions",
+                        "current_amount_ml": current_amount,
+                        "current_version": current_version,
+                    },
+                )
+
+            # 2. Nếu chưa có applied_actions: update có điều kiện trên version hiện tại
+            filter_query = {"_id": doc["_id"]}
+            has_version = "version" in doc and doc["version"] is not None
+            if not has_version or doc.get("version") == 0:
+                filter_query["$or"] = [
+                    {"version": 0},
+                    {"version": {"$exists": False}},
+                ]
+            else:
+                filter_query["version"] = current_version
+        else:
+            # Client mới có gửi version:
+            if expected_version != current_version:
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail={
+                        "message": "Conflict: water total has been updated",
+                        "current_amount_ml": current_amount,
+                        "current_version": current_version,
+                    },
+                )
+
+            filter_query = {"_id": doc["_id"]}
             if expected_version == 0:
                 filter_query["$or"] = [
                     {"version": 0},
