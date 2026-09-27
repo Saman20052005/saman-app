@@ -343,6 +343,18 @@ class FakeConversationsCollection:
                 sub_matched = any(self._matches_doc(doc, sub) for sub in v)
                 if not sub_matched:
                     return False
+            elif isinstance(v, dict) and "$ne" in v:
+                ne_val = v["$ne"]
+                if "." in k:
+                    parts = k.split(".")
+                    if parts[0] in doc and isinstance(doc[parts[0]], list):
+                        has_val = any(isinstance(x, dict) and x.get(parts[1]) == ne_val for x in doc[parts[0]])
+                        if has_val:
+                            return False
+                        continue
+                actual = self._get_nested(doc, k) if "." in k else doc.get(k)
+                if actual == ne_val:
+                    return False
             else:
                 actual = self._get_nested(doc, k) if "." in k else doc.get(k)
                 if actual != v:
@@ -525,6 +537,11 @@ class TestChatCheckpoint1And2(unittest.TestCase):
         self.orig_gemini = os.environ.get("GEMINI_API_KEY")
         self.orig_openai = os.environ.get("OPENAI_API_KEY")
         self.orig_timeout = os.environ.get("AI_TIMEOUT_SECONDS")
+        self.orig_module_gemini = getattr(chat_module, "GEMINI_API_KEY", None)
+        self.orig_module_openai = getattr(chat_module, "OPENAI_API_KEY", None)
+        chat_module.GEMINI_API_KEY = None
+        chat_module.OPENAI_API_KEY = None
+
         os.environ.pop("GEMINI_API_KEY", None)
         os.environ.pop("OPENAI_API_KEY", None)
         os.environ.pop("AI_TIMEOUT_SECONDS", None)
@@ -565,6 +582,8 @@ class TestChatCheckpoint1And2(unittest.TestCase):
         else:
             os.environ.pop("AI_TIMEOUT_SECONDS", None)
 
+        chat_module.GEMINI_API_KEY = self.orig_module_gemini
+        chat_module.OPENAI_API_KEY = self.orig_module_openai
         chat_module.water_col = self.mock_water_col
         nutrition_module.water_collection = self.mock_water_col
 
@@ -2733,6 +2752,210 @@ class TestChatCheckpoint1And2(unittest.TestCase):
             doc = self.mock_water_col.find_one({"user_email": user["email"], "date": today_str})
             self.assertEqual(doc["amount_ml"], 750)
             self.assertEqual(doc["version"], 1)
+
+        asyncio.run(_test())
+
+    def test_checkpoint2_user_profile_excludes_email_when_name_is_email(self):
+        """Verify _build_user_profile_context excludes email if full_name is email or contains @."""
+        user = {
+            "email": "user@example.com",
+            "full_name": "user@example.com",
+            "profile": {"weight": 70.0, "goal": "Tăng cơ"},
+        }
+        ctx = chat_module._build_user_profile_context(user)
+        self.assertNotIn("user@example.com", ctx)
+        self.assertIn("chưa có dữ liệu", ctx)
+
+    def test_checkpoint3_chat_prompt_strips_email_before_sending_to_ai(self):
+        """Verify chat_with_ai scrubs user email and other emails from the AI prompt."""
+        user = {
+            "_id": "u100",
+            "email": "userA@example.com",
+            "full_name": "User A",
+        }
+        captured_prompts = []
+
+        async def _test():
+            req = ChatRequest(message="Email của tôi là userA@example.com và liên hệ friend@example.com")
+            os.environ["GEMINI_API_KEY"] = "mock_key"
+
+            async def fake_ai_reply(prompt: str) -> str:
+                captured_prompts.append(prompt)
+                return "Chào bạn, tôi đã hiểu."
+
+            with patch.object(chat_module, "_generate_ai_reply", side_effect=fake_ai_reply):
+                res = await chat_with_ai(req, current_user=user)
+
+            self.assertEqual(res["status"], "success")
+            self.assertEqual(len(captured_prompts), 1)
+            prompt = captured_prompts[0]
+            self.assertNotIn("userA@example.com", prompt)
+            self.assertNotIn("friend@example.com", prompt)
+
+        asyncio.run(_test())
+
+    def test_checkpoint4a_retry_confirm_action_does_not_duplicate_water_or_message(self):
+        """Retry confirm action: water is not added twice and confirmation message is not duplicated."""
+        user = {"_id": "u100", "email": "userA@example.com"}
+        conv_id = ObjectId()
+        action_id = "act-water-idempotent-1"
+
+        async def _test():
+            conv_doc = {
+                "_id": conv_id,
+                "user_email": user["email"],
+                "user_id": user["_id"],
+                "title": "Uống nước",
+                "messages": [
+                    {"role": "user", "content": "Tôi vừa uống 250ml nước", "created_at": "2026-09-27T10:00:00Z"},
+                    {"role": "assistant", "content": "Bạn có muốn thêm 250ml nước?", "created_at": "2026-09-27T10:00:01Z"},
+                ],
+                "pending_action": {
+                    "id": action_id,
+                    "type": "log_water",
+                    "params": {"amount_ml": 250},
+                    "status": "pending",
+                },
+            }
+            self.mock_conversations_col.docs.append(conv_doc)
+
+            req = ActionDecisionRequest(conversation_id=str(conv_id), action_id=action_id)
+
+            # Lần 1: Confirm action
+            res1 = await confirm_action(req, current_user=user)
+            self.assertEqual(res1["status"], "success")
+            self.assertEqual(res1["amount_ml"], 250)
+
+            # Kiểm tra trạng thái DB sau lần 1
+            water_doc = self.mock_water_col.find_one({"user_email": user["email"]})
+            self.assertIsNotNone(water_doc)
+            self.assertEqual(water_doc["amount_ml"], 250)
+            conv_after_1 = self.mock_conversations_col.find_one({"_id": conv_id})
+            self.assertEqual(len(conv_after_1["messages"]), 3)
+            self.assertEqual(conv_after_1["pending_action"]["status"], "confirmed")
+
+            # Lần 2: Retry confirm cùng action_id
+            res2 = await confirm_action(req, current_user=user)
+            self.assertEqual(res2["status"], "success")
+            self.assertEqual(res2["amount_ml"], 250)
+
+            # Kiểm tra sau retry: nước không đổi, không thêm tin nhắn thứ 4
+            water_doc_retry = self.mock_water_col.find_one({"user_email": user["email"]})
+            self.assertEqual(water_doc_retry["amount_ml"], 250)
+            conv_after_retry = self.mock_conversations_col.find_one({"_id": conv_id})
+            self.assertEqual(len(conv_after_retry["messages"]), 3)
+
+        asyncio.run(_test())
+
+    def test_checkpoint4a_retry_after_history_save_failure_recovers_missing_message(self):
+        """Retry sau lỗi lưu lịch sử phải bổ sung được tin nhắn xác nhận còn thiếu mà không cộng nước lần hai."""
+        user = {"_id": "u100", "email": "userA@example.com"}
+        today_str = _get_current_vn_date()
+        conv_id = ObjectId()
+        action_id = "act-water-recover-msg-1"
+
+        async def _test():
+            # Tình huống: Lần trước nước đã ghi vào water_logs thành công
+            self.mock_water_col.docs.append({
+                "_id": ObjectId(),
+                "user_email": user["email"],
+                "date": today_str,
+                "amount_ml": 250,
+                "version": 1,
+                "applied_actions": [action_id],
+                "created_at": datetime.utcnow(),
+                "updated_at": datetime.utcnow(),
+            })
+
+            # Nhưng trong conversations_col, bước lưu tin nhắn từng gặp lỗi nên messages chưa có tin nhắn của action này
+            conv_doc = {
+                "_id": conv_id,
+                "user_email": user["email"],
+                "user_id": user["_id"],
+                "title": "Uống nước",
+                "messages": [
+                    {"role": "user", "content": "Tôi vừa uống 250ml nước", "created_at": "2026-09-27T10:00:00Z"},
+                ],
+                "pending_action": {
+                    "id": action_id,
+                    "type": "log_water",
+                    "params": {"amount_ml": 250},
+                    "status": "confirmed",
+                },
+            }
+            self.mock_conversations_col.docs.append(conv_doc)
+
+            req = ActionDecisionRequest(conversation_id=str(conv_id), action_id=action_id)
+
+            # Retry confirm
+            res = await confirm_action(req, current_user=user)
+            self.assertEqual(res["status"], "success")
+            self.assertEqual(res["amount_ml"], 250)
+
+            # Nước không bị cộng lần hai
+            water_doc = self.mock_water_col.find_one({"user_email": user["email"]})
+            self.assertEqual(water_doc["amount_ml"], 250)
+
+            # Tin nhắn xác nhận còn thiếu đã được bổ sung thành công mang đúng action_id
+            conv_after = self.mock_conversations_col.find_one({"_id": conv_id})
+            self.assertEqual(len(conv_after["messages"]), 2)
+            confirmed_msg = conv_after["messages"][-1]
+            self.assertEqual(confirmed_msg["role"], "assistant")
+            self.assertEqual(confirmed_msg.get("action_id"), action_id)
+            self.assertIn("Đã thêm 250 ml nước", confirmed_msg["content"])
+
+        asyncio.run(_test())
+
+    def test_checkpoint4a_concurrent_confirms_create_single_message_and_single_water_addition(self):
+        """Hai confirm đồng thời chỉ tạo một tin nhắn và cộng nước đúng một lần."""
+        user = {"_id": "u100", "email": "userA@example.com"}
+        today_str = _get_current_vn_date()
+        conv_id = ObjectId()
+        action_id = "act-water-concurrent-race-1"
+
+        async def _test():
+            conv_doc = {
+                "_id": conv_id,
+                "user_email": user["email"],
+                "user_id": user["_id"],
+                "title": "Uống nước",
+                "messages": [
+                    {"role": "user", "content": "Tôi vừa uống 250ml nước", "created_at": "2026-09-27T10:00:00Z"},
+                ],
+                "pending_action": {
+                    "id": action_id,
+                    "type": "log_water",
+                    "params": {"amount_ml": 250, "date": today_str},
+                    "status": "pending",
+                },
+            }
+            self.mock_conversations_col.docs.append(conv_doc)
+
+            req = ActionDecisionRequest(conversation_id=str(conv_id), action_id=action_id)
+
+            # Chạy 2 confirm đồng thời
+            results = await asyncio.gather(
+                confirm_action(req, current_user=user),
+                confirm_action(req, current_user=user),
+                return_exceptions=True,
+            )
+
+            # Cả hai đều hoàn tất hợp lệ (hoặc một thành công và một retry thành công)
+            for r in results:
+                self.assertFalse(isinstance(r, Exception), f"Concurrent confirm raised: {r}")
+                self.assertEqual(r["status"], "success")
+                self.assertEqual(r["amount_ml"], 250)
+
+            # Nước chỉ được cộng đúng 1 lần (250 ml)
+            water_doc = self.mock_water_col.find_one({"user_email": user["email"]})
+            self.assertEqual(water_doc["amount_ml"], 250)
+            self.assertEqual(water_doc["applied_actions"], [action_id])
+
+            # Messages chỉ có đúng 1 tin nhắn xác nhận mang action_id (tổng cộng 2 tin: user + 1 assistant)
+            conv_after = self.mock_conversations_col.find_one({"_id": conv_id})
+            self.assertEqual(len(conv_after["messages"]), 2)
+            assistant_msgs = [m for m in conv_after["messages"] if m.get("role") == "assistant" and m.get("action_id") == action_id]
+            self.assertEqual(len(assistant_msgs), 1)
 
         asyncio.run(_test())
 

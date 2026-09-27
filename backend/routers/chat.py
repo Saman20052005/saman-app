@@ -127,7 +127,13 @@ def _get_current_vn_date() -> str:
 
 
 def _build_user_profile_context(user: dict) -> str:
-    full_name = user.get("full_name") or "chưa có dữ liệu"
+    raw_name = user.get("full_name")
+    user_email = str(user.get("email") or "").strip().lower()
+    # Bỏ email khỏi thông tin gửi AI
+    if not raw_name or "@" in str(raw_name) or (user_email and str(raw_name).strip().lower() == user_email):
+        full_name = "chưa có dữ liệu"
+    else:
+        full_name = str(raw_name).strip()
     profile = user.get("profile") if isinstance(user.get("profile"), dict) else {}
     stats = user.get("health_stats") if isinstance(user.get("health_stats"), dict) else {}
 
@@ -276,7 +282,7 @@ def build_health_context(user: dict, nutrition_col_ref=None, workout_col_ref=Non
 def _call_gemini_sync(prompt: str, api_key: str, timeout_seconds: float) -> Optional[str]:
     import google.generativeai as genai
     genai.configure(api_key=api_key)
-    model = genai.GenerativeModel("gemini-1.5-flash")
+    model = genai.GenerativeModel("gemini-3.8-flash")
     try:
         response = model.generate_content(
             prompt,
@@ -686,6 +692,11 @@ async def chat_with_ai(
 
     full_prompt = "\n\n".join(prompt_parts)
 
+    # Bỏ email khỏi prompt gửi AI (bảo vệ quyền riêng tư người dùng)
+    if email:
+        full_prompt = full_prompt.replace(email, "")
+    full_prompt = re.sub(r'[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+', '', full_prompt)
+
     reply = await _generate_ai_reply(full_prompt)
 
     # Checkpoint 3: Persist messages to DB after AI succeeds
@@ -1072,10 +1083,20 @@ async def _process_action_decision(
     # Step E: Record confirmation message in conversation history
     new_total = int(verified_doc.get("amount_ml") or amount_to_add)
     confirm_msg = f"Đã thêm {amount_to_add} ml nước vào nhật ký hôm nay của bạn. Tổng hiện tại: {new_total} ml."
-    ai_msg_doc = {"role": "assistant", "content": confirm_msg, "created_at": now_iso}
+
+    ai_msg_doc = {
+        "role": "assistant",
+        "content": confirm_msg,
+        "action_id": action_id,
+        "created_at": now_iso,
+    }
     try:
         conversations_col.update_one(
-            {"_id": conv_obj_id},
+            {
+                "_id": conv_obj_id,
+                "$or": query_or,
+                "messages.action_id": {"$ne": action_id},
+            },
             {
                 "$push": {"messages": ai_msg_doc},
                 "$set": {"updated_at": now_iso},
