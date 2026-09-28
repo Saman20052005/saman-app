@@ -42,6 +42,7 @@ class UserDB(BaseModel):
 class UserAuth(BaseModel):
     email: EmailStr
     password: str = Field(..., min_length=8)
+    full_name: Optional[str] = None
 
 class ProfileUpdateRequest(BaseModel):
     full_name: Optional[str] = Field(None, min_length=2, max_length=100)
