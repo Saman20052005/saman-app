@@ -14,18 +14,28 @@ from bson import ObjectId
 from bson.errors import InvalidId
 
 # Repository & Database Collections
-from backend.app.repositories.user_repository import UserRepository
-from backend.app.database import (
-    users_collection,
-    nutrition_collection,
-    workout_history_collection,
-    conversations_collection,
-    messages_collection,
-    water_collection,
-)
-
-# Auth dependency
-from backend.auth_utils import verify_token
+try:
+    from backend.app.repositories.user_repository import UserRepository
+    from backend.app.database import (
+        users_collection,
+        nutrition_collection,
+        workout_history_collection,
+        conversations_collection,
+        messages_collection,
+        water_collection,
+    )
+    from backend.auth_utils import verify_token
+except ImportError:
+    from app.repositories.user_repository import UserRepository
+    from app.database import (
+        users_collection,
+        nutrition_collection,
+        workout_history_collection,
+        conversations_collection,
+        messages_collection,
+        water_collection,
+    )
+    from auth_utils import verify_token
 
 logger = logging.getLogger(__name__)
 
