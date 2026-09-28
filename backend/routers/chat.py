@@ -16,6 +16,7 @@ from bson.errors import InvalidId
 # Repository & Database Collections
 from backend.app.repositories.user_repository import UserRepository
 from backend.app.database import (
+    users_collection,
     nutrition_collection,
     workout_history_collection,
     conversations_collection,
@@ -34,6 +35,7 @@ user_repo = UserRepository()
 chat_bearer = HTTPBearer(auto_error=False)
 
 # Module-level references for testability and DI
+users_col = users_collection
 nutrition_col = nutrition_collection
 workout_history_col = workout_history_collection
 conversations_col = conversations_collection
@@ -162,6 +164,8 @@ def _build_today_nutrition_context(email: str, col) -> str:
 
     try:
         logs = list(col.find({"user_email": email, "date": today_str}))
+        if not logs:
+            logs = list(col.find({"email": email, "date": today_str}))
     except Exception as e:
         logger.warning("Failed to query nutrition logs: %s", type(e).__name__)
         return f"DINH DƯỠNG HÔM NAY ({today_str}): chưa có dữ liệu"
@@ -170,10 +174,10 @@ def _build_today_nutrition_context(email: str, col) -> str:
         return f"DINH DƯỠNG HÔM NAY ({today_str}): chưa ghi nhận bữa ăn nào (chưa có dữ liệu)"
 
     try:
-        total_cal = sum(float(l.get("total_calories") or 0) for l in logs)
-        total_pro = round(sum(float(l.get("total_protein") or 0) for l in logs), 1)
-        total_carbs = round(sum(float(l.get("total_carbs") or 0) for l in logs), 1)
-        total_fat = round(sum(float(l.get("total_fat") or 0) for l in logs), 1)
+        total_cal = sum(float(l.get("total_calories") or l.get("calories") or sum(float(f.get("calories", 0)) for f in l.get("foods", []))) for l in logs)
+        total_pro = round(sum(float(l.get("total_protein") or l.get("protein") or sum(float(f.get("protein", 0)) for f in l.get("foods", []))) for l in logs), 1)
+        total_carbs = round(sum(float(l.get("total_carbs") or l.get("carbs") or sum(float(f.get("carbs", 0)) for f in l.get("foods", []))) for l in logs), 1)
+        total_fat = round(sum(float(l.get("total_fat") or l.get("fat") or sum(float(f.get("fat", 0)) for f in l.get("foods", []))) for l in logs), 1)
         cal_display = int(total_cal) if total_cal.is_integer() else total_cal
         return (
             f"DINH DƯỠNG HÔM NAY ({today_str}):\n"
@@ -204,7 +208,7 @@ def _build_latest_workout_context(email: str, user_id: Optional[str], col) -> st
     if col is None or not email:
         return "TẬP LUYỆN GẦN NHẤT: chưa có dữ liệu"
 
-    query_or = [{"email": email}]
+    query_or = [{"email": email}, {"user_email": email}]
     if user_id:
         query_or.append({"user_id": user_id})
     workout_query = {"$or": query_or}
@@ -213,7 +217,23 @@ def _build_latest_workout_context(email: str, user_id: Optional[str], col) -> st
         sessions = list(col.find(workout_query))
     except Exception as e:
         logger.warning("Failed to query workout sessions: %s", type(e).__name__)
-        return "TẬP LUYỆN GẦN NHẤT: chưa có dữ liệu"
+        sessions = []
+
+    if not sessions:
+        try:
+            sessions = list(col.find({"email": email}))
+        except Exception:
+            pass
+    if not sessions:
+        try:
+            sessions = list(col.find({"user_email": email}))
+        except Exception:
+            pass
+    if not sessions and user_id:
+        try:
+            sessions = list(col.find({"user_id": user_id}))
+        except Exception:
+            pass
 
     if not sessions:
         return "TẬP LUYỆN GẦN NHẤT: chưa có dữ liệu"
@@ -233,11 +253,11 @@ def _build_latest_workout_context(email: str, user_id: Optional[str], col) -> st
     if best_session is None and sessions:
         best_session = sessions[-1]
 
-    date_part = best_dt.strftime("%Y-%m-%d") if best_dt else "chưa có dữ liệu"
-    duration = best_session.get("duration_minutes")
+    date_part = best_dt.strftime("%Y-%m-%d") if best_dt else (best_session.get("date") or "chưa có dữ liệu")
+    duration = best_session.get("duration_minutes") or best_session.get("duration")
     duration_str = f"{duration} phút" if duration is not None else "chưa có dữ liệu"
 
-    exercises = best_session.get("completed_exercises")
+    exercises = best_session.get("completed_exercises") or best_session.get("exercises")
     exercise_names = []
     if isinstance(exercises, list):
         for ex in exercises:
@@ -246,33 +266,154 @@ def _build_latest_workout_context(email: str, user_id: Optional[str], col) -> st
             elif isinstance(ex, str):
                 exercise_names.append(ex)
 
-    plan_name = best_session.get("plan_id") or best_session.get("plan_name")
-    plan_info = ""
+    plan_name = best_session.get("plan_id") or best_session.get("plan_name") or best_session.get("workout_name")
     if exercise_names:
-        plan_info = f", Bài tập: {', '.join(exercise_names[:5])}"
+        exercises_str = ", ".join(exercise_names[:5])
     elif plan_name:
-        plan_info = f", Kế hoạch: {plan_name}"
+        exercises_str = str(plan_name)
+    else:
+        exercises_str = "chưa có dữ liệu"
 
     return (
         f"TẬP LUYỆN GẦN NHẤT:\n"
         f"- Ngày: {date_part}\n"
-        f"- Thời lượng: {duration_str}{plan_info}"
+        f"- Thời lượng: {duration_str}\n"
+        f"- Bài tập: {exercises_str}"
     )
 
 
-def build_health_context(user: dict, nutrition_col_ref=None, workout_col_ref=None) -> str:
+# ─────────────────────────────────────────────────────────────
+# CHECKPOINT 3: 7-DAY TREND AGGREGATOR (READ-ONLY)
+# ─────────────────────────────────────────────────────────────
+
+def _build_trends_context(
+    email: str,
+    user_id: Optional[str],
+    nutrition_col_ref,
+    workout_col_ref,
+) -> str:
+    """Return a 7-day trend summary (avg calories, avg protein, workout count).
+
+    All date boundaries are computed in Asia/Ho_Chi_Minh timezone.
+    Strictly read-only — no insert/update on any collection.
+    """
+    LABEL = "XU HƯỚNG 7 NGÀY QUA"
+    NO_DATA = f"{LABEL}: chưa có dữ liệu"
+
+    if not email:
+        return NO_DATA
+
+    try:
+        today_vn = datetime.now(VN_TZ).date()
+        dates_7 = [(today_vn - timedelta(days=i)).strftime("%Y-%m-%d") for i in range(7)]
+    except Exception:
+        return NO_DATA
+
+    # ── Nutrition: aggregate per day ──────────────────────────
+    daily_cals: List[float] = []
+    daily_pros: List[float] = []
+    try:
+        ncol = nutrition_col_ref
+        if ncol is not None:
+            logs = list(ncol.find({"$or": [{"user_email": email}, {"email": email}]}))
+            logs = [l for l in logs if l.get("date") in dates_7]
+            # Group by date, sum macros
+            by_date: dict = {}
+            for l in logs:
+                d = l.get("date")
+                if d not in by_date:
+                    by_date[d] = {"cal": 0.0, "pro": 0.0}
+                cal = float(
+                    l.get("total_calories")
+                    or l.get("calories")
+                    or sum(float(f.get("calories", 0)) for f in l.get("foods", []))
+                    or 0
+                )
+                pro = float(
+                    l.get("total_protein")
+                    or l.get("protein")
+                    or sum(float(f.get("protein", 0)) for f in l.get("foods", []))
+                    or 0
+                )
+                by_date[d]["cal"] += cal
+                by_date[d]["pro"] += pro
+            for day in dates_7:
+                if day in by_date:
+                    daily_cals.append(by_date[day]["cal"])
+                    daily_pros.append(by_date[day]["pro"])
+    except Exception as e:
+        logger.warning("7-day nutrition trend query failed: %s", type(e).__name__)
+
+    # ── Workout: count sessions in 7 days ─────────────────────
+    workout_count = 0
+    try:
+        wcol = workout_col_ref
+        if wcol is not None:
+            query_or = [{"email": email}, {"user_email": email}]
+            if user_id:
+                query_or.append({"user_id": user_id})
+            sessions = list(wcol.find({"$or": query_or}))
+            for s in sessions:
+                s_date = s.get("date")
+                if isinstance(s_date, str) and s_date in dates_7:
+                    workout_count += 1
+                elif isinstance(s_date, datetime):
+                    s_date_str = s_date.astimezone(VN_TZ).strftime("%Y-%m-%d")
+                    if s_date_str in dates_7:
+                        workout_count += 1
+    except Exception as e:
+        logger.warning("7-day workout trend query failed: %s", type(e).__name__)
+
+    # ── Format ────────────────────────────────────────────────
+    if not daily_cals and workout_count == 0:
+        return NO_DATA
+
+    logged_days = len(daily_cals)
+    avg_cal_str = f"{round(sum(daily_cals) / logged_days)} kcal" if logged_days > 0 else "chưa có dữ liệu"
+    avg_pro_str = f"{round(sum(daily_pros) / logged_days, 1)}g" if logged_days > 0 else "chưa có dữ liệu"
+
+    return (
+        f"{LABEL}:\n"
+        f"- Số ngày có log dinh dưỡng: {logged_days}/7\n"
+        f"- Calo trung bình/ngày: {avg_cal_str}\n"
+        f"- Protein trung bình/ngày: {avg_pro_str}\n"
+        f"- Số buổi tập: {workout_count} buổi"
+    )
+
+
+def build_health_context(
+    user: dict,
+    nutrition_col_ref=None,
+    workout_col_ref=None,
+    users_col_ref=None,
+) -> str:
     """Build concise, server-authoritative health context without leaking private fields."""
     email = user.get("email") or ""
     user_id = str(user.get("_id")) if user.get("_id") is not None else None
 
+    ucol = users_col_ref if users_col_ref is not None else users_col
     ncol = nutrition_col_ref if nutrition_col_ref is not None else nutrition_col
     wcol = workout_col_ref if workout_col_ref is not None else workout_history_col
+
+    # If user object is minimal and ucol is available, query DB
+    if ucol is not None and email:
+        try:
+            db_user = ucol.find_one({"email": email})
+            if db_user:
+                merged_user = dict(db_user)
+                merged_user.update({k: v for k, v in user.items() if v is not None})
+                user = merged_user
+                if user_id is None and user.get("_id") is not None:
+                    user_id = str(user.get("_id"))
+        except Exception:
+            pass
 
     profile_ctx = _build_user_profile_context(user)
     nutrition_ctx = _build_today_nutrition_context(email, ncol)
     workout_ctx = _build_latest_workout_context(email, user_id, wcol)
+    trends_ctx = _build_trends_context(email, user_id, ncol, wcol)
 
-    return f"{profile_ctx}\n\n{nutrition_ctx}\n\n{workout_ctx}"
+    return f"{profile_ctx}\n\n{nutrition_ctx}\n\n{workout_ctx}\n\n{trends_ctx}"
 
 
 # ─────────────────────────────────────────────────────────────
@@ -669,14 +810,15 @@ async def chat_with_ai(
         current_user,
         nutrition_col_ref=nutrition_col,
         workout_col_ref=workout_history_col,
+        users_col_ref=users_col,
     )
 
-    # Checkpoint 3: Multi-turn prompt construction from server-stored turns
+    # Checkpoint 4: Multi-turn prompt construction from server-stored turns (max 10 turns)
     history_str = ""
     if conv:
         prior_msgs = conv.get("messages", [])
         if prior_msgs:
-            recent_prior = prior_msgs[-6:]
+            recent_prior = prior_msgs[-10:]
             lines = []
             for m in recent_prior:
                 role = "User" if m.get("role") == "user" else "Saman"
@@ -688,7 +830,17 @@ async def chat_with_ai(
     if history_str:
         prompt_parts.append(history_str)
     prompt_parts.append(f"USER HỎI: {trimmed_message}")
-    prompt_parts.append("TRẢ LỜI NGẮN GỌN & THÂN THIỆN:")
+    # Checkpoint 5: Proactive coaching system instruction
+    prompt_parts.append(
+        "HƯỚNG DẪN TRẢ LỜI (Saman Coach):\n"
+        "Bạn là Saman Coach — trợ lý sức khỏe cá nhân. Hãy thực hiện đủ 4 bước sau:\n"
+        "1. PHÂN TÍCH: Đọc dữ liệu 'DINH DƯỠNG HÔM NAY' và 'XU HƯỚNG 7 NGÀY QUA' ở trên.\n"
+        "2. NEXT STEP: Nếu user hỏi về dinh dưỡng hoặc tập luyện, đề xuất đúng 1 bước tiếp theo cụ thể, có thể thực hiện ngay.\n"
+        "3. LÝ DO: Giải thích lý do ngắn gọn dựa trên dữ liệu (ví dụ: 'Vì Protein hôm nay của bạn còn thiếu X g so với mục tiêu...').\n"
+        "4. PHẢN HỒI: Kết thúc bằng 1 câu hỏi để thu thập phản hồi từ người dùng.\n"
+        "Giới hạn: Không chẩn đoán y khoa, không kê đơn. Nếu thiếu dữ liệu, nói rõ 'chưa có dữ liệu' thay vì suy đoán.\n"
+        "TRẢ LỜI:"
+    )
 
     full_prompt = "\n\n".join(prompt_parts)
 

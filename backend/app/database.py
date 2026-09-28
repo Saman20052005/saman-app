@@ -78,3 +78,45 @@ except Exception as e:
     exercises_collection = None
     conversations_collection = None
     messages_collection = None
+
+
+def check_water_logs_duplicates(col=None) -> list:
+    """Read-only check for duplicate (user_email, date) pairs in water_logs.
+
+    Returns a list of duplicate groups without exposing private health data.
+    """
+    target = col if col is not None else water_collection
+    if target is None:
+        raise RuntimeError("MongoDB connection is unavailable")
+
+    pipeline = [
+        {"$group": {"_id": {"user_email": "$user_email", "date": "$date"}, "count": {"$sum": 1}}},
+        {"$match": {"count": {"$gt": 1}}},
+    ]
+    return list(target.aggregate(pipeline))
+
+
+def ensure_water_logs_unique_index(col=None) -> str:
+    """Controlled migration to create unique compound index on water_logs (user_email, date).
+
+    Does NOT run automatically at startup.
+    Refuses to create index if duplicates exist without manual resolution.
+    Does NOT silently delete, merge, or alter existing records.
+    """
+    target = col if col is not None else water_collection
+    if target is None:
+        raise RuntimeError("MongoDB connection is unavailable")
+
+    dups = check_water_logs_duplicates(target)
+    if dups:
+        total_dup_records = sum(d.get("count", 0) for d in dups)
+        raise RuntimeError(
+            f"Cannot create unique index: found {len(dups)} duplicate group(s) "
+            f"with {total_dup_records} records. Manual resolution required."
+        )
+
+    return target.create_index(
+        [("user_email", 1), ("date", 1)],
+        unique=True,
+        name="uniq_water_user_email_date",
+    )
