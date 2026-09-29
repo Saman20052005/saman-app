@@ -37,15 +37,43 @@ class NutritionPlanDto {
     required this.macroTargets,
   });
 
+  static int _parseInt(dynamic value, [int defaultValue = 0]) {
+    if (value == null) return defaultValue;
+    if (value is num) return value.toInt();
+    if (value is String) {
+      return int.tryParse(value) ??
+          double.tryParse(value)?.toInt() ??
+          defaultValue;
+    }
+    return defaultValue;
+  }
+
   factory NutritionPlanDto.fromJson(Map<String, dynamic> json) {
     return NutritionPlanDto(
       id: json['_id']?.toString(),
       date: json['date'] ?? '',
-      currentWater: (json['current_water'] as num?)?.toInt() ?? 0,
-      targetWater: (json['water_target'] as num?)?.toInt() ??
-          (json['total_water_target'] as num?)?.toInt() ??
-          2000,
-      waterVersion: (json['water_version'] as num?)?.toInt() ?? 0,
+      currentWater: _parseInt(
+        json['current_water'] ??
+            json['currentWater'] ??
+            json['water_intake'] ??
+            json['waterIntake'],
+        0,
+      ),
+      targetWater: _parseInt(
+        json['water_target'] ??
+            json['waterTarget'] ??
+            json['target_water'] ??
+            json['targetWater'] ??
+            json['total_water_target'] ??
+            json['totalWaterTarget'] ??
+            json['water_target_ml'] ??
+            json['waterTargetMl'],
+        2000,
+      ),
+      waterVersion: _parseInt(
+        json['water_version'] ?? json['waterVersion'],
+        0,
+      ),
       totalCaloriesConsumed: (json['total_calories'] as num?)?.toInt() ?? 0,
       totalProteinConsumed: (json['total_protein'] as num?)?.toInt() ?? 0,
       totalCarbsConsumed: (json['total_carbs'] as num?)?.toInt() ?? 0,

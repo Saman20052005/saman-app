@@ -143,7 +143,21 @@ class NutritionNotifier extends StateNotifier<AsyncValue<NutritionPlan?>> {
       // B. Loading
       if (!forceRefresh) state = const AsyncValue.loading();
 
-      final plan = await _loadDailyPlanUseCase.execute(date);
+      var plan = await _loadDailyPlanUseCase.execute(date);
+
+      // Đảm bảo dữ liệu nước không bị mất nếu UseCase auto-generate meal plan
+      if (plan.currentWater == 0) {
+        try {
+          final daily = await _repository.getDailyPlan(dateStr);
+          if (daily.currentWater > 0 || daily.waterVersion > 0) {
+            plan = plan.copyWith(
+              currentWater: daily.currentWater,
+              targetWater: daily.targetWater > 0 ? daily.targetWater : plan.targetWater,
+              waterVersion: daily.waterVersion,
+            );
+          }
+        } catch (_) {}
+      }
 
       // dùng parsed model
       if (plan.meals.isEmpty && plan.entries.isEmpty) {
@@ -151,8 +165,10 @@ class NutritionNotifier extends StateNotifier<AsyncValue<NutritionPlan?>> {
           '🤖 Auto-pilot: no meals, no entries for $dateStr → generating...',
         );
 
+        _localCache[dateStr] = plan;
         final savedWater = plan.currentWater;
         final savedWaterTarget = plan.targetWater;
+        final savedWaterVersion = plan.waterVersion;
 
         await generateAutoPlan(
           date,
@@ -161,10 +177,11 @@ class NutritionNotifier extends StateNotifier<AsyncValue<NutritionPlan?>> {
         );
 
         final newPlan = state.value;
-        if (newPlan != null && savedWater > 0) {
+        if (newPlan != null && (savedWater > 0 || savedWaterVersion > 0)) {
           final merged = newPlan.copyWith(
-            currentWater: savedWater,
-            targetWater: savedWaterTarget,
+            currentWater: newPlan.currentWater > 0 ? newPlan.currentWater : savedWater,
+            targetWater: savedWaterTarget > 0 ? savedWaterTarget : newPlan.targetWater,
+            waterVersion: newPlan.waterVersion > 0 ? newPlan.waterVersion : savedWaterVersion,
           );
           _localCache[dateStr] = merged;
           // Prevent memory leak – limit cache to 30 entries
@@ -190,6 +207,7 @@ class NutritionNotifier extends StateNotifier<AsyncValue<NutritionPlan?>> {
         // BEFORE generate
         final waterBefore = _localCache[dateStr]?.currentWater ?? 0;
         final waterTargetBefore = _localCache[dateStr]?.targetWater ?? 2000;
+        final waterVersionBefore = _localCache[dateStr]?.waterVersion ?? 0;
 
         await generateAutoPlan(
           date,
@@ -198,10 +216,11 @@ class NutritionNotifier extends StateNotifier<AsyncValue<NutritionPlan?>> {
         );
 
         // AFTER generate
-        if (state.value != null && waterBefore > 0) {
+        if (state.value != null && (waterBefore > 0 || waterVersionBefore > 0)) {
           final patched = state.value!.copyWith(
-            currentWater: waterBefore,
+            currentWater: state.value!.currentWater > 0 ? state.value!.currentWater : waterBefore,
             targetWater: waterTargetBefore,
+            waterVersion: state.value!.waterVersion > 0 ? state.value!.waterVersion : waterVersionBefore,
           );
           _localCache[dateStr] = patched;
           state = AsyncValue.data(patched);
@@ -256,16 +275,26 @@ class NutritionNotifier extends StateNotifier<AsyncValue<NutritionPlan?>> {
         // Macro targets are not available in legacy NutritionPlan model
         // _macroTargets = null; // Commented out since not supported
 
-        // Fetch existing data from API
-        int currentWater = 0;
-        int targetWater = 2000;
-        List<NutritionLogEntry> existingEntries = [];
+        // Fetch existing data from API or preserve from previous state/cache
+        final oldPlan = (state.value?.date == dateStr) ? state.value : _localCache[dateStr];
+        int currentWater = oldPlan?.currentWater ?? 0;
+        int targetWater = oldPlan?.targetWater ?? 2000;
+        int waterVersion = oldPlan?.waterVersion ?? 0;
+        List<NutritionLogEntry> existingEntries = oldPlan?.entries ?? [];
 
         try {
           final d = await _repository.getDailyPlan(dateStr);
-          currentWater = d.currentWater;
-          targetWater = d.targetWater;
-          existingEntries = d.entries;
+          currentWater = d.currentWater > 0 ? d.currentWater : currentWater;
+          targetWater = d.targetWater > 0 ? d.targetWater : targetWater;
+          waterVersion = d.waterVersion > 0 ? d.waterVersion : waterVersion;
+          if (oldPlan == null) {
+            currentWater = d.currentWater;
+            targetWater = d.targetWater > 0 ? d.targetWater : 2000;
+            waterVersion = d.waterVersion;
+          }
+          if (d.entries.isNotEmpty) {
+            existingEntries = d.entries;
+          }
         } catch (_) {
           // Silent error handling
         }
@@ -273,6 +302,7 @@ class NutritionNotifier extends StateNotifier<AsyncValue<NutritionPlan?>> {
         final planWithWater = plan.copyWith(
           currentWater: currentWater,
           targetWater: targetWater,
+          waterVersion: waterVersion,
           entries: existingEntries,
         );
 
@@ -573,20 +603,30 @@ class NutritionNotifier extends StateNotifier<AsyncValue<NutritionPlan?>> {
       // Macro targets are not available in legacy NutritionPlan model
       // _macroTargets = null; // Commented out since not supported
 
-      // ===== Merge water + entries từ GET /{date} =====
-      List<NutritionLogEntry> existingEntries = [];
-      int currentWater = 0;
-      int targetWater = 2000;
-      int totalCal = 0;
-      int totalPro = 0;
-      int totalCarbs = 0;
-      int totalFat = 0;
+      // ===== Merge water + entries từ GET /{date} hoặc state cũ =====
+      final oldPlan = (state.value?.date == dateStr) ? state.value : _localCache[dateStr];
+      List<NutritionLogEntry> existingEntries = oldPlan?.entries ?? [];
+      int currentWater = oldPlan?.currentWater ?? 0;
+      int targetWater = oldPlan?.targetWater ?? 2000;
+      int waterVersion = oldPlan?.waterVersion ?? 0;
+      int totalCal = oldPlan?.totalCaloriesConsumed ?? 0;
+      int totalPro = oldPlan?.totalProteinConsumed ?? 0;
+      int totalCarbs = oldPlan?.totalCarbsConsumed ?? 0;
+      int totalFat = oldPlan?.totalFatConsumed ?? 0;
 
       try {
         final d = await _repository.getDailyPlan(dateStr);
-        currentWater = d.currentWater;
-        targetWater = d.targetWater;
-        existingEntries = d.entries;
+        currentWater = d.currentWater > 0 ? d.currentWater : currentWater;
+        targetWater = d.targetWater > 0 ? d.targetWater : targetWater;
+        waterVersion = d.waterVersion > 0 ? d.waterVersion : waterVersion;
+        if (oldPlan == null) {
+          currentWater = d.currentWater;
+          targetWater = d.targetWater > 0 ? d.targetWater : 2000;
+          waterVersion = d.waterVersion;
+        }
+        if (d.entries.isNotEmpty) {
+          existingEntries = d.entries;
+        }
 
         totalCal = d.totalCaloriesConsumed;
         totalPro = d.totalProteinConsumed.toInt();
@@ -599,6 +639,7 @@ class NutritionNotifier extends StateNotifier<AsyncValue<NutritionPlan?>> {
       final merged = plan.copyWith(
         currentWater: currentWater,
         targetWater: targetWater,
+        waterVersion: waterVersion,
         entries: existingEntries,
         totalCaloriesConsumed: totalCal,
         totalProteinConsumed: totalPro,
