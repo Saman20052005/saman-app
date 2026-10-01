@@ -10,6 +10,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:health_ai_app/config/app_theme.dart';
 import 'package:health_ai_app/features/profile/domain/entities/profile_entity.dart';
+import 'package:health_ai_app/features/profile/domain/entities/profile_snapshot.dart';
 import 'package:health_ai_app/features/profile/data/repositories/profile_repository_impl.dart';
 import 'package:health_ai_app/models/nutrition_model.dart';
 import 'package:health_ai_app/providers/nutrition_provider.dart';
@@ -19,6 +20,26 @@ import 'package:health_ai_app/screens/main_screen.dart';
 class _FakeProfileRepository implements ProfileRepository {
   @override
   Future<void> syncProfile(ProfileEntity profile) async {}
+
+  @override
+  Future<ProfileSnapshot?> fetchProfileSnapshot(
+          {bool cacheOnSuccess = false}) async =>
+      const ProfileSnapshot(
+        profile: ProfileEntity(
+          age: 28,
+          gender: Gender.male,
+          height: 178,
+          weight: 75,
+          activityLevel: ActivityLevel.medium,
+          goal: Goal.gain_muscle,
+        ),
+      );
+
+  @override
+  Future<void> cacheSnapshot(ProfileSnapshot snapshot) async {}
+
+  @override
+  Future<void> clearLocalProfile() async {}
 
   @override
   Future<ProfileEntity?> fetchProfile() async => const ProfileEntity(

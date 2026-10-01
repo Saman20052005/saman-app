@@ -130,31 +130,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                     onLogMeal: _handleLogMeal,
                     onRetakeFoodPhoto: _handleAttachmentFlow,
                     onManualMealEntry: _handleManualMealEntry,
-                    latestAssistantActions: (chatState.pendingAction != null &&
-                            chatState.pendingAction!['status'] == 'pending')
-                        ? [
-                            SamanAssistantAction(
-                              label: 'Xác nhận (+250 ml nước)',
-                              icon: Icons.check_circle_outline,
-                              isPrimary: true,
-                              onTap: () {
-                                final actionId = chatState.pendingAction!['id']?.toString() ?? '';
-                                final convId = chatState.activeConversationId ?? '';
-                                ref.read(chatControllerProvider.notifier).confirmAction(convId, actionId);
-                              },
-                            ),
-                            SamanAssistantAction(
-                              label: 'Hủy',
-                              icon: Icons.close,
-                              isPrimary: false,
-                              onTap: () {
-                                final actionId = chatState.pendingAction!['id']?.toString() ?? '';
-                                final convId = chatState.activeConversationId ?? '';
-                                ref.read(chatControllerProvider.notifier).cancelAction(convId, actionId);
-                              },
-                            ),
-                          ]
-                        : null,
+                    latestAssistantActions: _buildAssistantActions(chatState),
                     activeNudge: hasNudge
                         ? _activeNudge!.copyWith(
                             onPrimary: () => _handleNudgePrimary(_activeNudge!),
@@ -178,6 +154,72 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   }
 
   // --- UI COMPONENTS ---
+
+  List<SamanAssistantAction>? _buildAssistantActions(ChatState chatState) {
+    final action = chatState.pendingAction;
+    if (action == null || action['status'] != 'pending') return null;
+
+    final type = action['type']?.toString();
+    final actionId = action['id']?.toString() ?? '';
+    final convId = chatState.activeConversationId ?? '';
+
+    String confirmLabel;
+    if (type == 'log_water') {
+      final amount = action['amount_ml'] ?? 250;
+      confirmLabel = 'Xác nhận (+$amount ml nước)';
+    } else if (type == 'log_meal') {
+      final cals = action['total_calories'];
+      final foods = action['foods'];
+      String foodName = '';
+      if (foods is List && foods.isNotEmpty && foods.first is Map) {
+        foodName = foods.first['name']?.toString() ?? '';
+      }
+      if (foodName.isNotEmpty && cals != null) {
+        confirmLabel = 'Xác nhận ($foodName: $cals kcal)';
+      } else if (cals != null) {
+        confirmLabel = 'Xác nhận ($cals kcal)';
+      } else {
+        confirmLabel = 'Xác nhận ghi nhận bữa ăn';
+      }
+    } else if (type == 'adjust_workout') {
+      final planName = action['plan_name']?.toString() ?? 'kế hoạch tập';
+      final changes = action['changes'] is Map
+          ? action['changes'] as Map
+          : (action['after'] is Map ? action['after'] as Map : null);
+      String detail = '';
+      if (changes != null && changes.containsKey('duration_minutes')) {
+        detail = '${changes['duration_minutes']} phút';
+      } else if (changes != null && changes.containsKey('difficulty')) {
+        detail = '${changes['difficulty']}';
+      }
+      if (detail.isNotEmpty) {
+        confirmLabel = 'Xác nhận (Điều chỉnh $planName: $detail)';
+      } else {
+        confirmLabel = 'Xác nhận (Điều chỉnh $planName)';
+      }
+    } else {
+      confirmLabel = 'Xác nhận';
+    }
+
+    return [
+      SamanAssistantAction(
+        label: confirmLabel,
+        icon: Icons.check_circle_outline,
+        isPrimary: true,
+        onTap: () {
+          ref.read(chatControllerProvider.notifier).confirmAction(convId, actionId);
+        },
+      ),
+      SamanAssistantAction(
+        label: 'Hủy',
+        icon: Icons.close,
+        isPrimary: false,
+        onTap: () {
+          ref.read(chatControllerProvider.notifier).cancelAction(convId, actionId);
+        },
+      ),
+    ];
+  }
 
   void _handlePromptSelected(String prompt) {
     ref.read(chatControllerProvider.notifier).sendMessage(prompt);

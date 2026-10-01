@@ -7,6 +7,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:health_ai_app/config/app_theme.dart';
 import 'package:health_ai_app/features/profile/data/repositories/profile_repository_impl.dart';
 import 'package:health_ai_app/features/profile/domain/entities/profile_entity.dart';
+import 'package:health_ai_app/features/profile/domain/entities/profile_snapshot.dart';
 import 'package:health_ai_app/models/nutrition_model.dart';
 import 'package:health_ai_app/providers/nutrition_provider.dart';
 import 'package:health_ai_app/providers/profile_provider.dart';
@@ -19,6 +20,19 @@ class _FakeProfileRepository implements ProfileRepository {
 
   @override
   Future<void> syncProfile(ProfileEntity profile) async {}
+
+  @override
+  Future<ProfileSnapshot?> fetchProfileSnapshot(
+      {bool cacheOnSuccess = false}) async {
+    final profile = await fetchProfile();
+    return profile == null ? null : ProfileSnapshot(profile: profile);
+  }
+
+  @override
+  Future<void> cacheSnapshot(ProfileSnapshot snapshot) async {}
+
+  @override
+  Future<void> clearLocalProfile() async {}
 
   @override
   Future<ProfileEntity?> fetchProfile() async => isValid
@@ -105,8 +119,8 @@ class FakeNutritionNotifier extends StateNotifier<AsyncValue<NutritionPlan?>>
 void main() {
   testWidgets('MainScreen renders approved 5-tab Saman navigation bar with wired tabs',
       (tester) async {
-    tester.view.physicalSize = const Size(1080, 2400);
-    tester.view.devicePixelRatio = 2.5;
+    tester.view.physicalSize = const Size(1200, 900);
+    tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
 
@@ -148,7 +162,27 @@ void main() {
     expect(find.text('Nutrition'), findsWidgets);
     expect(find.text('Profile'), findsOneWidget);
 
-    // 3. Tab switching works (test Profile and Home tabs)
+    // 3. Tab switching works & distinct FAB hero tags prevent collision in IndexedStack
+    final fabs = tester.widgetList<FloatingActionButton>(
+      find.byType(FloatingActionButton, skipOffstage: false),
+    );
+    final heroTags = fabs.map((fab) => fab.heroTag).toSet();
+    expect(fabs.length, 2);
+    expect(heroTags, containsAll(['workout_home_fab', 'nutrition_screen_fab']));
+    expect(heroTags.length, fabs.length);
+
+    await tester.tap(find.text('Workout'));
+    await tester.pump();
+    for (int i = 0; i < 5; i++) {
+      await tester.pump(const Duration(milliseconds: 50));
+    }
+
+    await tester.tap(find.text('Nutrition').first);
+    await tester.pump();
+    for (int i = 0; i < 5; i++) {
+      await tester.pump(const Duration(milliseconds: 50));
+    }
+
     await tester.tap(find.text('Profile'));
     await tester.pump();
     for (int i = 0; i < 5; i++) {

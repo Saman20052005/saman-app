@@ -309,8 +309,13 @@ class ChatController extends StateNotifier<ChatState> {
         final data = response.data is String
             ? jsonDecode(response.data as String)
             : response.data;
+        final actionType = state.pendingAction?['type'];
         final message = data['message']?.toString() ??
-            "Đã thêm 250 ml nước vào nhật ký hôm nay của bạn.";
+            (actionType == 'log_meal'
+                ? "Đã ghi nhận bữa ăn vào nhật ký hôm nay của bạn."
+                : (actionType == 'adjust_workout'
+                    ? "Đã điều chỉnh kế hoạch tập thành công."
+                    : "Đã thêm 250 ml nước vào nhật ký hôm nay của bạn."));
 
         final botMsg = ChatMessage(role: 'assistant', content: message);
         state = state.copyWith(
@@ -358,8 +363,13 @@ class ChatController extends StateNotifier<ChatState> {
         final data = response.data is String
             ? jsonDecode(response.data as String)
             : response.data;
-        final message =
-            data['message']?.toString() ?? "Đã hủy thao tác thêm nước.";
+        final actionType = state.pendingAction?['type'];
+        final message = data['message']?.toString() ??
+            (actionType == 'log_meal'
+                ? "Đã hủy thao tác ghi nhận bữa ăn."
+                : (actionType == 'adjust_workout'
+                    ? "Đã hủy thao tác điều chỉnh kế hoạch tập."
+                    : "Đã hủy thao tác thêm nước."));
 
         final botMsg = ChatMessage(role: 'assistant', content: message);
         state = state.copyWith(

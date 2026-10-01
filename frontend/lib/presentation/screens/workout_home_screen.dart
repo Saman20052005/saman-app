@@ -261,6 +261,7 @@ class _WorkoutHomeScreenState extends ConsumerState<WorkoutHomeScreen> {
         ),
       ),
       floatingActionButton: FloatingActionButton.extended(
+        heroTag: 'workout_home_fab',
         onPressed: () => _navigateToCreatePlan(context),
         icon: const Icon(Icons.add),
         label: const Text('Create Plan'),

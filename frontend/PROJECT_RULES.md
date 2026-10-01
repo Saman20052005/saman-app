@@ -18,6 +18,7 @@ lib/features/[feature_name]/
     ├── controllers/ (Riverpod @riverpod generated)
     ├── screens/
     └── widgets/
+* Note on UseCases: UseCases are strictly reserved for complex, multi-repository business logic. Simple CRUD or direct data fetching should go directly from Riverpod Controller to Repository to eliminate boilerplate.
 
 ## 2. Critical Coding Rules
 ### A. State Management (Riverpod)

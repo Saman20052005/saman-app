@@ -162,6 +162,7 @@ class NutritionLog(pd.BaseModel):
     total_fat: Optional[float] = 0.0
     notes: Optional[str] = None
     story_id: Optional[str] = None  # ← NEW: Link tới story_logs_collection
+    action_id: Optional[str] = None
 
 class WaterLog(pd.BaseModel):
     date: str
@@ -322,6 +323,20 @@ async def create_nutrition_log(
         if nutrition_collection is None:
             raise HTTPException(status_code=503, detail="Database not available")
 
+        if log.action_id:
+            existing = nutrition_collection.find_one({
+                "user_email": user["email"],
+                "action_id": log.action_id,
+            })
+            if existing:
+                return {
+                    "id":         str(existing["_id"]),
+                    "message":    "Nutrition log already exists",
+                    "log":        log.dict(),
+                    "created_at": existing.get("created_at", datetime.utcnow()).isoformat() if isinstance(existing.get("created_at"), datetime) else str(existing.get("created_at")),
+                    "status":     "saved",
+                }
+
         # Resolve food data before saving
         resolved_foods = await _resolve_food_data(log.foods, user["email"], db)
         
@@ -341,6 +356,7 @@ async def create_nutrition_log(
             "total_fat":      round(t_fat, 1),
             "notes":          log.notes,
             "story_id":       log.story_id,
+            "action_id":      log.action_id,
             "created_at":     datetime.utcnow(),
             "updated_at":     datetime.utcnow(),
         }

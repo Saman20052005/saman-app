@@ -2,14 +2,34 @@
 
 ## 1. Mission & Authority
 
-Complete only the task defined in the linked GitHub Issue (e.g., from `.github/ISSUE_TEMPLATE/night-task.yml`).
+Complete only the authorized task assigned via:
+1. **GitHub Issue** (for autonomous night agents like Google Jules).
+2. **Direct Execution Spec from Tech Lead / User** (for interactive IDE agents like Antigravity).
 
-- **Task Source of Truth**: The GitHub Issue specifies the goal, context, allowed paths, forbidden changes, acceptance criteria, verification commands, branch name, and maximum repair attempts.
+- **Task Source of Truth**: The active Issue or the Execution Spec defines the goal, context, allowed paths, forbidden changes, acceptance criteria, and verification commands.
 - **Repository Safety Baseline**: `AGENTS.md` defines non-negotiable repository safety, architectural, and operational rules.
-- **Precedence & Conflict Resolution**: Agents MUST follow BOTH. If an Issue conflicts with safety rules, contains contradictory instructions, requires unsafe actions, or lacks information needed for safe implementation:
+- **Precedence & Conflict Resolution**: Agents MUST follow BOTH. If instructions conflict with safety rules, contain contradictory requirements, or demand unsafe actions:
   **STOP AND REPORT THE BLOCKER.**
   Never guess. Never silently expand scope.
 
+---
+
+## 1.1 Core Cognitive Mindset (Karpathy Principles)
+
+When planning and generating code, the agent MUST adhere to four execution instincts:
+
+1. **Think & Clarify Before Typing**:
+   - Never assume missing details or choose an arbitrary design path silently.
+   - Proactively challenge and push back if a requested implementation is unnecessarily complex when an existing, simpler pattern already exists.
+2. **Radical Simplicity (YAGNI)**:
+   - Solve the current problem with the absolute minimum number of lines and layers.
+   - Do NOT introduce speculative interfaces, wrappers, or abstractions for single-use scenarios.
+   - Standard: *If a Senior Engineer inspects the diff and sees unnecessary boilerplate, rewrite it simpler.*
+3. **Surgical Precision**:
+   - Zero tolerance for incidental edits, unnecessary refactors, or touching unrelated whitespace/comments. Every changed line must directly answer the prompt.
+4. **Goal-Driven Autonomy**:
+   - Before executing code, identify the verification command. Iterate internally against test/analyzer output until passing before presenting the final result.
+   
 ---
 
 ## 2. Strict Scope Control & Smallest Safe Diff
@@ -56,6 +76,7 @@ Before modifying code to resolve a defect:
 5. **Targeted Fix**: Apply the minimal change directly resolving the verified root cause.
 
 - **Diagnostic Discipline**: Explicitly distinguish `FACT` vs. `OBSERVATION` vs. `HYPOTHESIS` vs. `TEST` vs. `CONCLUSION`.
+- **Remote Diagnostics Discipline**: For remote bugs on Hugging Face Space (`Nguyenvananan2005/saman-backend`), the agent MUST run `.agents/scripts/get_hf_logs.py` to obtain live Traceback evidence before formulating hypotheses. Guessing remote runtime failures without log inspection is strictly prohibited.
 - **MUST NOT**:
   - Add defensive checks or speculative null-guards everywhere to mask unknown causes.
   - Catch broad exceptions (e.g., bare `catch (e)`) merely to suppress test failures.
@@ -184,7 +205,10 @@ Agents MUST STOP and report a blocker instead of guessing when:
 - **No Autonomous Merging**: NEVER merge a Pull Request. Merging is strictly reserved for human reviewers.
 - **Non-Destructive**: NEVER run destructive git commands (`git reset --hard`, `git clean -fd`) that risk discarding uncommitted user work.
 - **Clean Commits**: Commit only files necessary for the task, with clear, descriptive commit messages.
-
+- **Checkpoint-Level Commits (Strict Discipline for IDE Agents)**:
+  - **MUST NOT Commit**: While code is in an incomplete state, when targeted tests are failing, for micro-fixes (typos, single variable renames), or before local manual verification.
+  - **Commit Permitted ONLY WHEN**: The current Checkpoint/Task satisfies 100% of its Acceptance Criteria, targeted verification commands pass with 0 errors, and explicit human confirmation is received.
+  - **Push Restrictions**: Never push incomplete feature code to remote tracking branches without human verification.
 ---
 
 ## 15. Environment & Verification Commands
@@ -219,6 +243,11 @@ Agents MUST STOP and report a blocker instead of guessing when:
   ```bash
   python3 -m compileall -q backend
   ```
+- **Remote Diagnostics (Hugging Face Space)**:
+  ```bash
+  python3 .agents/scripts/get_hf_logs.py --lines 100
+  ```
+  *(Retrieves latest runtime container logs and stack traces from Space `Nguyenvananan2005/saman-backend` using `HF_TOKEN` from `.env`).*
 
 ---
 
@@ -246,6 +275,9 @@ Every completed task or Pull Request MUST include the following report in the PR
 - **Scope Confirmation**: Confirmed all modified files are within allowed_paths.
 - **Merge Confirmation**: Pull Request created for human review. No merge performed.
 ```
+> **Agent Distinction**:
+> - **For Jules (PR Agent)**: Include the full Markdown template below in the Pull Request body.
+> - **For Antigravity (IDE Agent)**: Do not generate the full PR markdown. Provide a concise 4-line terminal summary: (1) Files modified, (2) Verification command results, (3) DoD status [PASS/FAIL], (4) Confirmation ready for local review.
 
 ---
 
@@ -262,3 +294,25 @@ Every completed task or Pull Request MUST include the following report in the PR
 - **Compatibility**: Verify Flutter `3.22.0` and Dart `3.4.0` compatibility.
 - **Verification Check**: Ensure the completion report documents actual executed verification commands.
 - **Merge Authority**: Never approve or execute direct merges to `main`.
+
+---
+
+# AGENT EXECUTION RULES - SAMAN COACH
+
+1. SOURCE OF TRUTH:
+   - Chỉ đọc dữ liệu từ Backend services/MongoDB thật của người dùng đã xác thực.
+   - Tuyệt đối không tin hoặc dùng các giá trị mặc định (default/fallback values) từ Flutter client gửi lên làm sự thật. Dữ liệu thiếu phải đánh dấu rõ là THIẾU.
+
+2. CHECKPOINT DISCIPLINE & SCOPE:
+   - Chỉ thực thi duy nhất Checkpoint được chỉ định trong phiên làm việc.
+   - Tuyệt đối không tự ý viết code, tạo route hoặc tạo schema cho các Checkpoint tương lai.
+
+3. TIMEZONE CONSISTENCY:
+   - Mọi logic xác định ngày, tuần, "hôm nay" (today) và mốc log ăn uống/tập luyện BẮT BUỘC sử dụng múi giờ `Asia/Ho_Chi_Minh` (UTC+7).
+
+4. HEALTH BOUNDARY:
+   - Saman chỉ đóng vai trò hỗ trợ theo dõi thói quen, dinh dưỡng và tập luyện.
+   - Tuyệt đối không sinh code hoặc prompt chẩn đoán y khoa, kê đơn, kết luận bệnh lý.
+
+5. SPEC REFERENCE:
+   - BẮT BUỘC đọc và đối chiếu `docs/specs/saman_coach_blueprint.md` trước khi sửa đổi bất kỳ logic nào trong domain Chat.

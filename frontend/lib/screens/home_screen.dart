@@ -6,7 +6,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 import '../config/app_translations.dart';
 import '../config/theme_provider.dart';
@@ -31,7 +30,9 @@ import '../presentation/screens/active_workout_screen.dart';
 import '../presentation/screens/workout_home_screen.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
-  const HomeScreen({super.key});
+  const HomeScreen({super.key, this.onOpenProfile});
+
+  final VoidCallback? onOpenProfile;
 
   @override
   ConsumerState<HomeScreen> createState() => _HomeScreenState();
@@ -119,8 +120,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     );
 
     if (confirmed == true && mounted) {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.clear();
+      await AuthHelper.logout(ref);
       if (mounted) {
         Navigator.pushAndRemoveUntil(
           context,
@@ -171,10 +171,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 ),
                 onTap: () {
                   Navigator.pop(ctx);
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => const ProfileScreen()),
-                  );
+                  if (widget.onOpenProfile != null) {
+                    widget.onOpenProfile!();
+                  } else {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const ProfileScreen()),
+                    );
+                  }
                 },
               ),
               const Divider(color: SamanHomeTokens.borderSubtle),

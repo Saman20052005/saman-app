@@ -753,6 +753,502 @@ void main() {
       expect(notifier.cancelCalled, isTrue);
     });
   });
+
+  group('Checkpoint 6 - Meal Action Confirmation & Rejection', () {
+    Interceptor? mockInterceptor;
+
+    setUp(() {
+      SharedPreferences.setMockInitialValues({
+        'user_name': 'Tester',
+        'user_height': 175,
+        'user_weight': 70.0,
+      });
+      FlutterSecureStorage.setMockInitialValues({
+        'auth_token': 'mock-token-user-a',
+      });
+    });
+
+    tearDown(() {
+      if (mockInterceptor != null) {
+        ApiClient.dio.interceptors.remove(mockInterceptor);
+      }
+    });
+
+    test('ChatState pendingAction meal model fields copyWith and clearPendingAction', () {
+      final initial = ChatState();
+      expect(initial.pendingAction, isNull);
+
+      final withAction = initial.copyWith(
+        pendingAction: {
+          'id': 'act_meal_101',
+          'type': 'log_meal',
+          'meal_type': 'breakfast',
+          'total_calories': 450,
+          'total_protein': 25.0,
+          'total_carbs': 50.0,
+          'total_fat': 12.0,
+          'foods': [
+            {'name': 'Phở bò', 'calories': 450}
+          ],
+          'status': 'pending',
+        },
+      );
+      expect(withAction.pendingAction?['id'], 'act_meal_101');
+      expect(withAction.pendingAction?['type'], 'log_meal');
+      expect(withAction.pendingAction?['total_calories'], 450);
+      expect(withAction.pendingAction?['status'], 'pending');
+
+      final cleared = withAction.copyWith(clearPendingAction: true);
+      expect(cleared.pendingAction, isNull);
+    });
+
+    test('ChatController receives pending meal action from /api/chat proposal', () async {
+      mockInterceptor = InterceptorsWrapper(
+        onRequest: (options, handler) {
+          if (options.uri.path.endsWith('/api/chat/conversations')) {
+            return handler.resolve(Response(
+              requestOptions: options,
+              statusCode: 200,
+              data: {'status': 'success', 'conversations': []},
+            ));
+          } else if (options.uri.path.endsWith('/api/chat')) {
+            return handler.resolve(Response(
+              requestOptions: options,
+              statusCode: 200,
+              data: {
+                'status': 'success',
+                'reply': 'Bạn có muốn ghi nhận bữa sáng: Phở bò (450 kcal) không?',
+                'conversation_id': 'c_meal_1',
+                'action': {
+                  'id': 'act_meal_1',
+                  'type': 'log_meal',
+                  'meal_type': 'breakfast',
+                  'total_calories': 450,
+                  'total_protein': 25.0,
+                  'total_carbs': 50.0,
+                  'total_fat': 12.0,
+                  'foods': [
+                    {'name': 'Phở bò', 'calories': 450}
+                  ],
+                  'status': 'pending',
+                },
+              },
+            ));
+          }
+          return handler.next(options);
+        },
+      );
+      ApiClient.dio.interceptors.insert(0, mockInterceptor!);
+
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+
+      final controller = container.read(chatControllerProvider.notifier);
+      await controller.sendMessage('Log bữa sáng: Phở bò, 450 calo, 25g protein, 50g carbs, 12g fat');
+
+      final state = container.read(chatControllerProvider);
+      expect(state.pendingAction, isNotNull);
+      expect(state.pendingAction!['id'], 'act_meal_1');
+      expect(state.pendingAction!['type'], 'log_meal');
+      expect(state.pendingAction!['total_calories'], 450);
+      expect(state.pendingAction!['status'], 'pending');
+      expect(state.messages.last.content, contains('Bạn có muốn ghi nhận bữa sáng: Phở bò'));
+    });
+
+    test('ChatController confirmAction for meal appends message and clears pendingAction', () async {
+      mockInterceptor = InterceptorsWrapper(
+        onRequest: (options, handler) {
+          if (options.uri.path.endsWith('/api/chat/actions/confirm')) {
+            final data = options.data as Map;
+            expect(data['conversation_id'], 'c_meal_1');
+            expect(data['action_id'], 'act_meal_1');
+            return handler.resolve(Response(
+              requestOptions: options,
+              statusCode: 200,
+              data: {
+                'status': 'success',
+                'message': 'Đã ghi nhận bữa ăn: Phở bò (450 kcal, 25.0g protein, 50.0g carbs, 12.0g fat) vào nhật ký hôm nay của bạn.',
+                'action_id': 'act_meal_1',
+                'conversation_id': 'c_meal_1',
+                'meal': {
+                  'meal_type': 'breakfast',
+                  'total_calories': 450,
+                },
+              },
+            ));
+          }
+          return handler.next(options);
+        },
+      );
+      ApiClient.dio.interceptors.insert(0, mockInterceptor!);
+
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+
+      final controller = container.read(chatControllerProvider.notifier);
+      controller.state = ChatState(
+        activeConversationId: 'c_meal_1',
+        messages: [ChatMessage(role: 'assistant', content: 'Bạn có muốn ghi nhận bữa sáng: Phở bò (450 kcal) không?')],
+        pendingAction: {
+          'id': 'act_meal_1',
+          'type': 'log_meal',
+          'total_calories': 450,
+          'status': 'pending',
+        },
+      );
+
+      await controller.confirmAction('c_meal_1', 'act_meal_1');
+
+      final state = container.read(chatControllerProvider);
+      expect(state.pendingAction, isNull);
+      expect(state.messages.length, 2);
+      expect(state.messages.last.content, contains('Đã ghi nhận bữa ăn: Phở bò'));
+      expect(state.errorMessage, isNull);
+    });
+
+    test('ChatController cancelAction for meal appends cancellation message and clears pendingAction', () async {
+      mockInterceptor = InterceptorsWrapper(
+        onRequest: (options, handler) {
+          if (options.uri.path.endsWith('/api/chat/actions/cancel')) {
+            final data = options.data as Map;
+            expect(data['conversation_id'], 'c_meal_1');
+            expect(data['action_id'], 'act_meal_1');
+            return handler.resolve(Response(
+              requestOptions: options,
+              statusCode: 200,
+              data: {
+                'status': 'cancelled',
+                'message': 'Đã hủy thao tác ghi nhận bữa ăn.',
+                'action_id': 'act_meal_1',
+                'conversation_id': 'c_meal_1',
+              },
+            ));
+          }
+          return handler.next(options);
+        },
+      );
+      ApiClient.dio.interceptors.insert(0, mockInterceptor!);
+
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+
+      final controller = container.read(chatControllerProvider.notifier);
+      controller.state = ChatState(
+        activeConversationId: 'c_meal_1',
+        messages: [ChatMessage(role: 'assistant', content: 'Bạn có muốn ghi nhận bữa sáng: Phở bò (450 kcal) không?')],
+        pendingAction: {
+          'id': 'act_meal_1',
+          'type': 'log_meal',
+          'total_calories': 450,
+          'status': 'pending',
+        },
+      );
+
+      await controller.cancelAction('c_meal_1', 'act_meal_1');
+
+      final state = container.read(chatControllerProvider);
+      expect(state.pendingAction, isNull);
+      expect(state.messages.length, 2);
+      expect(state.messages.last.content, 'Đã hủy thao tác ghi nhận bữa ăn.');
+    });
+
+    testWidgets('ChatScreen renders meal preview details without hardcoded water labels',
+        (tester) async {
+      final notifier = _TestChatNotifier(
+        ChatState(
+          activeConversationId: 'c_meal_1',
+          messages: [
+            ChatMessage(role: 'user', content: 'Log bữa sáng: Phở bò, 450 calo, 25g protein, 50g carbs, 12g fat'),
+            ChatMessage(role: 'assistant', content: 'Bạn có muốn ghi nhận bữa sáng: Phở bò (450 kcal) không?'),
+          ],
+          pendingAction: {
+            'id': 'act_meal_1',
+            'type': 'log_meal',
+            'total_calories': 450,
+            'foods': [
+              {'name': 'Phở bò', 'calories': 450}
+            ],
+            'status': 'pending',
+          },
+        ),
+      );
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            chatControllerProvider.overrideWith((ref) => notifier),
+          ],
+          child: MaterialApp(
+            theme: SamanTheme.dark(),
+            home: const ChatScreen(),
+          ),
+        ),
+      );
+      await tester.pump();
+
+      // Meal label rendered dynamically
+      expect(find.text('Xác nhận (Phở bò: 450 kcal)'), findsOneWidget);
+      expect(find.text('Hủy'), findsOneWidget);
+
+      // Must NOT contain hardcoded water labels
+      expect(find.text('Xác nhận (+250 ml nước)'), findsNothing);
+
+      await tester.tap(find.text('Xác nhận (Phở bò: 450 kcal)'));
+      await tester.pump();
+      expect(notifier.confirmCalled, isTrue);
+
+      await tester.tap(find.text('Hủy'));
+      await tester.pump();
+      expect(notifier.cancelCalled, isTrue);
+    });
+  });
+
+  group('Checkpoint 6 - Workout Action Confirmation & Rejection', () {
+    Interceptor? mockInterceptor;
+
+    setUp(() {
+      SharedPreferences.setMockInitialValues({
+        'user_name': 'Tester',
+        'user_height': 175,
+        'user_weight': 70.0,
+      });
+      FlutterSecureStorage.setMockInitialValues({
+        'auth_token': 'mock-token-user-a',
+      });
+    });
+
+    tearDown(() {
+      if (mockInterceptor != null) {
+        ApiClient.dio.interceptors.remove(mockInterceptor);
+      }
+    });
+
+    test('ChatState pendingAction copyWith and clearPendingAction works for adjust_workout', () {
+      final initial = ChatState();
+      expect(initial.pendingAction, isNull);
+
+      final withAction = initial.copyWith(
+        pendingAction: {
+          'id': 'act_workout_1',
+          'type': 'adjust_workout',
+          'plan_id': 'p1',
+          'plan_name': 'Leg Day',
+          'before': {'duration_minutes': 45},
+          'after': {'duration_minutes': 30},
+          'changes': {'duration_minutes': 30},
+          'status': 'pending',
+        },
+      );
+      expect(withAction.pendingAction?['id'], 'act_workout_1');
+      expect(withAction.pendingAction?['type'], 'adjust_workout');
+      expect(withAction.pendingAction?['status'], 'pending');
+
+      final cleared = withAction.copyWith(clearPendingAction: true);
+      expect(cleared.pendingAction, isNull);
+    });
+
+    test('ChatController receives pending workout action from /api/chat proposal', () async {
+      mockInterceptor = InterceptorsWrapper(
+        onRequest: (options, handler) {
+          if (options.uri.path.endsWith('/api/chat/conversations')) {
+            return handler.resolve(Response(
+              requestOptions: options,
+              statusCode: 200,
+              data: {'status': 'success', 'conversations': []},
+            ));
+          } else if (options.uri.path.endsWith('/api/chat')) {
+            return handler.resolve(Response(
+              requestOptions: options,
+              statusCode: 200,
+              data: {
+                'status': 'success',
+                'reply': "Bạn có muốn điều chỉnh kế hoạch tập 'Leg Day' (thời lượng: 45 phút -> 30 phút) không?",
+                'conversation_id': 'c_workout_1',
+                'action': {
+                  'id': 'act_workout_1',
+                  'type': 'adjust_workout',
+                  'plan_id': 'p1',
+                  'plan_name': 'Leg Day',
+                  'before': {'duration_minutes': 45},
+                  'after': {'duration_minutes': 30},
+                  'changes': {'duration_minutes': 30},
+                  'status': 'pending',
+                },
+              },
+            ));
+          }
+          return handler.next(options);
+        },
+      );
+      ApiClient.dio.interceptors.insert(0, mockInterceptor!);
+
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+
+      final controller = container.read(chatControllerProvider.notifier);
+      await controller.sendMessage('Điều chỉnh kế hoạch tập Leg Day từ 45 phút xuống 30 phút');
+
+      final state = container.read(chatControllerProvider);
+      expect(state.pendingAction, isNotNull);
+      expect(state.pendingAction!['id'], 'act_workout_1');
+      expect(state.pendingAction!['type'], 'adjust_workout');
+      expect(state.pendingAction!['plan_name'], 'Leg Day');
+      expect(state.pendingAction!['status'], 'pending');
+      expect(state.messages.last.content, contains("Bạn có muốn điều chỉnh kế hoạch tập 'Leg Day'"));
+    });
+
+    test('ChatController confirmAction for workout appends message and clears pendingAction', () async {
+      mockInterceptor = InterceptorsWrapper(
+        onRequest: (options, handler) {
+          if (options.uri.path.endsWith('/api/chat/actions/confirm')) {
+            final data = options.data as Map;
+            expect(data['conversation_id'], 'c_workout_1');
+            expect(data['action_id'], 'act_workout_1');
+            return handler.resolve(Response(
+              requestOptions: options,
+              statusCode: 200,
+              data: {
+                'status': 'success',
+                'message': "Đã điều chỉnh kế hoạch tập 'Leg Day' (thời lượng: 30 phút) thành công.",
+                'action_id': 'act_workout_1',
+                'conversation_id': 'c_workout_1',
+                'workout': {
+                  'plan_id': 'p1',
+                  'name': 'Leg Day',
+                  'duration_minutes': 30,
+                },
+              },
+            ));
+          }
+          return handler.next(options);
+        },
+      );
+      ApiClient.dio.interceptors.insert(0, mockInterceptor!);
+
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+
+      final controller = container.read(chatControllerProvider.notifier);
+      controller.state = ChatState(
+        activeConversationId: 'c_workout_1',
+        messages: [ChatMessage(role: 'assistant', content: "Bạn có muốn điều chỉnh kế hoạch tập 'Leg Day' (thời lượng: 45 phút -> 30 phút) không?")],
+        pendingAction: {
+          'id': 'act_workout_1',
+          'type': 'adjust_workout',
+          'plan_id': 'p1',
+          'plan_name': 'Leg Day',
+          'status': 'pending',
+        },
+      );
+
+      await controller.confirmAction('c_workout_1', 'act_workout_1');
+
+      final state = container.read(chatControllerProvider);
+      expect(state.pendingAction, isNull);
+      expect(state.messages.length, 2);
+      expect(state.messages.last.content, contains("Đã điều chỉnh kế hoạch tập 'Leg Day'"));
+      expect(state.errorMessage, isNull);
+    });
+
+    test('ChatController cancelAction for workout appends cancellation message and clears pendingAction', () async {
+      mockInterceptor = InterceptorsWrapper(
+        onRequest: (options, handler) {
+          if (options.uri.path.endsWith('/api/chat/actions/cancel')) {
+            final data = options.data as Map;
+            expect(data['conversation_id'], 'c_workout_1');
+            expect(data['action_id'], 'act_workout_1');
+            return handler.resolve(Response(
+              requestOptions: options,
+              statusCode: 200,
+              data: {
+                'status': 'cancelled',
+                'message': 'Đã hủy thao tác điều chỉnh kế hoạch tập.',
+                'action_id': 'act_workout_1',
+                'conversation_id': 'c_workout_1',
+              },
+            ));
+          }
+          return handler.next(options);
+        },
+      );
+      ApiClient.dio.interceptors.insert(0, mockInterceptor!);
+
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+
+      final controller = container.read(chatControllerProvider.notifier);
+      controller.state = ChatState(
+        activeConversationId: 'c_workout_1',
+        messages: [ChatMessage(role: 'assistant', content: "Bạn có muốn điều chỉnh kế hoạch tập 'Leg Day' (thời lượng: 45 phút -> 30 phút) không?")],
+        pendingAction: {
+          'id': 'act_workout_1',
+          'type': 'adjust_workout',
+          'plan_id': 'p1',
+          'plan_name': 'Leg Day',
+          'status': 'pending',
+        },
+      );
+
+      await controller.cancelAction('c_workout_1', 'act_workout_1');
+
+      final state = container.read(chatControllerProvider);
+      expect(state.pendingAction, isNull);
+      expect(state.messages.length, 2);
+      expect(state.messages.last.content, 'Đã hủy thao tác điều chỉnh kế hoạch tập.');
+    });
+
+    testWidgets('ChatScreen renders workout preview details without hardcoded water/meal labels',
+        (tester) async {
+      final notifier = _TestChatNotifier(
+        ChatState(
+          activeConversationId: 'c_workout_1',
+          messages: [
+            ChatMessage(role: 'user', content: 'Điều chỉnh kế hoạch tập Leg Day từ 45 phút xuống 30 phút'),
+            ChatMessage(role: 'assistant', content: "Bạn có muốn điều chỉnh kế hoạch tập 'Leg Day' (thời lượng: 45 phút -> 30 phút) không?"),
+          ],
+          pendingAction: {
+            'id': 'act_workout_1',
+            'type': 'adjust_workout',
+            'plan_id': 'p1',
+            'plan_name': 'Leg Day',
+            'before': {'duration_minutes': 45},
+            'after': {'duration_minutes': 30},
+            'changes': {'duration_minutes': 30},
+            'status': 'pending',
+          },
+        ),
+      );
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            chatControllerProvider.overrideWith((ref) => notifier),
+          ],
+          child: MaterialApp(
+            theme: SamanTheme.dark(),
+            home: const ChatScreen(),
+          ),
+        ),
+      );
+      await tester.pump();
+
+      // Workout label rendered dynamically
+      expect(find.text('Xác nhận (Điều chỉnh Leg Day: 30 phút)'), findsOneWidget);
+      expect(find.text('Hủy'), findsOneWidget);
+
+      // Must NOT contain hardcoded water/meal labels
+      expect(find.text('Xác nhận (+250 ml nước)'), findsNothing);
+      expect(find.text('Xác nhận ghi nhận bữa ăn'), findsNothing);
+
+      await tester.tap(find.text('Xác nhận (Điều chỉnh Leg Day: 30 phút)'));
+      await tester.pump();
+      expect(notifier.confirmCalled, isTrue);
+
+      await tester.tap(find.text('Hủy'));
+      await tester.pump();
+      expect(notifier.cancelCalled, isTrue);
+    });
+  });
 }
 
 class _TestChatNotifier extends StateNotifier<ChatState>

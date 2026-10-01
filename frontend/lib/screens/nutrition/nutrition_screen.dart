@@ -350,6 +350,7 @@ class _NutritionScreenState extends ConsumerState<NutritionScreen> {
   // ─── FAB ────────────────────────────────────────────────────────
   Widget _buildFAB(ColorScheme colors) {
     return FloatingActionButton.extended(
+      heroTag: 'nutrition_screen_fab',
       onPressed: _openStoryLog,
       icon: const Icon(Icons.camera_alt_outlined),
       label: const Text('Log Story',
