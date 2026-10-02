@@ -16,6 +16,8 @@ import 'home/widgets/saman_bottom_navigation_bar.dart';
 // Import Provider
 import '../providers/profile_provider.dart';
 
+final mainNavIndexProvider = StateProvider<int>((ref) => 0);
+
 class MainScreen extends ConsumerStatefulWidget {
   const MainScreen({super.key});
 
@@ -24,8 +26,6 @@ class MainScreen extends ConsumerStatefulWidget {
 }
 
 class _MainScreenState extends ConsumerState<MainScreen> {
-  int _currentIndex = 0;
-
   // FIX: Bỏ từ khóa 'const' ở đây để tránh lỗi nếu các màn hình con không phải hằng số
   final List<Widget> _screens = [
     const HomeScreen(),
@@ -50,24 +50,26 @@ class _MainScreenState extends ConsumerState<MainScreen> {
             behavior: SnackBarBehavior.floating,
           ),
         );
-        setState(() => _currentIndex = 4); // Chuyển sang Profile (shifted)
+        ref.read(mainNavIndexProvider.notifier).state = 4; // Chuyển sang Profile (shifted)
         return;
       }
     }
 
-    setState(() => _currentIndex = index);
+    ref.read(mainNavIndexProvider.notifier).state = index;
   }
 
   @override
   Widget build(BuildContext context) {
+    final currentIndex = ref.watch(mainNavIndexProvider);
+
     return Scaffold(
       backgroundColor: SamanHomeTokens.canvas,
       body: IndexedStack(
-        index: _currentIndex,
+        index: currentIndex,
         children: _screens,
       ),
       bottomNavigationBar: SamanBottomNavigationBar(
-        currentIndex: _currentIndex,
+        currentIndex: currentIndex,
         onTap: _onTabTapped,
       ),
     );

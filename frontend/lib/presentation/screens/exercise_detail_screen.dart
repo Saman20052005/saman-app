@@ -12,26 +12,6 @@ class ExerciseDetailScreen extends ConsumerWidget {
     required this.exercise,
   });
 
-  void _handleVideoPlay(BuildContext context) {
-    if (exercise.youtubeVideoId != null &&
-        exercise.youtubeVideoId!.isNotEmpty) {
-      // In future: play embedded YouTube video
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Playing video guide for ${exercise.name}...'),
-          duration: const Duration(seconds: 2),
-        ),
-      );
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-              'Instructional video is currently being recorded by the coaching staff.'),
-          duration: Duration(seconds: 2),
-        ),
-      );
-    }
-  }
 
   void _handleStartExercise(BuildContext context) {
     // Product Decision Point:
@@ -114,22 +94,22 @@ class ExerciseDetailScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final isDumbbellBenchPress =
-        exercise.slug.contains('bench-press') || exercise.name.contains('Bench');
+        exercise.id == 'db-bench-press' || exercise.slug == 'dumbbell-bench-press';
 
     // Taxonomy fields
     final primaryMuscle = exercise.muscleGroup.isNotEmpty
         ? exercise.muscleGroup
         : (exercise.targetMuscles.isNotEmpty
             ? exercise.targetMuscles.first
-            : 'Chest');
+            : 'General');
 
     final secondaryMuscles = exercise.secondaryMuscles.isNotEmpty
         ? exercise.secondaryMuscles.join(', ')
-        : 'Triceps, Shoulders';
+        : 'None';
 
     final equipmentStr = exercise.equipment.isNotEmpty
         ? exercise.equipment.join(', ')
-        : 'Dumbbells, Flat bench';
+        : 'Bodyweight';
 
     return Scaffold(
       backgroundColor: SamanWorkoutTokens.canvas,
@@ -175,9 +155,11 @@ class ExerciseDetailScreen extends ConsumerWidget {
                     ),
                   ),
                   const Spacer(),
-                  const Text(
-                    'CHEST / PUSH',
-                    style: TextStyle(
+                  Text(
+                    exercise.muscleGroup.isNotEmpty
+                        ? exercise.muscleGroup.toUpperCase()
+                        : 'EXERCISE',
+                    style: const TextStyle(
                       fontFamily: 'monospace',
                       fontSize: 11,
                       color: SamanWorkoutTokens.textMuted,
@@ -235,12 +217,17 @@ class ExerciseDetailScreen extends ConsumerWidget {
                         primaryMuscle, secondaryMuscles, equipmentStr),
                     const SizedBox(height: SamanWorkoutTokens.spacingXl),
 
-                    // D. How to Perform (3 Phases)
+                    // D. How to Perform (3 Phases for Bench Press, readable cues for others)
                     _buildHowToPerform(isDumbbellBenchPress),
-                    const SizedBox(height: SamanWorkoutTokens.spacingXl),
 
-                    // E. Form Cues
-                    _buildFormCues(isDumbbellBenchPress),
+                    // E. Form Cues (only for benchmark Dumbbell Bench Press)
+                    if (isDumbbellBenchPress) ...[
+                      const SizedBox(height: SamanWorkoutTokens.spacingXl),
+                      _buildFormCues(isDumbbellBenchPress),
+                    ],
+
+                    // F. Common Mistakes
+                    _buildCommonMistakes(isDumbbellBenchPress),
                   ],
                 ),
               ),
@@ -293,6 +280,38 @@ class ExerciseDetailScreen extends ConsumerWidget {
   }
 
   Widget _buildVideoPreview(BuildContext context) {
+    if (exercise.thumbnailUrl.isEmpty) {
+      return Container(
+        width: double.infinity,
+        height: 180,
+        decoration: BoxDecoration(
+          color: SamanWorkoutTokens.cardSurface,
+          borderRadius: BorderRadius.circular(SamanWorkoutTokens.radiusLg),
+          border: Border.all(color: SamanWorkoutTokens.border),
+        ),
+        child: const Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.fitness_center_outlined,
+                size: 40,
+                color: SamanWorkoutTokens.textMuted,
+              ),
+              SizedBox(height: 8),
+              Text(
+                'Exercise image unavailable',
+                style: TextStyle(
+                  color: SamanWorkoutTokens.textSecondary,
+                  fontSize: 13,
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
     return Container(
       width: double.infinity,
       height: 200,
@@ -313,7 +332,7 @@ class ExerciseDetailScreen extends ConsumerWidget {
                 Container(color: SamanWorkoutTokens.surfaceElevated),
             errorWidget: (_, __, ___) => Container(
               color: SamanWorkoutTokens.surfaceElevated,
-              child: const Icon(Icons.fitness_center,
+              child: const Icon(Icons.fitness_center_outlined,
                   color: SamanWorkoutTokens.textMuted, size: 48),
             ),
           ),
@@ -330,78 +349,6 @@ class ExerciseDetailScreen extends ConsumerWidget {
                   Color(0x4D0C0D0E),
                 ],
                 stops: [0.0, 0.5, 1.0],
-              ),
-            ),
-          ),
-
-          // Top Video Guide Badge
-          Positioned(
-            top: 12,
-            left: 12,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-              decoration: BoxDecoration(
-                color: const Color(0xD90C0D0E),
-                borderRadius: BorderRadius.circular(999),
-                border: Border.all(color: Colors.white12),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Container(
-                    width: 6,
-                    height: 6,
-                    decoration: const BoxDecoration(
-                      color: SamanWorkoutTokens.emeraldAccent,
-                      shape: BoxShape.circle,
-                    ),
-                  ),
-                  const SizedBox(width: 6),
-                  const Text(
-                    'VIDEO GUIDE',
-                    style: TextStyle(
-                      fontFamily: 'monospace',
-                      color: SamanWorkoutTokens.textPrimary,
-                      fontSize: 10,
-                      fontWeight: FontWeight.w600,
-                      letterSpacing: 0.8,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-
-          // Central Play Button
-          Center(
-            child: InkWell(
-              borderRadius: BorderRadius.circular(999),
-              onTap: () => _handleVideoPlay(context),
-              child: Container(
-                width: 56,
-                height: 56,
-                decoration: BoxDecoration(
-                  color: const Color(0xD90C0D0E),
-                  shape: BoxShape.circle,
-                  border: Border.all(color: Colors.white24),
-                  boxShadow: const [
-                    BoxShadow(
-                      color: Colors.black45,
-                      blurRadius: 16,
-                      offset: Offset(0, 4),
-                    ),
-                  ],
-                ),
-                child: const Center(
-                  child: Padding(
-                    padding: EdgeInsets.only(left: 3),
-                    child: Icon(
-                      Icons.play_arrow,
-                      size: 28,
-                      color: Colors.white,
-                    ),
-                  ),
-                ),
               ),
             ),
           ),
@@ -529,40 +476,147 @@ class ExerciseDetailScreen extends ConsumerWidget {
   }
 
   Widget _buildHowToPerform(bool isDumbbellBenchPress) {
-    final steps = isDumbbellBenchPress
-        ? const [
-            (
-              '1',
-              'Setup',
-              'Sit on the bench with a dumbbell in each hand. Lie back and place your feet firmly on the floor.'
-            ),
-            (
-              '2',
-              'Lower',
-              'Lower the dumbbells slowly to either side of your chest.'
-            ),
-            (
-              '3',
-              'Press',
-              'Push them up with control until your arms are extended.'
-            ),
-          ]
-        : (exercise.cues.isNotEmpty
-            ? exercise.cues
-                .asMap()
-                .entries
-                .map((e) => (
-                      '${e.key + 1}',
-                      'Step ${e.key + 1}',
-                      e.value,
-                    ))
-                .toList()
-            : const [
-                ('1', 'Preparation', 'Position equipment and secure posture.'),
-                ('2', 'Execution', 'Perform movement through full range.'),
-                ('3', 'Recovery', 'Return to start position with control.'),
-              ]);
+    if (isDumbbellBenchPress) {
+      const steps = [
+        (
+          '1',
+          'Setup',
+          'Sit on the bench with a dumbbell in each hand. Lie back and place your feet firmly on the floor.'
+        ),
+        (
+          '2',
+          'Lower',
+          'Lower the dumbbells slowly to either side of your chest.'
+        ),
+        (
+          '3',
+          'Press',
+          'Push them up with control until your arms are extended.'
+        ),
+      ];
+      return _renderPhases(steps);
+    }
 
+    if (exercise.cues.isNotEmpty) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                'How to perform',
+                style: TextStyle(
+                  color: SamanWorkoutTokens.textPrimary,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              Text(
+                '${exercise.cues.length} STEPS',
+                style: const TextStyle(
+                  fontFamily: 'monospace',
+                  fontSize: 10,
+                  color: SamanWorkoutTokens.textMuted,
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: 0.8,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Column(
+            children: List.generate(exercise.cues.length, (index) {
+              final stepNumber = '${index + 1}';
+              final cue = exercise.cues[index];
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(SamanWorkoutTokens.spacingMd),
+                  decoration: BoxDecoration(
+                    color: SamanWorkoutTokens.cardSurface,
+                    borderRadius:
+                        BorderRadius.circular(SamanWorkoutTokens.radiusMd),
+                    border: Border.all(color: SamanWorkoutTokens.border),
+                  ),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Container(
+                        width: 24,
+                        height: 24,
+                        decoration: BoxDecoration(
+                          color: SamanWorkoutTokens.surfaceElevated,
+                          shape: BoxShape.circle,
+                          border: Border.all(color: SamanWorkoutTokens.border),
+                        ),
+                        child: Center(
+                          child: Text(
+                            stepNumber,
+                            style: const TextStyle(
+                              fontFamily: 'monospace',
+                              fontSize: 11,
+                              fontWeight: FontWeight.w700,
+                              color: SamanWorkoutTokens.emeraldAccent,
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          cue,
+                          style: const TextStyle(
+                            color: SamanWorkoutTokens.textPrimary,
+                            fontSize: 13,
+                            height: 1.4,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            }),
+          ),
+        ],
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'How to perform',
+          style: TextStyle(
+            color: SamanWorkoutTokens.textPrimary,
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        const SizedBox(height: 10),
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(SamanWorkoutTokens.spacingMd),
+          decoration: BoxDecoration(
+            color: SamanWorkoutTokens.cardSurface,
+            borderRadius: BorderRadius.circular(SamanWorkoutTokens.radiusMd),
+            border: Border.all(color: SamanWorkoutTokens.border),
+          ),
+          child: const Text(
+            'Movement instructions are being prepared for this exercise.',
+            style: TextStyle(
+              color: SamanWorkoutTokens.textSecondary,
+              fontSize: 13,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _renderPhases(List<(String, String, String)> steps) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -664,20 +718,52 @@ class ExerciseDetailScreen extends ConsumerWidget {
   }
 
   Widget _buildFormCues(bool isDumbbellBenchPress) {
-    final cues = isDumbbellBenchPress
-        ? const [
-            'Keep your feet planted',
-            'Keep your wrists straight',
-            'Move slowly and stay in control',
-          ]
-        : (exercise.cues.isNotEmpty
-            ? exercise.cues.take(3).toList()
-            : const [
-                'Maintain neutral spinal alignment',
-                'Engage core throughout movement',
-                'Breathe rhythmically during exertion',
-              ]);
+    if (isDumbbellBenchPress) {
+      const cues = [
+        'Keep your feet planted',
+        'Keep your wrists straight',
+        'Move slowly and stay in control',
+      ];
+      return _renderCues(cues);
+    }
 
+    if (exercise.cues.isEmpty) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Form cues',
+            style: TextStyle(
+              color: SamanWorkoutTokens.textPrimary,
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 10),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(SamanWorkoutTokens.spacingMd),
+            decoration: BoxDecoration(
+              color: SamanWorkoutTokens.cardSurface,
+              borderRadius: BorderRadius.circular(SamanWorkoutTokens.radiusMd),
+              border: Border.all(color: SamanWorkoutTokens.border),
+            ),
+            child: const Text(
+              'Form cues are being documented for this exercise.',
+              style: TextStyle(
+                color: SamanWorkoutTokens.textSecondary,
+                fontSize: 13,
+              ),
+            ),
+          ),
+        ],
+      );
+    }
+
+    return _renderCues(exercise.cues);
+  }
+
+  Widget _renderCues(List<String> cues) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -717,6 +803,73 @@ class ExerciseDetailScreen extends ConsumerWidget {
                       Expanded(
                         child: Text(
                           cue,
+                          style: const TextStyle(
+                            color: SamanWorkoutTokens.textPrimary,
+                            fontSize: 13,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  if (!isLast)
+                    const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 10),
+                      child: Divider(
+                          height: 1, color: SamanWorkoutTokens.borderSubtle),
+                    ),
+                ],
+              );
+            }),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildCommonMistakes(bool isDumbbellBenchPress) {
+    if (isDumbbellBenchPress || exercise.commonMistakes.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const SizedBox(height: SamanWorkoutTokens.spacingXl),
+        const Text(
+          'Common mistakes',
+          style: TextStyle(
+            color: SamanWorkoutTokens.textPrimary,
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        const SizedBox(height: 10),
+        Container(
+          padding: const EdgeInsets.all(SamanWorkoutTokens.spacingMd),
+          decoration: BoxDecoration(
+            color: SamanWorkoutTokens.cardSurface,
+            borderRadius: BorderRadius.circular(SamanWorkoutTokens.radiusMd),
+            border: Border.all(color: SamanWorkoutTokens.border),
+          ),
+          child: Column(
+            children: List.generate(exercise.commonMistakes.length, (index) {
+              final mistake = exercise.commonMistakes[index];
+              final isLast = index == exercise.commonMistakes.length - 1;
+
+              return Column(
+                children: [
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      const Icon(
+                        Icons.close,
+                        size: 16,
+                        color: Colors.redAccent,
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          mistake,
                           style: const TextStyle(
                             color: SamanWorkoutTokens.textPrimary,
                             fontSize: 13,

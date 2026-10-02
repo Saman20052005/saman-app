@@ -97,7 +97,7 @@ class _WorkoutHomeScreenState extends ConsumerState<WorkoutHomeScreen> {
               const SizedBox(height: SamanWorkoutTokens.spacingXl),
 
               // 6. Last Workout
-              if (recentWorkout != null) _buildLastWorkout(recentWorkout),
+              _buildLastWorkout(recentWorkout),
             ],
           ),
         ),
@@ -775,7 +775,7 @@ class _WorkoutHomeScreenState extends ConsumerState<WorkoutHomeScreen> {
     );
   }
 
-  Widget _buildLastWorkout(RecentWorkoutSummary recent) {
+  Widget _buildLastWorkout(RecentWorkoutSummary? recent) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -814,81 +814,114 @@ class _WorkoutHomeScreenState extends ConsumerState<WorkoutHomeScreen> {
         ),
         const SizedBox(height: 8),
 
-        InkWell(
-          borderRadius: BorderRadius.circular(SamanWorkoutTokens.radiusLg),
-          onTap: _navigateToHistory,
-          child: Container(
-            padding: const EdgeInsets.all(SamanWorkoutTokens.spacingLg),
-            decoration: BoxDecoration(
-              color: SamanWorkoutTokens.cardSurface,
-              borderRadius: BorderRadius.circular(SamanWorkoutTokens.radiusLg),
-              border: Border.all(color: SamanWorkoutTokens.border),
+        if (recent != null)
+          InkWell(
+            borderRadius: BorderRadius.circular(SamanWorkoutTokens.radiusLg),
+            onTap: _navigateToHistory,
+            child: Container(
+              padding: const EdgeInsets.all(SamanWorkoutTokens.spacingLg),
+              decoration: BoxDecoration(
+                color: SamanWorkoutTokens.cardSurface,
+                borderRadius: BorderRadius.circular(SamanWorkoutTokens.radiusLg),
+                border: Border.all(color: SamanWorkoutTokens.border),
+              ),
+              child: Row(
+                children: [
+                  // Completed check icon box
+                  Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      color: SamanWorkoutTokens.surfaceElevated,
+                      borderRadius:
+                          BorderRadius.circular(SamanWorkoutTokens.radiusMd),
+                      border: Border.all(color: SamanWorkoutTokens.border),
+                    ),
+                    child: const Icon(
+                      Icons.check_circle_outline,
+                      color: SamanWorkoutTokens.emeraldAccent,
+                      size: 20,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+
+                  // Session details
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          recent.title,
+                          style: const TextStyle(
+                            color: SamanWorkoutTokens.textPrimary,
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        const SizedBox(height: 3),
+                        Text(
+                          '${recent.relativeTime} • ${recent.metrics}',
+                          style: const TextStyle(
+                            color: SamanWorkoutTokens.textSub,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  // Arrow button
+                  Container(
+                    width: 32,
+                    height: 32,
+                    decoration: BoxDecoration(
+                      color: SamanWorkoutTokens.surfaceElevated,
+                      borderRadius:
+                          BorderRadius.circular(SamanWorkoutTokens.radiusSm),
+                      border: Border.all(color: SamanWorkoutTokens.border),
+                    ),
+                    child: const Icon(Icons.arrow_forward,
+                        size: 16, color: SamanWorkoutTokens.textSecondary),
+                  ),
+                ],
+              ),
             ),
-            child: Row(
-              children: [
-                // Completed check icon box
-                Container(
-                  width: 40,
-                  height: 40,
-                  decoration: BoxDecoration(
-                    color: SamanWorkoutTokens.surfaceElevated,
-                    borderRadius:
-                        BorderRadius.circular(SamanWorkoutTokens.radiusMd),
-                    border: Border.all(color: SamanWorkoutTokens.border),
-                  ),
-                  child: const Icon(
-                    Icons.check_circle_outline,
-                    color: SamanWorkoutTokens.emeraldAccent,
+          )
+        else
+          InkWell(
+            borderRadius: BorderRadius.circular(SamanWorkoutTokens.radiusLg),
+            onTap: _navigateToHistory,
+            child: Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(SamanWorkoutTokens.spacingLg),
+              decoration: BoxDecoration(
+                color: SamanWorkoutTokens.cardSurface,
+                borderRadius: BorderRadius.circular(SamanWorkoutTokens.radiusLg),
+                border: Border.all(color: SamanWorkoutTokens.border),
+              ),
+              child: const Row(
+                children: [
+                  Icon(
+                    Icons.history,
                     size: 20,
+                    color: SamanWorkoutTokens.textMuted,
                   ),
-                ),
-                const SizedBox(width: 12),
-
-                // Session details
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        recent.title,
-                        style: const TextStyle(
-                          color: SamanWorkoutTokens.textPrimary,
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      const SizedBox(height: 3),
-                      Text(
-                        '${recent.relativeTime} • ${recent.metrics}',
-                        style: const TextStyle(
-                          color: SamanWorkoutTokens.textSub,
-                          fontSize: 12,
-                        ),
-                      ),
-                    ],
+                  SizedBox(width: 12),
+                  Text(
+                    'No saved workouts yet',
+                    style: TextStyle(
+                      color: SamanWorkoutTokens.textSecondary,
+                      fontSize: 14,
+                    ),
                   ),
-                ),
-
-                // Arrow button
-                Container(
-                  width: 32,
-                  height: 32,
-                  decoration: BoxDecoration(
-                    color: SamanWorkoutTokens.surfaceElevated,
-                    borderRadius:
-                        BorderRadius.circular(SamanWorkoutTokens.radiusSm),
-                    border: Border.all(color: SamanWorkoutTokens.border),
-                  ),
-                  child: const Icon(Icons.arrow_forward,
-                      size: 16, color: SamanWorkoutTokens.textSecondary),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
-        ),
       ],
     );
   }
+
 }
 
 class _FocusCategoryCard extends StatelessWidget {

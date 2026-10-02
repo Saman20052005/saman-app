@@ -5,171 +5,18 @@ import '../../data/models/exercise.dart';
 import '../providers/exercise_providers.dart';
 import '../tokens/saman_workout_tokens.dart';
 import 'exercise_detail_screen.dart';
-
-/// Provider for verified exercise library items matching the design handoff
-final exerciseLibraryListProvider = FutureProvider<List<Exercise>>((ref) async {
-  final repo = ref.watch(exerciseRepositoryProvider);
-  try {
-    final exercises = await repo.getExercisesByMuscleGroup(
-      muscleGroupSlug: 'all',
-      difficulty: null,
-      search: null,
-    );
-    if (exercises.isNotEmpty) {
-      return exercises;
-    }
-  } catch (_) {
-    // Fallback to verified local curated library exercises
-  }
-
-  // Curated fallback exercises matching design handoff exactly
-  return const [
-    Exercise(
-      id: 'db-bench-press',
-      slug: 'dumbbell-bench-press',
-      name: 'Dumbbell Bench Press',
-      nameVi: 'Đẩy ngực với tạ đơn',
-      muscleGroup: 'Chest',
-      targetMuscles: ['Chest', 'Pectoralis Major'],
-      secondaryMuscles: ['Triceps', 'Shoulders', 'Anterior Deltoid'],
-      equipment: ['Dumbbells', 'Flat bench'],
-      difficulty: 'intermediate',
-      thumbnailUrl:
-          'https://lh3.googleusercontent.com/aida-public/AB6AXuAzZ8AN5eaYmQP_EvKw44Mfp-YxaGOwX40UdqgBZjq20Um1LTYduBYBVa8dm-3IgrFmdHVPhbSBhdaGgY3JAx_DSJvKI0-TULkJ_L7KS4B7tOsxq5n5RPpuFC32VeGylN5bZ6COF4ZIwwEVV2MM22TwFI4dDyuMTTG3O7mSlnxsrLuFa6VkeJIc9FhiyaIQ-x7ZuA9rV7PCr1S-qGYpCbjJF1VEaQ1ycjOtMsLs4ys63WeZ4Yo7E1VD',
-      defaultSets: 4,
-      defaultReps: '8-10',
-      restSeconds: 90,
-      repType: 'reps',
-      cvSupported: false,
-      cues: [
-        'Keep your feet firmly planted on the floor',
-        'Maintain a slight natural arch in lower back',
-        'Lower dumbbells with control to mid-chest level',
-        'Press vertically until arms are fully extended',
-      ],
-      commonMistakes: [
-        'Flaring elbows out at 90 degrees',
-        'Bouncing dumbbells off chest',
-        'Lifting feet off the floor during press',
-      ],
-    ),
-    Exercise(
-      id: 'lat-pulldown',
-      slug: 'lat-pulldown',
-      name: 'Lat Pulldown',
-      nameVi: 'Kéo xô máy',
-      muscleGroup: 'Back',
-      targetMuscles: ['Back', 'Latissimus Dorsi'],
-      secondaryMuscles: ['Biceps', 'Rear Deltoid'],
-      equipment: ['Cable Machine', 'Lat Bar'],
-      difficulty: 'beginner',
-      thumbnailUrl:
-          'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?auto=format&fit=crop&w=600&q=80',
-      defaultSets: 3,
-      defaultReps: '10-12',
-      restSeconds: 60,
-      repType: 'reps',
-      cvSupported: false,
-      cues: [
-        'Grip slightly wider than shoulder width',
-        'Pull down towards upper chest with elbows leading',
-        'Squeeze lats at the bottom',
-      ],
-      commonMistakes: [
-        'Leaning back excessively',
-        'Pulling behind the neck',
-      ],
-    ),
-    Exercise(
-      id: 'seated-cable-row',
-      slug: 'seated-cable-row',
-      name: 'Seated Cable Row',
-      nameVi: 'Kéo cáp ngồi',
-      muscleGroup: 'Back',
-      targetMuscles: ['Back', 'Rhomboids', 'Mid Traps'],
-      secondaryMuscles: ['Biceps', 'Forearms'],
-      equipment: ['Cable Machine', 'V-Bar'],
-      difficulty: 'intermediate',
-      thumbnailUrl:
-          'https://images.unsplash.com/photo-1581009146145-b5ef050c2e1e?auto=format&fit=crop&w=600&q=80',
-      defaultSets: 3,
-      defaultReps: '10-12',
-      restSeconds: 60,
-      repType: 'reps',
-      cvSupported: false,
-      cues: [
-        'Keep spine upright with neutral curvature',
-        'Initiate pull by retracting shoulder blades',
-        'Pause and squeeze at the torso',
-      ],
-      commonMistakes: [
-        'Rounding the lower back',
-        'Using excessive body swing momentum',
-      ],
-    ),
-    Exercise(
-      id: 'db-shoulder-press',
-      slug: 'dumbbell-shoulder-press',
-      name: 'Dumbbell Shoulder Press',
-      nameVi: 'Đẩy vai với tạ đơn',
-      muscleGroup: 'Shoulders',
-      targetMuscles: ['Shoulders', 'Anterior Deltoid'],
-      secondaryMuscles: ['Triceps', 'Upper Chest'],
-      equipment: ['Dumbbells', 'Incline/Vertical Bench'],
-      difficulty: 'intermediate',
-      thumbnailUrl:
-          'https://images.unsplash.com/photo-1541534741688-6078c6bfb5c5?auto=format&fit=crop&w=600&q=80',
-      defaultSets: 4,
-      defaultReps: '8-10',
-      restSeconds: 90,
-      repType: 'reps',
-      cvSupported: false,
-      cues: [
-        'Keep core tight and ribs down',
-        'Press weights directly overhead',
-        'Control descent to ear level',
-      ],
-      commonMistakes: [
-        'Hyperextending the lower back',
-        'Locking out elbows aggressively at the top',
-      ],
-    ),
-    Exercise(
-      id: 'push-up',
-      slug: 'push-up',
-      name: 'Push-Up',
-      nameVi: 'Hít đất',
-      muscleGroup: 'Chest',
-      targetMuscles: ['Chest', 'Triceps'],
-      secondaryMuscles: ['Core', 'Anterior Deltoid'],
-      equipment: ['Bodyweight'],
-      difficulty: 'beginner',
-      thumbnailUrl:
-          'https://images.unsplash.com/photo-1598971639058-fab3c3109a00?auto=format&fit=crop&w=600&q=80',
-      defaultSets: 3,
-      defaultReps: '12-15',
-      restSeconds: 60,
-      repType: 'reps',
-      cvSupported: false,
-      cues: [
-        'Keep body in a rigid plank line',
-        'Elbows tracking at 45 degrees',
-        'Lower chest until nearly touching floor',
-      ],
-      commonMistakes: [
-        'Sagging hips',
-        'Flaring elbows out 90 degrees',
-      ],
-    ),
-  ];
-});
+import '../../screens/main_screen.dart';
+import '../../screens/home/widgets/saman_bottom_navigation_bar.dart';
+import '../../providers/profile_provider.dart';
 
 class ExerciseLibraryScreen extends ConsumerStatefulWidget {
   final String initialCategory;
+  final ValueChanged<int>? onTabSelected;
 
   const ExerciseLibraryScreen({
     super.key,
     this.initialCategory = 'Upper Body',
+    this.onTabSelected,
   });
 
   @override
@@ -182,25 +29,102 @@ class _ExerciseLibraryScreenState extends ConsumerState<ExerciseLibraryScreen> {
   late String _selectedCategory;
   String _selectedSubFilter = 'All';
 
-  final List<String> _categories = [
+  static const List<String> _categories = [
     'All',
     'Upper Body',
     'Lower Body',
     'Core',
   ];
 
-  final List<String> _subFilters = [
-    'All',
-    'Chest',
-    'Back',
-    'Shoulders',
-    'Arms',
-  ];
+  static const Map<String, List<String>> _categorySubFilters = {
+    'All': ['All', 'Chest', 'Back', 'Shoulders', 'Arms'],
+    'Upper Body': ['All', 'Chest', 'Back', 'Shoulders', 'Arms'],
+    'Lower Body': ['All', 'Quads', 'Glutes', 'Hamstrings', 'Calves'],
+    'Core': ['All', 'Abs', 'Obliques'],
+  };
 
   @override
   void initState() {
     super.initState();
     _selectedCategory = widget.initialCategory;
+    final validFilters =
+        _categorySubFilters[_selectedCategory] ?? const ['All'];
+    if (!validFilters.contains(_selectedSubFilter)) {
+      _selectedSubFilter = 'All';
+    }
+  }
+
+  @override
+  void didUpdateWidget(ExerciseLibraryScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.initialCategory != widget.initialCategory) {
+      _selectCategory(widget.initialCategory);
+    }
+  }
+
+  void _selectCategory(String category) {
+    setState(() {
+      _selectedCategory = category;
+      final validFilters =
+          _categorySubFilters[category] ?? const ['All'];
+      if (!validFilters.contains(_selectedSubFilter)) {
+        _selectedSubFilter = 'All';
+      }
+    });
+  }
+
+  bool _isUpperBody(Exercise e) {
+    final group = e.muscleGroup.toLowerCase();
+    const upperGroups = {
+      'chest',
+      'back',
+      'shoulders',
+      'arms',
+      'biceps',
+      'triceps',
+      'forearms',
+      'traps',
+      'lats',
+      'upper body',
+    };
+    return upperGroups.contains(group) || group.contains('upper');
+  }
+
+  bool _isLowerBody(Exercise e) {
+    final group = e.muscleGroup.toLowerCase();
+    const lowerGroups = {
+      'legs',
+      'quads',
+      'quadriceps',
+      'hamstrings',
+      'glutes',
+      'calves',
+      'lower body',
+    };
+    return lowerGroups.contains(group) ||
+        group.contains('lower') ||
+        group.contains('leg');
+  }
+
+  bool _isCore(Exercise e) {
+    final group = e.muscleGroup.toLowerCase();
+    const coreGroups = {'core', 'abs', 'abdominals', 'obliques'};
+    return coreGroups.contains(group);
+  }
+
+  bool _matchesCategory(Exercise e, String category) {
+    switch (category) {
+      case 'All':
+        return true;
+      case 'Upper Body':
+        return _isUpperBody(e);
+      case 'Lower Body':
+        return _isLowerBody(e);
+      case 'Core':
+        return _isCore(e);
+      default:
+        return e.muscleGroup.toLowerCase() == category.toLowerCase();
+    }
   }
 
   @override
@@ -219,34 +143,75 @@ class _ExerciseLibraryScreenState extends ConsumerState<ExerciseLibraryScreen> {
         backgroundColor: SamanWorkoutTokens.canvas,
         elevation: 0,
         scrolledUnderElevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new,
-              size: 18, color: SamanWorkoutTokens.textPrimary),
-          onPressed: () => Navigator.pop(context),
+        leadingWidth: 56,
+        leading: Padding(
+          padding: const EdgeInsets.only(left: SamanWorkoutTokens.spacingLg),
+          child: Center(
+            child: InkWell(
+              borderRadius: BorderRadius.circular(10),
+              onTap: () {
+                if (Navigator.canPop(context)) {
+                  Navigator.pop(context);
+                }
+              },
+              child: Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  color: SamanWorkoutTokens.surfaceElevated,
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: SamanWorkoutTokens.border),
+                ),
+                child: const Icon(
+                  Icons.chevron_left,
+                  size: 20,
+                  color: SamanWorkoutTokens.textSecondary,
+                ),
+              ),
+            ),
+          ),
         ),
         title: const Text(
           'Exercise Library',
           style: TextStyle(
             color: SamanWorkoutTokens.textPrimary,
-            fontSize: 18,
+            fontSize: 20,
             fontWeight: FontWeight.w600,
             letterSpacing: -0.3,
           ),
         ),
         centerTitle: false,
         actions: [
-          IconButton(
-            icon: const Icon(Icons.bookmarks_outlined,
-                size: 20, color: SamanWorkoutTokens.textSecondary),
-            onPressed: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Bookmarks are saved locally in your library.'),
-                  duration: Duration(seconds: 2),
+          Padding(
+            padding: const EdgeInsets.only(right: SamanWorkoutTokens.spacingLg),
+            child: Center(
+              child: InkWell(
+                borderRadius: BorderRadius.circular(10),
+                onTap: () {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content:
+                          Text('Bookmarks are saved locally in your library.'),
+                      duration: Duration(seconds: 2),
+                    ),
+                  );
+                },
+                child: Container(
+                  width: 36,
+                  height: 36,
+                  decoration: BoxDecoration(
+                    color: SamanWorkoutTokens.surfaceElevated,
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: SamanWorkoutTokens.border),
+                  ),
+                  child: const Icon(
+                    Icons.bookmarks_outlined,
+                    size: 18,
+                    color: SamanWorkoutTokens.textSecondary,
+                  ),
                 ),
-              );
-            },
-            tooltip: 'Bookmarks',
+              ),
+            ),
           ),
         ],
       ),
@@ -273,22 +238,38 @@ class _ExerciseLibraryScreenState extends ConsumerState<ExerciseLibraryScreen> {
                       size: 20, color: SamanWorkoutTokens.textSecondary),
                   const SizedBox(width: SamanWorkoutTokens.spacingSm),
                   Expanded(
-                    child: TextField(
-                      controller: _searchController,
-                      style: const TextStyle(
-                        color: SamanWorkoutTokens.textPrimary,
-                        fontSize: 14,
+                    child: Theme(
+                      data: Theme.of(context).copyWith(
+                        inputDecorationTheme: const InputDecorationTheme(
+                          filled: false,
+                          fillColor: Colors.transparent,
+                          border: InputBorder.none,
+                          enabledBorder: InputBorder.none,
+                          focusedBorder: InputBorder.none,
+                        ),
                       ),
-                      onChanged: (_) => setState(() {}),
-                      decoration: const InputDecoration(
-                        hintText: 'Search exercises',
-                        hintStyle: TextStyle(
-                          color: SamanWorkoutTokens.textSecondary,
+                      child: TextField(
+                        controller: _searchController,
+                        cursorColor: SamanWorkoutTokens.emeraldAccent,
+                        style: const TextStyle(
+                          color: SamanWorkoutTokens.textPrimary,
                           fontSize: 14,
                         ),
-                        border: InputBorder.none,
-                        isDense: true,
-                        contentPadding: EdgeInsets.zero,
+                        onChanged: (_) => setState(() {}),
+                        decoration: const InputDecoration(
+                          hintText: 'Search exercises',
+                          hintStyle: TextStyle(
+                            color: SamanWorkoutTokens.textSecondary,
+                            fontSize: 14,
+                          ),
+                          filled: false,
+                          fillColor: Colors.transparent,
+                          border: InputBorder.none,
+                          enabledBorder: InputBorder.none,
+                          focusedBorder: InputBorder.none,
+                          isDense: true,
+                          contentPadding: EdgeInsets.zero,
+                        ),
                       ),
                     ),
                   ),
@@ -326,7 +307,7 @@ class _ExerciseLibraryScreenState extends ConsumerState<ExerciseLibraryScreen> {
                   child: InkWell(
                     borderRadius:
                         BorderRadius.circular(SamanWorkoutTokens.radiusSm),
-                    onTap: () => setState(() => _selectedCategory = category),
+                    onTap: () => _selectCategory(category),
                     child: Container(
                       padding: const EdgeInsets.symmetric(
                           horizontal: 14, vertical: 7),
@@ -386,7 +367,8 @@ class _ExerciseLibraryScreenState extends ConsumerState<ExerciseLibraryScreen> {
             ),
             child: Row(
               children: [
-                ..._subFilters.map((filter) {
+                ...(_categorySubFilters[_selectedCategory] ?? const ['All'])
+                    .map((filter) {
                   final isSelected = _selectedSubFilter == filter;
                   return Padding(
                     padding: const EdgeInsets.only(right: 6),
@@ -483,12 +465,8 @@ class _ExerciseLibraryScreenState extends ConsumerState<ExerciseLibraryScreen> {
             child: exercisesAsync.when(
               data: (exercises) {
                 final query = _searchController.text.trim().toLowerCase();
-                var filtered = exercises.where((e) {
-                  final matchQuery = query.isEmpty ||
-                      e.name.toLowerCase().contains(query) ||
-                      e.nameVi.toLowerCase().contains(query) ||
-                      e.muscleGroup.toLowerCase().contains(query);
-
+                final filtered = exercises.where((e) {
+                  final matchCat = _matchesCategory(e, _selectedCategory);
                   final matchSub = _selectedSubFilter == 'All' ||
                       e.muscleGroup
                           .toLowerCase()
@@ -496,31 +474,73 @@ class _ExerciseLibraryScreenState extends ConsumerState<ExerciseLibraryScreen> {
                       e.targetMuscles.any((m) => m
                           .toLowerCase()
                           .contains(_selectedSubFilter.toLowerCase()));
+                  final matchQuery = query.isEmpty ||
+                      e.name.toLowerCase().contains(query) ||
+                      e.nameVi.toLowerCase().contains(query) ||
+                      e.muscleGroup.toLowerCase().contains(query) ||
+                      e.targetMuscles.any((m) => m
+                          .toLowerCase()
+                          .contains(query));
 
-                  return matchQuery && matchSub;
+                  return matchCat && matchSub && matchQuery;
                 }).toList();
 
                 if (filtered.isEmpty) {
-                  return const Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(Icons.fitness_center_outlined,
-                            size: 40, color: SamanWorkoutTokens.textMuted),
-                        SizedBox(height: 12),
-                        Text(
-                          'No exercises found matching criteria',
-                          style: TextStyle(
-                            color: SamanWorkoutTokens.textSecondary,
-                            fontSize: 14,
+                  final String emptyTitle;
+                  final String emptySubtitle;
+                  if (query.isNotEmpty) {
+                    emptyTitle = 'No exercises found';
+                    emptySubtitle = 'No exercises matching "$query"';
+                  } else if (_selectedCategory == 'Lower Body') {
+                    emptyTitle = 'No lower body exercises yet';
+                    emptySubtitle =
+                        'Lower body exercise library is coming soon.';
+                  } else if (_selectedCategory == 'Core') {
+                    emptyTitle = 'No core exercises yet';
+                    emptySubtitle = 'Core exercise library is coming soon.';
+                  } else if (_selectedSubFilter != 'All') {
+                    emptyTitle = 'No $_selectedSubFilter exercises';
+                    emptySubtitle = 'No exercises found for this muscle group.';
+                  } else {
+                    emptyTitle = 'No exercises found';
+                    emptySubtitle = 'No exercises found matching criteria';
+                  }
+
+                  return Center(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: SamanWorkoutTokens.spacingXl),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Icon(Icons.fitness_center_outlined,
+                              size: 40, color: SamanWorkoutTokens.textMuted),
+                          const SizedBox(height: 12),
+                          Text(
+                            emptyTitle,
+                            style: const TextStyle(
+                              color: SamanWorkoutTokens.textPrimary,
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                            ),
                           ),
-                        ),
-                      ],
+                          const SizedBox(height: 4),
+                          Text(
+                            emptySubtitle,
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(
+                              color: SamanWorkoutTokens.textSecondary,
+                              fontSize: 13,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   );
                 }
 
                 return ListView.separated(
+                  key: ValueKey('exercise_list_${_selectedCategory}_$_selectedSubFilter'),
                   padding: const EdgeInsets.fromLTRB(
                     SamanWorkoutTokens.spacingLg,
                     0,
@@ -564,6 +584,45 @@ class _ExerciseLibraryScreenState extends ConsumerState<ExerciseLibraryScreen> {
           ),
         ],
       ),
+      bottomNavigationBar: SamanBottomNavigationBar(
+        currentIndex: 1,
+        onTap: (index) {
+          widget.onTabSelected?.call(index);
+          if (index == 1) {
+            // Already in Workout, return to WorkoutHomeScreen
+            if (Navigator.canPop(context)) {
+              Navigator.pop(context);
+            }
+          } else {
+            if (index == 3) {
+              try {
+                final profileState = ref.read(profileProvider);
+                if (!profileState.isProfileValid) {
+                  ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text(
+                          "⚠️ Vui lòng cập nhật Hồ sơ sức khỏe để tính Calories!"),
+                      backgroundColor: Colors.redAccent,
+                      behavior: SnackBarBehavior.floating,
+                    ),
+                  );
+                  ref.read(mainNavIndexProvider.notifier).state = 4;
+                  if (Navigator.canPop(context)) {
+                    Navigator.pop(context);
+                  }
+                  return;
+                }
+              } catch (_) {}
+            }
+
+            ref.read(mainNavIndexProvider.notifier).state = index;
+            if (Navigator.canPop(context)) {
+              Navigator.pop(context);
+            }
+          }
+        },
+      ),
     );
   }
 }
@@ -598,30 +657,47 @@ class _ExerciseMovementRow extends StatelessWidget {
             // Thumbnail
             ClipRRect(
               borderRadius: BorderRadius.circular(SamanWorkoutTokens.radiusMd),
-              child: CachedNetworkImage(
-                imageUrl: exercise.thumbnailUrl,
-                width: 68,
-                height: 68,
-                fit: BoxFit.cover,
-                placeholder: (_, __) => Container(
-                  width: 68,
-                  height: 68,
-                  color: SamanWorkoutTokens.surfaceElevated,
-                  child: const Center(
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      color: SamanWorkoutTokens.emeraldAccent,
+              child: exercise.thumbnailUrl.isNotEmpty
+                  ? CachedNetworkImage(
+                      imageUrl: exercise.thumbnailUrl,
+                      width: 68,
+                      height: 68,
+                      fit: BoxFit.cover,
+                      placeholder: (_, __) => Container(
+                        width: 68,
+                        height: 68,
+                        color: SamanWorkoutTokens.surfaceElevated,
+                        child: const Center(
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: SamanWorkoutTokens.emeraldAccent,
+                          ),
+                        ),
+                      ),
+                      errorWidget: (_, __, ___) => Container(
+                        width: 68,
+                        height: 68,
+                        color: SamanWorkoutTokens.surfaceElevated,
+                        child: const Icon(Icons.fitness_center_outlined,
+                            color: SamanWorkoutTokens.textMuted, size: 24),
+                      ),
+                    )
+                  : Container(
+                      width: 68,
+                      height: 68,
+                      decoration: BoxDecoration(
+                        color: SamanWorkoutTokens.surfaceElevated,
+                        borderRadius:
+                            BorderRadius.circular(SamanWorkoutTokens.radiusMd),
+                        border:
+                            Border.all(color: SamanWorkoutTokens.borderSubtle),
+                      ),
+                      child: const Icon(
+                        Icons.fitness_center_outlined,
+                        color: SamanWorkoutTokens.textMuted,
+                        size: 24,
+                      ),
                     ),
-                  ),
-                ),
-                errorWidget: (_, __, ___) => Container(
-                  width: 68,
-                  height: 68,
-                  color: SamanWorkoutTokens.surfaceElevated,
-                  child: const Icon(Icons.fitness_center,
-                      color: SamanWorkoutTokens.textMuted, size: 24),
-                ),
-              ),
             ),
             const SizedBox(width: SamanWorkoutTokens.spacingMd),
 
@@ -650,40 +726,6 @@ class _ExerciseMovementRow extends StatelessWidget {
                       color: SamanWorkoutTokens.textSub,
                       fontSize: 12,
                     ),
-                  ),
-                  const SizedBox(height: 6),
-                  // Affordance: Video Guide badge
-                  Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 6, vertical: 2),
-                        decoration: BoxDecoration(
-                          color: SamanWorkoutTokens.surfaceElevated,
-                          borderRadius:
-                              BorderRadius.circular(SamanWorkoutTokens.radiusXs),
-                          border: Border.all(
-                              color: SamanWorkoutTokens.borderSubtle),
-                        ),
-                        child: const Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(Icons.play_circle_outline,
-                                size: 12,
-                                color: SamanWorkoutTokens.emeraldAccent),
-                            SizedBox(width: 4),
-                            Text(
-                              'Video guide',
-                              style: TextStyle(
-                                color: SamanWorkoutTokens.textSecondary,
-                                fontSize: 10,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
                   ),
                 ],
               ),

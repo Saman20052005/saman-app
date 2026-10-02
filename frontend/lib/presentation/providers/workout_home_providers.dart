@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../data/models/exercise.dart';
 import 'exercise_providers.dart';
+import 'workout_history_providers.dart';
 
 // Provider for popular exercises
 final popularExercisesProvider = FutureProvider<List<Exercise>>((ref) async {
@@ -112,12 +113,47 @@ final upcomingPlansProvider = Provider<List<UpcomingPlanSession>>((ref) {
   ];
 });
 
-/// Illustrative recent workout summary provided via Riverpod
+/// Recent workout summary derived from workoutHistoryProvider
+/// Only saved sessions with finishedAt are considered completed history.
 final recentWorkoutSummaryProvider = Provider<RecentWorkoutSummary?>((ref) {
-  return const RecentWorkoutSummary(
-    title: 'Leg Day & Posterior Chain',
-    relativeTime: 'Yesterday',
-    metrics: '48 min • 5 exercises',
+  final historyAsync = ref.watch(workoutHistoryProvider);
+  return historyAsync.maybeWhen(
+    data: (sessions) {
+      final completed = sessions.where((s) => s.finishedAt != null).toList();
+      if (completed.isEmpty) return null;
+
+      completed.sort((a, b) => b.finishedAt!.compareTo(a.finishedAt!));
+      final latest = completed.first;
+
+      final now = DateTime.now();
+      final finished = latest.finishedAt!;
+      final diff = now.difference(finished);
+      String relativeTime;
+      if (diff.inDays == 0 && now.day == finished.day) {
+        relativeTime = 'Today';
+      } else if (diff.inDays <= 1) {
+        relativeTime = 'Yesterday';
+      } else {
+        relativeTime = '${diff.inDays} days ago';
+      }
+
+      final duration = latest.totalDurationMinutes ??
+          (latest.finishedAt!.difference(latest.startedAt).inMinutes > 0
+              ? latest.finishedAt!.difference(latest.startedAt).inMinutes
+              : 0);
+      final exerciseCount = latest.exerciseLogs
+          .map((e) => e.exerciseId)
+          .where((id) => id.isNotEmpty)
+          .toSet()
+          .length;
+      final count = exerciseCount > 0 ? exerciseCount : latest.exerciseLogs.length;
+
+      return RecentWorkoutSummary(
+        title: latest.planName.isNotEmpty ? latest.planName : 'Workout Session',
+        relativeTime: relativeTime,
+        metrics: '$duration min • $count exercises',
+      );
+    },
+    orElse: () => null,
   );
 });
-
