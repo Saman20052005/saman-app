@@ -1,0 +1,273 @@
+<!DOCTYPE html><html lang="en"><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" name="viewport">
+<title>Exercise Library - Saman Workout</title>
+<!-- Tailwind CSS v3 with Plugins -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Google Fonts: Space Grotesk, Inter, JetBrains Mono -->
+<link href="https://fonts.googleapis.com" rel="preconnect">
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=JetBrains+Mono:wght@400;500&amp;family=Space+Grotesk:wght@500;600;700&amp;display=swap" rel="stylesheet">
+<!-- Material Symbols Outlined -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
+<!-- Tailwind Custom Configuration -->
+<script data-purpose="tailwind-config">
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            obsidian: '#0C0D0E',
+            surface: '#16171B',
+            graphite: '#26282F',
+            emeraldAccent: '#10B981',
+            textPrimary: '#F9FAFB',
+            textSecondary: '#9CA3AF',
+            textMuted: '#6B7280'
+          },
+          fontFamily: {
+            headline: ['Space Grotesk', 'sans-serif'],
+            sans: ['Inter', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace']
+          }
+        }
+      }
+    };
+  </script>
+<!-- Global Base Styles -->
+<style data-purpose="global-resets">
+    body {
+      background-color: #0C0D0E;
+      color: #F9FAFB;
+      -webkit-font-smoothing: antialiased;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+    }
+    /* Hide scrollbars for pill bars */
+    .no-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+    .no-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+  </style>
+</head>
+<body class="bg-obsidian min-h-screen text-textPrimary flex justify-center font-sans antialiased">
+<!-- Mobile Frame Container (Max 390px, responsive down to 320px) -->
+<div class="w-full max-w-[390px] min-h-screen flex flex-col relative bg-obsidian border-x border-[#1a1b20] shadow-2xl">
+<!-- BEGIN: StatusBar -->
+<header class="w-full pt-3 px-6 pb-2 flex justify-between items-center text-xs font-semibold text-textPrimary shrink-0 z-30" data-purpose="ios-status-bar">
+<!-- Time -->
+<span class="tracking-tight text-[14px]">9:41</span>
+<!-- Icons: Cellular, Wifi, Battery -->
+<div class="flex items-center space-x-2 text-[12px] opacity-90">
+<svg class="w-4 h-3.5 fill-current" viewBox="0 0 16 12">
+<path d="M1 10h2v2H1v-2zm4-3h2v5H5V7zm4-4h2v9H9V3zm4-3h2v12h-2V0z"></path>
+</svg>
+<svg class="w-4 h-3.5 fill-current" viewBox="0 0 16 12">
+<path d="M8 2.5C4.9.5 2 .9.6 1.8l7.4 9.4 7.4-9.4C14 .9 11.1.5 8 2.5z"></path>
+</svg>
+<div class="w-6 h-3 border border-current rounded-sm p-0.5 flex items-center">
+<div class="h-full bg-current w-4/5 rounded-2xs"></div>
+</div>
+</div>
+</header>
+<!-- END: StatusBar -->
+<!-- BEGIN: SubpageHeader -->
+<section class="px-5 pt-2 pb-3 flex items-center justify-between shrink-0" data-purpose="subpage-navigation-header">
+<div class="flex items-center space-x-3">
+<!-- Back Button -->
+<button aria-label="Go back" class="w-9 h-9 rounded-xl bg-surface border border-graphite flex items-center justify-center text-textSecondary active:scale-95 active:text-textPrimary transition-all">
+<span class="material-symbols-outlined text-[20px]">chevron_left</span>
+</button>
+<!-- Screen Title -->
+<h1 class="font-headline font-semibold text-[22px] tracking-tight text-textPrimary">Exercise Library</h1>
+</div>
+<!-- Trailing Bookmark/Preference Filter Icon -->
+<button aria-label="Saved filters" class="w-9 h-9 rounded-xl bg-surface border border-graphite flex items-center justify-center text-textSecondary active:scale-95 active:text-emeraldAccent transition-all">
+<span class="material-symbols-outlined text-[19px]">bookmarks</span>
+</button>
+</section>
+<!-- END: SubpageHeader -->
+<!-- Main Content Area -->
+<main class="flex-1 px-4 flex flex-col gap-4 pb-32 overflow-y-auto no-scrollbar">
+<!-- BEGIN: SearchField -->
+<section class="relative" data-purpose="search-container">
+<div class="relative flex items-center">
+<span class="material-symbols-outlined absolute left-3.5 text-textSecondary text-[20px] pointer-events-none">search</span>
+<input class="w-full bg-surface text-[14px] text-textPrimary placeholder-textSecondary border border-graphite rounded-xl pl-10 pr-10 py-2.5 focus:outline-none focus:border-emeraldAccent/70 transition-colors" placeholder="Search exercises" type="text">
+<button aria-label="Voice or visual search" class="absolute right-3 text-textSecondary hover:text-textPrimary">
+<span class="material-symbols-outlined text-[18px]">tune</span>
+</button>
+</div>
+</section>
+<!-- END: SearchField -->
+<!-- BEGIN: FocusSegmentFilters -->
+<section class="flex gap-2 overflow-x-auto no-scrollbar py-0.5" data-purpose="focus-segment-filters">
+<!-- Inactive Filter: All -->
+<button class="px-3.5 py-1.5 rounded-full text-[13px] font-medium border border-graphite bg-surface text-textSecondary hover:border-[#383a42] transition-colors shrink-0">
+          All
+        </button>
+<!-- Active Filter: Upper Body -->
+<button class="px-3.5 py-1.5 rounded-full text-[13px] font-medium border border-emeraldAccent bg-emeraldAccent/15 text-emeraldAccent flex items-center space-x-1.5 shrink-0">
+<span class="w-1.5 h-1.5 rounded-full bg-emeraldAccent inline-block"></span>
+<span class="">Upper Body</span>
+</button>
+<!-- Inactive Filter: Lower Body -->
+<button class="px-3.5 py-1.5 rounded-full text-[13px] font-medium border border-graphite bg-surface text-textSecondary hover:border-[#383a42] transition-colors shrink-0">
+          Lower Body
+        </button>
+<!-- Inactive Filter: Core -->
+<button class="px-3.5 py-1.5 rounded-full text-[13px] font-medium border border-graphite bg-surface text-textSecondary hover:border-[#383a42] transition-colors shrink-0">
+          Core
+        </button>
+</section>
+<!-- END: FocusSegmentFilters -->
+<!-- BEGIN: SecondaryRefinementFilters -->
+<section class="flex items-center gap-2 overflow-x-auto no-scrollbar py-0.5 text-[12px]" data-purpose="secondary-chips-row">
+<!-- Active Selected Muscle Chip: Chest -->
+<button class="px-3 py-1 rounded-lg border border-graphite bg-surface text-textSecondary hover:text-textPrimary transition-colors shrink-0">
+          Chest
+        </button>
+<!-- Inactive Muscle Chip: Back -->
+<button class="px-3 py-1 rounded-lg border border-graphite bg-surface text-textSecondary hover:text-textPrimary transition-colors shrink-0">
+          Back
+        </button>
+<!-- Inactive Muscle Chip: Shoulders -->
+<button class="px-3 py-1 rounded-lg border border-graphite bg-surface text-textSecondary hover:text-textPrimary transition-colors shrink-0">
+          Shoulders
+        </button>
+<!-- Inactive Muscle Chip: Arms -->
+<button class="px-3 py-1 rounded-lg border border-graphite bg-surface text-textSecondary hover:text-textPrimary transition-colors shrink-0">
+          Arms
+        </button>
+<!-- Equipment Dropdown Chip -->
+<button class="px-3 py-1 rounded-lg border border-graphite bg-surface text-textSecondary flex items-center space-x-1 shrink-0">
+<span class="">Equipment</span>
+<span class="material-symbols-outlined text-[14px]">arrow_drop_down</span>
+</button>
+</section>
+<!-- END: SecondaryRefinementFilters -->
+<!-- Active Counter Label -->
+<div class="flex items-center justify-between px-0.5 pt-1">
+<span class="font-mono uppercase text-[11px] tracking-wider text-textMuted font-medium">MOVEMENTS</span>
+
+</div>
+<!-- BEGIN: ExerciseResultsList -->
+<section class="flex flex-col gap-2.5" data-purpose="exercise-list-container">
+<!-- Row 1: Dumbbell Bench Press -->
+<article class="bg-surface border border-graphite hover:border-[#383a42] active:bg-[#1a1c22] rounded-2xl p-3 flex items-center justify-between gap-3.5 transition-all cursor-pointer" data-purpose="exercise-card">
+<!-- Thumbnail -->
+<img alt="Dumbbell Bench Press" class="w-16 h-16 rounded-xl object-cover border border-graphite shrink-0" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCjy0lmPAx3XsC8UIzhrH_i8vJKi2LOrcZXqY1ABoVkjUyd9YsIprMBJiYP0DcYq4vID2nP8lLvLehdutBohSAiam7HJ5foaZHlosirlnOrtozf987FHY_Rgv5eYmLd-z3JfWP0lGIc7dqgAfG33G9TmryawUxCw7MBn3VynCYpY8OIc9tX_mkHvyyI-3mdMJyfAeJ3CQpoHPlxhuvcsrgLu6kT7MqL461nWJo-V_eK_emEhWO1S9yr">
+<!-- Details -->
+<div class="flex-1 min-w-0 flex flex-col justify-center">
+<h2 class="font-headline font-semibold text-[15px] leading-snug text-textPrimary truncate">Dumbbell Bench Press</h2>
+<p class="text-[13px] text-textSecondary truncate mt-0.5">Chest · Dumbbell</p>
+<div class="flex items-center space-x-1 mt-1.5 text-textMuted font-mono text-[11px]">
+<span class="material-symbols-outlined text-[14px] text-emeraldAccent">play_circle</span>
+<span class="text-emeraldAccent/90">Video guide</span>
+</div>
+</div>
+<!-- Trailing Navigation Icon -->
+<span class="material-symbols-outlined text-textSecondary text-[20px] shrink-0">chevron_right</span>
+</article>
+<!-- Row 2: Lat Pulldown -->
+<article class="bg-surface border border-graphite hover:border-[#383a42] active:bg-[#1a1c22] rounded-2xl p-3 flex items-center justify-between gap-3.5 transition-all cursor-pointer" data-purpose="exercise-card">
+<!-- Thumbnail -->
+<img alt="Lat Pulldown" class="w-16 h-16 rounded-xl object-cover border border-graphite shrink-0" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAF6LfiVSi4ug4_Y-b3ot9xnlVdtNcZcb-OY9D-2ZKwbGMQ1FogyJxJipn1BiPr57SDmaJLl5iCW7nPvr21Dle3O-01U-L1ZYXFgKjD1Sf65rA5fXDybHhXzsIjVXd69Wcaf4d14X1wVBq0bIjpPLFHPLMUvDjakCeyqDof32mm3i9NoJHw0vLfMV-Bp-X07yXXEL_LwWd8JARYFL_wS2sIwDbWKg9nPsVIHOOBi5qOgo53FbMEV9OQ">
+<!-- Details -->
+<div class="flex-1 min-w-0 flex flex-col justify-center">
+<h2 class="font-headline font-semibold text-[15px] leading-snug text-textPrimary truncate">Lat Pulldown</h2>
+<p class="text-[13px] text-textSecondary truncate mt-0.5">Back · Cable Machine</p>
+<div class="flex items-center space-x-1 mt-1.5 text-textMuted font-mono text-[11px]">
+<span class="material-symbols-outlined text-[14px] text-emeraldAccent">play_circle</span>
+<span class="text-emeraldAccent/90">Video guide</span>
+</div>
+</div>
+<!-- Trailing Navigation Icon -->
+<span class="material-symbols-outlined text-textSecondary text-[20px] shrink-0">chevron_right</span>
+</article>
+<!-- Row 3: Seated Cable Row -->
+<article class="bg-surface border border-graphite hover:border-[#383a42] active:bg-[#1a1c22] rounded-2xl p-3 flex items-center justify-between gap-3.5 transition-all cursor-pointer" data-purpose="exercise-card">
+<!-- Thumbnail -->
+<img alt="Seated Cable Row" class="w-16 h-16 rounded-xl object-cover border border-graphite shrink-0" src="https://lh3.googleusercontent.com/aida-public/AB6AXuD_ZzymNf9nVt6HnjzyI43xYAEMqKN4Gd_-qaeRF3kOhAOlksrNdaCdAoaFzgJGlPzLTnEpLLH82ANBaOTL68tQV61RYlf91Q0j64johQ_aXFNss8f82vn3PX8C-bO6g4XOYqyeLh3gQ6tXUUbAmr-FxsaPDcVDmYHCOZhnUWFiDQueCEphdzVjdn5hsgdUkiFAgjBgQp8O_KUpZFi8iYYdNytoanIcRv6ctUCD-sNLsd7iY_9oiHgi">
+<!-- Details -->
+<div class="flex-1 min-w-0 flex flex-col justify-center">
+<h2 class="font-headline font-semibold text-[15px] leading-snug text-textPrimary truncate">Seated Cable Row</h2>
+<p class="text-[13px] text-textSecondary truncate mt-0.5">Back · Cable Machine</p>
+<div class="flex items-center space-x-1 mt-1.5 text-textMuted font-mono text-[11px]">
+<span class="material-symbols-outlined text-[14px] text-emeraldAccent">play_circle</span>
+<span class="text-emeraldAccent/90">Video guide</span>
+</div>
+</div>
+<!-- Trailing Navigation Icon -->
+<span class="material-symbols-outlined text-textSecondary text-[20px] shrink-0">chevron_right</span>
+</article>
+<!-- Row 4: Dumbbell Shoulder Press -->
+<article class="bg-surface border border-graphite hover:border-[#383a42] active:bg-[#1a1c22] rounded-2xl p-3 flex items-center justify-between gap-3.5 transition-all cursor-pointer" data-purpose="exercise-card">
+<!-- Thumbnail -->
+<img alt="Dumbbell Shoulder Press" class="w-16 h-16 rounded-xl object-cover border border-graphite shrink-0" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBeOkLU2qJSoioUrGNBm7r2RiPLPyupqNSHiHA0-Gwbl6EgsUrW5Bm5I4SmyZk-Zu1_x0952sPkIcGI3oXMWWkp9WiQj5T72MlccQpK5cC7P2O-RYcgGRZuRW43s_MKx11NOftTkiQQriSK4UfEvrFEEunDbcOr1LlFSopEgdqHkrur5E5HgzfOHF9itDo3KJB2PtfRXFy9zHpGQY5VX6C9fHHUdgoBopARlcWJaYKk5kLgPuU8DfWJ">
+<!-- Details -->
+<div class="flex-1 min-w-0 flex flex-col justify-center">
+<h2 class="font-headline font-semibold text-[15px] leading-snug text-textPrimary truncate">Dumbbell Shoulder Press</h2>
+<p class="text-[13px] text-textSecondary truncate mt-0.5">Shoulders · Dumbbell</p>
+<div class="flex items-center space-x-1 mt-1.5 text-textMuted font-mono text-[11px]">
+<span class="material-symbols-outlined text-[14px] text-emeraldAccent">play_circle</span>
+<span class="text-emeraldAccent/90">Video guide</span>
+</div>
+</div>
+<!-- Trailing Navigation Icon -->
+<span class="material-symbols-outlined text-textSecondary text-[20px] shrink-0">chevron_right</span>
+</article>
+<!-- Row 5: Push-Up -->
+<article class="bg-surface border border-graphite hover:border-[#383a42] active:bg-[#1a1c22] rounded-2xl p-3 flex items-center justify-between gap-3.5 transition-all cursor-pointer" data-purpose="exercise-card">
+<!-- Thumbnail -->
+<img alt="Push-Up" class="w-16 h-16 rounded-xl object-cover border border-graphite shrink-0" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBnAch0ECtqHXMTbfV_fuYQzfdyWkg1ciVMPJMgDVPr-UnQKtnOLw3SEHG4RKQ12IdilKQf4Hj1XRSC6K520vQF6G_r2_rQ70i0l3NsGVbh-RBOnJNbGsT2xvXCwdb_zVEEHLFctWCwYmyFXla2tPnFU72_bGhL4obFC5xcNWvDUvF_-KoC8uT7LfZ2UzmvJrKygUeZlyM3Q9IREzCrQPoaVgE7M8f2KlyghrN_WDe1NMqPWk0DGTGK">
+<!-- Details -->
+<div class="flex-1 min-w-0 flex flex-col justify-center">
+<h2 class="font-headline font-semibold text-[15px] leading-snug text-textPrimary truncate">Push-Up</h2>
+<p class="text-[13px] text-textSecondary truncate mt-0.5">Chest &amp; Triceps · Bodyweight</p>
+<div class="flex items-center space-x-1 mt-1.5 text-textMuted font-mono text-[11px]">
+<span class="material-symbols-outlined text-[14px] text-emeraldAccent">play_circle</span>
+<span class="text-emeraldAccent/90">Video guide</span>
+</div>
+</div>
+<!-- Trailing Navigation Icon -->
+<span class="material-symbols-outlined text-textSecondary text-[20px] shrink-0">chevron_right</span>
+</article>
+</section>
+<!-- END: ExerciseResultsList -->
+</main>
+<!-- BEGIN: BottomNavigation -->
+<nav class="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[390px] bg-[#0C0D0E]/90 backdrop-blur-xl border-t border-[#1e2025] px-6 py-2.5 pb-6 flex items-center justify-between z-40" data-purpose="bottom-navigation-bar">
+<!-- Tab 1: Home -->
+<a class="flex flex-col items-center gap-1 text-textMuted hover:text-textSecondary transition-colors" href="#home">
+<span class="material-symbols-outlined text-[22px]">home</span>
+<span class="font-mono text-[10px] tracking-wider uppercase">HOME</span>
+</a>
+<!-- Tab 2: Workout (Active) -->
+<a class="flex flex-col items-center gap-0.5 text-textPrimary" href="#workout">
+<span class="material-symbols-outlined text-[22px] rotate-45">fitness_center</span>
+<span class="font-mono text-[10px] tracking-wider uppercase font-semibold">WORKOUT</span>
+<div class="w-1 h-1 rounded-full bg-textPrimary mt-0.5"></div>
+</a>
+<!-- Tab 3: Saman Monogram 'S' -->
+<a class="flex flex-col items-center justify-center text-textMuted hover:text-textSecondary transition-colors" href="#saman">
+<span class="font-headline font-bold text-[19px] leading-none text-textMuted">S</span>
+</a>
+<!-- Tab 4: Nutrition -->
+<a class="flex flex-col items-center gap-1 text-textMuted hover:text-textSecondary transition-colors" href="#nutrition">
+<span class="material-symbols-outlined text-[22px]">restaurant</span>
+<span class="font-mono text-[10px] tracking-wider uppercase">NUTRITION</span>
+</a>
+<!-- Tab 5: Profile -->
+<a class="flex flex-col items-center gap-1 text-textMuted hover:text-textSecondary transition-colors" href="#profile">
+<span class="material-symbols-outlined text-[22px]">person</span>
+<span class="font-mono text-[10px] tracking-wider uppercase">PROFILE</span>
+</a>
+</nav>
+<!-- END: BottomNavigation -->
+</div>
+
+
+</body></html>

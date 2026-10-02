@@ -1,0 +1,312 @@
+# Saman Fitness: Master Product Requirements Document (PRD) & Technical Design Specification (v3.2)
+
+---
+
+## 1. Executive Summary & Product Vision
+
+**Saman** is an editorial, high-performance strength and conditioning mobile platform engineered specifically for dedicated trainees, lifters, and athletes.
+
+Unlike conventional fitness applications that rely on hyperactive gamification, neon aesthetic gimmicks, cartoon avatars, exaggerated physiques, and disruptive social feeds, Saman is anchored in the foundational philosophy of **Calm Athleticism**. It provides a focused, distraction-free digital sanctuary combining stoic ergonomics, high-contrast typography, authentic sports documentary photography, and grounded biometric intelligence.
+
+### 1.1 Core Value Proposition
+The platform answers three fundamental questions for athletes in under 5 seconds:
+1. **What can I train today?** (Immediate access to scheduled workouts and movement splits without navigation friction).
+2. **How do I start?** (Frictionless one-tap initiation into structured sessions or free logging).
+3. **Where can I see what I actually completed?** (Verifiable, chronological history of volume, duration, and exertion without fabricated vanity metrics).
+
+---
+
+## 2. Core Personas & User Journeys
+
+### 2.1 Primary Persona: The Dedicated Strength Trainee ("The Methodical Lifter")
+- **Demographics & Profile**: 22–45 years old, trains 3–6 days per week with barbells, dumbbells, cables, and bodyweight movements.
+- **Pain Points**:
+  - Overwhelmed by flashy social feeds, cartoon badges, and arbitrary "level-up" points in consumer apps.
+  - Frustrated by navigation friction (often requiring 5+ taps just to begin logging a workout).
+  - Distrustful of unverified metrics, fake caloric burn estimates, and cluttered telemetry.
+- **Key Flow**:
+  - Opens the app directly to the Workout tab.
+  - Confirms today's scheduled split (e.g., *Upper Body Strength · 50 min · 5 exercises*).
+  - Taps **"Start workout"** for immediate execution into the **Active Workout** logging flow.
+  - Logs sets, adjusts weight/reps with comfortable touch-friendly steppers, and observes rest intervals.
+  - Taps **"Finish"** to trigger the post-session review and commit the verified volume into history.
+
+### 2.2 Secondary Persona: The Adaptive Guided Athlete
+- **Demographics & Profile**: Trainee balancing structured strength work with recovery, mobility, and personalized nutrition targets.
+- **Pain Points**:
+  - Lack of cohesive feedback linking sleep quality, soreness, and lifting intensity.
+  - Inflexible static routines that don't adapt to systemic fatigue.
+- **Key Flow**:
+  - Interacts with **Saman Coach** (multimodal conversational AI) to adjust intensity based on systemic fatigue and protein targets.
+  - Reviews holistic metrics across training volume, dietary macros, and rest intervals.
+
+### 2.3 Tertiary Flow: Real-Time Movement Correction ("Live Form Check")
+- **Profile**: Athlete executing technical compound lifts (pull-ups, squats, deadlifts) seeking objective real-time postural guidance without hiring an in-person trainer.
+- **Key Flow**:
+  - Triggers **"Check my form"** from an Exercise Detail page or mid-set during an Active Workout session.
+  - Places the mobile device 2–3 meters away, angling it to capture full body and apparatus (e.g. pull-up bar).
+  - Receives live optical feedback: observed rep tally and a single, glanceable, high-contrast form cue (e.g., *"Keep shoulders down as you pull"*).
+  - Taps **"End form check"** to return safely to the active session with zero destructive or premature logging.
+
+---
+
+## 3. Global Information Architecture & Navigation
+
+Saman enforces a dual-mode navigation model:
+1. **Persistent 5-Tab Navigation System** across exploration, coaching, nutrition, and profile hubs.
+2. **Dedicated In-Session Operational Mode** during active training and live camera tracking, deliberately suppressing the global bottom tab bar to prevent accidental exits or destructive context switching while lifting.
+
+```
++-------------------------------------------------------------+
+| Viewport Top: Safe-Area Context Header / Subpage Back Arrow |
++-------------------------------------------------------------+
+| Dynamic Scrollable Viewport (Smooth Inertial Scrolling)     |
+|   - Minimum Content clearance: pb-28 / pb-32                |
++-------------------------------------------------------------+
+| Fixed Bottom Navigation Bar (Glass Obsidian #0C0D0E / 95%)  |
+| [1. Home] [2. Workout*] [3. Saman (S)] [4. Nutrition] [5. Profile] |
++-------------------------------------------------------------+
+```
+
+### 3.1 Top-Level Navigation Tabs
+1. **Home**: Daily holistic summary (readiness telemetry, nutrition overview, adherence streak).
+2. **Workout [Active Operational Core]**: Training launchpad, scheduled hero session, quick-start matrix, movement-focus exploration, forward horizon, and verified history.
+3. **Saman Coach (Monogram `S`)**: Multimodal conversational AI coach providing workout and nutrition adjustments, RPE calibrations, and telemetry analysis.
+4. **Nutrition**: Macronutrient tracking (protein, carbs, fats), meal logging, and hydration telemetry.
+5. **Profile**: User biometric profile, primary goals, activity level, connected wearable integrations (Apple Health, Whoop), preferences, and account membership.
+
+---
+
+## 4. Screen-by-Screen Specifications & Design Contracts
+
+### 4.1 Workout Tab (Main Operational Hub)
+- **Header & Secondary Utility**:
+  - Headline: `Workout` (`Space Grotesk`, 28px, Semibold).
+  - Subtitle: `Train, log & explore movements` (`Inter`, 14px, muted slate).
+  - Action Trigger: `My Plans` button (`#16171B` background, 1px border, bookmark icon).
+- **Hero Module ("Today's Scheduled Session")**:
+  - **Status Pill**: Understated green `Planned` chip (`#10B981` tint).
+  - **Visual Asset**: Authentic sports documentary photography of an athlete performing an upper-body lift in a modern architectural gym with natural directional lighting.
+  - **Text Contrast**: Targeted bottom gradient scrim ensuring WCAG AA contrast (4.5:1+) without murky full-image darkening.
+  - **Protocol Tag & Title**: Bold session name (`Upper Body Strength`) with protocol tag (`Upper Body Protocol`).
+  - **Essential Metrics**: Exactly two high-utility figures: Duration (`50 min`) and Movement Count (`5 exercises`).
+  - **Action Pair**:
+    - **Primary CTA**: Prominent, solid off-white (`#F9FAFB`) button with obsidian text (`#0C0D0E`): `Start workout`.
+    - **Secondary CTA**: Ghost action: `View plan >`.
+- **Quick Action Matrix**:
+  - **Quick Start Card**: Frictionless logging for unstructured workouts (`Train without a plan`).
+  - **Browse Library Card**: Direct gateway to movement discovery (`Browse library` / `Explore exercises`).
+- **"Train by Focus" (Movement Categories)**:
+  - Dual photo-led category cards:
+    - **Upper Body**: Strict pulling/pressing imagery, labeled with muscle groups (`Chest, Back, Arms`).
+    - **Lower Body**: Barbell squat imagery, labeled with muscle groups (`Quads, Glutes, Legs`).
+    - *Policy*: Strictly movement-based categories; zero gender segregation or artificial restrictions.
+- **"Your Plan" (Forward Horizon)**:
+  - Minimalist preview showing 1–2 upcoming days to reduce cognitive load.
+  - Displays untruncated session titles with plain duration badges (e.g., `Lower Body Strength · 45 min · 5 exercises` and `Active Recovery · 25 min flow · Mobility`).
+- **"Last Workout" & History Verification**:
+  - Displays the single most recent completed session (e.g., `Leg Day & Posterior Chain · Yesterday • 48 min • 5 exercises`) with a verified checkmark indicator.
+  - *Dual-State Contract*: The populated card and empty-history state must never be shown simultaneously.
+  - Persistent link to `View history >`.
+
+### 4.2 Exercise Library (Subpage)
+- **Navigation Context**:
+  - Accessed via "Browse library" or "Train by Focus" cards on the Workout tab.
+  - Subpage header features an explicit back arrow returning to the main Workout tab.
+  - The persistent 5-tab bottom bar remains anchored and highlighted on the `Workout` tab.
+- **Search & Filtering Engine**:
+  - **Search Input**: Prominent search bar (`Search exercises`) with integrated filter icon.
+  - **Primary Focus Tabs**: Horizontal segments for `All`, `Upper Body` (active default), `Lower Body`, and `Core`.
+  - **Secondary Refinement Chips**: Compact chips allowing muscle and equipment refinement (`Chest`, `Back`, `Shoulders`, `Arms`, `Equipment`).
+- **Movement Result Rows**:
+  - Structured list rows featuring:
+    - High-clarity square movement thumbnail showing an athlete with proper form and visible equipment.
+    - Exercise name (`Space Grotesk` / `Inter`, 15px, Semibold).
+    - Metadata row (`Primary Muscle · Equipment`).
+    - Understated video guidance indicator (`Video guide`).
+    - Right-aligned navigation chevron affordance.
+
+### 4.3 Exercise Detail & Movement Guidance (Subpage: Dumbbell Bench Press)
+- **Navigation & Header**:
+  - Subpage hierarchy returning directly to `Exercise Library` via clear back chevron.
+  - Exercise title: `Dumbbell Bench Press` with zero unexplained icons or gamified medals.
+- **Instructional Video Preview**:
+  - High-definition documentary photography asset of male athlete performing a dumbbell bench press on a flat bench with natural gym daylight and visible matte black dumbbells.
+  - Centered circular glass-obsidian play control.
+  - Understated `● Video guide` status pill badge (no fabricated timestamps or fake video player UI).
+- **Movement Overview & Facts**:
+  - Plain description: *"A chest exercise using dumbbells and a flat bench."*
+  - Concise taxonomy:
+    - `Primary`: **Chest** (understated emerald highlight)
+    - `Secondary`: **Triceps, Shoulders**
+    - `Equipment`: **Dumbbells, Flat bench**
+- **"How to Perform" Step Breakdown**:
+  - Plain, practical coaching language with relaxed line heights for 320px viewport resilience:
+    1. **Setup**: *"Sit on the bench with a dumbbell in each hand. Lie back and place your feet firmly on the floor."*
+    2. **Lower**: *"Lower the dumbbells slowly to either side of your chest."*
+    3. **Press**: *"Push them up with control until your arms are extended."*
+- **"Form Cues"**:
+  - Three concise reminders with emerald checkmark indicators: *Keep your feet planted*, *Keep your wrists straight*, *Move slowly and stay in control*.
+- **Action CTAs**:
+  - Primary button: **`Start exercise →`** docked above the safe-area/bottom nav bar.
+  - Secondary trigger: **`Check my form`** leading into the real-time optical tracking mode.
+
+### 4.4 Active Workout Execution Screen (Core Training Hub)
+- **Design Philosophy**:
+  - Replaces rigid dashboards and spreadsheet tables with an energetic, photo-anchored athletic training flow optimized for rapid operation between sets with sweaty or chalked hands.
+  - Strict omission of the global 5-tab bottom navigation to prevent accidental exits.
+- **Header & Session Control**:
+  - **Minimize Control**: Discreet top-left chevron (`expand_more`) allowing trainees to pause or background the session safely.
+  - **Session Title & Live Timer**: Centered `Upper Body Strength` with live elapsed chronometer (`18:42` with an understated emerald pulse).
+  - **"Finish" Action**: Top-right quiet ghost button (`#16171B` container, hairline border). Tapping opens a future **Review & Save Summary** step; it **never** silently marks the session as finished or saved.
+- **Progress Horizon**:
+  - Compact single-line telemetry: `Exercise 1 of 5` and `2 of 4 sets completed`, supported by an ultra-thin 5-segment horizon line.
+- **Current Exercise Anchor**:
+  - Full-width documentary photograph of the athlete executing the Dumbbell Bench Press.
+  - On-image frosted glass pill: **`▶ Video Guide`** positioned unobtrusively in the lower right corner, returning to form cues without losing session state.
+  - Bold headline: `Dumbbell Bench Press` with single equipment subtitle: `Dumbbells · Flat bench`.
+- **Contextual Rest Interval Strip**:
+  - Positioned immediately beneath the exercise heading so it **never covers editable weight or rep fields**.
+  - Displays remaining countdown: `REST 01:14` with emerald progress ring, accompanied by tactile `+30s` and `Skip` chip actions.
+- **Ergonomic Set-Logging Matrix**:
+  - **Sets 1 & 2 (Completed)**: Soft divider rows showing illustrative recorded volume (`24 kg × 10`, `26 kg × 8`) and restrained emerald checkmark badges (`#10B981`).
+  - **Set 3 (Active / In-Progress)**: Visually distinct elevated card (`#1E2026`) without harsh neon borders. Features large, tactile 48px+ stepper controls (`−` and `+`) separated from high-contrast numerical displays (`26 kg` and `8 reps`).
+  - **Single Action Contract**: The active set row does **not** contain a second competing checkbox. Entering or adjusting values does not record the set; only tapping the bottom primary button records the set.
+  - **Set 4 (Upcoming / Planned)**: Muted values (`26 kg × 8 —`) indicating planned work, clearly pending and not recorded.
+  - **"Add set" Action**: Compact dashed trigger beneath the matrix allowing lifters to dynamically add sets without rigid constraints.
+- **Secondary Next Movement & Library Access**:
+  - Compact preview: `Lat Pulldown (Wide Grip) · 4 sets · Cable Machine`.
+  - Secondary text link: `View all 5 exercises →`.
+- **Grounded Action Dock**:
+  - Fixed above the device safe area.
+  - **Primary CTA**: Prominent, full-width solid off-white button (`#F9FAFB`) with dark obsidian text (`#0C0D0E`): **`✓ Log Set 3`**. Tapping records the active set and automatically triggers the next rest countdown.
+  - **Secondary Utility**: Discreet text trigger centered beneath the button: `⏸ Pause workout`.
+
+### 4.5 Live Form Check (Optical Computer Vision Hub — Wide Grip Pull-up)
+- **Design Philosophy**:
+  - Acts as a focused, stoic training mirror rather than a sci-fi surveillance interface.
+  - Zero neon skeletons, glowing bone heatmaps, complex joint angles, or speculative precision percentages.
+  - True edge-to-edge full-bleed portrait mobile UI (~390 × 844) designed to be readable from 2–4 meters away while moving.
+- **Navigation & Header Architecture**:
+  - Compact top header with discreet close button (`close`), active tracking status badge (`● FORM CHECK` / `● TRACKING`), and exercise title (`Wide Grip Pull-up`).
+  - Global 5-tab bottom navigation is **deliberately suppressed** during camera operation.
+  - Audio/speaker control is omitted in the visual-only design.
+- **Camera Viewport & Environmental Framing**:
+  - Live camera occupies 80%+ of the vertical mobile screen.
+  - Anchored by floor-angled sports documentary photography capturing the lifter, the pull-up bar, and full vertical extension (head to feet) without letterboxing or bezel embedding.
+  - Visual safe zone: HUD elements are docked to top/bottom screen perimeters, keeping the lifter's face, hands, bar grip, and feet completely unobstructed.
+- **Camera Setup & Placement Guidance**:
+  - Subdued frosted glass pill positioned directly beneath the header: *"Keep your full body and the bar in view"*.
+  - Plain tracking state badge: `● Full body in frame`.
+- **Distance-Readable Telemetry HUD**:
+  - **Observed Rep Counter**: Located at the lower-left edge of the preview frame: high-contrast tabular readout with uppercase label `REPS OBSERVED` / `LIVE OBSERVATION`.
+  - *Data Contract*: Observed reps are strictly transient computer-vision metrics; they are **never** committed automatically to the user's workout log.
+- **Actionable Form Cue Card & Multi-State Feedback System**:
+  - High-visibility card docked beneath the lifter's movement field.
+  - Strict rule: Exactly **one** concise, actionable cue is shown at a time. No competing positive badges or multi-sentence paragraphs during active movement correction.
+  - Communicates meaning through distinct semantic iconography, micro-caps classification tags, and color—never through color alone.
+- **The Four Canonical State Variants**:
+  1. **State A (Form Correction)**:
+     - *Header Status*: `● FORM CHECK` in restrained emerald.
+     - *Rep Counter*: `4 REPS OBSERVED`.
+     - *Feedback Card*: Calm Fuel Amber (`#F59E0B`) container with downward arrow icon and `ADJUST FORM` tag: *"Keep your shoulders down on the next rep."* Avoids blame, aggressive red alerts, or injury claims.
+  2. **State B (Positive Confirmation)**:
+     - *Header Status*: `● TRACKING` in restrained emerald.
+     - *Rep Counter*: Advances to `5 REPS OBSERVED`.
+     - *Feedback Card*: Restrained emerald checkmark icon (`#10B981`) with `REP COMPLETE` tag: *"Good rep — chin cleared the bar."* Focused, brief positive reinforcement that clears naturally.
+  3. **State C (Reminder Between Reps)**:
+     - *Header Status*: `● TRACKING` in restrained emerald.
+     - *Rep Counter*: `4 REPS OBSERVED` held steady.
+     - *Feedback Card*: Neutral obsidian card with tempo/timer icon and `BETWEEN REPS` tag: *"Lower with control before your next pull."* Acts as a calm coaching cue for the eccentric phase.
+  4. **State D (Tracking Interrupted)**:
+     - *Header Status*: Switches cleanly to `● TRACKING PAUSED` in amber micro-caps.
+     - *Rep Counter*: Visually frozen counter (`4 REPS HELD · FROZEN`) so athletes know counting is held rather than lost or erroneously incrementing.
+     - *Feedback Card*: Replaces form judgment with camera placement guidance, featuring an athlete detection icon and `PLACEMENT GUIDANCE` tag: *"Tracking paused — move back until your full body and the bar are visible."* Zero positive or negative judgment shown while tracking is uncertain.
+     - *Action Dock Utility*: Adapts to `▶ Resume camera`.
+- **Bottom Action Dock**:
+  - Full-width, solid warm off-white (`#F9FAFB`) primary button: **`End form check`** with dark obsidian text (`#0C0D0E`).
+  - Secondary utility centered beneath: **`⏸ Pause camera`** (or `▶ Resume camera` when paused).
+  - Non-destructive exit: Tapping "End form check" returns the trainee safely to the originating Active Workout or Exercise Detail screen, allowing them to manually confirm or discard reps.
+
+### 4.6 Saman Coach (Conversational Multimodal AI Hub)
+- **Header & Navigation**:
+  - Monogram `S` badge with `Saman Coach` title, side drawer toggle (`notes`), new chat trigger, and notification shortcuts.
+  - Slide-out coaching drawer featuring coaching shortcuts (`Weekly review`, `Nutrition review`, `Workout analysis`), recent conversations archive, active persona parameters, and schedule reminders.
+- **Conversation Interface**:
+  - High-contrast chat bubble architecture distinguishing athlete inquiries from structured AI responses.
+  - **Direct Coaching Tone**: Analytical, cue-focused, concise, and grounded in biological telemetry (RPE targets, protein deltas).
+  - **Structured Telemetry Tables**: Metric vs. Today vs. Target comparisons (Calories 2,280 / 2,400 kcal; Protein 156g / 180g; Workout status; Recovery state).
+  - **Actionable Shortcut CTAs**: Quick-apply actions (`Adjust tomorrow's workout`, `Plan breakfast`).
+  - **Micro-Interactions**: Feedback thumbs up/down and copy response utilities.
+- **Composer**: Docked input bar with attachment upload (`+`), voice transcription trigger (`mic`), and high-contrast send button.
+
+### 4.7 Profile & Account Hub
+- **Header**: Compact `Profile` headline (`28px`, Semibold) with gear settings shortcut.
+- **Identity Panel**: User avatar initials (`NA`), name (`Nguyễn Văn An`), email (`saman2552988@gmail.com`), and membership status badge (`Free plan · Member since 2026`).
+- **Telemetry Snapshot ("Your Progress")**: 3-column progress matrix displaying `Workouts (24)`, `Current streak (7d)` in emerald accent, and `Plan adherence (82%)`, with direct link to `View progress >`.
+- **Saman+ Tier Overview**: Understated emerald-accented benefit overview for adaptive plans, deeper analytics, and coaching access with clear feature bullets (`Advanced reports · Body trends · More Saman Coach`).
+- **Grouped Settings Collections**:
+  - *Health & Goals*: Body profile (`170 cm · 70 kg · BMI 24.2`), Primary goal (`Build muscle`), Activity level (`High`), Nutrition targets (`2,450 kcal · 160g protein`), Medical information (`Private lock`), Measurements & photos (`Track body progress`).
+  - *Preferences*: Language (`English`), Units (`Metric`), Appearance (`Dark Obsidian`), Notifications (`Active`), Connected apps (`Apple Health · Whoop`).
+  - *Account & Support*: Manage membership, Privacy & security, Export data log, Help & feedback, About Saman (`v3.8`), and centered red-accented `Log out` action.
+
+---
+
+## 5. Visual Design System: "Calm Athleticism"
+
+### 5.1 Color Architecture
+| Token Name | Hex Value | Semantic Usage |
+| :--- | :--- | :--- |
+| **Canvas Base** | `#0C0D0E` | Root canvas background, screen borders, modal backdrops |
+| **Surface Low** | `#121316` | Secondary containers, bottom navigation background |
+| **Surface Card** | `#16171B` | Primary interactive cards, panels, exercise rows |
+| **Surface High** | `#1E2026` / `#1F2126` | Active set containers, stepper inputs, pill badges |
+| **Hairline Border** | `#26282F` / `rgba(255,255,255,0.08)` | 1px structural dividing lines |
+| **Text Primary** | `#F9FAFB` | Headlines, primary CTA background, critical numbers |
+| **Text Slate** | `#CBD5E1` / `#9CA3AF` | Subtitles, duration badges, exercise counts |
+| **Text Muted** | `#6B7280` / `#86948A` | Column headers, micro caps, inactive navigation icons |
+| **Performance Green** | `#10B981` | Completed checks, active streaks, planned status, live tracking active |
+| **Fuel Amber** | `#F59E0B` | Moderate exertion cautions, form adjustment cues, paused tracking state |
+| **Metabolic Violet**| `#A855F7` | Recovery status, fat macronutrients |
+
+### 5.2 Typographic Hierarchy
+- **Headlines (`Space Grotesk`)**: Architectural precision without athletic cliché. Used for screen titles (28px), card headlines (18–22px), and section headers.
+- **Body & Interface (`Inter`)**: High-legibility workhorse (13–16px) for workout descriptions, list rows, form cues, and navigation labels.
+- **Telemetry & Micro-Caps (`JetBrains Mono`)**: Strict tabular numerals (`font-variant-numeric: tabular-nums`) for durations, weights, exercise counts, reps observed, dates, and uppercase micro section headers (`0.12em` letter spacing).
+
+### 5.3 Elevation & Contour Philosophy
+- **Zero Ambient Drop Shadows**: Depth is established exclusively through **Tonal Stratification** (layering darker and lighter obsidian surfaces) and **1px Hairline Borders**.
+- **Machined Radii**:
+  - Buttons, chips, and small controls: `4px` (`rounded-sm`).
+  - Cards, panels, and exercise rows: `12px–16px` (`rounded-xl` / `rounded-2xl`).
+
+---
+
+## 6. Non-Functional, Ergonomic & Usability Standards
+
+1. **Strict Viewport Anchoring & iOS Ergonomics**:
+   - The 5-tab bottom navigation remains permanently anchored during standard browsing.
+   - During Active Workout and Live Form Check, bottom tab navigation is replaced with dedicated in-session action docks (`Log Set` / `End form check` + secondary utilities).
+   - Dynamic content scrolls smoothly with a minimum clearance of `pb-28` to `pb-32` so active inputs or secondary links are never obscured.
+2. **Narrow Viewport Resilience (320px–430px)**:
+   - Text containers must never clip or truncate critical titles. Multi-line wrapping and concise plain-language descriptors are enforced down to 320px viewports.
+   - Active steppers, camera controls, and buttons enforce a minimum 44px–48px touch target for gym floor usability.
+3. **Data Integrity & Grounding**:
+   - Zero hallucinated or arbitrary counts (no unverified personal records, arbitrary calorie counts, or ungrounded counts like "300+ movements").
+   - Camera-based observed reps remain strictly observational until verified and manually accepted by the lifter.
+4. **Authentic Sports Documentary Imagery**:
+   - Authentic sports photography showing realistic anatomy, proper lifting form, and visible equipment. Zero cartoon avatars, hyper-muscular exaggerations, glowing sci-fi HUDs, or distracting graphics.
+
+---
+
+## 7. Engineering Milestone Roadmap
+
+| Milestone | Scope & Deliverables | Status |
+| :--- | :--- | :--- |
+| **Milestone 1** | Design system tokens ("Calm Athleticism"), Workout tab hub, Exercise Library, Exercise Detail, Saman Coach, and Profile baseline. | **Completed** |
+| **Milestone 2** | Active Workout Execution flow: real-time set/rep matrix, tabular weight and rep stepper input, contextual rest interval timer, and single-action commit logic. | **Completed** |
+| **Milestone 3** | Live Form Check (Optical CV): Edge-to-edge camera viewport, distance-readable rep observer, single-cue active correction, and non-destructive return flow. | **Completed** |
+| **Milestone 3.1** | Real-Time Form Feedback States: Form Correction (Amber), Positive Confirmation (Emerald), Reminder Between Reps (Neutral), and Tracking Interrupted (Placement Guidance). | **Completed** |
+| **Milestone 4** | Post-Workout Review & Save Summary: verified volume breakdown, duration tally, RPE logging, and session export to history. | **Next Up** |
+| **Milestone 5** | Full Periodization & Mesocycle architecture: multi-week schedules, progressive overload volume curves, and automated deload logic. | **Scheduled** |
+| **Milestone 6** | Biometric wearable synchronization (Apple Health, Whoop) and raw data export (CSV/JSON workout diary). | **Scheduled** |

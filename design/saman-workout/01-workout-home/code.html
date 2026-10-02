@@ -1,0 +1,245 @@
+<!DOCTYPE html><html class="dark" lang="en"><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" name="viewport">
+<meta content="mobile_tab" name="shell-type">
+<title>Saman - Workout Tab</title>
+<link href="https://fonts.googleapis.com" rel="preconnect">
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=JetBrains+Mono:wght@400;500;600&amp;family=Space+Grotesk:wght@500;600&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<style>
+    @layer base {
+      html, body {
+        width: 100vw;
+        margin: 0;
+        padding: 0;
+        background-color: #0C0D0E;
+        color: #F3F4F6;
+      }
+      body {
+        overscroll-behavior: none;
+        -webkit-tap-highlight-color: transparent;
+      }
+      .pb-safe {
+        padding-bottom: env(safe-area-inset-bottom, 0px);
+      }
+      .pt-safe {
+        padding-top: env(safe-area-inset-top, 0px);
+      }
+    }
+    ::-webkit-scrollbar {
+      display: none;
+    }
+    .tabular-nums {
+      font-variant-numeric: tabular-nums;
+    }
+  </style>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script>
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              bg: "#0C0D0E",
+              card: "#16171B",
+              cardHover: "#1F2126",
+              border: "#26282F",
+              iconBg: "#212328",
+              muted: "#94979E",
+              accent: "#10B981"
+            }
+          },
+          fontFamily: {
+            headline: ["Space Grotesk", "sans-serif"],
+            body: ["Inter", "sans-serif"],
+            mono: ["JetBrains Mono", "monospace"]
+          }
+        }
+      }
+    };
+  </script>
+</head>
+<body class="bg-[#0C0D0E] font-body text-sm text-[#F3F4F6] antialiased min-h-screen flex flex-col selection:bg-[#10B981]/30 selection:text-[#F3F4F6]">
+<!-- TOP STATUS BAR (Exact match to Profile / Approved System) -->
+<div class="w-full pt-safe bg-[#0C0D0E] z-40 sticky top-0">
+<div class="h-11 px-6 flex items-center justify-between text-xs text-[#F3F4F6] font-medium tracking-tight">
+<span class="font-mono text-[13px] font-semibold">9:41</span>
+<div class="flex items-center gap-2 text-[14px]">
+<span class="material-symbols-outlined text-[15px] leading-none">signal_cellular_alt</span>
+<span class="material-symbols-outlined text-[15px] leading-none">wifi</span>
+<span class="material-symbols-outlined text-[18px] leading-none">battery_full</span>
+</div>
+</div>
+</div>
+<!-- MAIN SCROLLABLE CONTENT -->
+<main class="flex-1 w-full max-w-md mx-auto px-4 pb-32 flex flex-col space-y-5"><!-- 1. HEADER -->
+<header class="flex items-center justify-between pt-1">
+<div>
+<h1 class="font-headline text-[28px] font-semibold leading-tight text-[#F3F4F6] tracking-tight">Workout</h1>
+<p class="text-xs text-[#94979E] mt-0.5">Train, log &amp; explore movements</p>
+</div>
+<!-- Discreet Entry to My Plans -->
+<a class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#16171B] border border-[#26282F] text-xs font-medium text-[#94979E] hover:text-[#F3F4F6] hover:border-[#383A42] transition-colors active:scale-95" href="#">
+<span class="material-symbols-outlined text-[16px] text-[#10B981]">bookmark</span>
+<span class="">My Plans</span>
+</a>
+</header>
+<!-- 2. TODAY'S WORKOUT HERO PHOTO CARD -->
+<section class="flex flex-col">
+<div class="flex items-center justify-between px-1 mb-2">
+<span class="font-mono text-[11px] font-semibold uppercase tracking-wider text-[#94979E]">Today’s Scheduled Session</span>
+<span class="font-mono text-[11px] text-[#10B981] bg-[#10B981]/10 px-2 py-0.5 rounded border border-[#10B981]/20 flex items-center gap-1">
+<span class="w-1.5 h-1.5 rounded-full bg-[#10B981]"></span>
+      Planned
+    </span>
+</div>
+<div class="relative rounded-2xl overflow-hidden border border-[#26282F] bg-[#16171B] shadow-sm flex flex-col justify-end min-h-[290px]">
+<!-- Background Photo with Overlay -->
+<div class="absolute inset-0 z-0"><img alt="Athletic training session - Incline dumbbell bench press" class="w-full h-full object-cover object-center" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBgWvtzvWGeJfEEROJJeouakHsiO-tUOGhvcow8DiMS33mS03q7PVqlt6q-foe7bz7-Rp2AybLJM2ODNEeAajirmXdGgREKng-sy-3XrS0N78Cjd9dGR9qTQ2zusfsBEFLHiZFL3r0aMxrwNtyLdxbTf1QXbc7j_l-d4wDbA_MJ7J1q72jnieVdQg-blP8l-w6kDsaTCqxGhKCkFnfyyD1TXKUcxg3gyCmM-nouFckNoo2jDR-KOW6H"><div class="absolute inset-0 bg-gradient-to-t from-[#0C0D0E] via-[#0C0D0E]/60 to-transparent"></div></div>
+<!-- Content Overlay -->
+<div class="relative z-10 p-5 flex flex-col">
+<div class="flex items-center gap-2 mb-1.5">
+<span class="font-mono text-[10px] uppercase tracking-wider text-[#10B981] font-semibold bg-[#10B981]/10 px-2 py-0.5 rounded border border-[#10B981]/20">Upper Body Protocol</span>
+</div>
+<h2 class="font-headline text-2xl font-bold text-[#F3F4F6] tracking-tight leading-tight mb-1.5">
+        Upper Body Strength
+      </h2>
+<div class="flex items-center gap-3 text-[13px] text-[#cbd5e1] font-mono mb-4"><span class="flex items-center gap-1.5 text-[#F3F4F6] font-medium"><span class="material-symbols-outlined text-[16px] text-[#cbd5e1]">timer</span>50 min</span><span class="">•</span><span class="flex items-center gap-1.5 text-[#F3F4F6] font-medium"><span class="material-symbols-outlined text-[16px] text-[#cbd5e1]">fitness_center</span>5 exercises</span></div>
+<!-- CTAs: Primary solid off-white button + Quiet View plan link -->
+<div class="flex items-center gap-3">
+<button class="flex-1 py-3 px-4 rounded-xl bg-[#F9FAFB] hover:bg-white text-[#0C0D0E] font-medium text-sm flex items-center justify-center gap-2 shadow-sm active:scale-[0.98] transition-all" type="button">
+<span class="material-symbols-outlined text-[18px]">play_arrow</span>
+<span class="">Start workout</span>
+</button>
+<button class="px-3.5 py-3 rounded-xl bg-[#212328]/80 hover:bg-[#212328] backdrop-blur-md border border-[#26282F] text-xs font-medium text-[#94979E] hover:text-[#F3F4F6] transition-colors flex items-center gap-1.5 active:scale-95" type="button">
+<span class="">View plan</span>
+<span class="material-symbols-outlined text-[14px]">arrow_forward</span>
+</button>
+</div>
+</div>
+</div>
+</section>
+<!-- 3. QUICK ACTION ROW -->
+<section class="grid grid-cols-2 gap-2.5">
+<!-- Quick Start -->
+<div class="bg-[#16171B] border border-[#26282F] rounded-2xl p-3.5 flex flex-col justify-between hover:border-[#383A42] transition-colors group cursor-pointer">
+<div class="flex items-center justify-between mb-2">
+<div class="w-8 h-8 rounded-xl bg-[#212328] border border-[#26282F] flex items-center justify-center text-[#F3F4F6]">
+<span class="material-symbols-outlined text-[18px]">bolt</span>
+</div>
+<span class="material-symbols-outlined text-[16px] text-[#94979E] group-hover:text-[#F3F4F6] transition-colors">arrow_forward</span>
+</div>
+<div>
+<h3 class="font-medium text-sm text-[#F3F4F6]">Quick start</h3>
+<p class="text-[13px] text-[#cbd5e1] mt-0.5">Train without a plan</p>
+</div>
+</div>
+<!-- Browse Exercises -->
+<div class="bg-[#16171B] border border-[#26282F] rounded-2xl p-3.5 flex flex-col justify-between hover:border-[#383A42] transition-colors group cursor-pointer">
+<div class="flex items-center justify-between mb-2">
+<div class="w-8 h-8 rounded-xl bg-[#212328] border border-[#26282F] flex items-center justify-center text-[#F3F4F6]">
+<span class="material-symbols-outlined text-[18px]">search</span>
+</div>
+<span class="material-symbols-outlined text-[16px] text-[#94979E] group-hover:text-[#F3F4F6] transition-colors">arrow_forward</span>
+</div>
+<div>
+<h3 class="font-medium text-sm text-[#F3F4F6]">Browse library</h3>
+<p class="text-[13px] text-[#cbd5e1] mt-0.5">Explore exercises</p>
+</div>
+</div>
+</section>
+<!-- 4. TRAIN BY FOCUS (Photo-led category cards) -->
+<section class="flex flex-col space-y-2.5">
+<div class="flex items-center justify-between px-1">
+<h2 class="text-xs font-semibold tracking-wider text-[#94979E] uppercase">Train by Focus</h2>
+<a class="font-mono text-[11px] text-[#10B981] hover:underline flex items-center gap-0.5 transition-colors" href="#">
+<span class="">All categories</span>
+<span class="material-symbols-outlined text-[14px]">arrow_forward</span>
+</a>
+</div>
+<div class="grid grid-cols-2 gap-2.5">
+<!-- Upper Body Card -->
+<a class="relative rounded-2xl border border-[#26282F] hover:border-[#383A42] transition-all group h-40 flex flex-col justify-end p-3.5 overflow-hidden" href="#"><div class="absolute inset-0 z-0"><img alt="Upper Body Pull-up movement" class="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-300" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCcanzIWbwr1wbgiYXZhgMavpn31gfEXKJTTVhG3mquc-uBH5EnvXNlZEn2tvJa2509Y8AAV8q2yKYpkns0qwUEZVDus2qc9VFylQ516_Hq1Mjl3KEiDeoevmknk51V83Mnpg6vtV74d533hkcOjlve55QtOPZXnvoFLwuQHbrJ-ZrJ1yV7bhiMrP4NA4ZRiUfuZaL7PA4zC5YPbomD8A-Ex10M9ou1Vzeei3-VoXwV4ZfCgbyY7Cd1"><div class="absolute inset-0 bg-gradient-to-t from-[#0C0D0E] via-[#0C0D0E]/50 to-transparent"></div></div><div class="relative z-10 flex flex-col"><div class="flex items-center justify-between"><span class="font-headline font-semibold text-sm text-[#F3F4F6]">Upper Body</span><span class="material-symbols-outlined text-[16px] text-[#cbd5e1] group-hover:text-[#F3F4F6] group-hover:translate-x-0.5 transition-all">chevron_right</span></div><span class="font-mono text-[11px] text-[#cbd5e1] mt-0.5 font-medium truncate">Chest, Back, Arms</span></div></a>
+<!-- Lower Body Card -->
+<a class="relative rounded-2xl border border-[#26282F] hover:border-[#383A42] transition-all group h-40 flex flex-col justify-end p-3.5 overflow-hidden" href="#"><div class="absolute inset-0 z-0"><img alt="Lower Body Squat movement" class="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-300" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDrTlcWy4Im6QZihMwXHDm8qtDNHF9aIfXlkMfDMPbeSt3SEKpZcylKb8fHhO-FC5-uhmsT1lkJ5MspMUMssZKfj30ijhcVK7-Hg442bihGVzYUXiUotr-0XXGOUVx8VgQwldxSdTC3AminLzNQoU7ADaat_E3-9J15gY6qjXK6Pdui0DpighlW3JIihc7bFOOPWbs4T_LencKQ4KVQ_EBli7Xb9AEe0uh-ps9srVpebEFbeu-xJUFB"><div class="absolute inset-0 bg-gradient-to-t from-[#0C0D0E] via-[#0C0D0E]/50 to-transparent"></div></div><div class="relative z-10 flex flex-col"><div class="flex items-center justify-between"><span class="font-headline font-semibold text-sm text-[#F3F4F6]">Lower Body</span><span class="material-symbols-outlined text-[16px] text-[#cbd5e1] group-hover:text-[#F3F4F6] group-hover:translate-x-0.5 transition-all">chevron_right</span></div><span class="font-mono text-[11px] text-[#cbd5e1] mt-0.5 font-medium truncate">Quads, Glutes, Legs</span></div></a>
+</div>
+</section>
+<!-- 5. YOUR PLAN (2 Upcoming Sessions) -->
+<section class="flex flex-col space-y-2.5">
+<div class="flex items-center justify-between px-1">
+<h2 class="text-xs font-semibold tracking-wider text-[#94979E] uppercase">Your Plan</h2>
+<a class="font-mono text-[11px] text-[#94979E] hover:text-[#F3F4F6] flex items-center gap-0.5 transition-colors" href="#">
+<span class="">View full plan</span>
+<span class="material-symbols-outlined text-[14px]">chevron_right</span>
+</a>
+</div>
+<div class="bg-[#16171B] border border-[#26282F] rounded-2xl divide-y divide-[#26282F] overflow-hidden">
+<!-- Tomorrow: Lower Body -->
+<div class="p-3.5 flex items-center justify-between hover:bg-[#212328]/40 transition-colors cursor-pointer"><div class="flex items-center gap-3 min-w-0 flex-1"><div class="flex flex-col items-center justify-center w-10 h-10 rounded-xl bg-[#212328] border border-[#26282F] shrink-0"><span class="font-mono text-[10px] text-[#cbd5e1] uppercase leading-none">Wed</span><span class="font-mono text-sm font-semibold text-[#F3F4F6] leading-none mt-0.5">25</span></div><div class="flex flex-col min-w-0 flex-1"><div class="flex items-center gap-2"><span class="font-medium text-sm text-[#F3F4F6] truncate">Lower Body Strength</span><span class="font-mono text-[9px] uppercase tracking-wider text-[#10B981] bg-[#10B981]/10 px-1.5 py-0.5 rounded border border-[#10B981]/20 shrink-0">Planned</span></div><span class="font-mono text-[13px] text-[#cbd5e1] mt-0.5">45 min · 5 exercises</span></div></div><span class="material-symbols-outlined text-[#94979E] text-[18px] shrink-0 ml-2">chevron_right</span></div>
+<!-- Next Day: Active Recovery -->
+<div class="p-3.5 flex items-center justify-between hover:bg-[#212328]/40 transition-colors cursor-pointer"><div class="flex items-center gap-3 min-w-0 flex-1"><div class="flex flex-col items-center justify-center w-10 h-10 rounded-xl bg-[#212328] border border-[#26282F] shrink-0"><span class="font-mono text-[10px] text-[#cbd5e1] uppercase leading-none">Thu</span><span class="font-mono text-sm font-semibold text-[#F3F4F6] leading-none mt-0.5">26</span></div><div class="flex flex-col min-w-0 flex-1"><div class="flex items-center gap-2"><span class="font-medium text-sm text-[#F3F4F6] truncate">Active Recovery</span><span class="font-mono text-[9px] uppercase tracking-wider text-[#cbd5e1] bg-[#212328] px-1.5 py-0.5 rounded border border-[#26282F] shrink-0">Rest &amp; Flow</span></div><span class="font-mono text-[13px] text-[#cbd5e1] mt-0.5">25 min flow · Mobility</span></div></div><span class="material-symbols-outlined text-[#94979E] text-[18px] shrink-0 ml-2">chevron_right</span></div>
+</div>
+</section>
+<!-- 6. LAST WORKOUT (Readable concise saved session) -->
+<section class="flex flex-col space-y-2.5">
+<div class="flex items-center justify-between px-1">
+<h2 class="text-xs font-semibold tracking-wider text-[#94979E] uppercase">Last Workout</h2>
+<a class="font-mono text-[11px] text-[#94979E] hover:text-[#F3F4F6] flex items-center gap-0.5 transition-colors" href="#">
+<span class="">View history</span>
+<span class="material-symbols-outlined text-[14px]">chevron_right</span>
+</a>
+</div>
+<div class="bg-[#16171B] border border-[#26282F] rounded-2xl p-4 flex items-center justify-between hover:border-[#383A42] transition-colors cursor-pointer">
+<div class="flex items-center gap-3 min-w-0">
+<div class="w-10 h-10 rounded-xl bg-[#212328] border border-[#26282F] flex items-center justify-center text-[#10B981] shrink-0">
+<span class="material-symbols-outlined text-[20px]">check_circle</span>
+</div>
+<div class="flex flex-col min-w-0">
+<div class="flex items-center gap-2">
+<h3 class="font-headline text-sm font-semibold text-[#F3F4F6] truncate">Leg Day &amp; Posterior Chain</h3>
+</div>
+<div class="flex items-center gap-2 mt-0.5 text-[13px] text-[#cbd5e1] font-mono"><span class="">Yesterday</span><span class="">•</span><span class="">48 min</span><span class="">•</span><span class="">5 exercises</span></div>
+</div>
+</div>
+<a class="w-8 h-8 rounded-lg bg-[#212328] border border-[#26282F] flex items-center justify-center text-[#94979E] hover:text-[#F3F4F6] transition-colors shrink-0 ml-2" href="#">
+<span class="material-symbols-outlined text-[16px]">arrow_forward</span>
+</a>
+</div>
+</section></main>
+<!-- BOTTOM NAVIGATION BAR (Exact match to approved Home and Profile screens, with Workout active) -->
+<nav class="fixed bottom-0 w-full z-50 pb-safe bg-[#0C0D0E]/95 backdrop-blur-xl border-t border-[#26282F] left-0 right-0">
+<div class="h-16 max-w-md mx-auto px-2 flex items-center justify-around">
+<!-- 1. Home -->
+<a class="flex flex-col items-center justify-center min-w-[56px] min-h-[44px] text-[#94979E] hover:text-[#F3F4F6] transition-colors gap-1" href="#">
+<span class="material-symbols-outlined text-[20px]">home</span>
+<span class="font-mono text-[9px] uppercase tracking-wider">Home</span>
+</a>
+<!-- 2. Workout (Active tab) -->
+<a aria-current="page" class="flex flex-col items-center justify-center min-w-[56px] min-h-[44px] text-[#F3F4F6] transition-colors gap-1 relative" href="#">
+<span class="material-symbols-outlined text-[20px] text-[#F3F4F6]">fitness_center</span>
+<span class="font-mono text-[9px] uppercase tracking-wider font-semibold text-[#F3F4F6]">Workout</span>
+<span class="w-1 h-1 rounded-full bg-[#F3F4F6] mt-0.5"></span>
+</a>
+<!-- 3. Saman (Monogram without filled square, consistent with Home & Profile) -->
+<a class="flex flex-col items-center justify-center min-w-[56px] min-h-[44px] text-[#94979E] hover:text-[#F3F4F6] transition-colors" href="#">
+<span class="font-headline font-bold text-lg leading-none text-[#94979E]">S</span>
+</a>
+<!-- 4. Nutrition -->
+<a class="flex flex-col items-center justify-center min-w-[56px] min-h-[44px] text-[#94979E] hover:text-[#F3F4F6] transition-colors gap-1" href="#">
+<span class="material-symbols-outlined text-[20px]">restaurant</span>
+<span class="font-mono text-[9px] uppercase tracking-wider">Nutrition</span>
+</a>
+<!-- 5. Profile -->
+<a class="flex flex-col items-center justify-center min-w-[56px] min-h-[44px] text-[#94979E] hover:text-[#F3F4F6] transition-colors gap-1" href="#">
+<span class="material-symbols-outlined text-[20px]">person</span>
+<span class="font-mono text-[9px] uppercase tracking-wider">Profile</span>
+</a>
+</div>
+</nav>
+
+
+
+
+</body></html>

@@ -4,15 +4,15 @@ Status: reviewed Stitch visual direction for the Workout redesign, captured on 2
 
 ## Reference screens and visual rules
 
-| Screen | Latest reviewed Stitch screenshot | Role |
-| --- | --- | --- |
-| Workout main | `Screenshot 2026-10-01 at 3.46.09 PM.png` | Workout tab entry |
-| Exercise Library | `Screenshot 2026-10-01 at 3.55.25 PM.png` | Exercise discovery |
-| Exercise Detail | `Screenshot 2026-10-01 at 4.05.13 PM.png` | Dumbbell Bench Press guidance |
-| Active Workout | `Screenshot 2026-10-01 at 4.19.35 PM.png` | In-session logging |
-| Live Form Check | `Screenshot 2026-10-01 at 4.30.24 PM.png` | Future CV flow for Wide Grip Pull-up |
+| Screen | Latest reviewed Stitch screenshot | Packaged Design Folder | Role |
+| --- | --- | --- | --- |
+| Workout main | `Screenshot 2026-10-01 at 3.46.09 PM.png` | [01-workout-home](01-workout-home/) | Workout tab entry |
+| Exercise Library | `Screenshot 2026-10-01 at 3.55.25 PM.png` | [02-exercise-library](02-exercise-library/) | Exercise discovery |
+| Exercise Detail | `Screenshot 2026-10-01 at 4.05.13 PM.png` | [03-exercise-detail](03-exercise-detail/) | Dumbbell Bench Press guidance |
+| Active Workout | `Screenshot 2026-10-01 at 4.19.35 PM.png` | [04-active-workout](04-active-workout/) *(Assets missing from local downloads — BLOCKED)* | In-session logging |
+| Live Form Check | `Screenshot 2026-10-01 at 4.30.24 PM.png` | [05-live-form-check](05-live-form-check/) | Future CV flow for Wide Grip Pull-up |
 
-These screenshot names identify the user-reviewed images in the design conversation; the image assets and Stitch exports are **not yet packaged in this branch**. Obtain and version the actual exports before treating a screenshot as an implementation-ready visual source. The approved Home, Chat AI, and Profile design sources remain the broader Saman style references; this note does not supersede their latest approved files.
+These screenshot names identify the user-reviewed images in the design conversation; the image assets and Stitch exports are **not yet packaged in this branch** (see imported folders above for packaged Stitch exports and [MANIFEST.md](MANIFEST.md) for handoff inventory). Obtain and version the actual exports before treating a screenshot as an implementation-ready visual source. The approved Home, Chat AI, and Profile design sources remain the broader Saman style references; this note does not supersede their latest approved files.
 
 Use the dark **Calm Athleticism** direction: near-black/charcoal surfaces, warm off-white primary actions, restrained emerald for states and completion, Space Grotesk headlines, Inter body text, and limited JetBrains Mono for aligned numeric information. Prefer clear hierarchy, readable touch targets, generous spacing, and authentic sports documentary imagery featuring male athletes in these examples. Exercise access and plans must remain open to all users regardless of gender. The light theme is a later design pass.
 
@@ -66,6 +66,8 @@ The intended product flow is **train → confirm logged sets → review and save
 1. Design **Workout Review & Save** and **Workout History** before describing the end-to-end journey as complete.
 2. Resolve the exact behavior of Start exercise, session minimize/pause/resume/discard, set correction, and whether observed CV reps can prefill a set after explicit confirmation.
 3. Confirm real exercise video assets and the supported CV exercise list; decide whether spoken feedback and Library bookmarks are in scope.
-4. Package the approved Stitch images/exports and latest design-system documents with provenance. This note records reviewed screen states but does not itself bundle the assets.
+4. ~~Package the approved Stitch images/exports and latest design-system documents with provenance.~~ **Done (2026-10-02)**: Screens 01–03 and 05 packaged in `design/saman-workout/`. Screen 04 (Active Workout) still missing from local downloads — blocked. Four real-time feedback state variants (States A–D) packaged under [`05-live-form-check/future-feedback-states/`](05-live-form-check/future-feedback-states/) — deferred, not yet an implementation requirement. See [MANIFEST.md](MANIFEST.md) for full inventory.
+5. Confirm audio/spoken feedback scope. The speaker icon visible in the base Live Form Check mockup and the feedback state variants is a design element only; it must not be implemented unless spoken feedback is formally approved.
 
 No Flutter, backend, data model, or live service change is part of this design-document update.
+
