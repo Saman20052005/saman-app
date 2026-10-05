@@ -186,12 +186,14 @@ class _ExerciseLibraryScreenState extends ConsumerState<ExerciseLibraryScreen> {
             padding: const EdgeInsets.only(right: SamanWorkoutTokens.spacingLg),
             child: Center(
               child: InkWell(
+                key: const ValueKey('exercise_library_bookmark_button'),
                 borderRadius: BorderRadius.circular(10),
                 onTap: () {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
-                      content:
-                          Text('Bookmarks are saved locally in your library.'),
+                      content: Text(
+                        'Bookmark feature is in development (no exercises are bookmarked yet).',
+                      ),
                       duration: Duration(seconds: 2),
                     ),
                   );
@@ -553,6 +555,7 @@ class _ExerciseLibraryScreenState extends ConsumerState<ExerciseLibraryScreen> {
                   itemBuilder: (context, index) {
                     final exercise = filtered[index];
                     return _ExerciseMovementRow(
+                      key: ValueKey('exercise_row_${exercise.id}'),
                       exercise: exercise,
                       onTap: () {
                         Navigator.push(
@@ -632,6 +635,7 @@ class _ExerciseMovementRow extends StatelessWidget {
   final VoidCallback onTap;
 
   const _ExerciseMovementRow({
+    super.key,
     required this.exercise,
     required this.onTap,
   });

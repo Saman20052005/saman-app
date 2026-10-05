@@ -56,6 +56,15 @@ class ExerciseDetailScreen extends ConsumerWidget {
               ],
             ),
             const SizedBox(height: 14),
+            const Text(
+              'Workout tracking is coming soon.',
+              style: TextStyle(
+                color: SamanWorkoutTokens.textSecondary,
+                fontSize: 13,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+            const SizedBox(height: 6),
             Text(
               'Starting "${exercise.name}": Awaiting product contract decision on whether this initializes a new session or appends to current active workout routine.',
               style: const TextStyle(
@@ -69,6 +78,7 @@ class ExerciseDetailScreen extends ConsumerWidget {
               width: double.infinity,
               height: 44,
               child: ElevatedButton(
+                key: const ValueKey('start_exercise_dialog_understood_button'),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: SamanWorkoutTokens.buttonPrimary,
                   shape: RoundedRectangleBorder(
@@ -112,6 +122,7 @@ class ExerciseDetailScreen extends ConsumerWidget {
         : 'Bodyweight';
 
     return Scaffold(
+      key: ValueKey('exercise_detail_${exercise.id}'),
       backgroundColor: SamanWorkoutTokens.canvas,
       body: SafeArea(
         child: Column(
@@ -126,6 +137,7 @@ class ExerciseDetailScreen extends ConsumerWidget {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   InkWell(
+                    key: const ValueKey('exercise_detail_back_button'),
                     borderRadius: BorderRadius.circular(999),
                     onTap: () => Navigator.pop(context),
                     child: Container(
@@ -249,6 +261,7 @@ class ExerciseDetailScreen extends ConsumerWidget {
           width: double.infinity,
           height: 48,
           child: ElevatedButton(
+            key: const ValueKey('exercise_detail_start_button'),
             onPressed: () => _handleStartExercise(context),
             style: ElevatedButton.styleFrom(
               backgroundColor: SamanWorkoutTokens.buttonPrimary,
@@ -280,8 +293,9 @@ class ExerciseDetailScreen extends ConsumerWidget {
   }
 
   Widget _buildVideoPreview(BuildContext context) {
+    final Widget previewContent;
     if (exercise.thumbnailUrl.isEmpty) {
-      return Container(
+      previewContent = Container(
         width: double.infinity,
         height: 180,
         decoration: BoxDecoration(
@@ -310,50 +324,66 @@ class ExerciseDetailScreen extends ConsumerWidget {
           ),
         ),
       );
-    }
-
-    return Container(
-      width: double.infinity,
-      height: 200,
-      decoration: BoxDecoration(
-        color: SamanWorkoutTokens.cardSurface,
-        borderRadius: BorderRadius.circular(SamanWorkoutTokens.radiusLg),
-        border: Border.all(color: SamanWorkoutTokens.border),
-      ),
-      clipBehavior: Clip.antiAlias,
-      child: Stack(
-        fit: StackFit.expand,
-        children: [
-          // Photo Poster
-          CachedNetworkImage(
-            imageUrl: exercise.thumbnailUrl,
-            fit: BoxFit.cover,
-            placeholder: (_, __) =>
-                Container(color: SamanWorkoutTokens.surfaceElevated),
-            errorWidget: (_, __, ___) => Container(
-              color: SamanWorkoutTokens.surfaceElevated,
-              child: const Icon(Icons.fitness_center_outlined,
-                  color: SamanWorkoutTokens.textMuted, size: 48),
-            ),
-          ),
-
-          // Gradient overlay
-          Container(
-            decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.bottomCenter,
-                end: Alignment.topCenter,
-                colors: [
-                  Color(0xB30C0D0E),
-                  Colors.transparent,
-                  Color(0x4D0C0D0E),
-                ],
-                stops: [0.0, 0.5, 1.0],
+    } else {
+      previewContent = Container(
+        width: double.infinity,
+        height: 200,
+        decoration: BoxDecoration(
+          color: SamanWorkoutTokens.cardSurface,
+          borderRadius: BorderRadius.circular(SamanWorkoutTokens.radiusLg),
+          border: Border.all(color: SamanWorkoutTokens.border),
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            // Photo Poster
+            CachedNetworkImage(
+              imageUrl: exercise.thumbnailUrl,
+              fit: BoxFit.cover,
+              placeholder: (_, __) =>
+                  Container(color: SamanWorkoutTokens.surfaceElevated),
+              errorWidget: (_, __, ___) => Container(
+                color: SamanWorkoutTokens.surfaceElevated,
+                child: const Icon(Icons.fitness_center_outlined,
+                    color: SamanWorkoutTokens.textMuted, size: 48),
               ),
             ),
+
+            // Gradient overlay
+            Container(
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.bottomCenter,
+                  end: Alignment.topCenter,
+                  colors: [
+                    Color(0xB30C0D0E),
+                    Colors.transparent,
+                    Color(0x4D0C0D0E),
+                  ],
+                  stops: [0.0, 0.5, 1.0],
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return InkWell(
+      key: const ValueKey('exercise_detail_video_preview'),
+      borderRadius: BorderRadius.circular(SamanWorkoutTokens.radiusLg),
+      onTap: () {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Video guide for "${exercise.name}" is currently in production and not yet available.',
+            ),
+            duration: const Duration(seconds: 2),
           ),
-        ],
-      ),
+        );
+      },
+      child: previewContent,
     );
   }
 

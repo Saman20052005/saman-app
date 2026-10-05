@@ -1,0 +1,407 @@
+<!DOCTYPE html><html class="dark" lang="en" style=""><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" name="viewport">
+<meta content="mobile_tab" name="shell-type">
+<link href="https://fonts.googleapis.com" rel="preconnect">
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=JetBrains+Mono:wght@400;500;600&amp;family=Space+Grotesk:wght@500;600&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<style>
+    @layer base {
+      html, body {
+        width: 100vw;
+        margin: 0;
+        padding: 0;
+        background-color: #0C0D0E;
+        color: #F3F4F6;
+      }
+      body {
+        overscroll-behavior: none;
+      }
+      .pb-safe {
+        padding-bottom: env(safe-area-inset-bottom, 0px);
+      }
+      .pt-safe {
+        padding-top: env(safe-area-inset-top, 0px);
+      }
+    }
+    ::-webkit-scrollbar {
+      display: none;
+    }
+  </style>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script>
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              bg: "#0C0D0E",
+              card: "#16171B",
+              border: "#26282F",
+              iconBg: "#212328",
+              muted: "#94979E",
+              accent: "#10B981"
+            }
+          },
+          fontFamily: {
+            headline: ["Space Grotesk", "sans-serif"],
+            body: ["Inter", "sans-serif"],
+            mono: ["JetBrains Mono", "monospace"]
+          }
+        }
+      }
+    };
+  </script>
+</head>
+<body class="bg-[#0C0D0E] font-body text-sm text-[#F3F4F6] antialiased min-h-screen flex flex-col">
+<!-- TOP STATUS BAR -->
+<div class="w-full pt-safe bg-[#0C0D0E] z-40">
+<div class="h-11 px-6 flex items-center justify-between text-xs text-[#F3F4F6] font-medium tracking-tight">
+<span class="font-mono text-[13px] font-semibold">9:41</span>
+<div class="flex items-center gap-2 text-[14px]">
+<span class="material-symbols-outlined text-[15px] leading-none">signal_cellular_alt</span>
+<span class="material-symbols-outlined text-[15px] leading-none">wifi</span>
+<span class="material-symbols-outlined text-[18px] leading-none">battery_full</span>
+</div>
+</div>
+</div>
+<!-- MAIN SCROLLABLE CONTENT -->
+<main class="flex-1 w-full max-w-md mx-auto px-4 pb-32 flex flex-col space-y-6">
+<!-- PROFILE HEADER -->
+<header class="flex items-start justify-between pt-1">
+<div>
+<h1 class="font-headline text-[28px] font-semibold leading-tight text-[#F3F4F6] tracking-tight">Profile</h1>
+<p class="text-sm text-[#94979E] mt-0.5">Your health, progress &amp; account</p>
+</div>
+<button aria-label="Settings" class="w-10 h-10 rounded-xl bg-[#16171B] border border-[#26282F] flex items-center justify-center text-[#94979E] hover:text-[#F3F4F6] transition-colors active:scale-95" type="button">
+<span class="material-symbols-outlined text-[20px]">settings</span>
+</button>
+</header>
+<!-- IDENTITY CARD -->
+<section class="bg-[#16171B] border border-[#26282F] rounded-2xl p-4 flex items-center justify-between">
+<div class="flex items-center gap-3.5 min-w-0">
+<!-- 54px Avatar -->
+<div class="w-[52px] h-[52px] rounded-full bg-[#212328] border border-[#26282F] flex items-center justify-center text-[#F3F4F6] font-headline text-lg font-semibold flex-shrink-0">
+<span class="">NA</span>
+</div>
+<div class="flex flex-col min-w-0">
+<span class="font-headline text-base font-semibold text-[#F3F4F6] truncate">Nguyễn Văn An</span>
+<span class="font-mono text-xs text-[#94979E] truncate mt-0.5">saman2552988@gmail.com</span>
+<div class="flex items-center gap-2 mt-1.5 flex-wrap">
+<span class="font-mono text-[10px] uppercase tracking-wider bg-[#212328] border border-[#26282F] text-[#94979E] px-2 py-0.5 rounded-full font-medium">Free plan</span>
+<span class="text-xs text-[#94979E]">· Member since 2026</span>
+</div>
+</div>
+</div>
+<button aria-label="Edit profile" class="w-9 h-9 rounded-xl bg-[#212328] border border-[#26282F] flex items-center justify-center text-[#94979E] hover:text-[#F3F4F6] transition-colors flex-shrink-0 ml-3 active:scale-95" type="button">
+<span class="material-symbols-outlined text-[17px]">edit</span>
+</button>
+</section>
+<!-- YOUR PROGRESS -->
+<section class="flex flex-col">
+<h2 class="text-xs font-semibold tracking-wider text-[#94979E] uppercase px-1 mb-2">Your Progress</h2>
+<div class="bg-[#16171B] border border-[#26282F] rounded-2xl p-4 flex flex-col">
+<div class="grid grid-cols-3 divide-x divide-[#26282F] text-center py-1">
+<!-- Metric 1 -->
+<div class="flex flex-col items-center justify-center px-1">
+<span class="font-mono text-2xl font-semibold text-[#F3F4F6] tracking-tight">24</span>
+<span class="text-xs text-[#94979E] mt-1">Workouts</span>
+</div>
+<!-- Metric 2 -->
+<div class="flex flex-col items-center justify-center px-1">
+<span class="font-mono text-2xl font-semibold text-[#10B981] tracking-tight">7d</span>
+<span class="text-xs text-[#94979E] mt-1">Current streak</span>
+</div>
+<!-- Metric 3 -->
+<div class="flex flex-col items-center justify-center px-1">
+<span class="font-mono text-2xl font-semibold text-[#F3F4F6] tracking-tight">82%</span>
+<span class="text-xs text-[#94979E] mt-1">Plan adherence</span>
+</div>
+</div>
+<div class="h-px bg-[#26282F] my-3.5 w-full"></div>
+<a class="flex items-center justify-between text-sm font-medium text-[#94979E] hover:text-[#F3F4F6] transition-colors" href="#">
+<span class="">View progress</span>
+<span class="material-symbols-outlined text-[18px]">arrow_forward</span>
+</a>
+</div>
+</section>
+<!-- SAMAN+ CARD -->
+<section class="bg-[#16171B] border border-[#26282F] rounded-2xl p-4 flex flex-col">
+<div class="flex items-center gap-1.5">
+<span class="w-1.5 h-1.5 rounded-full bg-[#10B981]"></span>
+<span class="font-mono text-[11px] font-semibold uppercase tracking-wider text-[#10B981]">SAMAN+</span>
+</div>
+<h3 class="font-headline text-base font-semibold text-[#F3F4F6] mt-2">Unlock more with Saman+</h3>
+<p class="text-sm text-[#94979E] mt-1 leading-snug">Adaptive plans, deeper insights and more personalized coaching.</p>
+<div class="flex items-center gap-2 mt-2.5 text-xs text-[#94979E]">
+<span class="">Advanced reports</span>
+<span class="">·</span>
+<span class="">Body trends</span>
+<span class="">·</span>
+<span class="">More Saman Coach</span>
+</div>
+<a class="text-sm font-medium text-[#10B981] mt-3.5 inline-flex items-center gap-1 hover:underline" href="#">
+        Explore Saman+
+        <span class="material-symbols-outlined text-[16px]">arrow_forward</span>
+</a>
+</section>
+<!-- HEALTH & GOALS -->
+<section class="flex flex-col">
+<h2 class="text-xs font-semibold tracking-wider text-[#94979E] uppercase px-1 mb-2">Health &amp; Goals</h2>
+<div class="bg-[#16171B] border border-[#26282F] rounded-2xl flex flex-col overflow-hidden divide-y divide-[#26282F]">
+<!-- Row 1: Body profile -->
+<a class="flex items-center justify-between min-h-[56px] py-3 px-4 hover:bg-[#212328]/60 transition-colors" href="#">
+<div class="flex items-center gap-3 flex-1 min-w-0 pr-3">
+<div class="w-8 h-8 rounded-lg bg-[#212328] flex items-center justify-center text-[#94979E] flex-shrink-0">
+<span class="material-symbols-outlined text-[18px]">straighten</span>
+</div>
+<div class="flex flex-col min-w-0">
+<span class="font-medium text-sm text-[#F3F4F6] truncate">Body profile</span>
+<span class="font-mono text-xs text-[#94979E] mt-0.5 truncate">170 cm · 70 kg · BMI 24.2</span>
+</div>
+</div>
+<span class="material-symbols-outlined text-[#94979E] text-[18px] flex-shrink-0">chevron_right</span>
+</a>
+<!-- Row 2: Primary goal -->
+<a class="flex items-center justify-between min-h-[50px] py-3.5 px-4 hover:bg-[#212328]/60 transition-colors" href="#">
+<div class="flex items-center gap-3 flex-1 min-w-0">
+<div class="w-8 h-8 rounded-lg bg-[#212328] flex items-center justify-center text-[#94979E] flex-shrink-0">
+<span class="material-symbols-outlined text-[18px]">flag</span>
+</div>
+<span class="font-medium text-sm text-[#F3F4F6] truncate">Primary goal</span>
+</div>
+<div class="flex items-center gap-1.5 flex-shrink-0 ml-2">
+<span class="text-sm text-[#94979E]">Build muscle</span>
+<span class="material-symbols-outlined text-[#94979E] text-[18px]">chevron_right</span>
+</div>
+</a>
+<!-- Row 3: Activity level -->
+<a class="flex items-center justify-between min-h-[50px] py-3.5 px-4 hover:bg-[#212328]/60 transition-colors" href="#">
+<div class="flex items-center gap-3 flex-1 min-w-0">
+<div class="w-8 h-8 rounded-lg bg-[#212328] flex items-center justify-center text-[#94979E] flex-shrink-0">
+<span class="material-symbols-outlined text-[18px]">bolt</span>
+</div>
+<span class="font-medium text-sm text-[#F3F4F6] truncate">Activity level</span>
+</div>
+<div class="flex items-center gap-1.5 flex-shrink-0 ml-2">
+<span class="text-sm text-[#94979E]">High</span>
+<span class="material-symbols-outlined text-[#94979E] text-[18px]">chevron_right</span>
+</div>
+</a>
+<!-- Row 4: Nutrition targets -->
+<a class="flex items-center justify-between min-h-[56px] py-3 px-4 hover:bg-[#212328]/60 transition-colors" href="#">
+<div class="flex items-center gap-3 flex-1 min-w-0 pr-3">
+<div class="w-8 h-8 rounded-lg bg-[#212328] flex items-center justify-center text-[#94979E] flex-shrink-0">
+<span class="material-symbols-outlined text-[18px]">restaurant</span>
+</div>
+<div class="flex flex-col min-w-0">
+<span class="font-medium text-sm text-[#F3F4F6] truncate">Nutrition targets</span>
+<span class="font-mono text-xs text-[#94979E] mt-0.5 truncate">2,450 kcal · 160g protein</span>
+</div>
+</div>
+<span class="material-symbols-outlined text-[#94979E] text-[18px] flex-shrink-0">chevron_right</span>
+</a>
+<!-- Row 5: Medical information -->
+<a class="flex items-center justify-between min-h-[50px] py-3.5 px-4 hover:bg-[#212328]/60 transition-colors" href="#">
+<div class="flex items-center gap-3 flex-1 min-w-0">
+<div class="w-8 h-8 rounded-lg bg-[#212328] flex items-center justify-center text-[#94979E] flex-shrink-0">
+<span class="material-symbols-outlined text-[18px]">health_and_safety</span>
+</div>
+<span class="font-medium text-sm text-[#F3F4F6] truncate">Medical information</span>
+</div>
+<div class="flex items-center gap-1.5 flex-shrink-0 ml-2">
+<span class="text-sm text-[#94979E] flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">lock</span>
+              Private
+            </span>
+<span class="material-symbols-outlined text-[#94979E] text-[18px]">chevron_right</span>
+</div>
+</a>
+<!-- Row 6: Measurements & photos -->
+<a class="flex items-center justify-between min-h-[56px] py-3 px-4 hover:bg-[#212328]/60 transition-colors" href="#">
+<div class="flex items-center gap-3 flex-1 min-w-0 pr-3">
+<div class="w-8 h-8 rounded-lg bg-[#212328] flex items-center justify-center text-[#94979E] flex-shrink-0">
+<span class="material-symbols-outlined text-[18px]">photo_camera</span>
+</div>
+<div class="flex flex-col min-w-0">
+<span class="font-medium text-sm text-[#F3F4F6] truncate">Measurements &amp; photos</span>
+<span class="text-xs text-[#94979E] mt-0.5 truncate">Track body progress</span>
+</div>
+</div>
+<span class="material-symbols-outlined text-[#94979E] text-[18px] flex-shrink-0">chevron_right</span>
+</a>
+</div>
+</section>
+<!-- PREFERENCES -->
+<section class="flex flex-col">
+<h2 class="text-xs font-semibold tracking-wider text-[#94979E] uppercase px-1 mb-2">Preferences</h2>
+<div class="bg-[#16171B] border border-[#26282F] rounded-2xl flex flex-col overflow-hidden divide-y divide-[#26282F]">
+<!-- Row 1: Language -->
+<a class="flex items-center justify-between min-h-[50px] py-3.5 px-4 hover:bg-[#212328]/60 transition-colors" href="#">
+<div class="flex items-center gap-3 flex-1 min-w-0">
+<div class="w-8 h-8 rounded-lg bg-[#212328] flex items-center justify-center text-[#94979E] flex-shrink-0">
+<span class="material-symbols-outlined text-[18px]">translate</span>
+</div>
+<span class="font-medium text-sm text-[#F3F4F6] truncate">Language</span>
+</div>
+<div class="flex items-center gap-1.5 flex-shrink-0 ml-2">
+<span class="text-sm text-[#94979E]">English</span>
+<span class="material-symbols-outlined text-[#94979E] text-[18px]">chevron_right</span>
+</div>
+</a>
+<!-- Row 2: Units -->
+<a class="flex items-center justify-between min-h-[50px] py-3.5 px-4 hover:bg-[#212328]/60 transition-colors" href="#">
+<div class="flex items-center gap-3 flex-1 min-w-0">
+<div class="w-8 h-8 rounded-lg bg-[#212328] flex items-center justify-center text-[#94979E] flex-shrink-0">
+<span class="material-symbols-outlined text-[18px]">tune</span>
+</div>
+<span class="font-medium text-sm text-[#F3F4F6] truncate">Units</span>
+</div>
+<div class="flex items-center gap-1.5 flex-shrink-0 ml-2">
+<span class="text-sm text-[#94979E]">Metric</span>
+<span class="material-symbols-outlined text-[#94979E] text-[18px]">chevron_right</span>
+</div>
+</a>
+<!-- Row 3: Appearance -->
+<a class="flex items-center justify-between min-h-[50px] py-3.5 px-4 hover:bg-[#212328]/60 transition-colors" href="#">
+<div class="flex items-center gap-3 flex-1 min-w-0">
+<div class="w-8 h-8 rounded-lg bg-[#212328] flex items-center justify-center text-[#94979E] flex-shrink-0">
+<span class="material-symbols-outlined text-[18px]">dark_mode</span>
+</div>
+<span class="font-medium text-sm text-[#F3F4F6] truncate">Appearance</span>
+</div>
+<div class="flex items-center gap-1.5 flex-shrink-0 ml-2">
+<span class="text-sm text-[#94979E]">Dark Obsidian</span>
+<span class="material-symbols-outlined text-[#94979E] text-[18px]">chevron_right</span>
+</div>
+</a>
+<!-- Row 4: Notifications -->
+<a class="flex items-center justify-between min-h-[50px] py-3.5 px-4 hover:bg-[#212328]/60 transition-colors" href="#">
+<div class="flex items-center gap-3 flex-1 min-w-0">
+<div class="w-8 h-8 rounded-lg bg-[#212328] flex items-center justify-center text-[#94979E] flex-shrink-0">
+<span class="material-symbols-outlined text-[18px]">notifications</span>
+</div>
+<span class="font-medium text-sm text-[#F3F4F6] truncate">Notifications</span>
+</div>
+<div class="flex items-center gap-1.5 flex-shrink-0 ml-2">
+<span class="text-sm text-[#94979E]">Active</span>
+<span class="material-symbols-outlined text-[#94979E] text-[18px]">chevron_right</span>
+</div>
+</a>
+<!-- Row 5: Connected apps -->
+<a class="flex items-center justify-between min-h-[56px] py-3 px-4 hover:bg-[#212328]/60 transition-colors" href="#">
+<div class="flex items-center gap-3 flex-1 min-w-0 pr-3">
+<div class="w-8 h-8 rounded-lg bg-[#212328] flex items-center justify-center text-[#94979E] flex-shrink-0">
+<span class="material-symbols-outlined text-[18px]">sync_alt</span>
+</div>
+<div class="flex flex-col min-w-0">
+<span class="font-medium text-sm text-[#F3F4F6] truncate">Connected apps</span>
+<span class="text-xs text-[#94979E] mt-0.5 truncate">Apple Health · Whoop</span>
+</div>
+</div>
+<span class="material-symbols-outlined text-[#94979E] text-[18px] flex-shrink-0">chevron_right</span>
+</a>
+</div>
+</section>
+<!-- ACCOUNT & SUPPORT -->
+<section class="flex flex-col">
+<h2 class="text-xs font-semibold tracking-wider text-[#94979E] uppercase px-1 mb-2">Account &amp; Support</h2>
+<div class="bg-[#16171B] border border-[#26282F] rounded-2xl flex flex-col overflow-hidden divide-y divide-[#26282F]">
+<!-- Row 1: Manage membership -->
+<a class="flex items-center justify-between min-h-[50px] py-3.5 px-4 hover:bg-[#212328]/60 transition-colors" href="#">
+<div class="flex items-center gap-3 flex-1 min-w-0">
+<div class="w-8 h-8 rounded-lg bg-[#212328] flex items-center justify-center text-[#94979E] flex-shrink-0">
+<span class="material-symbols-outlined text-[18px]">card_membership</span>
+</div>
+<span class="font-medium text-sm text-[#F3F4F6] truncate">Manage membership</span>
+</div>
+<span class="material-symbols-outlined text-[#94979E] text-[18px]">chevron_right</span>
+</a>
+<!-- Row 2: Privacy & security -->
+<a class="flex items-center justify-between min-h-[50px] py-3.5 px-4 hover:bg-[#212328]/60 transition-colors" href="#">
+<div class="flex items-center gap-3 flex-1 min-w-0">
+<div class="w-8 h-8 rounded-lg bg-[#212328] flex items-center justify-center text-[#94979E] flex-shrink-0">
+<span class="material-symbols-outlined text-[18px]">security</span>
+</div>
+<span class="font-medium text-sm text-[#F3F4F6] truncate">Privacy &amp; security</span>
+</div>
+<span class="material-symbols-outlined text-[#94979E] text-[18px]">chevron_right</span>
+</a>
+<!-- Row 3: Export data log -->
+<a class="flex items-center justify-between min-h-[50px] py-3.5 px-4 hover:bg-[#212328]/60 transition-colors" href="#">
+<div class="flex items-center gap-3 flex-1 min-w-0">
+<div class="w-8 h-8 rounded-lg bg-[#212328] flex items-center justify-center text-[#94979E] flex-shrink-0">
+<span class="material-symbols-outlined text-[18px]">download</span>
+</div>
+<span class="font-medium text-sm text-[#F3F4F6] truncate">Export data log</span>
+</div>
+<span class="material-symbols-outlined text-[#94979E] text-[18px]">chevron_right</span>
+</a>
+<!-- Row 4: Help & feedback -->
+<a class="flex items-center justify-between min-h-[50px] py-3.5 px-4 hover:bg-[#212328]/60 transition-colors" href="#">
+<div class="flex items-center gap-3 flex-1 min-w-0">
+<div class="w-8 h-8 rounded-lg bg-[#212328] flex items-center justify-center text-[#94979E] flex-shrink-0">
+<span class="material-symbols-outlined text-[18px]">help</span>
+</div>
+<span class="font-medium text-sm text-[#F3F4F6] truncate">Help &amp; feedback</span>
+</div>
+<span class="material-symbols-outlined text-[#94979E] text-[18px]">chevron_right</span>
+</a>
+<!-- Row 5: About Saman -->
+<a class="flex items-center justify-between min-h-[50px] py-3.5 px-4 hover:bg-[#212328]/60 transition-colors" href="#">
+<div class="flex items-center gap-3 flex-1 min-w-0">
+<div class="w-8 h-8 rounded-lg bg-[#212328] flex items-center justify-center text-[#94979E] flex-shrink-0">
+<span class="material-symbols-outlined text-[18px]">info</span>
+</div>
+<span class="font-medium text-sm text-[#F3F4F6] truncate">About Saman</span>
+</div>
+<div class="flex items-center gap-1.5 flex-shrink-0 ml-2">
+<span class="font-mono text-xs text-[#94979E]">v3.8</span>
+<span class="material-symbols-outlined text-[#94979E] text-[18px]">chevron_right</span>
+</div>
+</a>
+</div>
+</section>
+<!-- LOG OUT -->
+<div class="flex justify-center pt-2 pb-8">
+<button class="py-2.5 px-4 flex items-center justify-center gap-2 text-red-400/80 hover:text-red-400 transition-colors rounded-xl hover:bg-[#16171B] active:scale-[0.98]" type="button">
+<span class="material-symbols-outlined text-[18px]">logout</span>
+<span class="text-sm font-medium">Log out</span>
+</button>
+</div>
+</main>
+<!-- BOTTOM NAVIGATION BAR (Exact Home tab bar match) -->
+<nav class="fixed bottom-0 w-full z-50 pb-safe bg-[#0C0D0E]/95 backdrop-blur-xl border-t border-[#26282F]">
+<div class="h-16 max-w-md mx-auto px-2 flex items-center justify-around">
+<!-- Home -->
+<a class="flex flex-col items-center justify-center min-w-[56px] min-h-[44px] text-[#94979E] hover:text-[#F3F4F6] transition-colors gap-1" href="#">
+<span class="material-symbols-outlined text-[20px]">home</span>
+<span class="font-mono text-[9px] uppercase tracking-wider">Home</span>
+</a>
+<!-- Workout -->
+<a class="flex flex-col items-center justify-center min-w-[56px] min-h-[44px] text-[#94979E] hover:text-[#F3F4F6] transition-colors gap-1" href="#">
+<span class="material-symbols-outlined text-[20px]">fitness_center</span>
+<span class="font-mono text-[9px] uppercase tracking-wider">Workout</span>
+</a>
+<!-- Saman (Geometric S monogram without filled square) -->
+<a class="flex flex-col items-center justify-center min-w-[56px] min-h-[44px] text-[#94979E] hover:text-[#F3F4F6] transition-colors" href="#">
+<span class="font-headline font-bold text-lg leading-none text-[#94979E]">S</span>
+</a>
+<!-- Nutrition -->
+<a class="flex flex-col items-center justify-center min-w-[56px] min-h-[44px] text-[#94979E] hover:text-[#F3F4F6] transition-colors gap-1" href="#">
+<span class="material-symbols-outlined text-[20px]">restaurant</span>
+<span class="font-mono text-[9px] uppercase tracking-wider">Nutrition</span>
+</a>
+<!-- Profile (Active tab) -->
+<a aria-current="page" class="flex flex-col items-center justify-center min-w-[56px] min-h-[44px] text-[#F3F4F6] transition-colors gap-1 relative" href="#">
+<span class="material-symbols-outlined text-[20px] text-[#F3F4F6]">person</span>
+<span class="font-mono text-[9px] uppercase tracking-wider font-semibold text-[#F3F4F6]">Profile</span>
+<span class="w-1 h-1 rounded-full bg-[#F3F4F6] mt-0.5"></span>
+</a>
+</div>
+</nav>
+
+
+</body></html>
