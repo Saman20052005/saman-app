@@ -1,13 +1,13 @@
-﻿# Screen Design Reference: 04 - Active Workout Session
+# Screen Design Reference: 04 - Active Workout Session
 
 ## 1. Provenance & Identity
 - **Screen Name**: Active Workout Session (In-Session Workout Tracker)
 - **Local Source**: `stitch_saman_workout_active_in_design` (in `D:\design\screen-workout\stitch_saman_workout_active_in_design`)
 - **Stitch Export Files**:
-  - Screenshot: [`screen.png`](file:///d:/SamanDev/workspace/saman-app-redesign/design/saman-workout/04-active-workout/screen.png) (598 x 1600 px)
-  - HTML Prototype: [`code.html`](file:///d:/SamanDev/workspace/saman-app-redesign/design/saman-workout/04-active-workout/code.html) (17,473 bytes)
-  - Spec Doc: [`saman_fitness_master_prd_design_specification_v4.3.txt`](file:///d:/SamanDev/workspace/saman-app-redesign/design/saman-workout/04-active-workout/saman_fitness_master_prd_design_specification_v4.3.txt) (25,596 bytes)
-  - Historical Reconstructed Stub: [`code.reconstructed.html`](file:///d:/SamanDev/workspace/saman-app-redesign/design/saman-workout/04-active-workout/code.reconstructed.html) (retained as reference)
+  - Screenshot: [`screen.png`](./screen.png) (598 x 1600 px)
+  - HTML Prototype: [`code.html`](./code.html) (17,473 bytes)
+  - Spec Doc: [`saman_fitness_master_prd_design_specification_v4.3.txt`](./saman_fitness_master_prd_design_specification_v4.3.txt) (25,596 bytes)
+  - Historical Reconstructed Stub: [`code.reconstructed.html`](./code.reconstructed.html) (retained as reference)
 - **Role**: Dedicated full-screen active logging environment when an athlete starts a scheduled or ad-hoc workout.
 
 ## 2. Visual Structure & Layout

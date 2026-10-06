@@ -5,9 +5,9 @@
 - **Local Source**: `stitch_saman_workout_Active-Workout_design` (in `C:\Users\Administrator\Downloads\workout-screen` / `C:\Users\Administrator\Downloads`)
   - *Note on Source Folder Naming*: The local source folder was named `stitch_saman_workout_Active-Workout_design`, but comprehensive inspection of `code.html` (Title: *"Dumbbell Bench Press - Exercise Detail | Saman"*) and `screen.png` confirms that this asset bundle contains **Exercise Detail**, NOT Active Workout execution.
 - **Stitch Export Files**:
-  - Screenshot: [`screen.png`](file:///c:/SamanDev/saman-app/design/saman-workout/03-exercise-detail/screen.png) (390 × 1283 px)
-  - HTML Prototype: [`code.html`](file:///c:/SamanDev/saman-app/design/saman-workout/03-exercise-detail/code.html) (16,419 bytes)
-  - Spec Doc: [`saman_fitness_master_prd_design_specification_v2.8.md`](file:///c:/SamanDev/saman-app/design/saman-workout/03-exercise-detail/saman_fitness_master_prd_design_specification_v2.8.md)
+  - Screenshot: [`screen.png`](./screen.png) (390 x 1283 px)
+  - HTML Prototype: [`code.html`](./code.html) (16,419 bytes)
+  - Spec Doc: [`saman_fitness_master_prd_design_specification_v2.8.md`](./saman_fitness_master_prd_design_specification_v2.8.md)
 - **Role**: Movement instructional guide and preparation screen before starting or logging an exercise.
 
 ## 2. Visual Structure & Layout

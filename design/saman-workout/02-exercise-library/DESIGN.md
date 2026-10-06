@@ -4,9 +4,9 @@
 - **Screen Name**: Exercise Library
 - **Local Source**: `stitch_saman_workout_EL_design` (in `C:\Users\Administrator\Downloads\workout-screen` / `C:\Users\Administrator\Downloads`)
 - **Stitch Export Files**:
-  - Screenshot: [`screen.png`](file:///c:/SamanDev/saman-app/design/saman-workout/02-exercise-library/screen.png) (312 × 733 px)
-  - HTML Prototype: [`code.html`](file:///c:/SamanDev/saman-app/design/saman-workout/02-exercise-library/code.html) (16,404 bytes)
-  - Spec Doc: [`saman_fitness_master_prd_design_specification_v2.7.txt`](file:///c:/SamanDev/saman-app/design/saman-workout/02-exercise-library/saman_fitness_master_prd_design_specification_v2.7.txt)
+  - Screenshot: [`screen.png`](./screen.png) (312 x 733 px)
+  - HTML Prototype: [`code.html`](./code.html) (16,404 bytes)
+  - Spec Doc: [`saman_fitness_master_prd_design_specification_v2.7.txt`](./saman_fitness_master_prd_design_specification_v2.7.txt)
 - **Role**: Workout subpage for discovering, searching, and filtering exercises.
 
 ## 2. Visual Structure & Layout

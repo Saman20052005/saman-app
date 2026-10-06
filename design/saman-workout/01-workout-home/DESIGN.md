@@ -4,9 +4,9 @@
 - **Screen Name**: Workout Home (Main Workout Tab Hub)
 - **Local Source**: `stitch_saman_workout-home_design` (in `C:\Users\Administrator\Downloads\workout-screen` / `C:\Users\Administrator\Downloads`)
 - **Stitch Export Files**:
-  - Screenshot: [`screen.png`](file:///c:/SamanDev/saman-app/design/saman-workout/01-workout-home/screen.png) (312 × 1014 px)
-  - HTML Prototype: [`code.html`](file:///c:/SamanDev/saman-app/design/saman-workout/01-workout-home/code.html) (17,346 bytes)
-  - Spec Doc: [`saman_fitness_master_prd_design_specification_v2.6.md`](file:///c:/SamanDev/saman-app/design/saman-workout/01-workout-home/saman_fitness_master_prd_design_specification_v2.6.md)
+  - Screenshot: [`screen.png`](./screen.png) (312 x 1014 px)
+  - HTML Prototype: [`code.html`](./code.html) (17,346 bytes)
+  - Spec Doc: [`saman_fitness_master_prd_design_specification_v2.6.md`](./saman_fitness_master_prd_design_specification_v2.6.md)
 - **Role**: Primary entry point when selecting the **Workout** tab from the global 5-tab bar.
 
 ## 2. Visual Structure & Layout

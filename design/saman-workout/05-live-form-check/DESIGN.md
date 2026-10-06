@@ -1,16 +1,16 @@
-# Screen Design Reference: 05 - Live Form Check — Wide Grip Pull-up
+# Screen Design Reference: 05 - Live Form Check â€” Wide Grip Pull-up
 
 ## 1. Provenance & Identity
 - **Screen Name**: Live Form Check (Wide Grip Pull-up)
 - **Local Sources**:
   - Primary source: `stitch_saman_workout_livet_design` (in `C:\Users\Administrator\Downloads\workout-screen` / `C:\Users\Administrator\Downloads`)
   - Duplicate source: `stitch_saman_workout_tab_design`
-  - *Verification*: Both sources contain bit-for-bit identical `code.html` (MD5: `626C75F4B6C9710A6DF54C546C6400F1`) and `screen.png` (MD5: `82909AF63BC779ABD330CB14E3A22D26`, 706 × 1600 px).
+  - *Verification*: Both sources contain bit-for-bit identical `code.html` (MD5: `626C75F4B6C9710A6DF54C546C6400F1`) and `screen.png` (MD5: `82909AF63BC779ABD330CB14E3A22D26`, 706 x 1600 px).
 - **Stitch Export Files**:
-  - Screenshot: [`screen.png`](file:///c:/SamanDev/saman-app/design/saman-workout/05-live-form-check/screen.png) (706 × 1600 px)
-  - HTML Prototype: [`code.html`](file:///c:/SamanDev/saman-app/design/saman-workout/05-live-form-check/code.html) (8,647 bytes)
-  - Spec Doc Selected: [`saman_fitness_master_prd_design_specification_v3.2.txt`](file:///c:/SamanDev/saman-app/design/saman-workout/05-live-form-check/saman_fitness_master_prd_design_specification_v3.2.txt) (latest version increment)
-  - Alternate Candidate Spec: [`saman_fitness_master_prd_design_specification_v3.1.txt`](file:///c:/SamanDev/saman-app/design/saman-workout/05-live-form-check/saman_fitness_master_prd_design_specification_v3.1.txt) (retained for traceability)
+  - Screenshot: [`screen.png`](./screen.png) (706 x 1600 px)
+  - HTML Prototype: [`code.html`](./code.html) (8,647 bytes)
+  - Spec Doc Selected: [`saman_fitness_master_prd_design_specification_v3.2.txt`](./saman_fitness_master_prd_design_specification_v3.2.txt) (latest version increment)
+  - Alternate Candidate Spec: [`saman_fitness_master_prd_design_specification_v3.1.txt`](./saman_fitness_master_prd_design_specification_v3.1.txt) (retained for traceability)
 - **Role**: Future Computer Vision optical tracking interface for real-time rep counting and single actionable posture cues during technical compound movements.
 
 ## 2. Visual Structure & Layout
@@ -47,4 +47,4 @@
      - State B: Positive Confirmation (`REP COMPLETE`)
      - State C: Between Reps Reminder (`BETWEEN REPS`)
      - State D: Tracking Interrupted (`CAMERA VIEW BLOCKED`)
-   - **Status**: These 4 real-time state variants are **DEFERRED** from the active design package. No individual mockups/screens were packaged for them.
+   - **Status**: These 4 real-time state variants are **DEFERRED** from the active design package. Packaged as design references under [uture-feedback-states/](./future-feedback-states/) (States A, B, C, D).
