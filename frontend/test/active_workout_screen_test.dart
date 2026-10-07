@@ -268,14 +268,29 @@ void main() {
       await tester.pumpWidget(
         UncontrolledProviderScope(
           container: container,
-          child: const MaterialApp(
-            home: WorkoutHomeScreen(),
+          child: MaterialApp(
+            home: Builder(
+              builder: (context) => Scaffold(
+                body: Center(
+                  child: ElevatedButton(
+                    onPressed: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) =>
+                            const ActiveWorkoutScreen(autoTick: false),
+                      ),
+                    ),
+                    child: const Text('Start workout'),
+                  ),
+                ),
+              ),
+            ),
           ),
         ),
       );
       await tester.pumpAndSettle();
 
-      // In WorkoutHomeScreen, tap "Start workout" on Hero card
+      // Tap "Start workout" to enter ActiveWorkoutScreen
       expect(find.text('Start workout'), findsOneWidget);
       await tester.tap(find.text('Start workout'));
       await tester.pumpAndSettle();
@@ -309,8 +324,8 @@ void main() {
       await tester.tap(find.byKey(const ValueKey('active_workout_minimize_button')));
       await tester.pumpAndSettle();
 
-      // Back on WorkoutHomeScreen!
-      expect(find.text('TODAY’S SCHEDULED SESSION'), findsOneWidget);
+      // Back on host screen!
+      expect(find.text('Start workout'), findsOneWidget);
 
       // Re-enter the workout via "Start workout"
       await tester.tap(find.text('Start workout'));
@@ -359,7 +374,8 @@ void main() {
 
       // Honest modal is shown
       expect(find.text('Workout Review & Save'), findsOneWidget);
-      expect(find.text('In Development'), findsOneWidget);
+      expect(find.text('Save Session'), findsOneWidget);
+      expect(find.text('In Development'), findsNothing);
       expect(find.text('Keep Training'), findsOneWidget);
 
       // Verifies no history was created

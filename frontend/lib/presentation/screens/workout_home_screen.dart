@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../data/models/exercise.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../providers/workout_home_providers.dart';
@@ -6,6 +7,8 @@ import '../tokens/saman_workout_tokens.dart';
 import 'exercise_library_screen.dart';
 import 'my_plans_screen.dart';
 import 'workout_history_screen.dart';
+import 'active_workout_screen.dart';
+import '../providers/active_workout_providers.dart';
 
 class WorkoutHomeScreen extends ConsumerStatefulWidget {
   const WorkoutHomeScreen({super.key});
@@ -39,24 +42,26 @@ class _WorkoutHomeScreenState extends ConsumerState<WorkoutHomeScreen> {
   }
 
   void _handleStartWorkout(ScheduledSessionInfo scheduled) {
-    // Show confirmation / status notification regarding active workout contract
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Starting scheduled session: ${scheduled.title}'),
-        duration: const Duration(seconds: 2),
-      ),
-    );
+    ref.read(activeWorkoutSessionProvider.notifier)
+        .startScheduledSession(title: scheduled.title);
+    Navigator.of(context).push(MaterialPageRoute(
+      builder: (_) => const ActiveWorkoutScreen(),
+    ));
   }
 
-  void _handleQuickStart() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Quick start: session initialized without a plan.'),
-        duration: Duration(seconds: 2),
-      ),
+  Future<void> _handleQuickStart() async {
+    final exercise = await Navigator.of(context).push<Exercise>(
+      MaterialPageRoute(builder: (_) => const ExerciseLibraryScreen(
+        initialCategory: 'All', selectExercise: true,
+      )),
     );
+    if (!mounted || exercise == null) return;
+    Navigator.of(context).push(MaterialPageRoute(
+      builder: (_) => ActiveWorkoutScreen.fromExercises(
+        exercises: [exercise], title: 'Quick Start',
+      ),
+    ));
   }
-
   @override
   Widget build(BuildContext context) {
     final scheduled = ref.watch(scheduledWorkoutProvider);
@@ -110,7 +115,7 @@ class _WorkoutHomeScreenState extends ConsumerState<WorkoutHomeScreen> {
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        const Column(
+        const Expanded(child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
@@ -131,7 +136,7 @@ class _WorkoutHomeScreenState extends ConsumerState<WorkoutHomeScreen> {
               ),
             ),
           ],
-        ),
+        )),
         InkWell(
           borderRadius: BorderRadius.circular(SamanWorkoutTokens.radiusMd),
           onTap: _navigateToMyPlans,
@@ -175,7 +180,7 @@ class _WorkoutHomeScreenState extends ConsumerState<WorkoutHomeScreen> {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            const Text(
+            const Expanded(child: Text(
               'TODAY’S SCHEDULED SESSION',
               style: TextStyle(
                 fontFamily: 'monospace',
@@ -184,7 +189,7 @@ class _WorkoutHomeScreenState extends ConsumerState<WorkoutHomeScreen> {
                 letterSpacing: 1.1,
                 color: SamanWorkoutTokens.textMuted,
               ),
-            ),
+            )),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
               decoration: BoxDecoration(
@@ -710,14 +715,14 @@ class _WorkoutHomeScreenState extends ConsumerState<WorkoutHomeScreen> {
                         children: [
                           Row(
                             children: [
-                              Text(
+                              Expanded(child: Text(
                                 item.title,
                                 style: const TextStyle(
                                   color: SamanWorkoutTokens.textPrimary,
                                   fontSize: 14,
                                   fontWeight: FontWeight.w600,
                                 ),
-                              ),
+                              )),
                               const SizedBox(width: 6),
                               Container(
                                 padding: const EdgeInsets.symmetric(

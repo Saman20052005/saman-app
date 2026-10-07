@@ -18,6 +18,10 @@ class MyPlansScreen extends ConsumerWidget {
       appBar: AppBar(
         title: const Text('My Plans',
             style: TextStyle(fontWeight: FontWeight.w700)),
+        bottom: const PreferredSize(
+          preferredSize: Size.fromHeight(48),
+          child: Text('Local / demo • In memory until restart • Not synced'),
+        ),
       ),
       body: plansAsync.when(
         data: (plans) => plans.isEmpty
@@ -73,7 +77,7 @@ class MyPlansScreen extends ConsumerWidget {
           context,
           MaterialPageRoute(
             builder: (_) =>
-                ActiveWorkoutScreen.fromExercises(exercises: exercises),
+                ActiveWorkoutScreen.fromExercises(exercises: exercises, title: plan.name),
           ),
         );
       }

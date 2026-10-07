@@ -1,3 +1,5 @@
+import 'package:health_ai_app/presentation/providers/active_workout_providers.dart';
+import 'package:health_ai_app/presentation/screens/active_workout_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -415,7 +417,7 @@ void main() {
   });
 
   testWidgets(
-      'CTA: Detail Start Exercise CTA opens honest blocked bottom sheet; Video preview shows honest status',
+      'CTA: Detail Start Exercise starts only the selected exercise; Video preview shows honest status',
       (WidgetTester tester) async {
     final squatExercise = curatedExerciseLibrary
         .firstWhere((e) => e.id == 'barbell-back-squat');
@@ -443,27 +445,23 @@ void main() {
             'Video guide for "Barbell Back Squat" is currently in production and not yet available.'),
         findsOneWidget);
 
-    // 2. Start Exercise CTA shows honest blocked state
-    final startBtn =
-        find.byKey(const ValueKey('exercise_detail_start_button'));
-    expect(startBtn, findsOneWidget);
-
+    final startBtn = find.byKey(const ValueKey('exercise_detail_start_button'));
     await tester.tap(startBtn);
     await tester.pump();
-    await tester.pump(const Duration(milliseconds: 300));
-
-    expect(find.text('Start Exercise Flow Decision'), findsOneWidget);
-    expect(find.text('Workout tracking is coming soon.'), findsOneWidget);
-
-    // Dismiss sheet
-    await tester.tap(
-        find.byKey(const ValueKey('start_exercise_dialog_understood_button')));
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 300));
-
-    expect(find.text('Start Exercise Flow Decision'), findsNothing);
+    await tester.pump(const Duration(milliseconds: 350));
+    expect(find.byType(ActiveWorkoutScreen), findsOneWidget);
+    final container = ProviderScope.containerOf(
+      tester.element(find.byType(ActiveWorkoutScreen)),
+    );
+    final session = container.read(activeWorkoutSessionProvider);
+    expect(session.exercises.single.id, squatExercise.id);
+    expect(session.exercises.single.sets.length, squatExercise.defaultSets);
+    expect(session.completedSetsCount, 0);
+    await tester.binding.handlePopRoute();
+    await tester.pumpAndSettle();
+    expect(find.byType(ExerciseDetailScreen), findsOneWidget);
+    await tester.pumpWidget(const SizedBox());
   });
-
   testWidgets(
       'Full Route Stack: Workout Home -> Library -> filter/search -> Detail -> Back returns to Library with filters intact -> Back returns to Workout Home',
       (WidgetTester tester) async {

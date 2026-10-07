@@ -2,8 +2,7 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 import '../../data/models/exercise.dart';
 import '../../data/repositories/exercise_repository.dart';
-import '../../data/repositories/exercise_repository_impl.dart';
-import '../../services/api_client.dart';
+import '../../features/workout/data/repositories/mock_exercise_repository.dart';
 
 part 'exercise_providers.g.dart';
 part 'exercise_providers.freezed.dart';
@@ -496,9 +495,12 @@ Future<List<Exercise>> exercisesByMuscle(
 
 @riverpod
 ExerciseRepository exerciseRepository(ExerciseRepositoryRef ref) {
-  final dio = ref.watch(dioProvider);
-  return ExerciseRepositoryImpl(dio: dio);
+  return ref.watch(workoutDemoRepositoryProvider);
 }
+
+final workoutDemoRepositoryProvider = Provider<MockExerciseRepository>(
+  (ref) => MockExerciseRepository(curatedExerciseLibrary),
+);
 
 // Provider cho filter state (dùng StateNotifier)
 @riverpod

@@ -12,11 +12,13 @@ import '../../providers/profile_provider.dart';
 class ExerciseLibraryScreen extends ConsumerStatefulWidget {
   final String initialCategory;
   final ValueChanged<int>? onTabSelected;
+  final bool selectExercise;
 
   const ExerciseLibraryScreen({
     super.key,
     this.initialCategory = 'Upper Body',
     this.onTabSelected,
+    this.selectExercise = false,
   });
 
   @override
@@ -558,6 +560,10 @@ class _ExerciseLibraryScreenState extends ConsumerState<ExerciseLibraryScreen> {
                       key: ValueKey('exercise_row_${exercise.id}'),
                       exercise: exercise,
                       onTap: () {
+                        if (widget.selectExercise) {
+                          Navigator.of(context).pop(exercise);
+                          return;
+                        }
                         Navigator.push(
                           context,
                           MaterialPageRoute(

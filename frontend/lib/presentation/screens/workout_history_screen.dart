@@ -22,6 +22,13 @@ class WorkoutHistoryScreen extends ConsumerWidget {
         ),
         backgroundColor: Colors.white,
         elevation: 0,
+        bottom: const PreferredSize(
+          preferredSize: Size.fromHeight(48),
+          child: Padding(
+            padding: EdgeInsetsDirectional.all(8),
+            child: Text('Local / demo • In memory until restart • Not synced'),
+          ),
+        ),
       ),
       body: historyAsync.when(
         data: (sessions) {
@@ -100,7 +107,7 @@ class _WorkoutSessionCard extends StatelessWidget {
     final formattedDate = DateFormat('MMM dd, yyyy').format(date);
     final formattedTime = DateFormat('HH:mm').format(date);
 
-    final exerciseCount = session.exerciseLogs.length;
+    final exerciseCount = session.exerciseLogs.map((log) => log.exerciseId).toSet().length;
     final totalVolume = session.totalVolumeKg;
     final duration = session.totalDurationMinutes ?? 0;
 
@@ -126,13 +133,13 @@ class _WorkoutSessionCard extends StatelessWidget {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(
+                  Expanded(child: Text(
                     session.planName,
                     style: const TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.w700,
                     ),
-                  ),
+                  )),
                   Container(
                     padding:
                         const EdgeInsets.symmetric(horizontal: 8, vertical: 4),

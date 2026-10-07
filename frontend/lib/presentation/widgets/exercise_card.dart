@@ -121,7 +121,10 @@ class ExerciseCard extends StatelessWidget {
                         overflow: TextOverflow.ellipsis,
                       ),
                       const SizedBox(height: AppSpacing.sm),
-                      Row(
+                      Wrap(
+                        spacing: AppSpacing.sm,
+                        runSpacing: AppSpacing.xs,
+                        crossAxisAlignment: WrapCrossAlignment.center,
                         children: [
                           // Difficulty badge
                           Container(
@@ -142,7 +145,6 @@ class ExerciseCard extends StatelessWidget {
                               ),
                             ),
                           ),
-                          const SizedBox(width: AppSpacing.sm),
 
                           // CV badge
                           if (exercise.cvSupported)
@@ -165,7 +167,6 @@ class ExerciseCard extends StatelessWidget {
                                 ),
                               ),
                             ),
-                          const Spacer(),
 
                           // Sets x Reps
                           Text(

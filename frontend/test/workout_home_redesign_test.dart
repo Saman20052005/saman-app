@@ -1,3 +1,4 @@
+import 'package:health_ai_app/presentation/screens/active_workout_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -346,10 +347,11 @@ void main() {
     expect(find.text('Check my form'), findsNothing);
     expect(find.text('Live Form Check'), findsNothing);
 
-    // Tap Start Exercise -> Open Decision Point Bottom Sheet
+    // Start Exercise now opens the selected movement in Active Workout.
     await tester.tap(find.text('Start exercise'));
     await tester.pumpAndSettle();
-    expect(find.text('Start Exercise Flow Decision'), findsOneWidget);
+    expect(find.byType(ActiveWorkoutScreen), findsOneWidget);
+    await tester.pumpWidget(const SizedBox());
   });
 
   testWidgets(

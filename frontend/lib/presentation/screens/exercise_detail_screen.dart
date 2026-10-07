@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../../data/models/exercise.dart';
 import '../tokens/saman_workout_tokens.dart';
+import 'active_workout_screen.dart';
 
 class ExerciseDetailScreen extends ConsumerWidget {
   final Exercise exercise;
@@ -14,93 +15,13 @@ class ExerciseDetailScreen extends ConsumerWidget {
 
 
   void _handleStartExercise(BuildContext context) {
-    // Product Decision Point:
-    // Flow requires product confirmation whether "Start exercise" spawns a standalone single-movement
-    // session or selects/appends the movement into an existing active workout plan.
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: SamanWorkoutTokens.cardSurface,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+    Navigator.of(context).push(MaterialPageRoute(
+      builder: (_) => ActiveWorkoutScreen.fromExercises(
+        exercises: [exercise],
+        title: exercise.name,
       ),
-      builder: (ctx) => Padding(
-        padding: const EdgeInsets.fromLTRB(20, 24, 20, 36),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Container(
-                  width: 36,
-                  height: 36,
-                  decoration: BoxDecoration(
-                    color: SamanWorkoutTokens.surfaceElevated,
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: SamanWorkoutTokens.border),
-                  ),
-                  child: const Icon(Icons.help_outline,
-                      color: SamanWorkoutTokens.emeraldAccent, size: 20),
-                ),
-                const SizedBox(width: 12),
-                const Expanded(
-                  child: Text(
-                    'Start Exercise Flow Decision',
-                    style: TextStyle(
-                      color: SamanWorkoutTokens.textPrimary,
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 14),
-            const Text(
-              'Workout tracking is coming soon.',
-              style: TextStyle(
-                color: SamanWorkoutTokens.textSecondary,
-                fontSize: 13,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-            const SizedBox(height: 6),
-            Text(
-              'Starting "${exercise.name}": Awaiting product contract decision on whether this initializes a new session or appends to current active workout routine.',
-              style: const TextStyle(
-                color: SamanWorkoutTokens.textSecondary,
-                fontSize: 13,
-                height: 1.4,
-              ),
-            ),
-            const SizedBox(height: 20),
-            SizedBox(
-              width: double.infinity,
-              height: 44,
-              child: ElevatedButton(
-                key: const ValueKey('start_exercise_dialog_understood_button'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: SamanWorkoutTokens.buttonPrimary,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-                onPressed: () => Navigator.pop(ctx),
-                child: const Text(
-                  'Understood',
-                  style: TextStyle(
-                    color: SamanWorkoutTokens.buttonPrimaryText,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
+    ));
   }
-
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final isDumbbellBenchPress =
