@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:health_ai_app/presentation/providers/active_workout_providers.dart';
 import 'package:health_ai_app/presentation/screens/active_workout_screen.dart';
+import 'package:health_ai_app/presentation/screens/workout_review_screen.dart';
 import 'package:health_ai_app/presentation/screens/workout_home_screen.dart';
 import 'package:health_ai_app/screens/home/widgets/saman_bottom_navigation_bar.dart';
 
@@ -372,18 +373,19 @@ void main() {
       await tester.tap(find.byKey(const ValueKey('active_workout_finish_button')));
       await tester.pumpAndSettle();
 
-      // Honest modal is shown
-      expect(find.text('Workout Review & Save'), findsOneWidget);
-      expect(find.text('Save Session'), findsOneWidget);
-      expect(find.text('In Development'), findsNothing);
-      expect(find.text('Keep Training'), findsOneWidget);
+      // Honest Review & Save screen is shown
+      expect(find.byType(WorkoutReviewScreen), findsOneWidget);
+      expect(find.text('Review session'), findsOneWidget);
+      expect(find.text('STAGE • PENDING CONFIRMATION'), findsOneWidget);
+      expect(find.text('Save session'), findsOneWidget);
+      expect(find.text('Keep training'), findsOneWidget);
 
       // Verifies no history was created
       final session = container.read(activeWorkoutSessionProvider);
       expect(session.isFinished, false);
 
       // Dismiss modal
-      await tester.tap(find.byKey(const ValueKey('active_workout_review_understood_button')));
+      await tester.tap(find.byKey(const ValueKey('keep_training_button')));
       await tester.pumpAndSettle();
 
       expect(find.text('Upper Body Strength'), findsOneWidget);

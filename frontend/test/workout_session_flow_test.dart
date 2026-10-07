@@ -3,11 +3,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:health_ai_app/config/app_theme.dart';
 import 'package:health_ai_app/data/models/exercise.dart';
 import 'package:health_ai_app/features/workout/data/repositories/mock_exercise_repository.dart';
 import 'package:health_ai_app/presentation/providers/active_workout_providers.dart';
 import 'package:health_ai_app/presentation/providers/exercise_providers.dart';
+import 'package:health_ai_app/presentation/providers/session_detail_providers.dart';
 import 'package:health_ai_app/presentation/providers/workout_history_providers.dart';
 import 'package:health_ai_app/presentation/screens/active_workout_screen.dart';
 import 'package:health_ai_app/presentation/screens/create_plan_screen.dart';
@@ -15,8 +18,17 @@ import 'package:health_ai_app/presentation/screens/exercise_library_screen.dart'
 import 'package:health_ai_app/presentation/screens/my_plans_screen.dart';
 import 'package:health_ai_app/presentation/screens/session_detail_screen.dart';
 import 'package:health_ai_app/presentation/screens/workout_history_screen.dart';
+import 'package:health_ai_app/presentation/screens/workout_review_screen.dart';
+import 'package:health_ai_app/presentation/screens/workout_complete_screen.dart';
 import 'package:health_ai_app/presentation/screens/workout_home_screen.dart';
 import 'package:health_ai_app/services/api_client.dart';
+import 'package:health_ai_app/presentation/widgets/exercise_set_log_card.dart';
+import 'package:health_ai_app/providers/nutrition_provider.dart';
+import 'package:health_ai_app/providers/profile_provider.dart';
+import 'package:health_ai_app/screens/main_screen.dart';
+import 'package:health_ai_app/screens/home/widgets/saman_bottom_navigation_bar.dart';
+
+import 'main_screen_test.dart' show FakeProfileNotifier, FakeNutritionNotifier;
 
 Future<void> tap(WidgetTester tester, Finder target) async {
   await tester.ensureVisible(target);
@@ -25,12 +37,14 @@ Future<void> tap(WidgetTester tester, Finder target) async {
   await tester.pump(const Duration(milliseconds: 400));
 }
 
-Future<ProviderContainer> mount(WidgetTester tester, Widget home) async {
+Future<ProviderContainer> mount(WidgetTester tester, Widget home,
+    {List<Override> overrides = const []}) async {
   await tester.binding.setSurfaceSize(const Size(430, 932));
   addTearDown(() => tester.binding.setSurfaceSize(null));
   final container = ProviderContainer(overrides: [
     dioProvider
         .overrideWith((ref) => throw StateError('Backend must not be used')),
+    ...overrides,
   ]);
   addTearDown(container.dispose);
   await tester.pumpWidget(UncontrolledProviderScope(
@@ -66,6 +80,135 @@ class RetryRepository extends MockExerciseRepository {
 
 void main() {
   setUpAll(() => GoogleFonts.config.allowRuntimeFetching = false);
+  for (final durationCase in <(int?, String)>[
+    (0, '<1 min'),
+    (null, '—'),
+    (32, '32m'),
+  ]) {
+    testWidgets('History duration ${durationCase.$1} shows ${durationCase.$2}',
+        (tester) async {
+      final container = await mount(tester, const WorkoutHistoryScreen());
+      final session = WorkoutSession(
+        id: 'history-duration-${durationCase.$1}',
+        planName: 'Duration display check',
+        startedAt: DateTime.utc(2026, 10, 8),
+        exerciseLogs: const [],
+        totalDurationMinutes: durationCase.$1,
+      );
+      final repo = container.read(exerciseRepositoryProvider);
+      await repo.saveWorkoutSession(session);
+      container.invalidate(workoutHistoryProvider);
+      await tester.pumpAndSettle();
+
+      expect(find.text(durationCase.$2), findsOneWidget);
+      expect(find.text('0m'), findsNothing);
+      expect((await repo.getSessionById(session.id)).totalDurationMinutes,
+          durationCase.$1);
+      await tester.pumpWidget(const SizedBox());
+    });
+  }
+
+  for (final dismiss in ['Keep training', 'Review Back', 'System Back']) {
+    testWidgets('$dismiss preserves logs and drafts; log another set and Finish',
+        (tester) async {
+      final container =
+          await mount(tester, const ActiveWorkoutScreen(autoTick: false));
+      final active = container.read(activeWorkoutSessionProvider.notifier);
+      final sessionId = active.sessionId;
+      active.setDraftWeight(22.5);
+      active.setDraftReps(9);
+      await tester.pump();
+      await tap(tester,
+          find.byKey(const ValueKey('active_workout_log_set_button')));
+      active.setDraftWeight(30);
+      active.setDraftReps(11);
+      await tester.pump();
+      final before = container.read(activeWorkoutSessionProvider);
+
+      await tap(tester,
+          find.byKey(const ValueKey('active_workout_finish_button')));
+      expect(find.byType(WorkoutReviewScreen), findsOneWidget);
+      if (dismiss == 'System Back') {
+        await tester.binding.handlePopRoute();
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 400));
+      } else {
+        await tap(
+            tester,
+            find.byKey(ValueKey(dismiss == 'Keep training'
+                ? 'keep_training_button'
+                : 'workout_review_back_button')));
+      }
+      final resumed = container.read(activeWorkoutSessionProvider);
+      expect(find.byType(ActiveWorkoutScreen), findsOneWidget);
+      expect(active.sessionId, sessionId);
+      expect(resumed.exercises, same(before.exercises));
+      expect(resumed.elapsedSeconds, before.elapsedSeconds);
+      expect(resumed.restSecondsLeft, before.restSecondsLeft);
+      expect(resumed.isPaused, before.isPaused);
+      expect(resumed.currentExercise!.sets.first.setNumber, 1);
+      expect(resumed.currentExercise!.sets.first.reps, 9);
+      expect(resumed.currentExercise!.sets.first.weightKg, 22.5);
+      expect(resumed.currentExercise!.draftReps, 11);
+      expect(resumed.currentExercise!.draftWeightKg, 30);
+
+      await tap(tester, find.byKey(const ValueKey('active_workout_rest_skip')));
+      await tap(tester,
+          find.byKey(const ValueKey('active_workout_log_set_button')));
+      final continued = container.read(activeWorkoutSessionProvider);
+      expect(continued.completedSetsCount, 2);
+      expect(continued.currentExercise!.sets[1].setNumber, 2);
+      expect(continued.currentExercise!.sets[1].reps, 11);
+      expect(continued.currentExercise!.sets[1].weightKg, 30);
+      await tap(tester,
+          find.byKey(const ValueKey('active_workout_finish_button')));
+      expect(find.byType(WorkoutReviewScreen), findsOneWidget);
+      expect(find.textContaining('2 sets logged'), findsOneWidget);
+      expect(await container.read(exerciseRepositoryProvider).getWorkoutHistory(),
+          isEmpty);
+      await tester.pumpWidget(const SizedBox());
+    });
+  }
+
+  testWidgets('Save -> 07 -> Workout tab; system Back cannot reopen saved routes',
+      (tester) async {
+    SharedPreferences.setMockInitialValues({});
+    FlutterSecureStorage.setMockInitialValues({});
+    final prefs = await SharedPreferences.getInstance();
+    final container = await mount(tester, const MainScreen(), overrides: [
+      sharedPreferencesProvider.overrideWithValue(prefs),
+      secureStorageProvider.overrideWithValue(const FlutterSecureStorage()),
+      profileProvider.overrideWith((ref) => FakeProfileNotifier()),
+      nutritionProvider.overrideWith((ref) => FakeNutritionNotifier()),
+      mainNavIndexProvider.overrideWith((ref) => 1),
+    ]);
+    await tap(tester, find.text('Start workout'));
+    await tap(tester,
+        find.byKey(const ValueKey('active_workout_log_set_button')));
+    await tap(tester,
+        find.byKey(const ValueKey('active_workout_finish_button')));
+    await tap(tester, find.byKey(const ValueKey('save_session_button')));
+    expect(find.byType(WorkoutCompleteScreen), findsOneWidget);
+    await tap(tester, find.text('Back to Workout'));
+    expect(find.byType(MainScreen), findsOneWidget);
+    expect(container.read(mainNavIndexProvider), 1);
+    expect(tester.widget<SamanBottomNavigationBar>(
+        find.byType(SamanBottomNavigationBar)).currentIndex, 1);
+    expect(find.byType(WorkoutHomeScreen), findsOneWidget);
+    expect(find.text('Start workout'), findsOneWidget);
+    await tester.binding.handlePopRoute();
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
+    expect(container.read(mainNavIndexProvider), 1);
+    expect(find.byType(MainScreen), findsOneWidget);
+    expect(find.byType(WorkoutCompleteScreen), findsNothing);
+    expect(find.byType(WorkoutReviewScreen), findsNothing);
+    expect(find.byType(ActiveWorkoutScreen), findsNothing);
+    expect(await container.read(exerciseRepositoryProvider).getWorkoutHistory(),
+        hasLength(1));
+    await tester.pumpWidget(const SizedBox());
+  });
+
   testWidgets(
       'Home Start -> log -> Finish -> Back -> Save -> History -> detail',
       (tester) async {
@@ -80,7 +223,8 @@ void main() {
     final before = container.read(activeWorkoutSessionProvider);
     await tap(
         tester, find.byKey(const ValueKey('active_workout_finish_button')));
-    expect(find.text('Workout Review & Save'), findsOneWidget);
+    expect(find.byType(WorkoutReviewScreen), findsOneWidget);
+    expect(find.text('STAGE • PENDING CONFIRMATION'), findsOneWidget);
     expect(await container.read(exerciseRepositoryProvider).getWorkoutHistory(),
         isEmpty);
     active.tick();
@@ -102,8 +246,10 @@ void main() {
         warnIfMissed: false);
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 400));
-    expect(find.byType(WorkoutHistoryScreen), findsOneWidget);
+    // Checkpoint 07: Workout Complete screen is displayed with confirmed session!
+    expect(find.byType(WorkoutCompleteScreen), findsOneWidget);
     expect(find.byType(ActiveWorkoutScreen), findsNothing);
+    expect(find.byType(WorkoutReviewScreen), findsNothing);
     final history =
         await container.read(exerciseRepositoryProvider).getWorkoutHistory();
     expect(history, hasLength(1));
@@ -113,16 +259,45 @@ void main() {
     expect(history.single.totalVolumeKg, 208);
     expect(history.single.totalDurationMinutes, before.elapsedSeconds ~/ 60);
     expect(container.read(activeWorkoutSessionProvider).isFinished, true);
+
+    // From Complete screen: View workout history
+    await tap(tester, find.text('View workout history'));
+    expect(find.byType(WorkoutHistoryScreen), findsOneWidget);
     await tap(tester, find.text('Upper Body Strength'));
     expect(find.byType(SessionDetailScreen), findsOneWidget);
+    expect(tester.widget<SessionDetailScreen>(find.byType(SessionDetailScreen))
+        .sessionId, history.single.id);
+    final detailed = await container
+        .read(sessionDetailProvider(history.single.id).future);
+    expect(detailed, history.single);
+    expect(find.text('Dumbbell Bench Press'), findsOneWidget);
+    expect(find.text(history.single.exerciseLogs.single.exerciseSlug),
+        findsNothing);
+    expect(find.text('Set 1'), findsOneWidget);
+    expect(find.text('8 reps'), findsOneWidget);
     expect(find.text('26 kg'), findsOneWidget);
-    await tester.binding.handlePopRoute();
+    expect(tester.widget<ExerciseSetLogCard>(find.byType(ExerciseSetLogCard)).log,
+        history.single.exerciseLogs.single);
+    await tester.binding.handlePopRoute(); // Back from detail to History
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 400));
+    expect(find.byType(WorkoutHistoryScreen), findsOneWidget);
+    await tester.binding.handlePopRoute(); // Back from History to Complete
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
+    expect(find.byType(WorkoutCompleteScreen), findsOneWidget);
+    // From Complete screen: Back to Workout returns to WorkoutHomeScreen
+    await tap(tester, find.text('Back to Workout'));
+    expect(find.byType(WorkoutHomeScreen), findsOneWidget);
     await tester.binding.handlePopRoute();
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 400));
     expect(find.byType(WorkoutHomeScreen), findsOneWidget);
+    expect(find.byType(WorkoutCompleteScreen), findsNothing);
+    expect(find.byType(WorkoutReviewScreen), findsNothing);
+    expect(find.byType(ActiveWorkoutScreen), findsNothing);
+    expect(await container.read(exerciseRepositoryProvider).getWorkoutHistory(),
+        hasLength(1));
     await tester.pumpWidget(const SizedBox());
   });
 
@@ -190,13 +365,22 @@ void main() {
     await tester.pump();
     await tap(
         tester, find.byKey(const ValueKey('active_workout_finish_button')));
+    expect(find.byType(WorkoutReviewScreen), findsOneWidget);
     expect(
         tester
             .widget<FilledButton>(
                 find.byKey(const ValueKey('save_session_button')))
             .onPressed,
         isNull);
-    await tap(tester, find.text('Keep Training'));
+    expect(find.text('At least 1 completed set required to save'), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('save_session_button')));
+    await tester.pump();
+    expect(find.byType(WorkoutReviewScreen), findsOneWidget);
+    expect(await container.read(exerciseRepositoryProvider).getWorkoutHistory(),
+        isEmpty);
+    await tap(tester, find.byKey(const ValueKey('keep_training_button')));
+    expect(find.byType(ActiveWorkoutScreen), findsOneWidget);
+    expect(container.read(activeWorkoutSessionProvider).completedSetsCount, 0);
     expect(container.read(activeWorkoutSessionProvider).isPaused, true);
     expect(await container.read(exerciseRepositoryProvider).getWorkoutHistory(),
         isEmpty);
@@ -282,12 +466,158 @@ void main() {
     expect(container.read(activeWorkoutSessionProvider).completedSetsCount, 2);
     await tap(
         tester, find.byKey(const ValueKey('active_workout_finish_button')));
-    await tap(tester, find.text('Save Session'));
+    await tap(tester, find.byKey(const ValueKey('save_session_button')));
+    expect(find.byType(WorkoutCompleteScreen), findsOneWidget);
     final saved =
         (await container.read(exerciseRepositoryProvider).getWorkoutHistory())
             .single;
     expect(saved.exerciseLogs.map((log) => log.exerciseId).toSet(),
         curatedExerciseLibrary.take(2).map((exercise) => exercise.id).toSet());
+    await tester.pumpWidget(const SizedBox());
+  });
+
+
+  testWidgets(
+      'Screen 06 formats decimal weight and displays duration 0 as <1 min',
+      (tester) async {
+    final container = await mount(
+        tester,
+        ActiveWorkoutScreen.fromExercises(
+          exercises: [
+            curatedExerciseLibrary.first.copyWith(
+              defaultSets: 1,
+            ),
+          ],
+        ));
+    container.read(activeWorkoutSessionProvider.notifier).setDraftWeight(22.5);
+    await tester.pump();
+    await tap(tester, find.text('Log Set 1'));
+    await tap(
+        tester, find.byKey(const ValueKey('active_workout_finish_button')));
+    expect(find.byType(WorkoutReviewScreen), findsOneWidget);
+    expect(find.text('<1'), findsOneWidget);
+    expect(find.text('min'), findsWidgets);
+    expect(find.textContaining('22.5 kg'), findsWidgets);
+    await tap(tester, find.byKey(const ValueKey('keep_training_button')));
+    expect(find.byType(WorkoutReviewScreen), findsNothing);
+    expect(find.byType(ActiveWorkoutScreen), findsOneWidget);
+    expect(container.read(activeWorkoutSessionProvider).completedSetsCount, 1);
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets('Screen 07 shows a dash when saved duration is missing',
+      (tester) async {
+    final repo = MockExerciseRepository(curatedExerciseLibrary);
+    final session = WorkoutSession(
+      id: 'session-missing-duration',
+      planName: 'Missing duration',
+      startedAt: DateTime.utc(2026, 10, 8),
+      exerciseLogs: const [],
+    );
+    await repo.saveWorkoutSession(session);
+    await mount(tester, WorkoutCompleteScreen(sessionId: session.id), overrides: [
+      exerciseRepositoryProvider.overrideWithValue(repo),
+    ]);
+
+    final durationMetric = find
+        .ancestor(of: find.text('ACTIVE DURATION'), matching: find.byType(Column))
+        .first;
+    expect(find.descendant(of: durationMetric, matching: find.text('—')),
+        findsOneWidget);
+    expect(find.descendant(of: durationMetric, matching: find.text('<1')),
+        findsNothing);
+    expect(find.descendant(of: durationMetric, matching: find.text('0')),
+        findsNothing);
+    expect((await repo.getSessionById(session.id)).totalDurationMinutes, isNull);
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets(
+      'Screen 07 displays exact session by ID, omits chart on zero volume, handles duration 0',
+      (tester) async {
+    final repo = MockExerciseRepository(curatedExerciseLibrary);
+    final now = DateTime.now();
+    final session1 = WorkoutSession(
+      id: 'session-id-1',
+      planName: 'First Heavy Session',
+      startedAt: now.subtract(const Duration(hours: 2)),
+      finishedAt: now.subtract(const Duration(hours: 1)),
+      totalDurationMinutes: 60,
+      totalVolumeKg: 1200,
+      exerciseLogs: [
+        ExerciseSetLog(
+          exerciseId: 'dumbbell-bench-press',
+          exerciseSlug: 'dumbbell-bench-press',
+          setNumber: 1,
+          repsCompleted: 10,
+          weightKg: 50.0,
+          isCompleted: true,
+        ),
+      ],
+    );
+    final session2 = WorkoutSession(
+      id: 'session-id-2-zero-vol',
+      planName: 'Zero Volume Bodyweight',
+      startedAt: now.subtract(const Duration(minutes: 5)),
+      finishedAt: now.subtract(const Duration(minutes: 5)),
+      totalDurationMinutes: 0,
+      totalVolumeKg: 0,
+      exerciseLogs: [
+        ExerciseSetLog(
+          exerciseId: 'bodyweight-squat',
+          exerciseSlug: 'bodyweight-squat',
+          setNumber: 1,
+          repsCompleted: 20,
+          weightKg: 0.0,
+          isCompleted: true,
+        ),
+      ],
+    );
+    await repo.saveWorkoutSession(session1);
+    await repo.saveWorkoutSession(session2);
+
+    final container = ProviderContainer(
+      overrides: [
+        exerciseRepositoryProvider.overrideWith((ref) => repo),
+      ],
+    );
+    addTearDown(container.dispose);
+
+    await tester.pumpWidget(
+      UncontrolledProviderScope(
+        container: container,
+        child: const MaterialApp(
+          home: WorkoutCompleteScreen(sessionId: 'session-id-2-zero-vol'),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // Verify exact session by ID was loaded
+    expect(find.text('Zero Volume Bodyweight'), findsOneWidget);
+    expect(find.text('First Heavy Session'), findsNothing);
+
+    // Verify duration 0 shows '<1'
+    expect(find.text('<1'), findsOneWidget);
+
+    // Verify zero volume omits the volume breakdown bar
+    expect(find.text('VOLUME BY EXERCISE'), findsNothing);
+
+    // Verify demo memory note
+    expect(
+        find.textContaining(
+            'Demo only. This workout is kept in memory and disappears when the app restarts. It is not synced.'),
+        findsOneWidget);
+
+    // Verify actions exist
+    expect(find.text('Back to Workout'), findsOneWidget);
+    expect(find.text('View workout history'), findsOneWidget);
+
+    // Tap View workout history
+    await tester.tap(find.text('View workout history'));
+    await tester.pumpAndSettle();
+    expect(find.byType(WorkoutHistoryScreen), findsOneWidget);
+
     await tester.pumpWidget(const SizedBox());
   });
 }

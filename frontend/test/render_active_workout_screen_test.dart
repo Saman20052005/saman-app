@@ -7,6 +7,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:health_ai_app/presentation/providers/active_workout_providers.dart';
 import 'package:health_ai_app/presentation/screens/active_workout_screen.dart';
+import 'package:health_ai_app/presentation/screens/workout_review_screen.dart';
+import 'package:health_ai_app/presentation/screens/workout_complete_screen.dart';
 import 'package:health_ai_app/presentation/screens/workout_history_screen.dart';
 
 Future<void> capture(WidgetTester tester, String name) async {
@@ -59,7 +61,7 @@ void main() {
     const Size(390, 844),
     const Size(430, 932),
   ]) {
-    testWidgets('Active -> Review -> History renders at ${size.width}',
+    testWidgets('Active -> Review -> Complete -> History renders at ${size.width}',
         (tester) async {
       await tester.binding.setSurfaceSize(size);
       addTearDown(() => tester.binding.setSurfaceSize(null));
@@ -79,17 +81,40 @@ void main() {
       await tester.pumpAndSettle();
       expect(tester.takeException(), isNull);
       if (size.width == 390) await capture(tester, 'active');
+
       await tester
           .tap(find.byKey(const ValueKey('active_workout_log_set_button')));
       await tester.pumpAndSettle();
       await tester
           .tap(find.byKey(const ValueKey('active_workout_finish_button')));
       await tester.pumpAndSettle();
-      expect(find.text('Workout Review & Save'), findsOneWidget);
+
+      expect(find.byType(WorkoutReviewScreen), findsOneWidget);
       expect(tester.takeException(), isNull);
-      if (size.width == 390) await capture(tester, 'review');
+
+      if (size.width == 390) {
+        await capture(tester, 'review_top');
+        await tester.drag(find.byType(SingleChildScrollView), const Offset(0, -600));
+        await tester.pumpAndSettle();
+        await capture(tester, 'review_bottom');
+      }
+
       await tester.tap(find.byKey(const ValueKey('save_session_button')));
       await tester.pumpAndSettle();
+
+      expect(find.byType(WorkoutCompleteScreen), findsOneWidget);
+      expect(tester.takeException(), isNull);
+
+      if (size.width == 390) {
+        await capture(tester, 'complete_top');
+        await tester.drag(find.byType(SingleChildScrollView), const Offset(0, -600));
+        await tester.pumpAndSettle();
+        await capture(tester, 'complete_bottom');
+      }
+
+      await tester.tap(find.text('View workout history'));
+      await tester.pumpAndSettle();
+
       expect(find.byType(WorkoutHistoryScreen), findsOneWidget);
       expect(find.text('Upper Body Strength'), findsOneWidget);
       expect(tester.takeException(), isNull);

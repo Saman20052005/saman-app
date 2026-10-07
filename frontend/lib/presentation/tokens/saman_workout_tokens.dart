@@ -29,6 +29,9 @@ class SamanWorkoutTokens {
   static const Color emeraldBadgeBg = Color(0x1A10B981); // 10% opacity
   static const Color emeraldBadgeBorder = Color(0x3310B981); // 20% opacity
   static const Color amberAccent = Color(0xFFF59E0B);
+  static const Color tealAccent = Color(0xFF14B8A6);
+  static const Color tealLightAccent = Color(0xFF2DD4BF);
+  static const Color crimsonAccent = Color(0xFFEF4444);
 
   // ─── Radii ───────────────────────────────────────────────────────────
   static const double radiusXs = 4.0;

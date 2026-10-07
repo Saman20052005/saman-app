@@ -109,7 +109,7 @@ class _WorkoutSessionCard extends StatelessWidget {
 
     final exerciseCount = session.exerciseLogs.map((log) => log.exerciseId).toSet().length;
     final totalVolume = session.totalVolumeKg;
-    final duration = session.totalDurationMinutes ?? 0;
+    final duration = session.totalDurationMinutes;
 
     return Card(
       elevation: 2,
@@ -199,7 +199,9 @@ class _WorkoutSessionCard extends StatelessWidget {
                   _StatItem(
                     icon: Icons.timer,
                     label: 'Duration',
-                    value: '${duration}m',
+                    value: duration == null
+                        ? '—'
+                        : duration == 0 ? '<1 min' : '${duration}m',
                   ),
                   _StatItem(
                     icon: Icons.monitor_weight,

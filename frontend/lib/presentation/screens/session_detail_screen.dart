@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:dio/dio.dart';
+import '../providers/exercise_providers.dart';
 import '../providers/session_detail_providers.dart';
 import '../../core/constants/app_dimens.dart';
 import '../widgets/exercise_set_log_card.dart';
@@ -33,8 +35,6 @@ class SessionDetailScreen extends ConsumerWidget {
             itemBuilder: (context, index) {
               final exerciseId = groupedLogs.keys.elementAt(index);
               final logs = groupedLogs[exerciseId]!;
-              // Lấy tên bài tập từ log đầu tiên (có thể fetch từ repository nếu cần)
-              final exerciseName = logs.first.exerciseSlug;
               return Card(
                 margin: const EdgeInsets.only(bottom: 16),
                 child: Padding(
@@ -42,10 +42,13 @@ class SessionDetailScreen extends ConsumerWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        exerciseName,
+                      DefaultTextStyle(
                         style: const TextStyle(
                             fontSize: 18, fontWeight: FontWeight.w700),
+                        child: _SessionExerciseName(
+                          key: ValueKey(exerciseId),
+                          exerciseId: exerciseId,
+                        ),
                       ),
                       const SizedBox(height: 8),
                       // Header
@@ -86,7 +89,7 @@ class SessionDetailScreen extends ConsumerWidget {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Text('Lỗi: $err'),
+              const Text('Không tải được buổi tập'),
               const SizedBox(height: 16),
               ElevatedButton(
                 onPressed: () =>
@@ -103,5 +106,77 @@ class SessionDetailScreen extends ConsumerWidget {
   int _calculateVolume(List<ExerciseSetLog> logs) {
     return logs.fold(
         0, (sum, log) => sum + (log.repsCompleted * log.weightKg).round());
+  }
+}
+
+class _SessionExerciseName extends ConsumerStatefulWidget {
+  const _SessionExerciseName({super.key, required this.exerciseId});
+
+  final String exerciseId;
+
+  @override
+  ConsumerState<_SessionExerciseName> createState() =>
+      _SessionExerciseNameState();
+}
+
+class _SessionExerciseNameState extends ConsumerState<_SessionExerciseName> {
+  late Future<Exercise> _exercise;
+
+  @override
+  void initState() {
+    super.initState();
+    _exercise = _loadExercise();
+  }
+
+  @override
+  void didUpdateWidget(covariant _SessionExerciseName oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.exerciseId != widget.exerciseId) {
+      _exercise = _loadExercise();
+    }
+  }
+
+  Future<Exercise> _loadExercise() {
+    // The default demo workout uses a legacy ID for this library exercise.
+    final libraryId =
+        widget.exerciseId == 'ex_1' ? 'db-bench-press' : widget.exerciseId;
+    return ref.read(exerciseRepositoryProvider).getExerciseById(libraryId);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<Exercise>(
+      future: _exercise,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState != ConnectionState.done) {
+          return const Text('Đang tải tên bài tập…');
+        }
+        if (snapshot.hasError) {
+          final error = snapshot.error;
+          final notFound = error is StateError ||
+              (error is DioException && error.response?.statusCode == 404);
+          if (notFound) {
+            return const Text('Bài tập không còn trong thư viện');
+          }
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('Không tải được tên bài tập'),
+              TextButton(
+                onPressed: () {
+                  final exercise = _loadExercise();
+                  setState(() {
+                    _exercise = exercise;
+                  });
+                },
+                child: const Text('Thử lại'),
+              ),
+            ],
+          );
+        }
+        final name = snapshot.data!.name.trim();
+        return Text(name.isEmpty ? 'Bài tập không có tên' : name);
+      },
+    );
   }
 }

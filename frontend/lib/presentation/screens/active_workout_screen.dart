@@ -8,8 +8,8 @@ import '../../features/workout/domain/entities/workout_plan.dart' as domain;
 import '../providers/active_workout_providers.dart';
 import '../providers/active_workout_state.dart';
 import '../tokens/saman_workout_tokens.dart';
-import 'workout_review_sheet.dart';
-import 'workout_history_screen.dart';
+import 'workout_review_screen.dart';
+import 'workout_complete_screen.dart';
 
 /// Active Workout Screen matching Stitch 04 Calm Athleticism specification
 class ActiveWorkoutScreen extends ConsumerStatefulWidget {
@@ -265,7 +265,7 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
           // Finish pill button
           InkWell(
             key: const ValueKey('active_workout_finish_button'),
-            onTap: () => _showReviewAndSaveModal(context),
+            onTap: () => _showReviewScreen(context),
             borderRadius: BorderRadius.circular(SamanWorkoutTokens.radiusPill),
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
@@ -378,21 +378,12 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
           child: Stack(
             fit: StackFit.expand,
             children: [
-              if (currentEx.imageUrl.isNotEmpty)
-                Image.network(
-                  currentEx.imageUrl,
-                  fit: BoxFit.cover,
-                  errorBuilder: (_, __, ___) => Container(
-                    color: SamanWorkoutTokens.cardSurface,
-                    child: const Icon(
-                      Icons.fitness_center,
-                      size: 48,
-                      color: SamanWorkoutTokens.textMuted,
-                    ),
-                  ),
-                )
-              else
-                Container(
+              Image.asset(
+                (currentEx.imageUrl.isNotEmpty && !currentEx.imageUrl.startsWith('http'))
+                    ? currentEx.imageUrl
+                    : 'assets/images/home_workout_upper.jpg',
+                fit: BoxFit.cover,
+                errorBuilder: (_, __, ___) => Container(
                   color: SamanWorkoutTokens.cardSurface,
                   child: const Icon(
                     Icons.fitness_center,
@@ -400,6 +391,7 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
                     color: SamanWorkoutTokens.textMuted,
                   ),
                 ),
+              ),
               // Bottom gradient
               Container(
                 decoration: BoxDecoration(
@@ -1299,7 +1291,7 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
                   ? notifier.logActiveSet
                   : session.nextExercise != null
                       ? notifier.nextExercise
-                      : () => _showReviewAndSaveModal(context),
+                      : () => _showReviewScreen(context),
               icon: const Icon(
                 Icons.check,
                 size: 18,
@@ -1407,23 +1399,22 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
     );
   }
 
-  Future<void> _showReviewAndSaveModal(BuildContext context) async {
+  Future<void> _showReviewScreen(BuildContext context) async {
     final notifier = ref.read(activeWorkoutSessionProvider.notifier);
     final wasPaused = ref.read(activeWorkoutSessionProvider).isPaused;
     notifier.pauseWorkout();
-    final saved = await showModalBottomSheet<bool>(
-      context: context,
-      isScrollControlled: true,
-      isDismissible: false,
-      enableDrag: false,
-      backgroundColor: SamanWorkoutTokens.cardSurface,
-      builder: (_) => const WorkoutReviewSheet(),
+    final savedSessionId = await Navigator.of(context).push<String>(
+      MaterialPageRoute(
+        builder: (_) => const WorkoutReviewScreen(),
+      ),
     );
-    if (!mounted) return;
-    if (saved == true) {
-      Navigator.of(context).pushReplacement(MaterialPageRoute(
-        builder: (_) => const WorkoutHistoryScreen(),
-      ));
+    if (!context.mounted) return;
+    if (savedSessionId != null) {
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(
+          builder: (_) => WorkoutCompleteScreen(sessionId: savedSessionId),
+        ),
+      );
     } else if (!wasPaused) {
       notifier.resumeWorkout();
     }

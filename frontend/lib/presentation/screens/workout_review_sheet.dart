@@ -4,6 +4,7 @@ import '../providers/active_workout_providers.dart';
 import '../providers/workout_history_providers.dart';
 import '../tokens/saman_workout_tokens.dart';
 
+@Deprecated('Superseded by WorkoutReviewScreen in checkpoint 06-07 post-workout redesign')
 class WorkoutReviewSheet extends ConsumerWidget {
   const WorkoutReviewSheet({super.key});
 
