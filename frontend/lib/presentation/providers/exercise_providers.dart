@@ -7,6 +7,60 @@ import '../../features/workout/data/repositories/mock_exercise_repository.dart';
 part 'exercise_providers.g.dart';
 part 'exercise_providers.freezed.dart';
 
+// Reviewed image variants; session records already carry the thumbnail source.
+// Variant selection stays in data so every workout surface shares the source.
+const _exercisePosterSources = <String, String>{
+  'assets/images/exercises/dumbbell-bench-press-thumb.jpg':
+      'assets/images/exercises/dumbbell-bench-press-poster.jpg',
+  'assets/images/exercises/dumbbell-bicep-curl-thumb.jpg':
+      'assets/images/exercises/dumbbell-bicep-curl-poster.jpg',
+  'assets/images/exercises/plank-thumb.jpg':
+      'assets/images/exercises/plank-poster.jpg',
+  'assets/images/exercises/dumbbell-shoulder-press-thumb.jpg':
+      'assets/images/exercises/dumbbell-shoulder-press-poster.jpg',
+  'assets/images/exercises/push-up-thumb.jpg':
+      'assets/images/exercises/push-up-poster.jpg',
+  'assets/images/exercises/barbell-back-squat-thumb.jpg':
+      'assets/images/exercises/barbell-back-squat-poster.jpg',
+  'assets/images/exercises/leg-press-thumb.jpg':
+      'assets/images/exercises/leg-press-poster.jpg',
+  'assets/images/exercises/ab-wheel-rollout-thumb.jpg':
+      'assets/images/exercises/ab-wheel-rollout-poster.jpg',
+  'assets/images/exercises/lat-pulldown-thumb.jpg':
+      'assets/images/exercises/lat-pulldown-poster.jpg',
+  'assets/images/exercises/seated-cable-row-thumb.jpg':
+      'assets/images/exercises/seated-cable-row-poster.jpg',
+  'assets/images/exercises/triceps-rope-pushdown-thumb.jpg':
+      'assets/images/exercises/triceps-rope-pushdown-poster.jpg',
+  'assets/images/exercises/romanian-deadlift-thumb.jpg':
+      'assets/images/exercises/romanian-deadlift-poster.jpg',
+  'assets/images/exercises/barbell-hip-thrust-thumb.jpg':
+      'assets/images/exercises/barbell-hip-thrust-poster.jpg',
+  'assets/images/exercises/lying-leg-curl-thumb.jpg':
+      'assets/images/exercises/lying-leg-curl-poster.jpg',
+  'assets/images/exercises/standing-calf-raise-thumb.jpg':
+      'assets/images/exercises/standing-calf-raise-poster.jpg',
+  'assets/images/exercises/hanging-leg-raise-thumb.jpg':
+      'assets/images/exercises/hanging-leg-raise-poster.jpg',
+  'assets/images/exercises/cable-woodchopper-thumb.jpg':
+      'assets/images/exercises/cable-woodchopper-poster.jpg',
+  'assets/images/exercises/incline-dumbbell-flyes-thumb.jpg':
+      'assets/images/exercises/incline-dumbbell-flyes-poster.jpg',
+  'assets/images/exercises/overhead-triceps-extension-thumb.jpg':
+      'assets/images/exercises/overhead-triceps-extension-poster.jpg',
+  'assets/images/exercises/face-pulls-thumb.jpg':
+      'assets/images/exercises/face-pulls-poster.jpg',
+};
+
+String exercisePosterSource(String thumbnailSource) =>
+    _exercisePosterSources[thumbnailSource.trim()] ?? thumbnailSource;
+
+/// A mixed session has no single exercise identity for its review banner.
+String exerciseReviewPosterSource(Iterable<String> thumbnailSources) =>
+    thumbnailSources.length == 1
+        ? _exercisePosterSources[thumbnailSources.single.trim()] ?? ''
+        : '';
+
 /// Curated fallback exercises matching design handoff exactly
 const List<Exercise> curatedExerciseLibrary = [
   Exercise(
@@ -19,8 +73,7 @@ const List<Exercise> curatedExerciseLibrary = [
     secondaryMuscles: ['Triceps', 'Shoulders', 'Anterior Deltoid'],
     equipment: ['Dumbbells', 'Flat bench'],
     difficulty: 'intermediate',
-    thumbnailUrl:
-        'https://lh3.googleusercontent.com/aida-public/AB6AXuAzZ8AN5eaYmQP_EvKw44Mfp-YxaGOwX40UdqgBZjq20Um1LTYduBYBVa8dm-3IgrFmdHVPhbSBhdaGgY3JAx_DSJvKI0-TULkJ_L7KS4B7tOsxq5n5RPpuFC32VeGylN5bZ6COF4ZIwwEVV2MM22TwFI4dDyuMTTG3O7mSlnxsrLuFa6VkeJIc9FhiyaIQ-x7ZuA9rV7PCr1S-qGYpCbjJF1VEaQ1ycjOtMsLs4ys63WeZ4Yo7E1VD',
+    thumbnailUrl: 'assets/images/exercises/dumbbell-bench-press-thumb.jpg',
     defaultSets: 4,
     defaultReps: '8-10',
     restSeconds: 90,
@@ -48,8 +101,7 @@ const List<Exercise> curatedExerciseLibrary = [
     secondaryMuscles: ['Biceps', 'Rear Deltoid'],
     equipment: ['Cable Machine', 'Lat Bar'],
     difficulty: 'beginner',
-    thumbnailUrl:
-        'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?auto=format&fit=crop&w=600&q=80',
+    thumbnailUrl: 'assets/images/exercises/lat-pulldown-thumb.jpg',
     defaultSets: 3,
     defaultReps: '10-12',
     restSeconds: 60,
@@ -75,8 +127,7 @@ const List<Exercise> curatedExerciseLibrary = [
     secondaryMuscles: ['Biceps', 'Forearms'],
     equipment: ['Cable Machine', 'V-Bar'],
     difficulty: 'intermediate',
-    thumbnailUrl:
-        'https://images.unsplash.com/photo-1581009146145-b5ef050c2e1e?auto=format&fit=crop&w=600&q=80',
+    thumbnailUrl: 'assets/images/exercises/seated-cable-row-thumb.jpg',
     defaultSets: 3,
     defaultReps: '10-12',
     restSeconds: 60,
@@ -102,8 +153,7 @@ const List<Exercise> curatedExerciseLibrary = [
     secondaryMuscles: ['Triceps', 'Upper Chest'],
     equipment: ['Dumbbells', 'Incline/Vertical Bench'],
     difficulty: 'intermediate',
-    thumbnailUrl:
-        'https://images.unsplash.com/photo-1541534741688-6078c6bfb5c5?auto=format&fit=crop&w=600&q=80',
+    thumbnailUrl: 'assets/images/exercises/dumbbell-shoulder-press-thumb.jpg',
     defaultSets: 4,
     defaultReps: '8-10',
     restSeconds: 90,
@@ -129,8 +179,7 @@ const List<Exercise> curatedExerciseLibrary = [
     secondaryMuscles: ['Core', 'Anterior Deltoid'],
     equipment: ['Bodyweight'],
     difficulty: 'beginner',
-    thumbnailUrl:
-        'https://images.unsplash.com/photo-1598971639058-fab3c3109a00?auto=format&fit=crop&w=600&q=80',
+    thumbnailUrl: 'assets/images/exercises/push-up-thumb.jpg',
     defaultSets: 3,
     defaultReps: '12-15',
     restSeconds: 60,
@@ -158,7 +207,7 @@ const List<Exercise> curatedExerciseLibrary = [
     secondaryMuscles: ['Forearms', 'Brachialis'],
     equipment: ['Dumbbells'],
     difficulty: 'beginner',
-    thumbnailUrl: '',
+    thumbnailUrl: 'assets/images/exercises/dumbbell-bicep-curl-thumb.jpg',
     defaultSets: 3,
     defaultReps: '10-12',
     restSeconds: 60,
@@ -184,7 +233,7 @@ const List<Exercise> curatedExerciseLibrary = [
     secondaryMuscles: ['Forearms'],
     equipment: ['Cable Machine', 'Rope Attachment'],
     difficulty: 'beginner',
-    thumbnailUrl: '',
+    thumbnailUrl: 'assets/images/exercises/triceps-rope-pushdown-thumb.jpg',
     defaultSets: 3,
     defaultReps: '12-15',
     restSeconds: 60,
@@ -212,7 +261,7 @@ const List<Exercise> curatedExerciseLibrary = [
     secondaryMuscles: ['Glutes', 'Hamstrings', 'Core'],
     equipment: ['Barbell', 'Squat Rack'],
     difficulty: 'intermediate',
-    thumbnailUrl: '',
+    thumbnailUrl: 'assets/images/exercises/barbell-back-squat-thumb.jpg',
     defaultSets: 4,
     defaultReps: '6-8',
     restSeconds: 120,
@@ -240,7 +289,7 @@ const List<Exercise> curatedExerciseLibrary = [
     secondaryMuscles: ['Glutes', 'Lower Back', 'Forearms'],
     equipment: ['Barbell'],
     difficulty: 'intermediate',
-    thumbnailUrl: '',
+    thumbnailUrl: 'assets/images/exercises/romanian-deadlift-thumb.jpg',
     defaultSets: 3,
     defaultReps: '8-10',
     restSeconds: 90,
@@ -266,7 +315,7 @@ const List<Exercise> curatedExerciseLibrary = [
     secondaryMuscles: ['Hamstrings', 'Adductors'],
     equipment: ['Barbell', 'Flat bench'],
     difficulty: 'intermediate',
-    thumbnailUrl: '',
+    thumbnailUrl: 'assets/images/exercises/barbell-hip-thrust-thumb.jpg',
     defaultSets: 4,
     defaultReps: '10-12',
     restSeconds: 90,
@@ -292,7 +341,7 @@ const List<Exercise> curatedExerciseLibrary = [
     secondaryMuscles: ['Glutes', 'Calves'],
     equipment: ['Leg Press Machine'],
     difficulty: 'beginner',
-    thumbnailUrl: '',
+    thumbnailUrl: 'assets/images/exercises/leg-press-thumb.jpg',
     defaultSets: 3,
     defaultReps: '10-12',
     restSeconds: 90,
@@ -319,7 +368,7 @@ const List<Exercise> curatedExerciseLibrary = [
     secondaryMuscles: ['Calves'],
     equipment: ['Leg Curl Machine'],
     difficulty: 'beginner',
-    thumbnailUrl: '',
+    thumbnailUrl: 'assets/images/exercises/lying-leg-curl-thumb.jpg',
     defaultSets: 3,
     defaultReps: '12-15',
     restSeconds: 60,
@@ -345,7 +394,7 @@ const List<Exercise> curatedExerciseLibrary = [
     secondaryMuscles: ['Foot stabilizers'],
     equipment: ['Calf Raise Machine'],
     difficulty: 'beginner',
-    thumbnailUrl: '',
+    thumbnailUrl: 'assets/images/exercises/standing-calf-raise-thumb.jpg',
     defaultSets: 4,
     defaultReps: '12-15',
     restSeconds: 60,
@@ -373,7 +422,7 @@ const List<Exercise> curatedExerciseLibrary = [
     secondaryMuscles: ['Shoulders', 'Glutes'],
     equipment: ['Bodyweight'],
     difficulty: 'beginner',
-    thumbnailUrl: '',
+    thumbnailUrl: 'assets/images/exercises/plank-thumb.jpg',
     defaultSets: 3,
     defaultReps: '45-60',
     restSeconds: 60,
@@ -400,7 +449,7 @@ const List<Exercise> curatedExerciseLibrary = [
     secondaryMuscles: ['Forearms', 'Lats'],
     equipment: ['Pull-up Bar'],
     difficulty: 'advanced',
-    thumbnailUrl: '',
+    thumbnailUrl: 'assets/images/exercises/hanging-leg-raise-thumb.jpg',
     defaultSets: 3,
     defaultReps: '10-12',
     restSeconds: 75,
@@ -426,7 +475,7 @@ const List<Exercise> curatedExerciseLibrary = [
     secondaryMuscles: ['Shoulders'],
     equipment: ['Cable Machine'],
     difficulty: 'intermediate',
-    thumbnailUrl: '',
+    thumbnailUrl: 'assets/images/exercises/cable-woodchopper-thumb.jpg',
     defaultSets: 3,
     defaultReps: '10-12',
     restSeconds: 60,
@@ -452,7 +501,7 @@ const List<Exercise> curatedExerciseLibrary = [
     secondaryMuscles: ['Lats', 'Shoulders'],
     equipment: ['Ab Wheel'],
     difficulty: 'intermediate',
-    thumbnailUrl: '',
+    thumbnailUrl: 'assets/images/exercises/ab-wheel-rollout-thumb.jpg',
     defaultSets: 3,
     defaultReps: '8-10',
     restSeconds: 75,

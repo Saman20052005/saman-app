@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:cached_network_image/cached_network_image.dart';
+import '../widgets/exercise_thumbnail.dart';
+import '../providers/exercise_providers.dart';
 import '../../data/models/exercise.dart';
 import '../tokens/saman_workout_tokens.dart';
 import 'active_workout_screen.dart';
@@ -214,82 +215,41 @@ class ExerciseDetailScreen extends ConsumerWidget {
   }
 
   Widget _buildVideoPreview(BuildContext context) {
-    final Widget previewContent;
-    if (exercise.thumbnailUrl.isEmpty) {
-      previewContent = Container(
-        width: double.infinity,
-        height: 180,
-        decoration: BoxDecoration(
-          color: SamanWorkoutTokens.cardSurface,
-          borderRadius: BorderRadius.circular(SamanWorkoutTokens.radiusLg),
-          border: Border.all(color: SamanWorkoutTokens.border),
-        ),
-        child: const Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
-                Icons.fitness_center_outlined,
-                size: 40,
-                color: SamanWorkoutTokens.textMuted,
-              ),
-              SizedBox(height: 8),
-              Text(
-                'Exercise image unavailable',
-                style: TextStyle(
-                  color: SamanWorkoutTokens.textSecondary,
-                  fontSize: 13,
-                ),
-              ),
-            ],
+    final previewContent = Container(
+      width: double.infinity,
+      height: exercisePosterSource(exercise.thumbnailUrl).isEmpty ? 180 : 200,
+      decoration: BoxDecoration(
+        color: SamanWorkoutTokens.cardSurface,
+        borderRadius: BorderRadius.circular(SamanWorkoutTokens.radiusLg),
+        border: Border.all(color: SamanWorkoutTokens.border),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          ExerciseThumbnail(
+            source: exercisePosterSource(exercise.thumbnailUrl),
+            fit: BoxFit.contain,
+            showUnavailableLabel: true,
           ),
-        ),
-      );
-    } else {
-      previewContent = Container(
-        width: double.infinity,
-        height: 200,
-        decoration: BoxDecoration(
-          color: SamanWorkoutTokens.cardSurface,
-          borderRadius: BorderRadius.circular(SamanWorkoutTokens.radiusLg),
-          border: Border.all(color: SamanWorkoutTokens.border),
-        ),
-        clipBehavior: Clip.antiAlias,
-        child: Stack(
-          fit: StackFit.expand,
-          children: [
-            // Photo Poster
-            CachedNetworkImage(
-              imageUrl: exercise.thumbnailUrl,
-              fit: BoxFit.cover,
-              placeholder: (_, __) =>
-                  Container(color: SamanWorkoutTokens.surfaceElevated),
-              errorWidget: (_, __, ___) => Container(
-                color: SamanWorkoutTokens.surfaceElevated,
-                child: const Icon(Icons.fitness_center_outlined,
-                    color: SamanWorkoutTokens.textMuted, size: 48),
+          // Gradient overlay
+          Container(
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.bottomCenter,
+                end: Alignment.topCenter,
+                colors: [
+                  Color(0xB30C0D0E),
+                  Colors.transparent,
+                  Color(0x4D0C0D0E),
+                ],
+                stops: [0.0, 0.5, 1.0],
               ),
             ),
-
-            // Gradient overlay
-            Container(
-              decoration: const BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.bottomCenter,
-                  end: Alignment.topCenter,
-                  colors: [
-                    Color(0xB30C0D0E),
-                    Colors.transparent,
-                    Color(0x4D0C0D0E),
-                  ],
-                  stops: [0.0, 0.5, 1.0],
-                ),
-              ),
-            ),
-          ],
-        ),
-      );
-    }
+          ),
+        ],
+      ),
+    );
 
     return InkWell(
       key: const ValueKey('exercise_detail_video_preview'),

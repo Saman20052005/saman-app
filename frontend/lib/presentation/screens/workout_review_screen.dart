@@ -4,8 +4,10 @@ import 'package:intl/intl.dart';
 
 import '../providers/active_workout_providers.dart';
 import '../providers/active_workout_state.dart';
+import '../providers/exercise_providers.dart';
 import '../providers/workout_history_providers.dart';
 import '../tokens/saman_workout_tokens.dart';
+import '../widgets/exercise_thumbnail.dart';
 
 /// Checkpoint 06: Review & Save Screen (Standalone Pre-Save Screen)
 /// Calm Athleticism obsidian visual hierarchy matching approved screen.png / code.html
@@ -216,7 +218,7 @@ class _WorkoutReviewScreenState extends ConsumerState<WorkoutReviewScreen> {
                   ),
                   const SizedBox(height: 16),
 
-                  // Gym Editorial Banner
+                  // Session image banner
                   Container(
                     height: 144,
                     width: double.infinity,
@@ -230,19 +232,12 @@ class _WorkoutReviewScreenState extends ConsumerState<WorkoutReviewScreen> {
                     child: Stack(
                       fit: StackFit.expand,
                       children: [
-                        Image.asset(
-                          'assets/images/home_workout_upper.jpg',
-                          fit: BoxFit.cover,
-                          errorBuilder: (_, __, ___) => Container(
-                            color: SamanWorkoutTokens.cardSurface,
-                            child: const Center(
-                              child: Icon(
-                                Icons.fitness_center,
-                                size: 48,
-                                color: SamanWorkoutTokens.border,
-                              ),
-                            ),
+                        ExerciseThumbnail(
+                          source: exerciseReviewPosterSource(
+                            performedExercises.map((exercise) => exercise.imageUrl),
                           ),
+                          fit: BoxFit.contain,
+                          showUnavailableLabel: true,
                         ),
                         Container(
                           decoration: BoxDecoration(
@@ -714,15 +709,7 @@ class _WorkoutReviewScreenState extends ConsumerState<WorkoutReviewScreen> {
                       BorderRadius.circular(SamanWorkoutTokens.radiusSm),
                 ),
                 clipBehavior: Clip.antiAlias,
-                child: Image.asset(
-                  'assets/images/workout.jpg',
-                  fit: BoxFit.cover,
-                  errorBuilder: (_, __, ___) => const Icon(
-                    Icons.fitness_center,
-                    color: SamanWorkoutTokens.textSecondary,
-                    size: 24,
-                  ),
-                ),
+                child: ExerciseThumbnail(source: exercise.imageUrl),
               ),
               const SizedBox(width: 12),
               Expanded(

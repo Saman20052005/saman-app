@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:cached_network_image/cached_network_image.dart';
+import '../widgets/exercise_thumbnail.dart';
 import '../../data/models/exercise.dart';
 import '../providers/exercise_providers.dart';
 import '../tokens/saman_workout_tokens.dart';
@@ -667,47 +667,11 @@ class _ExerciseMovementRow extends StatelessWidget {
             // Thumbnail
             ClipRRect(
               borderRadius: BorderRadius.circular(SamanWorkoutTokens.radiusMd),
-              child: exercise.thumbnailUrl.isNotEmpty
-                  ? CachedNetworkImage(
-                      imageUrl: exercise.thumbnailUrl,
-                      width: 68,
-                      height: 68,
-                      fit: BoxFit.cover,
-                      placeholder: (_, __) => Container(
-                        width: 68,
-                        height: 68,
-                        color: SamanWorkoutTokens.surfaceElevated,
-                        child: const Center(
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: SamanWorkoutTokens.emeraldAccent,
-                          ),
-                        ),
-                      ),
-                      errorWidget: (_, __, ___) => Container(
-                        width: 68,
-                        height: 68,
-                        color: SamanWorkoutTokens.surfaceElevated,
-                        child: const Icon(Icons.fitness_center_outlined,
-                            color: SamanWorkoutTokens.textMuted, size: 24),
-                      ),
-                    )
-                  : Container(
-                      width: 68,
-                      height: 68,
-                      decoration: BoxDecoration(
-                        color: SamanWorkoutTokens.surfaceElevated,
-                        borderRadius:
-                            BorderRadius.circular(SamanWorkoutTokens.radiusMd),
-                        border:
-                            Border.all(color: SamanWorkoutTokens.borderSubtle),
-                      ),
-                      child: const Icon(
-                        Icons.fitness_center_outlined,
-                        color: SamanWorkoutTokens.textMuted,
-                        size: 24,
-                      ),
-                    ),
+              child: ExerciseThumbnail(
+                source: exercise.thumbnailUrl,
+                width: 68,
+                height: 68,
+              ),
             ),
             const SizedBox(width: SamanWorkoutTokens.spacingMd),
 

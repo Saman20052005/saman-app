@@ -8,6 +8,8 @@ import '../../features/workout/domain/entities/workout_plan.dart' as domain;
 import '../providers/active_workout_providers.dart';
 import '../providers/active_workout_state.dart';
 import '../tokens/saman_workout_tokens.dart';
+import '../providers/exercise_providers.dart';
+import '../widgets/exercise_thumbnail.dart';
 import 'workout_review_screen.dart';
 import 'workout_complete_screen.dart';
 
@@ -378,19 +380,10 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
           child: Stack(
             fit: StackFit.expand,
             children: [
-              Image.asset(
-                (currentEx.imageUrl.isNotEmpty && !currentEx.imageUrl.startsWith('http'))
-                    ? currentEx.imageUrl
-                    : 'assets/images/home_workout_upper.jpg',
-                fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) => Container(
-                  color: SamanWorkoutTokens.cardSurface,
-                  child: const Icon(
-                    Icons.fitness_center,
-                    size: 48,
-                    color: SamanWorkoutTokens.textMuted,
-                  ),
-                ),
+              ExerciseThumbnail(
+                source: exercisePosterSource(currentEx.imageUrl),
+                fit: BoxFit.contain,
+                showUnavailableLabel: true,
               ),
               // Bottom gradient
               Container(

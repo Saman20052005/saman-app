@@ -8,6 +8,7 @@ import 'package:health_ai_app/presentation/screens/workout_home_screen.dart';
 import 'package:health_ai_app/presentation/screens/exercise_library_screen.dart';
 import 'package:health_ai_app/presentation/screens/exercise_detail_screen.dart';
 import 'package:health_ai_app/presentation/providers/exercise_providers.dart';
+import 'package:health_ai_app/presentation/widgets/exercise_thumbnail.dart';
 import 'package:health_ai_app/presentation/providers/workout_history_providers.dart';
 import 'package:health_ai_app/presentation/tokens/saman_workout_tokens.dart';
 import 'package:health_ai_app/screens/home/widgets/saman_bottom_navigation_bar.dart';
@@ -287,7 +288,7 @@ void main() {
       secondaryMuscles: ['Triceps', 'Shoulders'],
       equipment: ['Dumbbells', 'Flat bench'],
       difficulty: 'intermediate',
-      thumbnailUrl: 'https://example.com/bench.jpg',
+      thumbnailUrl: 'assets/images/exercises/dumbbell-bench-press-thumb.jpg',
       defaultSets: 4,
       defaultReps: '8-10',
       restSeconds: 90,
@@ -348,6 +349,10 @@ void main() {
     expect(find.text('Live Form Check'), findsNothing);
 
     // Start Exercise now opens the selected movement in Active Workout.
+    final context = tester.element(find.byType(ExerciseDetailScreen));
+    await tester.runAsync(() => precacheImage(
+        const AssetImage('assets/images/exercises/dumbbell-bench-press-poster.jpg'),
+        context));
     await tester.tap(find.text('Start exercise'));
     await tester.pumpAndSettle();
     expect(find.byType(ActiveWorkoutScreen), findsOneWidget);
@@ -712,6 +717,11 @@ void main() {
 
     await tester.pump();
 
+    await tester.runAsync(() => precacheImage(
+        AssetImage(exercisePosterSource(squatExercise.thumbnailUrl)),
+        tester.element(find.byType(ExerciseDetailScreen))));
+    await tester.pumpAndSettle();
+
     // Verify Title & Vietnamese subtitle
     expect(find.text('Barbell Back Squat'), findsOneWidget);
     expect(find.text('Gánh tạ đòn ngang lưng'), findsOneWidget);
@@ -739,7 +749,10 @@ void main() {
     // Verify honest media state: NO Video Guide or play arrow
     expect(find.text('VIDEO GUIDE'), findsNothing);
     expect(find.byIcon(Icons.play_arrow), findsNothing);
-    expect(find.text('Exercise image unavailable'), findsOneWidget);
+    expect(find.text('Exercise image unavailable'), findsNothing);
+    final poster = tester.widget<ExerciseThumbnail>(find.byType(ExerciseThumbnail));
+    expect(poster.source, 'assets/images/exercises/barbell-back-squat-poster.jpg');
+    expect(poster.fit, BoxFit.contain);
 
     // Verify honest instructions state and actual form cues
     expect(find.text('How to perform'), findsOneWidget);
