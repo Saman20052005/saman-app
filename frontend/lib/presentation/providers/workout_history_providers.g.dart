@@ -23,7 +23,7 @@ final workoutHistoryProvider =
 
 typedef WorkoutHistoryRef = AutoDisposeFutureProviderRef<List<WorkoutSession>>;
 String _$activeSessionSaverHash() =>
-    r'fce6792182481e2a80fa2ee0b1f32d9ca3bf7010';
+    r'cbd28c4225d1485e3661a80f960b655d00c32375';
 
 /// See also [ActiveSessionSaver].
 @ProviderFor(ActiveSessionSaver)

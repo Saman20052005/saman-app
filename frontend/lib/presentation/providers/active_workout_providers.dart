@@ -77,8 +77,8 @@ class ActiveWorkoutSessionNotifier
   void setDraftWeight(double weight) {
     final current = state.currentExercise;
     if (current == null) return;
-    _updateCurrentExercise(
-        current.copyWith(draftWeightKg: weight.clamp(0.0, 500.0)));
+    _updateCurrentExercise(current.copyWith(
+        draftWeightKg: current.unit == SetUnit.seconds ? 0 : weight.clamp(0.0, 500.0)));
   }
 
   void setDraftReps(int reps) {
@@ -87,10 +87,21 @@ class ActiveWorkoutSessionNotifier
     _updateCurrentExercise(current.copyWith(draftReps: reps.clamp(1, 999)));
   }
 
+  void setDraftSeconds(int? seconds) {
+    final current = state.currentExercise;
+    if (current == null || current.unit != SetUnit.seconds) return;
+    final valid = seconds != null && seconds >= 1 && seconds <= 999;
+    _updateCurrentExercise(current.copyWith(
+      draftSeconds: valid ? seconds : null,
+      clearDraftSeconds: !valid,
+    ));
+  }
+
   void adjustDraftWeight(double delta) {
     final current = state.currentExercise;
     if (current == null) return;
-    final newWeight = (current.draftWeightKg + delta).clamp(0.0, 500.0);
+    final newWeight = current.unit == SetUnit.seconds
+        ? 0.0 : (current.draftWeightKg + delta).clamp(0.0, 500.0);
     _updateCurrentExercise(current.copyWith(draftWeightKg: newWeight));
   }
 
@@ -104,7 +115,7 @@ class ActiveWorkoutSessionNotifier
   /// Single action contract: Log Set is the ONLY action that records the set
   void logActiveSet() {
     final current = state.currentExercise;
-    if (current == null) return;
+    if (current == null || !current.canLogSet) return;
     final sets = [...current.sets];
     int activeIdx = sets.indexWhere((s) => s.isActive);
     if (activeIdx == -1) {
@@ -116,8 +127,9 @@ class ActiveWorkoutSessionNotifier
     final loggedSet = sets[activeIdx].copyWith(
       isCompleted: true,
       isActive: false,
-      weightKg: current.draftWeightKg,
-      reps: current.draftReps,
+      weightKg: current.unit == SetUnit.seconds ? 0 : current.draftWeightKg,
+      reps: current.unit == SetUnit.seconds ? 0 : current.draftReps,
+      seconds: current.unit == SetUnit.seconds ? current.draftSeconds : null,
     );
     sets[activeIdx] = loggedSet;
 
@@ -125,17 +137,20 @@ class ActiveWorkoutSessionNotifier
     final nextSetIdx = sets.indexWhere((s) => !s.isCompleted);
     double nextDraftWeight = current.draftWeightKg;
     int nextDraftReps = current.draftReps;
+    int? nextDraftSeconds = current.draftSeconds;
 
     if (nextSetIdx != -1) {
       sets[nextSetIdx] = sets[nextSetIdx].copyWith(isActive: true);
       nextDraftWeight = sets[nextSetIdx].targetWeightKg;
       nextDraftReps = sets[nextSetIdx].targetReps;
+      nextDraftSeconds = sets[nextSetIdx].targetSeconds;
     }
 
     final updatedExercise = current.copyWith(
       sets: sets,
       draftWeightKg: nextDraftWeight,
       draftReps: nextDraftReps,
+      draftSeconds: nextDraftSeconds,
     );
 
     final updatedExercises = [...state.exercises];
@@ -169,8 +184,14 @@ class ActiveWorkoutSessionNotifier
     final hasActive = sets.any((s) => s.isActive);
     final newSet = ActiveWorkoutSetInfo(
       setNumber: newSetNumber,
-      targetWeightKg: current.draftWeightKg,
+      targetWeightKg: current.unit == SetUnit.seconds ? 0 : current.draftWeightKg,
       targetReps: current.draftReps,
+      unit: current.unit,
+      targetSeconds: current.unit == SetUnit.seconds
+          ? current.draftSeconds ?? current.sets.firstWhere((set) =>
+              set.targetSeconds != null &&
+              set.targetSeconds! >= 1 && set.targetSeconds! <= 999).targetSeconds
+          : current.draftSeconds,
       isActive: !hasActive && sets.every((s) => s.isCompleted),
     );
     sets.add(newSet);

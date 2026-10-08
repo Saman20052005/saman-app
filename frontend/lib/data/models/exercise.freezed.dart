@@ -601,12 +601,13 @@ mixin _$ExerciseSetLog {
   String get exerciseSlug => throw _privateConstructorUsedError;
   int get setNumber => throw _privateConstructorUsedError;
   int get repsCompleted => throw _privateConstructorUsedError;
+  SetUnit? get unit => throw _privateConstructorUsedError;
+  int? get secondsCompleted => throw _privateConstructorUsedError;
   double get weightKg => throw _privateConstructorUsedError;
   bool get isCompleted => throw _privateConstructorUsedError;
   int? get restTakenSeconds => throw _privateConstructorUsedError;
   bool get cvDetected => throw _privateConstructorUsedError;
 
-  Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
   @JsonKey(ignore: true)
   $ExerciseSetLogCopyWith<ExerciseSetLog> get copyWith =>
       throw _privateConstructorUsedError;
@@ -623,6 +624,8 @@ abstract class $ExerciseSetLogCopyWith<$Res> {
       String exerciseSlug,
       int setNumber,
       int repsCompleted,
+      SetUnit? unit,
+      int? secondsCompleted,
       double weightKg,
       bool isCompleted,
       int? restTakenSeconds,
@@ -646,6 +649,8 @@ class _$ExerciseSetLogCopyWithImpl<$Res, $Val extends ExerciseSetLog>
     Object? exerciseSlug = null,
     Object? setNumber = null,
     Object? repsCompleted = null,
+    Object? unit = freezed,
+    Object? secondsCompleted = freezed,
     Object? weightKg = null,
     Object? isCompleted = null,
     Object? restTakenSeconds = freezed,
@@ -668,6 +673,14 @@ class _$ExerciseSetLogCopyWithImpl<$Res, $Val extends ExerciseSetLog>
           ? _value.repsCompleted
           : repsCompleted // ignore: cast_nullable_to_non_nullable
               as int,
+      unit: freezed == unit
+          ? _value.unit
+          : unit // ignore: cast_nullable_to_non_nullable
+              as SetUnit?,
+      secondsCompleted: freezed == secondsCompleted
+          ? _value.secondsCompleted
+          : secondsCompleted // ignore: cast_nullable_to_non_nullable
+              as int?,
       weightKg: null == weightKg
           ? _value.weightKg
           : weightKg // ignore: cast_nullable_to_non_nullable
@@ -701,6 +714,8 @@ abstract class _$$ExerciseSetLogImplCopyWith<$Res>
       String exerciseSlug,
       int setNumber,
       int repsCompleted,
+      SetUnit? unit,
+      int? secondsCompleted,
       double weightKg,
       bool isCompleted,
       int? restTakenSeconds,
@@ -722,6 +737,8 @@ class __$$ExerciseSetLogImplCopyWithImpl<$Res>
     Object? exerciseSlug = null,
     Object? setNumber = null,
     Object? repsCompleted = null,
+    Object? unit = freezed,
+    Object? secondsCompleted = freezed,
     Object? weightKg = null,
     Object? isCompleted = null,
     Object? restTakenSeconds = freezed,
@@ -744,6 +761,14 @@ class __$$ExerciseSetLogImplCopyWithImpl<$Res>
           ? _value.repsCompleted
           : repsCompleted // ignore: cast_nullable_to_non_nullable
               as int,
+      unit: freezed == unit
+          ? _value.unit
+          : unit // ignore: cast_nullable_to_non_nullable
+              as SetUnit?,
+      secondsCompleted: freezed == secondsCompleted
+          ? _value.secondsCompleted
+          : secondsCompleted // ignore: cast_nullable_to_non_nullable
+              as int?,
       weightKg: null == weightKg
           ? _value.weightKg
           : weightKg // ignore: cast_nullable_to_non_nullable
@@ -765,17 +790,20 @@ class __$$ExerciseSetLogImplCopyWithImpl<$Res>
 }
 
 /// @nodoc
-@JsonSerializable()
-class _$ExerciseSetLogImpl implements _ExerciseSetLog {
-  const _$ExerciseSetLogImpl(
+@JsonSerializable(createToJson: false)
+class _$ExerciseSetLogImpl extends _ExerciseSetLog {
+  _$ExerciseSetLogImpl(
       {required this.exerciseId,
       required this.exerciseSlug,
       required this.setNumber,
       required this.repsCompleted,
+      this.unit,
+      this.secondsCompleted,
       required this.weightKg,
       this.isCompleted = false,
       this.restTakenSeconds,
-      this.cvDetected = false});
+      this.cvDetected = false})
+      : super._();
 
   factory _$ExerciseSetLogImpl.fromJson(Map<String, dynamic> json) =>
       _$$ExerciseSetLogImplFromJson(json);
@@ -789,6 +817,10 @@ class _$ExerciseSetLogImpl implements _ExerciseSetLog {
   @override
   final int repsCompleted;
   @override
+  final SetUnit? unit;
+  @override
+  final int? secondsCompleted;
+  @override
   final double weightKg;
   @override
   @JsonKey()
@@ -801,7 +833,7 @@ class _$ExerciseSetLogImpl implements _ExerciseSetLog {
 
   @override
   String toString() {
-    return 'ExerciseSetLog(exerciseId: $exerciseId, exerciseSlug: $exerciseSlug, setNumber: $setNumber, repsCompleted: $repsCompleted, weightKg: $weightKg, isCompleted: $isCompleted, restTakenSeconds: $restTakenSeconds, cvDetected: $cvDetected)';
+    return 'ExerciseSetLog(exerciseId: $exerciseId, exerciseSlug: $exerciseSlug, setNumber: $setNumber, repsCompleted: $repsCompleted, unit: $unit, secondsCompleted: $secondsCompleted, weightKg: $weightKg, isCompleted: $isCompleted, restTakenSeconds: $restTakenSeconds, cvDetected: $cvDetected)';
   }
 
   @override
@@ -817,6 +849,9 @@ class _$ExerciseSetLogImpl implements _ExerciseSetLog {
                 other.setNumber == setNumber) &&
             (identical(other.repsCompleted, repsCompleted) ||
                 other.repsCompleted == repsCompleted) &&
+            (identical(other.unit, unit) || other.unit == unit) &&
+            (identical(other.secondsCompleted, secondsCompleted) ||
+                other.secondsCompleted == secondsCompleted) &&
             (identical(other.weightKg, weightKg) ||
                 other.weightKg == weightKg) &&
             (identical(other.isCompleted, isCompleted) ||
@@ -835,6 +870,8 @@ class _$ExerciseSetLogImpl implements _ExerciseSetLog {
       exerciseSlug,
       setNumber,
       repsCompleted,
+      unit,
+      secondsCompleted,
       weightKg,
       isCompleted,
       restTakenSeconds,
@@ -846,25 +883,21 @@ class _$ExerciseSetLogImpl implements _ExerciseSetLog {
   _$$ExerciseSetLogImplCopyWith<_$ExerciseSetLogImpl> get copyWith =>
       __$$ExerciseSetLogImplCopyWithImpl<_$ExerciseSetLogImpl>(
           this, _$identity);
-
-  @override
-  Map<String, dynamic> toJson() {
-    return _$$ExerciseSetLogImplToJson(
-      this,
-    );
-  }
 }
 
-abstract class _ExerciseSetLog implements ExerciseSetLog {
-  const factory _ExerciseSetLog(
+abstract class _ExerciseSetLog extends ExerciseSetLog {
+  factory _ExerciseSetLog(
       {required final String exerciseId,
       required final String exerciseSlug,
       required final int setNumber,
       required final int repsCompleted,
+      final SetUnit? unit,
+      final int? secondsCompleted,
       required final double weightKg,
       final bool isCompleted,
       final int? restTakenSeconds,
       final bool cvDetected}) = _$ExerciseSetLogImpl;
+  _ExerciseSetLog._() : super._();
 
   factory _ExerciseSetLog.fromJson(Map<String, dynamic> json) =
       _$ExerciseSetLogImpl.fromJson;
@@ -877,6 +910,10 @@ abstract class _ExerciseSetLog implements ExerciseSetLog {
   int get setNumber;
   @override
   int get repsCompleted;
+  @override
+  SetUnit? get unit;
+  @override
+  int? get secondsCompleted;
   @override
   double get weightKg;
   @override

@@ -93,6 +93,175 @@ void main() {
     GoogleFonts.config.allowRuntimeFetching = false;
     await loadTestFonts();
   });
+  testWidgets('Plank Detail -> seconds input -> Log -> Review/back -> Save -> Complete -> History/detail',
+      (tester) async {
+    final container = await mount(tester,
+        const ExerciseLibraryScreen(initialCategory: 'All'), workoutOnlyTheme: true);
+    await loadImages(tester, curatedExerciseLibrary.expand((e) =>
+        [e.thumbnailUrl, exercisePosterSource(e.thumbnailUrl)]));
+    await tester.enterText(find.byType(TextField), 'plank');
+    await tester.pumpAndSettle();
+    await tap(tester, find.byKey(const ValueKey('exercise_row_plank')));
+    await tap(tester, find.byKey(const ValueKey('exercise_detail_start_button')));
+    final active = container.read(activeWorkoutSessionProvider.notifier);
+    final sessionId = active.sessionId;
+    final input = find.byKey(const ValueKey('active_workout_seconds_input'));
+    final logButton = find.byKey(const ValueKey('active_workout_log_set_button'));
+    expect(find.text('SECONDS'), findsOneWidget);
+    expect(find.text('REPS'), findsNothing);
+    expect(find.byKey(const ValueKey('active_workout_weight_plus')), findsNothing);
+    expect(find.text('TARGET: 45 s'), findsOneWidget);
+    for (final value in ['', '0', '-1', '1000', 'abc', '1.5']) {
+      await tester.ensureVisible(input);
+      await tester.enterText(input, value);
+      await tester.pump();
+      expect(tester.widget<ElevatedButton>(logButton).onPressed, isNull);
+      active.logActiveSet();
+      expect(container.read(activeWorkoutSessionProvider).completedSetsCount, 0);
+    }
+    await tap(tester, find.byKey(const ValueKey('active_workout_add_set_button')));
+    expect(container.read(activeWorkoutSessionProvider).currentExercise!.sets.last.targetSeconds, 45);
+    expect(tester.widget<ElevatedButton>(logButton).onPressed, isNull);
+    expect(find.text('null s'), findsNothing);
+    await tester.ensureVisible(input);
+    await tester.enterText(input, '50');
+    await tester.pump();
+    await tap(tester, logButton);
+    expect(find.text('50 s'), findsOneWidget);
+    expect(container.read(activeWorkoutSessionProvider).currentExercise!.sets.first.seconds, 50);
+    expect(container.read(activeWorkoutSessionProvider).currentExercise!.draftSeconds, 45);
+    await tester.ensureVisible(input);
+    await tester.enterText(input, '52');
+    active.tick(); active.addRestSeconds(30);
+    await tester.pump();
+    expect(container.read(activeWorkoutSessionProvider).currentExercise!.draftSeconds, 52);
+    expect(tester.widget<EditableText>(find.descendant(of: input,
+        matching: find.byType(EditableText))).controller.text, '52');
+    await tap(tester, find.byKey(const ValueKey('active_workout_finish_button')));
+    expect(find.byType(WorkoutReviewScreen), findsOneWidget);
+    expect(find.text('50 s'), findsOneWidget);
+    expect(find.textContaining('0 reps'), findsNothing);
+    final before = container.read(activeWorkoutSessionProvider);
+    await tap(tester, find.byKey(const ValueKey('keep_training_button')));
+    expect(active.sessionId, sessionId);
+    expect(container.read(activeWorkoutSessionProvider).exercises, same(before.exercises));
+    await tester.ensureVisible(input);
+    expect(tester.widget<EditableText>(find.descendant(of: input,
+        matching: find.byType(EditableText))).controller.text, '52');
+    await tap(tester, find.byKey(const ValueKey('active_workout_finish_button')));
+    await tap(tester, find.byKey(const ValueKey('save_session_button')));
+    expect(find.byType(WorkoutCompleteScreen), findsOneWidget);
+    expect(find.text('50 s'), findsOneWidget);
+    expect(find.text('VOLUME BY EXERCISE'), findsNothing);
+    final repo = container.read(exerciseRepositoryProvider);
+    final saved = await repo.getSessionById(sessionId);
+    expect(saved.exerciseLogs.single.secondsCompleted, 50);
+    expect(saved.exerciseLogs.single.repsCompleted, 0);
+    expect(saved.exerciseLogs.single.unit, SetUnit.seconds);
+    expect(saved.totalVolumeKg, 0);
+    expect(saved.totalDurationMinutes, 0);
+    await tap(tester, find.text('View workout history'));
+    await tap(tester, find.text('Plank'));
+    expect(find.byType(SessionDetailScreen), findsOneWidget);
+    expect(find.text('50 s'), findsOneWidget);
+    expect(find.text('0 reps'), findsNothing);
+    expect(find.text('0 kg'), findsNothing);
+    expect(find.text('Seconds'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets('Mixed Bench 8 x 26 and Plank 50s saves 208kg with no timed volume bar',
+      (tester) async {
+    final container = await mount(tester, ActiveWorkoutScreen(
+      autoTick: false, exercises: [
+        curatedExerciseLibrary.first.copyWith(defaultSets: 1),
+        curatedExerciseLibrary.singleWhere((e) => e.id == 'plank').copyWith(defaultSets: 1),
+      ],
+    ));
+    final active = container.read(activeWorkoutSessionProvider.notifier);
+    active.setDraftWeight(26); active.setDraftReps(8);
+    await tester.pump();
+    await tap(tester, find.text('Log Set 1'));
+    await tap(tester, find.text('Next exercise'));
+    final input = find.byKey(const ValueKey('active_workout_seconds_input'));
+    await tester.ensureVisible(input); await tester.enterText(input, '50');
+    await tester.pump(); await tap(tester, find.text('Log Set 1'));
+    await tap(tester, find.byKey(const ValueKey('active_workout_finish_button')));
+    expect(find.text('50 s'), findsOneWidget);
+    expect(find.text('26 kg \u00d7 8 reps'), findsOneWidget);
+    await tap(tester, find.byKey(const ValueKey('save_session_button')));
+    final saved = await container.read(exerciseRepositoryProvider).getSessionById(active.sessionId);
+    expect(saved.totalVolumeKg, 208);
+    expect(saved.exerciseLogs.map((s) => s.volumeKg), [208, 0]);
+    await tester.pumpAndSettle();
+    expect(find.byType(WorkoutCompleteScreen), findsOneWidget);
+    final chart = find.text('VOLUME BY EXERCISE');
+    await tester.ensureVisible(chart); await tester.pump();
+    expect(chart, findsOneWidget);
+    expect(find.text('208 kg (100.0%)'), findsOneWidget);
+    expect(find.text('0 kg (0.0%)'), findsNothing);
+    await tap(tester, find.text('View workout history'));
+    await tap(tester, find.text('Custom Workout'));
+    expect(find.text('8 reps'), findsOneWidget);
+    expect(find.text('26 kg'), findsOneWidget);
+    expect(find.text('50 s'), findsOneWidget);
+    expect(find.text('Total volume: 208 kg'), findsOneWidget);
+    expect(find.text('Total volume: 0 kg'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets('Plank Create Plan shows timed prescription and starts saved/edited plan',
+      (tester) async {
+    final container = await mount(tester, const MyPlansScreen(), workoutOnlyTheme: true);
+    await tap(tester, find.text('T\u1ea1o Plan m\u1edbi'));
+    await tester.enterText(find.byType(TextField), 'Timed plan');
+    await tap(tester, find.text('M\u1edf Library'));
+    await tester.enterText(find.byType(TextField), 'plank');
+    await tester.pumpAndSettle();
+    await tap(tester, find.byKey(const ValueKey('exercise_row_plank')));
+    expect(find.text('3 sets \u00d7 45-60 s'), findsOneWidget);
+    await tap(tester, find.text('L\u01b0u Plan'));
+    final repo = container.read(exerciseRepositoryProvider);
+    final plan = (await repo.getMyPlans()).single;
+    await tap(tester, find.text(plan.name));
+    expect(find.text('3 sets \u00d7 45-60 s'), findsOneWidget);
+    await tester.enterText(find.byType(TextField), 'Edited timed plan');
+    await tap(tester, find.text('L\u01b0u Plan'));
+    await tap(tester, find.text('B\u1eaft \u0111\u1ea7u'));
+    final started = container.read(activeWorkoutSessionProvider).currentExercise!;
+    expect(started.unit, SetUnit.seconds);
+    expect(started.draftSeconds, 45);
+    expect(started.draftWeightKg, 0);
+    expect(tester.takeException(), isNull);
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  for (final timed in [false, true]) {
+    testWidgets('Complete stored-volume fallback preserves timed zero: $timed', (tester) async {
+      final repo = MockExerciseRepository(curatedExerciseLibrary);
+      final session = WorkoutSession(
+        id: 'fallback-$timed', planName: 'Fallback', startedAt: DateTime.utc(2026, 10, 8),
+        totalVolumeKg: 208,
+        exerciseLogs: timed ? [ExerciseSetLog(
+          exerciseId: 'plank', exerciseSlug: 'plank', setNumber: 1,
+          repsCompleted: 0, weightKg: 0, isCompleted: true,
+          unit: SetUnit.seconds, secondsCompleted: 50,
+        )] : [],
+      );
+      await repo.saveWorkoutSession(session);
+      await mount(tester, WorkoutCompleteScreen(sessionId: session.id), overrides: [
+        exerciseRepositoryProvider.overrideWithValue(repo),
+      ]);
+      await tester.pumpAndSettle();
+      final metric = find.ancestor(of: find.text('VOLUME LIFTED'), matching: find.byType(Column)).first;
+      expect(find.descendant(of: metric, matching: find.text(timed ? '0' : '208')), findsOneWidget);
+      if (timed) expect(find.text('VOLUME BY EXERCISE'), findsNothing);
+      await tester.pumpWidget(const SizedBox());
+    });
+  }
+
   for (final id in ['one-arm-dumbbell-row', 'reverse-lunge', 'dead-bug']) {
     testWidgets('$id real Detail -> Log all sets -> Review -> resume -> Save -> detail',
         (tester) async {

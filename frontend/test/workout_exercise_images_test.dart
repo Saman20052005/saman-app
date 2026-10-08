@@ -3,6 +3,7 @@ import 'dart:ui' as ui;
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:health_ai_app/data/models/exercise.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -268,9 +269,16 @@ void main() {
       await tester.pumpAndSettle();
       final logged =
           container.read(activeWorkoutSessionProvider).exercises.single;
-      expect(logged.sets.first.reps,
-          int.parse(exercise.defaultReps.split('-').first));
-      expect(logged.sets.first.weightKg, isBodyweight ? 0 : 20);
+      if (id == 'plank') {
+        expect(logged.sets.first.unit, SetUnit.seconds);
+        expect(logged.sets.first.seconds, 45);
+        expect(logged.sets.first.reps, 0);
+        expect(logged.sets.first.weightKg, 0);
+      } else {
+        expect(logged.sets.first.reps,
+            int.parse(exercise.defaultReps.split('-').first));
+        expect(logged.sets.first.weightKg, isBodyweight ? 0 : 20);
+      }
       await tester
           .tap(find.byKey(const ValueKey('active_workout_finish_button')));
       await tester.pumpAndSettle();

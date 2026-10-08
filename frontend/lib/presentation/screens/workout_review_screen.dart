@@ -2,6 +2,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
+import '../../data/models/exercise.dart';
 import '../providers/active_workout_providers.dart';
 import '../providers/active_workout_state.dart';
 import '../providers/exercise_providers.dart';
@@ -81,9 +82,7 @@ class _WorkoutReviewScreenState extends ConsumerState<WorkoutReviewScreen> {
     double totalVolume = 0.0;
     for (final exercise in performedExercises) {
       for (final set in exercise.sets.where((s) => s.isCompleted)) {
-        final w = set.weightKg ?? 0.0;
-        final r = set.reps ?? 0;
-        totalVolume += w * r;
+        totalVolume += set.volumeKg;
       }
     }
 
@@ -682,9 +681,7 @@ class _WorkoutReviewScreenState extends ConsumerState<WorkoutReviewScreen> {
         exercise.sets.where((s) => s.isCompleted).toList();
     double exerciseVolume = 0.0;
     for (final s in completedSets) {
-      final w = s.weightKg ?? 0.0;
-      final r = s.reps ?? 0;
-      exerciseVolume += w * r;
+      exerciseVolume += s.volumeKg;
     }
 
     return Container(
@@ -805,7 +802,7 @@ class _WorkoutReviewScreenState extends ConsumerState<WorkoutReviewScreen> {
   Widget _buildSetRow(ActiveWorkoutSetInfo set) {
     final w = set.weightKg ?? 0.0;
     final r = set.reps ?? 0;
-    final setVolume = w * r;
+    final setVolume = set.volumeKg;
 
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -827,7 +824,8 @@ class _WorkoutReviewScreenState extends ConsumerState<WorkoutReviewScreen> {
               ),
               Flexible(
                 child: Text(
-                  '${_formatWeight(w)} kg × $r reps',
+                  set.unit == SetUnit.seconds ? '${set.seconds} s'
+                      : '${_formatWeight(w)} kg × $r reps',
                   style: const TextStyle(
                     fontFamily: 'monospace',
                     fontSize: 13,

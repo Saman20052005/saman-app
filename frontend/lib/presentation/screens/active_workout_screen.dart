@@ -642,7 +642,9 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         // Column headers
-        const Padding(
+        if (currentEx.unit == SetUnit.seconds)
+          const _TimedSetHeader()
+        else const Padding(
           padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
           child: Row(
             children: [
@@ -703,6 +705,15 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
 
         // Set Rows
         ...currentEx.sets.map((set) {
+          if (set.unit == SetUnit.seconds) {
+            return _TimedSetRow(
+              key: ValueKey('${currentEx.id}_${set.setNumber}'),
+              set: set,
+              isActive: identical(set, currentEx.activeSet),
+              draftSeconds: currentEx.draftSeconds,
+              onSecondsChanged: notifier.setDraftSeconds,
+            );
+          }
           if (set.isCompleted) {
             return _buildCompletedSetRow(set);
           } else if (set.isActive) {
@@ -1281,7 +1292,7 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
             child: ElevatedButton.icon(
               key: const ValueKey('active_workout_log_set_button'),
               onPressed: currentEx.activeSet != null
-                  ? notifier.logActiveSet
+                  ? (currentEx.canLogSet ? notifier.logActiveSet : null)
                   : session.nextExercise != null
                       ? notifier.nextExercise
                       : () => _showReviewScreen(context),
@@ -1601,4 +1612,85 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
       },
     );
   }
+}
+
+class _TimedSetHeader extends StatelessWidget {
+  const _TimedSetHeader();
+
+  @override
+  Widget build(BuildContext context) => const Padding(
+    padding: EdgeInsetsDirectional.symmetric(horizontal: 12, vertical: 6),
+    child: Row(children: [
+      Expanded(child: Text('SET', style: TextStyle(color: SamanWorkoutTokens.textMuted))),
+      Expanded(flex: 3, child: Text('SECONDS', style: TextStyle(color: SamanWorkoutTokens.textMuted))),
+      Text('STATUS', style: TextStyle(color: SamanWorkoutTokens.textMuted)),
+    ]),
+  );
+}
+
+class _TimedSetRow extends StatelessWidget {
+  const _TimedSetRow({
+    super.key, required this.set, required this.isActive, required this.draftSeconds,
+    required this.onSecondsChanged,
+  });
+
+  final ActiveWorkoutSetInfo set;
+  final bool isActive;
+  final int? draftSeconds;
+  final ValueChanged<int?> onSecondsChanged;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    margin: const EdgeInsetsDirectional.only(bottom: 6),
+    padding: const EdgeInsetsDirectional.all(12),
+    decoration: BoxDecoration(
+      color: SamanWorkoutTokens.cardSurface,
+      borderRadius: BorderRadius.circular(SamanWorkoutTokens.radiusMd),
+      border: Border.all(color: isActive
+          ? SamanWorkoutTokens.emeraldAccent : SamanWorkoutTokens.borderSubtle),
+    ),
+    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Row(children: [
+        Expanded(child: Text(
+          isActive ? 'SET ${set.setNumber} (ACTIVE)' : 'SET ${set.setNumber}',
+          style: const TextStyle(color: SamanWorkoutTokens.textSecondary),
+        )),
+        Text(isActive ? 'TARGET: ${set.targetSeconds} s'
+            : '${set.isCompleted ? set.seconds : set.targetSeconds} s',
+          style: const TextStyle(color: SamanWorkoutTokens.textPrimary)),
+        const SizedBox(width: 8),
+        if (set.isCompleted) const Icon(Icons.check,
+          color: SamanWorkoutTokens.emeraldAccent, size: 18),
+      ]),
+      if (isActive) ...[
+        const SizedBox(height: 12),
+        TextFormField(
+          key: const ValueKey('active_workout_seconds_input'),
+          initialValue: draftSeconds?.toString() ?? '',
+          keyboardType: TextInputType.number,
+          style: const TextStyle(color: SamanWorkoutTokens.textPrimary),
+          cursorColor: SamanWorkoutTokens.emeraldAccent,
+          decoration: const InputDecoration(
+            labelText: 'Seconds', suffixText: 's', helperText: 'Enter 1-999 seconds',
+            filled: true,
+            fillColor: SamanWorkoutTokens.surfaceElevated,
+            labelStyle: TextStyle(color: SamanWorkoutTokens.textSecondary),
+            floatingLabelStyle: TextStyle(color: SamanWorkoutTokens.emeraldAccent),
+            helperStyle: TextStyle(color: SamanWorkoutTokens.textSecondary),
+            suffixStyle: TextStyle(color: SamanWorkoutTokens.textSecondary),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.all(Radius.circular(SamanWorkoutTokens.radiusMd)),
+              borderSide: BorderSide(color: SamanWorkoutTokens.textSecondary),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.all(Radius.circular(SamanWorkoutTokens.radiusMd)),
+              borderSide: BorderSide(color: SamanWorkoutTokens.emeraldAccent, width: 1.5),
+            ),
+          ),
+          onChanged: (value) => onSecondsChanged(
+            RegExp(r'^\d+$').hasMatch(value) ? int.tryParse(value) : null),
+        ),
+      ],
+    ]),
+  );
 }

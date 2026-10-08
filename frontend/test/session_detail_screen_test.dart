@@ -81,6 +81,34 @@ void _expectSavedSets(WidgetTester tester, WorkoutSession session) {
 }
 
 void main() {
+  testWidgets('Mixed units within one Plank group preserve legacy reps per log', (tester) async {
+    final repo = _LookupRepository(curatedExerciseLibrary);
+    final session = WorkoutSession(
+      id: 'mixed-units-one-exercise', planName: 'Mixed units',
+      startedAt: DateTime.utc(2026, 10, 8),
+      exerciseLogs: [
+        ExerciseSetLog.fromJson({
+          'exerciseId': 'plank', 'exerciseSlug': 'plank', 'setNumber': 1,
+          'repsCompleted': 8, 'weightKg': 26.0, 'isCompleted': true,
+        }),
+        ExerciseSetLog(
+          exerciseId: 'plank', exerciseSlug: 'plank', setNumber: 2,
+          repsCompleted: 0, weightKg: 0, isCompleted: true,
+          unit: SetUnit.seconds, secondsCompleted: 50,
+        ),
+      ],
+    );
+    await _mount(tester, repo, session);
+    expect(find.text('Reps / Seconds'), findsOneWidget);
+    expect(find.text('8 reps'), findsOneWidget);
+    expect(find.text('26 kg'), findsOneWidget);
+    expect(find.text('50 s'), findsOneWidget);
+    expect(find.text('0 reps'), findsNothing);
+    expect(find.text('0 kg'), findsNothing);
+    expect(find.text('Total volume: 208 kg'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets(
       'History detail resolves ex_1 and preserves two saved 8 x 26 sets',
       (tester) async {

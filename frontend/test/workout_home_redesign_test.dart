@@ -80,7 +80,7 @@ void main() {
       finishedAt: DateTime.now().subtract(const Duration(minutes: 10)),
       totalDurationMinutes: 50,
       totalVolumeKg: 1200,
-      exerciseLogs: const [
+      exerciseLogs: [
         ExerciseSetLog(
           exerciseId: 'db-bench-press',
           exerciseSlug: 'dumbbell-bench-press',

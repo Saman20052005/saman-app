@@ -148,7 +148,7 @@ class ExerciseCard extends StatelessWidget {
 
                           // Sets x Reps
                           Text(
-                            '${exercise.defaultSets} sets × ${exercise.defaultReps}',
+                            '${exercise.defaultSets} sets × ${exercise.defaultReps}${exercise.repType == 'seconds' ? ' s' : ''}',
                             style: textTheme.bodySmall?.copyWith(
                               color: colors.secondary,
                               fontWeight: FontWeight.w600,

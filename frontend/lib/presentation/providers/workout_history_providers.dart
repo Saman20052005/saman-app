@@ -31,7 +31,9 @@ class ActiveSessionSaver extends _$ActiveSessionSaver {
             exerciseId: exercise.id,
             exerciseSlug: exercise.slug.isEmpty ? exercise.id : exercise.slug,
             setNumber: set.setNumber,
-            repsCompleted: set.reps!,
+            repsCompleted: set.unit == SetUnit.seconds ? 0 : set.reps!,
+            unit: set.unit == SetUnit.seconds ? SetUnit.seconds : null,
+            secondsCompleted: set.unit == SetUnit.seconds ? set.seconds : null,
             weightKg: set.weightKg!,
             isCompleted: true,
           ),
@@ -44,7 +46,7 @@ class ActiveSessionSaver extends _$ActiveSessionSaver {
       exerciseLogs: logs,
       totalDurationMinutes: active.elapsedSeconds ~/ 60,
       totalVolumeKg: logs.fold<double>(
-        0, (sum, log) => sum + log.repsCompleted * log.weightKg,
+        0, (sum, log) => sum + log.volumeKg,
       ).round(),
     );
     state = const AsyncValue.loading();

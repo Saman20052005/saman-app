@@ -31,13 +31,36 @@ class Exercise with _$Exercise {
       _$ExerciseFromJson(json);
 }
 
-@freezed
+enum SetUnit { reps, seconds }
+
+double workoutSetVolumeKg({
+  required SetUnit unit,
+  required int repsCompleted,
+  required double weightKg,
+}) => unit == SetUnit.seconds ? 0 : repsCompleted * weightKg;
+
+@Freezed(toJson: false)
 class ExerciseSetLog with _$ExerciseSetLog {
-  const factory ExerciseSetLog({
+  ExerciseSetLog._() {
+    if (effectiveUnit == SetUnit.seconds &&
+        (repsCompleted != 0 || secondsCompleted == null ||
+            secondsCompleted! < 1 || secondsCompleted! > 999)) {
+      throw ArgumentError('Timed sets require 1-999 seconds and zero reps');
+    }
+  }
+
+  SetUnit get effectiveUnit => unit ?? SetUnit.reps;
+  double get volumeKg => workoutSetVolumeKg(
+    unit: effectiveUnit, repsCompleted: repsCompleted, weightKg: weightKg,
+  );
+
+  factory ExerciseSetLog({
     required String exerciseId,
     required String exerciseSlug,
     required int setNumber,
     required int repsCompleted,
+    SetUnit? unit,
+    int? secondsCompleted,
     required double weightKg,
     @Default(false) bool isCompleted,
     int? restTakenSeconds,
@@ -45,7 +68,29 @@ class ExerciseSetLog with _$ExerciseSetLog {
   }) = _ExerciseSetLog;
 
   factory ExerciseSetLog.fromJson(Map<String, dynamic> json) =>
-      _$ExerciseSetLogFromJson(json);
+      _$ExerciseSetLogFromJson(_validateJson(json));
+
+  // Keep the legacy nullable key while omitting only the two new null keys.
+  Map<String, dynamic> toJson() => {
+    'exerciseId': exerciseId,
+    'exerciseSlug': exerciseSlug,
+    'setNumber': setNumber,
+    'repsCompleted': repsCompleted,
+    if (unit != null) 'unit': unit!.name,
+    if (secondsCompleted != null) 'secondsCompleted': secondsCompleted,
+    'weightKg': weightKg,
+    'isCompleted': isCompleted,
+    'restTakenSeconds': restTakenSeconds,
+    'cvDetected': cvDetected,
+  };
+
+  static Map<String, dynamic> _validateJson(Map<String, dynamic> json) {
+    // JSON numbers must not be truncated into valid timed results.
+    if (json['unit'] == 'seconds' && (json['secondsCompleted'] is! int || json['repsCompleted'] != 0)) {
+      throw const FormatException('Timed sets require integer seconds and zero reps');
+    }
+    return json;
+  }
 }
 
 @freezed

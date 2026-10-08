@@ -166,13 +166,14 @@ class WorkoutCompleteScreen extends ConsumerWidget {
 
           for (final log in session.exerciseLogs) {
             groupedLogs.putIfAbsent(log.exerciseId, () => []).add(log);
-            final vol = log.weightKg * log.repsCompleted;
+            final vol = log.volumeKg;
             exerciseVolumes[log.exerciseId] =
                 (exerciseVolumes[log.exerciseId] ?? 0.0) + vol;
             totalVolume += vol;
           }
 
-          if (totalVolume == 0.0 && session.totalVolumeKg > 0) {
+          if (totalVolume == 0.0 && session.totalVolumeKg > 0 &&
+              !session.exerciseLogs.any((log) => log.effectiveUnit == SetUnit.seconds)) {
             totalVolume = session.totalVolumeKg.toDouble();
           }
 
@@ -721,7 +722,7 @@ class WorkoutCompleteScreen extends ConsumerWidget {
                   Builder(
                     builder: (context) {
                       final log = logs[i];
-                      final setVolume = log.weightKg * log.repsCompleted;
+                      final setVolume = log.volumeKg;
                       return Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
@@ -742,7 +743,8 @@ class WorkoutCompleteScreen extends ConsumerWidget {
                                 ),
                                 Flexible(
                                   child: Text(
-                                    '${_formatWeight(log.weightKg)} kg × ${log.repsCompleted} reps',
+                                    log.effectiveUnit == SetUnit.seconds ? '${log.secondsCompleted} s'
+                                        : '${_formatWeight(log.weightKg)} kg × ${log.repsCompleted} reps',
                                     style: const TextStyle(
                                       fontFamily: 'monospace',
                                       fontSize: 13,
@@ -782,7 +784,8 @@ class WorkoutCompleteScreen extends ConsumerWidget {
     required double totalVolume,
     required String Function(String id, String slug) resolveName,
   }) {
-    final entries = groupedLogs.entries.toList();
+    final entries = groupedLogs.entries
+        .where((entry) => (exerciseVolumes[entry.key] ?? 0) > 0).toList();
     const segmentColors = [
       SamanWorkoutTokens.tealAccent,
       SamanWorkoutTokens.emeraldAccent,

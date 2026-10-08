@@ -46,6 +46,9 @@ class ActiveWorkoutSetInfo {
   final int setNumber;
   final double targetWeightKg;
   final int targetReps;
+  final SetUnit unit;
+  final int? targetSeconds;
+  final int? seconds;
   final double? weightKg;
   final int? reps;
   final bool isCompleted;
@@ -55,16 +58,26 @@ class ActiveWorkoutSetInfo {
     required this.setNumber,
     required this.targetWeightKg,
     required this.targetReps,
+    this.unit = SetUnit.reps,
+    this.targetSeconds,
+    this.seconds,
     this.weightKg,
     this.reps,
     this.isCompleted = false,
     this.isActive = false,
   });
 
+  double get volumeKg => workoutSetVolumeKg(
+    unit: unit, repsCompleted: reps ?? 0, weightKg: weightKg ?? 0,
+  );
+
   ActiveWorkoutSetInfo copyWith({
     int? setNumber,
     double? targetWeightKg,
     int? targetReps,
+    SetUnit? unit,
+    int? targetSeconds,
+    int? seconds,
     double? weightKg,
     int? reps,
     bool? isCompleted,
@@ -74,6 +87,9 @@ class ActiveWorkoutSetInfo {
       setNumber: setNumber ?? this.setNumber,
       targetWeightKg: targetWeightKg ?? this.targetWeightKg,
       targetReps: targetReps ?? this.targetReps,
+      unit: unit ?? this.unit,
+      targetSeconds: targetSeconds ?? this.targetSeconds,
+      seconds: seconds ?? this.seconds,
       weightKg: weightKg ?? this.weightKg,
       reps: reps ?? this.reps,
       isCompleted: isCompleted ?? this.isCompleted,
@@ -93,6 +109,8 @@ class ActiveExerciseInfo {
   final List<ActiveWorkoutSetInfo> sets;
   final double draftWeightKg;
   final int draftReps;
+  final SetUnit unit;
+  final int? draftSeconds;
 
   const ActiveExerciseInfo({
     required this.id,
@@ -104,7 +122,13 @@ class ActiveExerciseInfo {
     required this.sets,
     required this.draftWeightKg,
     required this.draftReps,
+    this.unit = SetUnit.reps,
+    this.draftSeconds,
   });
+
+  bool get canLogSet => activeSet != null &&
+      (unit == SetUnit.reps ||
+          (draftSeconds != null && draftSeconds! >= 1 && draftSeconds! <= 999));
 
   int get completedSetsCount => sets.where((s) => s.isCompleted).length;
   int get totalSetsCount => sets.length;
@@ -126,6 +150,9 @@ class ActiveExerciseInfo {
     List<ActiveWorkoutSetInfo>? sets,
     double? draftWeightKg,
     int? draftReps,
+    SetUnit? unit,
+    int? draftSeconds,
+    bool clearDraftSeconds = false,
   }) {
     return ActiveExerciseInfo(
       id: id ?? this.id,
@@ -137,6 +164,8 @@ class ActiveExerciseInfo {
       sets: sets ?? this.sets,
       draftWeightKg: draftWeightKg ?? this.draftWeightKg,
       draftReps: draftReps ?? this.draftReps,
+      unit: unit ?? this.unit,
+      draftSeconds: clearDraftSeconds ? null : draftSeconds ?? this.draftSeconds,
     );
   }
 }
@@ -168,13 +197,18 @@ class ActiveWorkoutSessionState {
       final index = entry.key;
       final ex = entry.value;
       final setsCount = ex.defaultSets > 0 ? ex.defaultSets : 3;
-      final defaultReps = int.tryParse(ex.defaultReps.split('-').first) ?? 10;
+      final unit = ex.repType == 'seconds' ? SetUnit.seconds : SetUnit.reps;
+      final target = int.tryParse(ex.defaultReps.split('-').first) ?? 10;
+      final defaultReps = unit == SetUnit.reps ? target : 0;
+      final weight = unit == SetUnit.seconds ? 0.0 : 20.0;
       final sets = List.generate(
         setsCount,
         (i) => ActiveWorkoutSetInfo(
           setNumber: i + 1,
-          targetWeightKg: 20.0,
+          targetWeightKg: weight,
           targetReps: defaultReps,
+          unit: unit,
+          targetSeconds: unit == SetUnit.seconds ? target : null,
           isActive: (index == 0 && i == 0),
         ),
       );
@@ -186,8 +220,10 @@ class ActiveWorkoutSessionState {
         imageUrl: ex.thumbnailUrl,
         restSeconds: ex.restSeconds > 0 ? ex.restSeconds : 90,
         sets: sets,
-        draftWeightKg: 20.0,
+        draftWeightKg: weight,
         draftReps: defaultReps,
+        unit: unit,
+        draftSeconds: unit == SetUnit.seconds ? target : null,
       );
     }).toList();
 

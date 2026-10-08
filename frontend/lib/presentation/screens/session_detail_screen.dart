@@ -53,10 +53,15 @@ class SessionDetailScreen extends ConsumerWidget {
                       const SizedBox(height: 8),
                       // Header
                       Row(
-                        children: const [
-                          SizedBox(width: 40, child: Text('Set')),
-                          Expanded(child: Text('Reps')),
-                          Expanded(child: Text('Weight (kg)')),
+                        children: [
+                          const SizedBox(width: 40, child: Text('Set')),
+                          Expanded(child: Text(
+                            logs.every((log) => log.effectiveUnit == SetUnit.seconds)
+                                ? 'Seconds' : logs.every((log) => log.effectiveUnit == SetUnit.reps)
+                                    ? 'Reps' : 'Reps / Seconds',
+                          )),
+                          if (logs.any((log) => log.effectiveUnit == SetUnit.reps))
+                            const Expanded(child: Text('Weight (kg)')),
                         ],
                       ),
                       const SizedBox(height: 4),
@@ -105,7 +110,7 @@ class SessionDetailScreen extends ConsumerWidget {
 
   int _calculateVolume(List<ExerciseSetLog> logs) {
     return logs.fold(
-        0, (sum, log) => sum + (log.repsCompleted * log.weightKg).round());
+        0, (sum, log) => sum + log.volumeKg.round());
   }
 }
 

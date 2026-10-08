@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:crypto/crypto.dart';
+import 'package:health_ai_app/data/models/exercise.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:health_ai_app/presentation/providers/active_workout_providers.dart';
@@ -163,6 +164,123 @@ const expectedCategoryIds = <String, List<String>>{
 };
 
 void main() {
+  test('Plank timed targets, draft, transitions and save preserve units and zero weight', () async {
+    final container = ProviderContainer();
+    addTearDown(container.dispose);
+    final subscription = container.listen(activeSessionSaverProvider, (_, __) {});
+    addTearDown(subscription.close);
+    final repo = container.read(exerciseRepositoryProvider);
+    final plank = await repo.getExerciseById('plank');
+    final active = container.read(activeWorkoutSessionProvider.notifier);
+    active.startSession([plank, curatedExerciseLibrary.first]);
+    var current = container.read(activeWorkoutSessionProvider).currentExercise!;
+    expect(current.unit, SetUnit.seconds);
+    expect(current.sets, hasLength(3));
+    expect(current.restSeconds, 60);
+    expect(current.draftSeconds, 45);
+    expect(current.draftReps, 0);
+    expect(current.sets.map((s) => s.unit), everyElement(SetUnit.seconds));
+    expect(current.sets.map((s) => s.targetSeconds), everyElement(45));
+    expect(current.sets.map((s) => s.targetWeightKg), everyElement(0));
+    active.setDraftWeight(26);
+    active.adjustDraftWeight(26);
+    active.setDraftSeconds(50);
+    active.selectExercise(1);
+    active.setDraftReps(8);
+    active.setDraftWeight(26);
+    active.logActiveSet();
+    active.selectExercise(0);
+    current = container.read(activeWorkoutSessionProvider).currentExercise!;
+    expect(current.draftSeconds, 50);
+    expect(current.draftWeightKg, 0);
+    active.tick();
+    expect(container.read(activeWorkoutSessionProvider).currentExercise!.draftSeconds, 50);
+    active.logActiveSet();
+    expect(container.read(activeWorkoutSessionProvider).currentExercise!.draftSeconds, 45);
+    for (var i = 1; i < 3; i++) {
+      active.setDraftSeconds(50);
+      active.logActiveSet();
+      active.setDraftSeconds(60);
+      active.tick();
+      active.addRestSeconds(30);
+      active.skipRest();
+      expect(container.read(activeWorkoutSessionProvider).currentExercise!.draftSeconds, 60);
+    }
+    active.setDraftSeconds(50);
+    active.addSet();
+    current = container.read(activeWorkoutSessionProvider).currentExercise!;
+    expect(current.sets.last.unit, SetUnit.seconds);
+    expect(current.sets.last.targetSeconds, 50);
+    expect(current.sets.last.targetWeightKg, 0);
+    active.logActiveSet();
+    expect(container.read(activeWorkoutSessionProvider).currentExercise!.sets.map((s) => s.seconds),
+        everyElement(50));
+    expect(container.read(activeWorkoutSessionProvider).currentExercise!.sets.map((s) => s.weightKg),
+        everyElement(0));
+    final saver = container.read(activeSessionSaverProvider.notifier);
+    expect(await saver.saveCurrentSession(), true);
+    expect(await saver.saveCurrentSession(), false);
+    final saved = await repo.getSessionById(active.sessionId);
+    expect(saved.totalVolumeKg, 208);
+    expect(saved.totalDurationMinutes, 0);
+    final timed = saved.exerciseLogs.where((s) => s.effectiveUnit == SetUnit.seconds);
+    expect(timed, hasLength(4));
+    expect(timed.map((s) => s.secondsCompleted), everyElement(50));
+    expect(timed.map((s) => s.repsCompleted), everyElement(0));
+    expect(timed.map((s) => s.weightKg), everyElement(0));
+    expect(timed.map((s) => s.volumeKg), everyElement(0));
+  });
+
+  test('Invalid seconds cannot log and rep-based bodyweight defaults remain 20 kg', () {
+    final active = ActiveWorkoutSessionNotifier();
+    addTearDown(active.dispose);
+    active.startSession([curatedExerciseLibrary.singleWhere((e) => e.id == 'plank')]);
+    for (final seconds in [null, 0, -1, 1000]) {
+      active.setDraftSeconds(seconds);
+      active.logActiveSet();
+      expect(active.state.completedSetsCount, 0);
+      expect(active.state.currentExercise!.draftSeconds, isNull);
+      active.pauseWorkout(); active.resumeWorkout();
+      expect(active.state.currentExercise!.canLogSet, false);
+    }
+    for (final seconds in [1, 999]) {
+      active.setDraftSeconds(seconds);
+      active.logActiveSet();
+    }
+    expect(active.state.currentExercise!.sets.take(2).map((s) => s.seconds), [1, 999]);
+    active.startSession([curatedExerciseLibrary.singleWhere((e) => e.id == 'dead-bug')]);
+    expect(active.state.currentExercise!.unit, SetUnit.reps);
+    expect(active.state.currentExercise!.draftWeightKg, 20);
+    expect(active.state.currentExercise!.draftReps, 20);
+    expect(active.state.currentExercise!.draftSeconds, isNull);
+  });
+
+  test('Plank Create Plan save/edit/reorder/start retains metadata', () async {
+    final container = ProviderContainer();
+    addTearDown(container.dispose);
+    final subscription = container.listen(createPlanNotifierProvider, (_, __) {});
+    addTearDown(subscription.close);
+    final repo = container.read(exerciseRepositoryProvider);
+    final draft = container.read(createPlanNotifierProvider.notifier);
+    draft.setName('Timed plan');
+    draft.addExercise(await repo.getExerciseById('plank'));
+    draft.addExercise(curatedExerciseLibrary.first);
+    expect(await draft.savePlan(), true);
+    final plan = (await repo.getMyPlans()).single;
+    draft.setName('Edited timed plan');
+    draft.reorderExercises(0, 2);
+    expect(await draft.savePlan(planId: plan.id), true);
+    final edited = await repo.getPlanById(plan.id);
+    expect(edited.exerciseIds, ['db-bench-press', 'plank']);
+    final resolved = await Future.wait(edited.exerciseIds.map(repo.getExerciseById));
+    final active = container.read(activeWorkoutSessionProvider.notifier);
+    active.startSession(resolved, title: edited.name);
+    active.selectExercise(1);
+    expect(active.state.currentExercise!.unit, SetUnit.seconds);
+    expect(active.state.currentExercise!.draftSeconds, 45);
+    expect(active.state.currentExercise!.draftWeightKg, 0);
+  });
+
   test('Exactly ten new unique IDs/slugs; every original field is unchanged',
       () {
     expect(curatedExerciseLibrary, hasLength(27));
