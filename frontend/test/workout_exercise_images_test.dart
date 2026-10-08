@@ -18,7 +18,23 @@ import 'package:health_ai_app/presentation/screens/workout_review_screen.dart';
 import 'package:health_ai_app/presentation/widgets/exercise_card.dart';
 import 'package:health_ai_app/presentation/widgets/exercise_thumbnail.dart';
 
+import 'workout_exercise_catalog_test.dart'
+    show originalExerciseIds, expectedNewExercises;
+
 const evidenceDirectory = String.fromEnvironment('WORKOUT_IMAGE_EVIDENCE');
+
+const testWorkoutThemeExtension = AppThemeExtension(
+  aiAccent: Color(0xFF10B981),
+  primaryPressed: Color(0xFF0B7249),
+  warning: Color(0xFFD97706),
+  inkMuted: Color(0xFF888888),
+  inkSubtle: Color(0xFF555555),
+  hairline: Color(0xFF2A2A2A),
+  surfaceElevated: Color(0xFF222222),
+  heroNumeric: TextStyle(fontSize: 44),
+  labelCaps: TextStyle(fontSize: 11),
+  statValue: TextStyle(fontSize: 17),
+);
 
 Future<void> capture(WidgetTester tester, String name,
     {double pixelRatio = 2}) async {
@@ -53,6 +69,31 @@ Future<void> loadImages(WidgetTester tester, Iterable<String> paths) async {
   await tester.pumpAndSettle();
 }
 
+Future<void> loadTestFonts() async {
+  // Real SDK fonts also keep layout assertions independent of Ahem metrics.
+  final artifacts = File(Platform.resolvedExecutable).parent.parent.parent;
+  final text = FontLoader('Roboto');
+  for (final weight in ['regular', 'medium', 'bold']) {
+    text.addFont(File('${artifacts.path}/material_fonts/roboto-$weight.ttf')
+        .readAsBytes()
+        .then(ByteData.sublistView));
+  }
+  await text.load();
+  final monospace = FontLoader('monospace');
+  final evidenceFont = File('C:/Windows/Fonts/consola.ttf');
+  final monoFile = evidenceDirectory.isNotEmpty && evidenceFont.existsSync()
+      ? evidenceFont
+      : File('${artifacts.path}/material_fonts/roboto-regular.ttf');
+  monospace.addFont(monoFile.readAsBytes().then(ByteData.sublistView));
+  await monospace.load();
+  await (FontLoader('MaterialIcons')
+        ..addFont(
+            File('${artifacts.path}/material_fonts/materialicons-regular.otf')
+                .readAsBytes()
+                .then(ByteData.sublistView)))
+      .load();
+}
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
   setUpAll(() async {
@@ -63,28 +104,7 @@ void main() {
       const MethodChannel('plugins.flutter.io/path_provider'),
       (_) async => cacheDirectory.path,
     );
-    // Real SDK fonts also keep layout assertions independent of Ahem metrics.
-    final artifacts = File(Platform.resolvedExecutable).parent.parent.parent;
-    final text = FontLoader('Roboto');
-    for (final weight in ['regular', 'medium', 'bold']) {
-      text.addFont(File('${artifacts.path}/material_fonts/roboto-$weight.ttf')
-          .readAsBytes()
-          .then(ByteData.sublistView));
-    }
-    await text.load();
-    final monospace = FontLoader('monospace');
-    final evidenceFont = File('C:/Windows/Fonts/consola.ttf');
-    final monoFile = evidenceDirectory.isNotEmpty && evidenceFont.existsSync()
-        ? evidenceFont
-        : File('${artifacts.path}/material_fonts/roboto-regular.ttf');
-    monospace.addFont(monoFile.readAsBytes().then(ByteData.sublistView));
-    await monospace.load();
-    await (FontLoader('MaterialIcons')
-          ..addFont(
-              File('${artifacts.path}/material_fonts/materialicons-regular.otf')
-                  .readAsBytes()
-                  .then(ByteData.sublistView)))
-        .load();
+    await loadTestFonts();
   });
 
   testWidgets('Every approved variant loads and decodes from Flutter bundle',
@@ -93,8 +113,13 @@ void main() {
       ...curatedExerciseLibrary.map((e) => e.thumbnailUrl),
       ...createDefaultUpperBodySession().exercises.map((e) => e.imageUrl),
     };
-    expect(curatedExerciseLibrary, hasLength(17));
-    expect(thumbnails, hasLength(20));
+    expect(curatedExerciseLibrary, hasLength(27));
+    expect(curatedExerciseLibrary.map((e) => e.id),
+        [...originalExerciseIds, ...expectedNewExercises.keys]);
+    expect(thumbnails, hasLength(27));
+    expect(thumbnails, expectedNewExercises.keys.followedBy(
+        curatedExerciseLibrary.take(17).map((e) => e.slug))
+        .map((slug) => 'assets/images/exercises/$slug-thumb.jpg').toSet());
     for (final thumbnail in thumbnails) {
       final paths = [
         thumbnail,
@@ -227,6 +252,17 @@ void main() {
       await capture(tester, '$id-active');
 
       final log = find.byKey(const ValueKey('active_workout_log_set_button'));
+      final isBodyweight = id == 'reverse-lunge' || id == 'dead-bug';
+      if (isBodyweight) {
+        final minus = find.byKey(const ValueKey('active_workout_weight_minus'));
+        await tester.ensureVisible(minus);
+        for (var kg = 20; kg > 0; kg--) {
+          await tester.tap(minus);
+          await tester.pump();
+        }
+        expect(container.read(activeWorkoutSessionProvider)
+            .currentExercise!.draftWeightKg, 0);
+      }
       await tester.ensureVisible(log);
       await tester.tap(log);
       await tester.pumpAndSettle();
@@ -234,7 +270,7 @@ void main() {
           container.read(activeWorkoutSessionProvider).exercises.single;
       expect(logged.sets.first.reps,
           int.parse(exercise.defaultReps.split('-').first));
-      expect(logged.sets.first.weightKg, 20);
+      expect(logged.sets.first.weightKg, isBodyweight ? 0 : 20);
       await tester
           .tap(find.byKey(const ValueKey('active_workout_finish_button')));
       await tester.pumpAndSettle();
@@ -258,18 +294,7 @@ void main() {
     final selected = curatedExerciseLibrary;
     await tester.pumpWidget(MaterialApp(
         theme: ThemeData.dark().copyWith(extensions: const [
-          AppThemeExtension(
-            aiAccent: Color(0xFF10B981),
-            primaryPressed: Color(0xFF0B7249),
-            warning: Color(0xFFD97706),
-            inkMuted: Color(0xFF888888),
-            inkSubtle: Color(0xFF555555),
-            hairline: Color(0xFF2A2A2A),
-            surfaceElevated: Color(0xFF222222),
-            heroNumeric: TextStyle(fontSize: 44),
-            labelCaps: TextStyle(fontSize: 11),
-            statValue: TextStyle(fontSize: 17),
-          ),
+          testWorkoutThemeExtension,
         ]),
         home: ExerciseCard(exercise: selected[2], onTap: () {})));
     await loadImages(tester, [selected[2].thumbnailUrl]);
@@ -389,7 +414,8 @@ void main() {
     addTearDown(() => tester.binding.setSurfaceSize(null));
     final groups = [
       curatedExerciseLibrary.take(9).map((e) => (e.name, e.thumbnailUrl)).toList(),
-      curatedExerciseLibrary.skip(9).map((e) => (e.name, e.thumbnailUrl)).toList(),
+      curatedExerciseLibrary.skip(9).take(8).map((e) => (e.name, e.thumbnailUrl)).toList(),
+      curatedExerciseLibrary.skip(20).map((e) => (e.name, e.thumbnailUrl)).toList(),
       createDefaultUpperBodySession().exercises
           .map((e) => (e.name, e.imageUrl)).toList(),
     ];
@@ -402,7 +428,7 @@ void main() {
           key: const ValueKey('image_evidence_boundary'),
           child: Scaffold(
             appBar: AppBar(title: Text(
-                'Flutter test engine | ${page < 2 ? "Library ${page + 1}/2" : "Default Active"} | 68px / 80px + poster')),
+                'Flutter test engine | ${page < 3 ? "Library ${page + 1}/3" : "Default Active"} | 68px / 80px + poster')),
             body: GridView.builder(
               padding: const EdgeInsets.all(24),
               gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
@@ -448,7 +474,7 @@ void main() {
       expect(find.byIcon(Icons.fitness_center_outlined), findsNothing);
       expect(tester.takeException(), isNull);
       await capture(tester,
-          page < 2 ? 'contact-library-${page + 1}' : 'contact-default-active',
+          page < 3 ? 'contact-library-${page + 1}' : 'contact-default-active',
           pixelRatio: 1);
     }
     await tester.pumpWidget(const SizedBox());

@@ -9,7 +9,59 @@ import 'package:health_ai_app/presentation/screens/workout_home_screen.dart';
 import 'package:health_ai_app/presentation/providers/exercise_providers.dart';
 import 'package:health_ai_app/presentation/providers/workout_history_providers.dart';
 
+import 'workout_exercise_catalog_test.dart'
+    show expectedCategoryIds, expectedNewExercises;
+import 'workout_exercise_images_test.dart' show loadImages, loadTestFonts;
+
 void main() {
+  setUpAll(loadTestFonts);
+  testWidgets('Actual Library filters return exact Upper 14 / Lower 8 / Core 5 IDs',
+      (tester) async {
+    await tester.binding.setSurfaceSize(const Size(430, 2300));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await tester.pumpWidget(const ProviderScope(
+      child: MaterialApp(home: ExerciseLibraryScreen()),
+    ));
+    await tester.pump();
+    await loadImages(tester, curatedExerciseLibrary.map((e) => e.thumbnailUrl));
+    for (final entry in expectedCategoryIds.entries) {
+      await tester.ensureVisible(find.text(entry.key));
+      await tester.tap(find.text(entry.key));
+      await tester.pumpAndSettle();
+      final ids = tester.allWidgets
+          .map((w) => w.key)
+          .whereType<ValueKey<String>>()
+          .map((key) => key.value)
+          .where((key) => key.startsWith('exercise_row_'))
+          .map((key) => key.substring('exercise_row_'.length))
+          .toList();
+      expect(ids, entry.value, reason: entry.key);
+    }
+    expect(tester.takeException(), isNull);
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets('Library searches every new English and accented Vietnamese name',
+      (tester) async {
+    await tester.pumpWidget(const ProviderScope(
+      child: MaterialApp(home: ExerciseLibraryScreen(initialCategory: 'All')),
+    ));
+    await tester.pump();
+    await loadImages(tester, curatedExerciseLibrary.map((e) => e.thumbnailUrl));
+    for (final entry in expectedNewExercises.entries) {
+      for (final query in [entry.value.$1, entry.value.$2]) {
+        await tester.enterText(find.byType(TextField), query);
+        await tester.pumpAndSettle();
+        expect(find.byKey(ValueKey('exercise_row_${entry.key}')), findsOneWidget,
+            reason: query);
+        final list = tester.widget<ListView>(find.byType(ListView));
+        expect((list.childrenDelegate as SliverChildBuilderDelegate).childCount, 1);
+      }
+    }
+    expect(tester.takeException(), isNull);
+    await tester.pumpWidget(const SizedBox());
+  });
+
   testWidgets(
       'Flow: Tap Upper Body exercise (Lat Pulldown) opens Detail with matching ID, taxonomy, cues, and mistakes',
       (WidgetTester tester) async {

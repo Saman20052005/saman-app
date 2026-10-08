@@ -15,6 +15,7 @@ import 'package:health_ai_app/presentation/providers/workout_history_providers.d
 import 'package:health_ai_app/presentation/screens/active_workout_screen.dart';
 import 'package:health_ai_app/presentation/screens/create_plan_screen.dart';
 import 'package:health_ai_app/presentation/screens/exercise_library_screen.dart';
+import 'package:health_ai_app/presentation/screens/exercise_detail_screen.dart';
 import 'package:health_ai_app/presentation/screens/my_plans_screen.dart';
 import 'package:health_ai_app/presentation/screens/session_detail_screen.dart';
 import 'package:health_ai_app/presentation/screens/workout_history_screen.dart';
@@ -23,12 +24,16 @@ import 'package:health_ai_app/presentation/screens/workout_complete_screen.dart'
 import 'package:health_ai_app/presentation/screens/workout_home_screen.dart';
 import 'package:health_ai_app/services/api_client.dart';
 import 'package:health_ai_app/presentation/widgets/exercise_set_log_card.dart';
+import 'package:health_ai_app/presentation/widgets/exercise_thumbnail.dart';
 import 'package:health_ai_app/providers/nutrition_provider.dart';
 import 'package:health_ai_app/providers/profile_provider.dart';
 import 'package:health_ai_app/screens/main_screen.dart';
 import 'package:health_ai_app/screens/home/widgets/saman_bottom_navigation_bar.dart';
 
 import 'main_screen_test.dart' show FakeProfileNotifier, FakeNutritionNotifier;
+import 'workout_exercise_catalog_test.dart' show expectedNewExercises;
+import 'workout_exercise_images_test.dart'
+    show loadImages, loadTestFonts, testWorkoutThemeExtension;
 
 Future<void> tap(WidgetTester tester, Finder target) async {
   await tester.ensureVisible(target);
@@ -38,7 +43,7 @@ Future<void> tap(WidgetTester tester, Finder target) async {
 }
 
 Future<ProviderContainer> mount(WidgetTester tester, Widget home,
-    {List<Override> overrides = const []}) async {
+    {List<Override> overrides = const [], bool workoutOnlyTheme = false}) async {
   await tester.binding.setSurfaceSize(const Size(430, 932));
   addTearDown(() => tester.binding.setSurfaceSize(null));
   final container = ProviderContainer(overrides: [
@@ -49,7 +54,12 @@ Future<ProviderContainer> mount(WidgetTester tester, Widget home,
   addTearDown(container.dispose);
   await tester.pumpWidget(UncontrolledProviderScope(
     container: container,
-    child: MaterialApp(theme: SamanTheme.light(), home: home),
+    child: MaterialApp(
+      theme: workoutOnlyTheme
+          ? ThemeData(fontFamily: 'Roboto', extensions: const [testWorkoutThemeExtension])
+          : SamanTheme.light(),
+      home: home,
+    ),
   ));
   await tester.pump();
   await tester.pump(const Duration(milliseconds: 400));
@@ -79,7 +89,124 @@ class RetryRepository extends MockExerciseRepository {
 }
 
 void main() {
-  setUpAll(() => GoogleFonts.config.allowRuntimeFetching = false);
+  setUpAll(() async {
+    GoogleFonts.config.allowRuntimeFetching = false;
+    await loadTestFonts();
+  });
+  for (final id in ['one-arm-dumbbell-row', 'reverse-lunge', 'dead-bug']) {
+    testWidgets('$id real Detail -> Log all sets -> Review -> resume -> Save -> detail',
+        (tester) async {
+      final expected = expectedNewExercises[id]!;
+      final container = await mount(tester,
+          const ExerciseLibraryScreen(initialCategory: 'All'), workoutOnlyTheme: true);
+      await loadImages(tester, curatedExerciseLibrary.expand((e) =>
+          [e.thumbnailUrl, exercisePosterSource(e.thumbnailUrl)]));
+      await tester.enterText(find.byType(TextField), expected.$2);
+      await tester.pumpAndSettle();
+      await tap(tester, find.byKey(ValueKey('exercise_row_$id')));
+      expect(find.byType(ExerciseDetailScreen), findsOneWidget);
+      expect(find.text(expected.$2), findsOneWidget);
+      expect(tester.widget<ExerciseThumbnail>(find.byType(ExerciseThumbnail)).source,
+          'assets/images/exercises/$id-poster.jpg');
+      await tap(tester, find.byKey(const ValueKey('exercise_detail_start_button')));
+      final active = container.read(activeWorkoutSessionProvider.notifier);
+      final sessionId = active.sessionId;
+      expect(container.read(activeWorkoutSessionProvider).exercises.single.id, id);
+      expect(container.read(activeWorkoutSessionProvider).exercises.single.slug, id);
+      final weight = id == 'one-arm-dumbbell-row' ? 20.0 : 0.0;
+      for (var set = 0; set < 3; set++) {
+        expect(container.read(activeWorkoutSessionProvider).currentExercise!.draftWeightKg, 20);
+        if (weight == 0) {
+          final minus = find.byKey(const ValueKey('active_workout_weight_minus'));
+          await tester.ensureVisible(minus);
+          for (var kg = 20; kg > 0; kg--) {
+            await tester.tap(minus);
+            await tester.pump();
+          }
+        }
+        expect(container.read(activeWorkoutSessionProvider).currentExercise!.draftWeightKg, weight);
+        await tap(tester, find.byKey(const ValueKey('active_workout_log_set_button')));
+        final logged = container.read(activeWorkoutSessionProvider).exercises.single.sets[set];
+        expect(logged.reps, 20); // Total entered reps stay 20, never 40.
+        expect(logged.weightKg, weight);
+        if (set < 2) {
+          await tap(tester, find.byKey(const ValueKey('active_workout_rest_skip')));
+        }
+      }
+      await tap(tester, find.byKey(const ValueKey('active_workout_finish_button')));
+      final volumeColumn = find.ancestor(
+          of: find.text('TOTAL VOLUME'), matching: find.byType(Column)).first;
+      expect(find.descendant(of: volumeColumn,
+          matching: find.text(weight == 0 ? '0' : '1,200')), findsOneWidget);
+      expect(tester.widgetList<ExerciseThumbnail>(find.byType(ExerciseThumbnail))
+          .map((w) => w.source),
+          ['assets/images/exercises/$id-poster.jpg', 'assets/images/exercises/$id-thumb.jpg']);
+      final before = container.read(activeWorkoutSessionProvider);
+      await tap(tester, find.byKey(const ValueKey('keep_training_button')));
+      expect(active.sessionId, sessionId);
+      expect(container.read(activeWorkoutSessionProvider).exercises, same(before.exercises));
+      await tap(tester, find.byKey(const ValueKey('active_workout_finish_button')));
+      await tester.tap(find.byKey(const ValueKey('save_session_button')));
+      await tester.tap(find.byKey(const ValueKey('save_session_button')), warnIfMissed: false);
+      await tester.pumpAndSettle();
+      expect(find.byType(WorkoutCompleteScreen), findsOneWidget);
+      final repo = container.read(exerciseRepositoryProvider);
+      final saved = await repo.getSessionById(sessionId);
+      expect(await repo.getWorkoutHistory(), hasLength(1));
+      expect(saved.exerciseLogs.map((l) => l.exerciseId), [id, id, id]);
+      expect(saved.exerciseLogs.map((l) => l.exerciseSlug), [id, id, id]);
+      expect(saved.exerciseLogs.map((l) => l.repsCompleted), [20, 20, 20]);
+      expect(saved.exerciseLogs.map((l) => l.weightKg), [weight, weight, weight]);
+      expect(saved.totalVolumeKg, weight == 0 ? 0 : 1200);
+      await tap(tester, find.text('View workout history'));
+      await tap(tester, find.text(expected.$1));
+      expect(find.byType(SessionDetailScreen), findsOneWidget);
+      expect(find.text(expected.$1), findsOneWidget);
+      expect(find.text('20 reps'), findsNWidgets(3));
+      expect(find.text(weight == 0 ? '0 kg' : '20 kg'), findsNWidgets(3));
+      expect(tester.takeException(), isNull);
+      await tester.pumpWidget(const SizedBox());
+    });
+  }
+
+  for (final entry in expectedNewExercises.entries) {
+    testWidgets('${entry.key} selected in Create Plan -> save -> edit -> start resolves exact ID',
+        (tester) async {
+      final container = await mount(tester, const MyPlansScreen(), workoutOnlyTheme: true);
+      await loadImages(tester, curatedExerciseLibrary.expand((e) =>
+          [e.thumbnailUrl, exercisePosterSource(e.thumbnailUrl)]));
+      await tap(tester, find.text('Tạo Plan mới'));
+      await tester.enterText(find.byType(TextField), 'Plan ${entry.key}');
+      await tap(tester, find.text('Mở Library'));
+      await tester.enterText(find.byType(TextField), entry.value.$2);
+      await tester.pumpAndSettle();
+      await tap(tester, find.byKey(ValueKey('exercise_row_${entry.key}')));
+      expect(find.byType(CreatePlanScreen), findsOneWidget);
+      expect(find.text(entry.value.$1), findsOneWidget);
+      await tap(tester, find.text('Lưu Plan'));
+      final repo = container.read(exerciseRepositoryProvider);
+      final plan = (await repo.getMyPlans()).single;
+      expect(plan.exerciseIds, [entry.key]);
+      await tap(tester, find.text(plan.name));
+      expect(find.text(entry.value.$1), findsOneWidget);
+      await tester.enterText(find.byType(TextField), 'Edited ${entry.key}');
+      await tap(tester, find.text('Lưu Plan'));
+      final edited = (await repo.getMyPlans()).single;
+      expect(edited.id, plan.id);
+      expect(edited.exerciseIds, [entry.key]);
+      await tap(tester, find.text('Bắt đầu'));
+      final started = container.read(activeWorkoutSessionProvider);
+      expect(started.title, edited.name);
+      expect(started.exercises.single.id, entry.key);
+      expect(started.exercises.single.slug, entry.key);
+      expect(started.exercises.single.imageUrl,
+          'assets/images/exercises/${entry.key}-thumb.jpg');
+      expect(started.exercises.single.sets, hasLength(3));
+      expect(tester.takeException(), isNull);
+      await tester.pumpWidget(const SizedBox());
+    });
+  }
+
   for (final durationCase in <(int?, String)>[
     (0, '<1 min'),
     (null, '—'),

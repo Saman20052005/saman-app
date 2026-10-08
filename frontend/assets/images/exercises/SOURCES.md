@@ -1,6 +1,6 @@
 # Reviewed workout exercise images
 
-Original Developer-approved batch: B4, C1, P1 (preserved). Additional images below were selected under Developer authorization on 2026-10-08. Crops use pixel coordinates [left, top, right, bottom] of the verified downloaded source. JPEG quality 87, progressive, optimized; Lanczos resize; metadata omitted. The original batch contains no retouching, recoloring or generated content. The completion batch includes explicitly marked AI illustrations and neutral padding.
+Original Developer-approved batch: B4 and P1 preserved; former C1 photo pair superseded by the 2026-10-08 style replacement documented below. Additional images below were selected under Developer authorization on 2026-10-08. Crops use pixel coordinates [left, top, right, bottom] of the verified downloaded source. JPEG quality 87, progressive, optimized; Lanczos resize; metadata omitted. The original batch contains no retouching, recoloring or generated content. The completion batch includes explicitly marked AI illustrations and neutral padding.
 
 ## B4: dumbbell-bench-press
 
@@ -14,7 +14,30 @@ Original Developer-approved batch: B4, C1, P1 (preserved). Additional images bel
 - Thumbnail: `dumbbell-bench-press-thumb.jpg`, crop [200, 0, 1400, 1200] -> 512 x 512.
 - Poster: `dumbbell-bench-press-poster.jpg`, crop [0, 150, 1800, 1162] -> 1280 x 720.
 
-## C1: dumbbell-bicep-curl
+## dumbbell-bicep-curl (AI replacement; former C1)
+
+- Replacement created: 2026-10-08. These two JPEGs replace the previous photo pair; filenames and catalog/legacy mappings are unchanged.
+- Creator/source: OpenAI built-in `image_gen` tool; prompt authored by Codex. AI-generated photograph-like identification illustration, not a real photograph or verified exercise-form instruction.
+- Model: not exposed by the built-in tool; no model name inferred. Usage: applicable [OpenAI terms](https://openai.com/policies/terms-of-use/), not a stock-photo license.
+- Style reference inputs (local, unchanged):
+  - `dumbbell-lateral-raise-poster.jpg`; SHA-256 `5ee09b8fea8c717862da6b8a3da4d066a9391a3be17d734eae6179c9aacb67e2`.
+  - `one-arm-dumbbell-row-poster.jpg`; SHA-256 `dfad75c491f60732948735c7c442e6ec73e3d7e1e4d5d62103d64abfbfb393f1`.
+- Additional variant comparison (viewed, unchanged): `incline-dumbbell-press-poster.jpg` and `hammer-curl-poster.jpg`.
+- Original tool output outside repository: `C:\Users\GL\.codex\generated_images\01a11af6-9852-7400-8fc2-bb7d37cfd68f\exec-01980f27-69fb-4d5b-9b26-7b48e2e11405.png`; dimensions 1536 x 1024; SHA-256 `183f2e82e58c43c7d45d1199d6fc95daed254de47e597c4d5050544018dfbb7b`.
+- External retained source copy: `C:/Users/GL/AppData/Local/Temp/saman-three-image-style-20261008/originals/dumbbell-bicep-curl.png` (same bytes).
+- Export: RGB JPEG, quality 87, progressive, optimized; Lanczos proportional contain; neutral RGB (18, 20, 23) padding; metadata omitted. No stretching, recoloring or retouching. Crop coordinates [left, top, right, bottom] refer to generated original.
+- Visual review: Standing two-dumbbell curl with elbows beside torso, forearms forward, underhand supinated palms and horizontal dumbbells. Both grips/hands reviewed in original and exports; clearly distinct from unchanged Hammer Curl with thumbs-up neutral grip and vertical dumbbells. Full legs and feet retained in poster; thumbnail emphasizes both supinated grips.
+- Readability: both exports viewed directly before selection; thumbnails compared at actual 68 x 68 and 80 x 80; landscape poster uses existing contain renderer.
+- `dumbbell-bicep-curl-thumb.jpg`: crop [520, 0, 1080, 585] -> contain 490 x 512 at offset [11, 0] in 512 x 512; 32114 bytes; SHA-256 `2fe06ea3cc689894eea46c1ddee93d54e55b1ebda24858b1bd1c03d7bf6bae8d`.
+- `dumbbell-bicep-curl-poster.jpg`: crop [0, 0, 1536, 1024] -> contain 1080 x 720 at offset [100, 0] in 1280 x 720; 107097 bytes; SHA-256 `4522637538339c03424fa880466f15ce64f5308493cb61c338dc52a55cd127cb`.
+
+<details><summary>Exact selected AI generation prompt</summary>
+
+Use case: photorealistic-natural. Asset type: Saman Exercise Library identification illustration, not certified exercise-form instruction. Create ONE standalone 1536x1024 landscape photograph-like AI image. Two input images are STYLE REFERENCES ONLY: match short-haired adult male with short brown stubble, fitted mid-gray tee, charcoal shorts, black training shoes, dark charcoal gym with subdued racks and plain floor, soft neutral realistic lighting and realistic skin/textures. Do not reuse their poses. Primary subject STANDING DUMBBELL BICEP CURL WITH BOTH HANDS CLEARLY SUPINATED (PALMS UP). Standing upright, both feet planted, upper arms vertical and elbows kept beside torso, BOTH elbows bent about 90 degrees, forearms pointing FORWARD approximately horizontal. Each palm faces UPWARD toward ceiling; curled fingers wrap underneath a separate dumbbell handle, thumb wraps naturally. Exactly TWO black hex dumbbells; the handle/long dumbbell axis lies horizontally left-to-right across each upturned palm, heads at left and right, NOT vertically stacked heads. Three-quarter frontal camera slightly ABOVE hands so viewer sees both open-facing inner palms/wrist creases, underside of forearms and the horizontal dumbbell handles. Separate both hands/weights in view, forearms apart, not one weight overlapping the other. Anatomically natural wrists, five fingers per hand, no extra or fused fingers, arms or weights. Full body including feet visible with generous margins centered in middle of landscape. Pose must unmistakably show UNDERHAND SUPINATED curl rather than thumbs-up neutral Hammer Curl. No bench, no preacher pad, no rope/cable, no swinging torso, no lateral raise. Keep elbows down and upper arms near ribs. Reference photo realism, outfit, environment and light only. No writing, logos, arrows, watermark, panels, motion trails or other people.
+
+</details>
+
+<details><summary>Superseded C1 photo provenance (historical only; current JPEGs are not C1 byte-identical)</summary>
 
 - Source page: https://www.pexels.com/photo/photo-of-male-gymnast-doing-dumbbell-bicep-curls-3763115/
 - Photographer: Andrea Piacquadio
@@ -25,6 +48,8 @@ Original Developer-approved batch: B4, C1, P1 (preserved). Additional images bel
 - Source dimensions: 1800 x 1236; downloaded full-frame derivative, not native original.
 - Thumbnail: `dumbbell-bicep-curl-thumb.jpg`, crop [390, 0, 1626, 1236] -> 512 x 512.
 - Poster: `dumbbell-bicep-curl-poster.jpg`, crop [0, 105, 1800, 1117] -> 1280 x 720.
+
+</details>
 
 ## P1: plank
 
@@ -46,11 +71,34 @@ Poster variants are declared beside the curated data in `exercise_providers.dart
 
 ## Completion batch: 2026-10-08
 
-All selected originals and final crops were viewed directly. Prefer real adult male photographs; AI is used when the bounded source search did not establish a suitable real photograph. AI illustrations identify exercises and equipment; **they are not verified exercise-form instruction**. No P3 Plank is used. B4/C1/P1 asset bytes are preserved. JPEG quality 87, progressive, optimized, Lanczos resize, metadata omitted. Coordinates are [left, top, right, bottom] in downloaded/generated pixels. Crops are proportionally contained with neutral RGB (18, 20, 23) padding; no stretching, recoloring or retouching. Generated originals remain at their tool-provided local paths; final JPEGs are bundled in this directory.
+All selected originals and final crops were viewed directly. Prefer real adult male photographs; AI is used when the bounded source search did not establish a suitable real photograph. AI illustrations identify exercises and equipment; **they are not verified exercise-form instruction**. No P3 Plank is used. B4/P1 asset bytes are preserved; former C1 bytes were superseded by the style replacement documented above. JPEG quality 87, progressive, optimized, Lanczos resize, metadata omitted. Coordinates are [left, top, right, bottom] in downloaded/generated pixels. Crops are proportionally contained with neutral RGB (18, 20, 23) padding; no stretching, recoloring or retouching. Generated originals remain at their tool-provided local paths; final JPEGs are bundled in this directory.
 
-Real-photo usage follows the [Pexels License](https://www.pexels.com/license/), which permits use in apps and modifications. Attribution is not required; photographer credit is retained here. Do not imply endorsement. AI outputs are created for this task using the built-in OpenAI image_gen tool with no reference inputs. Their usage follows applicable OpenAI terms linked per entry (output ownership is distinct from a third-party stock license); no claim of exclusivity or certified form is made.
+Real-photo usage follows the [Pexels License](https://www.pexels.com/license/), which permits use in apps and modifications. Attribution is not required; photographer credit is retained here. Do not imply endorsement. AI outputs in the original completion batch were created using the built-in OpenAI image_gen tool with no reference inputs; the later three-exercise style replacement lists its local reference inputs in each entry. Their usage follows applicable OpenAI terms linked per entry (output ownership is distinct from a third-party stock license); no claim of exclusivity or certified form is made.
 
-### dumbbell-shoulder-press (photo)
+### dumbbell-shoulder-press (AI replacement)
+
+- Replacement created: 2026-10-08. These two JPEGs replace the previous photo pair; filenames and catalog/legacy mappings are unchanged.
+- Creator/source: OpenAI built-in `image_gen` tool; prompt authored by Codex. AI-generated photograph-like identification illustration, not a real photograph or verified exercise-form instruction.
+- Model: not exposed by the built-in tool; no model name inferred. Usage: applicable [OpenAI terms](https://openai.com/policies/terms-of-use/), not a stock-photo license.
+- Style reference inputs (local, unchanged):
+  - `dumbbell-lateral-raise-poster.jpg`; SHA-256 `5ee09b8fea8c717862da6b8a3da4d066a9391a3be17d734eae6179c9aacb67e2`.
+  - `one-arm-dumbbell-row-poster.jpg`; SHA-256 `dfad75c491f60732948735c7c442e6ec73e3d7e1e4d5d62103d64abfbfb393f1`.
+- Additional variant comparison (viewed, unchanged): `incline-dumbbell-press-poster.jpg` and `hammer-curl-poster.jpg`.
+- Original tool output outside repository: `C:\Users\GL\.codex\generated_images\01a11af6-9852-7400-8fc2-bb7d37cfd68f\exec-e2161904-2a77-4c16-a673-f9744661c9f8.png`; dimensions 1536 x 1024; SHA-256 `15beb8a2367ef789f819f11bef06c33bc00fac897ea246dc1860784f8c9c16da`.
+- External retained source copy: `C:/Users/GL/AppData/Local/Temp/saman-three-image-style-20261008/originals/dumbbell-shoulder-press.png` (same bytes).
+- Export: RGB JPEG, quality 87, progressive, optimized; Lanczos proportional contain; neutral RGB (18, 20, 23) padding; metadata omitted. No stretching, recoloring or retouching. Crop coordinates [left, top, right, bottom] refer to generated original.
+- Visual review: Seated upright near-vertical backrest, neutral upright torso, exactly two dumbbells held above ear/head level with elbows beneath wrists. Hands, bench, both legs and planted feet reviewed in the original and poster; thumbnail retains both dumbbells, arms, vertical backrest and seat. This is overhead shoulder press, distinct from the reclined incline chest press reference.
+- Readability: both exports viewed directly before selection; thumbnails compared at actual 68 x 68 and 80 x 80; landscape poster uses existing contain renderer.
+- `dumbbell-shoulder-press-thumb.jpg`: crop [390, 35, 1115, 760] -> contain 512 x 512 at offset [0, 0] in 512 x 512; 38546 bytes; SHA-256 `d94e218e5f8d7c804ffb4049311d42df2ba9b04575c32d53eaad956408374996`.
+- `dumbbell-shoulder-press-poster.jpg`: crop [0, 0, 1536, 1024] -> contain 1080 x 720 at offset [100, 0] in 1280 x 720; 118093 bytes; SHA-256 `6cffd4a5db20a3ab4150ca076e7d12669937f67bae00813d9ae0c9d04e343906`.
+
+<details><summary>Exact selected AI generation prompt</summary>
+
+Use case: photorealistic-natural. Asset type: Saman Exercise Library identification illustration; not certified exercise-form instruction. Create ONE standalone landscape image 1536x1024. The two input images are STYLE REFERENCES ONLY from the local library: match their photograph-like realism, adult male with short brown hair and short stubble, fitted mid-gray athletic tee, charcoal shorts, black training shoes, dark charcoal gym with subdued racks behind, soft neutral studio-like light and sharp readable athlete. Do not copy their exercise poses. Primary subject: SEATED DUMBBELL SHOULDER PRESS on an upright 85-90 degree backrest, unmistakably overhead shoulder press. One adult man seated upright, neutral torso, back supported by near-vertical black bench, both feet fully visible and planted on floor. Exactly TWO separate black hex dumbbells, one in each hand, both raised slightly above ear/head height with elbows bent about 90 degrees below wrists, forearms vertical, palms facing forward, press travels directly OVERHEAD. Show both hands naturally wrapping handles with realistic five-finger anatomy, both dumbbells fully visible. Full body, entire upright seat/backrest and feet visible, three-quarter FRONT camera to see both arms. Center athlete and decisive weights/bench in central square-friendly region with margins on all sides for 512 square thumbnail; no limb/equipment clipping. Gym background restrained and lower contrast than subject. No text, logos, watermark, overlays, arrows, panels, extra people, extra weights in hands. Not inclined chest press, not reclined torso, not flat bench press, not flyes, no jeans. Preserve the reference style while depicting this NEW exercise.
+
+</details>
+
+<details><summary>Superseded photo provenance (historical only)</summary>
 
 - Creator/photographer: Alesia Kozik
 - Source: https://www.pexels.com/photo/a-man-doing-a-dumbbell-shoulder-press-7289370/
@@ -62,7 +110,32 @@ Real-photo usage follows the [Pexels License](https://www.pexels.com/license/), 
 - `dumbbell-shoulder-press-thumb.jpg`: crop [380, 0, 1580, 1200] -> contain 512 x 512 at offset [0, 0] in 512 x 512; 45064 bytes; SHA-256 `4e20b62265c3f6b5a70af9ded972852f645553ce89a71fc954a765833d8e9366`.
 - `dumbbell-shoulder-press-poster.jpg`: crop [0, 40, 1800, 1150] -> contain 1168 x 720 at offset [56, 0] in 1280 x 720; 108319 bytes; SHA-256 `dd4adc384cb8cb7845e4dc3a58c0e870615c66f153eac3ca91d91d190aa44989`.
 
-### push-up (photo)
+</details>
+
+### push-up (AI replacement)
+
+- Replacement created: 2026-10-08. These two JPEGs replace the previous photo pair; filenames and catalog/legacy mappings are unchanged.
+- Creator/source: OpenAI built-in `image_gen` tool; prompt authored by Codex. AI-generated photograph-like identification illustration, not a real photograph or verified exercise-form instruction.
+- Model: not exposed by the built-in tool; no model name inferred. Usage: applicable [OpenAI terms](https://openai.com/policies/terms-of-use/), not a stock-photo license.
+- Style reference inputs (local, unchanged):
+  - `dumbbell-lateral-raise-poster.jpg`; SHA-256 `5ee09b8fea8c717862da6b8a3da4d066a9391a3be17d734eae6179c9aacb67e2`.
+  - `one-arm-dumbbell-row-poster.jpg`; SHA-256 `dfad75c491f60732948735c7c442e6ec73e3d7e1e4d5d62103d64abfbfb393f1`.
+- Additional variant comparison (viewed, unchanged): `incline-dumbbell-press-poster.jpg` and `hammer-curl-poster.jpg`.
+- Original tool output outside repository: `C:\Users\GL\.codex\generated_images\01a11af6-9852-7400-8fc2-bb7d37cfd68f\exec-5149d3f6-1794-4258-b874-78e873714887.png`; dimensions 1536 x 1024; SHA-256 `9f79ae04afd9bd58e38b2d80f2ab7f1581d1b6a0d35897c02f5def142bbfc5b0`.
+- External retained source copy: `C:/Users/GL/AppData/Local/Temp/saman-three-image-style-20261008/originals/push-up.png` (same bytes).
+- Export: RGB JPEG, quality 87, progressive, optimized; Lanczos proportional contain; neutral RGB (18, 20, 23) padding; metadata omitted. No stretching, recoloring or retouching. Crop coordinates [left, top, right, bottom] refer to generated original.
+- Visual review: Standard floor push-up lowering phase, two palms and two toes on floor, straight legs and knees lifted, visible body line and both arms. Both hands/fingers, torso and both feet are retained in both exports. No dumbbells, bench or knee support.
+- Readability: both exports viewed directly before selection; thumbnails compared at actual 68 x 68 and 80 x 80; landscape poster uses existing contain renderer.
+- `push-up-thumb.jpg`: crop [160, 300, 1420, 865] -> contain 512 x 230 at offset [0, 141] in 512 x 512; 24969 bytes; SHA-256 `0d946304254fb33f3908dd757625fa02b28c35a3abe08977de4392feb42a44f9`.
+- `push-up-poster.jpg`: crop [0, 0, 1536, 1024] -> contain 1080 x 720 at offset [100, 0] in 1280 x 720; 110580 bytes; SHA-256 `8c158599090240cb9ff74d6dcfcf93f5e5227a099a54268ae6444dd94339265e`.
+
+<details><summary>Exact selected AI generation prompt</summary>
+
+Use case: photorealistic-natural. Asset type: Saman Exercise Library identification illustration, not certified exercise-form instruction. Generate ONE standalone landscape photograph-like AI image, 1536x1024. The two input pictures are STYLE REFERENCES ONLY, not pose references. Match existing local images: same kind of adult male athlete, short brown hair and stubble, fitted mid-gray athletic tee, charcoal shorts, black trainers with light soles, natural realistic anatomy, charcoal-black gym with subdued dumbbell rack and soft neutral lighting, realistic textures, no illustration outlines or cartoon styling. Primary subject STANDARD FLOOR PUSH-UP with NO equipment in hands. Athlete supported on TWO open palms and TWO toes on a plain dark gym floor, legs fully straight, knees off floor, head/shoulders/hips/ankles in a single straight plank line. Show a mid-lowering phase, elbows bent roughly 70-90 degrees and tucked 45 degrees to torso, hands slightly wider than shoulders, chest near floor. Side three-quarter camera low enough to read full body line but slightly elevated so BOTH distinct palms, both forearms/elbows and both feet visible. Head toward LEFT, feet toward RIGHT. Exactly two arms and two legs, natural hands/fingers spread in weight-bearing floor contact, no hidden or extra limbs. Full body from hands and head to both feet within frame with margins. Center pose compactly so a square thumbnail can retain both hands and full torso/legs by proportional contain padding, do not crop extremities. Dark neutral quiet gym background without distracting people. No dumbbells, bench, knee push-up, raised platform, added weights, writing, logos, arrows, watermark, panels or motion trails. The different pose must unmistakably be a standard push-up, preserving the reference realism, outfit, light and environment.
+
+</details>
+
+<details><summary>Superseded photo provenance (historical only)</summary>
 
 - Creator/photographer: Ketut Subiyanto
 - Source: https://www.pexels.com/photo/man-in-gray-tank-top-doing-push-ups-4720304/
@@ -73,6 +146,8 @@ Real-photo usage follows the [Pexels License](https://www.pexels.com/license/), 
 - Visual review: Hands on floor, straight arms in top push-up position, both feet supported.
 - `push-up-thumb.jpg`: crop [250, 0, 1450, 1200] -> contain 512 x 512 at offset [0, 0] in 512 x 512; 52623 bytes; SHA-256 `e94970fd25437e0cf161462dcc4da3101ffa0cdb6b523ba18c178a784bdc726c`.
 - `push-up-poster.jpg`: crop [230, 160, 1530, 1190] -> contain 909 x 720 at offset [185, 0] in 1280 x 720; 122933 bytes; SHA-256 `8b4e3264d32e834a7a7ff03e8533095fc9a0c342a0477b148af43669d1c80933`.
+
+</details>
 
 ### barbell-back-squat (photo)
 
@@ -343,8 +418,8 @@ No motion exceeded three visually reviewed candidates. Search result listings ar
 
 - Lat pulldown: Pexels 31849599 viewed, behind-head/front bar placement unclear from rear angle; rejected for default Wide Grip reuse. One AI candidate selected (2 reviewed total).
 - Seated cable row: targeted Pexels search exposed a video, not a suitable reviewed still; one AI candidate selected.
-- Shoulder press: Pexels 7289370 viewed and selected (1).
-- Push-up: Pexels 13916678 viewed but too tight/front-on for full-body poster; Pexels 4720304 selected (2).
+- Shoulder press: Pexels 7289370 viewed and selected (1) in the historical completion batch; superseded by the AI style replacement above.
+- Push-up: Pexels 13916678 viewed but too tight/front-on for full-body poster; Pexels 4720304 selected (2) in the historical completion batch; superseded by the AI style replacement above.
 - Rope pushdown: Pexels 6243176 viewed, rigid bar attachment; rejected. One AI rope candidate selected (2).
 - Back squat: Pexels 116077 viewed, front squat; rejected. Pexels 13106591 selected (2).
 - Romanian deadlift, hip thrust, lying leg curl, standing calf raise, hanging leg raise, cable woodchopper: bounded targeted Pexels searches produced no suitable still with verified motion; one AI candidate each selected (1 per motion).
@@ -352,3 +427,109 @@ No motion exceeded three visually reviewed candidates. Search result listings ar
 - Ab wheel: Pexels 8032892 viewed, wheel cropped at bottom and bright home setting; Pexels 14679048 selected (2).
 - Plank poster: Pexels 4047103 selected (1 new candidate). P3 not used or relied on.
 - Default Active incline flyes, dumbbell overhead extension, face pulls: targeted searches did not establish appropriate stills; one AI candidate each selected. All legacy IDs and session fields preserved.
+
+## Exercise Library round one — 2026-10-08
+
+Seven new pairs below are AI-generated identification illustrations, not real photographs or certified exercise-form guidance. Creator: OpenAI image_gen; prompts authored by Codex. No stock-photo license applies. Usage is subject to the applicable [OpenAI terms](https://openai.com/policies/terms-of-use/). Originals and rejected candidates stay outside the source repository.
+
+Source search: targeted Pexels queries covered incline press, supported one-arm row, standing lateral raise, neutral-grip hammer curl, dumbbell goblet squat, bodyweight reverse lunge and dead bug. Search listings alone were not accepted as image evidence. [Jessie Kiermayr / Pexels 35986386](https://www.pexels.com/photo/personal-trainer-assisting-with-incline-dumbbell-press-35986386/) and the [Pexels license](https://www.pexels.com/license/) were inspected. The downloaded 1800 x 2700 candidate was viewed: inclined bench and press visible, but a trainer obscures parts of the athlete and the portrait framing does not preserve the subject well in a landscape poster. Rejected. Other searches did not establish suitable, licensed, visually verified stills; AI fallback used.
+
+Reuse review: both existing thumbnail and poster of incline-dumbbell-flyes, overhead-triceps-extension and face-pulls were opened directly. They identify an inclined-bench fly, a seated single-dumbbell two-hand overhead extension, and a head-height cable/rope face pull respectively. Their original provenance/crops/hashes above remain unchanged. The prior "Legacy ex_3/ex_4/ex_5 only" notes described the previous consumer set: these exact pairs and mappings now also serve the corresponding new slug IDs. No alias is inferred from names; ex_1..ex_5 remain separate session identities.
+
+### incline-dumbbell-press (AI)
+
+- Source page: none (built-in image_gen output, not a stock download). Author: OpenAI image_gen / Codex prompt.
+- Original local file: `C:\Users\GL\.codex\generated_images\01a11a5c-3eb9-7390-8fc5-2a6d6cabd359\exec-81b87577-df67-4f9f-9fac-89ac83bdb56f.png`; dimensions 1536 x 1024; SHA-256 `f2b94562254be3ab7fde756852e67e1a6c0248af2bb582929717dce5ac36b961`.
+- Variant/visual review: Inclined backrest, two dumbbells above bent elbows, supported back and planted feet; press rather than fly.
+- `incline-dumbbell-press-thumb.jpg`: crop [270, 45, 1310, 970] -> contain 512 x 455 at offset (0, 28) in 512 x 512; JPEG quality 90, bicubic resize, background RGB (17, 19, 22); 49715 bytes; SHA-256 `5db64a955501410fad4ff0ca57b4b4aea5a3212b0ce3b51c7e8831e6caa7efe4`.
+- `incline-dumbbell-press-poster.jpg`: crop [0, 0, 1536, 1024] -> contain 1080 x 720 at offset (100, 0) in 1280 x 720; JPEG quality 90, bicubic resize, background RGB (17, 19, 22); 137086 bytes; SHA-256 `48a5932619ba7df33493f327da701975d594215ab1bfbea4bb0763dcab94ef4b`.
+
+<details><summary>Exact selected AI generation prompt</summary>
+
+Use case: photorealistic-natural. Asset type: Saman Workout exercise identification illustration, not certified form instruction. ONE landscape 1536x1024 photograph-like AI image. One adult male athlete in gray fitted tee, charcoal shorts and shoes in a dark neutral gym. Natural anatomy, realistic hands with five fingers, exactly two arms and two legs. Entire body and decisive equipment visible with generous margins, center pose in square-friendly area. No writing, logos, watermark, arrows, collage, motion trails or other people. INCLINE DUMBBELL CHEST PRESS: adult lies with back supported by a clearly inclined 30-degree bench, head on inclined backrest, both feet on floor. One hex dumbbell in each hand over upper chest, forearms nearly vertical, elbows bent approximately 90 degrees in bottom pressing phase, elbows below wrists at 45 degrees to torso. Clearly show bench angle and two bent arms, dumbbells and planted feet. Three-quarter front/side view. Not flyes (no outstretched arms), not flat bench or shoulder press.
+
+</details>
+
+### one-arm-dumbbell-row (AI)
+
+- Source page: none (built-in image_gen output, not a stock download). Author: OpenAI image_gen / Codex prompt.
+- Original local file: `C:\Users\GL\.codex\generated_images\01a11a5c-3eb9-7390-8fc5-2a6d6cabd359\exec-c306c597-8f09-478f-bb20-617a8db38e01.png`; dimensions 1536 x 1024; SHA-256 `a5c63e8afe288d4e6a72eb4d6eb755b13adc71cbfb6272ad12289d77f55bc340`.
+- Variant/visual review: One hand and knee on a flat bench; opposite hand rows one dumbbell toward the hip, opposite foot planted.
+- `one-arm-dumbbell-row-thumb.jpg`: crop [270, 35, 1320, 900] -> contain 512 x 422 at offset (0, 45) in 512 x 512; JPEG quality 90, bicubic resize, background RGB (17, 19, 22); 47950 bytes; SHA-256 `3697ae296cad474cdb25f19fdcd336e0063da8dfc4f3c73dc20f2fb5b67249a5`.
+- `one-arm-dumbbell-row-poster.jpg`: crop [0, 0, 1536, 1024] -> contain 1080 x 720 at offset (100, 0) in 1280 x 720; JPEG quality 90, bicubic resize, background RGB (17, 19, 22); 146201 bytes; SHA-256 `dfad75c491f60732948735c7c442e6ec73e3d7e1e4d5d62103d64abfbfb393f1`.
+
+<details><summary>Exact selected AI generation prompt</summary>
+
+Use case: photorealistic-natural. Asset type: Saman Workout exercise identification illustration. Generate ONE landscape 1536x1024 image, adult male athlete wearing fitted gray tee, charcoal shorts and shoes in dark neutral gym. Entire athlete and flat bench visible with margins, center decisive pose within square-friendly middle; no text, logos, watermarks, panels or other people. Natural anatomy, exactly two arms and two legs, realistic fingers and grip. ONE-ARM DUMBBELL ROW with FLAT BENCH SUPPORT: left palm and left knee firmly on a horizontal padded flat bench, right foot planted on floor, torso horizontal with neutral back. RIGHT hand grips the horizontal handle of ONE hex dumbbell pulled beside the hip; right elbow bent and tucked near ribs. Right arm rows, left hand supports on bench. Three-quarter side camera clearly shows bench support, dumbbell, both legs and both hands. Not two-arm row, not chest-supported row. Photograph-like AI identification illustration, not certified form instruction.
+
+</details>
+
+### dumbbell-lateral-raise (AI)
+
+- Source page: none (built-in image_gen output, not a stock download). Author: OpenAI image_gen / Codex prompt.
+- Original local file: `C:\Users\GL\.codex\generated_images\01a11a5c-3eb9-7390-8fc5-2a6d6cabd359\exec-d7a1875f-6406-46e9-bee1-080173af5f1c.png`; dimensions 1536 x 1024; SHA-256 `f91823ebcba5fd8d6d0d087584e659d4886833df9b12ae304ce0b006438f0f47`.
+- Variant/visual review: Standing with both arms out to the sides, two dumbbells at shoulder height, visible hands/feet.
+- `dumbbell-lateral-raise-thumb.jpg`: crop [310, 15, 1200, 965] -> contain 480 x 512 at offset (16, 0) in 512 x 512; JPEG quality 90, bicubic resize, background RGB (17, 19, 22); 37341 bytes; SHA-256 `e4cf01fa06615ac44208e7b3e773eb25fa406f635747631206eb460031e97ddc`.
+- `dumbbell-lateral-raise-poster.jpg`: crop [0, 0, 1536, 1024] -> contain 1080 x 720 at offset (100, 0) in 1280 x 720; JPEG quality 90, bicubic resize, background RGB (17, 19, 22); 115132 bytes; SHA-256 `5ee09b8fea8c717862da6b8a3da4d066a9391a3be17d734eae6179c9aacb67e2`.
+
+<details><summary>Exact selected AI generation prompt</summary>
+
+Use case: photorealistic-natural. Asset type: Saman Workout exercise identification illustration, not certified form instruction. ONE landscape 1536x1024 photograph-like AI image. One adult male athlete in gray fitted tee, charcoal shorts and shoes in a dark neutral gym. Natural anatomy, realistic hands with five fingers, exactly two arms and two legs. Entire body and decisive equipment visible with generous margins, center pose in square-friendly area. No writing, logos, watermark, arrows, collage, motion trails or other people. STANDING DUMBBELL LATERAL RAISE: standing upright both feet planted, two hex dumbbells gripped naturally palms toward floor, arms raised laterally to shoulder height in wide T shape with slight elbow bend. No excessive shrug. Three-quarter front view, both dumbbells at opposite sides, relaxed neutral wrists, full body. Not front raise, shoulder press, seated raise or upright row.
+
+</details>
+
+### hammer-curl (AI)
+
+- Source page: none (built-in image_gen output, not a stock download). Author: OpenAI image_gen / Codex prompt.
+- Original local file: `C:\Users\GL\.codex\generated_images\01a11a5c-3eb9-7390-8fc5-2a6d6cabd359\exec-d04f1b1d-9539-406c-876c-44a2109b4ce3.png`; dimensions 1536 x 1024; SHA-256 `88fdd6933f0dae023e0218fb0a9483b03d668f6fbaba6af3dc8d28f68a1a7fea`.
+- Variant/visual review: Standing; thumbs-up neutral grips, vertical dumbbells, elbows close to torso.
+- `hammer-curl-thumb.jpg`: crop [540, 0, 990, 570] -> contain 404 x 512 at offset (54, 0) in 512 x 512; JPEG quality 90, bicubic resize, background RGB (17, 19, 22); 35110 bytes; SHA-256 `5cf44dd6c80da694fb886df8131e54003f94971919c38ee13d14103184c6428d`.
+- `hammer-curl-poster.jpg`: crop [0, 0, 1536, 1024] -> contain 1080 x 720 at offset (100, 0) in 1280 x 720; JPEG quality 90, bicubic resize, background RGB (17, 19, 22); 119203 bytes; SHA-256 `3f2cfbd2a46dc31049a5cd9cb11913da2aacb281509cb5cf098bb540dbb67dc7`.
+
+<details><summary>Exact selected AI generation prompt</summary>
+
+Use case: photorealistic-natural. Asset type: Saman Workout exercise identification illustration, not certified form instruction. ONE landscape 1536x1024 photograph-like AI image. One adult male athlete in gray fitted tee, charcoal shorts and shoes in a dark neutral gym. Natural anatomy, realistic hands with five fingers, exactly two arms and two legs. Entire body and decisive equipment visible with generous margins, center pose in square-friendly area. No writing, logos, watermark, arrows, collage, motion trails or other people. STANDING HAMMER CURL: upright adult man, elbows close to torso. TWO dumbbells, one in each hand, handles held firmly, palms face inward toward each other NEUTRAL GRIP, thumbs point upward, dumbbell plates vertically stacked. Elbows flexed approximately 90 degrees mid curl, wrists straight, upper arms vertical. Three-quarter front camera shows both neutral grips and vertical dumbbells, full body feet planted. Not supinated bicep curl, not preacher curl.
+
+</details>
+
+### goblet-squat (AI)
+
+- Source page: none (built-in image_gen output, not a stock download). Author: OpenAI image_gen / Codex prompt.
+- Original local file: `C:\Users\GL\.codex\generated_images\01a11a5c-3eb9-7390-8fc5-2a6d6cabd359\exec-1b774d64-7c3f-428b-a2e3-2d684c67fa6b.png`; dimensions 1536 x 1024; SHA-256 `ff65f494f44cb08b7b4b5f6bb09711113729afabf16d1eb7c0fed5154b014978`.
+- Variant/visual review: One vertical dumbbell held at chest with both hands beneath the upper head, knees bent and heels planted.
+- `goblet-squat-thumb.jpg`: crop [490, 25, 1060, 940] -> contain 319 x 512 at offset (96, 0) in 512 x 512; JPEG quality 90, bicubic resize, background RGB (17, 19, 22); 35849 bytes; SHA-256 `645df7b51afd82d82454ef0270fc001a04e5b867337364ec77e00bc9b6aad78e`.
+- `goblet-squat-poster.jpg`: crop [0, 0, 1536, 1024] -> contain 1080 x 720 at offset (100, 0) in 1280 x 720; JPEG quality 90, bicubic resize, background RGB (17, 19, 22); 128137 bytes; SHA-256 `484b8402c31bc46a46178d4df89590d4599f4db11fa6c8f6065279daf90c8bb9`.
+
+<details><summary>Exact selected AI generation prompt</summary>
+
+Use case: photorealistic-natural. Asset type: Saman Workout exercise identification illustration, not certified form instruction. ONE landscape 1536x1024 photograph-like AI image. One adult male athlete in gray fitted tee, charcoal shorts and shoes in a dark neutral gym. Natural anatomy, realistic hands, exactly two arms and two legs. Entire body and decisive equipment visible with margins centered in square-friendly area. No writing, logos, watermark, arrows, collage, motion trails or other people. DUMBBELL GOBLET SQUAT: adult man at bottom of controlled squat, thighs approximately parallel to floor, heels planted shoulder-width, torso upright, knees track toes. Hold exactly ONE vertical dumbbell directly before chest, BOTH hands cup underside of UPPER dumbbell head, elbows bend downward between knees. Lower dumbbell head hangs below hands. Three-quarter front view shows hands, single dumbbell, knees, heels. Not kettlebell, not two dumbbells, not barbell, not front rack.
+
+</details>
+
+### reverse-lunge (AI)
+
+- Source page: none (built-in image_gen output, not a stock download). Author: OpenAI image_gen / Codex prompt.
+- Original local file: `C:\Users\GL\.codex\generated_images\01a11a5c-3eb9-7390-8fc5-2a6d6cabd359\exec-f75313c7-efe0-4441-bbff-1adbcb3a6d8a.png`; dimensions 1536 x 1024; SHA-256 `272f2a46d6953da11455a5a5845a1ff1d80eb5b50f655caa15ea26f52e867916`.
+- Variant/visual review: Empty hands; rear foot behind planted front foot, rear knee lowered. Depicts the lunge phase; stepping direction and alternation are described by cues, not proven by a still.
+- `reverse-lunge-thumb.jpg`: crop [400, 0, 1150, 940] -> contain 409 x 512 at offset (51, 0) in 512 x 512; JPEG quality 90, bicubic resize, background RGB (17, 19, 22); 39214 bytes; SHA-256 `ee2a40cc4c11beb20f7a2f9c88bfca855e155b3a41caf50341664ce372c3e541`.
+- `reverse-lunge-poster.jpg`: crop [0, 0, 1536, 1024] -> contain 1080 x 720 at offset (100, 0) in 1280 x 720; JPEG quality 90, bicubic resize, background RGB (17, 19, 22); 121767 bytes; SHA-256 `fd81d4e88fffbde745a2d07ce69262165686ee338b30c6eaa489f8d8b7ae54f8`.
+
+<details><summary>Exact selected AI generation prompt</summary>
+
+Use case: photorealistic-natural. Asset type: Saman Workout exercise identification illustration, not certified form instruction. ONE landscape 1536x1024 photograph-like AI image. One adult male athlete in gray fitted tee, charcoal shorts and shoes in a dark neutral gym. Natural anatomy, realistic hands, exactly two arms and two legs. Entire body and decisive equipment visible with margins centered in square-friendly area. No writing, logos, watermark, arrows, collage, motion trails or other people. BODYWEIGHT REVERSE LUNGE, no weights: adult standing in split stance after stepping RIGHT foot BACK. Left front foot fully planted, left shin near vertical. Right knee bent lowered close to floor behind him, right heel lifted and toes grounded, upright torso. Both hands empty by hips, two visible legs and feet. SIDE three-quarter view oriented left, show clearly right foot trailing back behind planted front foot, neutral back. No dumbbells, barbell or jumping. One phase only.
+
+</details>
+
+### dead-bug (AI)
+
+- Source page: none (built-in image_gen output, not a stock download). Author: OpenAI image_gen / Codex prompt.
+- Original local file: `C:\Users\GL\.codex\generated_images\01a11a5c-3eb9-7390-8fc5-2a6d6cabd359\exec-0e14242f-8439-417c-a065-ba0513cea436.png`; dimensions 1536 x 1024; SHA-256 `d25b0f650e5c7e82945430b41ff2033298ef33789fc979bd2a6e36cd63e10f38`.
+- Variant/visual review: Top-down supine pose. Upper-image arm extends overhead; diagonally opposite lower-image leg extends. Other arm raised and other knee bent, two distinct hands/feet. Two earlier side-view candidates were rejected because side coordination was unclear; third standalone candidate selected.
+- `dead-bug-thumb.jpg`: crop [20, 110, 1530, 720] -> contain 512 x 207 at offset (0, 152) in 512 x 512; JPEG quality 90, bicubic resize, background RGB (17, 19, 22); 25163 bytes; SHA-256 `b6ddecdf9d671e26e43e5b0c65fbe4650b62a9ac3e00504a2535d5792baa00c2`.
+- `dead-bug-poster.jpg`: crop [0, 0, 1536, 1024] -> contain 1080 x 720 at offset (100, 0) in 1280 x 720; JPEG quality 90, bicubic resize, background RGB (17, 19, 22); 164053 bytes; SHA-256 `c544d2178b4f90126b60496e601947608d6e1b4573fbb33bd27b954dc21d96ba`.
+
+<details><summary>Exact selected AI generation prompt</summary>
+
+Use case: photorealistic-natural. Create ONE 1536x1024 landscape photograph-like AI illustration of DEAD BUG with absolutely clear CONTRALATERAL arm and leg. Direct TOP-DOWN camera above a dark mat, looking straight down at adult male in gray tee charcoal shorts black shoes lying SUPINE on back. HEAD at LEFT of frame, hips central, FEET toward RIGHT. He has exactly two arms/two legs. Specific SCREEN POSITIONS: UPPER-SCREEN ARM straight reaching LEFT beyond head, hand near upper left. LOWER-SCREEN LEG straight reaching RIGHT beyond hips, foot near lower right. These diagonally opposite limbs are the extended pair. UPPER-SCREEN LEG is BENT at hip/knee 90 degrees with thigh lifted from hip and shin parallel to mat, foot held in upper-right area. LOWER-SCREEN ARM reaches upward toward ceiling above chest, seen foreshortened, hand around lower-middle chest. Both feet and both hands clearly distinct and visible. Back and head on mat, neutral spine. This is dead bug, one arm overhead and OPPOSITE leg extended, NOT same-side extensions. Minimal dark gym background, natural realistic skin/anatomy, no text, labels, arrows, logos, collage or extra people. Full body no crop. Identification illustration, not certified form guide.
+
+</details>
