@@ -45,12 +45,18 @@ class NutritionRepositoryImpl implements INutritionRepository {
 
   @override
   Future<NutritionPlan> generatePlan({
+    required String dateStr,
     required String goal,
     int targetCalories = 0,
     int? mealCount,
     String? style,
     bool remainingOnly = false,
   }) async {
+    final trimmedDate = dateStr.trim();
+    if (trimmedDate.isEmpty) {
+      throw ArgumentError('dateStr must not be empty');
+    }
+
     final rawData = await _remoteDataSource.generatePlan(
       goal: goal,
       targetCalories: targetCalories,
@@ -60,8 +66,24 @@ class NutritionRepositoryImpl implements INutritionRepository {
     );
 
     final planData = rawData['plan'] ?? rawData;
-    return NutritionPlanDto.fromJson(Map<String, dynamic>.from(planData))
-        .toEntity();
+    final generatedPlan =
+        NutritionPlanDto.fromJson(Map<String, dynamic>.from(planData))
+            .toEntity();
+
+    final dailyPlan = await getDailyPlan(trimmedDate);
+
+    return generatedPlan.copyWith(
+      date: trimmedDate,
+      meals: generatedPlan.meals,
+      entries: dailyPlan.entries,
+      currentWater: dailyPlan.currentWater,
+      targetWater: dailyPlan.targetWater,
+      totalCaloriesConsumed: dailyPlan.totalCaloriesConsumed,
+      totalProteinConsumed: dailyPlan.totalProteinConsumed,
+      totalCarbsConsumed: dailyPlan.totalCarbsConsumed,
+      totalFatConsumed: dailyPlan.totalFatConsumed,
+      rolloverCalories: dailyPlan.rolloverCalories,
+    );
   }
 
   @override

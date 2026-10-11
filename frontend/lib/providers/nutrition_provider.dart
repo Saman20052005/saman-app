@@ -238,6 +238,7 @@ class NutritionNotifier extends StateNotifier<AsyncValue<NutritionPlan?>> {
         }
 
         final plan = await _repository.generatePlan(
+          dateStr: dateStr,
           goal: mappedGoal,
           targetCalories: 0, // Gửi 0 — backend sẽ tự lấy từ profile
         );
@@ -252,9 +253,9 @@ class NutritionNotifier extends StateNotifier<AsyncValue<NutritionPlan?>> {
         // _macroTargets = null; // Commented out since not supported
 
         // Fetch existing data from API
-        int currentWater = 0;
-        int targetWater = 2000;
-        List<NutritionLogEntry> existingEntries = [];
+        int currentWater = plan.currentWater;
+        int targetWater = plan.targetWater;
+        List<NutritionLogEntry> existingEntries = plan.entries;
 
         try {
           final d = await _repository.getDailyPlan(dateStr);
@@ -496,6 +497,7 @@ class NutritionNotifier extends StateNotifier<AsyncValue<NutritionPlan?>> {
 
     try {
       final plan = await _repository.generatePlan(
+        dateStr: dateStr,
         goal: _lastGoal ?? 'maintain',
         mealCount: mealCount,
         style: style,
@@ -506,13 +508,13 @@ class NutritionNotifier extends StateNotifier<AsyncValue<NutritionPlan?>> {
       // _macroTargets = null; // Commented out since not supported
 
       // ===== Merge water + entries từ GET /{date} =====
-      List<NutritionLogEntry> existingEntries = [];
-      int currentWater = 0;
-      int targetWater = 2000;
-      int totalCal = 0;
-      int totalPro = 0;
-      int totalCarbs = 0;
-      int totalFat = 0;
+      List<NutritionLogEntry> existingEntries = plan.entries;
+      int currentWater = plan.currentWater;
+      int targetWater = plan.targetWater;
+      int totalCal = plan.totalCaloriesConsumed;
+      int totalPro = plan.totalProteinConsumed.toInt();
+      int totalCarbs = plan.totalCarbsConsumed.toInt();
+      int totalFat = plan.totalFatConsumed.toInt();
 
       try {
         final d = await _repository.getDailyPlan(dateStr);

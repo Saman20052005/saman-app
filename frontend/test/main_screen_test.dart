@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -5,6 +7,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 import 'package:health_ai_app/config/app_theme.dart';
+import 'package:health_ai_app/features/profile/data/datasources/profile_remote_data_source.dart';
+import 'package:health_ai_app/features/profile/data/models/profile_snapshot_model.dart';
 import 'package:health_ai_app/features/profile/data/repositories/profile_repository_impl.dart';
 import 'package:health_ai_app/features/profile/domain/entities/profile_entity.dart';
 import 'package:health_ai_app/features/profile/domain/entities/profile_snapshot.dart';
@@ -13,6 +17,8 @@ import 'package:health_ai_app/providers/nutrition_provider.dart';
 import 'package:health_ai_app/providers/profile_provider.dart';
 import 'package:health_ai_app/screens/home/widgets/saman_bottom_navigation_bar.dart';
 import 'package:health_ai_app/screens/main_screen.dart';
+import 'package:health_ai_app/screens/login/login_screen.dart';
+import 'package:health_ai_app/screens/profile_screen.dart';
 
 class _FakeProfileRepository implements ProfileRepository {
   final bool isValid;
@@ -116,7 +122,313 @@ class FakeNutritionNotifier extends StateNotifier<AsyncValue<NutritionPlan?>>
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
 
+class _ControlledProfileRepository extends _FakeProfileRepository {
+  final requests = <Completer<ProfileSnapshot?>>[];
+  final cachedSnapshots = <ProfileSnapshot>[];
+  int clearCount = 0;
+
+  @override
+  Future<ProfileSnapshot?> fetchProfileSnapshot(
+      {bool cacheOnSuccess = false}) {
+    final request = Completer<ProfileSnapshot?>();
+    requests.add(request);
+    return request.future;
+  }
+
+  @override
+  Future<void> cacheSnapshot(ProfileSnapshot snapshot) async {
+    cachedSnapshots.add(snapshot);
+  }
+
+  @override
+  Future<void> clearLocalProfile() async {
+    clearCount++;
+    cachedSnapshots.clear();
+  }
+}
+
+class _RecordingNavigatorObserver extends NavigatorObserver {
+  final pushedRoutes = <Route<dynamic>>[];
+
+  @override
+  void didPush(Route<dynamic> route, Route<dynamic>? previousRoute) {
+    pushedRoutes.add(route);
+  }
+}
+
+const _freshSnapshot = ProfileSnapshot(
+  profile: ProfileEntity(age: 28, height: 178, weight: 75),
+  targetCalories: 2400,
+);
+const _sessionMarker = 'widget-test-session';
+const _expiredMessage = 'Session expired. Please sign in again.';
+
+Future<ProviderContainer> _sessionContainer(
+    WidgetTester tester, _ControlledProfileRepository repository) async {
+  tester.view.physicalSize = const Size(1080, 2400);
+  tester.view.devicePixelRatio = 2.5;
+  addTearDown(tester.view.resetPhysicalSize);
+  addTearDown(tester.view.resetDevicePixelRatio);
+  SharedPreferences.setMockInitialValues({});
+  // In-memory plugin fixture only; no live credentials or auth API involved.
+  FlutterSecureStorage.setMockInitialValues({
+    'auth_token': _sessionMarker,
+    'user_email': 'widget-test@example.com',
+  });
+  final container = ProviderContainer(overrides: [
+    sharedPreferencesProvider
+        .overrideWithValue(await SharedPreferences.getInstance()),
+    profileRepositoryProvider.overrideWithValue(repository),
+    nutritionProvider.overrideWith((ref) => FakeNutritionNotifier()),
+  ]);
+  addTearDown(() async {
+    await tester.pumpWidget(const SizedBox.shrink());
+    for (final request in repository.requests) {
+      if (!request.isCompleted) request.complete(null);
+    }
+    await tester.pump(Duration.zero);
+    container.dispose();
+  });
+  return container;
+}
+
+Future<void> _seedUnauthorized(ProviderContainer container,
+    _ControlledProfileRepository repository) async {
+  final load = container.read(profileProvider.notifier).loadProfile();
+  repository.requests.last.completeError(
+      const UnauthorizedException('Pre-login request unauthorized'));
+  await load;
+  expect(container.read(profileProvider).status, ProfileStatus.unauthorized);
+}
+
+Future<void> _pumpSessionMain(WidgetTester tester, ProviderContainer container,
+    {VoidCallback? onUnauthorizedLogout,
+    NavigatorObserver? observer}) async {
+  await tester.pumpWidget(UncontrolledProviderScope(
+    container: container,
+    child: MaterialApp(
+      theme: SamanTheme.dark(),
+      navigatorObservers: [if (observer != null) observer],
+      home: MainScreen(onUnauthorizedLogout: onUnauthorizedLogout),
+    ),
+  ));
+  await tester.pump(Duration.zero);
+}
+
 void main() {
+  group('MainScreen fresh profile session', () {
+    testWidgets('stale unauthorized starts a fresh load without clearing session',
+        (tester) async {
+      final repository = _ControlledProfileRepository();
+      final container = await _sessionContainer(tester, repository);
+      await _seedUnauthorized(container, repository);
+      var logoutCount = 0;
+
+      await _pumpSessionMain(tester, container,
+          onUnauthorizedLogout: () => logoutCount++);
+
+      expect(logoutCount, 0);
+      expect(repository.clearCount, 0);
+      expect(await const FlutterSecureStorage().read(key: 'auth_token'),
+          _sessionMarker);
+      expect(repository.requests, hasLength(2));
+      expect(container.read(profileProvider).status, ProfileStatus.loading);
+      expect(find.text(_expiredMessage), findsNothing);
+      repository.requests.last.complete(_freshSnapshot);
+      await tester.pump(Duration.zero);
+    });
+
+    testWidgets('fresh success retains session after pre-login unauthorized',
+        (tester) async {
+      final repository = _ControlledProfileRepository();
+      final container = await _sessionContainer(tester, repository);
+      await _seedUnauthorized(container, repository);
+      var logoutCount = 0;
+      await _pumpSessionMain(tester, container,
+          onUnauthorizedLogout: () => logoutCount++);
+      expect(repository.requests, hasLength(2));
+      repository.requests.last.complete(_freshSnapshot);
+      await tester.pump(Duration.zero);
+      await tester.pump(Duration.zero);
+
+      expect(container.read(profileProvider).status, ProfileStatus.ready);
+      expect(container.read(profileProvider).targetCalories, 2400);
+      expect(repository.cachedSnapshots, [_freshSnapshot]);
+      expect(repository.requests, hasLength(2));
+      expect(repository.clearCount, 0);
+      expect(logoutCount, 0);
+      expect(await const FlutterSecureStorage().read(key: 'auth_token'),
+          _sessionMarker);
+      expect(find.byType(MainScreen), findsOneWidget);
+      expect(find.byType(LoginScreen), findsNothing);
+      expect(find.text(_expiredMessage), findsNothing);
+    });
+
+    testWidgets('fresh unauthorized clears session and navigates to login once',
+        (tester) async {
+      final repository = _ControlledProfileRepository();
+      final container = await _sessionContainer(tester, repository);
+      final observer = _RecordingNavigatorObserver();
+      await _pumpSessionMain(tester, container, observer: observer);
+      expect(repository.requests, hasLength(1));
+      repository.requests.single
+          .completeError(const UnauthorizedException('Fresh session expired'));
+      await tester.pump(Duration.zero);
+      await tester.pump(Duration.zero);
+      // Finish the real navigation and LoginScreen entrance animations.
+      await tester.pump(const Duration(seconds: 1));
+      await tester.pump(const Duration(seconds: 1));
+
+      expect(repository.clearCount, 1);
+      expect(await const FlutterSecureStorage().read(key: 'auth_token'), isNull);
+      expect(find.byType(LoginScreen), findsOneWidget);
+      expect(find.byType(MainScreen), findsNothing);
+      expect(observer.pushedRoutes, hasLength(2));
+      await tester.pump(Duration.zero);
+      expect(observer.pushedRoutes, hasLength(2));
+      expect(repository.requests, hasLength(1));
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('repeated unauthorized notification logs out only once',
+        (tester) async {
+      final repository = _ControlledProfileRepository();
+      final container = await _sessionContainer(tester, repository);
+      var logoutCount = 0;
+      await _pumpSessionMain(tester, container,
+          onUnauthorizedLogout: () => logoutCount++);
+      repository.requests.single
+          .completeError(const UnauthorizedException('Fresh session expired'));
+      await tester.pump(Duration.zero);
+      await tester.pump(Duration.zero);
+      expect(logoutCount, 1);
+      expect(repository.clearCount, 1);
+
+      final repeatedLoad =
+          container.read(profileProvider.notifier).loadProfile();
+      repository.requests.last
+          .completeError(const UnauthorizedException('Still unauthorized'));
+      await repeatedLoad;
+      await tester.pump(Duration.zero);
+      expect(logoutCount, 1);
+      expect(repository.clearCount, 1);
+      expect(repository.requests, hasLength(2));
+      expect(await const FlutterSecureStorage().read(key: 'auth_token'), isNull);
+    });
+
+    testWidgets('200 null profile remains incomplete and keeps profile guard',
+        (tester) async {
+      final repository = _ControlledProfileRepository();
+      final container = await _sessionContainer(tester, repository);
+      await _seedUnauthorized(container, repository);
+      var logoutCount = 0;
+      await _pumpSessionMain(tester, container,
+          onUnauthorizedLogout: () => logoutCount++);
+      // Parse the actual successful-response body through the existing model.
+      expect(repository.requests, hasLength(2));
+      repository.requests.last.complete(ProfileSnapshotModel.fromJson({
+        'email': 'widget-test@example.com',
+        'profile': null,
+        'health_stats': null,
+      }));
+      await tester.pump(Duration.zero);
+      await tester.pump(Duration.zero);
+
+      expect(container.read(profileProvider).status, ProfileStatus.incomplete);
+      expect(container.read(profileProvider).isProfileValid, isFalse);
+      expect(logoutCount, 0);
+      expect(repository.clearCount, 0);
+      expect(await const FlutterSecureStorage().read(key: 'auth_token'),
+          _sessionMarker);
+      expect(find.text(_expiredMessage), findsNothing);
+      await tester.tap(find.text('Nutrition'));
+      await tester.pump(Duration.zero);
+      expect(container.read(mainNavIndexProvider), 4);
+      expect(find.byType(ProfileScreen), findsOneWidget);
+      expect(find.text('Hồ sơ chưa hoàn thiện'), findsOneWidget);
+      expect(repository.requests, hasLength(2));
+    });
+
+    testWidgets('non-auth error preserves session and permits explicit reload',
+        (tester) async {
+      final repository = _ControlledProfileRepository();
+      final container = await _sessionContainer(tester, repository);
+      var logoutCount = 0;
+      await _pumpSessionMain(tester, container,
+          onUnauthorizedLogout: () => logoutCount++);
+      repository.requests.single.completeError(Exception('Network unavailable'));
+      await tester.pump(Duration.zero);
+      await tester.pump(Duration.zero);
+
+      expect(container.read(profileProvider).status, ProfileStatus.error);
+      expect(container.read(profileProvider).errorMessage,
+          contains('Network unavailable'));
+      expect(logoutCount, 0);
+      expect(repository.clearCount, 0);
+      expect(repository.requests, hasLength(1));
+      expect(await const FlutterSecureStorage().read(key: 'auth_token'),
+          _sessionMarker);
+      expect(find.text(_expiredMessage), findsNothing);
+
+      final retry = container.read(profileProvider.notifier).loadProfile();
+      expect(container.read(profileProvider).status, ProfileStatus.loading);
+      repository.requests.last.complete(_freshSnapshot);
+      await retry;
+      await tester.pump(Duration.zero);
+      expect(container.read(profileProvider).status, ProfileStatus.ready);
+      expect(repository.requests, hasLength(2));
+      expect(logoutCount, 0);
+      expect(repository.clearCount, 0);
+    });
+
+    testWidgets('pre-login in-flight 401 cannot overwrite the fresh profile load',
+        (tester) async {
+      final repository = _ControlledProfileRepository();
+      final container = await _sessionContainer(tester, repository);
+      final notifier = container.read(profileProvider.notifier);
+      final oldLoad = notifier.loadProfile();
+      var logoutCount = 0;
+      await _pumpSessionMain(tester, container,
+          onUnauthorizedLogout: () => logoutCount++);
+      expect(repository.requests, hasLength(2));
+
+      repository.requests.first
+          .completeError(const UnauthorizedException('Late pre-login 401'));
+      await oldLoad;
+      await tester.pump(Duration.zero);
+      expect(container.read(profileProvider).status, ProfileStatus.loading);
+      expect(logoutCount, 0);
+      expect(repository.clearCount, 0);
+      repository.requests.last.complete(_freshSnapshot);
+      await tester.pump(Duration.zero);
+      expect(container.read(profileProvider).status, ProfileStatus.ready);
+      expect(repository.cachedSnapshots, [_freshSnapshot]);
+      expect(await const FlutterSecureStorage().read(key: 'auth_token'),
+          _sessionMarker);
+      await tester.pump(Duration.zero);
+    });
+
+    testWidgets('pending fresh response after MainScreen disposal cannot logout',
+        (tester) async {
+      final repository = _ControlledProfileRepository();
+      final container = await _sessionContainer(tester, repository);
+      var logoutCount = 0;
+      await _pumpSessionMain(tester, container,
+          onUnauthorizedLogout: () => logoutCount++);
+      expect(repository.requests, hasLength(1));
+      await tester.pumpWidget(const SizedBox.shrink());
+      repository.requests.single
+          .completeError(const UnauthorizedException('Response after unmount'));
+      await tester.pump(Duration.zero);
+
+      expect(logoutCount, 0);
+      expect(repository.clearCount, 0);
+      expect(await const FlutterSecureStorage().read(key: 'auth_token'),
+          _sessionMarker);
+      expect(tester.takeException(), isNull);
+    });
+  });
+
   testWidgets(
       'MainScreen renders approved 5-tab Saman navigation bar with wired tabs',
       (tester) async {

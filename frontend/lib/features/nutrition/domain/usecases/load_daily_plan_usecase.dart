@@ -16,6 +16,7 @@ class LoadDailyPlanUseCase {
       // Auto-generate if empty
       // In a real app, 'goal' might come from a UserProfile repository
       return await _repository.generatePlan(
+        dateStr: dateStr,
         goal: 'maintain', // Default or from profile
         targetCalories: 0,
         remainingOnly: true,

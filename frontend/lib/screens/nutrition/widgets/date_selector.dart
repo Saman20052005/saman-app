@@ -1,14 +1,11 @@
-// lib/screens/nutrition/widgets/date_selector.dart
-// BUG FIX #1: Colors.white (line 55 gốc) → theme-aware (colors.surface)
-// BUG FIX #2: width 50px cứng → responsive dựa vào screen width
-// UI: giữ nguyên 100% — pill shape, spacing, text style, today dot
-
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
+/// Compact Date Navigator Pill matching Calm Athleticism design spec:
+/// Left chevron (prev day) | Center calendar + date + Today badge + expand_more | Right chevron (next day)
 class DateSelector extends StatelessWidget {
   final DateTime selectedDate;
-  final Function(DateTime) onDateSelected;
+  final ValueChanged<DateTime> onDateSelected;
 
   const DateSelector({
     super.key,
@@ -16,123 +13,173 @@ class DateSelector extends StatelessWidget {
     required this.onDateSelected,
   });
 
+  bool _isSameDay(DateTime a, DateTime b) {
+    return a.year == b.year && a.month == b.month && a.day == b.day;
+  }
+
+  void _pickDate(BuildContext context) async {
+    final now = DateTime.now();
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: selectedDate,
+      firstDate: DateTime(now.year - 1),
+      lastDate: DateTime(now.year + 1),
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: const ColorScheme.dark(
+              primary: Color(0xFF10B981),
+              onPrimary: Color(0xFF0C0D0E),
+              surface: Color(0xFF16171B),
+              onSurface: Color(0xFFF3F4F6),
+            ),
+            dialogBackgroundColor: const Color(0xFF16171B),
+          ),
+          child: child!,
+        );
+      },
+    );
+    if (picked != null) {
+      onDateSelected(picked);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     final now = DateTime.now();
+    final isToday = _isSameDay(selectedDate, now);
+    final isFuture = selectedDate.isAfter(DateTime(now.year, now.month, now.day));
 
-    // Logic giữ nguyên: Mon-based week
-    final start = now.subtract(Duration(days: now.weekday - 1));
-    final weekDays = List.generate(7, (i) => start.add(Duration(days: i)));
-
-    // BUG FIX #2: tính width responsive thay vì hardcode 50px
-    // Tổng padding ngang = 32, margin mỗi item = 10 (5*2), 7 items
-    // pilWidth = (screenWidth - 32 - 70) / 7 nhưng clamp [42, 56]
-    final screenWidth = MediaQuery.of(context).size.width;
-    final pillWidth = ((screenWidth - 32 - 70) / 7).clamp(42.0, 56.0);
-
-    return SizedBox(
-      height: 90,
-      child: ListView.builder(
-        scrollDirection: Axis.horizontal,
-        itemCount: 7,
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        itemBuilder: (context, index) {
-          final date = weekDays[index];
-          final isSelected = date.day == selectedDate.day &&
-              date.month == selectedDate.month &&
-              date.year == selectedDate.year;
-          final isToday = date.day == now.day &&
-              date.month == now.month &&
-              date.year == now.year;
-
-          return GestureDetector(
-            onTap: () => onDateSelected(date),
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 200),
-              // BUG FIX #2: dùng pillWidth responsive
-              width: pillWidth,
-              margin: const EdgeInsets.symmetric(horizontal: 5, vertical: 10),
-              decoration: BoxDecoration(
-                // BUG FIX #1: light idle = colors.surface (không còn Colors.white)
-                color: isSelected
-                    ? colors.onSurface
-                    : isDark
-                        ? const Color(0xFF252525)
-                        : colors.surface, // ← was Colors.white
-                borderRadius: BorderRadius.circular(25),
-                border: Border.all(
-                  color: isSelected
-                      ? colors.onSurface
-                      : isToday
-                          ? colors.secondary
-                          : isDark
-                              ? const Color(0xFF333333)
-                              : const Color(0xFFE8E8E8),
-                  width: isToday && !isSelected ? 1.5 : 1,
-                ),
-                boxShadow: isSelected
-                    ? [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(isDark ? 0.4 : 0.12),
-                          blurRadius: 8,
-                          offset: const Offset(0, 2),
-                        ),
-                      ]
-                    : null,
-              ),
-              // BUG FIX #2: FittedBox bảo vệ text overflow khi text scale lớn
-              child: FittedBox(
-                fit: BoxFit.scaleDown,
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 4),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        DateFormat('E').format(date).substring(0, 3),
-                        style: TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w600,
-                          // ✅ Thay Colors.white70/Colors.grey → theme-aware
-                          color: isSelected
-                              ? colors.surface.withOpacity(0.75)
-                              : colors.secondary,
-                        ),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        '${date.day}',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w800,
-                          // ✅ Thay Colors.white/Colors.black → theme-aware
-                          color: isSelected ? colors.surface : colors.onSurface,
-                        ),
-                      ),
-                      // Today dot
-                      if (isToday) ...[
-                        const SizedBox(height: 3),
-                        Container(
-                          width: 4,
-                          height: 4,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: isSelected
-                                ? colors.surface.withOpacity(0.6)
-                                : colors.secondary,
-                          ),
-                        ),
-                      ],
-                    ],
+    return Container(
+      margin: const EdgeInsets.only(top: 12, bottom: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+      decoration: BoxDecoration(
+        color: const Color(0xFF16171B),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: const Color(0xFF26282F)),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          // Previous day button
+          Material(
+            color: Colors.transparent,
+            child: InkWell(
+              borderRadius: BorderRadius.circular(10),
+              onTap: () {
+                onDateSelected(selectedDate.subtract(const Duration(days: 1)));
+              },
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(minWidth: 44, minHeight: 44),
+                child: const Center(
+                  child: Icon(
+                    Icons.chevron_left,
+                    size: 20,
+                    color: Color(0xFF9CA3AF),
                   ),
                 ),
               ),
             ),
-          );
-        },
+          ),
+
+          // Center Date Anchor
+          Expanded(
+            child: Center(
+              child: Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(8),
+                  onTap: () => _pickDate(context),
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(minHeight: 44),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(
+                              Icons.calendar_today_outlined,
+                              size: 16,
+                              color: Color(0xFF10B981),
+                            ),
+                            const SizedBox(width: 6),
+                            Text(
+                              DateFormat('EEE, MMM d').format(selectedDate),
+                              style: const TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                                color: Color(0xFFF3F4F6),
+                                letterSpacing: -0.2,
+                              ),
+                            ),
+                            if (isToday) ...[
+                              const SizedBox(width: 6),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 6,
+                                  vertical: 2,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFF212328),
+                                  borderRadius: BorderRadius.circular(6),
+                                  border: Border.all(
+                                    color: const Color(0xFF26282F),
+                                  ),
+                                ),
+                                child: const Text(
+                                  'TODAY',
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w600,
+                                    color: Color(0xFF9CA3AF),
+                                    letterSpacing: 0.6,
+                                  ),
+                                ),
+                              ),
+                            ],
+                            const SizedBox(width: 4),
+                            const Icon(
+                              Icons.expand_more,
+                              size: 16,
+                              color: Color(0xFF9CA3AF),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+
+          // Next day button
+          Material(
+            color: Colors.transparent,
+            child: InkWell(
+              borderRadius: BorderRadius.circular(10),
+              onTap: isFuture
+                  ? null
+                  : () {
+                      onDateSelected(selectedDate.add(const Duration(days: 1)));
+                    },
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(minWidth: 44, minHeight: 44),
+                child: Center(
+                  child: Icon(
+                    Icons.chevron_right,
+                    size: 20,
+                    color: isFuture
+                        ? const Color(0xFF4B5563)
+                        : const Color(0xFF9CA3AF),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

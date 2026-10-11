@@ -37,11 +37,10 @@ class _MainScreenState extends ConsumerState<MainScreen> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
-      if (ref.read(profileProvider).status == ProfileStatus.unauthorized) {
-        _handleUnauthorized();
-      } else {
-        ref.read(profileProvider.notifier).loadProfile();
-      }
+      // Validate this session without reusing pre-login state or requests.
+      final profileNotifier = ref.read(profileProvider.notifier);
+      profileNotifier.resetSession();
+      profileNotifier.loadProfile();
     });
   }
 

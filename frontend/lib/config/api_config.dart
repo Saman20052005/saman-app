@@ -3,8 +3,10 @@ import 'package:flutter/foundation.dart';
 
 class ApiConfig {
   // ✅ URL Backend chính thức
-  static const String baseUrl =
-      'https://nguyenvananan2005-saman-backend.hf.space';
+  static const String baseUrl = String.fromEnvironment(
+    'BACKEND_URL',
+    defaultValue: 'https://nguyenvananan2005-saman-backend.hf.space',
+  );
 
   // ==================== NUTRITION ENDPOINTS ====================
   static const String nutritionGetEndpoint = '$baseUrl/api/nutrition';

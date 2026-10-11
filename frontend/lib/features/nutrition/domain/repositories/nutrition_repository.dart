@@ -10,6 +10,7 @@ abstract class INutritionRepository {
   Future<List<Food>> searchFoods(String query, {int limit = 20});
   Future<NutritionPlan> getDailyPlan(String dateStr);
   Future<NutritionPlan> generatePlan({
+    required String dateStr,
     required String goal,
     int targetCalories = 0,
     int? mealCount,
