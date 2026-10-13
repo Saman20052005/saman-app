@@ -11,6 +11,14 @@ from backend.auth_utils import get_current_user
 import backend.routers.chat as chat_module
 
 
+class _InsertResult:
+    def __init__(self, obj_id):
+        self.inserted_id = obj_id
+
+class _UpdateResult:
+    matched_count = 1
+    modified_count = 1
+
 class MemoryWorkoutCollection:
     def __init__(self):
         self.documents: List[dict] = []
@@ -21,7 +29,14 @@ class MemoryWorkoutCollection:
         if "_id" not in stored:
             stored["_id"] = ObjectId()
         self.documents.append(stored)
-        return stored
+        return _InsertResult(stored["_id"])
+
+    def find_one(self, query: dict) -> Optional[dict]:
+        res = self.find(query)
+        return res[0] if res else None
+
+    def update_one(self, query: dict, update: dict):
+        return _UpdateResult()
 
     def find(self, query: dict):
         if self.simulate_error:
@@ -77,12 +92,15 @@ class TestChatWorkoutGrounding(unittest.TestCase):
     def setUp(self):
         self.orig_workout_col = chat_module.workout_history_collection
         self.orig_exercises_col = chat_module.exercises_collection
+        self.orig_conversations_col = getattr(chat_module, "conversations_col", None)
 
         self.memory_workout_col = MemoryWorkoutCollection()
         self.memory_exercises_col = MemoryExercisesCollection()
+        self.memory_conversations_col = MemoryWorkoutCollection()
 
         chat_module.workout_history_collection = self.memory_workout_col
         chat_module.exercises_collection = self.memory_exercises_col
+        chat_module.conversations_col = self.memory_conversations_col
 
         self.app = FastAPI()
         self.app.include_router(chat_module.router)
@@ -111,6 +129,7 @@ class TestChatWorkoutGrounding(unittest.TestCase):
     def tearDown(self):
         chat_module.workout_history_collection = self.orig_workout_col
         chat_module.exercises_collection = self.orig_exercises_col
+        chat_module.conversations_col = self.orig_conversations_col
         self.app.dependency_overrides.clear()
 
     def _mock_ai_reply(self, prompt: str) -> str:

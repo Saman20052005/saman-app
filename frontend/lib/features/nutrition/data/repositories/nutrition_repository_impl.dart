@@ -4,7 +4,6 @@ import '../../../../models/ai_analysis_result.dart';
 import '../../../../screens/nutrition/widgets/meal_review_dialog.dart';
 import '../../domain/repositories/nutrition_repository.dart';
 import '../../../../models/nutrition_model.dart';
-import '../../../../models/nutrition_model.dart';
 import '../../domain/entities/food.dart';
 import '../datasources/nutrition_remote_data_source.dart';
 import '../models/nutrition_plan_dto.dart';
@@ -92,8 +91,20 @@ class NutritionRepositoryImpl implements INutritionRepository {
   }
 
   @override
-  Future<bool> updateWater(String date, int amountMl) async {
-    return await _remoteDataSource.updateWater(date, amountMl);
+  Future<bool> updateWater(
+    String date,
+    int? amountMl, {
+    int? deltaMl,
+    int? version,
+    String? idempotencyKey,
+  }) async {
+    return await _remoteDataSource.updateWater(
+      date,
+      amountMl,
+      deltaMl: deltaMl,
+      version: version,
+      idempotencyKey: idempotencyKey,
+    );
   }
 
   @override

@@ -1,10 +1,10 @@
 // [File: lib/providers/nutrition_provider.dart]
 import 'dart:convert';
+import 'dart:math';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
-import '../models/nutrition_model.dart';
 import '../models/nutrition_model.dart';
 import '../features/nutrition/data/models/nutrition_plan_dto.dart';
 import '../features/nutrition/data/models/macro_targets_dto.dart';
@@ -16,7 +16,6 @@ import '../features/nutrition/domain/usecases/swap_meal_usecase.dart';
 import '../features/nutrition/domain/usecases/swap_logged_meal_usecase.dart';
 import '../models/meal_log.dart';
 import '../models/ai_analysis_result.dart';
-import '../services/nutrition_service.dart';
 import '../services/nutrition_service.dart';
 import '../features/nutrition/domain/repositories/nutrition_repository.dart';
 import '../features/nutrition/data/repositories/nutrition_repository_impl.dart';
@@ -107,6 +106,10 @@ class NutritionNotifier extends StateNotifier<AsyncValue<NutritionPlan?>> {
   String? _lastGoal; // ← NEW: nhớ goal lần load gần nhất
   int _lastMealCount = 4; // ← NEW: mặc định 4 bữa
   String _lastStyle = 'optimal'; // ← NEW: mặc định optimal
+  String? _lastWaterKey;
+  String? get lastWaterKey => _lastWaterKey;
+  String? _lastFailedWaterKey;
+  String? get lastFailedWaterKey => _lastFailedWaterKey;
 
   // =========================================================
   // 1. LOAD DATA (CÓ CACHING)
@@ -301,33 +304,94 @@ class NutritionNotifier extends StateNotifier<AsyncValue<NutritionPlan?>> {
   }
 
   // =========================================================
-  // 3. WATER UPDATE (ATOMIC API)
+  // 3. WATER UPDATE & ADD (ATOMIC & OPTIMISTIC CONCURRENCY)
   // =========================================================
+  Future<String> addWater(int deltaMl, {required String date, String? idempotencyKey}) async {
+    final currentPlan = state.value;
+    if (currentPlan == null) return '';
+
+    // Apply incremental optimistic update
+    final updatedPlan = currentPlan.copyWith(
+      currentWater: currentPlan.currentWater + deltaMl,
+      waterVersion: currentPlan.waterVersion + 1,
+    );
+    state = AsyncValue.data(updatedPlan);
+    _localCache[currentPlan.date] = updatedPlan;
+
+    // Distinct idempotency key for every distinct operation unless explicitly provided for retry
+    final key = idempotencyKey ??
+        'water_${DateTime.now().microsecondsSinceEpoch}_${Random().nextInt(1 << 30)}';
+    _lastWaterKey = key;
+
+    try {
+      final ok = await _updateWaterUseCase.execute(
+        date: date,
+        deltaMl: deltaMl,
+        idempotencyKey: key,
+      );
+      if (!ok) {
+        throw Exception('Failed to add water intake');
+      }
+      if (_lastFailedWaterKey == key) {
+        _lastFailedWaterKey = null;
+      }
+      return key;
+    } catch (e) {
+      debugPrint("❌ Sync Add Water Failed, rolling back: $e");
+      _lastFailedWaterKey = key;
+      // Incremental rollback: subtract this operation's deltaMl to preserve concurrent updates
+      final current = state.value;
+      if (current != null) {
+        final reverted = current.copyWith(
+          currentWater: max(0, current.currentWater - deltaMl),
+          waterVersion: max(0, current.waterVersion - 1),
+        );
+        state = AsyncValue.data(reverted);
+        _localCache[date] = reverted;
+      }
+      rethrow;
+    }
+  }
+
   Future<void> updateWater(int amountMl, {required String date}) async {
     final currentPlan = state.value;
     if (currentPlan == null) return;
 
-    // Lưu lại giá trị cũ để rollback nếu API fail
-    final previousWater = currentPlan.currentWater;
     final previousPlan = currentPlan;
+    final ver = currentPlan.waterVersion;
 
-    // Optimistic Update
-    final updatedPlan = currentPlan.copyWith(currentWater: amountMl);
+    final updatedPlan = currentPlan.copyWith(
+      currentWater: amountMl,
+      waterVersion: ver + 1,
+    );
     state = AsyncValue.data(updatedPlan);
     _localCache[currentPlan.date] = updatedPlan;
 
     try {
-      final ok =
-          await _updateWaterUseCase.execute(date: date, amountMl: amountMl);
+      final ok = await _updateWaterUseCase.execute(
+        date: date,
+        amountMl: amountMl,
+        version: ver,
+      );
       if (!ok) {
         throw Exception('Failed to update water intake');
       }
     } catch (e) {
-      // Rollback về giá trị cũ
       debugPrint("❌ Sync Water Failed, rolling back: $e");
-      state = AsyncValue.data(previousPlan);
-      _localCache[currentPlan.date] = previousPlan;
-      rethrow; // Đẩy lỗi ra UI xử lý (show SnackBar)
+      final isConflict = e.toString().contains('409') ||
+          (e is DioException && e.response?.statusCode == 409);
+      if (isConflict) {
+        try {
+          await loadDailyPlan(DateTime.parse(date), forceRefresh: true);
+        } catch (_) {
+          state = AsyncValue.data(previousPlan);
+          _localCache[currentPlan.date] = previousPlan;
+        }
+      } else {
+        state = AsyncValue.data(previousPlan);
+        _localCache[currentPlan.date] = previousPlan;
+      }
+      rethrow;
     }
   }
 

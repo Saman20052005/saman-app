@@ -125,7 +125,7 @@ class _NutritionScreenState extends ConsumerState<NutritionScreen> {
     try {
       await ref
           .read(nutritionProvider.notifier)
-          .updateWater(currentWater + 250, date: dateStr);
+          .addWater(250, date: dateStr);
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

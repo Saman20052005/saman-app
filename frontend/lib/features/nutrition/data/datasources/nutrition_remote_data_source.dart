@@ -17,7 +17,13 @@ abstract class INutritionRemoteDataSource {
     bool remainingOnly,
   });
   Future<bool> addMeal(Map<String, dynamic> body);
-  Future<bool> updateWater(String date, int amountMl);
+  Future<bool> updateWater(
+    String date,
+    int? amountMl, {
+    int? deltaMl,
+    int? version,
+    String? idempotencyKey,
+  });
   Future<bool> swapLoggedMeal({
     required String logId,
     required int foodIndex,
@@ -121,10 +127,22 @@ class NutritionRemoteDataSourceImpl implements INutritionRemoteDataSource {
   }
 
   @override
-  Future<bool> updateWater(String date, int amountMl) async {
+  Future<bool> updateWater(
+    String date,
+    int? amountMl, {
+    int? deltaMl,
+    int? version,
+    String? idempotencyKey,
+  }) async {
+    final Map<String, dynamic> data = {"date": date};
+    if (amountMl != null) data["amount_ml"] = amountMl;
+    if (deltaMl != null) data["delta_ml"] = deltaMl;
+    if (version != null) data["version"] = version;
+    if (idempotencyKey != null) data["idempotency_key"] = idempotencyKey;
+
     final response = await _dio.post(
       ApiConfig.updateWaterEndpoint,
-      data: {"date": date, "amount_ml": amountMl},
+      data: data,
     );
     return response.statusCode == 200 || response.statusCode == 201;
   }

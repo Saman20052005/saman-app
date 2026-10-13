@@ -3,7 +3,6 @@ import 'package:image_picker/image_picker.dart';
 import '../../../../models/ai_analysis_result.dart';
 import '../../../../screens/nutrition/widgets/meal_review_dialog.dart';
 import '../../../../models/nutrition_model.dart';
-import '../../../../models/nutrition_model.dart';
 import '../entities/food.dart';
 
 abstract class INutritionRepository {
@@ -20,7 +19,13 @@ abstract class INutritionRepository {
   Future<NutritionPlan> swapMeal(String dateStr, Meal oldMeal, String goal);
   Future<bool> swapLoggedMealSimple(String dateStr, String logId);
   Future<bool> addMeal(Map<String, dynamic> body);
-  Future<bool> updateWater(String date, int amountMl);
+  Future<bool> updateWater(
+    String date,
+    int? amountMl, {
+    int? deltaMl,
+    int? version,
+    String? idempotencyKey,
+  });
   Future<bool> swapLoggedMeal({
     required String logId,
     required int foodIndex,

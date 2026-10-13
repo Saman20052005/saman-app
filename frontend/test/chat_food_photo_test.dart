@@ -74,6 +74,17 @@ class _FakeFoodChatNotifier extends StateNotifier<ChatState>
   void clearFoodAnalysis() {
     state = state.copyWith(clearFoodAnalysis: true);
   }
+
+  @override
+  Future<void> loadConversations({bool loadLatest = false}) async {}
+
+  @override
+  Future<void> loadConversation(String conversationId) async {}
+
+  @override
+  void newConversation() {
+    clearChat();
+  }
 }
 
 Widget _buildTestWrapper({

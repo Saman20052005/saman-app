@@ -6,7 +6,19 @@ class UpdateWaterUseCase {
 
   UpdateWaterUseCase(this._repository);
 
-  Future<bool> execute({required String date, required int amountMl}) async {
-    return await _repository.updateWater(date, amountMl);
+  Future<bool> execute({
+    required String date,
+    int? amountMl,
+    int? deltaMl,
+    int? version,
+    String? idempotencyKey,
+  }) async {
+    return await _repository.updateWater(
+      date,
+      amountMl,
+      deltaMl: deltaMl,
+      version: version,
+      idempotencyKey: idempotencyKey,
+    );
   }
 }

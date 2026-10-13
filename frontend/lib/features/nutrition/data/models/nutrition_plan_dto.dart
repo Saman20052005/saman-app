@@ -12,6 +12,7 @@ class NutritionPlanDto {
   final List<SupplementDto> supplements;
   final int currentWater;
   final int targetWater;
+  final int waterVersion;
   final int totalCaloriesConsumed;
   final int totalProteinConsumed;
   final int totalCarbsConsumed;
@@ -27,6 +28,7 @@ class NutritionPlanDto {
     this.supplements = const [],
     this.currentWater = 0,
     this.targetWater = 2000,
+    this.waterVersion = 0,
     this.totalCaloriesConsumed = 0,
     this.totalProteinConsumed = 0,
     this.totalCarbsConsumed = 0,
@@ -43,6 +45,7 @@ class NutritionPlanDto {
       targetWater: (json['water_target'] as num?)?.toInt() ??
           (json['total_water_target'] as num?)?.toInt() ??
           2000,
+      waterVersion: (json['water_version'] as num?)?.toInt() ?? 0,
       totalCaloriesConsumed: (json['total_calories'] as num?)?.toInt() ?? 0,
       totalProteinConsumed: (json['total_protein'] as num?)?.toInt() ?? 0,
       totalCarbsConsumed: (json['total_carbs'] as num?)?.toInt() ?? 0,
@@ -76,6 +79,7 @@ class NutritionPlanDto {
       supplements: supplements.map((e) => e.toEntity()).toList(),
       currentWater: currentWater,
       targetWater: targetWater,
+      waterVersion: waterVersion,
       totalCaloriesConsumed: totalCaloriesConsumed,
       totalProteinConsumed: totalProteinConsumed,
       totalCarbsConsumed: totalCarbsConsumed,
