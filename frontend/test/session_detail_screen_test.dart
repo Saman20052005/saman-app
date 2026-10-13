@@ -7,6 +7,7 @@ import 'package:health_ai_app/data/models/exercise.dart';
 import 'package:health_ai_app/features/workout/data/repositories/mock_exercise_repository.dart';
 import 'package:health_ai_app/presentation/providers/exercise_providers.dart';
 import 'package:health_ai_app/presentation/providers/session_detail_providers.dart';
+import 'package:health_ai_app/presentation/providers/workout_history_providers.dart';
 import 'package:health_ai_app/presentation/screens/session_detail_screen.dart';
 import 'package:health_ai_app/presentation/screens/workout_history_screen.dart';
 import 'package:health_ai_app/presentation/widgets/exercise_set_log_card.dart';
@@ -51,6 +52,7 @@ Future<ProviderContainer> _mount(
   await repo.saveWorkoutSession(session);
   final container = ProviderContainer(overrides: [
     exerciseRepositoryProvider.overrideWithValue(repo),
+    workoutSessionRepositoryProvider.overrideWithValue(repo),
   ]);
   addTearDown(container.dispose);
   await tester.pumpWidget(UncontrolledProviderScope(

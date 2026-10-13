@@ -88,6 +88,27 @@ class TestNutritionNotifier extends StateNotifier<AsyncValue<NutritionPlan?>>
   bool get isMealPlanGenerating => false;
 
   @override
+  Future<String> addWater(int deltaMl, {required String date, String? idempotencyKey}) async {
+    updateWaterCalls++;
+    recordedUpdateWaterArgs.add({
+      'deltaMl': deltaMl,
+      'date': date,
+      'idempotencyKey': idempotencyKey,
+    });
+    final current = state.value;
+    if (current != null) {
+      state = AsyncValue.data(current.copyWith(
+        currentWater: current.currentWater + deltaMl,
+        waterVersion: current.waterVersion + 1,
+      ));
+    }
+    if (updateWaterCompleter != null) {
+      await updateWaterCompleter!.future;
+    }
+    return idempotencyKey ?? 'mock_key';
+  }
+
+  @override
   Future<void> updateWater(int amountMl, {required String date}) async {
     updateWaterCalls++;
     recordedUpdateWaterArgs.add({'amountMl': amountMl, 'date': date});
@@ -455,6 +476,8 @@ void main() {
 
       // Lock is released
       expect(notifier.updateWaterCalls, 1);
+      expect(notifier.recordedUpdateWaterArgs.first['deltaMl'], 250);
+      expect(notifier.recordedUpdateWaterArgs.first['date'], isNotEmpty);
       expect(find.text('1,000'), findsOneWidget); // 750 + 250 = 1000 ml
     });
 

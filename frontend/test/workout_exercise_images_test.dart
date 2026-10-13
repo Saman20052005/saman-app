@@ -71,29 +71,63 @@ Future<void> loadImages(WidgetTester tester, Iterable<String> paths) async {
   await tester.pumpAndSettle();
 }
 
-Future<void> loadTestFonts() async {
-  // Real SDK fonts also keep layout assertions independent of Ahem metrics.
-  final artifacts = File(Platform.resolvedExecutable).parent.parent.parent;
-  final text = FontLoader('Roboto');
-  for (final weight in ['regular', 'medium', 'bold']) {
-    text.addFont(File('${artifacts.path}/material_fonts/roboto-$weight.ttf')
-        .readAsBytes()
-        .then(ByteData.sublistView));
+File? _findFontFile(List<String> paths) {
+  for (final path in paths) {
+    if (path.isEmpty) continue;
+    final file = File(path);
+    if (file.existsSync()) return file;
   }
-  await text.load();
+  return null;
+}
+
+Future<void> loadTestFonts() async {
+  final artifacts = File(Platform.resolvedExecutable).parent.parent.parent;
+  final flutterRoot = Platform.environment['FLUTTER_ROOT'] ??
+      File(Platform.resolvedExecutable).parent.parent.parent.parent.parent.path;
+  final devtoolsFonts =
+      '$flutterRoot/bin/cache/dart-sdk/bin/resources/devtools/assets/fonts';
+
+  final text = FontLoader('Roboto');
+  var robotoLoaded = false;
+  for (final weight in ['regular', 'medium', 'bold']) {
+    final cap = weight[0].toUpperCase() + weight.substring(1);
+    final fontFile = _findFontFile([
+      '${artifacts.path}/material_fonts/roboto-$weight.ttf',
+      '$devtoolsFonts/Roboto/Roboto-$cap.ttf',
+      '$devtoolsFonts/Roboto/Roboto-$weight.ttf',
+    ]);
+    if (fontFile != null) {
+      text.addFont(fontFile.readAsBytes().then(ByteData.sublistView));
+      robotoLoaded = true;
+    }
+  }
+  if (robotoLoaded) {
+    await text.load();
+  }
+
   final monospace = FontLoader('monospace');
   final evidenceFont = File('C:/Windows/Fonts/consola.ttf');
-  final monoFile = evidenceDirectory.isNotEmpty && evidenceFont.existsSync()
-      ? evidenceFont
-      : File('${artifacts.path}/material_fonts/roboto-regular.ttf');
-  monospace.addFont(monoFile.readAsBytes().then(ByteData.sublistView));
-  await monospace.load();
-  await (FontLoader('MaterialIcons')
-        ..addFont(
-            File('${artifacts.path}/material_fonts/materialicons-regular.otf')
-                .readAsBytes()
-                .then(ByteData.sublistView)))
-      .load();
+  final monoFile = _findFontFile([
+    if (evidenceDirectory.isNotEmpty && evidenceFont.existsSync())
+      evidenceFont.path,
+    '$devtoolsFonts/Roboto_Mono/RobotoMono-Regular.ttf',
+    '${artifacts.path}/material_fonts/roboto-regular.ttf',
+    '$devtoolsFonts/Roboto/Roboto-Regular.ttf',
+  ]);
+  if (monoFile != null) {
+    monospace.addFont(monoFile.readAsBytes().then(ByteData.sublistView));
+    await monospace.load();
+  }
+
+  final iconsFile = _findFontFile([
+    '${artifacts.path}/material_fonts/materialicons-regular.otf',
+    '$devtoolsFonts/MaterialIcons-Regular.otf',
+  ]);
+  if (iconsFile != null) {
+    await (FontLoader('MaterialIcons')
+          ..addFont(iconsFile.readAsBytes().then(ByteData.sublistView)))
+        .load();
+  }
 }
 
 void main() {

@@ -47,6 +47,8 @@ Future<ProviderContainer> mount(WidgetTester tester, Widget home,
   await tester.binding.setSurfaceSize(const Size(430, 932));
   addTearDown(() => tester.binding.setSurfaceSize(null));
   final container = ProviderContainer(overrides: [
+    workoutSessionRepositoryProvider
+        .overrideWith((ref) => ref.watch(exerciseRepositoryProvider)),
     dioProvider
         .overrideWith((ref) => throw StateError('Backend must not be used')),
     ...overrides,
@@ -795,6 +797,7 @@ void main() {
     final repo = DelayedRepository();
     final container = ProviderContainer(overrides: [
       exerciseRepositoryProvider.overrideWith((ref) => repo),
+      workoutSessionRepositoryProvider.overrideWith((ref) => repo),
     ]);
     addTearDown(container.dispose);
     final subscription =
@@ -825,6 +828,7 @@ void main() {
     final repo = RetryRepository();
     final container = ProviderContainer(overrides: [
       exerciseRepositoryProvider.overrideWith((ref) => repo),
+      workoutSessionRepositoryProvider.overrideWith((ref) => repo),
     ]);
     addTearDown(container.dispose);
     final subscription =
@@ -981,6 +985,7 @@ void main() {
     final container = ProviderContainer(
       overrides: [
         exerciseRepositoryProvider.overrideWith((ref) => repo),
+        workoutSessionRepositoryProvider.overrideWith((ref) => repo),
       ],
     );
     addTearDown(container.dispose);
