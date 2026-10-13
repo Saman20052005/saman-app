@@ -50,6 +50,7 @@ class AppTranslations {
 
       // Profile Screen
       'profile_title': 'Profile',
+      'edit_profile_title': 'Edit Profile',
       'body_stats': 'Body Stats',
       'age': 'Age',
       'height': 'Height',
@@ -114,6 +115,7 @@ class AppTranslations {
 
       // Profile Screen
       'profile_title': 'Hồ sơ cá nhân',
+      'edit_profile_title': 'Chỉnh sửa hồ sơ',
       'body_stats': 'Chỉ số cơ thể',
       'age': 'Tuổi',
       'height': 'Chiều cao',

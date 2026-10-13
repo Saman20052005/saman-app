@@ -45,9 +45,21 @@ class NutritionService {
   // ================================================================
   // 3. UPDATE WATER INTAKE
   // ================================================================
-  Future<bool> updateWaterIntake(String date, int amountMl) async {
+  Future<bool> updateWaterIntake(
+    String date,
+    int? amountMl, {
+    int? deltaMl,
+    int? version,
+    String? idempotencyKey,
+  }) async {
     try {
-      return await _repository.updateWater(date, amountMl);
+      return await _repository.updateWater(
+        date,
+        amountMl,
+        deltaMl: deltaMl,
+        version: version,
+        idempotencyKey: idempotencyKey,
+      );
     } catch (e) {
       debugPrint("❌ Water Log Error: $e");
       return false;

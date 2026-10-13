@@ -72,24 +72,18 @@ _$ExerciseSetLogImpl _$$ExerciseSetLogImplFromJson(Map<String, dynamic> json) =>
       exerciseSlug: json['exerciseSlug'] as String,
       setNumber: (json['setNumber'] as num).toInt(),
       repsCompleted: (json['repsCompleted'] as num).toInt(),
+      unit: $enumDecodeNullable(_$SetUnitEnumMap, json['unit']),
+      secondsCompleted: (json['secondsCompleted'] as num?)?.toInt(),
       weightKg: (json['weightKg'] as num).toDouble(),
       isCompleted: json['isCompleted'] as bool? ?? false,
       restTakenSeconds: (json['restTakenSeconds'] as num?)?.toInt(),
       cvDetected: json['cvDetected'] as bool? ?? false,
     );
 
-Map<String, dynamic> _$$ExerciseSetLogImplToJson(
-        _$ExerciseSetLogImpl instance) =>
-    <String, dynamic>{
-      'exerciseId': instance.exerciseId,
-      'exerciseSlug': instance.exerciseSlug,
-      'setNumber': instance.setNumber,
-      'repsCompleted': instance.repsCompleted,
-      'weightKg': instance.weightKg,
-      'isCompleted': instance.isCompleted,
-      'restTakenSeconds': instance.restTakenSeconds,
-      'cvDetected': instance.cvDetected,
-    };
+const _$SetUnitEnumMap = {
+  SetUnit.reps: 'reps',
+  SetUnit.seconds: 'seconds',
+};
 
 _$WorkoutSessionImpl _$$WorkoutSessionImplFromJson(Map<String, dynamic> json) =>
     _$WorkoutSessionImpl(

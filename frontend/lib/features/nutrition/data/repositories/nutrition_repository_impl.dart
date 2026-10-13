@@ -4,7 +4,6 @@ import '../../../../models/ai_analysis_result.dart';
 import '../../../../screens/nutrition/widgets/meal_review_dialog.dart';
 import '../../domain/repositories/nutrition_repository.dart';
 import '../../../../models/nutrition_model.dart';
-import '../../../../models/nutrition_model.dart';
 import '../../domain/entities/food.dart';
 import '../datasources/nutrition_remote_data_source.dart';
 import '../models/nutrition_plan_dto.dart';
@@ -45,12 +44,18 @@ class NutritionRepositoryImpl implements INutritionRepository {
 
   @override
   Future<NutritionPlan> generatePlan({
+    required String dateStr,
     required String goal,
     int targetCalories = 0,
     int? mealCount,
     String? style,
     bool remainingOnly = false,
   }) async {
+    final trimmedDate = dateStr.trim();
+    if (trimmedDate.isEmpty) {
+      throw ArgumentError('dateStr must not be empty');
+    }
+
     final rawData = await _remoteDataSource.generatePlan(
       goal: goal,
       targetCalories: targetCalories,
@@ -60,8 +65,24 @@ class NutritionRepositoryImpl implements INutritionRepository {
     );
 
     final planData = rawData['plan'] ?? rawData;
-    return NutritionPlanDto.fromJson(Map<String, dynamic>.from(planData))
-        .toEntity();
+    final generatedPlan =
+        NutritionPlanDto.fromJson(Map<String, dynamic>.from(planData))
+            .toEntity();
+
+    final dailyPlan = await getDailyPlan(trimmedDate);
+
+    return generatedPlan.copyWith(
+      date: trimmedDate,
+      meals: generatedPlan.meals,
+      entries: dailyPlan.entries,
+      currentWater: dailyPlan.currentWater,
+      targetWater: dailyPlan.targetWater,
+      totalCaloriesConsumed: dailyPlan.totalCaloriesConsumed,
+      totalProteinConsumed: dailyPlan.totalProteinConsumed,
+      totalCarbsConsumed: dailyPlan.totalCarbsConsumed,
+      totalFatConsumed: dailyPlan.totalFatConsumed,
+      rolloverCalories: dailyPlan.rolloverCalories,
+    );
   }
 
   @override
@@ -70,8 +91,20 @@ class NutritionRepositoryImpl implements INutritionRepository {
   }
 
   @override
-  Future<bool> updateWater(String date, int amountMl) async {
-    return await _remoteDataSource.updateWater(date, amountMl);
+  Future<bool> updateWater(
+    String date,
+    int? amountMl, {
+    int? deltaMl,
+    int? version,
+    String? idempotencyKey,
+  }) async {
+    return await _remoteDataSource.updateWater(
+      date,
+      amountMl,
+      deltaMl: deltaMl,
+      version: version,
+      idempotencyKey: idempotencyKey,
+    );
   }
 
   @override

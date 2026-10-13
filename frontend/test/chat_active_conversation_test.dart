@@ -68,6 +68,17 @@ class _FakeActiveChatNotifier extends StateNotifier<ChatState>
 
   @override
   void clearFoodAnalysis() {}
+
+  @override
+  Future<void> loadConversations({bool loadLatest = false}) async {}
+
+  @override
+  Future<void> loadConversation(String conversationId) async {}
+
+  @override
+  void newConversation() {
+    clearChat();
+  }
 }
 
 Widget _buildActiveTestWrapper({

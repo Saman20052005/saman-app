@@ -51,6 +51,9 @@ otp_collection = db["otps"] if db is not None else None
 router = APIRouter(prefix="/api/auth", tags=["Authentication"])
 
 # --- MODELS ---
+class RegisterRequest(UserAuth):
+    full_name: str | None = None
+
 class ForgotPasswordRequest(BaseModel):
     email: EmailStr
 
@@ -241,7 +244,7 @@ def social_login(req: SocialLoginRequest):
     }
 
 @router.post("/register")
-def register(user: UserAuth):
+def register(user: RegisterRequest):
     if safe_find_one(users_collection, {"email": user.email}):
         raise HTTPException(status_code=400, detail="Email already exists")
     hashed_pass = hash_password(user.password)

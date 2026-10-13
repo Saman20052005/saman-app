@@ -27,11 +27,13 @@ class ExerciseSetLogCard extends StatelessWidget {
             ),
           ),
           Expanded(
-            child: Text('${log.repsCompleted} reps'),
+            child: Text(log.effectiveUnit == SetUnit.seconds
+                ? '${log.secondsCompleted} s' : '${log.repsCompleted} reps'),
           ),
-          Expanded(
-            child: Text('${log.weightKg.toStringAsFixed(0)} kg'),
-          ),
+          if (log.effectiveUnit == SetUnit.reps)
+            Expanded(
+              child: Text('${log.weightKg.toStringAsFixed(0)} kg'),
+            ),
           if (log.cvDetected)
             const Icon(Icons.visibility, size: 16, color: Colors.blue),
         ],

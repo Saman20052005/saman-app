@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" name="viewport"/>
+<title>Saman Coach - Active Workout Session</title>
+<!-- Tailwind CSS CDN with plugins -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Google Fonts: Space Grotesk, Inter, JetBrains Mono -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500;600;700&amp;family=Space+Grotesk:wght@500;600;700&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind Configuration -->
+<script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            obsidian: {
+              DEFAULT: '#0C0D0E',
+              card: '#16171B',
+              elevated: '#1F2126',
+              input: '#262930',
+              border: '#26282F',
+              muted: '#717582'
+            },
+            emerald: {
+              accent: '#10B981',
+              dim: '#064E3B'
+            }
+          },
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            heading: ['"Space Grotesk"', 'sans-serif'],
+            mono: ['"JetBrains Mono"', 'monospace']
+          }
+        }
+      }
+    }
+  </script>
+<!-- Custom Core Styles -->
+<style data-purpose="base-layout">
+    body {
+      background-color: #0C0D0E;
+      color: #F9FAFB;
+      font-family: 'Inter', sans-serif;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      margin: 0;
+      padding: 0;
+      overflow-x: hidden;
+    }
+    /* Disable default input spinner arrows */
+    input[type=number]::-webkit-inner-spin-button, 
+    input[type=number]::-webkit-outer-spin-button { 
+      -webkit-appearance: none; 
+      margin: 0; 
+    }
+    input[type=number] {
+      -moz-appearance: textfield;
+    }
+  </style>
+<style data-purpose="animations-and-steppers">
+    @keyframes pulse-subtle {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.4; transform: scale(0.92); }
+    }
+    .live-pulse {
+      animation: pulse-subtle 2s infinite ease-in-out;
+    }
+  </style>
+</head>
+<body class="flex justify-center bg-black min-h-screen">
+<!-- Main Mobile App Shell (390px default viewport with safe iOS padding) -->
+<main class="w-full max-w-[390px] min-h-screen bg-obsidian flex flex-col relative border-x border-obsidian-border selection:bg-emerald-accent/20">
+<!-- BEGIN: TopStatusBar -->
+<!-- Simulates the native iOS safe area status bar -->
+<header class="w-full px-6 pt-3 pb-1 flex justify-between items-center text-xs font-mono text-zinc-400 select-none z-30" data-purpose="ios-status-bar">
+<span class="">09:41</span>
+<div class="flex items-center space-x-1.5 text-zinc-300">
+<!-- Cellular Bars -->
+<svg class="w-3.5 h-3.5 fill-current" viewbox="0 0 24 24"><path d="M2 17h2v4H2v-4zm4-5h2v9H6v-9zm4-4h2v13h-2V8zm4-4h2v17h-2V4zm4-4h2v21h-2V0z"></path></svg>
+<!-- Wifi -->
+<svg class="w-3.5 h-3.5 fill-current" viewbox="0 0 24 24"><path d="M12 4C7.31 4 3.07 5.9 0 8.98L12 21 24 8.98C20.93 5.9 16.69 4 12 4zm0 3.5c3.78 0 7.21 1.49 9.77 3.93L12 19.34 2.23 11.43C4.79 8.99 8.22 7.5 12 7.5z"></path></svg>
+<!-- Battery with charging pill -->
+<div class="w-5 h-2.5 border border-zinc-400 rounded-sm p-0.5 flex items-center">
+<div class="bg-zinc-200 h-full w-3 rounded-2xs"></div>
+</div>
+</div>
+</header>
+<!-- END: TopStatusBar -->
+<!-- BEGIN: InSessionChromeHeader -->
+<!-- Active workout top navigation bar: Back/minimize, Live Timer, and Finish button -->
+<nav class="sticky top-0 bg-obsidian/95 backdrop-blur-md px-4 py-2.5 z-40 border-b border-obsidian-border/80 flex items-center justify-between" data-purpose="session-header"><!-- Minimize / Back -->
+<button aria-label="Minimize workout" class="w-9 h-9 rounded-full bg-obsidian-card hover:bg-obsidian-elevated active:scale-95 transition flex items-center justify-center border border-obsidian-border text-zinc-400 hover:text-white">
+<svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.2" viewbox="0 0 24 24">
+<path d="M19 9l-7 7-7-7" stroke-linecap="round" stroke-linejoin="round"></path>
+</svg>
+</button>
+<!-- Center Session Title & Elapsed Time -->
+<div class="flex flex-col items-center">
+<h1 class="font-heading text-sm font-semibold tracking-tight text-white leading-tight">
+    Upper Body Strength
+  </h1>
+<div class="flex items-center gap-1.5 mt-0.5 text-xs text-zinc-400 font-mono">
+<span class="w-1.5 h-1.5 rounded-full bg-emerald-accent live-pulse inline-block"></span>
+<span class="tracking-wider text-emerald-400 font-medium font-mono">18:42</span>
+</div>
+</div>
+<!-- Finish Pill -->
+<button aria-label="Finish workout review" class="px-3.5 py-1.5 rounded-full border border-obsidian-border bg-obsidian-card hover:bg-obsidian-elevated text-xs font-medium text-zinc-200 hover:text-white tracking-wide active:scale-95 transition shadow-sm">
+  Finish
+</button></nav>
+<!-- END: InSessionChromeHeader -->
+<!-- Scrollable Workspace Container -->
+<div class="flex-1 overflow-y-auto px-4 pt-3 pb-32 space-y-4" data-purpose="workout-content-scroll"><!-- BEGIN: HorizonProgress -->
+<div class="pt-1 space-y-2" data-purpose="workout-progress-horizon">
+<div class="flex items-center justify-between text-xs font-mono text-zinc-400 px-0.5">
+<span class="text-zinc-300 font-medium font-sans">Exercise 1 of 5</span>
+<span class="text-emerald-400 font-medium">2 of 4 sets completed</span>
+</div>
+<div class="grid grid-cols-5 gap-1.5">
+<div class="h-1 bg-obsidian-input rounded-full overflow-hidden">
+<div class="bg-emerald-accent h-full w-1/2 rounded-full"></div>
+</div>
+<div class="h-1 bg-obsidian-input rounded-full"></div>
+<div class="h-1 bg-obsidian-input rounded-full"></div>
+<div class="h-1 bg-obsidian-input rounded-full"></div>
+<div class="h-1 bg-obsidian-input rounded-full"></div>
+</div>
+</div>
+<!-- END: HorizonProgress -->
+<!-- BEGIN: CurrentExerciseAnchor -->
+<section class="pt-2 space-y-3" data-purpose="exercise-anchor">
+<!-- Authentic gym demonstration visual -->
+<div class="relative w-full h-44 rounded-xl overflow-hidden border border-obsidian-border bg-obsidian-card shadow-sm">
+<img alt="Athlete performing dumbbell bench press" class="w-full h-full object-cover object-center" src="https://lh3.googleusercontent.com/aida/AEtjO1XP4OGkrhkIOmOe0kvUvz55YkpHdPsvSaUU_OORjSWf_tiioZ-TCBYTJrB4GgWxlodGaMYLG4JcwLTZZn0rzDcbuMsqbBiYO_T1SxfA_eUBR5MB3njntef3lL7yE1f8fCxdqvv_JOLmH-WAF2EqGiHyUVtAxZrR-E_7mPmS7qEFSFUOsm-qMi8QM6tmj8I0fIb-8aHQt9GlrlYb0A0DOor8AUO_X8LlHfonLV7HHtF6FNk8BUu66V2yckM"/>
+<div class="absolute inset-0 bg-gradient-to-t from-obsidian via-transparent to-transparent opacity-60"></div>
+<div class="absolute bottom-2.5 right-2.5">
+<button aria-label="View movement video guide" class="inline-flex items-center gap-1.5 text-xs text-white bg-[#0C0D0E]/80 backdrop-blur-md hover:bg-black/90 border border-white/10 px-3 py-1.5 rounded-full active:scale-95 transition shadow-md font-medium font-sans"><svg class="w-3.5 h-3.5 text-emerald-400" fill="currentColor" viewbox="0 0 24 24"><path d="M8 5v14l11-7z"></path></svg><span>Video Guide</span></button>
+</div>
+</div>
+<!-- Exercise Title & Single Clean Subtitle -->
+<div class="px-0.5">
+<h2 class="font-heading text-xl font-semibold text-white tracking-tight leading-tight">
+      Dumbbell Bench Press
+    </h2>
+<p class="text-xs text-zinc-400 mt-1 font-sans">Dumbbells · Flat bench</p>
+</div>
+</section>
+<!-- END: CurrentExerciseAnchor -->
+<!-- BEGIN: CompactRestStrip -->
+<section class="flex items-center justify-between px-3.5 py-2.5 rounded-xl bg-obsidian-card border border-emerald-accent/30 shadow-sm" data-purpose="compact-rest-strip">
+<div class="flex items-center gap-3">
+<div class="relative w-7 h-7 flex items-center justify-center flex-shrink-0">
+<svg class="w-7 h-7 -rotate-90" viewbox="0 0 36 36">
+<path class="text-zinc-800" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" stroke-width="3.5"></path>
+<path class="text-emerald-accent" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" stroke-dasharray="100, 100" stroke-dashoffset="24" stroke-linecap="round" stroke-width="3.5"></path>
+</svg>
+<span class="absolute w-1.5 h-1.5 rounded-full bg-emerald-accent"></span>
+</div>
+<div class="flex items-baseline gap-2">
+<span class="text-[11px] font-mono uppercase tracking-wider text-zinc-400">Rest</span>
+<span class="font-mono text-base font-bold text-white tracking-tight leading-none">01:14</span>
+</div>
+</div>
+<div class="flex items-center gap-1.5">
+<button aria-label="Add 30 seconds" class="px-2.5 py-1 text-xs font-mono text-zinc-300 bg-obsidian-elevated hover:bg-zinc-800 rounded-md border border-obsidian-border active:scale-95 transition">
+      +30s
+    </button>
+<button aria-label="Skip rest interval" class="px-2.5 py-1 text-xs font-medium text-emerald-400 bg-emerald-950/40 hover:bg-emerald-900/50 border border-emerald-800/40 rounded-md active:scale-95 transition">
+      Skip
+    </button>
+</div>
+</section>
+<!-- END: CompactRestStrip -->
+<!-- BEGIN: ScannableSetList -->
+<section class="space-y-1.5 pt-1" data-purpose="set-list-table">
+<!-- Editorial Table Headers -->
+<div class="grid grid-cols-12 gap-2 px-3 py-1 text-[11px] font-mono text-zinc-500 uppercase tracking-wider select-none">
+<div class="col-span-2 text-left">SET</div>
+<div class="col-span-4 text-center">KG</div>
+<div class="col-span-3 text-center">REPS</div>
+<div class="col-span-3 text-right">STATUS</div>
+</div>
+<!-- Row 1: Completed Set -->
+<div class="grid grid-cols-12 gap-2 items-center px-3 py-2.5 rounded-xl border border-obsidian-border/40 font-mono text-sm">
+<div class="col-span-2 text-left text-zinc-400 font-semibold text-xs">
+      1
+    </div>
+<div class="col-span-4 text-center font-medium text-zinc-300">
+      24 <span class="text-[11px] text-zinc-500 font-sans">kg</span>
+</div>
+<div class="col-span-3 text-center font-medium text-zinc-300">
+      10
+    </div>
+<div class="col-span-3 flex justify-end">
+<div aria-label="Set 1 completed" class="w-6 h-6 rounded-full bg-emerald-accent/20 border border-emerald-accent/40 flex items-center justify-center text-emerald-400">
+<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.5" viewbox="0 0 24 24">
+<path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round"></path>
+</svg>
+</div>
+</div>
+</div>
+<!-- Row 2: Completed Set -->
+<div class="grid grid-cols-12 gap-2 items-center px-3 py-2.5 rounded-xl border border-obsidian-border/40 font-mono text-sm">
+<div class="col-span-2 text-left text-zinc-400 font-semibold text-xs">
+      2
+    </div>
+<div class="col-span-4 text-center font-medium text-zinc-300">
+      26 <span class="text-[11px] text-zinc-500 font-sans">kg</span>
+</div>
+<div class="col-span-3 text-center font-medium text-zinc-300">
+      8
+    </div>
+<div class="col-span-3 flex justify-end">
+<div aria-label="Set 2 completed" class="w-6 h-6 rounded-full bg-emerald-accent/20 border border-emerald-accent/40 flex items-center justify-center text-emerald-400">
+<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.5" viewbox="0 0 24 24">
+<path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round"></path>
+</svg>
+</div>
+</div>
+</div>
+<!-- Row 3: ACTIVE / CURRENT TARGET SET -->
+<div class="p-3.5 rounded-xl bg-[#1E2026] border border-[#2E323A] shadow-md space-y-3"><div class="flex items-center justify-between text-xs"><div class="flex items-center gap-2"><span class="w-2 h-2 rounded-full bg-emerald-accent live-pulse inline-block"></span><span class="font-heading font-semibold text-white tracking-wide text-xs">SET 3 (ACTIVE)</span></div><span class="text-[11px] text-zinc-400 font-mono tracking-wide">TARGET: 26 KG × 8</span></div><div class="grid grid-cols-2 gap-2.5"><div class="flex items-center justify-between bg-obsidian-input border border-obsidian-border rounded-xl px-1.5 h-12 shadow-inner"><button aria-label="Decrease weight" class="w-10 h-10 rounded-lg hover:bg-obsidian-elevated text-zinc-300 hover:text-white flex items-center justify-center font-bold text-lg transition active:scale-95">−</button><div class="flex items-baseline gap-1 select-none"><span class="font-mono font-bold text-xl text-white">26</span><span class="text-xs text-zinc-400 font-sans">kg</span></div><button aria-label="Increase weight" class="w-10 h-10 rounded-lg hover:bg-obsidian-elevated text-zinc-300 hover:text-white flex items-center justify-center font-bold text-lg transition active:scale-95">+</button></div><div class="flex items-center justify-between bg-obsidian-input border border-obsidian-border rounded-xl px-1.5 h-12 shadow-inner"><button aria-label="Decrease reps" class="w-10 h-10 rounded-lg hover:bg-obsidian-elevated text-zinc-300 hover:text-white flex items-center justify-center font-bold text-lg transition active:scale-95">−</button><div class="flex items-baseline gap-1 select-none"><span class="font-mono font-bold text-xl text-white">8</span><span class="text-xs text-zinc-400 font-sans">reps</span></div><button aria-label="Increase reps" class="w-10 h-10 rounded-lg hover:bg-obsidian-elevated text-zinc-300 hover:text-white flex items-center justify-center font-bold text-lg transition active:scale-95">+</button></div></div></div>
+<!-- Row 4: Upcoming Set -->
+<div class="grid grid-cols-12 gap-2 items-center px-3 py-2.5 rounded-xl border border-obsidian-border/20 font-mono text-sm opacity-50">
+<div class="col-span-2 text-left text-zinc-500 font-semibold text-xs">
+      4
+    </div>
+<div class="col-span-4 text-center font-medium text-zinc-500">
+      26 <span class="text-[11px] text-zinc-600 font-sans">kg</span>
+</div>
+<div class="col-span-3 text-center font-medium text-zinc-500">
+      8
+    </div>
+<div class="col-span-3 flex justify-end text-zinc-600 font-mono text-xs pr-1">
+      —
+    </div>
+</div>
+<!-- Add Set Minimalist Trigger -->
+<button class="w-full py-2 rounded-lg border border-dashed border-obsidian-border/80 hover:border-zinc-500 text-xs font-medium text-zinc-400 hover:text-zinc-200 flex items-center justify-center gap-1.5 transition active:scale-[0.99]">
+<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 24 24">
+<path d="M12 4v16m8-8H4" stroke-linecap="round" stroke-linejoin="round"></path>
+</svg>
+<span>Add set</span>
+</button>
+</section>
+<!-- END: ScannableSetList -->
+<!-- BEGIN: SecondaryUpNext -->
+<section class="pt-2 space-y-2" data-purpose="workout-queue">
+<div class="flex items-center justify-between px-0.5">
+<span class="text-[11px] font-mono uppercase tracking-wider text-zinc-500">Up Next</span>
+<button class="text-xs text-zinc-400 hover:text-emerald-400 transition font-medium">View all 5 exercises →</button>
+</div>
+<div class="bg-obsidian-card border border-obsidian-border rounded-xl p-3 flex items-center justify-between hover:border-zinc-700 transition cursor-pointer">
+<div class="flex items-center gap-3 min-w-0">
+<div class="w-9 h-9 rounded-lg overflow-hidden flex-shrink-0 bg-obsidian-elevated border border-obsidian-border flex items-center justify-center">
+<svg class="w-4 h-4 text-zinc-500" fill="none" stroke="currentColor" stroke-width="1.8" viewbox="0 0 24 24">
+<path d="M3 6h18M3 12h18m-7 6h7" stroke-linecap="round" stroke-linejoin="round"></path>
+</svg>
+</div>
+<div class="min-w-0">
+<h3 class="font-heading text-xs font-semibold text-zinc-200 truncate">
+          Lat Pulldown (Wide Grip)
+        </h3>
+<p class="text-[11px] text-zinc-500 font-mono mt-0.5">4 sets · Cable Machine</p>
+</div>
+</div>
+<svg class="w-4 h-4 text-zinc-500 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 24 24">
+<path d="M9 5l7 7-7 7" stroke-linecap="round" stroke-linejoin="round"></path>
+</svg>
+</div>
+</section>
+<!-- END: SecondaryUpNext --></div>
+<!-- BEGIN: InSessionFooterDock -->
+<!-- Safe-area bottom dock for active workout: Pause/Resume workout and Quick Notes (NO global 5-tab bar) -->
+<footer class="fixed bottom-0 max-w-[390px] w-full bg-obsidian/95 backdrop-blur-md border-t border-obsidian-border px-4 pt-3 pb-6 z-40 flex items-center gap-3" data-purpose="in-session-controls"><div class="w-full flex flex-col gap-2.5"><button class="w-full h-12 rounded-xl bg-[#F9FAFB] hover:bg-white text-[#0C0D0E] font-heading font-bold text-sm tracking-wide flex items-center justify-center gap-2 transition shadow-lg active:scale-[0.98]"><svg class="w-4 h-4 text-[#0C0D0E] font-bold" fill="none" stroke="currentColor" stroke-width="2.5" viewbox="0 0 24 24"><path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round"></path></svg><span>Log Set 3</span></button><div class="flex items-center justify-center"><button aria-label="Pause session" class="inline-flex items-center justify-center gap-1.5 py-1 px-3 text-xs font-medium text-zinc-400 hover:text-zinc-200 transition active:scale-95"><svg class="w-3.5 h-3.5 text-zinc-400" fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 24 24"><path d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z" stroke-linecap="round" stroke-linejoin="round"></path></svg><span>Pause workout</span></button></div></div></footer>
+<!-- END: InSessionFooterDock -->
+</main>
+</body></html>

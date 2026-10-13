@@ -1,6 +1,8 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import '../../data/models/exercise.dart';
 import 'create_plan_state.dart';
+import 'exercise_providers.dart';
+import 'my_plans_providers.dart';
 
 part 'create_plan_providers.g.dart';
 
@@ -40,34 +42,22 @@ class CreatePlanNotifier extends _$CreatePlanNotifier {
     state = const CreatePlanState(name: 'Plan mới', exercises: []);
   }
 
-  Future<void> savePlan(dynamic useCase) async {
-    if (state.exercises.isEmpty) {
-      state = state.copyWith(error: 'Chưa có bài tập nào trong Plan');
-      return;
+  Future<bool> savePlan({String? planId}) async {
+    if (state.isSaving) return false;
+    if (state.exercises.isEmpty || state.name.trim().isEmpty) {
+      state = state.copyWith(error: 'Enter a name and add at least one exercise.');
+      return false;
     }
     state = state.copyWith(isSaving: true, error: null);
-    try {
-      // TODO: Implement save plan logic
-      final planData = {
-        'name': state.name,
-        'exerciseIds': state.exercises.map((e) => e.id).toList(),
-      };
-
-      // Simulate API call
-      await Future.delayed(const Duration(seconds: 2));
-
-      state = state.copyWith(
-        isSaving: false,
-        error: null,
-      );
-    } catch (e) {
-      state = state.copyWith(
-        isSaving: false,
-        error: e.toString(),
-      );
-    }
+    await ref.read(workoutDemoRepositoryProvider).savePlan(
+      id: planId,
+      name: state.name.trim(),
+      exerciseIds: state.exercises.map((exercise) => exercise.id).toList(),
+    );
+    state = state.copyWith(isSaving: false);
+    ref.invalidate(myPlansNotifierProvider);
+    return true;
   }
-
   void clearError() {
     state = state.copyWith(error: null);
   }

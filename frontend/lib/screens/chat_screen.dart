@@ -37,6 +37,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     if (widget.initialMessage != null) {
       _textController.text = widget.initialMessage!;
     }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(chatControllerProvider.notifier).loadConversations(loadLatest: true);
+    });
   }
 
   @override
@@ -83,11 +86,19 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
           setState(() {
             _activeNudge = null;
           });
-          ref.read(chatControllerProvider.notifier).clearChat();
+          ref.read(chatControllerProvider.notifier).newConversation();
         },
         onPromptSelected: _handlePromptSelected,
         onOpenPreferences: _showPersonaDialog,
         hasActiveReminders: hasNudge,
+        recentConversations: chatState.recentConversations,
+        activeConversationId: chatState.activeConversationId,
+        onSelectConversation: (id) {
+          setState(() {
+            _activeNudge = null;
+          });
+          ref.read(chatControllerProvider.notifier).loadConversation(id);
+        },
       ),
       appBar: SamanChatHeader(
         onMenuTap: () => _scaffoldKey.currentState?.openDrawer(),
@@ -95,7 +106,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
           setState(() {
             _activeNudge = null;
           });
-          ref.read(chatControllerProvider.notifier).clearChat();
+          ref.read(chatControllerProvider.notifier).newConversation();
         },
         hasActiveReminders: hasNudge,
       ),
@@ -119,6 +130,31 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                     onLogMeal: _handleLogMeal,
                     onRetakeFoodPhoto: _handleAttachmentFlow,
                     onManualMealEntry: _handleManualMealEntry,
+                    latestAssistantActions: (chatState.pendingAction != null &&
+                            chatState.pendingAction!['status'] == 'pending')
+                        ? [
+                            SamanAssistantAction(
+                              label: 'Xác nhận (+250 ml nước)',
+                              icon: Icons.check_circle_outline,
+                              isPrimary: true,
+                              onTap: () {
+                                final actionId = chatState.pendingAction!['id']?.toString() ?? '';
+                                final convId = chatState.activeConversationId ?? '';
+                                ref.read(chatControllerProvider.notifier).confirmAction(convId, actionId);
+                              },
+                            ),
+                            SamanAssistantAction(
+                              label: 'Hủy',
+                              icon: Icons.close,
+                              isPrimary: false,
+                              onTap: () {
+                                final actionId = chatState.pendingAction!['id']?.toString() ?? '';
+                                final convId = chatState.activeConversationId ?? '';
+                                ref.read(chatControllerProvider.notifier).cancelAction(convId, actionId);
+                              },
+                            ),
+                          ]
+                        : null,
                     activeNudge: hasNudge
                         ? _activeNudge!.copyWith(
                             onPrimary: () => _handleNudgePrimary(_activeNudge!),

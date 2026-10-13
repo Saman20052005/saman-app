@@ -1,6 +1,7 @@
 # [File: routers/workout.py]
 from fastapi import APIRouter, Depends, HTTPException, Query
 from datetime import datetime, date, timedelta, timezone
+from zoneinfo import ZoneInfo
 from typing import Optional, List, Dict, Any
 import pydantic as pd
 from bson import ObjectId
@@ -9,6 +10,12 @@ from bson import ObjectId
 from backend.auth_utils import verify_token, get_current_user
 from backend.app.repositories.user_repository import UserRepository
 from backend.app.database import workout_history_collection, custom_plans_collection, exercises_collection
+
+try:
+    from zoneinfo import ZoneInfo
+    ICT_ZONE = ZoneInfo("Asia/Ho_Chi_Minh")
+except Exception:
+    ICT_ZONE = timezone(timedelta(hours=7))
 
 router = APIRouter(prefix="/api/workouts", tags=["Workouts"])
 
@@ -128,13 +135,91 @@ class WorkoutPlan(pd.BaseModel):
     difficulty: str  # beginner, intermediate, advanced
     target_muscles: List[str]
 
+class ExerciseSetLogIn(pd.BaseModel):
+    exercise_id: str = pd.Field(..., alias="exerciseId")
+    exercise_slug: str = pd.Field(..., alias="exerciseSlug")
+    set_number: int = pd.Field(..., alias="setNumber")
+    reps_completed: int = pd.Field(0, alias="repsCompleted")
+    unit: Optional[str] = None
+    seconds_completed: Optional[int] = pd.Field(None, alias="secondsCompleted")
+    weight_kg: float = pd.Field(0.0, alias="weightKg")
+    is_completed: bool = pd.Field(True, alias="isCompleted")
+    rest_taken_seconds: Optional[int] = pd.Field(None, alias="restTakenSeconds")
+    cv_detected: bool = pd.Field(False, alias="cvDetected")
+
+    class Config:
+        allow_population_by_field_name = True
+
+
 class WorkoutSession(pd.BaseModel):
-    plan_id: str
-    start_time: datetime
+    id: Optional[str] = None
+    plan_id: Optional[str] = None
+    plan_name: Optional[str] = pd.Field(None, alias="planName")
+    name: Optional[str] = None
+    started_at: Optional[datetime] = pd.Field(None, alias="startedAt")
+    start_time: Optional[datetime] = None
+    finished_at: Optional[datetime] = pd.Field(None, alias="finishedAt")
     end_time: Optional[datetime] = None
-    completed_exercises: List[Dict[str, Any]] = []
+    exercise_logs: List[ExerciseSetLogIn] = pd.Field(default_factory=list, alias="exerciseLogs")
+    completed_exercises: Optional[List[Dict[str, Any]]] = None
+    total_duration_minutes: Optional[int] = pd.Field(None, alias="totalDurationMinutes")
     duration_minutes: Optional[int] = None
+    total_volume_kg: int = pd.Field(0, alias="totalVolumeKg")
     calories_burned: Optional[int] = None
+
+    class Config:
+        allow_population_by_field_name = True
+
+
+def _format_utc_iso(dt_val) -> Optional[str]:
+    if dt_val is None:
+        return None
+    if isinstance(dt_val, str):
+        try:
+            dt_val = datetime.fromisoformat(dt_val.replace("Z", "+00:00"))
+        except Exception:
+            return dt_val
+    if isinstance(dt_val, datetime):
+        if dt_val.tzinfo is None:
+            dt_val = dt_val.replace(tzinfo=timezone.utc)
+        else:
+            dt_val = dt_val.astimezone(timezone.utc)
+        return dt_val.isoformat().replace("+00:00", "Z")
+    return None
+
+
+def _serialize_workout_session(doc: dict) -> dict:
+    if not doc:
+        return {}
+    session_id = str(doc.get("_id") or doc.get("id") or "")
+    raw_logs = doc.get("exercise_logs") or doc.get("completed_exercises") or []
+    exercise_logs = []
+    for item in raw_logs:
+        exercise_logs.append({
+            "exerciseId": str(item.get("exercise_id") or item.get("exerciseId") or ""),
+            "exerciseSlug": str(item.get("exercise_slug") or item.get("exerciseSlug") or ""),
+            "setNumber": int(item.get("set_number") or item.get("setNumber") or 1),
+            "repsCompleted": int(item.get("reps_completed") if item.get("reps_completed") is not None else item.get("repsCompleted", 0)),
+            "unit": item.get("unit"),
+            "secondsCompleted": item.get("seconds_completed") if item.get("seconds_completed") is not None else item.get("secondsCompleted"),
+            "weightKg": float(item.get("weight_kg") if item.get("weight_kg") is not None else item.get("weightKg", 0.0)),
+            "isCompleted": bool(item.get("is_completed") if item.get("is_completed") is not None else item.get("isCompleted", True)),
+            "restTakenSeconds": item.get("rest_taken_seconds") if item.get("rest_taken_seconds") is not None else item.get("restTakenSeconds"),
+            "cvDetected": bool(item.get("cv_detected") if item.get("cv_detected") is not None else item.get("cvDetected", False)),
+        })
+
+    started_at = _format_utc_iso(doc.get("started_at") or doc.get("start_time") or doc.get("created_at"))
+    finished_at = _format_utc_iso(doc.get("finished_at") or doc.get("end_time"))
+
+    return {
+        "id": session_id,
+        "planName": str(doc.get("plan_name") or doc.get("planName") or doc.get("name") or "Workout Session"),
+        "startedAt": started_at or datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
+        "finishedAt": finished_at,
+        "exerciseLogs": exercise_logs,
+        "totalDurationMinutes": doc.get("total_duration_minutes") if doc.get("total_duration_minutes") is not None else doc.get("duration_minutes"),
+        "totalVolumeKg": int(doc.get("total_volume_kg") if doc.get("total_volume_kg") is not None else 0),
+    }
 
 @router.get("/plans")
 async def get_workout_plans(
@@ -326,39 +411,90 @@ async def get_weekly_workout_report(
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@router.post("/sessions")
+@router.post("/sessions", status_code=201)
 async def log_workout_session(
     session: WorkoutSession,
-    email: str = Depends(verify_token)
+    current_user: dict = Depends(get_current_user)
 ):
-    """Log workout session (Updated endpoint name)"""
+    """Log workout session with authenticated user_id principal"""
     try:
-        user = user_repo.get_by_email(email)
-        if not user:
-            raise HTTPException(status_code=404, detail="User not found")
+        user_id = str(current_user["_id"])
+        email = current_user.get("email")
 
         if workout_history_collection is None:
             raise HTTPException(status_code=503, detail="Database not connected")
 
-        user_id = str(user.get("_id")) if user.get("_id") is not None else None
-        now = datetime.utcnow()
-        doc = session.dict()
-        doc["email"] = email
-        if user_id:
-            doc["user_id"] = user_id
-        doc.setdefault("created_at", now)
-        if doc.get("start_time") is None:
-            doc["start_time"] = now
+        now_utc = datetime.now(timezone.utc)
+
+        # Normalize started_at
+        raw_start = session.started_at or session.start_time or now_utc
+        if raw_start.tzinfo is None:
+            start_utc = raw_start.replace(tzinfo=timezone.utc)
+        else:
+            start_utc = raw_start.astimezone(timezone.utc)
+
+        # Normalize finished_at
+        raw_end = session.finished_at or session.end_time
+        if raw_end is not None:
+            if raw_end.tzinfo is None:
+                end_utc = raw_end.replace(tzinfo=timezone.utc)
+            else:
+                end_utc = raw_end.astimezone(timezone.utc)
+        else:
+            end_utc = None
+
+        # Asia/Ho_Chi_Minh workout date
+        vn_date = start_utc.astimezone(ICT_ZONE).strftime("%Y-%m-%d")
+
+        # Normalize exercise logs
+        logs_data = []
+        if session.exercise_logs:
+            for item in session.exercise_logs:
+                logs_data.append({
+                    "exercise_id": item.exercise_id,
+                    "exercise_slug": item.exercise_slug,
+                    "set_number": item.set_number,
+                    "reps_completed": item.reps_completed,
+                    "unit": item.unit,
+                    "seconds_completed": item.seconds_completed,
+                    "weight_kg": item.weight_kg,
+                    "is_completed": item.is_completed,
+                    "rest_taken_seconds": item.rest_taken_seconds,
+                    "cv_detected": item.cv_detected,
+                })
+        elif session.completed_exercises:
+            logs_data = [dict(e) for e in session.completed_exercises]
+
+        total_duration = session.total_duration_minutes if session.total_duration_minutes is not None else session.duration_minutes
+        plan_title = session.plan_name or session.name or "Workout Session"
+
+        doc = {
+            "user_id": user_id,
+            "email": email,
+            "client_id": session.id,
+            "plan_id": session.plan_id,
+            "plan_name": plan_title,
+            "started_at": start_utc,
+            "finished_at": end_utc,
+            "date": vn_date,
+            "exercise_logs": logs_data,
+            "total_duration_minutes": total_duration,
+            "total_volume_kg": session.total_volume_kg,
+            "created_at": now_utc,
+        }
 
         result = workout_history_collection.insert_one(doc)
-        inserted = {**doc, "_id": result.inserted_id}
+        doc["_id"] = result.inserted_id
 
+        serialized = _serialize_workout_session(doc)
         return {
             "message": "Workout session logged successfully",
             "session_id": str(result.inserted_id),
-            "session": _serialize_mongo(inserted),
-            "logged_at": now.isoformat(),
+            "session": serialized,
+            "logged_at": now_utc.isoformat(),
         }
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -434,48 +570,71 @@ async def delete_workout_plan(
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@router.post("/log-session")
+@router.post("/log-session", status_code=201)
 async def log_workout_session_legacy(
     session: WorkoutSession,
-    email: str = Depends(verify_token)
+    current_user: dict = Depends(get_current_user)
 ):
     """Log workout session (Legacy endpoint - redirects to /sessions)"""
-    return await log_workout_session(session, email)
+    return await log_workout_session(session, current_user)
 
 @router.get("/history")
 async def get_workout_history(
     limit: int = Query(10, ge=1, le=100),
     offset: int = Query(0, ge=0),
-    email: str = Depends(verify_token)
+    current_user: dict = Depends(get_current_user)
 ):
-    """Get workout history"""
+    """Get workout history filtered strictly by authenticated user_id"""
     try:
-        user = user_repo.get_by_email(email)
-        if not user:
-            raise HTTPException(status_code=404, detail="User not found")
-
-        user_id = str(user.get("_id")) if user.get("_id") is not None else None
-        workout_query: dict = {"$or": [{"email": email}]}
-        if user_id:
-            workout_query["$or"].append({"user_id": user_id})
+        user_id = str(current_user["_id"])
+        workout_query = {"user_id": user_id}
 
         total = _safe_count(workout_history_collection, workout_query)
         sessions = _safe_find(
             workout_history_collection,
             workout_query,
-            sort=[("date", -1), ("created_at", -1)],
+            sort=[("started_at", -1), ("date", -1), ("created_at", -1)],
             skip=offset,
             limit=limit,
         )
 
         return {
-            "sessions": [_serialize_mongo(s) for s in sessions],
+            "sessions": [_serialize_workout_session(s) for s in sessions],
             "pagination": {
                 "limit": limit,
                 "offset": offset,
                 "total": total
             }
         }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/sessions/{session_id}")
+async def get_workout_session_detail(
+    session_id: str,
+    current_user: dict = Depends(get_current_user)
+):
+    """Get single workout session detail strictly owned by authenticated user_id"""
+    try:
+        user_id = str(current_user["_id"])
+        owner_filter = {"user_id": user_id}
+
+        try:
+            oid = ObjectId(session_id)
+            id_filter = {"$or": [{"_id": oid}, {"client_id": session_id}]}
+        except Exception:
+            id_filter = {"client_id": session_id}
+
+        query = {"$and": [owner_filter, id_filter]}
+        doc = workout_history_collection.find_one(query) if workout_history_collection is not None else None
+        if not doc:
+            raise HTTPException(status_code=404, detail="Workout session not found")
+
+        return {
+            "session": _serialize_workout_session(doc),
+        }
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

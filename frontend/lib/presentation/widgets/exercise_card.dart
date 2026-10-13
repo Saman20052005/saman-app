@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:cached_network_image/cached_network_image.dart';
+import 'exercise_thumbnail.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import '../../data/models/exercise.dart';
 import '../../config/app_theme.dart';
@@ -66,32 +66,10 @@ class ExerciseCard extends StatelessWidget {
                   tag: 'exercise_${exercise.slug}',
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(AppRadius.md),
-                    child: CachedNetworkImage(
-                      imageUrl: exercise.thumbnailUrl,
+                    child: ExerciseThumbnail(
+                      source: exercise.thumbnailUrl,
                       width: 80,
                       height: 80,
-                      fit: BoxFit.cover,
-                      placeholder: (context, url) => Container(
-                        width: 80,
-                        height: 80,
-                        color: context.trackColor,
-                        child: Center(
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: colors.primary,
-                          ),
-                        ),
-                      ),
-                      errorWidget: (context, url, error) => Container(
-                        width: 80,
-                        height: 80,
-                        color: context.trackColor,
-                        child: Icon(
-                          Icons.fitness_center_outlined,
-                          size: 32,
-                          color: colors.secondary,
-                        ),
-                      ),
                     ),
                   ),
                 ),
@@ -121,7 +99,10 @@ class ExerciseCard extends StatelessWidget {
                         overflow: TextOverflow.ellipsis,
                       ),
                       const SizedBox(height: AppSpacing.sm),
-                      Row(
+                      Wrap(
+                        spacing: AppSpacing.sm,
+                        runSpacing: AppSpacing.xs,
+                        crossAxisAlignment: WrapCrossAlignment.center,
                         children: [
                           // Difficulty badge
                           Container(
@@ -142,7 +123,6 @@ class ExerciseCard extends StatelessWidget {
                               ),
                             ),
                           ),
-                          const SizedBox(width: AppSpacing.sm),
 
                           // CV badge
                           if (exercise.cvSupported)
@@ -165,11 +145,10 @@ class ExerciseCard extends StatelessWidget {
                                 ),
                               ),
                             ),
-                          const Spacer(),
 
                           // Sets x Reps
                           Text(
-                            '${exercise.defaultSets} sets × ${exercise.defaultReps}',
+                            '${exercise.defaultSets} sets × ${exercise.defaultReps}${exercise.repType == 'seconds' ? ' s' : ''}',
                             style: textTheme.bodySmall?.copyWith(
                               color: colors.secondary,
                               fontWeight: FontWeight.w600,

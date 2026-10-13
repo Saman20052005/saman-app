@@ -3,13 +3,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/create_plan_providers.dart';
 import '../providers/exercise_providers.dart';
 import '../../core/constants/app_dimens.dart';
-import '../../core/constants/app_strings.dart';
 import '../widgets/exercise_card.dart';
-import 'exercise_detail_screen.dart';
-import 'active_workout_screen.dart';
 import '../../data/models/workout_plan.dart';
 import '../../data/models/exercise.dart';
-import 'muscle_group_screen.dart';
+import 'exercise_library_screen.dart';
 
 class CreatePlanScreen extends ConsumerStatefulWidget {
   final WorkoutPlan? planToEdit;
@@ -44,7 +41,9 @@ class _CreatePlanScreenState extends ConsumerState<CreatePlanScreen> {
       final exercises = await Future.wait(
         widget.planToEdit!.exerciseIds.map((id) => repo.getExerciseById(id)),
       );
-      // Gán vào provider (create_plan_providers)
+      if (!mounted) return;
+      ref.read(createPlanNotifierProvider.notifier).clear();
+      // Load the selected plan into the existing draft provider.
       ref
           .read(createPlanNotifierProvider.notifier)
           .setName(widget.planToEdit!.name);
@@ -52,7 +51,11 @@ class _CreatePlanScreenState extends ConsumerState<CreatePlanScreen> {
         ref.read(createPlanNotifierProvider.notifier).addExercise(ex);
       }
     } catch (e) {
-      // Xử lý lỗi
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Could not load plan: $e')),
+        );
+      }
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -114,13 +117,14 @@ class _CreatePlanScreenState extends ConsumerState<CreatePlanScreen> {
           ),
           leading: IconButton(
             icon: const Icon(Icons.close),
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => Navigator.maybePop(context),
           ),
         ),
         body: _isLoading
             ? const Center(child: CircularProgressIndicator())
             : Column(
                 children: [
+                  const Text('Local / demo • In memory until restart • Not synced'),
                   _PlanNameField(
                     controller: _nameController,
                     onChanged: (name) {
@@ -149,45 +153,30 @@ class _CreatePlanScreenState extends ConsumerState<CreatePlanScreen> {
                     error: state.error,
                     hasExercises: state.exercises.isNotEmpty,
                     onPressed: () async {
-                      // TODO: inject usecase
-                      // await notifier.savePlan(saveWorkoutPlanUseCase);
-                      // Tạm thời:
-                      notifier.savePlan(null as dynamic);
-                      if (state.error == null) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                              content: Text('Đã lưu plan thành công!')),
-                        );
-                        // Chuyển sang ActiveWorkoutScreen
-                        Navigator.pushReplacement(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => ActiveWorkoutScreen.fromExercises(
-                                exercises: state.exercises),
-                          ),
-                        );
-                      }
+                      final saved = await notifier.savePlan(
+                        planId: widget.planToEdit?.id,
+                      );
+                      if (!context.mounted || !saved) return;
+                      notifier.clear();
+                      Navigator.of(context).pop();
                     },
                   ),
                 ],
               ),
-        floatingActionButton: FloatingActionButton.extended(
-          onPressed: () => _navigateToLibrary(context),
-          icon: const Icon(Icons.add),
-          label: const Text('Thêm bài tập'),
-        ),
       ),
     );
   }
 
-  void _navigateToLibrary(BuildContext context) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (_) => const MuscleGroupScreen()),
+  Future<void> _navigateToLibrary(BuildContext context) async {
+    final exercise = await Navigator.of(context).push<Exercise>(
+      MaterialPageRoute(builder: (_) => const ExerciseLibraryScreen(
+        initialCategory: 'All', selectExercise: true,
+      )),
     );
+    if (!mounted || exercise == null) return;
+    ref.read(createPlanNotifierProvider.notifier).addExercise(exercise);
   }
 }
-
 // --- Widget con ---
 class _PlanNameField extends StatelessWidget {
   final TextEditingController controller;
@@ -226,10 +215,10 @@ class _ExercisesHeader extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(
+          Expanded(child: Text(
             'Bài tập trong Plan ($count)',
             style: Theme.of(context).textTheme.titleMedium,
-          ),
+          )),
           TextButton.icon(
             onPressed: onAddPressed,
             icon: const Icon(Icons.add),

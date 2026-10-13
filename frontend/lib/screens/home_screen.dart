@@ -6,7 +6,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 import '../config/app_translations.dart';
 import '../config/theme_provider.dart';
@@ -31,7 +30,9 @@ import '../presentation/screens/active_workout_screen.dart';
 import '../presentation/screens/workout_home_screen.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
-  const HomeScreen({super.key});
+  const HomeScreen({super.key, this.onOpenProfile});
+
+  final VoidCallback? onOpenProfile;
 
   @override
   ConsumerState<HomeScreen> createState() => _HomeScreenState();
@@ -40,6 +41,8 @@ class HomeScreen extends ConsumerStatefulWidget {
 class _HomeScreenState extends ConsumerState<HomeScreen> {
   Map<String, String>? _profile;
   bool _isLoading = false;
+  String? _pendingWaterRetryKey;
+  String? _pendingWaterRetryDate;
 
   @override
   void initState() {
@@ -117,8 +120,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     );
 
     if (confirmed == true && mounted) {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.clear();
+      await AuthHelper.logout(ref);
       if (mounted) {
         Navigator.pushAndRemoveUntil(
           context,
@@ -169,10 +171,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 ),
                 onTap: () {
                   Navigator.pop(ctx);
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => const ProfileScreen()),
-                  );
+                  if (widget.onOpenProfile != null) {
+                    widget.onOpenProfile!();
+                  } else {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const ProfileScreen()),
+                    );
+                  }
                 },
               ),
               const Divider(color: SamanHomeTokens.borderSubtle),
@@ -220,36 +226,45 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     );
   }
 
-  Future<void> _handleAddWater() async {
+  Future<void> _handleAddWater({String? retryKey, String? retryDate}) async {
     final now = DateTime.now();
     final todayStr = DateFormat('yyyy-MM-dd').format(now);
-    final nutritionState = ref.read(nutritionProvider);
-    final currentWater = nutritionState.valueOrNull?.currentWater ?? 1800;
-    final newWater = currentWater + 250;
+    final dateToUse = retryDate ?? todayStr;
+    final keyToUse = retryKey;
 
     try {
       await ref
           .read(nutritionProvider.notifier)
-          .updateWater(newWater, date: todayStr);
+          .addWater(250, date: dateToUse, idempotencyKey: keyToUse);
+      _pendingWaterRetryKey = null;
+      _pendingWaterRetryDate = null;
       if (mounted) {
         ScaffoldMessenger.of(context).hideCurrentSnackBar();
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              '💧 +250ml water logged (${(newWater / 1000).toStringAsFixed(1)}L total)',
-            ),
-            duration: const Duration(seconds: 2),
+          const SnackBar(
+            content: Text('💧 +250ml water logged'),
+            duration: Duration(seconds: 2),
             behavior: SnackBarBehavior.floating,
           ),
         );
       }
     } catch (e) {
+      _pendingWaterRetryKey =
+          keyToUse ?? ref.read(nutritionProvider.notifier).lastFailedWaterKey;
+      _pendingWaterRetryDate = dateToUse;
       if (mounted) {
         ScaffoldMessenger.of(context).hideCurrentSnackBar();
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Failed to update water. Please try again.'),
+          SnackBar(
+            content: const Text('Failed to update water. Please try again.'),
             behavior: SnackBarBehavior.floating,
+            action: SnackBarAction(
+              label: 'Retry',
+              onPressed: () => _handleAddWater(
+                retryKey: _pendingWaterRetryKey,
+                retryDate: _pendingWaterRetryDate,
+              ),
+            ),
           ),
         );
       }
@@ -264,7 +279,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       ScaffoldMessenger.of(context).hideCurrentSnackBar();
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Workout exercises are loading. Please try again shortly.'),
+          content:
+              Text('Workout exercises are loading. Please try again shortly.'),
           behavior: SnackBarBehavior.floating,
         ),
       );
@@ -326,18 +342,20 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
     // 2. Nutrition & Water Metrics
     final caloriesConsumed = plan?.totalCaloriesConsumed ?? 1850;
-    final caloriesTarget = (macroTargets?.calories != null &&
-            macroTargets!.calories > 0)
-        ? macroTargets.calories
-        : (profileState.targetCalories > 0 ? profileState.targetCalories : 2500);
+    final caloriesTarget =
+        (macroTargets?.calories != null && macroTargets!.calories > 0)
+            ? macroTargets.calories
+            : (profileState.targetCalories > 0
+                ? profileState.targetCalories
+                : 2500);
 
     final proteinConsumed = (plan?.totalProteinConsumed ?? 120).toDouble();
-    final proteinTarget = (macroTargets?.protein != null &&
-            macroTargets!.protein > 0)
-        ? macroTargets.protein
-        : (profileState.targetProtein > 0
-            ? profileState.targetProtein.toDouble()
-            : 160.0);
+    final proteinTarget =
+        (macroTargets?.protein != null && macroTargets!.protein > 0)
+            ? macroTargets.protein
+            : (profileState.targetProtein > 0
+                ? profileState.targetProtein.toDouble()
+                : 160.0);
 
     final carbsConsumed = (plan?.totalCarbsConsumed ?? 210).toDouble();
     final carbsTarget = (macroTargets?.carbs != null && macroTargets!.carbs > 0)
@@ -357,7 +375,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final targetWaterVal = plan?.targetWater;
     final waterTargetLiters = (targetWaterVal != null && targetWaterVal > 0
             ? targetWaterVal
-            : (profileState.waterTargetMl > 0 ? profileState.waterTargetMl : 2500)) /
+            : (profileState.waterTargetMl > 0
+                ? profileState.waterTargetMl
+                : 2500)) /
         1000.0;
 
     int onTrackCount = 0;
@@ -467,8 +487,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                       completedSessions: completedSessions,
                       targetSessions: targetSessions,
                       completionPercentage: completionPercentage,
-                      streakDays:
-                          completedSessions > 0 ? completedSessions : 3,
+                      streakDays: completedSessions > 0 ? completedSessions : 3,
                       activeDayIndex: activeDayIndex,
                       onViewProgressTap: _navigateToProgress,
                     ).animate().fadeIn(delay: 180.ms, duration: 400.ms),

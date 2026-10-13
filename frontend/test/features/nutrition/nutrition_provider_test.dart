@@ -75,6 +75,7 @@ void main() {
       when(() => mockRepository.getDailyPlan(any()))
           .thenAnswer((_) async => mockPlan);
       when(() => mockRepository.generatePlan(
+            dateStr: any(named: 'dateStr'),
             goal: any(named: 'goal'),
             targetCalories: any(named: 'targetCalories'),
             remainingOnly: any(named: 'remainingOnly'), // Added remainingOnly
@@ -178,6 +179,83 @@ void main() {
       verify(() =>
               mockRepository.swapMeal('2023-10-27', oldMeal, 'muscle_gain'))
           .called(1);
+    });
+
+    test(
+        'generateSmartPlan preserves existing intake and water if secondary getDailyPlan fails',
+        () async {
+      final date = DateTime(2023, 10, 27);
+      const dateStr = '2023-10-27';
+
+      final existingEntry = NutritionLogEntry(
+        logId: 'log-101',
+        foodName: 'Chicken Salad',
+        mealType: 'lunch',
+        totalCalories: 450,
+        protein: 35,
+        carbs: 10,
+        fat: 12,
+      );
+
+      final initialPlan = NutritionPlan(
+        date: dateStr,
+        meals: [],
+        entries: [existingEntry],
+        currentWater: 800,
+        targetWater: 2200,
+        totalCaloriesConsumed: 450,
+        totalProteinConsumed: 35,
+        totalCarbsConsumed: 10,
+        totalFatConsumed: 12,
+      );
+
+      final generatedPlanWithIntake = initialPlan.copyWith(
+        meals: [
+          Meal(
+            foodId: 'm1',
+            name: 'Salmon Bowl',
+            calories: 600,
+            protein: 40,
+            carbs: 50,
+            fat: 20,
+            weightGrams: 300,
+            mealType: 'dinner',
+            time: '19:00',
+          ),
+        ],
+      );
+
+      when(() => mockRepository.generatePlan(
+            dateStr: any(named: 'dateStr'),
+            goal: any(named: 'goal'),
+            mealCount: any(named: 'mealCount'),
+            style: any(named: 'style'),
+            remainingOnly: any(named: 'remainingOnly'),
+          )).thenAnswer((_) async => generatedPlanWithIntake);
+
+      when(() => mockRepository.getDailyPlan(dateStr))
+          .thenThrow(Exception('Secondary Daily Plan Fetch Failed'));
+
+      final notifier = container.read(nutritionProvider.notifier);
+      await notifier.generateSmartPlan(
+        mealCount: 3,
+        style: 'optimal',
+        remainingOnly: true,
+        date: date,
+      );
+
+      final state = container.read(nutritionProvider).value;
+      expect(state, isNotNull);
+      expect(state!.entries.length, 1);
+      expect(state.entries.first.foodName, 'Chicken Salad');
+      expect(state.currentWater, 800);
+      expect(state.targetWater, 2200);
+      expect(state.totalCaloriesConsumed, 450);
+      expect(state.totalProteinConsumed, 35);
+      expect(state.totalCarbsConsumed, 10);
+      expect(state.totalFatConsumed, 12);
+      expect(state.meals.length, 1);
+      expect(state.meals.first.name, 'Salmon Bowl');
     });
   });
 }
