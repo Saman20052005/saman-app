@@ -211,7 +211,13 @@ const expectedCategoryIds = <String, List<String>>{
 
 void main() {
   test('Plank timed targets, draft, transitions and save preserve units and zero weight', () async {
-    final container = ProviderContainer();
+    final container = ProviderContainer(
+      overrides: [
+        workoutSessionRepositoryProvider.overrideWith(
+          (ref) => ref.watch(exerciseRepositoryProvider),
+        ),
+      ],
+    );
     addTearDown(container.dispose);
     final subscription = container.listen(activeSessionSaverProvider, (_, __) {});
     addTearDown(subscription.close);
@@ -418,7 +424,13 @@ void main() {
 
     test('$id initializes, logs all sets and saves unchanged unit/ID/slug',
         () async {
-      final container = ProviderContainer();
+      final container = ProviderContainer(
+        overrides: [
+          workoutSessionRepositoryProvider.overrideWith(
+            (ref) => ref.watch(exerciseRepositoryProvider),
+          ),
+        ],
+      );
       addTearDown(container.dispose);
       final saverListener =
           container.listen(activeSessionSaverProvider, (_, __) {});
