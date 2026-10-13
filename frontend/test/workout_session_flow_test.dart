@@ -31,7 +31,7 @@ import 'package:health_ai_app/screens/main_screen.dart';
 import 'package:health_ai_app/screens/home/widgets/saman_bottom_navigation_bar.dart';
 
 import 'main_screen_test.dart' show FakeProfileNotifier, FakeNutritionNotifier;
-import 'workout_exercise_catalog_test.dart' show expectedNewExercises;
+import 'workout_exercise_catalog_test.dart' show expectedNewExercises, expectedRoundTwoExercises, allNewExercises;
 import 'workout_exercise_images_test.dart'
     show loadImages, loadTestFonts, testWorkoutThemeExtension;
 
@@ -171,12 +171,13 @@ void main() {
     await tester.pumpWidget(const SizedBox());
   });
 
-  testWidgets('Mixed Bench 8 x 26 and Plank 50s saves 208kg with no timed volume bar',
+  for (final timedCase in [('plank', 50), ('side-plank', 60)]) {
+  testWidgets('Mixed Bench 8 x 26 and ${timedCase.$1} ${timedCase.$2}s saves 208kg with no timed volume bar',
       (tester) async {
     final container = await mount(tester, ActiveWorkoutScreen(
       autoTick: false, exercises: [
         curatedExerciseLibrary.first.copyWith(defaultSets: 1),
-        curatedExerciseLibrary.singleWhere((e) => e.id == 'plank').copyWith(defaultSets: 1),
+        curatedExerciseLibrary.singleWhere((e) => e.id == timedCase.$1).copyWith(defaultSets: 1),
       ],
     ));
     final active = container.read(activeWorkoutSessionProvider.notifier);
@@ -185,10 +186,10 @@ void main() {
     await tap(tester, find.text('Log Set 1'));
     await tap(tester, find.text('Next exercise'));
     final input = find.byKey(const ValueKey('active_workout_seconds_input'));
-    await tester.ensureVisible(input); await tester.enterText(input, '50');
+    await tester.ensureVisible(input); await tester.enterText(input, '${timedCase.$2}');
     await tester.pump(); await tap(tester, find.text('Log Set 1'));
     await tap(tester, find.byKey(const ValueKey('active_workout_finish_button')));
-    expect(find.text('50 s'), findsOneWidget);
+    expect(find.text('${timedCase.$2} s'), findsOneWidget);
     expect(find.text('26 kg \u00d7 8 reps'), findsOneWidget);
     await tap(tester, find.byKey(const ValueKey('save_session_button')));
     final saved = await container.read(exerciseRepositoryProvider).getSessionById(active.sessionId);
@@ -205,12 +206,13 @@ void main() {
     await tap(tester, find.text('Custom Workout'));
     expect(find.text('8 reps'), findsOneWidget);
     expect(find.text('26 kg'), findsOneWidget);
-    expect(find.text('50 s'), findsOneWidget);
+    expect(find.text('${timedCase.$2} s'), findsOneWidget);
     expect(find.text('Total volume: 208 kg'), findsOneWidget);
     expect(find.text('Total volume: 0 kg'), findsOneWidget);
     expect(tester.takeException(), isNull);
     await tester.pumpWidget(const SizedBox());
   });
+  }
 
   testWidgets('Plank Create Plan shows timed prescription and starts saved/edited plan',
       (tester) async {
@@ -338,7 +340,7 @@ void main() {
     });
   }
 
-  for (final entry in expectedNewExercises.entries) {
+  for (final entry in allNewExercises.entries) {
     testWidgets('${entry.key} selected in Create Plan -> save -> edit -> start resolves exact ID',
         (tester) async {
       final container = await mount(tester, const MyPlansScreen(), workoutOnlyTheme: true);
@@ -352,6 +354,7 @@ void main() {
       await tap(tester, find.byKey(ValueKey('exercise_row_${entry.key}')));
       expect(find.byType(CreatePlanScreen), findsOneWidget);
       expect(find.text(entry.value.$1), findsOneWidget);
+      expect(find.text('3 sets × ${entry.value.$6}${entry.key == "side-plank" ? " s" : ""}'), findsOneWidget);
       await tap(tester, find.text('Lưu Plan'));
       final repo = container.read(exerciseRepositoryProvider);
       final plan = (await repo.getMyPlans()).single;
@@ -371,6 +374,109 @@ void main() {
       expect(started.exercises.single.imageUrl,
           'assets/images/exercises/${entry.key}-thumb.jpg');
       expect(started.exercises.single.sets, hasLength(3));
+      final timed = entry.key == 'side-plank';
+      expect(started.exercises.single.unit, timed ? SetUnit.seconds : SetUnit.reps);
+      expect(started.exercises.single.draftSeconds, timed ? 40 : null);
+      expect(started.exercises.single.draftWeightKg, timed ? 0 : 20);
+      expect(tester.takeException(), isNull);
+      await tester.pumpWidget(const SizedBox());
+    });
+  }
+
+  for (final entry in expectedRoundTwoExercises.entries) {
+    testWidgets('${entry.key} preserves entered totals through Detail, Review, Complete and saved detail',
+        (tester) async {
+      final id = entry.key;
+      final timed = id == 'side-plank';
+      final bodyweight = id == 'pull-up' || id == 'reverse-crunch';
+      final result = timed ? 60 : id == 'bulgarian-split-squat' ? 20
+          : int.parse(entry.value.$6.split('-').first);
+      final weight = timed || bodyweight ? 0.0 : 20.0;
+      final sets = bodyweight ? 3 : 1;
+      final container = await mount(tester,
+          const ExerciseLibraryScreen(initialCategory: 'All'), workoutOnlyTheme: true);
+      await loadImages(tester, curatedExerciseLibrary.expand((e) =>
+          [e.thumbnailUrl, exercisePosterSource(e.thumbnailUrl)]));
+      await tester.enterText(find.byType(TextField), entry.value.$2);
+      await tester.pumpAndSettle();
+      await tap(tester, find.byKey(ValueKey('exercise_row_$id')));
+      expect(find.text(entry.value.$2), findsOneWidget);
+      await tap(tester, find.byKey(const ValueKey('exercise_detail_start_button')));
+      final active = container.read(activeWorkoutSessionProvider.notifier);
+      final sessionId = active.sessionId;
+      if (timed) {
+        final input = find.byKey(const ValueKey('active_workout_seconds_input'));
+        final log = find.byKey(const ValueKey('active_workout_log_set_button'));
+        expect(find.text('TARGET: 40 s'), findsOneWidget);
+        for (final value in ['', '0', '-1', '1000', 'abc', '1.5']) {
+          await tester.ensureVisible(input);
+          await tester.enterText(input, value);
+          await tester.pump();
+          expect(tester.widget<ElevatedButton>(log).onPressed, isNull);
+          active.logActiveSet();
+          expect(container.read(activeWorkoutSessionProvider).completedSetsCount, 0);
+        }
+        await tap(tester, find.byKey(const ValueKey('active_workout_add_set_button')));
+        expect(container.read(activeWorkoutSessionProvider).currentExercise!.sets.last.targetSeconds, 40);
+        expect(container.read(activeWorkoutSessionProvider).currentExercise!.sets.last.targetWeightKg, 0);
+        await tester.ensureVisible(input);
+        await tester.enterText(input, '60');
+        await tester.pump();
+      } else if (id == 'bulgarian-split-squat') {
+        for (var rep = 16; rep < 20; rep++) {
+          await tap(tester, find.byKey(const ValueKey('active_workout_reps_plus')));
+        }
+      }
+      for (var set = 0; set < sets; set++) {
+        if (bodyweight) {
+          expect(container.read(activeWorkoutSessionProvider).currentExercise!.draftWeightKg, 20);
+          final minus = find.byKey(const ValueKey('active_workout_weight_minus'));
+          await tester.ensureVisible(minus);
+          for (var kg = 20; kg > 0; kg--) {
+            await tester.tap(minus);
+            await tester.pump();
+          }
+        }
+        await tap(tester, find.byKey(const ValueKey('active_workout_log_set_button')));
+        final logged = container.read(activeWorkoutSessionProvider).currentExercise!.sets[set];
+        expect(logged.unit, timed ? SetUnit.seconds : SetUnit.reps);
+        expect(logged.reps, timed ? 0 : result);
+        expect(logged.seconds, timed ? 60 : null);
+        expect(logged.weightKg, weight);
+        if (set < sets - 1) await tap(tester, find.byKey(const ValueKey('active_workout_rest_skip')));
+      }
+      final volume = (sets * (timed ? 0 : result) * weight).round();
+      await tap(tester, find.byKey(const ValueKey('active_workout_finish_button')));
+      expect(find.text(timed ? '60 s' : '${weight.round()} kg × $result reps'), findsNWidgets(sets));
+      await tap(tester, find.byKey(const ValueKey('keep_training_button')));
+      expect(active.sessionId, sessionId);
+      expect(container.read(activeWorkoutSessionProvider).completedSetsCount, sets);
+      await tap(tester, find.byKey(const ValueKey('active_workout_finish_button')));
+      await tap(tester, find.byKey(const ValueKey('save_session_button')));
+      await tester.pumpAndSettle();
+      expect(find.byType(WorkoutCompleteScreen), findsOneWidget);
+      final repo = container.read(exerciseRepositoryProvider);
+      final saved = await repo.getSessionById(sessionId);
+      expect(saved.totalVolumeKg, volume);
+      expect(saved.exerciseLogs, hasLength(sets));
+      expect(saved.exerciseLogs.map((s) => s.exerciseId), everyElement(id));
+      expect(saved.exerciseLogs.map((s) => s.exerciseSlug), everyElement(id));
+      expect(saved.exerciseLogs.map((s) => s.repsCompleted), everyElement(timed ? 0 : result));
+      expect(saved.exerciseLogs.map((s) => s.secondsCompleted), everyElement(timed ? 60 : null));
+      expect(saved.exerciseLogs.map((s) => s.weightKg), everyElement(weight));
+      await tap(tester, find.text('View workout history'));
+      await tap(tester, find.text(entry.value.$1));
+      expect(find.byType(SessionDetailScreen), findsOneWidget);
+      expect(find.text(entry.value.$1), findsOneWidget);
+      expect(find.text(timed ? '60 s' : '$result reps'), findsNWidgets(sets));
+      expect(find.text('Total volume: $volume kg'), findsOneWidget);
+      if (timed) {
+        expect(find.text('Seconds'), findsOneWidget);
+        expect(find.text('Weight (kg)'), findsNothing);
+        expect(find.text('0 reps'), findsNothing);
+      } else {
+        expect(find.text('${weight.round()} kg'), findsNWidgets(sets));
+      }
       expect(tester.takeException(), isNull);
       await tester.pumpWidget(const SizedBox());
     });

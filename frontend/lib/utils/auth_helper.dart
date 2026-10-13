@@ -5,6 +5,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../providers/profile_provider.dart';
 import '../providers/nutrition_provider.dart';
 import '../presentation/providers/workout_home_providers.dart';
+import '../presentation/providers/workout_history_providers.dart';
+import '../presentation/providers/active_workout_providers.dart';
+import '../presentation/providers/session_detail_providers.dart';
 
 class AuthHelper {
   static const String _tokenKey = 'auth_token';
@@ -57,6 +60,11 @@ class AuthHelper {
     // 1. Invalidate session epoch immediately
     ref.read(profileProvider.notifier).resetSession();
 
+    // Increment workout auth scope to prevent data overwrite from delayed requests
+    try {
+      ref.read(workoutAuthScopeProvider.notifier).state++;
+    } catch (_) {}
+
     // 2. Clear secure storage tokens
     await clearAuth();
 
@@ -83,6 +91,11 @@ class AuthHelper {
     ref.invalidate(nutritionProvider);
     ref.invalidate(macroTargetsProvider);
     ref.invalidate(weeklyGoalNotifierProvider);
+
+    // Invalidate workout related providers
+    ref.invalidate(workoutHistoryProvider);
+    ref.invalidate(activeWorkoutSessionProvider);
+    ref.invalidate(sessionDetailProvider);
   }
 
   static Future<void> printAuthStatus() async {

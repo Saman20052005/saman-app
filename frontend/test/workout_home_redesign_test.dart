@@ -832,7 +832,7 @@ void main() {
   });
 
   testWidgets(
-      'exerciseLibraryListProvider serves complete 27-exercise local catalog consistently regardless of repository override or error',
+      'exerciseLibraryListProvider serves complete 35-exercise local catalog consistently regardless of repository override or error',
       (WidgetTester tester) async {
     const singleExercise = Exercise(
       id: 'mock-single-item',
@@ -862,13 +862,13 @@ void main() {
     );
     addTearDown(container.dispose);
 
-    // 1. Verify Riverpod provider deterministically serves 27-exercise catalog
+    // 1. Verify Riverpod provider deterministically serves 35-exercise catalog
     final exercises = await container.read(exerciseLibraryListProvider.future);
-    expect(exercises.length, 27);
+    expect(exercises.length, 35);
     expect(exercises.map((e) => e.id), curatedExerciseLibrary.map((e) => e.id));
-    expect(exercises.map((e) => e.id).toSet(), hasLength(27));
+    expect(exercises.map((e) => e.id).toSet(), hasLength(35));
 
-    // 2. Verify UI renders 27-exercise catalog across categories without leak of single mock item
+    // 2. Verify UI renders the catalog across categories without a mock item leak
     await tester.pumpWidget(
       UncontrolledProviderScope(
         container: container,
@@ -951,8 +951,8 @@ void main() {
 
     final exercises =
         await errorContainer.read(exerciseLibraryListProvider.future);
-    expect(exercises.length, 27);
-    expect(exercises.map((e) => e.slug).toSet(), hasLength(27));
+    expect(exercises.length, 35);
+    expect(exercises.map((e) => e.slug).toSet(), hasLength(35));
     expect(exercises, equals(curatedExerciseLibrary));
   });
 }

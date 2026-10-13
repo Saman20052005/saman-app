@@ -69,20 +69,57 @@ class ExerciseRepositoryImpl implements ExerciseRepository {
         .toList(growable: false);
   }
 
-  @override
-  Future<void> saveWorkoutSession(WorkoutSession session) async {
+  Future<WorkoutSession> saveAndReturnWorkoutSession(
+      WorkoutSession session) async {
+    final payload = session.toJson();
+    payload['startedAt'] = session.startedAt.toUtc().toIso8601String();
+    if (session.finishedAt != null) {
+      payload['finishedAt'] = session.finishedAt!.toUtc().toIso8601String();
+    }
+
     final response = await dio.post(
       ApiConfig.saveSessionEndpoint,
-      data: session.toJson(),
+      data: payload,
     );
-    if (response.statusCode != 201) throw Exception('Lưu session thất bại');
+    final status = response.statusCode ?? 0;
+    if (status < 200 || status >= 300) {
+      throw Exception('Lưu session thất bại: status $status');
+    }
+
+    final dynamic resData = response.data;
+    if (resData is Map<String, dynamic>) {
+      final sessionJson = resData['session'];
+      if (sessionJson is Map<String, dynamic>) {
+        return WorkoutSession.fromJson(sessionJson);
+      }
+      final returnedId = resData['session_id'] as String?;
+      if (returnedId != null && returnedId.isNotEmpty) {
+        return session.copyWith(id: returnedId);
+      }
+    }
+    return session;
+  }
+
+  @override
+  Future<void> saveWorkoutSession(WorkoutSession session) async {
+    await saveAndReturnWorkoutSession(session);
   }
 
   @override
   Future<List<WorkoutSession>> getWorkoutHistory() async {
     final response = await dio.get(ApiConfig.historyEndpoint);
-    final List<dynamic> data = response.data['data'] ?? [];
-    return data.map((json) => WorkoutSession.fromJson(json)).toList();
+    final dynamic resData = response.data;
+    final List<dynamic> items;
+    if (resData is Map<String, dynamic>) {
+      items = (resData['sessions'] ?? []) as List<dynamic>;
+    } else if (resData is List) {
+      items = resData;
+    } else {
+      items = [];
+    }
+    return items
+        .map((json) => WorkoutSession.fromJson(json as Map<String, dynamic>))
+        .toList(growable: false);
   }
 
   @override
@@ -113,6 +150,13 @@ class ExerciseRepositoryImpl implements ExerciseRepository {
   Future<WorkoutSession> getSessionById(String sessionId) async {
     final response =
         await dio.get('${ApiConfig.saveSessionEndpoint}/$sessionId');
-    return WorkoutSession.fromJson(response.data['data']);
+    final dynamic resData = response.data;
+    final Map<String, dynamic> item;
+    if (resData is Map<String, dynamic>) {
+      item = (resData['session'] ?? resData) as Map<String, dynamic>;
+    } else {
+      throw StateError('Phản hồi session detail không hợp lệ');
+    }
+    return WorkoutSession.fromJson(item);
   }
 }

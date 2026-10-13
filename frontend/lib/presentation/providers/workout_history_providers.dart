@@ -1,13 +1,27 @@
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import '../../data/models/exercise.dart';
-import 'exercise_providers.dart';
+import '../../data/repositories/exercise_repository.dart';
+import '../../data/repositories/exercise_repository_impl.dart';
+import '../../services/api_client.dart';
 import 'active_workout_providers.dart';
 
 part 'workout_history_providers.g.dart';
 
+/// Represents the active user/account scope for workout data.
+/// Updated during auth lifecycle to prevent cross-account data leaks.
+final workoutAuthScopeProvider = StateProvider<int>((ref) => 0);
+
+/// API-backed session repository provider for session save, history, and detail
+final workoutSessionRepositoryProvider = Provider<ExerciseRepository>((ref) {
+  final dio = ref.watch(dioProvider);
+  return ExerciseRepositoryImpl(dio: dio);
+});
+
 @riverpod
 Future<List<WorkoutSession>> workoutHistory(WorkoutHistoryRef ref) async {
-  final repo = ref.watch(exerciseRepositoryProvider);
+  ref.watch(workoutAuthScopeProvider);
+  final repo = ref.watch(workoutSessionRepositoryProvider);
   return repo.getWorkoutHistory();
 }
 
@@ -41,8 +55,8 @@ class ActiveSessionSaver extends _$ActiveSessionSaver {
     final session = WorkoutSession(
       id: notifier.sessionId,
       planName: active.title,
-      startedAt: notifier.startedAt,
-      finishedAt: DateTime.now(),
+      startedAt: notifier.startedAt.toUtc(),
+      finishedAt: DateTime.now().toUtc(),
       exerciseLogs: logs,
       totalDurationMinutes: active.elapsedSeconds ~/ 60,
       totalVolumeKg: logs.fold<double>(
@@ -50,9 +64,20 @@ class ActiveSessionSaver extends _$ActiveSessionSaver {
       ).round(),
     );
     state = const AsyncValue.loading();
-    state = await AsyncValue.guard(() =>
-        ref.read(exerciseRepositoryProvider).saveWorkoutSession(session));
+    final repo = ref.read(workoutSessionRepositoryProvider);
+    WorkoutSession? savedSession;
+    state = await AsyncValue.guard(() async {
+      if (repo is ExerciseRepositoryImpl) {
+        savedSession = await repo.saveAndReturnWorkoutSession(session);
+      } else {
+        await repo.saveWorkoutSession(session);
+        savedSession = session;
+      }
+    });
     if (state.hasError) return false;
+    if (savedSession != null) {
+      notifier.sessionId = savedSession!.id;
+    }
     notifier.markSaved();
     ref.invalidate(workoutHistoryProvider);
     return true;

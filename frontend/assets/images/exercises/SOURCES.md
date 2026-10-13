@@ -533,3 +533,237 @@ Use case: photorealistic-natural. Asset type: Saman Workout exercise identificat
 Use case: photorealistic-natural. Create ONE 1536x1024 landscape photograph-like AI illustration of DEAD BUG with absolutely clear CONTRALATERAL arm and leg. Direct TOP-DOWN camera above a dark mat, looking straight down at adult male in gray tee charcoal shorts black shoes lying SUPINE on back. HEAD at LEFT of frame, hips central, FEET toward RIGHT. He has exactly two arms/two legs. Specific SCREEN POSITIONS: UPPER-SCREEN ARM straight reaching LEFT beyond head, hand near upper left. LOWER-SCREEN LEG straight reaching RIGHT beyond hips, foot near lower right. These diagonally opposite limbs are the extended pair. UPPER-SCREEN LEG is BENT at hip/knee 90 degrees with thigh lifted from hip and shin parallel to mat, foot held in upper-right area. LOWER-SCREEN ARM reaches upward toward ceiling above chest, seen foreshortened, hand around lower-middle chest. Both feet and both hands clearly distinct and visible. Back and head on mat, neutral spine. This is dead bug, one arm overhead and OPPOSITE leg extended, NOT same-side extensions. Minimal dark gym background, natural realistic skin/anatomy, no text, labels, arrows, logos, collage or extra people. Full body no crop. Identification illustration, not certified form guide.
 
 </details>
+
+
+## Library expansion round two: 2026-10-09
+
+Eight new exercises, 16 new JPEGs; the 54 prior JPEGs are preserved byte-for-byte. Created with the built-in OpenAI `image_gen` tool, not a stock-photo download. Source page/photographer/third-party stock license: N/A (AI output). Usage is subject to applicable OpenAI terms; no exclusivity or endorsement is claimed. These photograph-like AI identification illustrations are **not certified exercise-form instruction**.
+
+### Local references and review boundary
+
+All six approved reference JPEGs were inspected directly in this worktree before generation:
+
+- `dumbbell-shoulder-press-thumb.jpg`; SHA-256 `d94e218e5f8d7c804ffb4049311d42df2ba9b04575c32d53eaad956408374996`.
+- `dumbbell-shoulder-press-poster.jpg`; SHA-256 `6cffd4a5db20a3ab4150ca076e7d12669937f67bae00813d9ae0c9d04e343906`.
+- `push-up-thumb.jpg`; SHA-256 `0d946304254fb33f3908dd757625fa02b28c35a3abe08977de4392feb42a44f9`.
+- `push-up-poster.jpg`; SHA-256 `8c158599090240cb9ff74d6dcfcf93f5e5227a099a54268ae6444dd94339265e`.
+- `dumbbell-bicep-curl-thumb.jpg`; SHA-256 `2fe06ea3cc689894eea46c1ddee93d54e55b1ebda24858b1bd1c03d7bf6bae8d`.
+- `dumbbell-bicep-curl-poster.jpg`; SHA-256 `4522637538339c03424fa880466f15ce64f5308493cb61c338dc52a55cd127cb`.
+
+The tool accepts at most five reference paths. Each initial call passed the three original local posters plus a contact sheet containing all three unchanged thumbnail/poster pairs. The sheet is outside the repository at `C:/Users/GL/Desktop/SamanDev/artifacts/library-round2-20261009/reference-three-pairs.png`; it is a supporting reference, not a replacement asset. Corrections passed the candidate edit target plus those four references. The referenced originals are exclusively from `saman-app-checkpoint-06-07`, never the main workspace.
+
+All eight source images and final variants were inspected visually for character/outfit consistency, limbs, equipment and movement variant. Seated Calf Raise was corrected for forefoot-only support/free heel clearance; Reverse Crunch was corrected for grounded head/shoulders and a visible pelvic curl. Developer visual approval remains **pending**. Successful decoding only establishes loadability. The comparison contact sheet includes all eight new pairs beside the three approved pairs with actual 68 x 68 / 80 x 80 thumbnail renders and landscape posters.
+
+### Export method
+
+Each pair comes from one shared selected source: same character, outfit, equipment and pose. Cropping/export only: no recoloring, retouching or stretching. Coordinates are `[left, top, right, bottom]` in source pixels. Proportional bicubic contain resize with neutral RGB `(17, 19, 22)` padding. JPEG quality 90, progressive, optimized, metadata omitted. Thumbnails are 512 x 512; posters 1280 x 720. Posters preserve the complete 1536 x 1024 source in a 1080 x 720 contained area at offset `[100, 0]`.
+
+### cable-chest-fly (AI, round two)
+
+- Selected source: `C:\Users\GL\.codex\generated_images\01a12018-8714-7821-b4de-11dc3da77f2c\exec-08d5fe18-4a96-42cd-9142-ac98866d053d.png`; dimensions 1536 x 1024; SHA-256 `980a8da93514f7ac8009a5116a45cfc821399078b826e1ecdd0522c1cf18ae8c`.
+- Visual observation: Standing, two chest-height pulley exits, two taut cable paths and separate handles, slightly bent elbows; poster preserves both towers.
+- Review status: inspected locally; Developer approval pending.
+- `cable-chest-fly-thumb.jpg`: crop `[480, 20, 1120, 660]` -> contain `[512, 512]` at offset `[0, 0]` in `[512, 512]`; 36330 bytes; SHA-256 `cd2252c3bad1e22be8c5d71afb4c8cfbd7b5e6c5c5d48d329072b7315f1fdbdf`.
+- `cable-chest-fly-poster.jpg`: crop `[0, 0, 1536, 1024]` -> contain `[1080, 720]` at offset `[100, 0]` in `[1280, 720]`; 144347 bytes; SHA-256 `17b5383a4029238cefda5e8e1b45104a0ffe8388402e6616c7d2cf91802c09d4`.
+
+<details><summary>Exact initial generation prompt and local inputs</summary>
+
+Use case: photorealistic-natural. Asset type: Saman Library photograph-like AI exercise identification illustration, NOT certified exercise-form instruction. Create ONE standalone landscape 1536x1024 image. All FOUR local input images are STYLE/CHARACTER REFERENCES ONLY: image 1 approved Shoulder Press poster, image 2 approved Push-Up poster, image 3 approved Bicep Curl poster, image 4 contains all THREE approved thumbnail/poster PAIRS unchanged in a reference contact sheet. Generate a SINGLE scene, NOT a collage; ignore contact-sheet labels. Match their SAME adult male character: short swept brown hair, short brown stubble, realistic athletic proportions, fitted mid-gray crewneck T-shirt, charcoal shorts, black training shoes with white sole details. Match dark charcoal gym walls, subdued black racks and black hex dumbbells, dark gray rubber floor, soft neutral lighting, muted gray/black palette and realistic skin/textures. Keep similar subject scale and clean balanced composition. New movement must be accurate even when reference poses differ. No captions, text, logos, watermark, arrows, panels, other people, motion trails, cropped hands or feet, extra/fused limbs or fingers. Full athlete and decisive equipment comfortably inside frame, reasonably centered for readable square thumbnail and landscape poster derived from SAME source. Primary requested variant: STANDING CABLE CHEST FLY using TWO pulleys AT CHEST HEIGHT. Adult man standing balanced in slight split stance between two cable towers. BOTH pulley exit wheels visibly level with chest, one on each side. Exactly two cables run taut from those exit wheels to two separate D-handles gripped in his hands. Hands meet in front of mid-chest at the closing phase; arms forward roughly chest-height with slight fixed elbow bends, neutral shoulders. Three-quarter frontal view shows both arms, hands, chest, two distinct cable paths and the matching-height pulley wheels. Full standing body and both towers/anchor paths visible. NOT high-to-low fly, NOT low-to-high, NOT dumbbell fly, NOT cable press.
+
+Actual `referenced_image_paths`:
+
+- `C:\Users\GL\Desktop\SamanDev\workspace\saman-app-checkpoint-06-07\frontend\assets\images\exercises\dumbbell-shoulder-press-poster.jpg`
+- `C:\Users\GL\Desktop\SamanDev\workspace\saman-app-checkpoint-06-07\frontend\assets\images\exercises\push-up-poster.jpg`
+- `C:\Users\GL\Desktop\SamanDev\workspace\saman-app-checkpoint-06-07\frontend\assets\images\exercises\dumbbell-bicep-curl-poster.jpg`
+- `C:\Users\GL\Desktop\SamanDev\artifacts\library-round2-20261009\reference-three-pairs.png`
+
+</details>
+
+### pull-up (AI, round two)
+
+- Selected source: `C:\Users\GL\.codex\generated_images\01a12018-8714-7821-b4de-11dc3da77f2c\exec-ef93a710-6ca4-497e-af99-1dbfe5e7d77f.png`; dimensions 1536 x 1024; SHA-256 `66c103f77b88179ef6b86246b4ee18ca107e4976bbc7ea2bc4de80c444e43d4c`.
+- Visual observation: Bodyweight, overhand/pronated shoulder-width grip, chin above bar, feet suspended; no assistance or added load.
+- Review status: inspected locally; Developer approval pending.
+- `pull-up-thumb.jpg`: crop `[430, 0, 1110, 680]` -> contain `[512, 512]` at offset `[0, 0]` in `[512, 512]`; 45586 bytes; SHA-256 `5233b398dd844f84151c8abc28caa1b5427152bf951fdf3d3138cf514503e28f`.
+- `pull-up-poster.jpg`: crop `[0, 0, 1536, 1024]` -> contain `[1080, 720]` at offset `[100, 0]` in `[1280, 720]`; 124785 bytes; SHA-256 `aa061d076b07408dc373957177388b9a768f2e2d99e3ac3706e1e08619d4f7ec`.
+
+<details><summary>Exact initial generation prompt and local inputs</summary>
+
+Use case: photorealistic-natural. Asset type: Saman Library photograph-like AI exercise identification illustration, NOT certified exercise-form instruction. Create ONE standalone landscape 1536x1024 image. All FOUR local input images are STYLE/CHARACTER REFERENCES ONLY: image 1 approved Shoulder Press poster, image 2 approved Push-Up poster, image 3 approved Bicep Curl poster, image 4 contains all THREE approved thumbnail/poster PAIRS unchanged in a reference contact sheet. Generate a SINGLE scene, NOT a collage; ignore contact-sheet labels. Match their SAME adult male character: short swept brown hair, short brown stubble, realistic athletic proportions, fitted mid-gray crewneck T-shirt, charcoal shorts, black training shoes with white sole details. Match dark charcoal gym walls, subdued black racks and black hex dumbbells, dark gray rubber floor, soft neutral lighting, muted gray/black palette and realistic skin/textures. Keep similar subject scale and clean balanced composition. New movement must be accurate even when reference poses differ. No captions, text, logos, watermark, arrows, panels, other people, motion trails, cropped hands or feet, extra/fused limbs or fingers. Full athlete and decisive equipment comfortably inside frame, reasonably centered for readable square thumbnail and landscape poster derived from SAME source. Primary requested variant: BODYWEIGHT OVERHAND PULL-UP on a single horizontal pull-up bar. Adult man suspended from the bar, palms facing AWAY from him in a PRONATED grip, hands SHOULDER WIDTH, thumbs wrapped. Show top phase, chin just above horizontal bar, elbows down and flexed beside torso, neck neutral. Both hands anatomically connected to the same bar; feet completely off floor, legs gently bent without swing. Front three-quarter angle shows shoulders, both hands and the full bar clearly, including steel rack support. Full body and bar visible. No attached plates, belt or assisted machine. NOT underhand chin-up, NOT wide-grip pulldown, NOT dead hang, NOT kipping.
+
+Actual `referenced_image_paths`:
+
+- `C:\Users\GL\Desktop\SamanDev\workspace\saman-app-checkpoint-06-07\frontend\assets\images\exercises\dumbbell-shoulder-press-poster.jpg`
+- `C:\Users\GL\Desktop\SamanDev\workspace\saman-app-checkpoint-06-07\frontend\assets\images\exercises\push-up-poster.jpg`
+- `C:\Users\GL\Desktop\SamanDev\workspace\saman-app-checkpoint-06-07\frontend\assets\images\exercises\dumbbell-bicep-curl-poster.jpg`
+- `C:\Users\GL\Desktop\SamanDev\artifacts\library-round2-20261009\reference-three-pairs.png`
+
+</details>
+
+### reverse-dumbbell-fly (AI, round two)
+
+- Selected source: `C:\Users\GL\.codex\generated_images\01a12018-8714-7821-b4de-11dc3da77f2c\exec-1d0d551a-2753-4cbb-966c-6e22dd0cffc4.png`; dimensions 1536 x 1024; SHA-256 `e25089690b40f8bbcd04c19d32ba18e092432740198785d2b28797cefaefaf72`.
+- Visual observation: Standing hip hinge with neutral back, two dumbbells and laterally opened arms; no bench.
+- Review status: inspected locally; Developer approval pending.
+- `reverse-dumbbell-fly-thumb.jpg`: crop `[320, 75, 1230, 975]` -> contain `[512, 506]` at offset `[0, 3]` in `[512, 512]`; 49323 bytes; SHA-256 `cbb8a0e4ebaa575a43dabf37ea609f2ac63e23f683ecf35cd4dbca0e768e1adf`.
+- `reverse-dumbbell-fly-poster.jpg`: crop `[0, 0, 1536, 1024]` -> contain `[1080, 720]` at offset `[100, 0]` in `[1280, 720]`; 134106 bytes; SHA-256 `e6ff29eba1c1c7147e944f5bfc70cff629022a35b8e7a38ae74fa96264516603`.
+
+<details><summary>Exact initial generation prompt and local inputs</summary>
+
+Use case: photorealistic-natural. Asset type: Saman Library photograph-like AI exercise identification illustration, NOT certified exercise-form instruction. Create ONE standalone landscape 1536x1024 image. All FOUR local input images are STYLE/CHARACTER REFERENCES ONLY: image 1 approved Shoulder Press poster, image 2 approved Push-Up poster, image 3 approved Bicep Curl poster, image 4 contains all THREE approved thumbnail/poster PAIRS unchanged in a reference contact sheet. Generate a SINGLE scene, NOT a collage; ignore contact-sheet labels. Match their SAME adult male character: short swept brown hair, short brown stubble, realistic athletic proportions, fitted mid-gray crewneck T-shirt, charcoal shorts, black training shoes with white sole details. Match dark charcoal gym walls, subdued black racks and black hex dumbbells, dark gray rubber floor, soft neutral lighting, muted gray/black palette and realistic skin/textures. Keep similar subject scale and clean balanced composition. New movement must be accurate even when reference poses differ. No captions, text, logos, watermark, arrows, panels, other people, motion trails, cropped hands or feet, extra/fused limbs or fingers. Full athlete and decisive equipment comfortably inside frame, reasonably centered for readable square thumbnail and landscape poster derived from SAME source. Primary requested variant: STANDING HIP-HINGED REVERSE DUMBBELL FLY. Adult man with feet planted hip-width, knees softly bent, hips pushed back and stable neutral flat back with torso nearly parallel to floor. Exactly TWO black hex dumbbells, one in each hand. Both arms open to the sides at the raised phase, slightly bent elbows, weights raised laterally toward shoulder plane. Camera elevated three-quarter frontal SIDE view makes the hip hinge, both dumbbells, both hands and both planted feet unmistakably visible with shoulders relaxed. Full body visible. NOT upright standing lateral raise, NOT bent-over row, NOT chest-supported fly, no bench.
+
+Actual `referenced_image_paths`:
+
+- `C:\Users\GL\Desktop\SamanDev\workspace\saman-app-checkpoint-06-07\frontend\assets\images\exercises\dumbbell-shoulder-press-poster.jpg`
+- `C:\Users\GL\Desktop\SamanDev\workspace\saman-app-checkpoint-06-07\frontend\assets\images\exercises\push-up-poster.jpg`
+- `C:\Users\GL\Desktop\SamanDev\workspace\saman-app-checkpoint-06-07\frontend\assets\images\exercises\dumbbell-bicep-curl-poster.jpg`
+- `C:\Users\GL\Desktop\SamanDev\artifacts\library-round2-20261009\reference-three-pairs.png`
+
+</details>
+
+### bulgarian-split-squat (AI, round two)
+
+- Selected source: `C:\Users\GL\.codex\generated_images\01a12018-8714-7821-b4de-11dc3da77f2c\exec-2766319b-5f4b-4872-aa76-a610cf9691fd.png`; dimensions 1536 x 1024; SHA-256 `f1f1bb52e7ed4a8f7263512322d1fc192c0f6434b9c450c31ac111b770ad7b21`.
+- Visual observation: Rear foot supported on flat bench, front foot grounded, two dumbbells; not a floor-supported lunge.
+- Review status: inspected locally; Developer approval pending.
+- `bulgarian-split-squat-thumb.jpg`: crop `[370, 20, 1390, 920]` -> contain `[512, 452]` at offset `[0, 30]` in `[512, 512]`; 41526 bytes; SHA-256 `851088e058f53563162af44a2fc79b9152b3ae77f6b23b024de28e94683af31e`.
+- `bulgarian-split-squat-poster.jpg`: crop `[0, 0, 1536, 1024]` -> contain `[1080, 720]` at offset `[100, 0]` in `[1280, 720]`; 133174 bytes; SHA-256 `467ab02f01d7f5f99a5d822cdc0232ac6d6856187ccc37c0d18436184ee44bb9`.
+
+<details><summary>Exact initial generation prompt and local inputs</summary>
+
+Use case: photorealistic-natural. Asset type: Saman Library photograph-like AI exercise identification illustration, NOT certified exercise-form instruction. Create ONE standalone landscape 1536x1024 image. All FOUR local input images are STYLE/CHARACTER REFERENCES ONLY: image 1 approved Shoulder Press poster, image 2 approved Push-Up poster, image 3 approved Bicep Curl poster, image 4 contains all THREE approved thumbnail/poster PAIRS unchanged in a reference contact sheet. Generate a SINGLE scene, NOT a collage; ignore contact-sheet labels. Match their SAME adult male character: short swept brown hair, short brown stubble, realistic athletic proportions, fitted mid-gray crewneck T-shirt, charcoal shorts, black training shoes with white sole details. Match dark charcoal gym walls, subdued black racks and black hex dumbbells, dark gray rubber floor, soft neutral lighting, muted gray/black palette and realistic skin/textures. Keep similar subject scale and clean balanced composition. New movement must be accurate even when reference poses differ. No captions, text, logos, watermark, arrows, panels, other people, motion trails, cropped hands or feet, extra/fused limbs or fingers. Full athlete and decisive equipment comfortably inside frame, reasonably centered for readable square thumbnail and landscape poster derived from SAME source. Primary requested variant: BULGARIAN SPLIT SQUAT with rear foot elevated on a FLAT BENCH and TWO black hex dumbbells held down at sides. Adult man facing LEFT in full-body side three-quarter view. LEFT/front foot firmly planted well ahead of bench, front knee bent approximately 90 degrees in controlled lowered phase and aligned with toes. RIGHT/rear leg behind torso with knee bent and TOP of rear foot resting on bench cushion. Exactly one grounded front foot and one elevated rear foot supported visibly by bench. Neutral torso slightly inclined, each hand grips a distinct dumbbell by side, both dumbbells visible and separate. Bench only behind rear leg; front foot on floor. NOT reverse lunge (rear foot must be ON bench), NOT step-up, NOT front-foot-elevated squat.
+
+Actual `referenced_image_paths`:
+
+- `C:\Users\GL\Desktop\SamanDev\workspace\saman-app-checkpoint-06-07\frontend\assets\images\exercises\dumbbell-shoulder-press-poster.jpg`
+- `C:\Users\GL\Desktop\SamanDev\workspace\saman-app-checkpoint-06-07\frontend\assets\images\exercises\push-up-poster.jpg`
+- `C:\Users\GL\Desktop\SamanDev\workspace\saman-app-checkpoint-06-07\frontend\assets\images\exercises\dumbbell-bicep-curl-poster.jpg`
+- `C:\Users\GL\Desktop\SamanDev\artifacts\library-round2-20261009\reference-three-pairs.png`
+
+</details>
+
+### leg-extension (AI, round two)
+
+- Selected source: `C:\Users\GL\.codex\generated_images\01a12018-8714-7821-b4de-11dc3da77f2c\exec-27977b27-2650-4fbd-9011-e45ee8ac8f64.png`; dimensions 1536 x 1024; SHA-256 `c33cea5266c4cbade26bf8d65754307f1f39cd2d2000d5106804fec6d2bc58e9`.
+- Visual observation: Seated dedicated machine, two extended lower legs with roller across anterior lower shins; no footplate press.
+- Review status: inspected locally; Developer approval pending.
+- `leg-extension-thumb.jpg`: crop `[320, 65, 1260, 975]` -> contain `[512, 496]` at offset `[0, 8]` in `[512, 512]`; 56466 bytes; SHA-256 `7e56f02c801e309e4ac9f704f8bbd9474f0aa24e99a7de6d83aa4f5801485b67`.
+- `leg-extension-poster.jpg`: crop `[0, 0, 1536, 1024]` -> contain `[1080, 720]` at offset `[100, 0]` in `[1280, 720]`; 147707 bytes; SHA-256 `3f88729137f63b3e7bca03004a0f6888a6ff1595229ac6a1961d207fe69372fd`.
+
+<details><summary>Exact initial generation prompt and local inputs</summary>
+
+Use case: photorealistic-natural. Asset type: Saman Library photograph-like AI exercise identification illustration, NOT certified exercise-form instruction. Create ONE standalone landscape 1536x1024 image. All FOUR local input images are STYLE/CHARACTER REFERENCES ONLY: image 1 approved Shoulder Press poster, image 2 approved Push-Up poster, image 3 approved Bicep Curl poster, image 4 contains all THREE approved thumbnail/poster PAIRS unchanged in a reference contact sheet. Generate a SINGLE scene, NOT a collage; ignore contact-sheet labels. Match their SAME adult male character: short swept brown hair, short brown stubble, realistic athletic proportions, fitted mid-gray crewneck T-shirt, charcoal shorts, black training shoes with white sole details. Match dark charcoal gym walls, subdued black racks and black hex dumbbells, dark gray rubber floor, soft neutral lighting, muted gray/black palette and realistic skin/textures. Keep similar subject scale and clean balanced composition. New movement must be accurate even when reference poses differ. No captions, text, logos, watermark, arrows, panels, other people, motion trails, cropped hands or feet, extra/fused limbs or fingers. Full athlete and decisive equipment comfortably inside frame, reasonably centered for readable square thumbnail and landscape poster derived from SAME source. Primary requested variant: TWO-LEG SEATED LEG EXTENSION on a dedicated selectorized leg extension machine. Adult man seated with hips against padded seat/backrest, hands grasping side seat handles. Both thighs supported horizontally on seat, BOTH lower legs extended forward at knee approximately horizontal at the lifted phase. ONE roller pad presses across the FRONT of BOTH lower shins just above ankles; two black shoes beyond roller clearly visible. Side three-quarter view of full athlete AND black steel machine shows knee-aligned pivot beside seat, roller mounted on mechanically continuous pivot lever descending from knee pivot, separate selectorized weight stack and cable. Feet do NOT press against a footplate. Machine believable and visibly complete. NOT leg press, NOT leg curl, NOT free weights.
+
+Actual `referenced_image_paths`:
+
+- `C:\Users\GL\Desktop\SamanDev\workspace\saman-app-checkpoint-06-07\frontend\assets\images\exercises\dumbbell-shoulder-press-poster.jpg`
+- `C:\Users\GL\Desktop\SamanDev\workspace\saman-app-checkpoint-06-07\frontend\assets\images\exercises\push-up-poster.jpg`
+- `C:\Users\GL\Desktop\SamanDev\workspace\saman-app-checkpoint-06-07\frontend\assets\images\exercises\dumbbell-bicep-curl-poster.jpg`
+- `C:\Users\GL\Desktop\SamanDev\artifacts\library-round2-20261009\reference-three-pairs.png`
+
+</details>
+
+### seated-calf-raise (AI, round two)
+
+- Selected source: `C:\Users\GL\.codex\generated_images\01a12018-8714-7821-b4de-11dc3da77f2c\exec-ed67412a-8164-4817-8b06-3638b1cb4750.png`; dimensions 1536 x 1024; SHA-256 `a2e74638cc38f6675e849319154ec52906d1c5a54d24eb2a05d731124e35d139`.
+- Visual observation: Dedicated seated machine with thigh pads and plate-loaded lever; forefeet on short elevated block, heels projecting freely beyond its rear edge.
+- Review status: inspected locally; Developer approval pending.
+- `seated-calf-raise-thumb.jpg`: crop `[320, 10, 1360, 990]` -> contain `[512, 482]` at offset `[0, 15]` in `[512, 512]`; 49917 bytes; SHA-256 `5bfdb21f687051c41399ab94fcb73f60647e588503f2641bd18e379a1bd17781`.
+- `seated-calf-raise-poster.jpg`: crop `[0, 0, 1536, 1024]` -> contain `[1080, 720]` at offset `[100, 0]` in `[1280, 720]`; 137894 bytes; SHA-256 `566182fbc06b7d8fd736c90ddd06f2a68f16101199bec86592777d4c35592076`.
+
+<details><summary>Exact initial generation prompt and local inputs</summary>
+
+Use case: photorealistic-natural. Asset type: Saman Library photograph-like AI exercise identification illustration, NOT certified exercise-form instruction. Create ONE standalone landscape 1536x1024 image. All FOUR local input images are STYLE/CHARACTER REFERENCES ONLY: image 1 approved Shoulder Press poster, image 2 approved Push-Up poster, image 3 approved Bicep Curl poster, image 4 contains all THREE approved thumbnail/poster PAIRS unchanged in a reference contact sheet. Generate a SINGLE scene, NOT a collage; ignore contact-sheet labels. Match their SAME adult male character: short swept brown hair, short brown stubble, realistic athletic proportions, fitted mid-gray crewneck T-shirt, charcoal shorts, black training shoes with white sole details. Match dark charcoal gym walls, subdued black racks and black hex dumbbells, dark gray rubber floor, soft neutral lighting, muted gray/black palette and realistic skin/textures. Keep similar subject scale and clean balanced composition. New movement must be accurate even when reference poses differ. No captions, text, logos, watermark, arrows, panels, other people, motion trails, cropped hands or feet, extra/fused limbs or fingers. Full athlete and decisive equipment comfortably inside frame, reasonably centered for readable square thumbnail and landscape poster derived from SAME source. Primary requested variant: SEATED CALF RAISE on a DEDICATED PLATE-LOADED seated calf raise machine. Adult man sitting upright on machine seat, knees bent 90 degrees, BOTH padded supports resting across distal THIGHS just above knees, NOT shoulders. Both FOREFOOT balls on edge of a low raised metal foot platform, HEELS lifted and hanging freely over platform edge. Front three-quarter SIDE low eye-level view clearly shows calf contraction, both shoe heels raised, forefeet contacting platform, thigh pads and black machine frame/continuous lever carrying black round weight plates. Hands on front support handles. Both legs and machine clearly visible. NO dumbbells. NOT standing calf raise, NOT leg extension, no shoulder pads.
+
+Actual `referenced_image_paths`:
+
+- `C:\Users\GL\Desktop\SamanDev\workspace\saman-app-checkpoint-06-07\frontend\assets\images\exercises\dumbbell-shoulder-press-poster.jpg`
+- `C:\Users\GL\Desktop\SamanDev\workspace\saman-app-checkpoint-06-07\frontend\assets\images\exercises\push-up-poster.jpg`
+- `C:\Users\GL\Desktop\SamanDev\workspace\saman-app-checkpoint-06-07\frontend\assets\images\exercises\dumbbell-bicep-curl-poster.jpg`
+- `C:\Users\GL\Desktop\SamanDev\artifacts\library-round2-20261009\reference-three-pairs.png`
+
+</details>
+
+<details><summary>Targeted correction 1: exact prompt and local inputs</summary>
+
+Use case: precise-object-edit. FIRST image is the edit target; images 2-4 are original approved Saman style reference posters; image 5 shows all three approved thumbnail/poster pairs. Preserve the target's SAME adult male, face, gray shirt, charcoal shorts, black white-soled shoes, charcoal gym, soft light, framing, machine seat, thigh pads, handles and load plates. Correct ONLY the forefoot support and ankle position to make the SEATED CALF RAISE physically explicit. The current platform extends under both entire shoes. Replace that long footplate with a SHORT NARROW ELEVATED TOE BLOCK supporting ONLY the FRONT THIRD (balls and toes) of BOTH shoes. Both midfeet AND HEELS must project BACKWARD OVER THE REAR EDGE into EMPTY AIR, clearly visible from three-quarter side camera. Show both heels raised, toes/forefeet on toe block, a distinct empty gap below the two elevated heels so they can descend below toe-block level. Machine thigh pads press on thighs above knees, knees bent about 90 degrees, mechanical lever carrying weight plates stays connected. Feet contact at toes/balls ONLY, heels not on any plate. Exactly two feet/legs, natural anatomy, no extra shoes. Entire body and machine visible. Do not add dumbbells, shoulder pads, labels or text. Photograph-like AI identification illustration, not certified form instruction.
+
+Actual `referenced_image_paths`:
+
+- `C:\Users\GL\.codex\generated_images\01a12018-8714-7821-b4de-11dc3da77f2c\exec-f0f50f8b-83c9-42db-a67d-5ebcafff7e7b.png`
+- `C:\Users\GL\Desktop\SamanDev\workspace\saman-app-checkpoint-06-07\frontend\assets\images\exercises\dumbbell-shoulder-press-poster.jpg`
+- `C:\Users\GL\Desktop\SamanDev\workspace\saman-app-checkpoint-06-07\frontend\assets\images\exercises\push-up-poster.jpg`
+- `C:\Users\GL\Desktop\SamanDev\workspace\saman-app-checkpoint-06-07\frontend\assets\images\exercises\dumbbell-bicep-curl-poster.jpg`
+- `C:\Users\GL\Desktop\SamanDev\artifacts\library-round2-20261009\reference-three-pairs.png`
+
+</details>
+
+### side-plank (AI, round two)
+
+- Selected source: `C:\Users\GL\.codex\generated_images\01a12018-8714-7821-b4de-11dc3da77f2c\exec-3eda64e2-28bf-4f53-acd3-24dec17e2abd.png`; dimensions 1536 x 1024; SHA-256 `69b001c73efb2deb9c78efa787405019bd6b10666e8764a032800d1571b67b0f`.
+- Visual observation: Forearm support, elbow beneath shoulder, raised hips, straight legs and visibly stacked feet on mat.
+- Review status: inspected locally; Developer approval pending.
+- `side-plank-thumb.jpg`: crop `[240, 290, 1430, 835]` -> contain `[512, 234]` at offset `[0, 139]` in `[512, 512]`; 29169 bytes; SHA-256 `ae69f3e5d14f2f9a49830860a123dc4c38fee4cf571f7210373e9f9c57583306`.
+- `side-plank-poster.jpg`: crop `[0, 0, 1536, 1024]` -> contain `[1080, 720]` at offset `[100, 0]` in `[1280, 720]`; 132491 bytes; SHA-256 `b50861945dd6d0217145a7d5f080065d4bbbdc3c3e59b932148bd188adac7354`.
+
+<details><summary>Exact initial generation prompt and local inputs</summary>
+
+Use case: photorealistic-natural. Asset type: Saman Library photograph-like AI exercise identification illustration, NOT certified exercise-form instruction. Create ONE standalone landscape 1536x1024 image. All FOUR local input images are STYLE/CHARACTER REFERENCES ONLY: image 1 approved Shoulder Press poster, image 2 approved Push-Up poster, image 3 approved Bicep Curl poster, image 4 contains all THREE approved thumbnail/poster PAIRS unchanged in a reference contact sheet. Generate a SINGLE scene, NOT a collage; ignore contact-sheet labels. Match their SAME adult male character: short swept brown hair, short brown stubble, realistic athletic proportions, fitted mid-gray crewneck T-shirt, charcoal shorts, black training shoes with white sole details. Match dark charcoal gym walls, subdued black racks and black hex dumbbells, dark gray rubber floor, soft neutral lighting, muted gray/black palette and realistic skin/textures. Keep similar subject scale and clean balanced composition. New movement must be accurate even when reference poses differ. No captions, text, logos, watermark, arrows, panels, other people, motion trails, cropped hands or feet, extra/fused limbs or fingers. Full athlete and decisive equipment comfortably inside frame, reasonably centered for readable square thumbnail and landscape poster derived from SAME source. Primary requested variant: FOREARM SIDE PLANK on a plain dark gray exercise mat, straight legs with FEET STACKED one on top of other. Adult man lies laterally facing camera, supports body on LEFT forearm with LEFT elbow directly beneath LEFT shoulder. Left forearm on mat, BOTH legs straight and aligned, RIGHT foot visibly stacked on LEFT foot, hips visibly lifted in straight shoulder-hip-ankle line. RIGHT/top hand rests on right hip. Exactly two arms and two legs, supporting forearm and stacked feet visible. Full-body side three-quarter camera at low height, entire mat and head-to-feet pose visible with useful margins. NOT front plank, NOT hand-supported side plank, NOT bent-knee regression, NOT staggered feet, NOT hip sag.
+
+Actual `referenced_image_paths`:
+
+- `C:\Users\GL\Desktop\SamanDev\workspace\saman-app-checkpoint-06-07\frontend\assets\images\exercises\dumbbell-shoulder-press-poster.jpg`
+- `C:\Users\GL\Desktop\SamanDev\workspace\saman-app-checkpoint-06-07\frontend\assets\images\exercises\push-up-poster.jpg`
+- `C:\Users\GL\Desktop\SamanDev\workspace\saman-app-checkpoint-06-07\frontend\assets\images\exercises\dumbbell-bicep-curl-poster.jpg`
+- `C:\Users\GL\Desktop\SamanDev\artifacts\library-round2-20261009\reference-three-pairs.png`
+
+</details>
+
+### reverse-crunch (AI, round two)
+
+- Selected source: `C:\Users\GL\.codex\generated_images\01a12018-8714-7821-b4de-11dc3da77f2c\exec-81b4688d-93db-400f-8011-7dd795356122.png`; dimensions 1536 x 1024; SHA-256 `93992f82a5c380096f860e0cad40c82a20bbcc660ef0c023d8e13a2b0ab6d309`.
+- Visual observation: Supine on mat, head/upper back down, knees bent, pelvis curled visibly off mat; no bench.
+- Review status: inspected locally; Developer approval pending.
+- `reverse-crunch-thumb.jpg`: crop `[230, 210, 1240, 850]` -> contain `[512, 324]` at offset `[0, 94]` in `[512, 512]`; 35123 bytes; SHA-256 `7c43cef050ad9d5fba71ca549eb9751374efc2bc46fd66d0a20fca38cf5890b9`.
+- `reverse-crunch-poster.jpg`: crop `[0, 0, 1536, 1024]` -> contain `[1080, 720]` at offset `[100, 0]` in `[1280, 720]`; 126805 bytes; SHA-256 `5972a631c01647ea4828e3d3918eda926b3d88bc43714da3c31c340e74f2f111`.
+
+<details><summary>Exact initial generation prompt and local inputs</summary>
+
+Use case: photorealistic-natural. Asset type: Saman Library photograph-like AI exercise identification illustration, NOT certified exercise-form instruction. Create ONE standalone landscape 1536x1024 image. All FOUR local input images are STYLE/CHARACTER REFERENCES ONLY: image 1 approved Shoulder Press poster, image 2 approved Push-Up poster, image 3 approved Bicep Curl poster, image 4 contains all THREE approved thumbnail/poster PAIRS unchanged in a reference contact sheet. Generate a SINGLE scene, NOT a collage; ignore contact-sheet labels. Match their SAME adult male character: short swept brown hair, short brown stubble, realistic athletic proportions, fitted mid-gray crewneck T-shirt, charcoal shorts, black training shoes with white sole details. Match dark charcoal gym walls, subdued black racks and black hex dumbbells, dark gray rubber floor, soft neutral lighting, muted gray/black palette and realistic skin/textures. Keep similar subject scale and clean balanced composition. New movement must be accurate even when reference poses differ. No captions, text, logos, watermark, arrows, panels, other people, motion trails, cropped hands or feet, extra/fused limbs or fingers. Full athlete and decisive equipment comfortably inside frame, reasonably centered for readable square thumbnail and landscape poster derived from SAME source. Primary requested variant: REVERSE CRUNCH lying SUPINE on a plain dark gray MAT ON THE FLOOR; no bench. Adult man head and shoulders resting on mat, both arms beside torso with palms planted on mat, both hips flexed and knees BENT about 90 degrees, feet close together and raised. Show small controlled PELVIC CURL: tailbone and pelvis slightly lifted OFF mat, knees drawing toward torso, upper back/head remain down; no rolling onto neck. Full-body side three-quarter camera from side at low-to-medium height clearly shows mat, grounded head/shoulders, both hands, bent knees, two feet and the small pelvic lift. NOT straight-leg raise, NOT sit-up, NOT hanging knee raise, no apparatus, no bench.
+
+Actual `referenced_image_paths`:
+
+- `C:\Users\GL\Desktop\SamanDev\workspace\saman-app-checkpoint-06-07\frontend\assets\images\exercises\dumbbell-shoulder-press-poster.jpg`
+- `C:\Users\GL\Desktop\SamanDev\workspace\saman-app-checkpoint-06-07\frontend\assets\images\exercises\push-up-poster.jpg`
+- `C:\Users\GL\Desktop\SamanDev\workspace\saman-app-checkpoint-06-07\frontend\assets\images\exercises\dumbbell-bicep-curl-poster.jpg`
+- `C:\Users\GL\Desktop\SamanDev\artifacts\library-round2-20261009\reference-three-pairs.png`
+
+</details>
+
+<details><summary>Targeted correction 1: exact prompt and local inputs</summary>
+
+Use case: precise-object-edit. FIRST image is the edit target; images 2-4 approved Saman character/style reference posters; image 5 all three reference thumbnail/poster pairs. Preserve SAME adult male identity, gray crewneck tee, charcoal shorts, shoes, dark gym, neutral soft lighting, mat, landscape composition, palms alongside torso, knees bent and legs raised. Correct ONLY his HEAD/SHOULDERS and small pelvic curl for a MAT REVERSE CRUNCH: BACK OF HEAD must physically REST ON MAT; neck neutral with face looking upward toward ceiling, NOT chin tucked with head hovering. BOTH shoulder blades and upper back remain in CONTACT with mat. Arms straight beside torso, both palms pressing on mat. Knees bent about 90 degrees draw slightly toward torso; PELVIS/TAILBONE lifted a FEW CENTIMETERS OFF MAT in a controlled posterior pelvic curl, with a small visible gap beneath lower pelvis, never rolling onto neck. Entire head-to-shoes pose and mat visible. This is NOT sit-up, NOT upper-body crunch, NOT straight-leg raise. No bench or equipment. Natural anatomy exactly two hands and feet. No text/logo/arrows. Match approved illustration photo realism; identification illustration, not certified form guide.
+
+Actual `referenced_image_paths`:
+
+- `C:\Users\GL\.codex\generated_images\01a12018-8714-7821-b4de-11dc3da77f2c\exec-cd33b5b8-7590-43a0-8baa-5a23afc69a12.png`
+- `C:\Users\GL\Desktop\SamanDev\workspace\saman-app-checkpoint-06-07\frontend\assets\images\exercises\dumbbell-shoulder-press-poster.jpg`
+- `C:\Users\GL\Desktop\SamanDev\workspace\saman-app-checkpoint-06-07\frontend\assets\images\exercises\push-up-poster.jpg`
+- `C:\Users\GL\Desktop\SamanDev\workspace\saman-app-checkpoint-06-07\frontend\assets\images\exercises\dumbbell-bicep-curl-poster.jpg`
+- `C:\Users\GL\Desktop\SamanDev\artifacts\library-round2-20261009\reference-three-pairs.png`
+
+</details>
+
+<details><summary>Targeted correction 2: exact prompt and local inputs</summary>
+
+Use case: precise-object-edit. FIRST image is the selected reverse-crunch edit target. Other four local images are approved Saman style references. Preserve all successful corrections: back of head, neck and shoulder blades REST ON MAT, face looks upward, SAME character gray shirt charcoal shorts shoes, palms flat beside torso, dark gym/light, landscape composition, bent knees and full pose. Change ONLY LOWER PELVIS position: the current buttocks still seem to rest on mat like a static tabletop leg hold. Depict the actual REVERSE CRUNCH contraction by visibly curling PELVIS/TAILBONE UP and TOWARD RIBS, raising the entire BUTTOCKS about 8 cm from mat with CLEAR EMPTY SPACE underneath, while lumbar back curves gradually down to grounded upper back. Bring both BENT knees a little toward chest, not straightening legs. Hands remain planted below pelvis. Upper back and head stay down, no rolling onto shoulders/neck. Both feet raised, knees about 90 degrees. This is a controlled SMALL pelvic curl, not a high shoulder stand. Natural anatomy, same two hands and legs, no new equipment, no bench, no labels/text/arrows, no changes to reference images. Realistic exercise-identification AI illustration, not certified form instruction.
+
+Actual `referenced_image_paths`:
+
+- `C:\Users\GL\.codex\generated_images\01a12018-8714-7821-b4de-11dc3da77f2c\exec-52c68370-baa0-4408-b43c-65ad52e1eac2.png`
+- `C:\Users\GL\Desktop\SamanDev\workspace\saman-app-checkpoint-06-07\frontend\assets\images\exercises\dumbbell-shoulder-press-poster.jpg`
+- `C:\Users\GL\Desktop\SamanDev\workspace\saman-app-checkpoint-06-07\frontend\assets\images\exercises\push-up-poster.jpg`
+- `C:\Users\GL\Desktop\SamanDev\workspace\saman-app-checkpoint-06-07\frontend\assets\images\exercises\dumbbell-bicep-curl-poster.jpg`
+- `C:\Users\GL\Desktop\SamanDev\artifacts\library-round2-20261009\reference-three-pairs.png`
+
+</details>

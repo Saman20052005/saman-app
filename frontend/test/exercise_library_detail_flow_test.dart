@@ -10,14 +10,14 @@ import 'package:health_ai_app/presentation/providers/exercise_providers.dart';
 import 'package:health_ai_app/presentation/providers/workout_history_providers.dart';
 
 import 'workout_exercise_catalog_test.dart'
-    show expectedCategoryIds, expectedNewExercises;
+    show expectedCategoryIds, allNewExercises;
 import 'workout_exercise_images_test.dart' show loadImages, loadTestFonts;
 
 void main() {
   setUpAll(loadTestFonts);
-  testWidgets('Actual Library filters return exact Upper 14 / Lower 8 / Core 5 IDs',
+  testWidgets('Actual Library filters return exact Upper 17 / Lower 11 / Core 7 IDs',
       (tester) async {
-    await tester.binding.setSurfaceSize(const Size(430, 2300));
+    await tester.binding.setSurfaceSize(const Size(430, 2700));
     addTearDown(() => tester.binding.setSurfaceSize(null));
     await tester.pumpWidget(const ProviderScope(
       child: MaterialApp(home: ExerciseLibraryScreen()),
@@ -48,7 +48,7 @@ void main() {
     ));
     await tester.pump();
     await loadImages(tester, curatedExerciseLibrary.map((e) => e.thumbnailUrl));
-    for (final entry in expectedNewExercises.entries) {
+    for (final entry in allNewExercises.entries) {
       for (final query in [entry.value.$1, entry.value.$2]) {
         await tester.enterText(find.byType(TextField), query);
         await tester.pumpAndSettle();
@@ -57,6 +57,44 @@ void main() {
         final list = tester.widget<ListView>(find.byType(ListView));
         expect((list.childrenDelegate as SliverChildBuilderDelegate).childCount, 1);
       }
+    }
+    expect(tester.takeException(), isNull);
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets('Library muscle filters retain exact membership including round two',
+      (tester) async {
+    const expected = <(String, String), List<String>>{
+      ('Upper Body', 'Chest'): ['db-bench-press', 'push-up', 'incline-dumbbell-flyes', 'incline-dumbbell-press', 'cable-chest-fly'],
+      ('Upper Body', 'Back'): ['lat-pulldown', 'seated-cable-row', 'one-arm-dumbbell-row', 'pull-up'],
+      ('Upper Body', 'Shoulders'): ['db-shoulder-press', 'face-pulls', 'dumbbell-lateral-raise', 'reverse-dumbbell-fly'],
+      ('Upper Body', 'Arms'): ['db-bicep-curl', 'triceps-rope-pushdown', 'overhead-triceps-extension', 'hammer-curl'],
+      ('Lower Body', 'Quads'): ['barbell-back-squat', 'leg-press', 'goblet-squat', 'reverse-lunge', 'bulgarian-split-squat', 'leg-extension'],
+      ('Lower Body', 'Glutes'): ['barbell-hip-thrust', 'bulgarian-split-squat'],
+      ('Lower Body', 'Hamstrings'): ['romanian-deadlift', 'lying-leg-curl'],
+      ('Lower Body', 'Calves'): ['standing-calf-raise', 'seated-calf-raise'],
+      ('Core', 'Abs'): ['plank', 'hanging-leg-raise', 'ab-wheel-rollout', 'dead-bug', 'reverse-crunch'],
+      ('Core', 'Obliques'): ['cable-woodchopper', 'side-plank'],
+    };
+    await tester.binding.setSurfaceSize(const Size(430, 1500));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await tester.pumpWidget(const ProviderScope(
+      child: MaterialApp(home: ExerciseLibraryScreen()),
+    ));
+    await tester.pump();
+    await loadImages(tester, curatedExerciseLibrary.map((e) => e.thumbnailUrl));
+    for (final entry in expected.entries) {
+      await tester.tap(find.text(entry.key.$1));
+      await tester.pumpAndSettle();
+      final chip = find.text(entry.key.$2).first;
+      await tester.ensureVisible(chip);
+      await tester.tap(chip);
+      await tester.pumpAndSettle();
+      final ids = tester.allWidgets.map((w) => w.key)
+          .whereType<ValueKey<String>>().map((key) => key.value)
+          .where((key) => key.startsWith('exercise_row_'))
+          .map((key) => key.substring('exercise_row_'.length));
+      expect(ids, entry.value, reason: '${entry.key}');
     }
     expect(tester.takeException(), isNull);
     await tester.pumpWidget(const SizedBox());
