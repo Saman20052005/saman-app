@@ -46,50 +46,113 @@ async def update_profile(profile_input: UserProfileInput, current_user: dict = D
     """
     API này nhận chiều cao, cân nặng, mục tiêu...
     Sau đó TỰ ĐỘNG tính toán chỉ số sức khoẻ (HealthStats) và lưu vào DB.
+    Bảo toàn extra fields, CAS chống concurrency conflict (409), validation 422.
     """
+    user_email = current_user["email"]
+    CALCULATION_FIELDS = ("age", "gender", "height", "weight", "activity_level", "goal")
+    ALLOWED_PROFILE_FIELDS = ("full_name", "age", "gender", "height", "weight", "activity_level", "goal")
+
+    # 1. Kiểm tra explicit null trên 6 trường tính toán -> 422 (không silently bỏ null)
+    for field_name in CALCULATION_FIELDS:
+        if field_name in profile_input.model_fields_set and getattr(profile_input, field_name) is None:
+            raise HTTPException(
+                status_code=422,
+                detail=f"Field '{field_name}' cannot be explicitly null",
+            )
+
+    # 2. Đọc snapshot DB hiện tại của user để merge
+    raw_profile = current_user.get("profile")
+    existing_profile = raw_profile if isinstance(raw_profile, dict) else None
+
+    existing_data = {
+        "age": existing_profile.get("age", current_user.get("age")) if existing_profile is not None else current_user.get("age"),
+        "gender": existing_profile.get("gender", current_user.get("gender")) if existing_profile is not None else current_user.get("gender"),
+        "height": existing_profile.get("height", current_user.get("height")) if existing_profile is not None else current_user.get("height"),
+        "weight": existing_profile.get("weight", current_user.get("weight")) if existing_profile is not None else current_user.get("weight"),
+        "activity_level": existing_profile.get("activity_level", current_user.get("activity_level")) if existing_profile is not None else current_user.get("activity_level"),
+        "goal": existing_profile.get("goal", current_user.get("goal")) if existing_profile is not None else current_user.get("goal"),
+        "full_name": existing_profile.get("full_name", current_user.get("full_name")) if existing_profile is not None else current_user.get("full_name"),
+    }
+
+    # Track calculation input provenance (input vs nested vs root fallback)
+    field_sources = {}
+    for f in CALCULATION_FIELDS:
+        if f in profile_input.model_fields_set and getattr(profile_input, f) is not None:
+            field_sources[f] = "input"
+        elif existing_profile is not None and existing_profile.get(f) is not None:
+            field_sources[f] = "nested"
+        elif current_user.get(f) is not None:
+            field_sources[f] = "root"
+        else:
+            field_sources[f] = "none"
+
+    # 3. Merge allowlisted input payload với snapshot DB
+    merged = dict(existing_data)
+    for k in ALLOWED_PROFILE_FIELDS:
+        if k in profile_input.model_fields_set:
+            val = getattr(profile_input, k)
+            if hasattr(val, "value"):
+                val = val.value
+            if val is not None:
+                merged[k] = val
+
+    # 4. Kiểm tra sau merge: nếu chưa đủ 6 trường tính toán -> 422 trước khi ghi
+    for field_name in CALCULATION_FIELDS:
+        val = merged.get(field_name)
+        if val is None:
+            raise HTTPException(
+                status_code=422,
+                detail=f"Missing required profile field '{field_name}' after merge for stats calculation",
+            )
+
+    # 5. Tính toán chỉ số sức khoẻ (HealthEngine)
     try:
-        user_email = current_user["email"]
-        logger.info("Updating profile for user=%s payload=%s", user_email, profile_input.dict())
-        
-        # 1. Gọi HealthEngine để tính toán (Logic nghiệp vụ)
-        health_stats = HealthEngine.calculate_stats(profile_input)
-        daily_calories = (
-            getattr(health_stats, "daily_calories", None)
-            or getattr(health_stats, "daily_calorie_needs", None)
-            or getattr(health_stats, "tdee", 0)
-            or 0
-        )
-        logger.info(
-            "Health stats calculated for user=%s bmi=%.2f daily_calories=%d",
-            user_email,
-            health_stats.bmi or 0,
-            int(daily_calories),
-        )
-
-        # 2. Update vào MongoDB thông qua Repository (Logic dữ liệu)
-        update_result = user_repo.update_profile_stats(
-            email=user_email,
-            profile=profile_input,
-            stats=health_stats
-        )
-        logger.info("Profile update completed for user=%s result=%s", user_email, update_result)
-
-        # 3. Trả về cấu trúc giống get_profile
-        return {
-            "email": user_email,
-            "full_name": current_user.get("full_name"),
-            "avatar": current_user.get("avatar"),
-            "profile": profile_input.dict(),
-            "health_stats": health_stats.dict()
-        }
-
+        health_stats = HealthEngine.calculate_stats(merged)
+    except ValueError as e:
+        raise HTTPException(status_code=422, detail=str(e))
     except Exception as e:
-        logger.exception(
-            "Error updating profile for user=%s error=%s",
-            current_user.get("email", "unknown"),
-            str(e),
+        logger.exception("Error calculating health stats for user=%s: %s", user_email, str(e))
+        raise HTTPException(status_code=500, detail="Health stats calculation failed")
+
+    # 6. Atomic CAS update vào MongoDB
+    try:
+        update_result = user_repo.update_profile_stats_cas(
+            email=user_email,
+            current_user=current_user,
+            profile_input=profile_input,
+            merged_profile=merged,
+            stats=health_stats,
+            field_sources=field_sources,
         )
-        raise HTTPException(status_code=500, detail="Internal Server Error")
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.exception("Database write failure for user=%s: %s", user_email, str(e))
+        raise HTTPException(status_code=500, detail="Database write error")
+
+    if update_result.matched_count == 0:
+        fresh_user = user_repo.get_by_email(user_email)
+        if not fresh_user:
+            raise HTTPException(status_code=404, detail="User not found")
+        # Snapshot DB đã bị đổi bởi request khác -> 409 Conflict
+        raise HTTPException(
+            status_code=409,
+            detail="Profile was modified concurrently. Please refresh and try again.",
+        )
+
+    # 7. Xây dựng profile trả về (bảo toàn extra fields của existing_profile)
+    response_profile = dict(existing_profile) if existing_profile is not None else {}
+    for k in ALLOWED_PROFILE_FIELDS:
+        if k in merged and merged[k] is not None:
+            response_profile[k] = merged[k]
+
+    return {
+        "email": user_email,
+        "full_name": profile_input.full_name or current_user.get("full_name"),
+        "avatar": current_user.get("avatar"),
+        "profile": response_profile,
+        "health_stats": health_stats.dict(),
+    }
 
 # --- API UPDATE PROFILE (PUT METHOD FOR FRONTEND COMPATIBILITY) ---
 @router.put("/update-profile")
@@ -105,6 +168,7 @@ async def update_profile_put(profile_input: UserProfileInput, current_user: dict
 async def get_profile(current_user: dict = Depends(get_current_user)):
     # Trả về full data để App hiển thị
     return {
+        "user_id": str(current_user["_id"]),
         "email": current_user["email"],
         "full_name": current_user.get("full_name"),
         "avatar": current_user.get("avatar"),

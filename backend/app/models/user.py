@@ -1,4 +1,5 @@
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, EmailStr, Field, field_validator
+import math
 from typing import Optional
 from datetime import datetime
 from .common import Gender, ActivityLevel, Goal
@@ -12,6 +13,14 @@ class UserProfileInput(BaseModel):
     weight: Optional[float] = Field(None, gt=0)
     activity_level: Optional[ActivityLevel] = None
     goal: Optional[Goal] = None
+
+    @field_validator("height", "weight")
+    @classmethod
+    def validate_finite_positive(cls, v):
+        if v is not None:
+            if not math.isfinite(v) or v <= 0:
+                raise ValueError("Must be a positive finite number")
+        return v
 
 class UserHealthStats(BaseModel):
     bmi: Optional[float] = None
