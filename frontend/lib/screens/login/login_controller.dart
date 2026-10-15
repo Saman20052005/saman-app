@@ -11,6 +11,10 @@ import 'package:dio/dio.dart';
 import '../../config/api_config.dart';
 import '../../services/api_client.dart';
 
+/// What a successful auth operation produced. Only [authenticated] creates a
+/// session; [registered] and [passwordReset] never do.
+enum AuthOutcome { authenticated, registered, passwordReset }
+
 // State lưu trạng thái UI
 class LoginState {
   final bool isLoading;
@@ -18,11 +22,17 @@ class LoginState {
   final bool isSuccess;
   final String? successMessage;
 
+  /// One-shot trigger: set only on the state emitted right after an operation
+  /// succeeded (and, for [AuthOutcome.authenticated], after auth data was
+  /// saved). Reset by the next state change.
+  final AuthOutcome? outcome;
+
   LoginState({
     this.isLoading = false,
     this.errorMessage,
     this.isSuccess = false,
     this.successMessage,
+    this.outcome,
   });
 
   LoginState copyWith({
@@ -30,12 +40,14 @@ class LoginState {
     String? errorMessage,
     bool? isSuccess,
     String? successMessage,
+    AuthOutcome? outcome,
   }) {
     return LoginState(
       isLoading: isLoading ?? this.isLoading,
       errorMessage: errorMessage, // Reset error khi state mới
       isSuccess: isSuccess ?? false, // Reset success trigger
       successMessage: successMessage,
+      outcome: outcome, // Reset outcome trigger
     );
   }
 }
@@ -92,13 +104,15 @@ class LoginController extends StateNotifier<LoginState> {
           state = state.copyWith(
               isLoading: false,
               isSuccess: true,
-              successMessage: 'Welcome back!');
+              successMessage: 'Welcome back!',
+              outcome: AuthOutcome.authenticated);
         } else {
           // Register success -> Switch mode logic handled in UI
           state = state.copyWith(
               isLoading: false,
               isSuccess: true,
-              successMessage: 'Account created! Please login.');
+              successMessage: 'Account created! Please login.',
+              outcome: AuthOutcome.registered);
         }
       } else {
         final error = response.data is String
@@ -223,7 +237,8 @@ class LoginController extends StateNotifier<LoginState> {
         state = state.copyWith(
             isLoading: false,
             isSuccess: true,
-            successMessage: 'Login with $provider success!');
+            successMessage: 'Login with $provider success!',
+            outcome: AuthOutcome.authenticated);
       } else {
         final errorBody = response.data is String
             ? jsonDecode(response.data as String)
@@ -275,7 +290,8 @@ class LoginController extends StateNotifier<LoginState> {
       if (response.statusCode == 200) {
         state = state.copyWith(
             isSuccess: true,
-            successMessage: "Password reset successful! Please login.");
+            successMessage: "Password reset successful! Please login.",
+            outcome: AuthOutcome.passwordReset);
         return true;
       }
       final data = response.data is String

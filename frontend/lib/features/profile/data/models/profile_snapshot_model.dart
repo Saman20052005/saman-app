@@ -4,6 +4,7 @@ import '../../domain/entities/profile_snapshot.dart';
 
 class ProfileSnapshotModel extends ProfileSnapshot {
   const ProfileSnapshotModel({
+    super.userId,
     required super.profile,
     super.targetCalories = 0,
     super.targetProtein = 0,
@@ -20,6 +21,7 @@ class ProfileSnapshotModel extends ProfileSnapshot {
   factory ProfileSnapshotModel.fromSnapshot(ProfileSnapshot snapshot) {
     if (snapshot is ProfileSnapshotModel) return snapshot;
     return ProfileSnapshotModel(
+      userId: snapshot.userId,
       profile: snapshot.profile,
       targetCalories: snapshot.targetCalories,
       targetProtein: snapshot.targetProtein,
@@ -38,17 +40,45 @@ class ProfileSnapshotModel extends ProfileSnapshot {
     Map<String, dynamic> json, {
     bool isFromCache = false,
   }) {
-    ProfileEntity profileEntity = ProfileEntity.empty();
+    // 0. Parse userId
+    final rawUserId = json['user_id'] ?? json['userId'];
+    final String? userId = (rawUserId is String && rawUserId.trim().isNotEmpty)
+        ? rawUserId.trim()
+        : null;
+
+    ProfileEntity profileEntity = ProfileEntity.empty(userId: userId);
 
     // 1. Parse Profile
     if (json['profile'] is Map<String, dynamic>) {
-      profileEntity =
+      final parsedProfile =
           ProfileModel.fromJson(json['profile'] as Map<String, dynamic>);
+      profileEntity = ProfileEntity(
+        userId: userId,
+        age: parsedProfile.age,
+        height: parsedProfile.height,
+        weight: parsedProfile.weight,
+        gender: parsedProfile.rawGender,
+        activityLevel: parsedProfile.rawActivityLevel,
+        activityCanonical: parsedProfile.rawActivityCanonical,
+        goal: parsedProfile.rawGoal,
+        allergies: parsedProfile.allergies,
+      );
     } else if (json.containsKey('height') ||
         json.containsKey('weight') ||
         json.containsKey('age')) {
       // Legacy flat profile support
-      profileEntity = ProfileModel.fromJson(json);
+      final parsedProfile = ProfileModel.fromJson(json);
+      profileEntity = ProfileEntity(
+        userId: userId,
+        age: parsedProfile.age,
+        height: parsedProfile.height,
+        weight: parsedProfile.weight,
+        gender: parsedProfile.rawGender,
+        activityLevel: parsedProfile.rawActivityLevel,
+        activityCanonical: parsedProfile.rawActivityCanonical,
+        goal: parsedProfile.rawGoal,
+        allergies: parsedProfile.allergies,
+      );
     }
 
     // 2. Parse Health Stats
@@ -68,6 +98,7 @@ class ProfileSnapshotModel extends ProfileSnapshot {
     final burned = _toInt(healthStats['target_burned'] ?? json['targetBurned']);
 
     return ProfileSnapshotModel(
+      userId: userId,
       profile: profileEntity,
       targetCalories: calories,
       targetProtein: protein,
@@ -84,6 +115,7 @@ class ProfileSnapshotModel extends ProfileSnapshot {
 
   Map<String, dynamic> toJson() {
     return {
+      if (userId != null) 'user_id': userId,
       'profile': (profile is ProfileModel)
           ? (profile as ProfileModel).toJson()
           : ProfileModel.fromEntity(profile).toJson(),

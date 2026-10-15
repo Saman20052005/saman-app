@@ -10,6 +10,27 @@ class UnauthorizedException implements Exception {
   String toString() => message;
 }
 
+class ProfileConflictException implements Exception {
+  final String message;
+  const ProfileConflictException([this.message = 'Conflict: profile was updated concurrently (409)']);
+  @override
+  String toString() => message;
+}
+
+class ProfileValidationException implements Exception {
+  final String message;
+  const ProfileValidationException([this.message = 'Validation error (422)']);
+  @override
+  String toString() => message;
+}
+
+class ProfileTimeoutException implements Exception {
+  final String message;
+  const ProfileTimeoutException([this.message = 'Request timed out']);
+  @override
+  String toString() => message;
+}
+
 abstract class ProfileRemoteDataSource {
   Future<bool> updateProfile(ProfileModel profile);
   Future<ProfileSnapshotModel?> getProfileSnapshot();
@@ -40,6 +61,22 @@ class ProfileRemoteDataSourceImpl implements ProfileRemoteDataSource {
       if (e.response?.statusCode == 401) {
         throw const UnauthorizedException('Session expired');
       }
+      if (e.response?.statusCode == 409) {
+        throw ProfileConflictException(
+          e.response?.data?['detail']?.toString() ??
+              'Profile was modified concurrently. Please refresh and try again.',
+        );
+      }
+      if (e.response?.statusCode == 422) {
+        throw ProfileValidationException(
+          e.response?.data?['detail']?.toString() ?? 'Validation failed (422)',
+        );
+      }
+      if (e.type == DioExceptionType.connectionTimeout ||
+          e.type == DioExceptionType.sendTimeout ||
+          e.type == DioExceptionType.receiveTimeout) {
+        throw const ProfileTimeoutException('Save request timed out');
+      }
       throw Exception(
         'Lỗi Server: ${e.response?.statusCode} - ${e.response?.statusMessage}',
       );
@@ -54,16 +91,22 @@ class ProfileRemoteDataSourceImpl implements ProfileRemoteDataSource {
       if (response.statusCode == 200) {
         final data = response.data;
         if (data is Map<String, dynamic>) {
+          final rawUserId = data['user_id'] ?? data['userId'];
+          if (rawUserId == null ||
+              rawUserId is! String ||
+              rawUserId.trim().isEmpty) {
+            throw const FormatException(
+              'Missing or invalid user_id in profile response',
+            );
+          }
           return ProfileSnapshotModel.fromJson(data);
         }
+        throw const FormatException('Invalid profile response structure');
       }
-      return null;
+      throw Exception('Unexpected status code: ${response.statusCode}');
     } on DioException catch (e) {
       if (e.response?.statusCode == 401) {
         throw const UnauthorizedException('Session expired');
-      }
-      if (e.response?.statusCode == 404) {
-        return null;
       }
       rethrow;
     }

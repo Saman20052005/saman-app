@@ -57,6 +57,13 @@ class AuthHelper {
   /// 4. Preserves global application preferences (language_code, is_dark_mode).
   /// 5. Invalidates user-scoped Riverpod state providers.
   static Future<void> logout(dynamic ref) async {
+    // 0. Capture current verified user_id (if available) before resetting session
+    String? currentUserId;
+    try {
+      final state = ref.read(profileProvider);
+      currentUserId = state.userId;
+    } catch (_) {}
+
     // 1. Invalidate session epoch immediately
     ref.read(profileProvider.notifier).resetSession();
 
@@ -70,16 +77,22 @@ class AuthHelper {
 
     // 3. Clear user-specific cache via synchronized repository queue
     try {
-      await ref.read(profileRepositoryProvider).clearLocalProfile();
+      await ref
+          .read(profileRepositoryProvider)
+          .clearLocalProfile(userId: currentUserId);
     } catch (e) {
       debugPrint('[AUTH] Error clearing local profile via repository: $e');
     }
 
-    // Direct removal for any legacy credentials in SharedPreferences
+    // Direct removal for any legacy and partitioned user keys in SharedPreferences
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.remove('cached_profile');
       await prefs.remove('cached_profile_snapshot_v2');
+      if (currentUserId != null && currentUserId.isNotEmpty) {
+        await prefs.remove('cached_profile_snapshot_v2_$currentUserId');
+        await prefs.remove('onboarding_draft_$currentUserId');
+      }
       await prefs.remove('user_email');
       await prefs.remove('user_fullname');
     } catch (e) {
