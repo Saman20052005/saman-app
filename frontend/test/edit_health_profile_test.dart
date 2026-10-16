@@ -1006,7 +1006,12 @@ void main() {
     testWidgets(
         'Nutrition redirect switches tab to Profile without pushing second route',
         (tester) async {
-      final repo = _MockProfileRepository();
+      final repo = _MockProfileRepository()
+        ..snapshotToReturn = const ProfileSnapshot(
+          userId: 'usr_incomplete_owner',
+          profile: ProfileEntity(userId: 'usr_incomplete_owner'),
+          isFromCache: false,
+        );
 
       await _pumpTestApp(
         tester,
