@@ -1,6 +1,8 @@
 import '../entities/profile_entity.dart';
 import '../entities/profile_snapshot.dart';
 
+import '../entities/onboarding_draft.dart';
+
 // Kept for the tracked legacy adapter under frontend/features/profile.
 // New production code uses ProfileRepository below.
 abstract class IProfileRepository {
@@ -13,5 +15,10 @@ abstract class ProfileRepository {
   Future<ProfileSnapshot?> fetchProfileSnapshot({bool cacheOnSuccess = false});
   Future<void> cacheSnapshot(ProfileSnapshot snapshot);
   Future<ProfileEntity?> fetchProfile();
-  Future<void> clearLocalProfile();
+  Future<void> clearLocalProfile({String? userId});
+
+  // Onboarding draft operations
+  Future<void> saveDraft(OnboardingDraft draft);
+  Future<OnboardingDraft?> getDraft(String userId);
+  Future<void> clearDraft(String userId);
 }

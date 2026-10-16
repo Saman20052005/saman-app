@@ -12,6 +12,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:health_ai_app/features/profile/data/repositories/profile_repository_impl.dart';
+import 'package:health_ai_app/features/profile/domain/entities/onboarding_draft.dart';
 import 'package:health_ai_app/features/profile/domain/entities/profile_entity.dart';
 import 'package:health_ai_app/features/profile/domain/entities/profile_snapshot.dart';
 import 'package:health_ai_app/main.dart';
@@ -33,7 +34,22 @@ class _TestProfileRepository implements ProfileRepository {
   Future<void> cacheSnapshot(ProfileSnapshot snapshot) async {}
 
   @override
-  Future<void> clearLocalProfile() async {}
+  Future<void> clearLocalProfile({String? userId}) async {}
+
+  final Map<String, OnboardingDraft> _drafts = {};
+
+  @override
+  Future<void> saveDraft(OnboardingDraft draft) async {
+    _drafts[draft.userId] = draft;
+  }
+
+  @override
+  Future<OnboardingDraft?> getDraft(String userId) async => _drafts[userId];
+
+  @override
+  Future<void> clearDraft(String userId) async {
+    _drafts.remove(userId);
+  }
 }
 
 class TestProfileNotifier extends ProfileNotifier {

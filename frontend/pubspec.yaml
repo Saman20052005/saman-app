@@ -84,3 +84,5 @@ flutter:
     - assets/icons/
     - assets/images/
     - assets/images/exercises/
+    - assets/onboarding/
+    - assets/profile/

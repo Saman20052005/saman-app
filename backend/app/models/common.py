@@ -6,9 +6,15 @@ class Gender(str, Enum):
     OTHER = "other"
 
 class ActivityLevel(str, Enum):
-    LOW = "low"         # Ít vận động (Sedentary)
-    MEDIUM = "medium"   # Vừa phải (Moderate)
-    HIGH = "high"       # Nhiều (Active/Athlete)
+    SEDENTARY = "sedentary"
+    LIGHT = "light"
+    MODERATE = "moderate"
+    ACTIVE = "active"
+    VERY_ACTIVE = "very_active"
+    # Legacy values
+    LOW = "low"
+    MEDIUM = "medium"
+    HIGH = "high"
 
 class Goal(str, Enum):
     LOSE_WEIGHT = "lose_weight"

@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:health_ai_app/features/profile/domain/entities/profile_entity.dart';
 import 'package:health_ai_app/features/profile/domain/entities/profile_snapshot.dart';
 import 'package:health_ai_app/features/profile/domain/repositories/profile_repository.dart';
@@ -6,6 +5,8 @@ import 'package:health_ai_app/features/profile/data/models/profile_model.dart';
 import 'package:health_ai_app/features/profile/data/models/profile_snapshot_model.dart';
 import 'package:health_ai_app/features/profile/data/datasources/profile_remote_data_source.dart';
 import 'package:health_ai_app/features/profile/data/datasources/profile_local_data_source.dart';
+
+import 'package:health_ai_app/features/profile/domain/entities/onboarding_draft.dart';
 
 export 'package:health_ai_app/features/profile/domain/repositories/profile_repository.dart';
 
@@ -23,48 +24,26 @@ class ProfileRepositoryImpl implements ProfileRepository {
     final model =
         (profile is ProfileModel) ? profile : ProfileModel.fromEntity(profile);
 
-    // 1. Send update to remote backend
+    // 1. Send update to remote backend (save-only mutation without optimistic cache)
     final success = await remoteDataSource.updateProfile(model);
     if (!success) {
       throw Exception('Cập nhật hồ sơ không thành công');
     }
-
-    // 2. Fetch fresh server calculated snapshot to ensure consistency
-    try {
-      final freshSnapshot = await remoteDataSource.getProfileSnapshot();
-      if (freshSnapshot != null) {
-        await localDataSource.cacheSnapshot(freshSnapshot);
-        return;
-      }
-    } catch (_) {}
-
-    // Fallback: cache optimistic model if fresh snapshot fetch fails
-    await localDataSource.cacheProfile(model);
   }
 
   @override
   Future<ProfileSnapshot?> fetchProfileSnapshot(
       {bool cacheOnSuccess = false}) async {
-    try {
-      // 1. Network First
-      final remoteSnapshot = await remoteDataSource.getProfileSnapshot();
-      if (remoteSnapshot != null) {
-        if (cacheOnSuccess) {
-          await cacheSnapshot(remoteSnapshot);
-        }
-        return remoteSnapshot;
+    // 1. Direct Network First: propagates errors cleanly without falling back to cache
+    final remoteSnapshot = await remoteDataSource.getProfileSnapshot();
+    if (remoteSnapshot != null) {
+      if (cacheOnSuccess) {
+        await cacheSnapshot(remoteSnapshot);
       }
-    } on UnauthorizedException {
-      // Re-throw so Provider / UI distinguishes 401 Unauthorized
-      rethrow;
-    } catch (e) {
-      if (kDebugMode) {
-        debugPrint(
-            '[REPOSITORY] Remote fetch failed, falling back to cache: $e');
-      }
+      return remoteSnapshot;
     }
 
-    // 2. Fallback to local cache (handles v2 snapshot & v1 flat fallback)
+    // 2. Fallback to local cache only if server returned null (empty profile)
     final cached = await localDataSource.getLastSnapshot();
     if (cached != null) {
       return cached;
@@ -86,7 +65,22 @@ class ProfileRepositoryImpl implements ProfileRepository {
   }
 
   @override
-  Future<void> clearLocalProfile() async {
-    await localDataSource.clearCache();
+  Future<void> clearLocalProfile({String? userId}) async {
+    await localDataSource.clearCache(userId: userId);
+  }
+
+  @override
+  Future<void> saveDraft(OnboardingDraft draft) async {
+    await localDataSource.saveDraft(draft);
+  }
+
+  @override
+  Future<OnboardingDraft?> getDraft(String userId) async {
+    return await localDataSource.getDraft(userId);
+  }
+
+  @override
+  Future<void> clearDraft(String userId) async {
+    await localDataSource.clearDraft(userId);
   }
 }

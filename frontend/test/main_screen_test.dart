@@ -10,6 +10,7 @@ import 'package:health_ai_app/config/app_theme.dart';
 import 'package:health_ai_app/features/profile/data/datasources/profile_remote_data_source.dart';
 import 'package:health_ai_app/features/profile/data/models/profile_snapshot_model.dart';
 import 'package:health_ai_app/features/profile/data/repositories/profile_repository_impl.dart';
+import 'package:health_ai_app/features/profile/domain/entities/onboarding_draft.dart';
 import 'package:health_ai_app/features/profile/domain/entities/profile_entity.dart';
 import 'package:health_ai_app/features/profile/domain/entities/profile_snapshot.dart';
 import 'package:health_ai_app/models/nutrition_model.dart';
@@ -38,7 +39,16 @@ class _FakeProfileRepository implements ProfileRepository {
   Future<void> cacheSnapshot(ProfileSnapshot snapshot) async {}
 
   @override
-  Future<void> clearLocalProfile() async {}
+  Future<void> clearLocalProfile({String? userId}) async {}
+
+  @override
+  Future<void> saveDraft(OnboardingDraft draft) async {}
+
+  @override
+  Future<OnboardingDraft?> getDraft(String userId) async => null;
+
+  @override
+  Future<void> clearDraft(String userId) async {}
 
   @override
   Future<ProfileEntity?> fetchProfile() async => isValid
@@ -141,7 +151,7 @@ class _ControlledProfileRepository extends _FakeProfileRepository {
   }
 
   @override
-  Future<void> clearLocalProfile() async {
+  Future<void> clearLocalProfile({String? userId}) async {
     clearCount++;
     cachedSnapshots.clear();
   }

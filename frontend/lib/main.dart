@@ -56,17 +56,6 @@ class MyApp extends ConsumerStatefulWidget {
 
 class _MyAppState extends ConsumerState<MyApp> {
   @override
-  void initState() {
-    super.initState();
-    // ✅ Logic này giúp kích hoạt loadProfile ngay khi UI vừa dựng xong
-    // (Mặc dù ProfileNotifier cũng đã gọi trong constructor, nhưng giữ lại để chắc chắn)
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) return;
-      ref.read(profileProvider.notifier).loadProfile();
-    });
-  }
-
-  @override
   Widget build(BuildContext context) {
     final locale = ref.watch(languageProvider);
     final themeMode = ref.watch(themeProvider);

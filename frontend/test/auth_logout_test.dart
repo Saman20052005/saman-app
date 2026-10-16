@@ -5,6 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:health_ai_app/utils/auth_helper.dart';
 import 'package:health_ai_app/providers/profile_provider.dart';
+import 'package:health_ai_app/features/profile/domain/entities/profile_entity.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -27,6 +28,10 @@ void main() {
       SharedPreferences.setMockInitialValues({
         'cached_profile': '{"age": 25, "height": 175}',
         'cached_profile_snapshot_v2': '{"profile": {"age": 25}}',
+        'cached_profile_snapshot_v2_user_test_99':
+            '{"user_id": "user_test_99", "profile": {"age": 25}}',
+        'onboarding_draft_user_test_99':
+            '{"user_id": "user_test_99", "age": 25, "step": 2}',
         'language_code': 'vi',
         'is_dark_mode': true,
         'user_email': 'test@example.com',
@@ -39,6 +44,17 @@ void main() {
             await SharedPreferences.getInstance(),
           ),
         ],
+      );
+
+      // Seed active state with userId to test owner capture
+      container.read(profileProvider.notifier).state = ProfileState(
+        profile: const ProfileEntity(
+          userId: 'user_test_99',
+          age: 25,
+          height: 175,
+          weight: 70,
+        ),
+        confirmedUserId: 'user_test_99',
       );
 
       // Perform logout
@@ -55,6 +71,9 @@ void main() {
       final prefs = await SharedPreferences.getInstance();
       expect(prefs.containsKey('cached_profile'), isFalse);
       expect(prefs.containsKey('cached_profile_snapshot_v2'), isFalse);
+      expect(
+          prefs.containsKey('cached_profile_snapshot_v2_user_test_99'), isFalse);
+      expect(prefs.containsKey('onboarding_draft_user_test_99'), isFalse);
       expect(prefs.containsKey('user_email'), isFalse);
       expect(prefs.containsKey('user_fullname'), isFalse);
 

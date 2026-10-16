@@ -10,6 +10,8 @@ import 'widgets/social_login_row.dart';
 import 'widgets/forgot_password_sheet.dart'; // Bạn cần tạo file này dựa trên code cũ (đã tách)
 import '../../config/routes.dart';
 
+import '../../providers/profile_provider.dart';
+
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
 
@@ -19,6 +21,7 @@ class LoginScreen extends ConsumerStatefulWidget {
 
 class _LoginScreenState extends ConsumerState<LoginScreen> {
   bool _isLoginMode = true;
+  bool _hasNavigatedToMain = false;
 
   @override
   Widget build(BuildContext context) {
@@ -28,15 +31,28 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         Fluttertoast.showToast(
             msg: next.errorMessage!, backgroundColor: Colors.red);
       }
-      if (next.isSuccess && next.successMessage != null) {
+      final outcome = next.outcome;
+      if (outcome == null) return;
+      if (next.successMessage != null) {
         Fluttertoast.showToast(msg: next.successMessage!);
-        // Nếu login thành công -> Chuyển màn hình (MainScreen sẽ tải profile)
-        if (_isLoginMode) {
+      }
+      switch (outcome) {
+        case AuthOutcome.authenticated:
+          // Navigation follows the operation that just authenticated, never a
+          // token that may already be in storage. Drop any previous session's
+          // profile so the gate must confirm the new owner over the network.
+          if (_hasNavigatedToMain) return;
+          _hasNavigatedToMain = true;
+          ref.read(profileProvider.notifier).resetSession();
           Navigator.pushReplacementNamed(context, AppRoutes.main);
-        } else {
-          // Nếu Register thành công -> Chuyển sang Tab Login
+          break;
+        case AuthOutcome.registered:
+          // Registration creates no session -> back to the login form.
           setState(() => _isLoginMode = true);
-        }
+          break;
+        case AuthOutcome.passwordReset:
+          // Password reset creates no session; the user stays on login.
+          break;
       }
     });
 
