@@ -12,8 +12,11 @@ Tests verify:
 - POST and PUT compatibility, stable user_id in GET /profile.
 """
 
+from contextlib import ExitStack
 import copy
 from datetime import datetime
+import os
+from pathlib import Path
 import socket
 import sys
 from types import ModuleType, SimpleNamespace
@@ -27,37 +30,71 @@ import pymongo
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
-# ---------------------------------------------------------------------------
-# 1. PRE-IMPORT ISOLATION GUARDS: Block real DB, sockets, and .env loading
-# ---------------------------------------------------------------------------
-
-_blocked_attempts = []
+_BACKEND_DIR = Path(__file__).resolve().parents[1]
 
 
-def _forbidden(*args, **kwargs):
-    _blocked_attempts.append(True)
-    raise AssertionError("External infrastructure access forbidden during isolated tests")
+def _enter_isolation_context(stack: ExitStack):
+    """Install socket, DB, env, and sys.modules guards on stack with guaranteed restoration."""
+    blocked_attempts = []
 
+    def _forbidden(*args, **kwargs):
+        blocked_attempts.append(True)
+        raise AssertionError("External infrastructure access forbidden during isolated tests")
 
-_orig_socket_connect = socket.socket.connect
-_orig_socketpair = socket.socketpair
+    base_connect = getattr(socket.socket.connect, "__wrapped__", socket.socket.connect)
+    orig_socketpair = socket.socketpair
 
+    def _guarded_connect(sock, address):
+        if (
+            sys._getframe(1).f_code is getattr(orig_socketpair, "__code__", None)
+            and isinstance(address, tuple)
+            and len(address) >= 1
+            and address[0] in ("127.0.0.1", "::1")
+        ):
+            return base_connect(sock, address)
+        return _forbidden(sock, address)
 
-def _guarded_connect(sock, address):
-    if (
-        sys._getframe(1).f_code is getattr(_orig_socketpair, "__code__", None)
-        and address[0] in ("127.0.0.1", "::1")
+    _guarded_connect.__wrapped__ = base_connect
+
+    stack.enter_context(patch.object(socket.socket, "connect", _guarded_connect))
+    stack.enter_context(patch.object(socket.socket, "connect_ex", _forbidden))
+    stack.enter_context(patch.object(socket, "create_connection", _forbidden))
+    stack.enter_context(patch.object(socket, "getaddrinfo", _forbidden))
+    stack.enter_context(patch.object(pymongo, "MongoClient", _forbidden))
+    stack.enter_context(patch.object(dotenv, "load_dotenv", lambda *args, **kwargs: False))
+    if hasattr(dotenv, "main") and hasattr(dotenv.main, "DotEnv"):
+        stack.enter_context(patch.object(dotenv.main, "DotEnv", _forbidden))
+
+    stack.enter_context(
+        patch.dict(
+            os.environ,
+            {
+                "JWT_SECRET": "isolated-preservation-contract-jwt-secret",
+                "JWT_ALGORITHM": "HS256",
+            },
+        )
+    )
+    stack.enter_context(patch.dict(sys.modules))
+    for mod_name in list(sys.modules):
+        if mod_name == "backend" or mod_name.startswith("backend."):
+            del sys.modules[mod_name]
+
+    for pkg_name, pkg_path in (
+        ("backend", _BACKEND_DIR),
+        ("backend.app", _BACKEND_DIR / "app"),
+        ("backend.app.models", _BACKEND_DIR / "app" / "models"),
+        ("backend.app.repositories", _BACKEND_DIR / "app" / "repositories"),
+        ("backend.auth", _BACKEND_DIR / "auth"),
+        ("backend.routers", _BACKEND_DIR / "routers"),
+        ("backend.services", _BACKEND_DIR / "services"),
     ):
-        return _orig_socket_connect(sock, address)
-    return _forbidden(sock, address)
+        pkg = ModuleType(pkg_name)
+        pkg.__path__ = [str(pkg_path)]
+        pkg.__package__ = pkg_name
+        sys.modules[pkg_name] = pkg
 
-
-socket.socket.connect = _guarded_connect
-socket.socket.connect_ex = _forbidden
-socket.create_connection = _forbidden
-socket.getaddrinfo = _forbidden
-pymongo.MongoClient = _forbidden
-dotenv.load_dotenv = lambda *args, **kwargs: False
+    sys.modules["backend.app.database"] = _MockDatabaseModule("backend.app.database")
+    return blocked_attempts
 
 
 class _UpdateResult:
@@ -159,21 +196,33 @@ class _MockDatabaseModule(ModuleType):
         raise AttributeError(f"Mock database has no attribute {name}")
 
 
-if "backend.app.database" not in sys.modules:
-    sys.modules["backend.app.database"] = _MockDatabaseModule("backend.app.database")
-
-from backend.routers.user import router as user_router, user_repo
-from backend.auth.config import JWT_SECRET, JWT_ALGORITHM
-
-
 class UserProfilePreservationTests(unittest.TestCase):
     def setUp(self):
+        stack = ExitStack()
+        self.addCleanup(stack.close)
+        self._blocked_attempts = _enter_isolation_context(stack)
+
+        from backend.routers.user import router as user_router, user_repo
+        from backend.auth.config import JWT_SECRET, JWT_ALGORITHM
+
+        stack.enter_context(
+            patch.dict(
+                globals(),
+                {
+                    "user_router": user_router,
+                    "user_repo": user_repo,
+                    "JWT_SECRET": JWT_SECRET,
+                    "JWT_ALGORITHM": JWT_ALGORITHM,
+                },
+            )
+        )
+
         self.app = FastAPI()
         self.app.include_router(user_router)
         self.client = TestClient(self.app)
 
         self.users_col = _MemoryUsersCollection()
-        user_repo.collection = self.users_col
+        stack.enter_context(patch.object(user_repo, "collection", self.users_col))
 
         self.user_id = ObjectId()
         self.email = "preservation_user@example.com"
@@ -204,6 +253,13 @@ class UserProfilePreservationTests(unittest.TestCase):
         self.users_col.insert_one(self.user_doc)
         self.token = jwt.encode({"email": self.email}, JWT_SECRET, algorithm=JWT_ALGORITHM)
         self.headers = {"Authorization": f"Bearer {self.token}"}
+
+    def tearDown(self):
+        self.assertEqual(
+            len(self._blocked_attempts),
+            0,
+            "External infrastructure access was attempted during test execution",
+        )
 
     def test_decimal_height_weight_exact_precision(self):
         payload = {

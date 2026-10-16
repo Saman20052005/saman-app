@@ -8,49 +8,87 @@ Tests verify:
 - Auth failure contract (401 response, no user_id or success payload).
 """
 
+from contextlib import ExitStack
 import copy
+import os
+from pathlib import Path
 import socket
 import sys
 from types import ModuleType
 import unittest
+from unittest.mock import patch
 from bson import ObjectId
 import dotenv
 import pymongo
 from fastapi import FastAPI, HTTPException
 from fastapi.testclient import TestClient
 
-# ---------------------------------------------------------------------------
-# 1. PRE-IMPORT ISOLATION GUARDS: Block real DB, sockets, and .env loading
-# ---------------------------------------------------------------------------
-
-_blocked_attempts = []
+_BACKEND_DIR = Path(__file__).resolve().parents[1]
 
 
-def _forbidden(*args, **kwargs):
-    _blocked_attempts.append(True)
-    raise AssertionError("External infrastructure access forbidden during isolated tests")
+def _enter_isolation_context(stack: ExitStack):
+    """Install socket, DB, env, and sys.modules guards on stack with guaranteed restoration."""
+    blocked_attempts = []
 
+    def _forbidden(*args, **kwargs):
+        blocked_attempts.append(True)
+        raise AssertionError("External infrastructure access forbidden during isolated tests")
 
-_orig_socket_connect = socket.socket.connect
-_orig_socketpair = socket.socketpair
+    base_connect = getattr(socket.socket.connect, "__wrapped__", socket.socket.connect)
+    orig_socketpair = socket.socketpair
 
+    def _guarded_connect(sock, address):
+        # Windows asyncio loopback connection allowed for TestClient/asyncio
+        if (
+            sys._getframe(1).f_code is getattr(orig_socketpair, "__code__", None)
+            and isinstance(address, tuple)
+            and len(address) >= 1
+            and address[0] in ("127.0.0.1", "::1")
+        ):
+            return base_connect(sock, address)
+        return _forbidden(sock, address)
 
-def _guarded_connect(sock, address):
-    # Windows asyncio loopback connection allowed for TestClient/asyncio
-    if (
-        sys._getframe(1).f_code is getattr(_orig_socketpair, "__code__", None)
-        and address[0] in ("127.0.0.1", "::1")
+    _guarded_connect.__wrapped__ = base_connect
+
+    stack.enter_context(patch.object(socket.socket, "connect", _guarded_connect))
+    stack.enter_context(patch.object(socket.socket, "connect_ex", _forbidden))
+    stack.enter_context(patch.object(socket, "create_connection", _forbidden))
+    stack.enter_context(patch.object(socket, "getaddrinfo", _forbidden))
+    stack.enter_context(patch.object(pymongo, "MongoClient", _forbidden))
+    stack.enter_context(patch.object(dotenv, "load_dotenv", lambda *args, **kwargs: False))
+    if hasattr(dotenv, "main") and hasattr(dotenv.main, "DotEnv"):
+        stack.enter_context(patch.object(dotenv.main, "DotEnv", _forbidden))
+
+    stack.enter_context(
+        patch.dict(
+            os.environ,
+            {
+                "JWT_SECRET": "isolated-identity-contract-jwt-secret",
+                "JWT_ALGORITHM": "HS256",
+            },
+        )
+    )
+    stack.enter_context(patch.dict(sys.modules))
+    for mod_name in list(sys.modules):
+        if mod_name == "backend" or mod_name.startswith("backend."):
+            del sys.modules[mod_name]
+
+    for pkg_name, pkg_path in (
+        ("backend", _BACKEND_DIR),
+        ("backend.app", _BACKEND_DIR / "app"),
+        ("backend.app.models", _BACKEND_DIR / "app" / "models"),
+        ("backend.app.repositories", _BACKEND_DIR / "app" / "repositories"),
+        ("backend.auth", _BACKEND_DIR / "auth"),
+        ("backend.routers", _BACKEND_DIR / "routers"),
+        ("backend.services", _BACKEND_DIR / "services"),
     ):
-        return _orig_socket_connect(sock, address)
-    return _forbidden(sock, address)
+        pkg = ModuleType(pkg_name)
+        pkg.__path__ = [str(pkg_path)]
+        pkg.__package__ = pkg_name
+        sys.modules[pkg_name] = pkg
 
-
-socket.socket.connect = _guarded_connect
-socket.socket.connect_ex = _forbidden
-socket.create_connection = _forbidden
-socket.getaddrinfo = _forbidden
-pymongo.MongoClient = _forbidden
-dotenv.load_dotenv = lambda *args, **kwargs: False
+    sys.modules["backend.app.database"] = _MockDatabaseModule("backend.app.database")
+    return blocked_attempts
 
 
 # In-memory mock collection for UserRepository instantiation without DB connection
@@ -97,29 +135,24 @@ class _MockDatabaseModule(ModuleType):
         raise AttributeError(f"Mock database has no attribute {name}")
 
 
-if "backend.app.database" not in sys.modules:
-    sys.modules["backend.app.database"] = _MockDatabaseModule("backend.app.database")
-
-from pathlib import Path
-
-_BACKEND_DIR = Path(__file__).resolve().parents[1]
-
-# Package isolation: define backend.routers package namespace so importing user router
-# does not trigger backend/routers/__init__.py (which pulls in food_analysis/torch/chat).
-if "backend.routers" not in sys.modules:
-    _routers_pkg = ModuleType("backend.routers")
-    _routers_pkg.__path__ = [str(_BACKEND_DIR / "routers")]
-    _routers_pkg.__package__ = "backend.routers"
-    sys.modules["backend.routers"] = _routers_pkg
-
-# ---------------------------------------------------------------------------
-# 2. IMPORT ROUTER AFTER ISOLATION IS ACTIVE
-# ---------------------------------------------------------------------------
-from backend.routers.user import router, get_current_user
-
-
 class UserProfileIdentityContractTests(unittest.TestCase):
     def setUp(self):
+        stack = ExitStack()
+        self.addCleanup(stack.close)
+        self._blocked_attempts = _enter_isolation_context(stack)
+
+        from backend.routers.user import router, get_current_user
+
+        stack.enter_context(
+            patch.dict(
+                globals(),
+                {
+                    "router": router,
+                    "get_current_user": get_current_user,
+                },
+            )
+        )
+
         self.app = FastAPI()
         self.app.include_router(router)
         self.client = TestClient(self.app)
@@ -128,7 +161,7 @@ class UserProfileIdentityContractTests(unittest.TestCase):
         self.app.dependency_overrides.clear()
         # Verify no external network calls were attempted
         self.assertEqual(
-            len(_blocked_attempts),
+            len(self._blocked_attempts),
             0,
             "External infrastructure access was attempted during test execution",
         )
