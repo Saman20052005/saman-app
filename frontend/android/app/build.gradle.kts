@@ -29,12 +29,16 @@ android {
         // ID ứng dụng của bạn
         applicationId = "com.example.health_ai_app"
         
-        // [FIX]: Ghi cứng Min SDK và Target SDK
-        minSdk = flutter.minSdkVersion 
+        // [W1-B PoC]: Min SDK set to 24 for MediaPipe Tasks Vision compatibility (baseline was 21)
+        minSdk = 24
         targetSdk = 34
         
         versionCode = flutter.versionCode()
         versionName = flutter.versionName()
+    }
+
+    aaptOptions {
+        noCompress("task")
     }
 
     buildTypes {
@@ -42,6 +46,15 @@ android {
             signingConfig = signingConfigs.getByName("debug")
         }
     }
+}
+
+dependencies {
+    implementation("com.google.mediapipe:tasks-vision:0.10.14")
+    implementation("androidx.camera:camera-core:1.3.4")
+    implementation("androidx.camera:camera-camera2:1.3.4")
+    implementation("androidx.camera:camera-lifecycle:1.3.4")
+    implementation("androidx.camera:camera-view:1.3.4")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
 }
 
 flutter {
