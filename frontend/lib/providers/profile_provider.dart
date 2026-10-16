@@ -251,10 +251,12 @@ class ProfileNotifier extends StateNotifier<ProfileState> {
 
         _applySnapshot(snapshot);
       } else {
-        // 404 or empty profile from backend -> incomplete state
+        // null or 404 from backend carries no confirmed owner identity;
+        // fail closed with error state permitting retry rather than admitting onboarding.
         state = ProfileState(
-          status: ProfileStatus.incomplete,
+          status: ProfileStatus.error,
           profile: ProfileEntity.empty(),
+          errorMessage: 'Profile snapshot not found',
         );
       }
     } on UnauthorizedException catch (e) {
