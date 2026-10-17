@@ -206,7 +206,7 @@ class _StepBodyViewState extends State<StepBodyView> {
                         ),
                         const SizedBox(height: 8),
                         Container(
-                          height: 72,
+                          height: 60,
                           padding: const EdgeInsets.symmetric(horizontal: 16),
                           decoration: BoxDecoration(
                             color: OnboardingTokens.surface,
@@ -215,6 +215,7 @@ class _StepBodyViewState extends State<StepBodyView> {
                             border: Border.all(color: OnboardingTokens.borderDefault),
                           ),
                           child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.center,
                             children: [
                               Expanded(
                                 child: TextField(
@@ -224,28 +225,35 @@ class _StepBodyViewState extends State<StepBodyView> {
                                   keyboardType: const TextInputType.numberWithOptions(
                                     decimal: true,
                                   ),
+                                  textAlignVertical: TextAlignVertical.center,
                                   inputFormatters: [
                                     FilteringTextInputFormatter.allow(
                                       RegExp(r'[0-9.,]'),
                                     ),
                                   ],
                                   style: const TextStyle(
-                                    fontSize: 30,
+                                    fontSize: 22,
                                     fontWeight: FontWeight.w600,
                                     color: OnboardingTokens.textPrimary,
-                                    letterSpacing: -0.5,
+                                    letterSpacing: -0.2,
                                   ),
                                   cursorColor: OnboardingTokens.textPrimary,
                                   decoration: const InputDecoration(
+                                    filled: true,
+                                    fillColor: Colors.transparent,
                                     border: InputBorder.none,
+                                    enabledBorder: InputBorder.none,
+                                    focusedBorder: InputBorder.none,
+                                    errorBorder: InputBorder.none,
+                                    focusedErrorBorder: InputBorder.none,
                                     hintText: 'Enter height',
                                     hintStyle: TextStyle(
-                                      fontSize: 17,
+                                      fontSize: 15,
                                       fontWeight: FontWeight.w400,
                                       color: OnboardingTokens.textDisabled,
                                     ),
                                     isDense: true,
-                                    contentPadding: EdgeInsets.zero,
+                                    contentPadding: EdgeInsets.symmetric(vertical: 14),
                                   ),
                                 ),
                               ),
@@ -253,7 +261,7 @@ class _StepBodyViewState extends State<StepBodyView> {
                                 'cm',
                                 style: TextStyle(
                                   fontSize: 14,
-                                  fontWeight: FontWeight.w400,
+                                  fontWeight: FontWeight.w500,
                                   color: OnboardingTokens.textSecondary,
                                 ),
                               ),
@@ -274,7 +282,7 @@ class _StepBodyViewState extends State<StepBodyView> {
                         ),
                         const SizedBox(height: 8),
                         Container(
-                          height: 72,
+                          height: 60,
                           padding: const EdgeInsets.symmetric(horizontal: 16),
                           decoration: BoxDecoration(
                             color: OnboardingTokens.surface,
@@ -283,6 +291,7 @@ class _StepBodyViewState extends State<StepBodyView> {
                             border: Border.all(color: OnboardingTokens.borderDefault),
                           ),
                           child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.center,
                             children: [
                               Expanded(
                                 child: TextField(
@@ -292,28 +301,35 @@ class _StepBodyViewState extends State<StepBodyView> {
                                   keyboardType: const TextInputType.numberWithOptions(
                                     decimal: true,
                                   ),
+                                  textAlignVertical: TextAlignVertical.center,
                                   inputFormatters: [
                                     FilteringTextInputFormatter.allow(
                                       RegExp(r'[0-9.,]'),
                                     ),
                                   ],
                                   style: const TextStyle(
-                                    fontSize: 30,
+                                    fontSize: 22,
                                     fontWeight: FontWeight.w600,
                                     color: OnboardingTokens.textPrimary,
-                                    letterSpacing: -0.5,
+                                    letterSpacing: -0.2,
                                   ),
                                   cursorColor: OnboardingTokens.textPrimary,
                                   decoration: const InputDecoration(
+                                    filled: true,
+                                    fillColor: Colors.transparent,
                                     border: InputBorder.none,
+                                    enabledBorder: InputBorder.none,
+                                    focusedBorder: InputBorder.none,
+                                    errorBorder: InputBorder.none,
+                                    focusedErrorBorder: InputBorder.none,
                                     hintText: 'Enter weight',
                                     hintStyle: TextStyle(
-                                      fontSize: 17,
+                                      fontSize: 15,
                                       fontWeight: FontWeight.w400,
                                       color: OnboardingTokens.textDisabled,
                                     ),
                                     isDense: true,
-                                    contentPadding: EdgeInsets.zero,
+                                    contentPadding: EdgeInsets.symmetric(vertical: 14),
                                   ),
                                 ),
                               ),
@@ -321,7 +337,7 @@ class _StepBodyViewState extends State<StepBodyView> {
                                 'kg',
                                 style: TextStyle(
                                   fontSize: 14,
-                                  fontWeight: FontWeight.w400,
+                                  fontWeight: FontWeight.w500,
                                   color: OnboardingTokens.textSecondary,
                                 ),
                               ),

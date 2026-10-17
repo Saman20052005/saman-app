@@ -184,7 +184,7 @@ class _StepAgeGenderViewState extends State<StepAgeGenderView> {
                         ),
                         const SizedBox(height: 8),
                         Container(
-                          height: 72,
+                          height: 60,
                           padding: const EdgeInsets.symmetric(horizontal: 16),
                           decoration: BoxDecoration(
                             color: OnboardingTokens.surface,
@@ -193,6 +193,7 @@ class _StepAgeGenderViewState extends State<StepAgeGenderView> {
                             border: Border.all(color: OnboardingTokens.borderDefault),
                           ),
                           child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.center,
                             children: [
                               Expanded(
                                 child: TextField(
@@ -200,27 +201,34 @@ class _StepAgeGenderViewState extends State<StepAgeGenderView> {
                                   controller: _ageController,
                                   onChanged: _onAgeTextChanged,
                                   keyboardType: TextInputType.number,
+                                  textAlignVertical: TextAlignVertical.center,
                                   inputFormatters: [
                                     FilteringTextInputFormatter.digitsOnly,
                                     LengthLimitingTextInputFormatter(3),
                                   ],
                                   style: const TextStyle(
-                                    fontSize: 30,
+                                    fontSize: 22,
                                     fontWeight: FontWeight.w600,
                                     color: OnboardingTokens.textPrimary,
-                                    letterSpacing: -0.5,
+                                    letterSpacing: -0.2,
                                   ),
                                   cursorColor: OnboardingTokens.textPrimary,
                                   decoration: const InputDecoration(
+                                    filled: true,
+                                    fillColor: Colors.transparent,
                                     border: InputBorder.none,
+                                    enabledBorder: InputBorder.none,
+                                    focusedBorder: InputBorder.none,
+                                    errorBorder: InputBorder.none,
+                                    focusedErrorBorder: InputBorder.none,
                                     hintText: 'Enter your age',
                                     hintStyle: TextStyle(
-                                      fontSize: 20,
-                                      fontWeight: FontWeight.w500,
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.w400,
                                       color: OnboardingTokens.textDisabled,
                                     ),
                                     isDense: true,
-                                    contentPadding: EdgeInsets.zero,
+                                    contentPadding: EdgeInsets.symmetric(vertical: 14),
                                   ),
                                 ),
                               ),
@@ -228,8 +236,8 @@ class _StepAgeGenderViewState extends State<StepAgeGenderView> {
                                 'YEARS',
                                 style: TextStyle(
                                   fontSize: 12,
-                                  fontWeight: FontWeight.w500,
-                                  color: OnboardingTokens.textMuted,
+                                  fontWeight: FontWeight.w600,
+                                  color: OnboardingTokens.textSecondary,
                                   letterSpacing: 0.8,
                                 ),
                               ),
