@@ -6,6 +6,8 @@ import '../../data/repositories/exercise_repository_impl.dart';
 import '../../services/api_client.dart';
 import 'active_workout_providers.dart';
 
+import '../../utils/auth_helper.dart';
+
 part 'workout_history_providers.g.dart';
 
 /// Represents the active user/account scope for workout data.
@@ -21,6 +23,10 @@ final workoutSessionRepositoryProvider = Provider<ExerciseRepository>((ref) {
 @riverpod
 Future<List<WorkoutSession>> workoutHistory(WorkoutHistoryRef ref) async {
   ref.watch(workoutAuthScopeProvider);
+  final isLoggingOut = ref.watch(authLoggingOutProvider);
+  if (isLoggingOut) return const [];
+  final token = await AuthHelper.getToken();
+  if (token == null || token.isEmpty) return const [];
   final repo = ref.watch(workoutSessionRepositoryProvider);
   return repo.getWorkoutHistory();
 }
