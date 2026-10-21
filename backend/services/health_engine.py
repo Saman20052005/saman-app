@@ -51,19 +51,48 @@ class HealthEngine:
         Sử dụng công thức Mifflin-St Jeor (Chuẩn y khoa hiện nay).
         """
         
-        # 1. Tính BMI (Body Mass Index)
-        # Công thức: Cân nặng (kg) / (Chiều cao (m) ^ 2)
-        height_m = profile.height / 100
-        bmi = round(profile.weight / (height_m ** 2), 1)
+        import math
 
-        if profile.weight is None or profile.height is None or profile.age is None or profile.gender is None:
+        weight = profile.get("weight") if isinstance(profile, dict) else getattr(profile, "weight", None)
+        height = profile.get("height") if isinstance(profile, dict) else getattr(profile, "height", None)
+        age = profile.get("age") if isinstance(profile, dict) else getattr(profile, "age", None)
+        gender = profile.get("gender") if isinstance(profile, dict) else getattr(profile, "gender", None)
+        activity_level = profile.get("activity_level") if isinstance(profile, dict) else getattr(profile, "activity_level", None)
+        goal = profile.get("goal") if isinstance(profile, dict) else getattr(profile, "goal", None)
+
+        if (
+            weight is None
+            or height is None
+            or age is None
+            or gender is None
+            or activity_level is None
+            or goal is None
+        ):
             raise ValueError("Missing required profile fields for TDEE calculation")
 
-        gender_str = profile.gender.value if hasattr(profile.gender, "value") else str(profile.gender)
+        try:
+            w_float = float(weight)
+            h_float = float(height)
+            a_int = int(age)
+        except (ValueError, TypeError):
+            raise ValueError("Invalid numeric values for profile fields")
+
+        if not math.isfinite(w_float) or w_float <= 0:
+            raise ValueError("Weight must be a positive finite number")
+        if not math.isfinite(h_float) or h_float <= 0:
+            raise ValueError("Height must be a positive finite number")
+        if a_int < 13 or a_int > 120:
+            raise ValueError("Age must be between 13 and 120")
+
+        # 1. Tính BMI (Body Mass Index)
+        height_m = h_float / 100
+        bmi = round(w_float / (height_m ** 2), 1)
+
+        gender_str = gender.value if hasattr(gender, "value") else str(gender)
         if gender_str not in ("male", "female"):
             gender_str = "female"
 
-        activity_level = profile.activity_level.value if hasattr(profile.activity_level, "value") else str(profile.activity_level or "")
+        act_str = activity_level.value if hasattr(activity_level, "value") else str(activity_level or "")
         activity_map = {
             "low": "sedentary",
             "medium": "moderate",
@@ -74,18 +103,18 @@ class HealthEngine:
             "active": "active",
             "very_active": "very_active",
         }
-        activity_level_norm = activity_map.get(activity_level, "moderate")
+        activity_level_norm = activity_map.get(act_str, "moderate")
 
-        goal_val = profile.goal.value if hasattr(profile.goal, "value") else str(profile.goal or "")
+        goal_val = goal.value if hasattr(goal, "value") else str(goal or "")
         goal_norm = goal_val
         if goal_norm == "maintain_weight":
             goal_norm = "maintain"
 
         tdee_result = calculate_tdee(
             {
-                "weight": float(profile.weight),
-                "height": float(profile.height),
-                "age": int(profile.age),
+                "weight": w_float,
+                "height": h_float,
+                "age": a_int,
                 "gender": gender_str,
                 "activity_level": activity_level_norm,
                 "goal": goal_norm,
@@ -94,13 +123,12 @@ class HealthEngine:
 
         bmr = None
         if gender_str == "male":
-            bmr = 10 * float(profile.weight) + 6.25 * float(profile.height) - 5 * int(profile.age) + 5
+            bmr = 10 * w_float + 6.25 * h_float - 5 * a_int + 5
         else:
-            bmr = 10 * float(profile.weight) + 6.25 * float(profile.height) - 5 * int(profile.age) - 161
+            bmr = 10 * w_float + 6.25 * h_float - 5 * a_int - 161
 
         # 6. Tính lượng nước cần uống (Water Intake)
-        # Công thức: Cân nặng (kg) * 35ml
-        water_target = int(profile.weight * 35)
+        water_target = int(w_float * 35)
 
         return UserHealthStats(
             bmi=bmi,

@@ -10,6 +10,8 @@ import 'package:health_ai_app/config/api_config.dart';
 import 'package:health_ai_app/config/app_theme.dart';
 import 'package:health_ai_app/features/profile/data/datasources/profile_remote_data_source.dart';
 import 'package:health_ai_app/features/profile/data/models/profile_model.dart';
+import 'package:health_ai_app/features/profile/data/models/profile_snapshot_model.dart';
+import 'package:health_ai_app/features/profile/domain/entities/onboarding_draft.dart';
 import 'package:health_ai_app/features/profile/domain/entities/profile_entity.dart';
 import 'package:health_ai_app/features/profile/domain/entities/profile_snapshot.dart';
 import 'package:health_ai_app/features/profile/domain/repositories/profile_repository.dart';
@@ -58,6 +60,7 @@ class _MockProfileRepository implements ProfileRepository {
     }
     // Update local snapshotToReturn so subsequent fetch returns the new profile
     snapshotToReturn = ProfileSnapshot(
+      userId: profile.userId ?? 'test_owner',
       profile: profile,
       targetCalories: 2200,
     );
@@ -67,7 +70,16 @@ class _MockProfileRepository implements ProfileRepository {
   Future<void> cacheSnapshot(ProfileSnapshot snapshot) async {}
 
   @override
-  Future<void> clearLocalProfile() async {}
+  Future<void> clearLocalProfile({String? userId}) async {}
+
+  @override
+  Future<void> saveDraft(OnboardingDraft draft) async {}
+
+  @override
+  Future<OnboardingDraft?> getDraft(String userId) async => null;
+
+  @override
+  Future<void> clearDraft(String userId) async {}
 }
 
 class _FakeNutritionNotifier
@@ -133,12 +145,27 @@ Widget _createTestApp({
       if (prefs != null) sharedPreferencesProvider.overrideWithValue(prefs),
       secureStorageProvider.overrideWithValue(const FlutterSecureStorage()),
       profileRepositoryProvider.overrideWithValue(repository),
-      if (initialState != null)
-        profileProvider.overrideWith((ref) {
-          final notifier = ProfileNotifier(repository);
-          notifier.state = initialState;
-          return notifier;
-        }),
+      profileProvider.overrideWith((ref) {
+        final notifier = ProfileNotifier(repository);
+        notifier.state = initialState ??
+            ProfileState(
+              status: ProfileStatus.ready,
+              confirmedUserId: 'usr_mock_owner',
+              isNetworkConfirmed: true,
+              isFromCache: false,
+              profile: const ProfileEntity(
+                userId: 'usr_mock_owner',
+                age: 28,
+                height: 175,
+                weight: 70,
+                gender: Gender.male,
+                goal: Goal.maintain_weight,
+                activityLevel: ActivityLevel.medium,
+                activityCanonical: 'moderate',
+              ),
+            );
+        return notifier;
+      }),
       nutritionProvider.overrideWith((ref) => _FakeNutritionNotifier()),
     ],
     child: MaterialApp(
@@ -342,7 +369,15 @@ void main() {
         repository: repo,
       );
 
-      // Leave fields empty and tap save
+      // Clear fields and tap save
+      await tester.enterText(
+          find.byKey(const Key('edit_profile_age_input')), '');
+      await tester.enterText(
+          find.byKey(const Key('edit_profile_height_input')), '');
+      await tester.enterText(
+          find.byKey(const Key('edit_profile_weight_input')), '');
+      await tester.pump();
+
       await tester
           .ensureVisible(find.byKey(const Key('edit_profile_save_button')));
       await tester.tap(find.byKey(const Key('edit_profile_save_button')));
@@ -522,12 +557,22 @@ void main() {
       await tester.enterText(
           find.byKey(const Key('edit_profile_weight_input')), '78.5');
 
-      // Tap Goal = gain_muscle
-      await tester.ensureVisible(find.byKey(const Key('enum_gain_muscle')));
+      // Tap Goal = gain_muscle via sheet
+      await tester.ensureVisible(find.byKey(const Key('edit_profile_goal_tile')));
+      await tester.tap(find.byKey(const Key('edit_profile_goal_tile')));
+      await tester.pumpAndSettle();
       await tester.tap(find.byKey(const Key('enum_gain_muscle')));
-      // Tap ActivityLevel = high
-      await tester.ensureVisible(find.byKey(const Key('enum_high')));
-      await tester.tap(find.byKey(const Key('enum_high')));
+      await tester.tap(find.text('Apply'));
+      await tester.pumpAndSettle();
+
+      // Tap ActivityLevel = high via sheet
+      await tester.ensureVisible(find.byKey(const Key('edit_profile_activity_tile')));
+      await tester.tap(find.byKey(const Key('edit_profile_activity_tile')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('activity_option_active')));
+      await tester.tap(find.text('Apply'));
+      await tester.pumpAndSettle();
+
       // Tap Gender = female
       await tester.ensureVisible(find.byKey(const Key('enum_female')));
       await tester.tap(find.byKey(const Key('enum_female')));
@@ -785,6 +830,23 @@ void main() {
       );
       addTearDown(container.dispose);
 
+      container.read(profileProvider.notifier).state = ProfileState(
+        status: ProfileStatus.ready,
+        confirmedUserId: 'usr_test_owner',
+        isNetworkConfirmed: true,
+        isFromCache: false,
+        profile: const ProfileEntity(
+          userId: 'usr_test_owner',
+          age: 30,
+          height: 170,
+          weight: 70,
+          gender: Gender.male,
+          goal: Goal.maintain_weight,
+          activityLevel: ActivityLevel.medium,
+          activityCanonical: 'moderate',
+        ),
+      );
+
       await tester.pumpWidget(
         UncontrolledProviderScope(
           container: container,
@@ -833,6 +895,21 @@ void main() {
         (tester) async {
       setMobileView(tester);
       final repo = _MockProfileRepository();
+      const initialProfile = ProfileEntity(
+        userId: 'usr_test_owner',
+        age: 25,
+        height: 175,
+        weight: 70,
+        gender: Gender.male,
+        goal: Goal.maintain_weight,
+        activityLevel: ActivityLevel.medium,
+        activityCanonical: 'moderate',
+      );
+      repo.snapshotToReturn = const ProfileSnapshot(
+        userId: 'usr_test_owner',
+        profile: initialProfile,
+        targetCalories: 2200,
+      );
 
       await tester.pumpWidget(
         ProviderScope(
@@ -840,6 +917,17 @@ void main() {
             secureStorageProvider
                 .overrideWithValue(const FlutterSecureStorage()),
             profileRepositoryProvider.overrideWithValue(repo),
+            profileProvider.overrideWith((ref) {
+              final notifier = ProfileNotifier(repo);
+              notifier.state = ProfileState(
+                status: ProfileStatus.ready,
+                confirmedUserId: 'usr_test_owner',
+                isNetworkConfirmed: true,
+                isFromCache: false,
+                profile: initialProfile,
+              );
+              return notifier;
+            }),
           ],
           child: MaterialApp(
             theme: SamanTheme.dark(),
@@ -853,7 +941,7 @@ void main() {
       expect(repo.fetchCount, equals(0));
 
       // Open Edit Screen via CTA
-      await tester.tap(find.byKey(const Key('complete_profile_cta_button')));
+      await tester.tap(find.byKey(const Key('edit_profile_cta_button')));
       await tester.pumpAndSettle();
       expect(find.byType(EditHealthProfileScreen), findsOneWidget);
 
@@ -867,6 +955,28 @@ void main() {
       await tester.enterText(
           find.byKey(const Key('edit_profile_weight_input')), '75');
       await tester.pump();
+
+      // This case's fresh GET returns an explicit server payload after save.
+      // Keep the shared mock and initial snapshot unconfirmed by default.
+      repo.fetchCompleter = Completer<ProfileSnapshot?>()
+        ..complete(ProfileSnapshotModel.fromJson({
+          'user_id': 'usr_test_owner',
+          'profile': {
+            'age': 27,
+            'height': 180,
+            'weight': 75,
+            'gender': 'male',
+            'goal': 'maintain_weight',
+            'activity_level': 'moderate',
+          },
+          'health_stats': {
+            'daily_calories': 2705,
+            'target_protein': 150,
+            'target_carbs': 357,
+            'target_fat': 75,
+            'water_target_ml': 2625,
+          },
+        }));
 
       // Tap save
       await tester
@@ -919,7 +1029,12 @@ void main() {
     testWidgets(
         'Nutrition redirect switches tab to Profile without pushing second route',
         (tester) async {
-      final repo = _MockProfileRepository();
+      final repo = _MockProfileRepository()
+        ..snapshotToReturn = const ProfileSnapshot(
+          userId: 'usr_incomplete_owner',
+          profile: ProfileEntity(userId: 'usr_incomplete_owner'),
+          isFromCache: false,
+        );
 
       await _pumpTestApp(
         tester,
@@ -1071,10 +1186,22 @@ void main() {
       );
       await tester.pump();
 
-      // Late profile arrives with ONLY gender = female
+      // Late profile arrives with confirmed owner and gender = female
       container.read(profileProvider.notifier).state = ProfileState(
         status: ProfileStatus.ready,
-        profile: const ProfileEntity(gender: Gender.female),
+        confirmedUserId: 'usr_valid_owner',
+        isNetworkConfirmed: true,
+        isFromCache: false,
+        profile: const ProfileEntity(
+          userId: 'usr_valid_owner',
+          gender: Gender.female,
+          age: 30,
+          height: 170,
+          weight: 65,
+          goal: Goal.maintain_weight,
+          activityLevel: ActivityLevel.medium,
+          activityCanonical: 'moderate',
+        ),
       );
       await tester.pump();
 
@@ -1120,10 +1247,22 @@ void main() {
       );
       await tester.pump();
 
-      // Late profile arrives with ONLY activityLevel = high
+      // Late profile arrives with confirmed owner and activityLevel = high
       container.read(profileProvider.notifier).state = ProfileState(
         status: ProfileStatus.ready,
-        profile: const ProfileEntity(activityLevel: ActivityLevel.high),
+        confirmedUserId: 'usr_valid_owner',
+        isNetworkConfirmed: true,
+        isFromCache: false,
+        profile: const ProfileEntity(
+          userId: 'usr_valid_owner',
+          age: 30,
+          height: 170,
+          weight: 65,
+          gender: Gender.male,
+          goal: Goal.maintain_weight,
+          activityLevel: ActivityLevel.high,
+          activityCanonical: 'high',
+        ),
       );
       await tester.pump();
 
@@ -1169,10 +1308,22 @@ void main() {
       );
       await tester.pump();
 
-      // Late profile arrives with ONLY goal = gain_muscle
+      // Late profile arrives with confirmed owner and goal = gain_muscle
       container.read(profileProvider.notifier).state = ProfileState(
         status: ProfileStatus.ready,
-        profile: const ProfileEntity(goal: Goal.gain_muscle),
+        confirmedUserId: 'usr_valid_owner',
+        isNetworkConfirmed: true,
+        isFromCache: false,
+        profile: const ProfileEntity(
+          userId: 'usr_valid_owner',
+          age: 30,
+          height: 170,
+          weight: 65,
+          gender: Gender.male,
+          goal: Goal.gain_muscle,
+          activityLevel: ActivityLevel.medium,
+          activityCanonical: 'moderate',
+        ),
       );
       await tester.pump();
 
@@ -1219,14 +1370,29 @@ void main() {
       await tester.pump();
 
       // User actively selects Goal = lose_weight first (marks form dirty)
-      await tester.ensureVisible(find.byKey(const Key('enum_lose_weight')));
+      await tester.ensureVisible(find.byKey(const Key('edit_profile_goal_tile')));
+      await tester.tap(find.byKey(const Key('edit_profile_goal_tile')));
+      await tester.pumpAndSettle();
       await tester.tap(find.byKey(const Key('enum_lose_weight')));
-      await tester.pump();
+      await tester.tap(find.text('Apply'));
+      await tester.pumpAndSettle();
 
-      // Now late profile arrives with goal = gain_muscle
+      // Now late profile arrives with confirmed owner and goal = gain_muscle
       container.read(profileProvider.notifier).state = ProfileState(
         status: ProfileStatus.ready,
-        profile: const ProfileEntity(goal: Goal.gain_muscle),
+        confirmedUserId: 'usr_valid_owner',
+        isNetworkConfirmed: true,
+        isFromCache: false,
+        profile: const ProfileEntity(
+          userId: 'usr_valid_owner',
+          age: 30,
+          height: 170,
+          weight: 65,
+          gender: Gender.male,
+          goal: Goal.gain_muscle,
+          activityLevel: ActivityLevel.medium,
+          activityCanonical: 'moderate',
+        ),
       );
       await tester.pump();
 

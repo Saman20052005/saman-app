@@ -4,6 +4,7 @@ import '../../domain/entities/profile_snapshot.dart';
 
 class ProfileSnapshotModel extends ProfileSnapshot {
   const ProfileSnapshotModel({
+    super.userId,
     required super.profile,
     super.targetCalories = 0,
     super.targetProtein = 0,
@@ -15,11 +16,13 @@ class ProfileSnapshotModel extends ProfileSnapshot {
     super.fullName,
     super.avatar,
     super.isFromCache = false,
+    super.hasConfirmedServerHealthStats = false,
   });
 
   factory ProfileSnapshotModel.fromSnapshot(ProfileSnapshot snapshot) {
     if (snapshot is ProfileSnapshotModel) return snapshot;
     return ProfileSnapshotModel(
+      userId: snapshot.userId,
       profile: snapshot.profile,
       targetCalories: snapshot.targetCalories,
       targetProtein: snapshot.targetProtein,
@@ -31,6 +34,7 @@ class ProfileSnapshotModel extends ProfileSnapshot {
       fullName: snapshot.fullName,
       avatar: snapshot.avatar,
       isFromCache: snapshot.isFromCache,
+      hasConfirmedServerHealthStats: snapshot.hasConfirmedServerHealthStats,
     );
   }
 
@@ -38,25 +42,65 @@ class ProfileSnapshotModel extends ProfileSnapshot {
     Map<String, dynamic> json, {
     bool isFromCache = false,
   }) {
-    ProfileEntity profileEntity = ProfileEntity.empty();
+    // 0. Parse userId
+    final rawUserId = json['user_id'] ?? json['userId'];
+    final String? userId = (rawUserId is String && rawUserId.trim().isNotEmpty)
+        ? rawUserId.trim()
+        : null;
+
+    ProfileEntity profileEntity = ProfileEntity.empty(userId: userId);
 
     // 1. Parse Profile
     if (json['profile'] is Map<String, dynamic>) {
-      profileEntity =
+      final parsedProfile =
           ProfileModel.fromJson(json['profile'] as Map<String, dynamic>);
+      profileEntity = ProfileEntity(
+        userId: userId,
+        age: parsedProfile.age,
+        height: parsedProfile.height,
+        weight: parsedProfile.weight,
+        gender: parsedProfile.rawGender,
+        activityLevel: parsedProfile.rawActivityLevel,
+        activityCanonical: parsedProfile.rawActivityCanonical,
+        goal: parsedProfile.rawGoal,
+        allergies: parsedProfile.allergies,
+      );
     } else if (json.containsKey('height') ||
         json.containsKey('weight') ||
         json.containsKey('age')) {
       // Legacy flat profile support
-      profileEntity = ProfileModel.fromJson(json);
+      final parsedProfile = ProfileModel.fromJson(json);
+      profileEntity = ProfileEntity(
+        userId: userId,
+        age: parsedProfile.age,
+        height: parsedProfile.height,
+        weight: parsedProfile.weight,
+        gender: parsedProfile.rawGender,
+        activityLevel: parsedProfile.rawActivityLevel,
+        activityCanonical: parsedProfile.rawActivityCanonical,
+        goal: parsedProfile.rawGoal,
+        allergies: parsedProfile.allergies,
+      );
     }
 
     // 2. Parse Health Stats
-    final healthStats = json['health_stats'] as Map<String, dynamic>? ?? {};
+    final rawStats = json['health_stats'];
+    final healthStats =
+        rawStats is Map<String, dynamic> ? rawStats : <String, dynamic>{};
+    // Inspect raw values before legacy defaults, coercion, or rounding.
+    // No sign/medical thresholds: the API only guarantees numeric fields.
+    final hasServerStats = rawStats is Map<String, dynamic> &&
+        [
+          healthStats['daily_calories'] ?? healthStats['daily_calorie_needs'],
+          healthStats['target_protein'],
+          healthStats['target_carbs'],
+          healthStats['target_fat'],
+          healthStats['water_target_ml'],
+        ].every((value) => value is num && value.isFinite);
     final calories = _toInt(
       healthStats['daily_calories'] ??
-          healthStats['target_calories'] ??
           healthStats['daily_calorie_needs'] ??
+          healthStats['target_calories'] ??
           json['targetCalories'],
     );
     final protein =
@@ -68,6 +112,7 @@ class ProfileSnapshotModel extends ProfileSnapshot {
     final burned = _toInt(healthStats['target_burned'] ?? json['targetBurned']);
 
     return ProfileSnapshotModel(
+      userId: userId,
       profile: profileEntity,
       targetCalories: calories,
       targetProtein: protein,
@@ -79,11 +124,13 @@ class ProfileSnapshotModel extends ProfileSnapshot {
       fullName: json['full_name'] as String? ?? json['fullName'] as String?,
       avatar: json['avatar'] as String?,
       isFromCache: isFromCache,
+      hasConfirmedServerHealthStats: hasServerStats && !isFromCache,
     );
   }
 
   Map<String, dynamic> toJson() {
     return {
+      if (userId != null) 'user_id': userId,
       'profile': (profile is ProfileModel)
           ? (profile as ProfileModel).toJson()
           : ProfileModel.fromEntity(profile).toJson(),
@@ -104,7 +151,7 @@ class ProfileSnapshotModel extends ProfileSnapshot {
   static int _toInt(dynamic val) {
     if (val == null) return 0;
     if (val is int) return val;
-    if (val is double) return val.round();
+    if (val is double) return val.isFinite ? val.round() : 0;
     if (val is String) return int.tryParse(val) ?? 0;
     return 0;
   }

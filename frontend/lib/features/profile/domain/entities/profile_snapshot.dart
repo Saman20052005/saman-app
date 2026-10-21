@@ -3,6 +3,7 @@ import 'profile_entity.dart';
 /// Unified domain entity aggregating athlete health profile,
 /// calculated targets, and identity fields from a single response.
 class ProfileSnapshot {
+  final String? userId;
   final ProfileEntity profile;
   final int targetCalories;
   final int targetProtein;
@@ -15,7 +16,12 @@ class ProfileSnapshot {
   final String? avatar;
   final bool isFromCache;
 
+  /// Required raw health_stats fields were finite JSON numbers in this
+  /// network response. This does not verify their formula or revision.
+  final bool hasConfirmedServerHealthStats;
+
   const ProfileSnapshot({
+    this.userId,
     required this.profile,
     this.targetCalories = 0,
     this.targetProtein = 0,
@@ -27,12 +33,15 @@ class ProfileSnapshot {
     this.fullName,
     this.avatar,
     this.isFromCache = false,
-  });
+    bool hasConfirmedServerHealthStats = false,
+  }) : hasConfirmedServerHealthStats =
+            hasConfirmedServerHealthStats && !isFromCache;
 
-  factory ProfileSnapshot.empty() =>
-      ProfileSnapshot(profile: ProfileEntity.empty());
+  factory ProfileSnapshot.empty({String? userId}) =>
+      ProfileSnapshot(userId: userId, profile: ProfileEntity.empty(userId: userId));
 
   ProfileSnapshot copyWith({
+    String? userId,
     ProfileEntity? profile,
     int? targetCalories,
     int? targetProtein,
@@ -46,6 +55,7 @@ class ProfileSnapshot {
     bool? isFromCache,
   }) {
     return ProfileSnapshot(
+      userId: userId ?? this.userId,
       profile: profile ?? this.profile,
       targetCalories: targetCalories ?? this.targetCalories,
       targetProtein: targetProtein ?? this.targetProtein,
@@ -57,6 +67,7 @@ class ProfileSnapshot {
       fullName: fullName ?? this.fullName,
       avatar: avatar ?? this.avatar,
       isFromCache: isFromCache ?? this.isFromCache,
+      hasConfirmedServerHealthStats: hasConfirmedServerHealthStats,
     );
   }
 }

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 // Import các màn hình chính
 import '../screens/splash_screen.dart'; // Đảm bảo bạn có file này (hoặc thay bằng Login nếu chưa có)
 import '../screens/login/login_screen.dart';
-import '../screens/main_screen.dart';
+import '../features/profile/presentation/profile_gate.dart';
 
 class AppRoutes {
   // 1. Định nghĩa Constants (Tránh gõ sai string)
@@ -27,7 +27,7 @@ class AppRoutes {
         return MaterialPageRoute(builder: (_) => const LoginScreen());
 
       case main:
-        return MaterialPageRoute(builder: (_) => const MainScreen());
+        return MaterialPageRoute(builder: (_) => const ProfileGate());
 
       // Mặc định: Trả về trang lỗi hoặc Login nếu không tìm thấy route
       default:

@@ -1,4 +1,4 @@
-﻿// [File: lib/screens/main_screen.dart]
+// [File: lib/screens/main_screen.dart]
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -21,9 +21,14 @@ import '../providers/profile_provider.dart';
 final mainNavIndexProvider = StateProvider<int>((ref) => 0);
 
 class MainScreen extends ConsumerStatefulWidget {
-  const MainScreen({super.key, this.onUnauthorizedLogout});
+  const MainScreen({
+    super.key,
+    this.onUnauthorizedLogout,
+    this.loadProfileOnInit = true,
+  });
 
   final VoidCallback? onUnauthorizedLogout;
+  final bool loadProfileOnInit;
 
   @override
   ConsumerState<MainScreen> createState() => _MainScreenState();
@@ -35,13 +40,15 @@ class _MainScreenState extends ConsumerState<MainScreen> {
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) return;
-      // Validate this session without reusing pre-login state or requests.
-      final profileNotifier = ref.read(profileProvider.notifier);
-      profileNotifier.resetSession();
-      profileNotifier.loadProfile();
-    });
+    if (widget.loadProfileOnInit) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        // Validate this session without reusing pre-login state or requests.
+        final profileNotifier = ref.read(profileProvider.notifier);
+        profileNotifier.resetSession();
+        profileNotifier.loadProfile();
+      });
+    }
   }
 
   Future<void> _handleUnauthorized() async {

@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:health_ai_app/features/profile/data/datasources/profile_remote_data_source.dart';
+import 'package:health_ai_app/features/profile/domain/entities/onboarding_draft.dart';
 import 'package:health_ai_app/features/profile/domain/entities/profile_entity.dart';
 import 'package:health_ai_app/features/profile/domain/entities/profile_snapshot.dart';
 import 'package:health_ai_app/features/profile/domain/repositories/profile_repository.dart';
@@ -56,10 +57,31 @@ class _MockProfileRepository implements ProfileRepository {
   Future<void> syncProfile(ProfileEntity profile) async {}
 
   @override
-  Future<void> clearLocalProfile() {
+  Future<void> clearLocalProfile({String? userId}) {
     return _enqueueMutation(() async {
       cachedSnapshots.clear();
     });
+  }
+
+  final Map<String, OnboardingDraft> drafts = {};
+  int draftReads = 0;
+  int draftWrites = 0;
+
+  @override
+  Future<void> saveDraft(OnboardingDraft draft) async {
+    draftWrites++;
+    drafts[draft.userId] = draft;
+  }
+
+  @override
+  Future<OnboardingDraft?> getDraft(String userId) async {
+    draftReads++;
+    return drafts[userId];
+  }
+
+  @override
+  Future<void> clearDraft(String userId) async {
+    drafts.remove(userId);
   }
 }
 
@@ -321,7 +343,23 @@ void main() {
     });
 
     test(
-        'sets status to incomplete when profile snapshot is null (e.g. 404/empty)',
+        'sets status to incomplete when profile snapshot has valid identity but empty profile',
+        () async {
+      final repo = _MockProfileRepository();
+      repo.snapshotToReturn = const ProfileSnapshot(
+        userId: 'user_empty_profile_1',
+        profile: ProfileEntity(userId: 'user_empty_profile_1'),
+      );
+
+      final notifier = ProfileNotifier(repo);
+      await notifier.loadProfile();
+
+      expect(notifier.state.status, equals(ProfileStatus.incomplete));
+      expect(notifier.state.isIncomplete, isTrue);
+    });
+
+    test(
+        'sets status to error when profile snapshot is null (404/no data)',
         () async {
       final repo = _MockProfileRepository();
       repo.snapshotToReturn = null;
@@ -329,8 +367,8 @@ void main() {
       final notifier = ProfileNotifier(repo);
       await notifier.loadProfile();
 
-      expect(notifier.state.status, equals(ProfileStatus.incomplete));
-      expect(notifier.state.isIncomplete, isTrue);
+      expect(notifier.state.status, equals(ProfileStatus.error));
+      expect(notifier.state.hasError, isTrue);
     });
 
     test('sets status to offline when snapshot comes from cache fallback',
@@ -361,6 +399,114 @@ void main() {
 
       expect(notifier.state.status, equals(ProfileStatus.error));
       expect(notifier.state.hasError, isTrue);
+    });
+  });
+
+  group('ProfileNotifier - Owner-scoped onboarding draft API', () {
+    ProfileSnapshot incompleteSnapshot(String id,
+            {int? age, bool fromCache = false}) =>
+        ProfileSnapshot(
+          userId: id,
+          profile: ProfileEntity(userId: id, age: age),
+          isFromCache: fromCache,
+        );
+
+    test('unconfirmed cache identity cannot read or write any draft',
+        () async {
+      final repo = _MockProfileRepository();
+      repo.snapshotToReturn =
+          incompleteSnapshot('user_a', age: 30, fromCache: true);
+      final notifier = ProfileNotifier(repo);
+      await notifier.loadProfile();
+
+      expect(notifier.state.confirmedUserId, isNull);
+      await expectLater(
+        notifier.saveOnboardingDraft(const OnboardingDraft(userId: 'user_a')),
+        throwsStateError,
+      );
+      expect(await notifier.getOnboardingDraft(), isNull);
+      expect(await notifier.restoreOnboardingDraft(), isNull);
+      expect(repo.draftWrites, equals(0));
+      expect(repo.draftReads, equals(0));
+    });
+
+    test(
+        'API takes owner only from confirmed state: foreign owner rejected, '
+        'valid draft restores without mutating the snapshot', () async {
+      final repo = _MockProfileRepository();
+      repo.snapshotToReturn = incompleteSnapshot('user_a', age: 30);
+      final notifier = ProfileNotifier(repo);
+      await notifier.loadProfile();
+
+      await expectLater(
+        notifier.saveOnboardingDraft(const OnboardingDraft(userId: 'user_b')),
+        throwsStateError,
+      );
+      expect(repo.draftWrites, equals(0));
+
+      final confirmed = notifier.state.snapshot!;
+      final draft = OnboardingDraft.forSnapshot(
+        confirmed,
+        age: 31,
+        height: 180.5,
+        step: 2,
+      );
+      await notifier.saveOnboardingDraft(draft);
+      expect(repo.drafts.keys, equals(['user_a']));
+
+      final restored = await notifier.restoreOnboardingDraft();
+      expect(restored, isNotNull);
+      expect(restored!.step, equals(2));
+      expect(restored.height, equals(180.5));
+      expect(identical(notifier.state.snapshot, confirmed), isTrue);
+      expect(notifier.state.profile.age, equals(30));
+    });
+
+    test(
+        'same owner still incomplete but base changed: draft is not restored '
+        'and the new snapshot is not overwritten', () async {
+      final repo = _MockProfileRepository();
+      repo.snapshotToReturn = incompleteSnapshot('user_a', age: 30);
+      final notifier = ProfileNotifier(repo);
+      await notifier.loadProfile();
+      await notifier.saveOnboardingDraft(
+        OnboardingDraft.forSnapshot(notifier.state.snapshot!, age: 31, step: 3),
+      );
+
+      repo.snapshotToReturn = incompleteSnapshot('user_a', age: 33);
+      await notifier.loadProfile();
+
+      expect(await notifier.restoreOnboardingDraft(), isNull);
+      expect(notifier.state.profile.age, equals(33));
+      expect(repo.drafts.containsKey('user_a'), isTrue);
+    });
+
+    test('backend-complete profile ignores a stale stored draft', () async {
+      final repo = _MockProfileRepository();
+      repo.drafts['user_c'] = const OnboardingDraft(
+        userId: 'user_c',
+        age: 20,
+        step: 2,
+        base: OnboardingDraftBase(),
+      );
+      repo.snapshotToReturn = const ProfileSnapshot(
+        userId: 'user_c',
+        profile: ProfileEntity(
+          userId: 'user_c',
+          age: 29,
+          height: 175,
+          weight: 72,
+          gender: Gender.male,
+          activityLevel: ActivityLevel.medium,
+          goal: Goal.maintain_weight,
+        ),
+      );
+      final notifier = ProfileNotifier(repo);
+      await notifier.loadProfile();
+
+      expect(notifier.state.isCompleteAndConfirmed, isTrue);
+      expect(await notifier.restoreOnboardingDraft(), isNull);
+      expect(repo.draftReads, equals(1));
     });
   });
 }
