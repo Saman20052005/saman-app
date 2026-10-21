@@ -10,6 +10,7 @@ import 'package:health_ai_app/config/api_config.dart';
 import 'package:health_ai_app/config/app_theme.dart';
 import 'package:health_ai_app/features/profile/data/datasources/profile_remote_data_source.dart';
 import 'package:health_ai_app/features/profile/data/models/profile_model.dart';
+import 'package:health_ai_app/features/profile/data/models/profile_snapshot_model.dart';
 import 'package:health_ai_app/features/profile/domain/entities/onboarding_draft.dart';
 import 'package:health_ai_app/features/profile/domain/entities/profile_entity.dart';
 import 'package:health_ai_app/features/profile/domain/entities/profile_snapshot.dart';
@@ -954,6 +955,28 @@ void main() {
       await tester.enterText(
           find.byKey(const Key('edit_profile_weight_input')), '75');
       await tester.pump();
+
+      // This case's fresh GET returns an explicit server payload after save.
+      // Keep the shared mock and initial snapshot unconfirmed by default.
+      repo.fetchCompleter = Completer<ProfileSnapshot?>()
+        ..complete(ProfileSnapshotModel.fromJson({
+          'user_id': 'usr_test_owner',
+          'profile': {
+            'age': 27,
+            'height': 180,
+            'weight': 75,
+            'gender': 'male',
+            'goal': 'maintain_weight',
+            'activity_level': 'moderate',
+          },
+          'health_stats': {
+            'daily_calories': 2705,
+            'target_protein': 150,
+            'target_carbs': 357,
+            'target_fat': 75,
+            'water_target_ml': 2625,
+          },
+        }));
 
       // Tap save
       await tester

@@ -16,6 +16,7 @@ class ProfileSnapshotModel extends ProfileSnapshot {
     super.fullName,
     super.avatar,
     super.isFromCache = false,
+    super.hasConfirmedServerHealthStats = false,
   });
 
   factory ProfileSnapshotModel.fromSnapshot(ProfileSnapshot snapshot) {
@@ -33,6 +34,7 @@ class ProfileSnapshotModel extends ProfileSnapshot {
       fullName: snapshot.fullName,
       avatar: snapshot.avatar,
       isFromCache: snapshot.isFromCache,
+      hasConfirmedServerHealthStats: snapshot.hasConfirmedServerHealthStats,
     );
   }
 
@@ -82,11 +84,23 @@ class ProfileSnapshotModel extends ProfileSnapshot {
     }
 
     // 2. Parse Health Stats
-    final healthStats = json['health_stats'] as Map<String, dynamic>? ?? {};
+    final rawStats = json['health_stats'];
+    final healthStats =
+        rawStats is Map<String, dynamic> ? rawStats : <String, dynamic>{};
+    // Inspect raw values before legacy defaults, coercion, or rounding.
+    // No sign/medical thresholds: the API only guarantees numeric fields.
+    final hasServerStats = rawStats is Map<String, dynamic> &&
+        [
+          healthStats['daily_calories'] ?? healthStats['daily_calorie_needs'],
+          healthStats['target_protein'],
+          healthStats['target_carbs'],
+          healthStats['target_fat'],
+          healthStats['water_target_ml'],
+        ].every((value) => value is num && value.isFinite);
     final calories = _toInt(
       healthStats['daily_calories'] ??
-          healthStats['target_calories'] ??
           healthStats['daily_calorie_needs'] ??
+          healthStats['target_calories'] ??
           json['targetCalories'],
     );
     final protein =
@@ -110,6 +124,7 @@ class ProfileSnapshotModel extends ProfileSnapshot {
       fullName: json['full_name'] as String? ?? json['fullName'] as String?,
       avatar: json['avatar'] as String?,
       isFromCache: isFromCache,
+      hasConfirmedServerHealthStats: hasServerStats && !isFromCache,
     );
   }
 
@@ -136,7 +151,7 @@ class ProfileSnapshotModel extends ProfileSnapshot {
   static int _toInt(dynamic val) {
     if (val == null) return 0;
     if (val is int) return val;
-    if (val is double) return val.round();
+    if (val is double) return val.isFinite ? val.round() : 0;
     if (val is String) return int.tryParse(val) ?? 0;
     return 0;
   }

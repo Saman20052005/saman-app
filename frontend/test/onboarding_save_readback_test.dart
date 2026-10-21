@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:typed_data';
 import 'package:dio/dio.dart';
@@ -185,7 +186,7 @@ void main() {
       );
 
       // Prepared readback snapshot matching all 6 submitted fields exactly + server stats
-      repo.readbackSnapshot = const ProfileSnapshot(
+      repo.readbackSnapshot = _serverReadbackFixture(const ProfileSnapshot(
         userId: 'usr_cp4_success',
         profile: ProfileEntity(
           userId: 'usr_cp4_success',
@@ -202,7 +203,7 @@ void main() {
         targetCarbs: 280,
         targetFat: 70,
         isFromCache: false,
-      );
+      ));
 
       final container = ProviderContainer(
         overrides: [
@@ -353,7 +354,7 @@ void main() {
 
       // Now prepare readback to succeed on retry
       repo.readbackException = null;
-      repo.readbackSnapshot = const ProfileSnapshot(
+      repo.readbackSnapshot = _serverReadbackFixture(const ProfileSnapshot(
         userId: 'usr_cp4_readback_err',
         profile: ProfileEntity(
           userId: 'usr_cp4_readback_err',
@@ -370,7 +371,7 @@ void main() {
         targetCarbs: 300,
         targetFat: 80,
         isFromCache: false,
-      );
+      ));
 
       // Tap 'Check again'
       await tester.ensureVisible(find.byKey(const Key('onboarding_check_again_button')));
@@ -436,7 +437,7 @@ void main() {
 
       // Prepare server state to show it was processed
       repo.syncException = null;
-      repo.readbackSnapshot = const ProfileSnapshot(
+      repo.readbackSnapshot = _serverReadbackFixture(const ProfileSnapshot(
         userId: 'usr_cp4_timeout',
         profile: ProfileEntity(
           userId: 'usr_cp4_timeout',
@@ -453,7 +454,7 @@ void main() {
         targetCarbs: 220,
         targetFat: 50,
         isFromCache: false,
-      );
+      ));
 
       // Tap 'Kiểm tra trạng thái'
       await tester.ensureVisible(find.byKey(const Key('onboarding_check_status_button')));
@@ -661,7 +662,7 @@ void main() {
           activityChoice: choice,
           step: 5,
         );
-        repo.readbackSnapshot = ProfileSnapshot(
+        repo.readbackSnapshot = _serverReadbackFixture(ProfileSnapshot(
           userId: userId,
           profile: ProfileEntity(
             userId: userId,
@@ -675,7 +676,7 @@ void main() {
           ),
           targetCalories: 2200,
           isFromCache: false,
-        );
+        ));
 
         final container = ProviderContainer(
           overrides: [
@@ -818,7 +819,7 @@ void main() {
       );
 
       // Server readback matches all 6 fields, but targetCalories is 0 (or negative)
-      repo.readbackSnapshot = const ProfileSnapshot(
+      repo.readbackSnapshot = _serverReadbackFixture(const ProfileSnapshot(
         userId: 'usr_cp4_zero_cals',
         profile: ProfileEntity(
           userId: 'usr_cp4_zero_cals',
@@ -832,7 +833,7 @@ void main() {
         ),
         targetCalories: 0, // Zero calories must not block completion
         isFromCache: false,
-      );
+      ));
 
       final container = ProviderContainer(
         overrides: [
@@ -879,7 +880,7 @@ void main() {
       );
 
       // Initial readback returns mismatched weight
-      repo.readbackSnapshot = const ProfileSnapshot(
+      repo.readbackSnapshot = _serverReadbackFixture(const ProfileSnapshot(
         userId: 'usr_cp4_mismatch_retry',
         profile: ProfileEntity(
           userId: 'usr_cp4_mismatch_retry',
@@ -893,7 +894,7 @@ void main() {
         ),
         targetCalories: 1600,
         isFromCache: false,
-      );
+      ));
 
       final container = ProviderContainer(
         overrides: [
@@ -923,7 +924,7 @@ void main() {
       expect(find.byKey(const Key('onboarding_check_again_button')), findsOneWidget);
 
       // Now server has the correct weight
-      repo.readbackSnapshot = const ProfileSnapshot(
+      repo.readbackSnapshot = _serverReadbackFixture(const ProfileSnapshot(
         userId: 'usr_cp4_mismatch_retry',
         profile: ProfileEntity(
           userId: 'usr_cp4_mismatch_retry',
@@ -937,7 +938,7 @@ void main() {
         ),
         targetCalories: 1550,
         isFromCache: false,
-      );
+      ));
 
       // Tap Check Again button
       await tester.ensureVisible(find.byKey(const Key('onboarding_check_again_button')));
@@ -1064,7 +1065,7 @@ void main() {
 
       // Reconcile performs GET only without calling syncProfile
       repo.syncException = null;
-      repo.readbackSnapshot = const ProfileSnapshot(
+      repo.readbackSnapshot = _serverReadbackFixture(const ProfileSnapshot(
         userId: 'usr_provider_guard',
         profile: ProfileEntity(
           userId: 'usr_provider_guard',
@@ -1078,7 +1079,7 @@ void main() {
         ),
         targetCalories: 2100,
         isFromCache: false,
-      );
+      ));
       final reconciled = await notifier.reconcileOnboarding(draft1);
       expect(reconciled, isTrue);
       expect(repo.syncProfileCallCount, equals(1),
@@ -1426,4 +1427,174 @@ void main() {
       expect(legitCache?.profile.age, isNull);
     });
   });
+  group('CP04 regression', () {
+    for (final boundary in ['cache', 'draft']) {
+      for (final action in ['reset', 'switch', 'dispose']) {
+        test('$action while $boundary awaits cannot complete old save', () async {
+          final repo = _BoundaryRepo()..boundary = boundary;
+          final notifier = ProfileNotifier(repo);
+          _cp04Owner(notifier, 'cp04_A');
+          final pending = notifier.verifyReadback(
+            immutableDraft: _cp04Draft(), epoch: notifier.sessionEpoch,
+            ownerId: 'cp04_A');
+          await repo.entered.future;
+          if (action == 'dispose') {
+            notifier.dispose();
+          } else {
+            notifier.resetSession();
+            if (action == 'switch') _cp04Owner(notifier, 'cp04_B');
+          }
+          repo.release.complete();
+          expect(await pending, isFalse);
+          if (boundary == 'cache') expect(repo.clearDraftCallCount, 0);
+          if (action != 'dispose') {
+            expect(notifier.state.userId, action == 'switch' ? 'cp04_B' : isNull);
+            expect(notifier.state.errorMessage, isNull);
+            notifier.dispose();
+          }
+        });
+      }
+    }
+    for (final disposed in [false, true]) {
+      test('entry ${disposed ? 'disposed' : 'stale epoch'} does not fetch or mutate', () async {
+        final repo = _BoundaryRepo();
+        final notifier = ProfileNotifier(repo);
+        final oldEpoch = notifier.sessionEpoch;
+        if (disposed) { notifier.dispose(); } else { notifier.resetSession(); }
+        expect(await notifier.verifyReadback(immutableDraft: _cp04Draft(),
+          epoch: oldEpoch, ownerId: 'cp04_A'), isFalse);
+        expect(repo.readbackCallCount, 0);
+        if (!disposed) {
+          expect(notifier.state.status, ProfileStatus.initial);
+          notifier.dispose();
+        }
+      });
+    }
+    for (final disposed in [false, true]) {
+      test('conflict GET then ${disposed ? 'dispose' : 'switch'} ignores old error', () async {
+        final repo = _BoundaryRepo()..boundary = 'conflict'
+          ..syncException = const ProfileConflictException();
+        final notifier = ProfileNotifier(repo);
+        _cp04Owner(notifier, 'cp04_A');
+        final pending = notifier.saveAndVerifyOnboarding(_cp04Draft());
+        await repo.entered.future;
+        if (disposed) { notifier.dispose(); } else {
+          notifier.resetSession(); _cp04Owner(notifier, 'cp04_B');
+        }
+        repo.release.complete();
+        expect(await pending, isFalse);
+        if (!disposed) {
+          expect(notifier.state.userId, 'cp04_B');
+          expect(notifier.state.status, ProfileStatus.incomplete);
+          expect(notifier.state.errorMessage, isNull);
+          notifier.dispose();
+        }
+      });
+    }
+    final invalidStats = <String, Object?>{
+      'missing': null, 'wrong shape': [], 'empty': <String, dynamic>{},
+      'missing water': {'daily_calories':2400,'target_protein':145,'target_carbs':290,'target_fat':65},
+      'null fat': {'daily_calories':2400,'target_protein':145,'target_carbs':290,'target_fat':null,'water_target_ml':2537},
+      'string calories': {'daily_calories':'2400','target_protein':145,'target_carbs':290,'target_fat':65,'water_target_ml':2537},
+      'nonfinite': {'daily_calories':double.infinity,'target_protein':145,'target_carbs':290,'target_fat':65,'water_target_ml':2537},
+    };
+    for (final entry in invalidStats.entries) {
+      test('raw stats ${entry.key}: GET retry only, no cache or clear on invalid', () async {
+        final repo = _BoundaryRepo();
+        final payload = _cp04Payload(stats: entry.value);
+        if (entry.key == 'missing') payload.remove('health_stats');
+        repo.response = ProfileSnapshotModel.fromJson(payload);
+        final notifier = ProfileNotifier(repo);
+        _cp04Owner(notifier, 'cp04_A');
+        expect(await notifier.saveAndVerifyOnboarding(_cp04Draft()), isFalse);
+        expect(repo.syncProfileCallCount, 1);
+        expect(repo.caches, 0); expect(repo.clearDraftCallCount, 0);
+        expect(notifier.state.status, ProfileStatus.readbackPending);
+        expect(notifier.state.profile.age, isNull);
+        repo.response = ProfileSnapshotModel.fromJson(_cp04Payload());
+        expect(await notifier.reconcileOnboarding(_cp04Draft()), isTrue);
+        expect(repo.syncProfileCallCount, 1);
+        expect(repo.readbackCallCount, 2);
+        expect(repo.caches, 1); expect(repo.clearDraftCallCount, 1);
+        expect(notifier.state.profile.height, 178.25);
+        notifier.dispose();
+      });
+    }
+  });
+
 }
+
+
+Map<String, dynamic> _cp04Payload({Object? stats = const {
+  'daily_calories': 2400, 'target_protein': 145,
+  'target_carbs': 290, 'target_fat': 65, 'water_target_ml': 2537,
+}}) => {
+  'user_id': 'cp04_A',
+  'profile': {'age': 28, 'gender': 'male', 'height': 178.25,
+    'weight': 72.5, 'goal': 'maintain_weight', 'activity_level': 'moderate'},
+  'health_stats': stats,
+};
+
+OnboardingDraft _cp04Draft() => const OnboardingDraft(
+  userId: 'cp04_A', age: 28, gender: Gender.male, height: 178.25,
+  weight: 72.5, goal: Goal.maintain_weight,
+  activityChoice: OnboardingActivityChoice.moderate, step: 5,
+);
+
+class _BoundaryRepo extends _ControllableProfileRepo {
+  ProfileSnapshot response = ProfileSnapshotModel.fromJson(_cp04Payload());
+  String? boundary;
+  int caches = 0;
+  final entered = Completer<void>();
+  final release = Completer<void>();
+  @override
+  Future<ProfileSnapshot?> fetchProfileSnapshot({bool cacheOnSuccess = false}) async {
+    readbackCallCount++;
+    if (boundary == 'conflict') {
+      entered.complete();
+      await release.future;
+    }
+    return response;
+  }
+  @override
+  Future<void> cacheSnapshot(ProfileSnapshot snapshot) async {
+    caches++;
+    if (boundary == 'cache') {
+      entered.complete();
+      await release.future;
+    }
+  }
+  @override
+  Future<void> clearDraft(String userId) async {
+    clearDraftCallCount++;
+    if (boundary == 'draft') {
+      entered.complete();
+      await release.future;
+    }
+    storedDraft = null;
+  }
+}
+
+void _cp04Owner(ProfileNotifier notifier, String owner) {
+  notifier.state = ProfileState(
+    status: ProfileStatus.incomplete,
+    profile: ProfileEntity(userId: owner),
+    confirmedUserId: owner, isNetworkConfirmed: true,
+  );
+}
+
+
+// Explicit scripted server payload for successful readbacks. Kept separate
+// from ordinary/initial snapshots so mocks do not gain confirmation by default.
+ProfileSnapshot _serverReadbackFixture(ProfileSnapshot snapshot) =>
+    ProfileSnapshotModel.fromJson({
+      'user_id': snapshot.userId,
+      'profile': ProfileModel.fromEntity(snapshot.profile).toJson(),
+      'health_stats': {
+        'daily_calories': snapshot.targetCalories,
+        'target_protein': snapshot.targetProtein,
+        'target_carbs': snapshot.targetCarbs,
+        'target_fat': snapshot.targetFat,
+        'water_target_ml': 2500,
+      },
+    });

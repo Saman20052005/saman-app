@@ -1,3 +1,4 @@
+import 'package:health_ai_app/features/profile/data/models/profile_snapshot_model.dart';
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -62,14 +63,14 @@ class _FakeVerifiedProfileRepo implements ProfileRepository {
       throw syncException!;
     }
     // Update local snapshot so subsequent verified readback reflects this synced profile
-    snapshotToReturn = ProfileSnapshot(
-      userId: profile.userId,
-      profile: profile,
-      targetCalories: 2200,
-      targetProtein: 150,
-      targetCarbs: 220,
-      targetFat: 65,
-    );
+    snapshotToReturn = ProfileSnapshotModel.fromJson({
+      'user_id': profile.userId,
+      'profile': ProfileModel.fromEntity(profile).toJson(),
+      'health_stats': {
+        'daily_calories': 2200, 'target_protein': 150,
+        'target_carbs': 220, 'target_fat': 65, 'water_target_ml': 2500,
+      },
+    });
   }
 
   int cacheCallCount = 0;
@@ -88,8 +89,10 @@ class _FakeVerifiedProfileRepo implements ProfileRepository {
   @override
   Future<OnboardingDraft?> getDraft(String userId) async => null;
 
+  int clearDraftCalls = 0;
+
   @override
-  Future<void> clearDraft(String userId) async {}
+  Future<void> clearDraft(String userId) async { clearDraftCalls++; }
 }
 
 class _FakeNutritionNotifier
@@ -776,10 +779,10 @@ void main() {
         goal: Goal.maintain_weight,
         activityCanonical: 'moderate',
       );
-      repo.snapshotToReturn = const ProfileSnapshot(
+      repo.snapshotToReturn = _serverReadbackFixture(const ProfileSnapshot(
         userId: 'usr_check_again',
         profile: profile,
-      );
+      ));
 
       await tester.pumpWidget(
         _buildTestApp(
@@ -1613,7 +1616,7 @@ void main() {
       expect(notifier.state.status, equals(ProfileStatus.readbackPending));
 
       // Step D: Backend now returns matching owner + all 6 complete fields
-      repo.forcedReadbackSnapshot = const ProfileSnapshot(
+      repo.forcedReadbackSnapshot = _serverReadbackFixture(const ProfileSnapshot(
         userId: 'usr_owner_reconcile',
         profile: ProfileEntity(
           userId: 'usr_owner_reconcile',
@@ -1624,7 +1627,7 @@ void main() {
           goal: Goal.maintain_weight,
           activityCanonical: 'moderate',
         ),
-      );
+      ));
 
       final recPass = await notifier.reconcileEditProfile(
         age: 29,
@@ -1644,4 +1647,59 @@ void main() {
       expect(repo.cacheCallCount, equals(1));
     });
   });
+  group('CP04 edit stats', () {
+    for (final bad in [null, <String, dynamic>{}, 'wrong shape',
+      {'daily_calories':2400,'target_protein':145,'target_carbs':290,'target_fat':65},
+      {'daily_calories':2400,'target_protein':145,'target_carbs':double.nan,'target_fat':65,'water_target_ml':2500},
+      {'daily_calories':2400,'target_protein':145,'target_carbs':290,'target_fat':'65','water_target_ml':2500},
+    ]) {
+      test('invalid raw stats $bad stays pending; retry GET preserves draft', () async {
+        final repo = _FakeVerifiedProfileRepo();
+        final payload = <String, dynamic>{
+          'user_id':'cp04_edit',
+          'profile': {'age':28,'gender':'male','height':178.25,'weight':72.5,
+            'goal':'maintain_weight','activity_level':'moderate'},
+          'health_stats': bad,
+        };
+        repo.forcedReadbackSnapshot = ProfileSnapshotModel.fromJson(payload);
+        final notifier = ProfileNotifier(repo);
+        notifier.state = ProfileState(status: ProfileStatus.ready,
+          profile: ProfileEntity(userId:'cp04_edit', age:28, gender:Gender.male,
+            height:178.25, weight:72.5, goal:Goal.maintain_weight,
+            activityCanonical:'moderate'),
+          confirmedUserId:'cp04_edit', isNetworkConfirmed:true);
+        expect(await notifier.saveAndVerifyEditProfile(age:28, gender:Gender.male,
+          height:178.25, weight:72.5, goal:Goal.maintain_weight,
+          activityChoice:OnboardingActivityChoice.moderate), isFalse);
+        expect(notifier.state.status, ProfileStatus.readbackPending);
+        expect(repo.cacheCallCount, 0); expect(repo.clearDraftCalls, 0);
+        payload['health_stats'] = {'daily_calorie_needs':2400,'target_protein':145,
+          'target_carbs':290,'target_fat':65,'water_target_ml':2500};
+        repo.forcedReadbackSnapshot = ProfileSnapshotModel.fromJson(payload);
+        expect(await notifier.reconcileEditProfile(age:28, gender:Gender.male,
+          height:178.25, weight:72.5, goal:Goal.maintain_weight,
+          activityChoice:OnboardingActivityChoice.moderate), isTrue);
+        expect(repo.syncCallCount, 1); expect(repo.fetchCallCount, 2);
+        expect(repo.cacheCallCount, 1); expect(repo.clearDraftCalls, 0);
+        notifier.dispose();
+      });
+    }
+  });
+
 }
+
+
+// Explicit scripted server payload for successful readbacks. Kept separate
+// from ordinary/initial snapshots so mocks do not gain confirmation by default.
+ProfileSnapshot _serverReadbackFixture(ProfileSnapshot snapshot) =>
+    ProfileSnapshotModel.fromJson({
+      'user_id': snapshot.userId,
+      'profile': ProfileModel.fromEntity(snapshot.profile).toJson(),
+      'health_stats': {
+        'daily_calories': snapshot.targetCalories,
+        'target_protein': snapshot.targetProtein,
+        'target_carbs': snapshot.targetCarbs,
+        'target_fat': snapshot.targetFat,
+        'water_target_ml': 2500,
+      },
+    });

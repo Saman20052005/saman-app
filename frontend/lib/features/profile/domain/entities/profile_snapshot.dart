@@ -16,6 +16,10 @@ class ProfileSnapshot {
   final String? avatar;
   final bool isFromCache;
 
+  /// Required raw health_stats fields were finite JSON numbers in this
+  /// network response. This does not verify their formula or revision.
+  final bool hasConfirmedServerHealthStats;
+
   const ProfileSnapshot({
     this.userId,
     required this.profile,
@@ -29,7 +33,9 @@ class ProfileSnapshot {
     this.fullName,
     this.avatar,
     this.isFromCache = false,
-  });
+    bool hasConfirmedServerHealthStats = false,
+  }) : hasConfirmedServerHealthStats =
+            hasConfirmedServerHealthStats && !isFromCache;
 
   factory ProfileSnapshot.empty({String? userId}) =>
       ProfileSnapshot(userId: userId, profile: ProfileEntity.empty(userId: userId));
@@ -61,6 +67,7 @@ class ProfileSnapshot {
       fullName: fullName ?? this.fullName,
       avatar: avatar ?? this.avatar,
       isFromCache: isFromCache ?? this.isFromCache,
+      hasConfirmedServerHealthStats: hasConfirmedServerHealthStats,
     );
   }
 }

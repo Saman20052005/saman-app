@@ -370,6 +370,7 @@ class ProfileNotifier extends StateNotifier<ProfileState> {
       try {
         await _fetchFreshSnapshot(cacheOnSuccess: false);
       } catch (_) {}
+      if (epoch != _sessionEpoch || !mounted) return false;
       state = state.copyWith(
         status: ProfileStatus.saveConflict,
         errorMessage: e.message,
@@ -422,6 +423,8 @@ class ProfileNotifier extends StateNotifier<ProfileState> {
     required int epoch,
     required String ownerId,
   }) async {
+    if (epoch != _sessionEpoch || !mounted) return false;
+
     state = state.copyWith(
       status: ProfileStatus.readbackPending,
       errorMessage: null,
@@ -506,12 +509,22 @@ class ProfileNotifier extends StateNotifier<ProfileState> {
       return false;
     }
 
+    if (!readback.hasConfirmedServerHealthStats) {
+      state = state.copyWith(
+        status: ProfileStatus.readbackPending,
+        errorMessage: 'Chưa xác nhận được chỉ số sức khỏe từ máy chủ. Vui lòng kiểm tra lại.',
+      );
+      return false;
+    }
+
     // 4. Verified! Commit cache, clear draft, apply snapshot
     await _repository.cacheSnapshot(readback);
+    if (epoch != _sessionEpoch || !mounted) return false;
 
     try {
       await _repository.clearDraft(ownerId);
     } catch (_) {}
+    if (epoch != _sessionEpoch || !mounted) return false;
 
     _applySnapshot(readback);
     return true;
@@ -741,6 +754,14 @@ class ProfileNotifier extends StateNotifier<ProfileState> {
       state = state.copyWith(
         status: ProfileStatus.readbackPending,
         errorMessage: 'Dữ liệu máy chủ không khớp với thông tin đã nhập.',
+      );
+      return false;
+    }
+
+    if (!readback.hasConfirmedServerHealthStats) {
+      state = state.copyWith(
+        status: ProfileStatus.readbackPending,
+        errorMessage: 'Chưa xác nhận được chỉ số sức khỏe từ máy chủ. Vui lòng kiểm tra lại.',
       );
       return false;
     }
