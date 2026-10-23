@@ -151,8 +151,17 @@ class NutritionRepositoryImpl implements INutritionRepository {
   }
 
   @override
-  Future<AIAnalysisResult?> analyzeFoodImage(XFile imageFile) async {
-    final data = await _remoteDataSource.analyzeFoodImage(imageFile);
+  Future<AIAnalysisResult?> analyzeFoodImage(XFile imageFile,
+      {String? mode, NutritionRequestContext? session}) async {
+    final data = await _remoteDataSource.analyzeFoodImage(imageFile,
+        mode: mode, session: session);
+    final nutrition = data['nutrition'];
+    if (data['food_name'] is! String || (data['food_name'] as String).trim().isEmpty ||
+        nutrition is! Map ||
+        !['calories', 'protein', 'carbs', 'fat'].every((key) =>
+            nutrition[key] is num && (nutrition[key] as num).isFinite && nutrition[key] >= 0)) {
+      throw const FormatException('Food analysis returned incomplete nutrition');
+    }
     return AIAnalysisResult.fromJson(data);
   }
 

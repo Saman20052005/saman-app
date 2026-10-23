@@ -1,6 +1,8 @@
 // lib/screens/nutrition/widgets/meal_review_dialog.dart
 import 'package:flutter/material.dart';
 import '../../../models/ai_analysis_result.dart';
+import '../../../features/nutrition/domain/repositories/nutrition_repository.dart';
+import '../../../services/nutrition_service.dart' show foodAnalysisErrorMessage;
 
 enum MealType { breakfast, lunch, dinner, snack }
 
@@ -16,19 +18,23 @@ extension MealTypeExt on MealType {
 
 class MealReviewDialog extends StatefulWidget {
   final AIAnalysisResult result;
+  final Future<void> Function(MealLogData)? onConfirm;
 
-  const MealReviewDialog({super.key, required this.result});
+  const MealReviewDialog({super.key, required this.result, this.onConfirm});
 
   static Future<MealLogData?> show(
     BuildContext context,
-    AIAnalysisResult result,
-  ) {
+    AIAnalysisResult result, {
+    Future<void> Function(MealLogData)? onConfirm,
+  }) {
     return showModalBottomSheet<MealLogData>(
       context: context,
       useRootNavigator: true,
+      isDismissible: onConfirm == null,
+      enableDrag: onConfirm == null,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (_) => MealReviewDialog(result: result),
+      builder: (_) => MealReviewDialog(result: result, onConfirm: onConfirm),
     );
   }
 
@@ -41,6 +47,10 @@ class _MealReviewDialogState extends State<MealReviewDialog> {
   late double _grams;
   MealType _mealType = MealType.lunch;
   String? _selectedLabel;
+  bool _saving = false;
+  String? _saveError;
+  bool _retryAllowed = true;
+  MealLogData? _confirmedData;
 
   @override
   void initState() {
@@ -72,8 +82,9 @@ class _MealReviewDialogState extends State<MealReviewDialog> {
     });
   }
 
-  void _confirm() {
-    Navigator.of(context).pop(MealLogData(
+  Future<void> _confirm() async {
+    if (_saving || !_retryAllowed) return;
+    final data = _confirmedData ??= MealLogData(
       foodName: _current.foodName,
       foodLabel: _current.foodLabel,
       mealType: _mealType.value,
@@ -83,7 +94,24 @@ class _MealReviewDialogState extends State<MealReviewDialog> {
       carbs: _current.carbs,
       fat: _current.fat,
       loggedAt: DateTime.now().toIso8601String(),
-    ));
+    );
+    if (widget.onConfirm == null) {
+      Navigator.of(context).pop(data);
+      return;
+    }
+    setState(() { _saving = true; _saveError = null; });
+    try {
+      await widget.onConfirm!(data);
+      if (mounted) Navigator.of(context).pop(data);
+    } catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _saving = false;
+        _saveError = error is ConfirmLogException || error is NutritionSessionChanged
+            ? error.toString() : foodAnalysisErrorMessage(error);
+        _retryAllowed = error is ConfirmLogException && error.canRetry;
+      });
+    }
   }
 
   @override
@@ -91,7 +119,9 @@ class _MealReviewDialogState extends State<MealReviewDialog> {
     final theme = Theme.of(context);
     final isLow = _current.lowConfidence;
 
-    return DraggableScrollableSheet(
+    return PopScope(
+      canPop: !_saving,
+      child: DraggableScrollableSheet(
       initialChildSize: 0.75,
       maxChildSize: 0.92,
       minChildSize: 0.5,
@@ -115,6 +145,13 @@ class _MealReviewDialogState extends State<MealReviewDialog> {
               ),
             ),
             const SizedBox(height: 16),
+            Text(_current.nutritionSource == 'gemini_estimate'
+                ? 'Gemini estimate - review before saving'
+                : 'Photo estimate - ${_current.nutritionSource}'),
+            if (_saveError != null) ...[
+              const SizedBox(height: 8),
+              Text(_saveError!, style: const TextStyle(color: Colors.red)),
+            ],
             if (isLow) ...[
               _Banner(
                 color: Colors.orange.shade50,
@@ -165,12 +202,13 @@ class _MealReviewDialogState extends State<MealReviewDialog> {
                   max: 500,
                   divisions: 49,
                   label: '${_grams.toStringAsFixed(0)}g',
-                  onChanged: _onGramsChanged,
+                  onChanged: _confirmedData == null ? _onGramsChanged : null,
                 ),
               ),
               SizedBox(
                 width: 56,
                 child: TextField(
+                  enabled: _confirmedData == null,
                   keyboardType: TextInputType.number,
                   textAlign: TextAlign.center,
                   decoration: const InputDecoration(
@@ -200,7 +238,7 @@ class _MealReviewDialogState extends State<MealReviewDialog> {
                   .map((type) => ChoiceChip(
                         label: Text(type.label),
                         selected: _mealType == type,
-                        onSelected: (_) => setState(() => _mealType = type),
+                        onSelected: _confirmedData == null ? (_) => setState(() => _mealType = type) : null,
                       ))
                   .toList(),
             ),
@@ -218,7 +256,7 @@ class _MealReviewDialogState extends State<MealReviewDialog> {
                         Text('${(pred.confidence * 100).toInt()}% confidence'),
                     value: pred.label,
                     groupValue: _selectedLabel,
-                    onChanged: (_) {
+                    onChanged: _confirmedData != null ? null : (_) {
                       setState(() => _selectedLabel = pred.label);
                       _onRelabel(pred);
                     },
@@ -230,7 +268,7 @@ class _MealReviewDialogState extends State<MealReviewDialog> {
             Row(children: [
               Expanded(
                 child: OutlinedButton(
-                  onPressed: () => Navigator.of(context).pop(null),
+                  onPressed: _saving ? null : () => Navigator.of(context).pop(null),
                   child: const Text('Huỷ'),
                 ),
               ),
@@ -238,14 +276,15 @@ class _MealReviewDialogState extends State<MealReviewDialog> {
               Expanded(
                 flex: 2,
                 child: FilledButton(
-                  onPressed: _confirm,
-                  child: const Text('Lưu bữa này'),
+                  onPressed: _saving || !_retryAllowed ? null : _confirm,
+                  child: Text(_saving ? 'Saving…' : _saveError != null ? 'Retry meal save' : 'Lưu bữa này'),
                 ),
               ),
             ]),
           ],
         ),
       ),
+    ),
     );
   }
 }

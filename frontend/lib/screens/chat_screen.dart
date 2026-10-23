@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import '../config/app_theme.dart';
 import '../controllers/chat_controller.dart';
 import '../providers/daily_story_provider.dart';
+import '../services/nutrition_service.dart';
 import 'chat/tokens/saman_chat_tokens.dart';
 import 'chat/widgets/widgets.dart';
 import 'food_log_screen.dart';
@@ -29,6 +30,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   final ScrollController _scrollController = ScrollController();
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   SamanNudge? _activeNudge;
+  bool _isLoggingMeal = false;
 
   @override
   void initState() {
@@ -252,55 +254,67 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   Future<void> _handleAttachmentFlow() async {
     final source = await SamanAttachmentSheet.show(context);
     if (source == null || !mounted) return;
+    final guard = ref.read(nutritionSessionProvider);
+    NutritionRequestContext owner;
+    try { owner = await guard.capture(); }
+    on NutritionSessionChanged { return; }
+    if (!mounted) return;
 
     final picker = ImagePicker();
     final picked = await picker.pickImage(
-      source: source,
+      source: source.source,
       imageQuality: 70,
       maxWidth: 1024,
       maxHeight: 1024,
     );
 
     if (picked != null && mounted) {
-      ref.read(chatControllerProvider.notifier).analyzeFoodPhoto(picked);
+      try { await owner.validate(); }
+      on NutritionSessionChanged { return; }
+      if (!mounted) return;
+      ref.read(chatControllerProvider.notifier).analyzeFoodPhoto(picked, mode: source.mode);
     }
   }
 
   Future<void> _handleLogMeal() async {
+    if (_isLoggingMeal) return;
     final foodState = ref.read(chatControllerProvider).foodAnalysisState;
-    if (foodState?.result == null) return;
-
-    final confirmed = await MealReviewDialog.show(context, foodState!.result!);
-    if (confirmed != null && mounted) {
-      try {
-        final todayStr = DateFormat('yyyy-MM-dd').format(DateTime.now());
-        await ref
-            .read(dailyStoryControllerProvider(todayStr).notifier)
-            .confirmLog(confirmed, imageFile: foodState.imageFile);
-
+    if (foodState?.result == null || foodState!.isMealLogged) return;
+    _isLoggingMeal = true;
+    final todayStr = DateFormat('yyyy-MM-dd').format(DateTime.now());
+    // Keep the originating autoDispose provider alive while its dialog is open.
+    final subscription = ProviderScope.containerOf(context, listen: false)
+        .listen(dailyStoryControllerProvider(todayStr), (_, __) {});
+    try {
+      final owner = foodState.owner ?? await ref.read(nutritionSessionProvider).capture();
+      await owner.validate();
+      if (!mounted) return;
+      final controller = ref.read(dailyStoryControllerProvider(todayStr).notifier);
+      final confirmed = await MealReviewDialog.show(context, foodState.result!,
+        onConfirm: (data) async {
+          await owner.validate();
+          await controller.confirmLog(data, imageFile: foodState.imageFile, session: owner);
+          await owner.validate();
+        });
+      if (confirmed == null || !mounted) return;
+      await owner.validate();
+      if (!mounted) return;
+      if (identical(ref.read(chatControllerProvider).foodAnalysisState, foodState)) {
         ref.read(chatControllerProvider.notifier).markMealLogged();
-
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Meal logged successfully!'),
-              backgroundColor: SamanChatTokens.surfaceElevated,
-              behavior: SnackBarBehavior.floating,
-            ),
-          );
-        }
-      } catch (e) {
-        debugPrint('Meal logging error: $e');
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text("I couldn't log this meal. Please try again."),
-              backgroundColor: SamanChatTokens.surfaceElevated,
-              behavior: SnackBarBehavior.floating,
-            ),
-          );
-        }
       }
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        content: Text('Meal logged successfully!'),
+        backgroundColor: SamanChatTokens.surfaceElevated,
+        behavior: SnackBarBehavior.floating,
+      ));
+    } on NutritionSessionChanged {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(const NutritionSessionChanged().toString())));
+      }
+    } finally {
+      subscription.close();
+      _isLoggingMeal = false;
     }
   }
 

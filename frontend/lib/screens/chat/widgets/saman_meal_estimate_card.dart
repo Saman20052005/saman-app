@@ -75,7 +75,8 @@ class SamanMealEstimateCard extends ConsumerWidget {
               const SizedBox(width: 8.0),
               Flexible(
                 child: Text(
-                  'ESTIMATED FROM PHOTO',
+                  result.nutritionSource == 'gemini_estimate'
+                      ? 'GEMINI ESTIMATE' : 'ESTIMATED FROM PHOTO',
                   style: TextStyle(
                     fontSize: 10,
                     fontWeight: FontWeight.w500,

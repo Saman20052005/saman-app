@@ -89,7 +89,7 @@ class _FakeChatNotifier extends StateNotifier<ChatState>
   }
 
   @override
-  Future<void> analyzeFoodPhoto(XFile file, {String? caption}) async {}
+  Future<void> analyzeFoodPhoto(XFile file, {String? caption, String? mode}) async {}
 
   @override
   void markMealLogged() {}

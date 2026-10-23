@@ -40,8 +40,47 @@ abstract class INutritionRepository {
   });
   Future<List<Map<String, dynamic>>> getLogStories(String date);
   Future<bool> deleteLogStory(String logId);
-  Future<AIAnalysisResult?> analyzeFoodImage(XFile imageFile);
+  Future<AIAnalysisResult?> analyzeFoodImage(XFile imageFile,
+      {String? mode, NutritionRequestContext? session});
   Future<void> confirmStoryLog(MealLogData data);
   Future<Food?> createCustomFood(Map<String, dynamic> body);
   Future<Map<String, dynamic>> getWeeklyReport(String startDate);
+}
+
+/// An in-memory request lease. Never used as an authorization decision or cache key.
+class NutritionRequestContext {
+  final String authorization;
+  final int generation;
+  final Future<void> Function() validate;
+
+  const NutritionRequestContext({
+    required this.authorization,
+    required this.generation,
+    required this.validate,
+  });
+}
+
+class NutritionSessionChanged implements Exception {
+  const NutritionSessionChanged();
+
+  @override
+  String toString() => 'Session changed. Please select the photo again.';
+}
+
+enum ConfirmLogFailureStage { story, meal, busy, changedInput, photoOnly }
+
+class ConfirmLogException implements Exception {
+  final ConfirmLogFailureStage stage;
+  final bool storySaved;
+  final bool outcomeUnknown;
+  final String message;
+
+  const ConfirmLogException(this.stage, this.message,
+      {this.storySaved = false, this.outcomeUnknown = false});
+
+  bool get canRetry => !outcomeUnknown &&
+      (stage == ConfirmLogFailureStage.story || stage == ConfirmLogFailureStage.meal);
+
+  @override
+  String toString() => message;
 }

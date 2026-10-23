@@ -49,7 +49,7 @@ class _FakeFoodChatNotifier extends StateNotifier<ChatState>
   }
 
   @override
-  Future<void> analyzeFoodPhoto(XFile file, {String? caption}) async {
+  Future<void> analyzeFoodPhoto(XFile file, {String? caption, String? mode}) async {
     state = state.copyWith(
       foodAnalysisState: ChatFoodAnalysisState(
         status: FoodAnalysisStatus.analyzing,
