@@ -20,6 +20,64 @@ router = APIRouter(prefix="/api/food", tags=["Food Analysis"])
 _nutrition_lookup = NutritionLookup()
 
 
+def get_analysis_provider() -> str:
+    raw = os.getenv("FOOD_ANALYSIS_PROVIDER")
+    if raw is None or not raw.strip():
+        return "food101"
+    return raw.strip().lower()
+
+
+def is_gemini_allowed(email: str) -> bool:
+    """
+    Check if the authenticated user's email is authorized for Gemini analysis.
+    - Exact match after trimming and lowercase normalization.
+    - No substring or wildcard matching.
+    - If GEMINI_ALLOWED_EMAILS is missing or empty, all requests to Gemini are rejected.
+    """
+    if not email or not isinstance(email, str):
+        return False
+    normalized_email = email.strip().lower()
+    if not normalized_email:
+        return False
+
+    raw_allowed = os.getenv("GEMINI_ALLOWED_EMAILS", "")
+    if not raw_allowed or not raw_allowed.strip():
+        return False
+
+    allowed_list = {e.strip().lower() for e in raw_allowed.split(",") if e.strip()}
+    return normalized_email in allowed_list
+
+
+def resolve_analysis_provider(mode: Optional[str] = None) -> str:
+    """
+    Resolve analysis provider from request mode or server configuration.
+    - If mode is provided: 'standard' -> 'food101', 'advanced' -> 'gemini'.
+      Any other mode value raises HTTP 422.
+    - If mode is None or empty: fall back to FOOD_ANALYSIS_PROVIDER env (default 'food101').
+      Invalid FOOD_ANALYSIS_PROVIDER raises HTTP 500.
+    """
+    if isinstance(mode, str) and mode.strip():
+        cleaned_mode = mode.strip().lower()
+        if cleaned_mode == "standard":
+            return "food101"
+        elif cleaned_mode == "advanced":
+            return "gemini"
+        else:
+            raise HTTPException(
+                status_code=422,
+                detail=f"Invalid analysis mode: '{mode}'. Must be 'standard' or 'advanced'.",
+            )
+
+    default_provider = get_analysis_provider()
+    if default_provider not in ("food101", "gemini"):
+        logger.error("Invalid FOOD_ANALYSIS_PROVIDER: '%s'", default_provider)
+        raise HTTPException(
+            status_code=500,
+            detail=f"Invalid FOOD_ANALYSIS_PROVIDER configuration: '{default_provider}'",
+        )
+    return default_provider
+
+
 def get_classifier() -> FoodClassifier:
     model_path = os.getenv("FOOD_MODEL_PATH", "models/best_model.pth")
     return FoodClassifier.get_instance(model_path=model_path)
@@ -29,11 +87,12 @@ def get_classifier() -> FoodClassifier:
 async def analyze_food_image(
     image: UploadFile = File(...),
     grams: float = Form(default=100.0),
+    mode: Optional[str] = Form(default=None),
     email: str = Depends(verify_token),
 ):
     """
     Nhận ảnh món ăn → trả food label + macro (calories/protein/carbs/fat).
-    Dùng Food101 model + USDA/OpenFoodFacts lookup. Mock mode khi chưa có model.
+    Hỗ trợ provider food101 (mặc định) và gemini theo request mode hoặc cấu hình nội bộ.
     """
     if image.content_type and image.content_type not in (
         "image/jpeg", "image/png", "image/webp", "image/jpg"
@@ -48,12 +107,49 @@ async def analyze_food_image(
     if len(image_bytes) < 1000:
         raise HTTPException(status_code=400, detail="Image too small or corrupted")
 
+    provider = resolve_analysis_provider(mode)
+
+    if provider == "gemini":
+        if not is_gemini_allowed(email):
+            raise HTTPException(
+                status_code=403,
+                detail="Gemini food analysis is restricted to authorized test accounts",
+            )
+
+        from backend.services.gemini_food_analyzer import (
+            get_gemini_food_analyzer,
+            GeminiConfigurationError,
+            GeminiAnalysisError,
+        )
+        try:
+            analyzer = get_gemini_food_analyzer()
+            result = await analyzer.analyze(
+                image_bytes=image_bytes,
+                mime_type=image.content_type or "image/jpeg",
+                grams=grams,
+            )
+        except (GeminiConfigurationError, GeminiAnalysisError) as exc:
+            logger.exception("Gemini food analysis failed: %s", exc)
+            raise HTTPException(status_code=500, detail=str(exc))
+        except Exception as exc:
+            logger.exception("Unexpected error in Gemini food analysis: %s", exc)
+            raise HTTPException(status_code=500, detail="Gemini food analysis failed")
+
+        result["user_email"] = email
+        return result
+
     classifier = get_classifier()
+    if not getattr(classifier, "ready", False):
+        raise HTTPException(status_code=500, detail="Food classification model is not ready")
+
     try:
         result = classifier.predict(image_bytes)
     except Exception as e:
         logger.exception("Classification error: %s", e)
         raise HTTPException(status_code=500, detail=f"Classification error: {str(e)}")
+
+    if result.get("mock", False):
+        raise HTTPException(status_code=500, detail="Food classification model is not ready")
 
     food_label = result["label"]
     confidence = result["confidence"]
@@ -61,11 +157,12 @@ async def analyze_food_image(
     try:
         nutrition = await _nutrition_lookup.lookup(food_label, grams)
     except Exception as e:
-        logger.warning("Nutrition lookup failed: %s", e)
-        nutrition = {
-            "calories": 0, "protein": 0, "carbs": 0, "fat": 0,
-            "source": "error", "per_100g": {},
-        }
+        logger.exception("Nutrition lookup failed: %s", e)
+        raise HTTPException(status_code=500, detail=f"Nutrition lookup failed: {str(e)}")
+
+    if not nutrition:
+        logger.warning("No nutrition data found for label: %s", food_label)
+        raise HTTPException(status_code=500, detail=f"Nutrition data not found for food: {food_label}")
 
     food_name = result.get("food_name") or food_label.replace("_", " ").title()
     return {
