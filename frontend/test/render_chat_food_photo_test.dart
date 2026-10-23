@@ -42,6 +42,21 @@ class _FakeVisualFoodChatNotifier extends StateNotifier<ChatState>
 
   @override
   void clearFoodAnalysis() {}
+
+  // Render scenarios supply their visible conversation state directly.
+  @override
+  Future<void> loadConversations({bool loadLatest = false}) async {}
+
+  @override
+  Future<void> loadConversation(String conversationId) async {
+    throw UnsupportedError('Conversation detail loading has no render fixture.');
+  }
+
+  @override
+  void newConversation() {
+    clearChat();
+  }
+
 }
 
 Future<void> _capturePng(
@@ -55,6 +70,7 @@ Future<void> _capturePng(
     if (byteData == null) return;
     final buffer = byteData.buffer.asUint8List();
     final file = File(outputPath);
+    await file.parent.create(recursive: true);
     await file.writeAsBytes(buffer);
   });
 }
@@ -118,8 +134,8 @@ void main() {
     addTearDown(tester.view.resetDevicePixelRatio);
 
     final repaintKey = GlobalKey();
-    const outputPath =
-        '/Users/saman/.gemini/antigravity-ide/brain/3f6beed2-836f-4f92-acf2-501da675c85b/saman_chat_state_06_analysis_render.png';
+    final outputPath =
+        '${Platform.environment['SAMAN_RENDER_EVIDENCE'] ?? Directory.systemTemp.path}/saman_chat_state_06_analysis_render.png';
 
     final chatState = ChatState(
       foodAnalysisState: const ChatFoodAnalysisState(
@@ -150,8 +166,8 @@ void main() {
     addTearDown(tester.view.resetDevicePixelRatio);
 
     final repaintKey = GlobalKey();
-    const outputPath =
-        '/Users/saman/.gemini/antigravity-ide/brain/3f6beed2-836f-4f92-acf2-501da675c85b/saman_chat_state_03_result_render.png';
+    final outputPath =
+        '${Platform.environment['SAMAN_RENDER_EVIDENCE'] ?? Directory.systemTemp.path}/saman_chat_state_03_result_render.png';
 
     const result = AIAnalysisResult(
       foodName: 'Grilled chicken, quinoa & steamed broccoli',
@@ -198,8 +214,8 @@ void main() {
     addTearDown(tester.view.resetDevicePixelRatio);
 
     final repaintKey = GlobalKey();
-    const outputPath =
-        '/Users/saman/.gemini/antigravity-ide/brain/3f6beed2-836f-4f92-acf2-501da675c85b/saman_chat_state_08_failure_render.png';
+    final outputPath =
+        '${Platform.environment['SAMAN_RENDER_EVIDENCE'] ?? Directory.systemTemp.path}/saman_chat_state_08_failure_render.png';
 
     final chatState = ChatState(
       foodAnalysisState: const ChatFoodAnalysisState(
