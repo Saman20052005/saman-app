@@ -7,6 +7,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 import 'package:health_ai_app/config/app_theme.dart';
+import 'package:health_ai_app/config/routes.dart';
 import 'package:health_ai_app/features/profile/data/datasources/profile_remote_data_source.dart';
 import 'package:health_ai_app/features/profile/data/models/profile_snapshot_model.dart';
 import 'package:health_ai_app/features/profile/data/repositories/profile_repository_impl.dart';
@@ -219,6 +220,9 @@ Future<void> _pumpSessionMain(WidgetTester tester, ProviderContainer container,
     child: MaterialApp(
       theme: SamanTheme.dark(),
       navigatorObservers: [if (observer != null) observer],
+      routes: {
+        AppRoutes.login: (_) => const LoginScreen(),
+      },
       home: MainScreen(onUnauthorizedLogout: onUnauthorizedLogout),
     ),
   ));

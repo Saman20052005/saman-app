@@ -21,6 +21,7 @@ import 'package:health_ai_app/screens/home_screen.dart';
 import 'package:health_ai_app/screens/main_screen.dart';
 import 'package:health_ai_app/screens/profile_screen.dart';
 import 'package:health_ai_app/services/api_client.dart';
+import 'package:health_ai_app/presentation/providers/workout_history_providers.dart';
 import 'package:health_ai_app/utils/auth_helper.dart';
 
 class _FailingSecureStorage extends FlutterSecureStorage {
@@ -109,6 +110,72 @@ class _ControllableSecureStorage extends FlutterSecureStorage {
     }
     if (shouldFail && (key == 'auth_token' || key == 'jwt_token')) {
       return; // Simulate persistent failure
+    }
+    values.remove(key);
+  }
+
+  @override
+  Future<Map<String, String>> readAll({
+    IOSOptions? iOptions,
+    AndroidOptions? aOptions,
+    LinuxOptions? lOptions,
+    WebOptions? webOptions,
+    MacOsOptions? mOptions,
+    WindowsOptions? wOptions,
+  }) async {
+    return Map.from(values);
+  }
+}
+
+
+class _StepFailureSecureStorage extends FlutterSecureStorage {
+  final Map<String, String> values;
+  String? failOnDeleteKey;
+  bool throwOnDelete;
+  String? failOnReadKey;
+  bool throwOnRead;
+  Set<String> silentNonDeletedKeys;
+
+  _StepFailureSecureStorage(
+    this.values, {
+    this.failOnDeleteKey,
+    this.throwOnDelete = false,
+    this.failOnReadKey,
+    this.throwOnRead = false,
+    Set<String>? silentNonDeletedKeys,
+  }) : silentNonDeletedKeys = silentNonDeletedKeys ?? {};
+
+  @override
+  Future<String?> read({
+    required String key,
+    IOSOptions? iOptions,
+    AndroidOptions? aOptions,
+    LinuxOptions? lOptions,
+    WebOptions? webOptions,
+    MacOsOptions? mOptions,
+    WindowsOptions? wOptions,
+  }) async {
+    if (key == failOnReadKey && throwOnRead) {
+      throw Exception('Simulated hardware read verification failure for key $key');
+    }
+    return values[key];
+  }
+
+  @override
+  Future<void> delete({
+    required String key,
+    IOSOptions? iOptions,
+    AndroidOptions? aOptions,
+    LinuxOptions? lOptions,
+    WebOptions? webOptions,
+    MacOsOptions? mOptions,
+    WindowsOptions? wOptions,
+  }) async {
+    if ((failOnDeleteKey == null || key == failOnDeleteKey) && throwOnDelete) {
+      throw Exception('Simulated storage hardware error deleting $key');
+    }
+    if (silentNonDeletedKeys.contains(key)) {
+      return; // Silent failure: no error thrown, but key is NOT deleted
     }
     values.remove(key);
   }
@@ -1222,4 +1289,306 @@ void main() {
       expect(ignorePointerAfter.ignoring, isFalse);
     });
   });
+
+  group('CP-04A: Partial credential deletion and storage failure matrix', () {
+    test(
+        'Scenario A: Failure truoc khi xoa credential nao: Nem LogoutException, giu nguyen credentials va session',
+        () async {
+      final storageValues = <String, String>{
+        'auth_token': 'token_initial_fail_123',
+        'jwt_token': 'jwt_initial_fail_456',
+        'user_email': 'initial@example.com',
+        'user_fullname': 'Initial Athlete',
+      };
+      final storage = _StepFailureSecureStorage(
+        storageValues,
+        throwOnDelete: true, // All delete calls throw -> zero credentials removed
+      );
+      AuthHelper.setStorageForTesting(storage);
+      addTearDown(AuthHelper.resetStorageForTesting);
+
+      final prefs = await SharedPreferences.getInstance();
+      final container = ProviderContainer(
+        overrides: [
+          sharedPreferencesProvider.overrideWithValue(prefs),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      final notifier = container.read(profileProvider.notifier);
+      final initialEpoch = notifier.sessionEpoch;
+      notifier.state = ProfileState(
+        status: ProfileStatus.ready,
+        isNetworkConfirmed: true,
+        confirmedUserId: 'user_initial_01',
+        profile: const ProfileEntity(userId: 'user_initial_01', age: 30),
+      );
+
+      await expectLater(
+        () => AuthHelper.logout(container),
+        throwsA(isA<LogoutException>()),
+      );
+
+      // Verify flag is released
+      expect(container.read(authLoggingOutProvider), isFalse);
+      // Both credentials still exist in storage
+      expect(storageValues['auth_token'], equals('token_initial_fail_123'));
+      expect(storageValues['jwt_token'], equals('jwt_initial_fail_456'));
+      // Session token and status are still valid
+      expect(await AuthHelper.getToken(), equals('token_initial_fail_123'));
+      expect(await AuthHelper.isLoggedIn(), isTrue);
+      // Session epoch was NOT incremented
+      expect(notifier.sessionEpoch, equals(initialEpoch));
+      // Profile state was NOT wiped
+      expect(container.read(profileProvider).userId, equals('user_initial_01'));
+    });
+
+    test(
+        'Scenario B: Failure sau khi da xoa mot phan: auth_token xoa thanh cong, jwt_token fail: jwt_token fallback van hop le, session giu nguyen',
+        () async {
+      final storageValues = <String, String>{
+        'auth_token': 'token_partial_01',
+        'jwt_token': 'jwt_partial_02',
+        'user_email': 'partial@example.com',
+      };
+      final storage = _StepFailureSecureStorage(
+        storageValues,
+        failOnDeleteKey: 'jwt_token',
+        throwOnDelete: true,
+      );
+      AuthHelper.setStorageForTesting(storage);
+      addTearDown(AuthHelper.resetStorageForTesting);
+
+      final prefs = await SharedPreferences.getInstance();
+      final container = ProviderContainer(
+        overrides: [
+          sharedPreferencesProvider.overrideWithValue(prefs),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      final notifier = container.read(profileProvider.notifier);
+      final initialEpoch = notifier.sessionEpoch;
+
+      await expectLater(
+        () => AuthHelper.logout(container),
+        throwsA(isA<LogoutException>()),
+      );
+
+      // auth_token was deleted before the failure
+      expect(storageValues['auth_token'], isNull);
+      // jwt_token remains in storage
+      expect(storageValues['jwt_token'], equals('jwt_partial_02'));
+      // AuthHelper.getToken() falls back to jwt_token!
+      expect(await AuthHelper.getToken(), equals('jwt_partial_02'));
+      expect(await AuthHelper.isLoggedIn(), isTrue);
+      // Session epoch and flag are preserved safely
+      expect(notifier.sessionEpoch, equals(initialEpoch));
+      expect(container.read(authLoggingOutProvider), isFalse);
+    });
+
+    test(
+        'Scenario C: Verification read that bai sau delete: Nem LogoutException, co duoc giai phong, session giu nguyen',
+        () async {
+      final storageValues = <String, String>{
+        'auth_token': 'read_fail_tok',
+        'jwt_token': 'read_fail_jwt',
+        'user_email': 'read_fail@example.com',
+      };
+      final storage = _StepFailureSecureStorage(
+        storageValues,
+        failOnReadKey: 'user_email',
+        throwOnRead: true,
+      );
+      AuthHelper.setStorageForTesting(storage);
+      addTearDown(AuthHelper.resetStorageForTesting);
+
+      final prefs = await SharedPreferences.getInstance();
+      final container = ProviderContainer(
+        overrides: [
+          sharedPreferencesProvider.overrideWithValue(prefs),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      final notifier = container.read(profileProvider.notifier);
+      final initialEpoch = notifier.sessionEpoch;
+
+      await expectLater(
+        () => AuthHelper.logout(container),
+        throwsA(predicate((e) =>
+            e is LogoutException && e.message.contains('user_email'))),
+      );
+
+      expect(container.read(authLoggingOutProvider), isFalse);
+      expect(notifier.sessionEpoch, equals(initialEpoch));
+    });
+
+    test(
+        'Scenario D: Credential van con sau delete (silent non-deletion): Verification phat hien va nem LogoutException',
+        () async {
+      final storageValues = <String, String>{
+        'auth_token': 'silent_undeleted_token',
+        'jwt_token': 'silent_jwt',
+        'user_email': 'silent@example.com',
+      };
+      // delete('auth_token') succeeds without error, but key is NOT removed from storage
+      final storage = _StepFailureSecureStorage(
+        storageValues,
+        silentNonDeletedKeys: {'auth_token'},
+      );
+      AuthHelper.setStorageForTesting(storage);
+      addTearDown(AuthHelper.resetStorageForTesting);
+
+      final prefs = await SharedPreferences.getInstance();
+      final container = ProviderContainer(
+        overrides: [
+          sharedPreferencesProvider.overrideWithValue(prefs),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      final notifier = container.read(profileProvider.notifier);
+      final initialEpoch = notifier.sessionEpoch;
+
+      await expectLater(
+        () => AuthHelper.logout(container),
+        throwsA(predicate((e) =>
+            e is LogoutException && e.message.contains('auth_token'))),
+      );
+
+      expect(storageValues['auth_token'], equals('silent_undeleted_token'));
+      expect(container.read(authLoggingOutProvider), isFalse);
+      expect(notifier.sessionEpoch, equals(initialEpoch));
+    });
+
+    test(
+        'Scenario E: Retry sau partial failure: Thu lan 1 that bai, phuc hoi loi va thu lai lan 2 hoan tat 100%',
+        () async {
+      final storageValues = <String, String>{
+        'auth_token': 'retry_auth_tok_111',
+        'jwt_token': 'retry_jwt_tok_222',
+        'user_email': 'retry@example.com',
+        'user_fullname': 'Retry Athlete',
+      };
+      final storage = _StepFailureSecureStorage(
+        storageValues,
+        failOnDeleteKey: 'jwt_token',
+        throwOnDelete: true,
+      );
+      AuthHelper.setStorageForTesting(storage);
+      addTearDown(AuthHelper.resetStorageForTesting);
+
+      SharedPreferences.setMockInitialValues({
+        'cached_profile_snapshot_v2': '{"profile":{"age":27}}',
+        'user_email': 'retry@example.com',
+      });
+      final prefs = await SharedPreferences.getInstance();
+      final container = ProviderContainer(
+        overrides: [
+          sharedPreferencesProvider.overrideWithValue(prefs),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      final notifier = container.read(profileProvider.notifier);
+      final initialEpoch = notifier.sessionEpoch;
+
+      // Lan 1: That bai partial
+      await expectLater(
+        () => AuthHelper.logout(container),
+        throwsA(isA<LogoutException>()),
+      );
+      expect(storageValues['auth_token'], isNull);
+      expect(storageValues['jwt_token'], equals('retry_jwt_tok_222'));
+      expect(notifier.sessionEpoch, equals(initialEpoch));
+      expect(prefs.containsKey('cached_profile_snapshot_v2'), isTrue);
+
+      // Phuc hoi loi phan cung/storage
+      storage.failOnDeleteKey = null;
+      storage.throwOnDelete = false;
+
+      // Lan 2: Thu lai (Retry)
+      await AuthHelper.logout(container);
+
+      // Ket qua sau retry: tat ca credentials bi xoa sach se
+      expect(storageValues['auth_token'], isNull);
+      expect(storageValues['jwt_token'], isNull);
+      expect(storageValues['user_email'], isNull);
+      expect(storageValues['user_fullname'], isNull);
+      expect(await AuthHelper.isLoggedIn(), isFalse);
+      expect(await AuthHelper.getToken(), isNull);
+
+      // Session epoch duoc tang len sau khi cleanup thanh cong
+      expect(notifier.sessionEpoch, equals(initialEpoch + 1));
+      // Local caches da bi xoa
+      expect(prefs.containsKey('cached_profile_snapshot_v2'), isFalse);
+      expect(prefs.containsKey('user_email'), isFalse);
+      expect(container.read(profileProvider).status, equals(ProfileStatus.initial));
+    });
+
+    test(
+        'Scenario F: Account isolation sau partial failure + retry: Account A logout va retry khong ro ri cache/workout sang Account B',
+        () async {
+      final storageValues = <String, String>{
+        'auth_token': 'token_user_A',
+        'jwt_token': 'jwt_user_A',
+        'user_email': 'athlete_a@example.com',
+      };
+      final storage = _StepFailureSecureStorage(
+        storageValues,
+        failOnDeleteKey: 'jwt_token',
+        throwOnDelete: true,
+      );
+      AuthHelper.setStorageForTesting(storage);
+      addTearDown(AuthHelper.resetStorageForTesting);
+
+      SharedPreferences.setMockInitialValues({
+        'cached_profile_snapshot_v2_user_A': '{"user_id":"user_A","profile":{"age":35}}',
+        'onboarding_draft_user_A': '{"user_id":"user_A","age":35,"step":2}',
+      });
+      final prefs = await SharedPreferences.getInstance();
+      final container = ProviderContainer(
+        overrides: [
+          sharedPreferencesProvider.overrideWithValue(prefs),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      final notifier = container.read(profileProvider.notifier);
+      notifier.state = ProfileState(
+        status: ProfileStatus.ready,
+        isNetworkConfirmed: true,
+        confirmedUserId: 'user_A',
+        profile: const ProfileEntity(userId: 'user_A', age: 35),
+      );
+
+      // Account A attempts logout -> partial failure
+      await expectLater(
+        () => AuthHelper.logout(container),
+        throwsA(isA<LogoutException>()),
+      );
+      expect(prefs.containsKey('cached_profile_snapshot_v2_user_A'), isTrue);
+
+      // Account A retries -> succeeds
+      storage.failOnDeleteKey = null;
+      storage.throwOnDelete = false;
+      await AuthHelper.logout(container);
+
+      // Partitioned keys for user A are strictly deleted
+      expect(prefs.containsKey('cached_profile_snapshot_v2_user_A'), isFalse);
+      expect(prefs.containsKey('onboarding_draft_user_A'), isFalse);
+
+      // Now Account B logs in
+      storageValues['auth_token'] = 'token_user_B';
+      storageValues['jwt_token'] = 'jwt_user_B';
+      storageValues['user_email'] = 'athlete_b@example.com';
+
+      // When Account B loads, Account A's state is completely absent
+      expect(container.read(profileProvider).userId, isNull);
+      expect(container.read(workoutHistoryProvider).valueOrNull ?? const [], isEmpty);
+      expect(await AuthHelper.getToken(), equals('token_user_B'));
+    });
+  });
+
 }

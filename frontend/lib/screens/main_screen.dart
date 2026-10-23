@@ -14,7 +14,6 @@ import 'home/tokens/saman_home_tokens.dart';
 import 'home/widgets/saman_bottom_navigation_bar.dart';
 
 import '../utils/auth_helper.dart';
-import 'login/login_screen.dart';
 
 // Import Provider
 import '../providers/profile_provider.dart';
@@ -72,19 +71,11 @@ class _MainScreenState extends ConsumerState<MainScreen> {
         if (widget.onUnauthorizedLogout != null) {
           widget.onUnauthorizedLogout!();
         } else {
-          try {
-            Navigator.pushNamedAndRemoveUntil(
-              context,
-              AppRoutes.login,
-              (route) => false,
-            );
-          } catch (_) {
-            Navigator.pushAndRemoveUntil(
-              context,
-              MaterialPageRoute(builder: (_) => const LoginScreen()),
-              (route) => false,
-            );
-          }
+          Navigator.pushNamedAndRemoveUntil(
+            context,
+            AppRoutes.login,
+            (route) => false,
+          );
         }
       }
     } catch (e) {
