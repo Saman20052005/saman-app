@@ -2,12 +2,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../config/routes.dart';
 import '../features/profile/domain/entities/onboarding_activity_choice.dart';
 import '../features/profile/domain/entities/profile_entity.dart';
 import '../providers/profile_provider.dart';
 import '../utils/auth_helper.dart';
 import 'home/tokens/saman_home_tokens.dart';
-import 'login/login_screen.dart';
 import 'profile/edit_health_profile_screen.dart';
 
 /// Screen 06 — Profile & Telemetry Summary under Dark Calm Athleticism.
@@ -140,7 +140,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     );
   }
 
+  bool _isLoggingOut = false;
+
   Future<void> _logout() async {
+    if (_isLoggingOut) return;
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
@@ -188,13 +191,32 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     );
 
     if (confirmed == true && mounted) {
-      await AuthHelper.logout(ref);
-      if (mounted) {
-        Navigator.pushAndRemoveUntil(
-          context,
-          MaterialPageRoute(builder: (_) => const LoginScreen()),
-          (route) => false,
-        );
+      _isLoggingOut = true;
+      try {
+        await AuthHelper.logout(ref);
+        if (mounted) {
+          Navigator.pushNamedAndRemoveUntil(
+            context,
+            AppRoutes.login,
+            (route) => false,
+          );
+        }
+      } catch (e) {
+        _isLoggingOut = false;
+        debugPrint('[AUTH] Logout failed: $e');
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Đăng xuất thất bại: $e'),
+              backgroundColor: const Color(0xFFEF4444),
+              action: SnackBarAction(
+                label: 'Thử lại',
+                textColor: Colors.white,
+                onPressed: _logout,
+              ),
+            ),
+          );
+        }
       }
     }
   }
