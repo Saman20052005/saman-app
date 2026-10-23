@@ -26,8 +26,8 @@ class LoginForm extends StatefulWidget {
 
   static String? validatePassword(String? v, {required bool isLoginMode}) {
     if (v == null || v.isEmpty) return 'Password is required';
-    if (!isLoginMode && v.length < 6) {
-      return 'Min 6 chars';
+    if (!isLoginMode && v.length < 8) {
+      return 'Min 8 chars';
     }
     return null;
   }

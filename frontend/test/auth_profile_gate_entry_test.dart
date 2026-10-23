@@ -373,8 +373,8 @@ void main() {
       await enterText(tester, 0, 'New Person');
       await enterText(tester, 1, '0901234567');
       await enterText(tester, 2, 'person@example.com');
-      await enterText(tester, 3, 'secret1');
-      await enterText(tester, 4, 'secret1');
+      await enterText(tester, 3, 'secret123');
+      await enterText(tester, 4, 'secret123');
       await tester.tap(find.widgetWithText(ElevatedButton, 'Sign Up'));
       await settleLoginScreen(tester);
 

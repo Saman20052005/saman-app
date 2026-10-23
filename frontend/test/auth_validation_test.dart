@@ -6,12 +6,12 @@ import 'package:health_ai_app/screens/login/widgets/login_form.dart';
 
 void main() {
   group('LoginForm Validation Tests', () {
-    test('Register password validation blocks < 6 chars and allows >= 6 chars on client', () {
+    test('Register password validation blocks < 8 chars and allows >= 8 chars on client', () {
       expect(LoginForm.validatePassword(null, isLoginMode: false), 'Password is required');
       expect(LoginForm.validatePassword('', isLoginMode: false), 'Password is required');
-      expect(LoginForm.validatePassword('12345', isLoginMode: false), 'Min 6 chars');
-      expect(LoginForm.validatePassword('123456', isLoginMode: false), isNull);
-      expect(LoginForm.validatePassword('secret1', isLoginMode: false), isNull);
+      expect(LoginForm.validatePassword('12345', isLoginMode: false), 'Min 8 chars');
+      expect(LoginForm.validatePassword('123456', isLoginMode: false), 'Min 8 chars');
+      expect(LoginForm.validatePassword('secret1', isLoginMode: false), 'Min 8 chars');
       expect(LoginForm.validatePassword('12345678', isLoginMode: false), isNull);
       expect(LoginForm.validatePassword('SecurePassword123!', isLoginMode: false), isNull);
     });
@@ -19,8 +19,10 @@ void main() {
     test('Login password validation checks required and does not block accounts with registration rules', () {
       expect(LoginForm.validatePassword(null, isLoginMode: true), 'Password is required');
       expect(LoginForm.validatePassword('', isLoginMode: true), 'Password is required');
+      expect(LoginForm.validatePassword('123', isLoginMode: true), isNull);
       expect(LoginForm.validatePassword('12345', isLoginMode: true), isNull);
       expect(LoginForm.validatePassword('123456', isLoginMode: true), isNull);
+      expect(LoginForm.validatePassword('secret1', isLoginMode: true), isNull);
       expect(LoginForm.validatePassword('12345678', isLoginMode: true), isNull);
     });
 
@@ -93,6 +95,66 @@ void main() {
       expect(find.byType(CircularProgressIndicator), findsOneWidget);
       final disabledButton = tester.widget<ElevatedButton>(find.byType(ElevatedButton));
       expect(disabledButton.onPressed, isNull);
+    });
+
+    testWidgets('LoginForm in register mode enforces min 8 chars and preserves exact password without trimming', (tester) async {
+      String? submittedEmail;
+      String? submittedPass;
+      String? submittedName;
+      String? submittedPhone;
+      int submitCount = 0;
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: SingleChildScrollView(
+              child: LoginForm(
+                isLoginMode: false,
+                isLoading: false,
+                onSubmit: (email, pass, name, phone) {
+                  submittedEmail = email;
+                  submittedPass = pass;
+                  submittedName = name;
+                  submittedPhone = phone;
+                  submitCount++;
+                },
+                onForgotPassword: () {},
+              ),
+            ),
+          ),
+        ),
+      );
+
+      // Register fields: 0: Full Name, 1: Phone, 2: Email, 3: Password, 4: Confirm Password
+      await tester.enterText(find.byType(TextFormField).at(0), '  Sam Athlete  ');
+      await tester.enterText(find.byType(TextFormField).at(1), '  0901234567  ');
+      await tester.enterText(find.byType(TextFormField).at(2), '  athlete@example.com  ');
+      await tester.enterText(find.byType(TextFormField).at(3), 'secret1'); // 7 chars -> should fail
+      await tester.enterText(find.byType(TextFormField).at(4), 'secret1');
+      await tester.pumpAndSettle();
+
+      final signUpBtn = find.widgetWithText(ElevatedButton, 'Sign Up');
+      expect(signUpBtn, findsOneWidget);
+      await tester.tap(signUpBtn);
+      await tester.pumpAndSettle();
+
+      // Blocked by min 8 validation
+      expect(submitCount, 0);
+      expect(find.text('Min 8 chars'), findsOneWidget);
+
+      // Fix password to 8+ chars with whitespace (11 chars total)
+      await tester.enterText(find.byType(TextFormField).at(3), ' secret888 ');
+      await tester.enterText(find.byType(TextFormField).at(4), ' secret888 ');
+      await tester.pumpAndSettle();
+
+      await tester.tap(signUpBtn);
+      await tester.pumpAndSettle();
+
+      expect(submitCount, 1);
+      expect(submittedName, 'Sam Athlete'); // Trimmed
+      expect(submittedPhone, '0901234567'); // Trimmed
+      expect(submittedEmail, 'athlete@example.com'); // Trimmed
+      expect(submittedPass, ' secret888 '); // NOT trimmed! Exact verbatim password
     });
   });
 
