@@ -15,6 +15,23 @@ class LoginForm extends StatefulWidget {
     required this.onForgotPassword,
   });
 
+  static String? validateEmail(String? v) {
+    final trimmed = v?.trim() ?? '';
+    if (trimmed.isEmpty) return 'Email is required';
+    if (!RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$').hasMatch(trimmed)) {
+      return 'Invalid email';
+    }
+    return null;
+  }
+
+  static String? validatePassword(String? v, {required bool isLoginMode}) {
+    if (v == null || v.isEmpty) return 'Password is required';
+    if (!isLoginMode && v.length < 6) {
+      return 'Min 6 chars';
+    }
+    return null;
+  }
+
   @override
   State<LoginForm> createState() => _LoginFormState();
 }
@@ -91,23 +108,26 @@ class _LoginFormState extends State<LoginForm> {
               _buildModernTextField(
                   _emailController, 'name@example.com', Icons.email_outlined,
                   keyboard: TextInputType.emailAddress,
-                  validator: (v) =>
-                      (v == null || !v.contains('@')) ? 'Invalid email' : null),
+                  validator: LoginForm.validateEmail),
               const SizedBox(height: 16),
               _buildLabel("Password"),
               _buildModernTextField(
-                  _passwordController, '••••••', Icons.lock_outline,
+                  _passwordController,
+                  widget.isLoginMode ? '••••••' : '••••••••',
+                  Icons.lock_outline,
                   obscure: _obscurePassword,
                   isPassword: true,
                   onToggleObscure: () =>
                       setState(() => _obscurePassword = !_obscurePassword),
-                  validator: (v) =>
-                      (v == null || v.length < 6) ? 'Min 6 chars' : null),
+                  validator: (v) => LoginForm.validatePassword(v,
+                      isLoginMode: widget.isLoginMode)),
               if (!widget.isLoginMode) ...[
                 const SizedBox(height: 16),
                 _buildLabel("Confirm Password"),
                 _buildModernTextField(
-                    _confirmPasswordController, '••••••', Icons.lock_outline,
+                    _confirmPasswordController,
+                    '••••••••',
+                    Icons.lock_outline,
                     obscure: _obscureConfirmPassword,
                     isPassword: true,
                     onToggleObscure: () => setState(() =>
