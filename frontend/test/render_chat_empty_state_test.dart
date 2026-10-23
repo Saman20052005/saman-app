@@ -6,6 +6,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 
+import 'fixtures/chat_render/render_resources.dart';
+
 import 'package:health_ai_app/config/app_theme.dart';
 import 'package:health_ai_app/controllers/chat_controller.dart';
 import 'package:health_ai_app/screens/chat/tokens/saman_chat_tokens.dart';
@@ -75,6 +77,8 @@ Future<void> _capturePng(WidgetTester tester, GlobalKey key, String outputPath) 
 }
 
 void main() {
+  setUpAll(loadChatRenderFonts);
+
   testWidgets('Capture visual render of Saman Chat Empty State at 390x844',
       (tester) async {
     const mobileWidth = 390.0;

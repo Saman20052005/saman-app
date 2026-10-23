@@ -6,6 +6,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 
+import 'fixtures/chat_render/render_resources.dart';
+
 import 'package:health_ai_app/config/app_theme.dart';
 import 'package:health_ai_app/controllers/chat_controller.dart';
 import 'package:health_ai_app/models/saman_nudge.dart';
@@ -76,6 +78,8 @@ Future<void> _capturePng(
 }
 
 void main() {
+  setUpAll(loadChatRenderFonts);
+
   testWidgets('Capture visual render of State 04 Reminder / Nudge at 390x844',
       (tester) async {
     const mobileWidth = 390.0;

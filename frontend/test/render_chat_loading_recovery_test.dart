@@ -6,6 +6,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 
+import 'fixtures/chat_render/render_resources.dart';
+
 import 'package:health_ai_app/config/app_theme.dart';
 import 'package:health_ai_app/controllers/chat_controller.dart';
 import 'package:health_ai_app/screens/chat/tokens/saman_chat_tokens.dart';
@@ -75,6 +77,9 @@ Future<void> _capturePng(
 }
 
 void main() {
+  setUpAll(loadChatRenderFonts);
+  setUpAll(loadChatRenderSymbolFont);
+
   testWidgets('Capture visual render of State 05 Typing/Generating at 390x844',
       (tester) async {
     const mobileWidth = 390.0;
@@ -110,6 +115,9 @@ void main() {
         child: MaterialApp(
           debugShowCheckedModeBanner: false,
           theme: ThemeData.dark().copyWith(
+            textTheme: ThemeData.dark().textTheme.apply(
+              fontFamilyFallback: const ['ChatRenderSymbols'],
+            ),
             scaffoldBackgroundColor: SamanChatTokens.canvas,
             extensions: const [
               AppThemeExtension(
@@ -183,6 +191,9 @@ void main() {
         child: MaterialApp(
           debugShowCheckedModeBanner: false,
           theme: ThemeData.dark().copyWith(
+            textTheme: ThemeData.dark().textTheme.apply(
+              fontFamilyFallback: const ['ChatRenderSymbols'],
+            ),
             scaffoldBackgroundColor: SamanChatTokens.canvas,
             extensions: const [
               AppThemeExtension(

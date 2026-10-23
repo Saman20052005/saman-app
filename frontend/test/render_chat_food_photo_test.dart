@@ -6,6 +6,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 
+import 'fixtures/chat_render/render_resources.dart';
+
 import 'package:health_ai_app/config/app_theme.dart';
 import 'package:health_ai_app/controllers/chat_controller.dart';
 import 'package:health_ai_app/models/ai_analysis_result.dart';
@@ -120,8 +122,10 @@ Widget _buildWrapper({
 }
 
 void main() {
-  const testImagePath =
-      '/Users/saman/Desktop/project-root/frontend/assets/images/nutrition.jpg';
+  setUpAll(loadChatRenderFonts);
+
+  const testImagePath = 'assets/images/nutrition.jpg';
+  setUpAll(() => expect(File(testImagePath).existsSync(), isTrue));
 
   testWidgets('Capture visual render of State 06 Food Analysis Loading at 390x844',
       (tester) async {
@@ -144,6 +148,8 @@ void main() {
         userCaption: 'Can I fit this into today?',
       ),
     );
+
+    await tester.runAsync(() => cacheChatRenderPhoto(testImagePath));
 
     await tester.pumpWidget(
       _buildWrapper(repaintKey: repaintKey, chatState: chatState),
@@ -193,6 +199,8 @@ void main() {
       ),
     );
 
+    await tester.runAsync(() => cacheChatRenderPhoto(testImagePath));
+
     await tester.pumpWidget(
       _buildWrapper(repaintKey: repaintKey, chatState: chatState),
     );
@@ -226,6 +234,8 @@ void main() {
             "I couldn't estimate this meal confidently from the photo.",
       ),
     );
+
+    await tester.runAsync(() => cacheChatRenderPhoto(testImagePath));
 
     await tester.pumpWidget(
       _buildWrapper(repaintKey: repaintKey, chatState: chatState),

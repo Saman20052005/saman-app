@@ -6,6 +6,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 
+import 'fixtures/chat_render/render_resources.dart';
+
 import 'package:health_ai_app/config/app_theme.dart';
 import 'package:health_ai_app/controllers/chat_controller.dart';
 import 'package:health_ai_app/screens/chat/tokens/saman_chat_tokens.dart';
@@ -103,6 +105,8 @@ Start with a higher-protein breakfast and keep the session around **RPE 7–8** 
 ''';
 
 void main() {
+  setUpAll(loadChatRenderFonts);
+
   testWidgets('Capture visual render of State 09 Long Response at 390x844',
       (tester) async {
     const mobileWidth = 390.0;
