@@ -10,9 +10,22 @@ import '../presentation/providers/workout_history_providers.dart';
 import '../presentation/providers/active_workout_providers.dart';
 import '../presentation/providers/session_detail_providers.dart';
 
+enum AuthTokenState {
+  confirmedRetained,
+  confirmedLost,
+  indeterminate,
+}
+
 class LogoutException implements Exception {
   final String message;
-  const LogoutException(this.message);
+  final AuthTokenState tokenState;
+  final List<String> failedKeys;
+
+  const LogoutException(
+    this.message, {
+    this.tokenState = AuthTokenState.indeterminate,
+    this.failedKeys = const [],
+  });
 
   @override
   String toString() => message;
@@ -107,8 +120,23 @@ class AuthHelper {
     }
 
     if (failedKeys.isNotEmpty) {
+      AuthTokenState tokenState;
+      try {
+        final authVal = await _storage.read(key: _tokenKey);
+        final jwtVal = await _storage.read(key: _jwtTokenKey);
+        final hasToken = (authVal != null && authVal.isNotEmpty) ||
+            (jwtVal != null && jwtVal.isNotEmpty);
+        tokenState = hasToken
+            ? AuthTokenState.confirmedRetained
+            : AuthTokenState.confirmedLost;
+      } catch (e) {
+        tokenState = AuthTokenState.indeterminate;
+      }
+
       throw LogoutException(
         'Failed to clear credentials from storage: ${failedKeys.join(', ')}',
+        tokenState: tokenState,
+        failedKeys: failedKeys,
       );
     }
   }
@@ -178,6 +206,39 @@ class AuthHelper {
       container.invalidate(workoutHistoryProvider);
       container.invalidate(activeWorkoutSessionProvider);
       container.invalidate(sessionDetailProvider);
+    } on LogoutException catch (e) {
+      if (e.tokenState == AuthTokenState.confirmedLost ||
+          e.tokenState == AuthTokenState.indeterminate) {
+        // Credentials are lost or indeterminate:
+        // Invalidate session epoch and scope to discard all pending responses
+        profileNotifier.resetSession();
+        workoutAuthScopeNotifier.state++;
+
+        try {
+          await profileRepo.clearLocalProfile(userId: currentUserId);
+        } catch (_) {}
+
+        try {
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.remove('cached_profile');
+          await prefs.remove('cached_profile_snapshot_v2');
+          if (currentUserId != null && currentUserId.isNotEmpty) {
+            await prefs.remove('cached_profile_snapshot_v2_$currentUserId');
+            await prefs.remove('onboarding_draft_$currentUserId');
+          }
+          await prefs.remove('user_email');
+          await prefs.remove('user_fullname');
+        } catch (_) {}
+
+        container.invalidate(profileProvider);
+        container.invalidate(nutritionProvider);
+        container.invalidate(macroTargetsProvider);
+        container.invalidate(weeklyGoalNotifierProvider);
+        container.invalidate(workoutHistoryProvider);
+        container.invalidate(activeWorkoutSessionProvider);
+        container.invalidate(sessionDetailProvider);
+      }
+      rethrow;
     } finally {
       // 7. Guarantee authLoggingOutProvider is released on the stable container.
       container.read(authLoggingOutProvider.notifier).state = false;

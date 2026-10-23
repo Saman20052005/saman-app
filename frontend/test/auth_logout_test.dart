@@ -134,6 +134,7 @@ class _StepFailureSecureStorage extends FlutterSecureStorage {
   bool throwOnDelete;
   String? failOnReadKey;
   bool throwOnRead;
+  bool throwOnAllTokenReads;
   Set<String> silentNonDeletedKeys;
 
   _StepFailureSecureStorage(
@@ -142,6 +143,7 @@ class _StepFailureSecureStorage extends FlutterSecureStorage {
     this.throwOnDelete = false,
     this.failOnReadKey,
     this.throwOnRead = false,
+    this.throwOnAllTokenReads = false,
     Set<String>? silentNonDeletedKeys,
   }) : silentNonDeletedKeys = silentNonDeletedKeys ?? {};
 
@@ -155,6 +157,9 @@ class _StepFailureSecureStorage extends FlutterSecureStorage {
     MacOsOptions? mOptions,
     WindowsOptions? wOptions,
   }) async {
+    if (throwOnAllTokenReads && (key == 'auth_token' || key == 'jwt_token')) {
+      throw Exception('Simulated hardware I/O error reading token $key');
+    }
     if (key == failOnReadKey && throwOnRead) {
       throw Exception('Simulated hardware read verification failure for key $key');
     }
@@ -1290,9 +1295,9 @@ void main() {
     });
   });
 
-  group('CP-04A: Partial credential deletion and storage failure matrix', () {
+  group('CP-04B: Ambiguous Logout State & Token State Matrix', () {
     test(
-        'Scenario A: Failure truoc khi xoa credential nao: Nem LogoutException, giu nguyen credentials va session',
+        '1. State a: Initial Failure truoc khi xoa credential nao -> tokenState = confirmedRetained: Giu session/cache, retryable',
         () async {
       final storageValues = <String, String>{
         'auth_token': 'token_initial_fail_123',
@@ -1324,10 +1329,12 @@ void main() {
         profile: const ProfileEntity(userId: 'user_initial_01', age: 30),
       );
 
-      await expectLater(
-        () => AuthHelper.logout(container),
-        throwsA(isA<LogoutException>()),
-      );
+      try {
+        await AuthHelper.logout(container);
+        fail('Should have thrown LogoutException');
+      } on LogoutException catch (e) {
+        expect(e.tokenState, equals(AuthTokenState.confirmedRetained));
+      }
 
       // Verify flag is released
       expect(container.read(authLoggingOutProvider), isFalse);
@@ -1337,14 +1344,14 @@ void main() {
       // Session token and status are still valid
       expect(await AuthHelper.getToken(), equals('token_initial_fail_123'));
       expect(await AuthHelper.isLoggedIn(), isTrue);
-      // Session epoch was NOT incremented
+      // Session epoch was NOT incremented because valid token remains
       expect(notifier.sessionEpoch, equals(initialEpoch));
       // Profile state was NOT wiped
       expect(container.read(profileProvider).userId, equals('user_initial_01'));
     });
 
     test(
-        'Scenario B: Failure sau khi da xoa mot phan: auth_token xoa thanh cong, jwt_token fail: jwt_token fallback van hop le, session giu nguyen',
+        '2. State a: auth_token bi xoa nhung jwt_token delete fail -> tokenState = confirmedRetained: jwt_token fallback van hop le, session giu nguyen',
         () async {
       final storageValues = <String, String>{
         'auth_token': 'token_partial_01',
@@ -1370,10 +1377,12 @@ void main() {
       final notifier = container.read(profileProvider.notifier);
       final initialEpoch = notifier.sessionEpoch;
 
-      await expectLater(
-        () => AuthHelper.logout(container),
-        throwsA(isA<LogoutException>()),
-      );
+      try {
+        await AuthHelper.logout(container);
+        fail('Should have thrown LogoutException');
+      } on LogoutException catch (e) {
+        expect(e.tokenState, equals(AuthTokenState.confirmedRetained));
+      }
 
       // auth_token was deleted before the failure
       expect(storageValues['auth_token'], isNull);
@@ -1388,7 +1397,7 @@ void main() {
     });
 
     test(
-        'Scenario C: Verification read that bai sau delete: Nem LogoutException, co duoc giai phong, session giu nguyen',
+        '3. State b: Delete thanh cong het nhung verification read mot metadata key loi -> tokenState = confirmedLost: Invalidate session/epoch, cache purged',
         () async {
       final storageValues = <String, String>{
         'auth_token': 'read_fail_tok',
@@ -1399,6 +1408,67 @@ void main() {
         storageValues,
         failOnReadKey: 'user_email',
         throwOnRead: true,
+      );
+      AuthHelper.setStorageForTesting(storage);
+      addTearDown(AuthHelper.resetStorageForTesting);
+
+      SharedPreferences.setMockInitialValues({
+        'cached_profile_snapshot_v2': '{"profile":{"age":28}}',
+        'user_email': 'read_fail@example.com',
+      });
+      final prefs = await SharedPreferences.getInstance();
+      final container = ProviderContainer(
+        overrides: [
+          sharedPreferencesProvider.overrideWithValue(prefs),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      final notifier = container.read(profileProvider.notifier);
+      final initialEpoch = notifier.sessionEpoch;
+      notifier.state = ProfileState(
+        status: ProfileStatus.ready,
+        isNetworkConfirmed: true,
+        confirmedUserId: 'user_read_fail',
+        profile: const ProfileEntity(userId: 'user_read_fail', age: 28),
+      );
+
+      try {
+        await AuthHelper.logout(container);
+        fail('Should have thrown LogoutException');
+      } on LogoutException catch (e) {
+        expect(e.tokenState, equals(AuthTokenState.confirmedLost));
+        expect(e.message, contains('user_email'));
+      }
+
+      // Tokens are genuinely gone!
+      expect(await AuthHelper.getToken(), isNull);
+      expect(await AuthHelper.isLoggedIn(), isFalse);
+
+      // CRITICAL: Session epoch MUST be incremented to prevent stale response resurrection
+      expect(notifier.sessionEpoch, equals(initialEpoch + 1));
+      // Local caches must be purged
+      expect(prefs.containsKey('cached_profile_snapshot_v2'), isFalse);
+      expect(prefs.containsKey('user_email'), isFalse);
+      // Flag must be released
+      expect(container.read(authLoggingOutProvider), isFalse);
+      // Profile status must be invalidated
+      expect(container.read(profileProvider).status, equals(ProfileStatus.initial));
+    });
+
+    test(
+        '4. State b: Tokens da xoa nhung key metadata khac delete that bai -> tokenState = confirmedLost: Invalidate session, purged',
+        () async {
+      final storageValues = <String, String>{
+        'auth_token': 'tok_meta_fail',
+        'jwt_token': 'jwt_meta_fail',
+        'user_email': 'athlete_meta@example.com',
+        'user_fullname': 'Athlete Fullname',
+      };
+      final storage = _StepFailureSecureStorage(
+        storageValues,
+        failOnDeleteKey: 'user_fullname',
+        throwOnDelete: true,
       );
       AuthHelper.setStorageForTesting(storage);
       addTearDown(AuthHelper.resetStorageForTesting);
@@ -1414,25 +1484,71 @@ void main() {
       final notifier = container.read(profileProvider.notifier);
       final initialEpoch = notifier.sessionEpoch;
 
-      await expectLater(
-        () => AuthHelper.logout(container),
-        throwsA(predicate((e) =>
-            e is LogoutException && e.message.contains('user_email'))),
-      );
+      try {
+        await AuthHelper.logout(container);
+        fail('Should have thrown LogoutException');
+      } on LogoutException catch (e) {
+        expect(e.tokenState, equals(AuthTokenState.confirmedLost));
+        expect(e.message, contains('user_fullname'));
+      }
 
+      // Tokens deleted
+      expect(storageValues['auth_token'], isNull);
+      expect(storageValues['jwt_token'], isNull);
+      expect(await AuthHelper.getToken(), isNull);
+      expect(await AuthHelper.isLoggedIn(), isFalse);
+      // Session epoch incremented
+      expect(notifier.sessionEpoch, equals(initialEpoch + 1));
       expect(container.read(authLoggingOutProvider), isFalse);
-      expect(notifier.sessionEpoch, equals(initialEpoch));
     });
 
     test(
-        'Scenario D: Credential van con sau delete (silent non-deletion): Verification phat hien va nem LogoutException',
+        '5. State c: Token reads deu loi, auth state khong xac dinh -> tokenState = indeterminate: Invalidate session va cach ly',
+        () async {
+      final storageValues = <String, String>{
+        'auth_token': 'tok_corrupt_01',
+        'jwt_token': 'jwt_corrupt_02',
+        'user_email': 'corrupt@example.com',
+      };
+      final storage = _StepFailureSecureStorage(
+        storageValues,
+        throwOnAllTokenReads: true,
+      );
+      AuthHelper.setStorageForTesting(storage);
+      addTearDown(AuthHelper.resetStorageForTesting);
+
+      final prefs = await SharedPreferences.getInstance();
+      final container = ProviderContainer(
+        overrides: [
+          sharedPreferencesProvider.overrideWithValue(prefs),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      final notifier = container.read(profileProvider.notifier);
+      final initialEpoch = notifier.sessionEpoch;
+
+      try {
+        await AuthHelper.logout(container);
+        fail('Should have thrown LogoutException');
+      } on LogoutException catch (e) {
+        expect(e.tokenState, equals(AuthTokenState.indeterminate));
+      }
+
+      // Because auth state is indeterminate, session MUST be revoked/incremented to prevent cache writes
+      expect(notifier.sessionEpoch, equals(initialEpoch + 1));
+      expect(container.read(authLoggingOutProvider), isFalse);
+      expect(container.read(profileProvider).status, equals(ProfileStatus.initial));
+    });
+
+    test(
+        '6. Credential van con sau delete (silent non-deletion) -> tokenState = confirmedRetained',
         () async {
       final storageValues = <String, String>{
         'auth_token': 'silent_undeleted_token',
         'jwt_token': 'silent_jwt',
         'user_email': 'silent@example.com',
       };
-      // delete('auth_token') succeeds without error, but key is NOT removed from storage
       final storage = _StepFailureSecureStorage(
         storageValues,
         silentNonDeletedKeys: {'auth_token'},
@@ -1451,11 +1567,13 @@ void main() {
       final notifier = container.read(profileProvider.notifier);
       final initialEpoch = notifier.sessionEpoch;
 
-      await expectLater(
-        () => AuthHelper.logout(container),
-        throwsA(predicate((e) =>
-            e is LogoutException && e.message.contains('auth_token'))),
-      );
+      try {
+        await AuthHelper.logout(container);
+        fail('Should have thrown LogoutException');
+      } on LogoutException catch (e) {
+        expect(e.tokenState, equals(AuthTokenState.confirmedRetained));
+        expect(e.message, contains('auth_token'));
+      }
 
       expect(storageValues['auth_token'], equals('silent_undeleted_token'));
       expect(container.read(authLoggingOutProvider), isFalse);
@@ -1463,72 +1581,68 @@ void main() {
     });
 
     test(
-        'Scenario E: Retry sau partial failure: Thu lan 1 that bai, phuc hoi loi va thu lai lan 2 hoan tat 100%',
+        '7. Late profile response den sau partial failure (confirmedLost) -> Discarded boi sessionEpoch, khong phuc hoi session',
         () async {
+      final delayedRepo = _DelayedProfileRepository();
       final storageValues = <String, String>{
-        'auth_token': 'retry_auth_tok_111',
-        'jwt_token': 'retry_jwt_tok_222',
-        'user_email': 'retry@example.com',
-        'user_fullname': 'Retry Athlete',
+        'auth_token': 'token_late_res',
+        'jwt_token': 'jwt_late_res',
+        'user_email': 'late@example.com',
       };
+      // Simulates metadata verification fail -> tokens deleted, tokenState = confirmedLost
       final storage = _StepFailureSecureStorage(
         storageValues,
-        failOnDeleteKey: 'jwt_token',
-        throwOnDelete: true,
+        failOnReadKey: 'user_email',
+        throwOnRead: true,
       );
       AuthHelper.setStorageForTesting(storage);
       addTearDown(AuthHelper.resetStorageForTesting);
 
-      SharedPreferences.setMockInitialValues({
-        'cached_profile_snapshot_v2': '{"profile":{"age":27}}',
-        'user_email': 'retry@example.com',
-      });
       final prefs = await SharedPreferences.getInstance();
       final container = ProviderContainer(
         overrides: [
           sharedPreferencesProvider.overrideWithValue(prefs),
+          profileRepositoryProvider.overrideWithValue(delayedRepo),
         ],
       );
       addTearDown(container.dispose);
 
-      final notifier = container.read(profileProvider.notifier);
-      final initialEpoch = notifier.sessionEpoch;
+      // Trigger an in-flight loadProfile()
+      final loadFuture = container.read(profileProvider.notifier).loadProfile();
+      expect(container.read(profileProvider).status, ProfileStatus.loading);
 
-      // Lan 1: That bai partial
-      await expectLater(
-        () => AuthHelper.logout(container),
-        throwsA(isA<LogoutException>()),
+      // Attempt logout which fails on metadata read verification
+      try {
+        await AuthHelper.logout(container);
+      } catch (e) {
+        expect(e, isA<LogoutException>());
+      }
+
+      // Now complete the delayed response
+      delayedRepo.completer.complete(
+        const ProfileSnapshot(
+          profile: ProfileEntity(
+            userId: 'stale_user_late',
+            age: 33,
+            gender: Gender.male,
+            height: 182.0,
+            weight: 78.0,
+            activityLevel: ActivityLevel.high,
+            goal: Goal.maintain_weight,
+          ),
+          targetCalories: 2500,
+        ),
       );
-      expect(storageValues['auth_token'], isNull);
-      expect(storageValues['jwt_token'], equals('retry_jwt_tok_222'));
-      expect(notifier.sessionEpoch, equals(initialEpoch));
-      expect(prefs.containsKey('cached_profile_snapshot_v2'), isTrue);
+      await loadFuture;
 
-      // Phuc hoi loi phan cung/storage
-      storage.failOnDeleteKey = null;
-      storage.throwOnDelete = false;
-
-      // Lan 2: Thu lai (Retry)
-      await AuthHelper.logout(container);
-
-      // Ket qua sau retry: tat ca credentials bi xoa sach se
-      expect(storageValues['auth_token'], isNull);
-      expect(storageValues['jwt_token'], isNull);
-      expect(storageValues['user_email'], isNull);
-      expect(storageValues['user_fullname'], isNull);
-      expect(await AuthHelper.isLoggedIn(), isFalse);
-      expect(await AuthHelper.getToken(), isNull);
-
-      // Session epoch duoc tang len sau khi cleanup thanh cong
-      expect(notifier.sessionEpoch, equals(initialEpoch + 1));
-      // Local caches da bi xoa
-      expect(prefs.containsKey('cached_profile_snapshot_v2'), isFalse);
-      expect(prefs.containsKey('user_email'), isFalse);
-      expect(container.read(profileProvider).status, equals(ProfileStatus.initial));
+      // Late response MUST NOT resurrect session
+      final stateAfter = container.read(profileProvider);
+      expect(stateAfter.status, ProfileStatus.initial);
+      expect(stateAfter.confirmedUserId, isNull);
     });
 
     test(
-        'Scenario F: Account isolation sau partial failure + retry: Account A logout va retry khong ro ri cache/workout sang Account B',
+        '8. Account isolation: Account A gap loi confirmedLost -> Account B login khong nhan du lieu A',
         () async {
       final storageValues = <String, String>{
         'auth_token': 'token_user_A',
@@ -1537,7 +1651,7 @@ void main() {
       };
       final storage = _StepFailureSecureStorage(
         storageValues,
-        failOnDeleteKey: 'jwt_token',
+        failOnDeleteKey: 'user_email',
         throwOnDelete: true,
       );
       AuthHelper.setStorageForTesting(storage);
@@ -1563,19 +1677,14 @@ void main() {
         profile: const ProfileEntity(userId: 'user_A', age: 35),
       );
 
-      // Account A attempts logout -> partial failure
-      await expectLater(
-        () => AuthHelper.logout(container),
-        throwsA(isA<LogoutException>()),
-      );
-      expect(prefs.containsKey('cached_profile_snapshot_v2_user_A'), isTrue);
+      // Account A attempts logout -> tokens deleted, user_email fails -> confirmedLost
+      try {
+        await AuthHelper.logout(container);
+      } catch (e) {
+        expect(e, isA<LogoutException>());
+      }
 
-      // Account A retries -> succeeds
-      storage.failOnDeleteKey = null;
-      storage.throwOnDelete = false;
-      await AuthHelper.logout(container);
-
-      // Partitioned keys for user A are strictly deleted
+      // User A's cache is purged immediately because tokens are lost
       expect(prefs.containsKey('cached_profile_snapshot_v2_user_A'), isFalse);
       expect(prefs.containsKey('onboarding_draft_user_A'), isFalse);
 
@@ -1584,11 +1693,100 @@ void main() {
       storageValues['jwt_token'] = 'jwt_user_B';
       storageValues['user_email'] = 'athlete_b@example.com';
 
-      // When Account B loads, Account A's state is completely absent
+      // Account B reads state
       expect(container.read(profileProvider).userId, isNull);
       expect(container.read(workoutHistoryProvider).valueOrNull ?? const [], isEmpty);
       expect(await AuthHelper.getToken(), equals('token_user_B'));
     });
-  });
 
+    testWidgets(
+        '9. Widget Test: ProfileGate + ProfileScreen logout gap confirmedLost -> Điều hướng về Login, hien warning feedback, dong protected UI',
+        (tester) async {
+      tester.view.physicalSize = const Size(800, 1200);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+
+      final storageValues = <String, String>{
+        'auth_token': 'tok_widget_01',
+        'jwt_token': 'jwt_widget_01',
+        'user_email': 'athlete_widget@example.com',
+      };
+      // Delete user_email fails -> tokens deleted -> confirmedLost
+      final storage = _StepFailureSecureStorage(
+        storageValues,
+        failOnDeleteKey: 'user_email',
+        throwOnDelete: true,
+      );
+      AuthHelper.setStorageForTesting(storage);
+      addTearDown(AuthHelper.resetStorageForTesting);
+
+      final prefs = await SharedPreferences.getInstance();
+      final container = ProviderContainer(
+        overrides: [
+          sharedPreferencesProvider.overrideWithValue(prefs),
+          nutritionProvider.overrideWith((ref) => _FakeNutritionNotifier()),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      container.read(profileProvider.notifier).state = ProfileState(
+        status: ProfileStatus.ready,
+        isNetworkConfirmed: true,
+        isFromCache: false,
+        confirmedUserId: 'user_widget_lost',
+        profile: const ProfileEntity(
+          userId: 'user_widget_lost',
+          age: 26,
+          gender: Gender.male,
+          height: 178.0,
+          weight: 72.0,
+          activityLevel: ActivityLevel.high,
+          goal: Goal.maintain_weight,
+        ),
+      );
+
+      container.read(mainNavIndexProvider.notifier).state = 4;
+
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: MaterialApp(
+            routes: {
+              AppRoutes.login: (ctx) => const Scaffold(
+                    key: Key('mock_login_screen'),
+                    body: Text('Login Screen'),
+                  ),
+            },
+            home: const ProfileGate(),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.byType(MainScreen), findsOneWidget);
+      expect(find.byType(ProfileScreen), findsOneWidget);
+
+      final logoutBtn = find.byIcon(Icons.logout_rounded);
+      await tester.scrollUntilVisible(logoutBtn, 200);
+      await tester.tap(logoutBtn);
+      await tester.pumpAndSettle();
+
+      final confirmBtn = find.descendant(
+        of: find.byType(AlertDialog),
+        matching: find.widgetWithText(ElevatedButton, 'Log out'),
+      );
+      await tester.tap(confirmBtn);
+      await tester.pumpAndSettle();
+
+      // CRITICAL ASSERTION:
+      // Since credentials are lost, MainScreen is NAVIGATED AWAY!
+      // The device is NOT left with open protected interactions!
+      expect(find.byType(MainScreen), findsNothing);
+      expect(find.byType(ProfileScreen), findsNothing);
+      expect(find.byKey(const Key('mock_login_screen')), findsOneWidget);
+
+      // Warning feedback is displayed to user
+      expect(find.textContaining('Đã đăng xuất (lỗi xóa dữ liệu phụ'), findsOneWidget);
+    });
+  });
 }

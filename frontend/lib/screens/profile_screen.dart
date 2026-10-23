@@ -205,17 +205,36 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         _isLoggingOut = false;
         debugPrint('[AUTH] Logout failed: $e');
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Đăng xuất thất bại: $e'),
-              backgroundColor: const Color(0xFFEF4444),
-              action: SnackBarAction(
-                label: 'Thử lại',
-                textColor: Colors.white,
-                onPressed: _logout,
+          if (e is LogoutException &&
+              (e.tokenState == AuthTokenState.confirmedLost ||
+               e.tokenState == AuthTokenState.indeterminate)) {
+            // Credentials lost or indeterminate: do not reopen protected UI on MainScreen.
+            // Navigate away to Login and display explanatory warning SnackBar.
+            Navigator.pushNamedAndRemoveUntil(
+              context,
+              AppRoutes.login,
+              (route) => false,
+            );
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Đã đăng xuất (lỗi xóa dữ liệu phụ: $e)'),
+                backgroundColor: const Color(0xFFF59E0B),
               ),
-            ),
-          );
+            );
+          } else {
+            // Token confirmed still intact: remain on screen and offer retry
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Đăng xuất thất bại: $e'),
+                backgroundColor: const Color(0xFFEF4444),
+                action: SnackBarAction(
+                  label: 'Thử lại',
+                  textColor: Colors.white,
+                  onPressed: _logout,
+                ),
+              ),
+            );
+          }
         }
       }
     }

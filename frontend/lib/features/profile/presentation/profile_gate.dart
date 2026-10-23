@@ -103,17 +103,28 @@ class _ProfileGateState extends ConsumerState<ProfileGate> {
       debugPrint('[PROFILE_GATE] Error in logout: $e');
       _isHandlingUnauthorized = false;
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Đăng xuất thất bại: $e'),
-            backgroundColor: const Color(0xFFEF4444),
-            action: SnackBarAction(
-              label: 'Thử lại',
-              textColor: Colors.white,
-              onPressed: _handleUnauthorized,
+        if (e is LogoutException &&
+            (e.tokenState == AuthTokenState.confirmedLost ||
+             e.tokenState == AuthTokenState.indeterminate)) {
+          _revokeEntry();
+          Navigator.pushNamedAndRemoveUntil(
+            context,
+            AppRoutes.login,
+            (route) => false,
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Đăng xuất thất bại: $e'),
+              backgroundColor: const Color(0xFFEF4444),
+              action: SnackBarAction(
+                label: 'Thử lại',
+                textColor: Colors.white,
+                onPressed: _handleUnauthorized,
+              ),
             ),
-          ),
-        );
+          );
+        }
       }
     }
   }

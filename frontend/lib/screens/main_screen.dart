@@ -80,6 +80,19 @@ class _MainScreenState extends ConsumerState<MainScreen> {
       }
     } catch (e) {
       debugPrint('[MAIN] Error in unauthorized logout: $e');
+      if (mounted) {
+        if (widget.onUnauthorizedLogout != null) {
+          widget.onUnauthorizedLogout!();
+        } else if (e is LogoutException &&
+            (e.tokenState == AuthTokenState.confirmedLost ||
+             e.tokenState == AuthTokenState.indeterminate)) {
+          Navigator.pushNamedAndRemoveUntil(
+            context,
+            AppRoutes.login,
+            (route) => false,
+          );
+        }
+      }
     }
   }
 
