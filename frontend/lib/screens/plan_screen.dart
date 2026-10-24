@@ -113,7 +113,7 @@ class _CreatePlanScreenState extends State<CreatePlanScreen> {
         // Cập nhật AppBar với Logo SAMAN
         leading: const Padding(
           padding: EdgeInsets.all(12.0),
-          child: AppLogo(size: 30),
+          child: AppLogo(size: 30, color: Color(0xFF1E1E1E)),
         ),
         title: const Text("SAMAN | Designer",
             style: TextStyle(
