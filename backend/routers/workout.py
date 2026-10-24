@@ -567,6 +567,8 @@ async def delete_workout_plan(
             "message": "Workout plan deleted successfully",
             "deleted_at": datetime.utcnow().isoformat(),
         }
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
