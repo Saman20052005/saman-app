@@ -12,6 +12,7 @@ class UpdateWaterUseCase {
     int? deltaMl,
     int? version,
     String? idempotencyKey,
+    NutritionRequestContext? session,
   }) async {
     return await _repository.updateWater(
       date,
@@ -19,6 +20,7 @@ class UpdateWaterUseCase {
       deltaMl: deltaMl,
       version: version,
       idempotencyKey: idempotencyKey,
+      session: session,
     );
   }
 }

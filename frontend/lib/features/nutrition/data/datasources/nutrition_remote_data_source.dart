@@ -9,13 +9,15 @@ import '../../../../screens/nutrition/widgets/meal_review_dialog.dart';
 import '../../domain/repositories/nutrition_repository.dart';
 
 abstract class INutritionRemoteDataSource {
-  Future<Map<String, dynamic>> getDailyPlan(String dateStr);
+  Future<Map<String, dynamic>> getDailyPlan(String dateStr,
+      {NutritionRequestContext? session});
   Future<Map<String, dynamic>> generatePlan({
     required String goal,
     int targetCalories,
     int? mealCount,
     String? style,
     bool remainingOnly,
+    NutritionRequestContext? session,
   });
   Future<bool> addMeal(Map<String, dynamic> body);
   Future<bool> updateWater(
@@ -24,6 +26,7 @@ abstract class INutritionRemoteDataSource {
     int? deltaMl,
     int? version,
     String? idempotencyKey,
+    NutritionRequestContext? session,
   });
   Future<bool> swapLoggedMeal({
     required String logId,
@@ -37,7 +40,7 @@ abstract class INutritionRemoteDataSource {
     required String goal,
   });
   Future<bool> swapLoggedMealSimple(String dateStr, String logId);
-  Future<bool> resetDay(String dateStr);
+  Future<bool> resetDay(String dateStr, {NutritionRequestContext? session});
   Future<bool> uploadLogStory({
     required XFile? imageFile,
     required String mealType,
@@ -109,9 +112,13 @@ class NutritionRemoteDataSourceImpl implements INutritionRemoteDataSource {
   }
 
   @override
-  Future<Map<String, dynamic>> getDailyPlan(String dateStr) async {
-    final response =
-        await _dio.get('${ApiConfig.nutritionGetEndpoint}/$dateStr');
+  Future<Map<String, dynamic>> getDailyPlan(String dateStr,
+      {NutritionRequestContext? session}) async {
+    final response = await _dio.get(
+        '${ApiConfig.nutritionGetEndpoint}/$dateStr',
+        options:
+            Options(extra: {if (session != null) 'nutritionSession': session}));
+    await session?.validate();
     if (response.statusCode == 200 &&
         response.data != null &&
         response.data != "null") {
@@ -133,9 +140,12 @@ class NutritionRemoteDataSourceImpl implements INutritionRemoteDataSource {
     int? mealCount,
     String? style,
     bool remainingOnly = false,
+    NutritionRequestContext? session,
   }) async {
     final response = await _dio.post(
       ApiConfig.generatePlanEndpoint,
+      options:
+          Options(extra: {if (session != null) 'nutritionSession': session}),
       data: {
         'target_calories': targetCalories,
         'goal': goal,
@@ -146,6 +156,7 @@ class NutritionRemoteDataSourceImpl implements INutritionRemoteDataSource {
         'allergies': [],
       },
     );
+    await session?.validate();
     if (response.statusCode == 200 && response.data != null) {
       return response.data is String
           ? jsonDecode(response.data as String)
@@ -167,6 +178,7 @@ class NutritionRemoteDataSourceImpl implements INutritionRemoteDataSource {
     int? deltaMl,
     int? version,
     String? idempotencyKey,
+    NutritionRequestContext? session,
   }) async {
     final Map<String, dynamic> data = {"date": date};
     if (amountMl != null) data["amount_ml"] = amountMl;
@@ -177,7 +189,10 @@ class NutritionRemoteDataSourceImpl implements INutritionRemoteDataSource {
     final response = await _dio.post(
       ApiConfig.updateWaterEndpoint,
       data: data,
+      options:
+          Options(extra: {if (session != null) 'nutritionSession': session}),
     );
+    await session?.validate();
     return response.statusCode == 200 || response.statusCode == 201;
   }
 
@@ -199,11 +214,15 @@ class NutritionRemoteDataSourceImpl implements INutritionRemoteDataSource {
   }
 
   @override
-  Future<bool> resetDay(String dateStr) async {
+  Future<bool> resetDay(String dateStr,
+      {NutritionRequestContext? session}) async {
     final response = await _dio.post(
       '${ApiConfig.baseUrl}/api/nutrition/reset-day',
       data: {"date": dateStr},
+      options:
+          Options(extra: {if (session != null) 'nutritionSession': session}),
     );
+    await session?.validate();
     return response.statusCode == 200;
   }
 

@@ -21,6 +21,7 @@ import '../features/nutrition/domain/repositories/nutrition_repository.dart';
 import '../features/nutrition/data/repositories/nutrition_repository_impl.dart';
 import '../config/api_config.dart';
 import '../services/api_client.dart';
+import '../presentation/providers/workout_history_providers.dart';
 
 final nutritionRepositoryProvider = Provider<INutritionRepository>((ref) {
   return NutritionRepositoryImpl();
@@ -48,8 +49,11 @@ final swapLoggedMealUseCaseProvider = Provider<SwapLoggedMealUseCase>((ref) {
 
 final nutritionProvider =
     StateNotifierProvider<NutritionNotifier, AsyncValue<NutritionPlan?>>((ref) {
+  ref.watch(workoutAuthScopeProvider);
+  final session = ref.watch(nutritionSessionProvider);
   final repository = ref.watch(nutritionRepositoryProvider);
   return NutritionNotifier(
+    captureSession: session.capture,
     repository: repository,
     loadDailyPlanUseCase: ref.watch(loadDailyPlanUseCaseProvider),
     updateWaterUseCase: ref.watch(updateWaterUseCaseProvider),
@@ -73,11 +77,13 @@ class NutritionNotifier extends StateNotifier<AsyncValue<NutritionPlan?>> {
 
   NutritionNotifier({
     required INutritionRepository repository,
+    Future<NutritionRequestContext> Function()? captureSession,
     required LoadDailyPlanUseCase loadDailyPlanUseCase,
     required UpdateWaterUseCase updateWaterUseCase,
     required SwapMealUseCase swapMealUseCase,
     required SwapLoggedMealUseCase swapLoggedMealUseCase,
-  })  : _repository = repository,
+  })  : _captureSession = captureSession,
+        _repository = repository,
         _loadDailyPlanUseCase = loadDailyPlanUseCase,
         _updateWaterUseCase = updateWaterUseCase,
         _swapMealUseCase = swapMealUseCase,
@@ -86,6 +92,95 @@ class NutritionNotifier extends StateNotifier<AsyncValue<NutritionPlan?>> {
 
   // ✅ CACHE: Lưu trữ dữ liệu các ngày đã tải
   final Map<String, NutritionPlan> _localCache = {};
+
+  final Future<NutritionRequestContext> Function()? _captureSession;
+  NutritionRequestContext? _owner;
+  String? _selectedDate;
+  int _loadRequest = 0;
+  final Map<String, int> _dateEpoch = {};
+  final Map<String, int> _dailyReads = {};
+  final Map<String, ({int amount, int target, int version})> _waterSnapshots =
+      {};
+  final Map<String, ({String date, int deltaMl, bool confirmed})>
+      _waterOperations = {};
+  final Set<String> _waterInFlight = {};
+
+  Future<NutritionRequestContext?> _captureOwner() async {
+    final owner = await _captureSession?.call();
+    await _validateOwner(owner);
+    if (_owner != null &&
+        owner != null &&
+        (_owner!.generation != owner.generation ||
+            _owner!.authorization != owner.authorization)) {
+      _localCache.clear();
+      _waterSnapshots.clear();
+      _waterOperations.clear();
+      _dailyReads.clear();
+      _dateEpoch.clear();
+      _lastFailedWaterKey = null;
+      _lastWaterKey = null;
+      state = const AsyncValue.loading();
+    }
+    _owner = owner;
+    return owner;
+  }
+
+  Future<void> _validateOwner(NutritionRequestContext? owner) async {
+    if (!mounted) throw const NutritionSessionChanged();
+    await owner?.validate();
+    if (!mounted) throw const NutritionSessionChanged();
+  }
+
+  NutritionPlan? _knownPlan(String date) {
+    final current = state.valueOrNull;
+    return current?.date == date ? current : _localCache[date];
+  }
+
+  NutritionPlan _preserveWater(NutritionPlan plan) {
+    final water = _waterSnapshots[plan.date];
+    if (water == null || plan.waterVersion >= water.version) return plan;
+    return plan.copyWith(
+        currentWater: water.amount,
+        targetWater: water.target,
+        waterVersion: water.version);
+  }
+
+  void _remember(NutritionPlan plan, {bool waterConfirmed = true}) {
+    _localCache[plan.date] = plan;
+    if (waterConfirmed) {
+      _waterSnapshots[plan.date] = (
+        amount: plan.currentWater,
+        target: plan.targetWater,
+        version: plan.waterVersion
+      );
+    }
+    if (_localCache.length > 30) {
+      final dates = _localCache.keys.toList()..sort();
+      _localCache.remove(dates.first);
+    }
+    if (_waterSnapshots.length > 30) {
+      final dates = _waterSnapshots.keys.toList()..sort();
+      _waterSnapshots.remove(dates.first);
+    }
+  }
+
+  void _acceptDaily(NutritionPlan plan) {
+    final merged = _preserveWater(plan);
+    _remember(merged);
+    _dailyReads[plan.date] = (_dailyReads[plan.date] ?? 0) + 1;
+    if (_selectedDate == null || _selectedDate == plan.date) {
+      state = AsyncValue.data(merged);
+    }
+  }
+
+  void _loadError(Object error, StackTrace trace, String date) {
+    if (!mounted || (_selectedDate != null && _selectedDate != date)) return;
+    final known = _knownPlan(date);
+    state = known == null
+        ? AsyncValue.error(error, trace)
+        : AsyncValue<NutritionPlan?>.error(error, trace)
+            .copyWithPrevious(AsyncValue.data(known));
+  }
 
   // ✅ Macro targets từ profile
   MacroTargets? _macroTargets;
@@ -121,89 +216,38 @@ class NutritionNotifier extends StateNotifier<AsyncValue<NutritionPlan?>> {
     String fallbackGoal = 'maintain',
   }) async {
     final dateStr = DateFormat('yyyy-MM-dd').format(date);
-
-    // ✅ C10: Clear macro targets if date or goal changes
-    if (_localCache.isEmpty ||
-        !_localCache.containsKey(dateStr) ||
-        _lastGoal != fallbackGoal) {
-      _macroTargets = null;
-    }
-
-    _lastGoal = fallbackGoal; // ← NEW
-
-    // A. Nếu có cache & không ép refresh -> Show ngay
-    if (!forceRefresh && _localCache.containsKey(dateStr)) {
-      state = AsyncValue.data(_localCache[dateStr]);
-      return;
-    }
-
+    final request = ++_loadRequest;
+    _selectedDate = dateStr;
+    final epoch = _dateEpoch[dateStr] ?? 0;
+    NutritionRequestContext? owner;
     try {
-      // B. Loading
-      if (!forceRefresh) state = const AsyncValue.loading();
-
-      final plan = await _loadDailyPlanUseCase.execute(date);
-
-      // dùng parsed model
-      if (plan.meals.isEmpty && plan.entries.isEmpty) {
-        debugPrint(
-          '🤖 Auto-pilot: no meals, no entries for $dateStr → generating...',
-        );
-
-        final savedWater = plan.currentWater;
-        final savedWaterTarget = plan.targetWater;
-
-        await generateAutoPlan(
-          date,
-          targetCalories: fallbackCalories,
-          goal: fallbackGoal,
-        );
-
-        final newPlan = state.value;
-        if (newPlan != null && savedWater > 0) {
-          final merged = newPlan.copyWith(
-            currentWater: savedWater,
-            targetWater: savedWaterTarget,
-          );
-          _localCache[dateStr] = merged;
-          // Prevent memory leak – limit cache to 30 entries
-          if (_localCache.length > 30) {
-            final sortedKeys = _localCache.keys.toList()..sort();
-            _localCache.remove(sortedKeys.first);
-          }
-          state = AsyncValue.data(merged);
-        }
+      owner = await _captureOwner();
+      if (_localCache.isEmpty ||
+          !_localCache.containsKey(dateStr) ||
+          _lastGoal != fallbackGoal) _macroTargets = null;
+      _lastGoal = fallbackGoal;
+      if (!forceRefresh &&
+          _localCache.containsKey(dateStr) &&
+          !state.hasError) {
+        state = AsyncValue.data(_localCache[dateStr]);
         return;
       }
-
-      // Có data thật → cache và render
-      _localCache[dateStr] = plan;
-      state = AsyncValue.data(plan);
-      return;
-    } catch (e) {
-      debugPrint('❌ loadDailyPlan error: $e');
-      if (_localCache.containsKey(dateStr)) {
-        state = AsyncValue.data(_localCache[dateStr]);
-      } else {
-        // Fallback: thử generate thay vì để trắng
-        // BEFORE generate
-        final waterBefore = _localCache[dateStr]?.currentWater ?? 0;
-        final waterTargetBefore = _localCache[dateStr]?.targetWater ?? 2000;
-
-        await generateAutoPlan(
-          date,
-          targetCalories: fallbackCalories,
-          goal: fallbackGoal,
-        );
-
-        // AFTER generate
-        if (state.value != null && waterBefore > 0) {
-          final patched = state.value!.copyWith(
-            currentWater: waterBefore,
-            targetWater: waterTargetBefore,
-          );
-          _localCache[dateStr] = patched;
-          state = AsyncValue.data(patched);
-        }
+      if (!forceRefresh && _knownPlan(dateStr) == null) {
+        state = const AsyncValue.loading();
+      }
+      final plan = await _loadDailyPlanUseCase.execute(date, session: owner);
+      await _validateOwner(owner);
+      if (epoch != (_dateEpoch[dateStr] ?? 0)) return;
+      _acceptDaily(plan);
+    } catch (e, st) {
+      if (!mounted) return;
+      try {
+        await _validateOwner(owner);
+      } catch (_) {
+        return;
+      }
+      if (request == _loadRequest && epoch == (_dateEpoch[dateStr] ?? 0)) {
+        _loadError(e, st, dateStr);
       }
     }
   }
@@ -218,11 +262,12 @@ class NutritionNotifier extends StateNotifier<AsyncValue<NutritionPlan?>> {
   }) async {
     if (_isGenerating) return;
     _isGenerating = true;
-
+    final dateStr = DateFormat('yyyy-MM-dd').format(date);
+    _selectedDate ??= dateStr;
+    final epoch = _dateEpoch[dateStr] ?? 0;
+    NutritionRequestContext? owner;
     try {
-      final dateStr = DateFormat('yyyy-MM-dd').format(date);
-
-      // FIX 2A: Map goal value về đúng giá trị backend hiểu (lose, maintain, gain)
+      owner = await _captureOwner();
       const goalMap = {
         'lose_weight': 'weight_loss',
         'maintain_weight': 'maintain',
@@ -233,71 +278,23 @@ class NutritionNotifier extends StateNotifier<AsyncValue<NutritionPlan?>> {
         'lose': 'weight_loss',
         'gain': 'muscle_gain',
       };
-      final mappedGoal = goalMap[goal] ?? 'maintain';
-
+      // Repository generation includes an authoritative daily intake read.
+      final plan = await _repository.generatePlan(
+        dateStr: dateStr,
+        goal: goalMap[goal] ?? 'maintain',
+        targetCalories: 0,
+        session: owner,
+      );
+      await _validateOwner(owner);
+      if (epoch == (_dateEpoch[dateStr] ?? 0)) _acceptDaily(plan);
+    } catch (e, st) {
+      if (!mounted) return;
       try {
-        if (kDebugMode) {
-          debugPrint('[NUTRITION] Generating plan');
-        }
-
-        final plan = await _repository.generatePlan(
-          dateStr: dateStr,
-          goal: mappedGoal,
-          targetCalories: 0, // Gửi 0 — backend sẽ tự lấy từ profile
-        );
-
-        // Macro targets are now part of the NutritionPlan object or fetched separately if needed.
-        // Assuming _repository.generatePlan now returns a NutritionPlan that includes macro targets
-        // or that macro targets are updated by a separate mechanism.
-        // If macro targets are returned as part of the plan, they would be accessed via plan.macroTargets.
-        // For now, we'll assume the plan object itself contains the necessary data.
-        // If the API returns macro targets separately, the repository should handle setting them.
-        // Macro targets are not available in legacy NutritionPlan model
-        // _macroTargets = null; // Commented out since not supported
-
-        // Fetch existing data from API
-        int currentWater = plan.currentWater;
-        int targetWater = plan.targetWater;
-        List<NutritionLogEntry> existingEntries = plan.entries;
-
-        try {
-          final d = await _repository.getDailyPlan(dateStr);
-          currentWater = d.currentWater;
-          targetWater = d.targetWater;
-          existingEntries = d.entries;
-        } catch (_) {
-          // Silent error handling
-        }
-
-        final planWithWater = plan.copyWith(
-          currentWater: currentWater,
-          targetWater: targetWater,
-          entries: existingEntries,
-        );
-
-        _localCache[dateStr] = planWithWater;
-        // Prevent memory leak – limit cache to 30 entries (approx 1 month)
-        if (_localCache.length > 30) {
-          final sortedKeys = _localCache.keys.toList()..sort();
-          _localCache.remove(sortedKeys.first); // oldest date first
-        }
-        state = AsyncValue.data(planWithWater);
-
-        if (kDebugMode) {
-          debugPrint('[NUTRITION] Plan generated successfully');
-        }
-      } on DioException catch (e) {
-        if (kDebugMode) {
-          debugPrint(
-            '[NUTRITION] Plan request failed: '
-            'status=${e.response?.statusCode ?? 'none'} type=${e.type.name}',
-          );
-        }
-        state = AsyncValue.error(e, e.stackTrace);
-      } catch (e, st) {
-        debugPrint('❌ generateAutoPlan error: $e');
-        state = AsyncValue.error(e, st);
+        await _validateOwner(owner);
+      } catch (_) {
+        return;
       }
+      if (epoch == (_dateEpoch[dateStr] ?? 0)) _loadError(e, st, dateStr);
     } finally {
       _isGenerating = false;
     }
@@ -306,90 +303,173 @@ class NutritionNotifier extends StateNotifier<AsyncValue<NutritionPlan?>> {
   // =========================================================
   // 3. WATER UPDATE & ADD (ATOMIC & OPTIMISTIC CONCURRENCY)
   // =========================================================
-  Future<String> addWater(int deltaMl, {required String date, String? idempotencyKey}) async {
-    final currentPlan = state.value;
-    if (currentPlan == null) return '';
+  Future<String> addWater(int deltaMl,
+      {required String date, String? idempotencyKey}) async {
+    final owner = _captureSession == null ? null : await _captureOwner();
+    final currentPlan = _knownPlan(date);
+    if (currentPlan == null) {
+      throw StateError('Load Water for this date before updating.');
+    }
 
-    // Apply incremental optimistic update
-    final updatedPlan = currentPlan.copyWith(
-      currentWater: currentPlan.currentWater + deltaMl,
-      waterVersion: currentPlan.waterVersion + 1,
-    );
-    state = AsyncValue.data(updatedPlan);
-    _localCache[currentPlan.date] = updatedPlan;
-
-    // Distinct idempotency key for every distinct operation unless explicitly provided for retry
-    final key = idempotencyKey ??
-        'water_${DateTime.now().microsecondsSinceEpoch}_${Random().nextInt(1 << 30)}';
-    _lastWaterKey = key;
-
-    try {
-      final ok = await _updateWaterUseCase.execute(
-        date: date,
-        deltaMl: deltaMl,
-        idempotencyKey: key,
-      );
-      if (!ok) {
-        throw Exception('Failed to add water intake');
+    var retryKey = _lastFailedWaterKey;
+    if (_waterOperations[retryKey]?.date != date) {
+      retryKey = null;
+      for (final operation in _waterOperations.entries) {
+        if (operation.value.date == date &&
+            !operation.value.confirmed &&
+            !_waterInFlight.contains(operation.key)) {
+          retryKey = operation.key;
+          break;
+        }
       }
-      if (_lastFailedWaterKey == key) {
-        _lastFailedWaterKey = null;
+    }
+    final failed = _waterOperations[retryKey];
+    if (idempotencyKey == null &&
+        failed != null &&
+        failed.date == date &&
+        failed.deltaMl != deltaMl) {
+      throw StateError(
+          'Retry the pending Water update before changing its amount.');
+    }
+    final key = idempotencyKey ??
+        (failed != null && failed.date == date
+            ? retryKey!
+            : 'water_${DateTime.now().microsecondsSinceEpoch}_${Random().nextInt(1 << 30)}');
+    final prior = _waterOperations[key];
+    if (prior != null && (prior.date != date || prior.deltaMl != deltaMl)) {
+      throw ArgumentError(
+          'A Water retry must keep its original date and amount.');
+    }
+    if (!_waterInFlight.add(key)) {
+      throw StateError('Water update is still pending.');
+    }
+    _lastWaterKey = key;
+    _waterOperations[key] =
+        prior ?? (date: date, deltaMl: deltaMl, confirmed: false);
+    final readRevision = _dailyReads[date] ?? 0;
+    var confirmed = prior?.confirmed ?? false;
+    final isNewOperation = prior == null && idempotencyKey == null;
+    if (isNewOperation) {
+      final optimistic = currentPlan.copyWith(
+        currentWater: currentPlan.currentWater + deltaMl,
+        waterVersion: currentPlan.waterVersion + 1,
+      );
+      _remember(optimistic, waterConfirmed: false);
+      if (_selectedDate == null || _selectedDate == date) {
+        state = AsyncValue.data(optimistic);
+      }
+    }
+    try {
+      if (!confirmed) {
+        final ok = await _updateWaterUseCase.execute(
+          date: date,
+          deltaMl: deltaMl,
+          idempotencyKey: key,
+          session: owner,
+        );
+        await _validateOwner(owner);
+        if (!ok) throw StateError('Failed to add water intake');
+        confirmed = true;
+        _waterOperations[key] = (date: date, deltaMl: deltaMl, confirmed: true);
+        // The acknowledged delta advances this daily document once. Pending
+        // optimistic deltas are not server versions. A concurrent GET may
+        // already include this key, in which case only the reread can reconcile.
+        if (isNewOperation && readRevision == (_dailyReads[date] ?? 0)) {
+          final water = _waterSnapshots[date];
+          if (water != null) {
+            _waterSnapshots[date] = (
+              amount: water.amount + deltaMl,
+              target: water.target,
+              version: water.version + 1
+            );
+          }
+        }
+      }
+      // A lost response may already have been reflected by an intervening GET.
+      // Reread the exact version, including on retry; never add its delta twice.
+      final daily = await _repository.getDailyPlan(date, session: owner);
+      await _validateOwner(owner);
+      _acceptDaily(daily);
+      if (_lastFailedWaterKey == key) _lastFailedWaterKey = null;
+      // Keep unresolved operations; bound the history of acknowledged keys.
+      if (_waterOperations.length > 128) {
+        final completed = _waterOperations.keys
+            .where((k) =>
+                k != key &&
+                k != _lastFailedWaterKey &&
+                _waterOperations[k]!.confirmed)
+            .toList();
+        if (completed.isNotEmpty) _waterOperations.remove(completed.first);
       }
       return key;
-    } catch (e) {
-      debugPrint("❌ Sync Add Water Failed, rolling back: $e");
+    } catch (e, st) {
+      await _validateOwner(owner);
       _lastFailedWaterKey = key;
-      // Incremental rollback: subtract this operation's deltaMl to preserve concurrent updates
-      final current = state.value;
-      if (current != null) {
-        final reverted = current.copyWith(
-          currentWater: max(0, current.currentWater - deltaMl),
-          waterVersion: max(0, current.waterVersion - 1),
-        );
-        state = AsyncValue.data(reverted);
-        _localCache[date] = reverted;
+      if (isNewOperation &&
+          !confirmed &&
+          readRevision == (_dailyReads[date] ?? 0)) {
+        final current = _knownPlan(date);
+        if (current != null) {
+          final reverted = current.copyWith(
+            currentWater: max(0, current.currentWater - deltaMl),
+            waterVersion: max(0, current.waterVersion - 1),
+          );
+          _remember(reverted, waterConfirmed: false);
+          if (_selectedDate == null || _selectedDate == date) {
+            state = AsyncValue.data(reverted);
+          }
+        }
       }
+      if (confirmed) {
+        final reloadError = StateError(
+            'Water update was acknowledged, but reload failed. Retry to reload. $e');
+        _loadError(reloadError, st, date);
+        throw reloadError;
+      }
+      _loadError(e, st, date);
       rethrow;
+    } finally {
+      _waterInFlight.remove(key);
     }
   }
 
   Future<void> updateWater(int amountMl, {required String date}) async {
-    final currentPlan = state.value;
+    final owner = _captureSession == null ? null : await _captureOwner();
+    final currentPlan = _knownPlan(date);
     if (currentPlan == null) return;
-
-    final previousPlan = currentPlan;
-    final ver = currentPlan.waterVersion;
-
+    final readRevision = _dailyReads[date] ?? 0;
     final updatedPlan = currentPlan.copyWith(
       currentWater: amountMl,
-      waterVersion: ver + 1,
+      waterVersion: currentPlan.waterVersion + 1,
     );
-    state = AsyncValue.data(updatedPlan);
-    _localCache[currentPlan.date] = updatedPlan;
-
+    _remember(updatedPlan, waterConfirmed: false);
+    if (_selectedDate == null || _selectedDate == date) {
+      state = AsyncValue.data(updatedPlan);
+    }
     try {
       final ok = await _updateWaterUseCase.execute(
         date: date,
         amountMl: amountMl,
-        version: ver,
+        version: currentPlan.waterVersion,
+        session: owner,
       );
-      if (!ok) {
-        throw Exception('Failed to update water intake');
+      await _validateOwner(owner);
+      if (!ok) throw StateError('Failed to update water intake');
+      _acceptDaily(updatedPlan);
+    } catch (e, st) {
+      await _validateOwner(owner);
+      if (readRevision == (_dailyReads[date] ?? 0)) {
+        _remember(currentPlan, waterConfirmed: false);
+        if (_selectedDate == null || _selectedDate == date) {
+          state = AsyncValue.data(currentPlan);
+        }
       }
-    } catch (e) {
-      debugPrint("❌ Sync Water Failed, rolling back: $e");
       final isConflict = e.toString().contains('409') ||
           (e is DioException && e.response?.statusCode == 409);
       if (isConflict) {
-        try {
-          await loadDailyPlan(DateTime.parse(date), forceRefresh: true);
-        } catch (_) {
-          state = AsyncValue.data(previousPlan);
-          _localCache[currentPlan.date] = previousPlan;
-        }
+        await loadDailyPlan(DateTime.parse(date), forceRefresh: true);
       } else {
-        state = AsyncValue.data(previousPlan);
-        _localCache[currentPlan.date] = previousPlan;
+        _loadError(e, st, date);
       }
       rethrow;
     }
@@ -512,16 +592,27 @@ class NutritionNotifier extends StateNotifier<AsyncValue<NutritionPlan?>> {
   // =========================================================
   Future<bool> resetDay(DateTime date) async {
     final dateStr = DateFormat('yyyy-MM-dd').format(date);
+    NutritionRequestContext? owner;
     try {
-      final ok = await _repository.resetDay(dateStr);
+      owner = await _captureOwner();
+      // reset-day only resets meal visibility. Water's document/version survives.
+      _dateEpoch[dateStr] = (_dateEpoch[dateStr] ?? 0) + 1;
+      final ok = await _repository.resetDay(dateStr, session: owner);
+      await _validateOwner(owner);
       if (ok) {
         _localCache.remove(dateStr);
         await loadDailyPlan(date, forceRefresh: true);
         return true;
       }
       return false;
-    } catch (e) {
-      debugPrint("❌ resetDay error: $e");
+    } catch (e, st) {
+      if (!mounted) return false;
+      try {
+        await _validateOwner(owner);
+      } catch (_) {
+        return false;
+      }
+      _loadError(e, st, dateStr);
       return false;
     }
   }
@@ -530,7 +621,7 @@ class NutritionNotifier extends StateNotifier<AsyncValue<NutritionPlan?>> {
     _localCache.clear();
     _macroTargets = null;
     // Trigger state update to notify listeners
-    state = AsyncValue.data(state.value);
+    if (!state.hasError) state = AsyncValue.data(state.valueOrNull);
   }
 
   // =========================================================
@@ -542,88 +633,42 @@ class NutritionNotifier extends StateNotifier<AsyncValue<NutritionPlan?>> {
     required String style,
     bool remainingOnly = true,
   }) async {
-    _lastMealCount = mealCount; // ← NEW: lưu lại để dùng cho swap
-    _lastStyle = style; // ← NEW: lưu lại để dùng cho swap
-
-    if (_isGenerating || _isMealPlanGenerating) {
-      debugPrint('⚠️ generateSmartPlan already running, skip');
-      return;
-    }
-
-    // ✅ C8: Use local loading instead of entire state loading
+    _lastMealCount = mealCount;
+    _lastStyle = style;
+    if (_isGenerating || _isMealPlanGenerating) return;
     _isMealPlanGenerating = true;
     _isGenerating = true;
-
-    // Notify UI that loading started
-    state = AsyncValue.data(state.value);
-
     final dateStr = DateFormat('yyyy-MM-dd').format(date);
-
+    _selectedDate ??= dateStr;
+    final epoch = _dateEpoch[dateStr] ?? 0;
+    NutritionRequestContext? owner;
     try {
+      owner = await _captureOwner();
+      state = AsyncValue.data(state.valueOrNull);
       final plan = await _repository.generatePlan(
         dateStr: dateStr,
         goal: _lastGoal ?? 'maintain',
         mealCount: mealCount,
         style: style,
         remainingOnly: remainingOnly,
+        session: owner,
       );
-
-      // Macro targets are not available in legacy NutritionPlan model
-      // _macroTargets = null; // Commented out since not supported
-
-      // ===== Merge water + entries từ GET /{date} =====
-      List<NutritionLogEntry> existingEntries = plan.entries;
-      int currentWater = plan.currentWater;
-      int targetWater = plan.targetWater;
-      int totalCal = plan.totalCaloriesConsumed;
-      int totalPro = plan.totalProteinConsumed.toInt();
-      int totalCarbs = plan.totalCarbsConsumed.toInt();
-      int totalFat = plan.totalFatConsumed.toInt();
-
-      try {
-        final d = await _repository.getDailyPlan(dateStr);
-        currentWater = d.currentWater;
-        targetWater = d.targetWater;
-        existingEntries = d.entries;
-
-        totalCal = d.totalCaloriesConsumed;
-        totalPro = d.totalProteinConsumed.toInt();
-        totalCarbs = d.totalCarbsConsumed.toInt();
-        totalFat = d.totalFatConsumed.toInt();
-      } catch (e) {
-        debugPrint("⚠️ Merge Error: $e");
-      }
-
-      final merged = plan.copyWith(
-        currentWater: currentWater,
-        targetWater: targetWater,
-        entries: existingEntries,
-        totalCaloriesConsumed: totalCal,
-        totalProteinConsumed: totalPro,
-        totalCarbsConsumed: totalCarbs,
-        totalFatConsumed: totalFat,
-      );
-
-      _localCache[dateStr] = merged;
-      // Prevent memory leak – limit cache to 30 entries (approx 1 month)
-      if (_localCache.length > 30) {
-        final sortedKeys = _localCache.keys.toList()..sort();
-        _localCache.remove(sortedKeys.first); // oldest date first
-      }
-      state = AsyncValue.data(merged);
-
-      if (kDebugMode) {
-        debugPrint('[NUTRITION] Smart plan generated successfully');
-      }
+      await _validateOwner(owner);
+      if (epoch == (_dateEpoch[dateStr] ?? 0)) _acceptDaily(plan);
     } catch (e, st) {
-      debugPrint('❌ generateSmartPlan error: $e');
-      // If error, we might want to show error to user, but let's keep previous data
-      state = AsyncValue.data(state.value);
+      if (!mounted) return;
+      try {
+        await _validateOwner(owner);
+      } catch (_) {
+        return;
+      }
+      if (epoch == (_dateEpoch[dateStr] ?? 0)) _loadError(e, st, dateStr);
     } finally {
       _isGenerating = false;
       _isMealPlanGenerating = false;
-      // Final update to clear loading flag in UI
-      state = AsyncValue.data(state.value);
+      if (mounted && !state.hasError) {
+        state = AsyncValue.data(state.valueOrNull);
+      }
     }
   }
 }

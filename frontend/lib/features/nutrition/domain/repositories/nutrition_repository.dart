@@ -7,7 +7,8 @@ import '../entities/food.dart';
 
 abstract class INutritionRepository {
   Future<List<Food>> searchFoods(String query, {int limit = 20});
-  Future<NutritionPlan> getDailyPlan(String dateStr);
+  Future<NutritionPlan> getDailyPlan(String dateStr,
+      {NutritionRequestContext? session});
   Future<NutritionPlan> generatePlan({
     required String dateStr,
     required String goal,
@@ -15,6 +16,7 @@ abstract class INutritionRepository {
     int? mealCount,
     String? style,
     bool remainingOnly = false,
+    NutritionRequestContext? session,
   });
   Future<NutritionPlan> swapMeal(String dateStr, Meal oldMeal, String goal);
   Future<bool> swapLoggedMealSimple(String dateStr, String logId);
@@ -25,13 +27,14 @@ abstract class INutritionRepository {
     int? deltaMl,
     int? version,
     String? idempotencyKey,
+    NutritionRequestContext? session,
   });
   Future<bool> swapLoggedMeal({
     required String logId,
     required int foodIndex,
     required String replacementFoodId,
   });
-  Future<bool> resetDay(String dateStr);
+  Future<bool> resetDay(String dateStr, {NutritionRequestContext? session});
   Future<bool> uploadLogStory({
     required XFile? imageFile,
     required String mealType,
