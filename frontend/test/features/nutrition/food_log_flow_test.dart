@@ -222,7 +222,8 @@ Future<void> _exportScreenshot(GlobalKey key, WidgetTester tester, String filena
         final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
         if (byteData != null) {
           final buffer = byteData.buffer.asUint8List();
-          const evidenceDir = 'test/nutrition_evidence';
+          final evidenceDir = Platform.environment['SAMAN_RENDER_EVIDENCE'] ??
+              Directory.systemTemp.path;
           final dir = Directory(evidenceDir);
           if (!dir.existsSync()) {
             dir.createSync(recursive: true);

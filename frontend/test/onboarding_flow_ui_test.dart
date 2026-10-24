@@ -119,13 +119,11 @@ void main() {
       final image = await boundary.toImage(pixelRatio: 1.0);
       final bytes = await image.toByteData(format: ui.ImageByteFormat.png);
       if (bytes != null) {
-        final file1 = File('D:/SamanDev/runtime/saman-onboarding-cp3/$name.png');
-        await file1.parent.create(recursive: true);
-        await file1.writeAsBytes(bytes.buffer.asUint8List());
-
-        final file2 = File('D:/SamanDev/runtime_evidence/consolidation/CP05_20261023_152730/visual/$name.png');
-        await file2.parent.create(recursive: true);
-        await file2.writeAsBytes(bytes.buffer.asUint8List());
+        final evidenceDir = Platform.environment['SAMAN_RENDER_EVIDENCE'] ??
+            Directory.systemTemp.path;
+        final file = File('$evidenceDir/$name.png');
+        await file.parent.create(recursive: true);
+        await file.writeAsBytes(bytes.buffer.asUint8List());
       }
       image.dispose();
     });
