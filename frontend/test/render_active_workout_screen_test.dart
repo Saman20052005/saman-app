@@ -1,3 +1,6 @@
+import 'package:health_ai_app/features/workout/data/repositories/mock_exercise_repository.dart';
+import 'package:health_ai_app/presentation/providers/exercise_providers.dart';
+import 'package:health_ai_app/presentation/providers/workout_history_providers.dart';
 import 'dart:io';
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
@@ -19,7 +22,9 @@ Future<void> capture(WidgetTester tester, String name) async {
     final image = await boundary.toImage(pixelRatio: 2);
     final bytes = await image.toByteData(format: ui.ImageByteFormat.png);
     expect(bytes, isNotNull);
-    final file = File('test/workout_evidence/$name.png');
+    final baseDir = Platform.environment['SAMAN_RENDER_EVIDENCE'] ??
+        '${Directory.systemTemp.path}/saman_render_evidence';
+    final file = File('$baseDir/$name.png');
     await file.parent.create(recursive: true);
     await file.writeAsBytes(bytes!.buffer.asUint8List());
     image.dispose();
@@ -65,7 +70,12 @@ void main() {
         (tester) async {
       await tester.binding.setSurfaceSize(size);
       addTearDown(() => tester.binding.setSurfaceSize(null));
-      final container = ProviderContainer();
+      final repo = MockExerciseRepository(curatedExerciseLibrary);
+      final container = ProviderContainer(overrides: [
+        exerciseRepositoryProvider.overrideWithValue(repo),
+        workoutSessionRepositoryProvider.overrideWithValue(repo),
+        workoutHistoryProvider.overrideWith((ref) => repo.getWorkoutHistory()),
+      ]);
       addTearDown(container.dispose);
       await tester.pumpWidget(UncontrolledProviderScope(
         container: container,
@@ -78,6 +88,20 @@ void main() {
           home: const ActiveWorkoutScreen(autoTick: false),
         ),
       ));
+      await tester.runAsync(() async {
+        for (final path in [
+          'assets/images/exercises/dumbbell-bench-press-thumb.jpg',
+          'assets/images/exercises/lat-pulldown-thumb.jpg',
+          'assets/images/exercises/incline-dumbbell-flyes-thumb.jpg',
+        ]) {
+          await precacheImage(
+            AssetImage(path),
+            tester.element(find.byType(MaterialApp)),
+          );
+        }
+      });
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
       await tester.pumpAndSettle();
       expect(tester.takeException(), isNull);
       if (size.width == 390) await capture(tester, 'active');

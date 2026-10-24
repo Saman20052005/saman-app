@@ -53,6 +53,7 @@ Future<ProviderContainer> _mount(
   final container = ProviderContainer(overrides: [
     exerciseRepositoryProvider.overrideWithValue(repo),
     workoutSessionRepositoryProvider.overrideWithValue(repo),
+    workoutHistoryProvider.overrideWith((ref) => repo.getWorkoutHistory()),
   ]);
   addTearDown(container.dispose);
   await tester.pumpWidget(UncontrolledProviderScope(

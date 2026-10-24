@@ -49,6 +49,8 @@ Future<ProviderContainer> mount(WidgetTester tester, Widget home,
   final container = ProviderContainer(overrides: [
     workoutSessionRepositoryProvider
         .overrideWith((ref) => ref.watch(exerciseRepositoryProvider)),
+    workoutHistoryProvider.overrideWith((ref) =>
+        ref.watch(workoutSessionRepositoryProvider).getWorkoutHistory()),
     dioProvider
         .overrideWith((ref) => throw StateError('Backend must not be used')),
     ...overrides,
