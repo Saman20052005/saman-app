@@ -7,7 +7,7 @@ import '../tokens/saman_chat_tokens.dart';
 /// Structured Meal Estimate card for Saman Chat Food Photo Result (State 03).
 ///
 /// Displays:
-/// - "Meal estimate" header with "Estimated from photo"
+/// - "Meal estimate" header with nutrition provenance and AI estimate caution
 /// - Food name and estimated calories
 /// - Three-column macro grid (Protein, Carbs, Fat) with calibrated semantic dots
 /// - Real remaining target context (only if real user nutrition targets are active)
@@ -23,6 +23,49 @@ class SamanMealEstimateCard extends ConsumerWidget {
     this.isMealLogged = false,
     required this.onLogMeal,
   });
+
+  Widget _buildSourceBadge(String source) {
+    final isGemini = source == 'gemini_estimate';
+    final String label;
+    final Color color;
+    if (isGemini) {
+      label = 'Gemini estimate';
+      color = const Color(0xFFFF8A3D);
+    } else if (source == 'usda') {
+      label = 'USDA data';
+      color = SamanChatTokens.greenAccent;
+    } else if (source == 'openfoodfacts') {
+      label = 'OpenFoodFacts';
+      color = SamanChatTokens.greenAccent;
+    } else if (source == 'fallback') {
+      label = 'Reference data';
+      color = SamanChatTokens.textSecondary;
+    } else {
+      label = 'Source unavailable';
+      color = SamanChatTokens.textSecondary;
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 3.0),
+      decoration: BoxDecoration(
+        color: isGemini ? const Color(0x26FF8A3D) : SamanChatTokens.canvas,
+        borderRadius: BorderRadius.circular(6.0),
+        border: Border.all(
+          color: isGemini ? const Color(0xFFFF8A3D) : SamanChatTokens.borderSubtle,
+          width: 1.0,
+        ),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          fontSize: 10,
+          fontWeight: FontWeight.w600,
+          letterSpacing: 0.5,
+          color: color,
+        ),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -61,8 +104,10 @@ class SamanMealEstimateCard extends ConsumerWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           // 1. Header bar
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          Wrap(
+            spacing: 8.0,
+            runSpacing: 6.0,
+            crossAxisAlignment: WrapCrossAlignment.center,
             children: [
               const Text(
                 'Meal estimate',
@@ -72,21 +117,7 @@ class SamanMealEstimateCard extends ConsumerWidget {
                   color: SamanChatTokens.textWhite,
                 ),
               ),
-              const SizedBox(width: 8.0),
-              Flexible(
-                child: Text(
-                  result.nutritionSource == 'gemini_estimate'
-                      ? 'GEMINI ESTIMATE' : 'ESTIMATED FROM PHOTO',
-                  style: TextStyle(
-                    fontSize: 10,
-                    fontWeight: FontWeight.w500,
-                    letterSpacing: 0.8,
-                    color: SamanChatTokens.textMuted.withOpacity(0.8),
-                  ),
-                  overflow: TextOverflow.ellipsis,
-                  maxLines: 1,
-                ),
-              ),
+              _buildSourceBadge(result.nutritionSource),
             ],
           ),
 
@@ -125,6 +156,17 @@ class SamanMealEstimateCard extends ConsumerWidget {
               ),
             ],
           ),
+
+          if (result.nutritionSource == 'gemini_estimate') ...[
+            const SizedBox(height: 6.0),
+            const Text(
+              'Calories and macros are AI estimates. Please review before logging.',
+              style: TextStyle(
+                fontSize: 11,
+                color: Color(0xFFFF8A3D),
+              ),
+            ),
+          ],
 
           const SizedBox(height: 10.0),
 
