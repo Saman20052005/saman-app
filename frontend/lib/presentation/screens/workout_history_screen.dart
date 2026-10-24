@@ -22,13 +22,6 @@ class WorkoutHistoryScreen extends ConsumerWidget {
         ),
         backgroundColor: Colors.white,
         elevation: 0,
-        bottom: const PreferredSize(
-          preferredSize: Size.fromHeight(48),
-          child: Padding(
-            padding: EdgeInsetsDirectional.all(8),
-            child: Text('Local / demo • In memory until restart • Not synced'),
-          ),
-        ),
       ),
       body: historyAsync.when(
         data: (sessions) {

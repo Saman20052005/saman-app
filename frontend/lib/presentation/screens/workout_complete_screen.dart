@@ -491,7 +491,7 @@ class WorkoutCompleteScreen extends ConsumerWidget {
 
                     const SizedBox(height: 16),
 
-                    // Memory persistence demo notice
+                    // Session history guidance
                     Container(
                       padding: const EdgeInsets.all(14),
                       decoration: BoxDecoration(
@@ -511,7 +511,7 @@ class WorkoutCompleteScreen extends ConsumerWidget {
                           SizedBox(width: 10),
                           Expanded(
                             child: Text(
-                              'Demo only. This workout is kept in memory and disappears when the app restarts. It is not synced.',
+                              'View this session in your workout history.',
                               style: TextStyle(
                                 fontSize: 13,
                                 height: 1.4,
