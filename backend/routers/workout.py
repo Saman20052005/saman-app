@@ -597,6 +597,23 @@ async def update_workout_plan(
         except Exception:
             id_query = {"id": plan_id}
 
+        if not plan.name or not plan.name.strip():
+            raise HTTPException(status_code=400, detail="Plan name cannot be empty")
+        if plan.duration_minutes <= 0 or plan.duration_minutes > 600:
+            raise HTTPException(status_code=400, detail="Invalid duration_minutes")
+        if not plan.difficulty or plan.difficulty.lower() not in ("beginner", "intermediate", "advanced"):
+            raise HTTPException(status_code=400, detail="Invalid difficulty")
+        for ex in plan.exercises:
+            if (
+                not ex.name
+                or not ex.name.strip()
+                or ex.sets <= 0
+                or ex.reps <= 0
+                or ex.rest_time < 0
+                or (ex.weight is not None and ex.weight < 0)
+            ):
+                raise HTTPException(status_code=400, detail="Invalid exercise parameters")
+
         query = {"$and": [owner_query, id_query]}
         existing = custom_plans_collection.find_one(query)
         if not existing:
@@ -604,11 +621,11 @@ async def update_workout_plan(
 
         now = datetime.utcnow()
         update_doc = {
-            "name": plan.name,
+            "name": plan.name.strip(),
             "description": plan.description,
             "exercises": [e.model_dump() if hasattr(e, "model_dump") else e.dict() for e in plan.exercises],
             "duration_minutes": plan.duration_minutes,
-            "difficulty": plan.difficulty,
+            "difficulty": plan.difficulty.lower(),
             "target_muscles": plan.target_muscles,
             "updated_at": now,
         }

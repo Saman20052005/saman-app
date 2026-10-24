@@ -2423,7 +2423,8 @@ async def _process_action_decision(
         )
 
     today_vn = datetime.now(VN_TZ).strftime("%Y-%m-%d")
-    target_date = pending.get("date") or today_vn
+    raw_params = pending.get("params") if isinstance(pending.get("params"), dict) else {}
+    target_date = pending.get("date") or raw_params.get("date") or today_vn
     now_utc = datetime.utcnow()
     now_iso = datetime.now(timezone.utc).isoformat()
 
@@ -2535,6 +2536,145 @@ async def _process_action_decision(
             "conversation_id": str(conv_obj_id),
         }
 
+    # 3b. Pre-validate Confirm payload before acquiring processing lock or mutating domain collections
+    amount_to_add = 250
+    validated_meal_doc: Optional[Dict[str, Any]] = None
+    validated_workout_fields: Dict[str, Any] = {}
+    target_plan_id = None
+
+    if action_type == "log_water":
+        raw_amount = pending.get("amount_ml")
+        if raw_amount is None and "amount_ml" not in pending:
+            raw_amount = raw_params.get("amount_ml", 250)
+        if isinstance(raw_amount, bool) or raw_amount is None:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid water amount in pending action",
+            )
+        try:
+            amount_to_add = int(raw_amount)
+        except (ValueError, TypeError):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid water amount in pending action",
+            )
+        if amount_to_add <= 0 or amount_to_add > 5000:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid water amount in pending action",
+            )
+    elif action_type == "log_meal":
+        meal_type = pending.get("meal_type") or "meal"
+        if not isinstance(meal_type, str) or meal_type not in ("breakfast", "lunch", "dinner", "snack", "meal"):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid meal_type in pending action",
+            )
+        raw_foods = pending.get("foods")
+        if not isinstance(raw_foods, list) or len(raw_foods) == 0:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid foods list in pending action",
+            )
+        for f_item in raw_foods:
+            if not isinstance(f_item, dict) or not isinstance(f_item.get("name"), str) or not f_item["name"].strip():
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Invalid food item in pending action",
+                )
+        raw_cals = pending.get("total_calories")
+        if isinstance(raw_cals, bool) or raw_cals is None:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid total_calories in pending action",
+            )
+        if (
+            isinstance(pending.get("total_protein"), bool)
+            or isinstance(pending.get("total_carbs"), bool)
+            or isinstance(pending.get("total_fat"), bool)
+        ):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid nutrition values in pending action",
+            )
+        try:
+            total_calories = int(raw_cals)
+            total_protein = float(pending.get("total_protein") or 0.0)
+            total_carbs = float(pending.get("total_carbs") or 0.0)
+            total_fat = float(pending.get("total_fat") or 0.0)
+        except (ValueError, TypeError):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid nutrition values in pending action",
+            )
+        if total_calories <= 0 or total_calories > 10000 or total_protein < 0 or total_carbs < 0 or total_fat < 0:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid nutrition values in pending action",
+            )
+        validated_meal_doc = {
+            "user_email": email,
+            "date": target_date,
+            "meal_type": meal_type,
+            "foods": raw_foods,
+            "total_calories": total_calories,
+            "total_protein": round(total_protein, 1),
+            "total_carbs": round(total_carbs, 1),
+            "total_fat": round(total_fat, 1),
+            "notes": pending.get("notes"),
+            "action_id": action_id,
+            "created_at": now_utc,
+            "updated_at": now_utc,
+        }
+    elif action_type == "adjust_workout":
+        target_plan_id = pending.get("plan_id")
+        changes = pending.get("changes") or pending.get("after") or {}
+        if not target_plan_id or not isinstance(changes, dict) or not changes:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid workout adjustment payload in pending action",
+            )
+        allowed_fields = {"duration_minutes", "difficulty", "name", "description", "target_muscles", "exercises"}
+        for k, v in changes.items():
+            if k not in allowed_fields or v is None:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"Unsupported or invalid workout adjustment field: {k}",
+                )
+            if k == "duration_minutes":
+                if isinstance(v, bool):
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail="Invalid duration_minutes in workout adjustment",
+                    )
+                try:
+                    dur_val = int(v)
+                except (ValueError, TypeError):
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail="Invalid duration_minutes in workout adjustment",
+                    )
+                if dur_val <= 0 or dur_val > 600:
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail="Invalid duration_minutes in workout adjustment",
+                    )
+                validated_workout_fields[k] = dur_val
+            elif k == "difficulty":
+                if not isinstance(v, str) or v.lower() not in ("beginner", "intermediate", "advanced"):
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail="Invalid difficulty in workout adjustment",
+                    )
+                validated_workout_fields[k] = v.lower()
+            else:
+                validated_workout_fields[k] = v
+        if not validated_workout_fields:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="No valid fields to update in workout plan",
+            )
+
     # 4. Handle Confirm: Lock pending -> processing in conversations_col
     if current_status == "pending":
         try:
@@ -2586,13 +2726,6 @@ async def _process_action_decision(
                 status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
                 detail="Water storage unavailable",
             )
-
-        try:
-            amount_to_add = int(pending.get("amount_ml") or 250)
-            if amount_to_add <= 0:
-                amount_to_add = 250
-        except (ValueError, TypeError):
-            amount_to_add = 250
 
         # Step A: Check if action_id marker already exists in water_col
         already_doc = water_col.find_one({
@@ -2758,28 +2891,7 @@ async def _process_action_decision(
 
         write_error = None
         if not already_doc:
-            meal_type = pending.get("meal_type") or "meal"
-            foods = pending.get("foods") or []
-            total_calories = int(pending.get("total_calories") or 0)
-            total_protein = float(pending.get("total_protein") or 0.0)
-            total_carbs = float(pending.get("total_carbs") or 0.0)
-            total_fat = float(pending.get("total_fat") or 0.0)
-            notes = pending.get("notes")
-
-            meal_doc = {
-                "user_email": email,
-                "date": target_date,
-                "meal_type": meal_type,
-                "foods": foods,
-                "total_calories": total_calories,
-                "total_protein": round(total_protein, 1),
-                "total_carbs": round(total_carbs, 1),
-                "total_fat": round(total_fat, 1),
-                "notes": notes,
-                "action_id": action_id,
-                "created_at": now_utc,
-                "updated_at": now_utc,
-            }
+            meal_doc = dict(validated_meal_doc)
 
             # Step B: Atomic write with bounded retry for upsert / DuplicateKeyError race
             max_retries = 3
@@ -2905,14 +3017,6 @@ async def _process_action_decision(
                 detail="Workout storage unavailable",
             )
 
-        target_plan_id = pending.get("plan_id")
-        changes = pending.get("changes") or pending.get("after") or {}
-        if not target_plan_id or not changes:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Invalid workout adjustment payload in pending action",
-            )
-
         # Build plan query respecting ownership isolation
         plan_id_query = []
         if ObjectId.is_valid(str(target_plan_id)):
@@ -2930,7 +3034,7 @@ async def _process_action_decision(
         # Step A: Check if action_id marker already exists in custom_plans_col (Idempotency)
         already_doc = custom_plans_col.find_one({
             "$and": [
-                {"$or": query_or},
+                base_plan_query,
                 {"applied_actions": action_id},
             ]
         })
@@ -2946,25 +3050,7 @@ async def _process_action_decision(
                     detail="Workout plan not found or not owned by user",
                 )
 
-            # Sanitize and prepare changes to apply
-            allowed_fields = {"duration_minutes", "difficulty", "name", "description", "target_muscles", "exercises"}
-            update_fields = {}
-            for k, v in changes.items():
-                if k in allowed_fields and v is not None:
-                    if k == "duration_minutes":
-                        try:
-                            update_fields[k] = int(v)
-                        except (ValueError, TypeError):
-                            pass
-                    else:
-                        update_fields[k] = v
-
-            if not update_fields:
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="No valid fields to update in workout plan",
-                )
-
+            update_fields = dict(validated_workout_fields)
             update_fields["updated_at"] = now_utc
 
             # Step B: Atomic update with applied_actions deduplication
@@ -2973,7 +3059,7 @@ async def _process_action_decision(
                 try:
                     already_check = custom_plans_col.find_one({
                         "$and": [
-                            {"$or": query_or},
+                            base_plan_query,
                             {"applied_actions": action_id},
                         ]
                     })
@@ -2996,7 +3082,7 @@ async def _process_action_decision(
                     if getattr(res, "matched_count", 1) == 0:
                         if custom_plans_col.find_one({
                             "$and": [
-                                {"$or": query_or},
+                                base_plan_query,
                                 {"applied_actions": action_id},
                             ]
                         }):
@@ -3020,7 +3106,7 @@ async def _process_action_decision(
         # Step C: Verify marker in custom_plans_col
         verified_doc = custom_plans_col.find_one({
             "$and": [
-                {"$or": query_or},
+                base_plan_query,
                 {"applied_actions": action_id},
             ]
         })

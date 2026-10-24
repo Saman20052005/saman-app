@@ -1,12 +1,19 @@
+import 'dart:async';
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:health_ai_app/config/app_theme.dart';
 import 'package:health_ai_app/controllers/chat_controller.dart';
+import 'package:health_ai_app/presentation/providers/workout_history_providers.dart';
 import 'package:health_ai_app/screens/chat/widgets/widgets.dart';
 import 'package:health_ai_app/screens/chat_screen.dart';
+import 'package:health_ai_app/services/api_client.dart';
+import 'package:health_ai_app/utils/auth_helper.dart';
 
 class _FakeChatController extends StateNotifier<ChatState>
     implements ChatController, ChatActionDelegate {
@@ -186,5 +193,150 @@ void main() {
 
     expect(find.textContaining('Xác nhận'), findsNothing);
     expect(find.text('Hủy'), findsNothing);
+  });
+
+  group('CP-20A Frontend Action Session Isolation & Error Semantics', () {
+    Interceptor? mockInterceptor;
+
+    setUp(() {
+      SharedPreferences.setMockInitialValues({'user_name': 'User A'});
+      FlutterSecureStorage.setMockInitialValues({'auth_token': 'token-user-a'});
+    });
+
+    tearDown(() {
+      if (mockInterceptor != null) {
+        ApiClient.dio.interceptors.remove(mockInterceptor!);
+        mockInterceptor = null;
+      }
+    });
+
+    test('late confirmAction response from Account A arriving after Account A->B switch does not apply to Account B', () async {
+      final confirmCompleter = Completer<Response>();
+
+      mockInterceptor = InterceptorsWrapper(
+        onRequest: (options, handler) async {
+          if (options.uri.path.endsWith('/api/chat/actions/confirm')) {
+            final res = await confirmCompleter.future;
+            return handler.resolve(res);
+          }
+          return handler.next(options);
+        },
+      );
+      ApiClient.dio.interceptors.insert(0, mockInterceptor!);
+
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+
+      final controller = container.read(chatControllerProvider.notifier);
+      controller.state = ChatState(
+        activeConversationId: 'conv-a-1',
+        messages: [ChatMessage(role: 'assistant', content: 'Ghi nhận bữa ăn Phở bò?')],
+        pendingAction: {
+          'id': 'act-meal-a1',
+          'type': 'log_meal',
+          'status': 'pending',
+          'total_calories': 450,
+        },
+      );
+
+      // User A taps Confirm (request is now in-flight)
+      final confirmFuture = controller.confirmAction('conv-a-1', 'act-meal-a1');
+      await Future<void>.delayed(Duration.zero);
+
+      // Account switches from User A to User B while confirm request is in-flight
+      FlutterSecureStorage.setMockInitialValues({'auth_token': 'token-user-b'});
+      container.read(workoutAuthScopeProvider.notifier).state++;
+
+      // Set User B's clean state
+      controller.state = ChatState(
+        activeConversationId: 'conv-b-1',
+        messages: [ChatMessage(role: 'assistant', content: 'Xin chào User B!')],
+      );
+
+      // Now Account A's confirm response arrives late
+      confirmCompleter.complete(Response(
+        requestOptions: RequestOptions(path: '/api/chat/actions/confirm'),
+        statusCode: 200,
+        data: {
+          'status': 'success',
+          'message': 'Đã ghi nhận bữa ăn: Phở bò (450 kcal) của User A.',
+          'action_id': 'act-meal-a1',
+          'conversation_id': 'conv-a-1',
+        },
+      ));
+
+      await confirmFuture;
+
+      final stateB = container.read(chatControllerProvider);
+      expect(stateB.activeConversationId, 'conv-b-1');
+      expect(stateB.messages.length, 1);
+      expect(stateB.messages.single.content, 'Xin chào User B!');
+      expect(
+        stateB.messages.any((m) => m.content.contains('Phở bò')),
+        isFalse,
+        reason: 'Late confirm response from Account A must never pollute Account B',
+      );
+    });
+
+    test('confirmAction and cancelAction 403/500 errors set error feedback without fake success or auto-logout', () async {
+      int statusCodeToReturn = 403;
+      mockInterceptor = InterceptorsWrapper(
+        onRequest: (options, handler) {
+          if (options.uri.path.endsWith('/api/chat/actions/confirm') ||
+              options.uri.path.endsWith('/api/chat/actions/cancel')) {
+            return handler.reject(DioException(
+              requestOptions: options,
+              response: Response(
+                requestOptions: options,
+                statusCode: statusCodeToReturn,
+                data: {'detail': 'Error $statusCodeToReturn'},
+              ),
+              type: DioExceptionType.badResponse,
+            ));
+          }
+          return handler.next(options);
+        },
+      );
+      ApiClient.dio.interceptors.insert(0, mockInterceptor!);
+
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+
+      final initialScope = container.read(workoutAuthScopeProvider);
+      final controller = container.read(chatControllerProvider.notifier);
+      controller.state = ChatState(
+        activeConversationId: 'conv-workout-1',
+        messages: [ChatMessage(role: 'assistant', content: 'Điều chỉnh Cardio xuống 30 phút?')],
+        pendingAction: {
+          'id': 'act-wk-1',
+          'type': 'adjust_workout',
+          'status': 'pending',
+          'plan_name': 'Cardio',
+          'changes': {'duration_minutes': 30},
+        },
+      );
+
+      // 1. 403 on confirmAction -> sets errorMessage, keeps pendingAction, no fake success message, no logout
+      statusCodeToReturn = 403;
+      await controller.confirmAction('conv-workout-1', 'act-wk-1');
+      var state = container.read(chatControllerProvider);
+      expect(state.isLoading, isFalse);
+      expect(state.errorMessage, "I couldn't confirm that action.");
+      expect(state.pendingAction?['id'], 'act-wk-1');
+      expect(state.messages.length, 1);
+      expect(container.read(workoutAuthScopeProvider), initialScope);
+      expect(container.read(authLoggingOutProvider), isFalse);
+
+      // 2. 500 on cancelAction -> sets errorMessage, keeps pendingAction, no fake cancel message, no logout
+      statusCodeToReturn = 500;
+      await controller.cancelAction('conv-workout-1', 'act-wk-1');
+      state = container.read(chatControllerProvider);
+      expect(state.isLoading, isFalse);
+      expect(state.errorMessage, "I couldn't cancel that action.");
+      expect(state.pendingAction?['id'], 'act-wk-1');
+      expect(state.messages.length, 1);
+      expect(container.read(workoutAuthScopeProvider), initialScope);
+      expect(container.read(authLoggingOutProvider), isFalse);
+    });
   });
 }

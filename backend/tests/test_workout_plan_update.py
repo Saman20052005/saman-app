@@ -228,6 +228,55 @@ class TestWorkoutPlanUpdate(unittest.TestCase):
         # Invariant: 0 writes to workout history
         self.assertEqual(len(self.memory_workout_history.documents), 0)
 
+    def test_update_workout_plan_validation_rejects_invalid_fields_and_preserves_existing(self):
+        plan_id = ObjectId()
+        created_at = datetime.datetime(2026, 10, 1, 8, 0, tzinfo=datetime.timezone.utc)
+        self.memory_custom_plans.insert_one({
+            "_id": plan_id,
+            "user_id": str(self.user_a["_id"]),
+            "email": self.user_a["email"],
+            "name": "Original Valid Plan",
+            "description": "Keep safe",
+            "difficulty": "beginner",
+            "duration_minutes": 30,
+            "target_muscles": ["chest"],
+            "exercises": [{"name": "Push-up", "sets": 3, "reps": 10, "weight": 0.0, "rest_time": 60}],
+            "applied_actions": ["act-prev-1"],
+            "created_at": created_at,
+        })
+        self.active_user = self.user_a
+
+        # 1. Invalid duration_minutes <= 0 -> 400
+        bad_dur = self._valid_plan_payload()
+        bad_dur["duration_minutes"] = 0
+        self.assertEqual(self.client.put(f"/api/workouts/plans/{plan_id}", json=bad_dur).status_code, 400)
+
+        # 2. Invalid difficulty -> 400
+        bad_diff = self._valid_plan_payload()
+        bad_diff["difficulty"] = "extreme"
+        self.assertEqual(self.client.put(f"/api/workouts/plans/{plan_id}", json=bad_diff).status_code, 400)
+
+        # 3. Invalid exercise sets/reps/rest_time -> 400
+        bad_ex = self._valid_plan_payload()
+        bad_ex["exercises"][0]["sets"] = 0
+        self.assertEqual(self.client.put(f"/api/workouts/plans/{plan_id}", json=bad_ex).status_code, 400)
+
+        bad_reps = self._valid_plan_payload()
+        bad_reps["exercises"][0]["reps"] = -5
+        self.assertEqual(self.client.put(f"/api/workouts/plans/{plan_id}", json=bad_reps).status_code, 400)
+
+        bad_rest = self._valid_plan_payload()
+        bad_rest["exercises"][0]["rest_time"] = -10
+        self.assertEqual(self.client.put(f"/api/workouts/plans/{plan_id}", json=bad_rest).status_code, 400)
+
+        # Plan in DB remains untouched after all rejected updates
+        stored = self.memory_custom_plans.find_one({"_id": plan_id})
+        self.assertEqual(stored["name"], "Original Valid Plan")
+        self.assertEqual(stored["duration_minutes"], 30)
+        self.assertEqual(stored["applied_actions"], ["act-prev-1"])
+        self.assertEqual(stored["created_at"], created_at)
+        self.assertEqual(len(self.memory_workout_history.documents), 0)
+
 
 if __name__ == "__main__":
     unittest.main()

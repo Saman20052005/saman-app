@@ -178,15 +178,33 @@ class ChatController extends StateNotifier<ChatState> {
   ChatController(this.ref, {NutritionService? nutritionService})
       : _nutritionService = nutritionService ?? NutritionService(),
         super(ChatState(messages: [])) {
-    ref.listen(workoutAuthScopeProvider, (_, __) => _invalidateFood());
+    ref.listen(workoutAuthScopeProvider, (_, __) => _onAuthScopeChanged());
     ref.listen(authLoggingOutProvider, (_, next) {
       if (next) _invalidateFood();
     });
   }
 
-  void _invalidateFood() {
+  void _onAuthScopeChanged() {
+    _requestEpoch++;
     _foodAnalysisEpoch++;
-    if (mounted) state = state.copyWith(clearFoodAnalysis: true);
+    _currentAccountToken = null;
+    if (mounted) {
+      state = ChatState(messages: [], recentConversations: []);
+    }
+  }
+
+  void _invalidateFood() {
+    _requestEpoch++;
+    _foodAnalysisEpoch++;
+    if (mounted) {
+      state = state.copyWith(clearFoodAnalysis: true, isLoading: false);
+    }
+  }
+
+  Future<String?> _readActiveToken() async {
+    const storage = FlutterSecureStorage();
+    return await storage.read(key: 'auth_token') ??
+        await storage.read(key: 'jwt_token');
   }
 
   Future<void> sendMessage(String text) async {
@@ -310,13 +328,18 @@ class ChatController extends StateNotifier<ChatState> {
   Future<void> _confirmAction(String conversationId, String actionId) async {
     if (conversationId.isEmpty || actionId.isEmpty) return;
     final epoch = ++_requestEpoch;
+    final scopeAtStart = ref.read(workoutAuthScopeProvider);
     state = state.copyWith(
       isLoading: true,
       clearError: true,
       clearFailedUserMessage: true,
     );
 
+    String? tokenAtStart;
     try {
+      tokenAtStart = await _readActiveToken();
+      if (_requestEpoch != epoch || !mounted) return;
+
       final response = await ApiClient.dio.post(
         "${ApiConfig.baseUrl}/api/chat/actions/confirm",
         data: {
@@ -326,6 +349,12 @@ class ChatController extends StateNotifier<ChatState> {
       );
 
       if (_requestEpoch != epoch || !mounted) return;
+      if (ref.read(authLoggingOutProvider) ||
+          ref.read(workoutAuthScopeProvider) != scopeAtStart) {
+        return;
+      }
+      final tokenNow = await _readActiveToken();
+      if (_requestEpoch != epoch || !mounted || tokenNow != tokenAtStart) return;
 
       if (response.statusCode == 200) {
         final data = response.data is String
@@ -352,6 +381,12 @@ class ChatController extends StateNotifier<ChatState> {
       }
     } catch (e) {
       if (_requestEpoch != epoch || !mounted) return;
+      if (ref.read(authLoggingOutProvider) ||
+          ref.read(workoutAuthScopeProvider) != scopeAtStart) {
+        return;
+      }
+      final tokenNow = await _readActiveToken();
+      if (_requestEpoch != epoch || !mounted || tokenNow != tokenAtStart) return;
       debugPrint("Confirm Action Error: $e");
       state = state.copyWith(
         isLoading: false,
@@ -364,13 +399,18 @@ class ChatController extends StateNotifier<ChatState> {
   Future<void> _cancelAction(String conversationId, String actionId) async {
     if (conversationId.isEmpty || actionId.isEmpty) return;
     final epoch = ++_requestEpoch;
+    final scopeAtStart = ref.read(workoutAuthScopeProvider);
     state = state.copyWith(
       isLoading: true,
       clearError: true,
       clearFailedUserMessage: true,
     );
 
+    String? tokenAtStart;
     try {
+      tokenAtStart = await _readActiveToken();
+      if (_requestEpoch != epoch || !mounted) return;
+
       final response = await ApiClient.dio.post(
         "${ApiConfig.baseUrl}/api/chat/actions/cancel",
         data: {
@@ -380,6 +420,12 @@ class ChatController extends StateNotifier<ChatState> {
       );
 
       if (_requestEpoch != epoch || !mounted) return;
+      if (ref.read(authLoggingOutProvider) ||
+          ref.read(workoutAuthScopeProvider) != scopeAtStart) {
+        return;
+      }
+      final tokenNow = await _readActiveToken();
+      if (_requestEpoch != epoch || !mounted || tokenNow != tokenAtStart) return;
 
       if (response.statusCode == 200) {
         final data = response.data is String
@@ -406,6 +452,12 @@ class ChatController extends StateNotifier<ChatState> {
       }
     } catch (e) {
       if (_requestEpoch != epoch || !mounted) return;
+      if (ref.read(authLoggingOutProvider) ||
+          ref.read(workoutAuthScopeProvider) != scopeAtStart) {
+        return;
+      }
+      final tokenNow = await _readActiveToken();
+      if (_requestEpoch != epoch || !mounted || tokenNow != tokenAtStart) return;
       debugPrint("Cancel Action Error: $e");
       state = state.copyWith(
         isLoading: false,
