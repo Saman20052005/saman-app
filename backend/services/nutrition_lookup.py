@@ -150,15 +150,12 @@ assert len(NUTRITION_FALLBACK_PER_100G) == 101, (
     f"Expected 101 entries, got {len(NUTRITION_FALLBACK_PER_100G)}"
 )
 
-_DEFAULT_NUTRITION = {"calories": 200, "protein": 10.0, "carbs": 25.0, "fat": 8.0}
-
-
 class NutritionLookup:
     OPENFOODFACTS_URL = "https://world.openfoodfacts.org/cgi/search.pl"
     USDA_URL = "https://api.nal.usda.gov/fdc/v1/foods/search"
     USDA_API_KEY = "DEMO_KEY"
 
-    async def lookup(self, food_label: str, grams: float = 100.0) -> dict:
+    async def lookup(self, food_label: str, grams: float = 100.0) -> Optional[dict]:
         """
         Tra cứu macro theo label từ Food101.
         Thứ tự ưu tiên: OpenFoodFacts → USDA → Static fallback
@@ -171,6 +168,8 @@ class NutritionLookup:
             or await self._try_usda(query)
             or self._static_fallback(food_label)
         )
+        if not nutrition:
+            return None
 
         return {
             "calories": round(nutrition["calories"] * ratio, 1),
@@ -263,6 +262,8 @@ class NutritionLookup:
             print(f"[NutritionLookup] USDA error: {e}")
             return None
 
-    def _static_fallback(self, food_label: str) -> dict:
-        base = NUTRITION_FALLBACK_PER_100G.get(food_label, _DEFAULT_NUTRITION)
+    def _static_fallback(self, food_label: str) -> Optional[dict]:
+        base = NUTRITION_FALLBACK_PER_100G.get(food_label)
+        if base is None:
+            return None
         return {**base, "_source": "fallback"}

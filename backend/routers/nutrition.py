@@ -1,6 +1,6 @@
 
 from fastapi import APIRouter, Depends, HTTPException, Query, File, Form, UploadFile, status
-from datetime import datetime, date, timedelta
+from datetime import datetime, date, timedelta, timezone
 from typing import Optional, List, Dict, Any
 import pydantic as pd
 import logging
@@ -763,6 +763,37 @@ async def log_water_intake(
 # ─────────────────────────────────────────
 # ✅ PATCH A — GET /{date} (đọc từ DB)
 # ─────────────────────────────────────────
+def _is_created_after_reset(created_at, reset_at) -> bool:
+    """Safe comparison of created_at > reset_at without raising TypeError.
+
+    Returns True if created_at is a verified timestamp occurring strictly after reset_at.
+    Returns False if created_at is None, missing, invalid, or <= reset_at.
+    Handles naive vs aware datetimes safely without throwing.
+    """
+    if created_at is None or reset_at is None:
+        return False
+    if isinstance(created_at, str):
+        try:
+            created_at = datetime.fromisoformat(created_at.replace("Z", "+00:00"))
+        except (ValueError, TypeError):
+            return False
+    if isinstance(reset_at, str):
+        try:
+            reset_at = datetime.fromisoformat(reset_at.replace("Z", "+00:00"))
+        except (ValueError, TypeError):
+            return False
+    if not isinstance(created_at, datetime) or not isinstance(reset_at, datetime):
+        return False
+    try:
+        if (created_at.tzinfo is None) != (reset_at.tzinfo is None):
+            c_utc = created_at.replace(tzinfo=timezone.utc) if created_at.tzinfo is None else created_at
+            r_utc = reset_at.replace(tzinfo=timezone.utc) if reset_at.tzinfo is None else reset_at
+            return c_utc > r_utc
+        return created_at > reset_at
+    except TypeError:
+        return False
+
+
 @router.get("/{date}")
 async def get_nutrition_by_date(
     date: str,
@@ -788,7 +819,7 @@ async def get_nutrition_by_date(
         reset_doc = reset_col.find_one({"user_email": current_user["email"], "date": date})
         reset_at  = reset_doc["reset_at"] if reset_doc else None
         if reset_at:
-            logs = [log for log in logs if log.get("created_at", datetime.min) > reset_at]
+            logs = [log for log in logs if _is_created_after_reset(log.get("created_at"), reset_at)]
 
         entries       = []
         total_calories = 0.0
@@ -984,6 +1015,9 @@ async def get_weekly_report(
         except ValueError:
             raise HTTPException(400, "start_date must be yyyy-MM-dd")
 
+        if nutrition_collection is None:
+            raise HTTPException(status_code=503, detail="Database not available")
+
         end = start + timedelta(days=7)
 
         user         = user_repo.get_by_email(user_email)
@@ -1002,42 +1036,28 @@ async def get_weekly_report(
 
         end_str = end.strftime("%Y-%m-%d")
 
-        # story_logs
-        if story_logs_collection is not None:
-            for log in story_logs_collection.find({
-                "user_email": user_email,
-                "logged_at":  {"$gte": start_date, "$lt": end_str},
-            }):
-                day = str(log.get("logged_at", ""))[:10]
-                if day in daily_map:
-                    daily_map[day]["calories"]  += float(log.get("calories", 0))
-                    daily_map[day]["protein"]   += float(log.get("protein",  0))
-                    daily_map[day]["carbs"]     += float(log.get("carbs",    0))
-                    daily_map[day]["fat"]       += float(log.get("fat",      0))
-                    daily_map[day]["log_count"] += 1
+        reset_col = db["day_resets"]
+        reset_map = {}
+        for day in daily_map:
+            reset_doc = reset_col.find_one({"user_email": user_email, "date": day})
+            reset_map[day] = reset_doc["reset_at"] if reset_doc else None
 
-        # nutrition_plans (manual logs)
-        if nutrition_collection is not None:
-            for plan in nutrition_collection.find({
-                "user_email": user_email,
-                "date":       {"$gte": start_date, "$lt": end_str},
-            }):
-                day = str(plan.get("date", ""))[:10]
-                if day in daily_map:
-                    # Single source of truth: use stored totals if available
-                    if "total_calories" in plan and "total_protein" in plan:
-                        daily_map[day]["calories"] += float(plan.get("total_calories", 0))
-                        daily_map[day]["protein"]  += float(plan.get("total_protein",  0))
-                        daily_map[day]["carbs"]    += float(plan.get("total_carbs",    0))
-                        daily_map[day]["fat"]      += float(plan.get("total_fat",      0))
-                    else:
-                        # Fallback for old records
-                        for food in plan.get("foods", []):
-                            daily_map[day]["calories"] += float(food.get("calories", 0))
-                            daily_map[day]["protein"]  += float(food.get("protein",  0))
-                            daily_map[day]["carbs"]    += float(food.get("carbs",    0))
-                            daily_map[day]["fat"]      += float(food.get("fat",      0))
-                    daily_map[day]["log_count"] += 1
+        # nutrition_plans (single source of truth for consumed, matching Daily Summary)
+        for plan in nutrition_collection.find({
+            "user_email": user_email,
+            "date":       {"$gte": start_date, "$lt": end_str},
+        }):
+            day = str(plan.get("date", ""))[:10]
+            if day in daily_map:
+                reset_at = reset_map.get(day)
+                if reset_at and not _is_created_after_reset(plan.get("created_at"), reset_at):
+                    continue
+                foods_list = plan.get("foods", [])
+                daily_map[day]["calories"]  += float(plan.get("total_calories") or sum(float(f.get("calories", 0)) for f in foods_list))
+                daily_map[day]["protein"]   += float(plan.get("total_protein")  or sum(float(f.get("protein", 0)) for f in foods_list))
+                daily_map[day]["carbs"]     += float(plan.get("total_carbs")    or sum(float(f.get("carbs", 0)) for f in foods_list))
+                daily_map[day]["fat"]       += float(plan.get("total_fat")      or sum(float(f.get("fat", 0)) for f in foods_list))
+                daily_map[day]["log_count"] += 1
 
         daily_list = [
             {

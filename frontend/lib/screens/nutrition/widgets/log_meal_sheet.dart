@@ -8,6 +8,7 @@ import 'package:intl/intl.dart';
 
 import '../../../models/meal_log.dart';
 import '../../../providers/daily_story_provider.dart';
+import '../../../services/nutrition_service.dart';
 import 'meal_review_dialog.dart' hide MealType;
 
 class LogMealSheet extends ConsumerStatefulWidget {
@@ -22,13 +23,15 @@ class _LogMealSheetState extends ConsumerState<LogMealSheet> {
   final _noteController = TextEditingController();
   MealType _selectedType = MealType.snack;
   bool _isAnalyzing = false;
-  bool _isConfirmed = false;
+  String _mode = 'standard';
+  NutritionRequestContext? _photoOwner;
 
   XFile? _pickedFile;
   final _picker = ImagePicker();
 
   Future<void> _pickImage(ImageSource source) async {
     try {
+      final owner = await ref.read(nutritionSessionProvider).capture();
       final picked = await _picker.pickImage(
         source: source,
         imageQuality: 50,
@@ -38,13 +41,14 @@ class _LogMealSheetState extends ConsumerState<LogMealSheet> {
       );
 
       if (picked != null) {
-        setState(() => _pickedFile = picked);
+        await owner.validate();
+        if (!mounted) return;
+        setState(() { _pickedFile = picked; _photoOwner = owner; });
       }
     } catch (e) {
-      debugPrint("Pick image error: $e");
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Không thể mở ảnh: $e")),
+          SnackBar(content: Text(e is NutritionSessionChanged ? e.toString() : 'Không thể mở ảnh. Vui lòng thử lại.')),
         );
       }
     }
@@ -54,110 +58,41 @@ class _LogMealSheetState extends ConsumerState<LogMealSheet> {
     setState(() => _pickedFile = null);
   }
 
-  Future<void> _handleLogStory(File imageFile) async {
-    if (_isAnalyzing) return;
+  Future<void> _handleLogStory() async {
+    if (_isAnalyzing || _pickedFile == null) return;
     setState(() => _isAnalyzing = true);
-
+    final dateStr = DateFormat('yyyy-MM-dd').format(widget.selectedDate);
+    final controller = ref.read(dailyStoryControllerProvider(dateStr).notifier);
     try {
-      final dateStr = DateFormat('yyyy-MM-dd').format(widget.selectedDate);
-      final result = await ref
-          .read(dailyStoryControllerProvider(dateStr).notifier)
-          .analyzeImage(_pickedFile!);
-
+      final owner = _photoOwner ?? await ref.read(nutritionSessionProvider).capture();
+      await owner.validate();
+      final result = await controller.analyzeImage(_pickedFile!, mode: _mode, session: owner);
+      if (!mounted) return;
+      await owner.validate();
+      if (!mounted) return;
+      final confirmed = await MealReviewDialog.show(context, result!, onConfirm: (data) async {
+        await owner.validate();
+        await controller.confirmLog(data, imageFile: _pickedFile, session: owner);
+        await owner.validate();
+      });
+      if (!mounted || confirmed == null) return;
+      await owner.validate();
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Đã thêm bữa ăn thành công!')));
+      Navigator.of(context).pop(true);
+    } catch (error) {
       if (!mounted) return;
       setState(() => _isAnalyzing = false);
-
-      // AI analysis succeeded
-      final confirmed = await MealReviewDialog.show(context, result!);
-      if (!mounted) return;
-      if (confirmed != null && !_isConfirmed) {
-        _isConfirmed = true;
-        await ref
-            .read(dailyStoryControllerProvider(dateStr).notifier)
-            .confirmLog(confirmed, imageFile: _pickedFile);
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Đã thêm bữa ăn thành công!')),
-          );
-          Navigator.of(context).pop(true);
-        }
-      }
-    } catch (e) {
-      if (!mounted) return;
-      setState(() => _isAnalyzing = false);
-
-      // AI analysis failed - show confirmation dialog for manual save
-      final shouldSaveManual = await showDialog<bool>(
-        context: context,
-        builder: (_) => AlertDialog(
-          backgroundColor: const Color(0xFF16171B),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20),
-            side: const BorderSide(color: Color(0xFF26282F)),
-          ),
-          title: const Text(
-            'Không nhận diện được món ăn',
-            style: TextStyle(
-              color: Color(0xFFF9FAFB),
-              fontWeight: FontWeight.w700,
-              fontSize: 17,
-            ),
-          ),
-          content: const Text(
-            'Bạn có muốn lưu ảnh mà không có thông tin dinh dưỡng vào nhật ký Story?',
-            style: TextStyle(
-              color: Color(0xFF9CA3AF),
-              fontSize: 13,
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context, false),
-              child: const Text('Huỷ', style: TextStyle(color: Color(0xFF9CA3AF))),
-            ),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFFF9FAFB),
-                foregroundColor: const Color(0xFF0C0D0E),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
-                ),
-              ),
-              onPressed: () => Navigator.pop(context, true),
-              child: const Text('Lưu thủ công'),
-            ),
-          ],
-        ),
-      );
-
-      if (shouldSaveManual == true) {
-        try {
-          final dateStr = DateFormat('yyyy-MM-dd').format(widget.selectedDate);
-          await ref
-              .read(dailyStoryControllerProvider(dateStr).notifier)
-              .saveStoryWithoutAI(
-                imageFile: _pickedFile!,
-                mealType: _selectedType.name,
-                note: _noteController.text,
-              );
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text(
-                  'Đã lưu ảnh. Phân tích AI tạm thời không khả dụng.',
-                ),
-              ),
-            );
-            Navigator.of(context).pop(true);
-          }
-        } catch (saveError) {
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('Lỗi khi lưu: $saveError')),
-            );
-          }
-        }
-      }
+      // The photo and note remain available for another analysis attempt.
+      await showDialog<void>(context: context, builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF16171B),
+        title: const Text('Không thể phân tích ảnh'),
+        content: Text('${foodAnalysisErrorMessage(error)}\n\nLưu chỉ ảnh hiện chưa khả dụng. Ảnh và nội dung của bạn được giữ lại để thử phân tích lại hoặc hủy.'),
+        actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('Đóng'))],
+      ));
+    } finally {
+      if (mounted) setState(() => _isAnalyzing = false);
     }
   }
 
@@ -177,7 +112,7 @@ class _LogMealSheetState extends ConsumerState<LogMealSheet> {
       if (!state.isLoading && state.hasError) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Lỗi: ${state.error}'),
+            content: Text(foodAnalysisErrorMessage(state.error!)),
             backgroundColor: Colors.red,
           ),
         );
@@ -349,6 +284,13 @@ class _LogMealSheetState extends ConsumerState<LogMealSheet> {
                 ),
                 const SizedBox(height: 12),
 
+                Wrap(spacing: 8, children: [
+                  ChoiceChip(label: const Text('Standard'), selected: _mode == 'standard',
+                    onSelected: _isAnalyzing ? null : (_) => setState(() => _mode = 'standard')),
+                  ChoiceChip(label: const Text('Advanced'), selected: _mode == 'advanced',
+                    onSelected: _isAnalyzing ? null : (_) => setState(() => _mode = 'advanced')),
+                ]),
+                const SizedBox(height: 12),
                 // Contract Notice
                 Container(
                   padding: const EdgeInsets.all(10),
@@ -364,7 +306,7 @@ class _LogMealSheetState extends ConsumerState<LogMealSheet> {
                       SizedBox(width: 8),
                       Expanded(
                         child: Text(
-                          'Lưu ảnh nhật ký vào Story của ngày. Lưu Story không tự động ghi log dinh dưỡng khi chưa phân tích hoặc xác nhận.',
+                          'Phân tích ảnh và xác nhận trước khi lưu bữa ăn. Lưu chỉ ảnh hiện chưa khả dụng.',
                           style: TextStyle(
                             fontSize: 11,
                             color: Color(0xFF9CA3AF),
@@ -390,7 +332,7 @@ class _LogMealSheetState extends ConsumerState<LogMealSheet> {
                               );
                               return;
                             }
-                            await _handleLogStory(File(_pickedFile!.path));
+                            await _handleLogStory();
                           },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFFF9FAFB),
@@ -559,7 +501,7 @@ class _LogMealSheetState extends ConsumerState<LogMealSheet> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 TextButton.icon(
-                  onPressed: () => _pickImage(ImageSource.camera),
+                  onPressed: _isAnalyzing ? null : () => _pickImage(ImageSource.camera),
                   icon: const Icon(Icons.refresh, size: 16, color: Color(0xFF10B981)),
                   label: const Text(
                     'Đổi ảnh',
@@ -567,7 +509,7 @@ class _LogMealSheetState extends ConsumerState<LogMealSheet> {
                   ),
                 ),
                 TextButton.icon(
-                  onPressed: _clearImage,
+                  onPressed: _isAnalyzing ? null : _clearImage,
                   icon: const Icon(Icons.delete_outline, size: 16, color: Color(0xFFEF4444)),
                   label: const Text(
                     'Xóa ảnh',
@@ -626,7 +568,7 @@ class _LogMealSheetState extends ConsumerState<LogMealSheet> {
             children: [
               Expanded(
                 child: OutlinedButton.icon(
-                  onPressed: () => _pickImage(ImageSource.camera),
+                  onPressed: _isAnalyzing ? null : () => _pickImage(ImageSource.camera),
                   icon: const Icon(Icons.camera_alt, size: 16),
                   label: const Text('Chụp ảnh'),
                   style: OutlinedButton.styleFrom(
@@ -643,7 +585,7 @@ class _LogMealSheetState extends ConsumerState<LogMealSheet> {
               const SizedBox(width: 10),
               Expanded(
                 child: OutlinedButton.icon(
-                  onPressed: () => _pickImage(ImageSource.gallery),
+                  onPressed: _isAnalyzing ? null : () => _pickImage(ImageSource.gallery),
                   icon: const Icon(Icons.photo_library, size: 16),
                   label: const Text('Thư viện'),
                   style: OutlinedButton.styleFrom(

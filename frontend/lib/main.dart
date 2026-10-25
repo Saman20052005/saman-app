@@ -61,7 +61,7 @@ class _MyAppState extends ConsumerState<MyApp> {
     final themeMode = ref.watch(themeProvider);
 
     return MaterialApp(
-      title: 'Fitness & Nutrition',
+      title: 'Saman',
       debugShowCheckedModeBanner: false,
 
       // Theme Config

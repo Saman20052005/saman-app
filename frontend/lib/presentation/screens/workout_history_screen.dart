@@ -7,11 +7,46 @@ import '../../core/constants/app_dimens.dart';
 import '../../core/constants/app_colors.dart';
 import 'session_detail_screen.dart';
 
-class WorkoutHistoryScreen extends ConsumerWidget {
+class WorkoutHistoryScreen extends ConsumerStatefulWidget {
   const WorkoutHistoryScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<WorkoutHistoryScreen> createState() =>
+      _WorkoutHistoryScreenState();
+}
+
+class _WorkoutHistoryScreenState extends ConsumerState<WorkoutHistoryScreen> {
+  final _search = TextEditingController();
+  final _calendarScroll = ScrollController();
+  HistoryPeriod _period = HistoryPeriod.allTime;
+  DateTime _month = toVietnamTime(DateTime.now());
+  DateTime? _date;
+
+  @override
+  void dispose() {
+    _search.dispose();
+    _calendarScroll.dispose();
+    super.dispose();
+  }
+
+  void _clear() {
+    setState(() {
+      _search.clear();
+      _period = HistoryPeriod.allTime;
+      _date = null;
+      _month = toVietnamTime(DateTime.now());
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    ref.listen(workoutAuthScopeProvider, (_, __) => _clear());
+    final filter = WorkoutHistoryFilterState(
+        period: _period,
+        calendarMonth: _month,
+        selectedDate: _date,
+        searchQuery: _search.text);
+    final filtered = ref.watch(filteredWorkoutHistoryProvider(filter));
     final historyAsync = ref.watch(workoutHistoryProvider);
 
     return Scaffold(
@@ -22,27 +57,91 @@ class WorkoutHistoryScreen extends ConsumerWidget {
         ),
         backgroundColor: Colors.white,
         elevation: 0,
-        bottom: const PreferredSize(
-          preferredSize: Size.fromHeight(48),
-          child: Padding(
-            padding: EdgeInsetsDirectional.all(8),
-            child: Text('Local / demo • In memory until restart • Not synced'),
-          ),
-        ),
       ),
       body: historyAsync.when(
         data: (sessions) {
           if (sessions.isEmpty) {
             return _buildEmptyState(context);
           }
-          return ListView.separated(
+          final visible = filtered.valueOrNull ?? const <WorkoutSession>[];
+          return ListView(
             padding: const EdgeInsets.all(AppDimens.paddingL),
-            itemCount: sessions.length,
-            separatorBuilder: (_, __) => const SizedBox(height: 16),
-            itemBuilder: (context, index) {
-              final session = sessions[index];
-              return _WorkoutSessionCard(session: session);
-            },
+            children: [
+              TextField(
+                controller: _search,
+                decoration: InputDecoration(
+                  labelText: 'Search workouts',
+                  hintText: 'Plan or exercise',
+                  suffixIcon: IconButton(
+                    tooltip: 'Clear filters',
+                    onPressed: _clear,
+                    icon: const Icon(Icons.clear),
+                  ),
+                ),
+                onChanged: (_) => setState(() {}),
+              ),
+              ExpansionTile(
+                tilePadding: EdgeInsets.zero,
+                title: const Text('Calendar and period overview'),
+                children: [
+                  Wrap(spacing: 8, children: [
+                    for (final period in HistoryPeriod.values)
+                      ChoiceChip(
+                        label: Text(switch (period) {
+                          HistoryPeriod.thisWeek => 'This week',
+                          HistoryPeriod.thisMonth => 'Calendar month',
+                          HistoryPeriod.allTime => 'All loaded',
+                        }),
+                        selected: _period == period && _date == null,
+                        onSelected: (_) => setState(() {
+                          _period = period;
+                          _date = null;
+                        }),
+                      ),
+                  ]),
+                  LayoutBuilder(
+                    builder: (context, constraints) => Scrollbar(
+                        controller: _calendarScroll,
+                        thumbVisibility: true,
+                        child: SingleChildScrollView(
+                          controller: _calendarScroll,
+                          scrollDirection: Axis.horizontal,
+                          child: SizedBox(
+                            width: constraints.maxWidth < 300
+                                ? 300
+                                : constraints.maxWidth,
+                            child: CalendarDatePicker(
+                              initialDate: _date ?? _month,
+                              firstDate: DateTime(1970),
+                              lastDate: DateTime(2100, 12, 31),
+                              onDateChanged: (date) =>
+                                  setState(() => _date = date),
+                              onDisplayedMonthChanged: (month) =>
+                                  setState(() => _month = month),
+                            ),
+                          ),
+                        )),
+                  ),
+                  if (_date != null)
+                    Text(
+                        'Selected date: ${DateFormat('yyyy-MM-dd').format(_date!)} (UTC+7); overrides period'),
+                  _HistoryOverview(
+                      sessions: visible, loadedCount: sessions.length),
+                  TextButton(
+                      onPressed: _clear, child: const Text('Clear filters')),
+                ],
+              ),
+              if (visible.isEmpty)
+                const Padding(
+                  padding: EdgeInsets.all(16),
+                  child: Text('No workouts match your filters'),
+                ),
+              for (final session in visible)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 16),
+                  child: _WorkoutSessionCard(session: session),
+                ),
+            ],
           );
         },
         loading: () => const Center(child: CircularProgressIndicator()),
@@ -96,6 +195,26 @@ class WorkoutHistoryScreen extends ConsumerWidget {
   }
 }
 
+class _HistoryOverview extends StatelessWidget {
+  const _HistoryOverview({required this.sessions, required this.loadedCount});
+  final List<WorkoutSession> sessions;
+  final int loadedCount;
+
+  @override
+  Widget build(BuildContext context) {
+    final overview = WorkoutHistoryOverviewData(sessions);
+    return Padding(
+      padding: const EdgeInsets.all(12),
+      child: Text(
+        'Filtered overview: ${overview.completedWorkouts} of $loadedCount loaded workouts\n'
+        'Search and date/period filters applied (UTC+7). Loaded data only; older history may be absent.\n'
+        '${overview.totalSets} completed sets / ${NumberFormat('0.###').format(overview.totalVolumeKg)} kg external load volume\n'
+        '${overview.knownDurationSeconds} s known session duration / ${overview.unknownDurations} unknown durations',
+      ),
+    );
+  }
+}
+
 class _WorkoutSessionCard extends StatelessWidget {
   final WorkoutSession session;
 
@@ -103,11 +222,12 @@ class _WorkoutSessionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final date = session.startedAt;
+    final date = toVietnamTime(session.startedAt);
     final formattedDate = DateFormat('MMM dd, yyyy').format(date);
     final formattedTime = DateFormat('HH:mm').format(date);
 
-    final exerciseCount = session.exerciseLogs.map((log) => log.exerciseId).toSet().length;
+    final exerciseCount =
+        session.exerciseLogs.map((log) => log.exerciseId).toSet().length;
     final totalVolume = session.totalVolumeKg;
     final duration = session.totalDurationMinutes;
 
@@ -133,7 +253,8 @@ class _WorkoutSessionCard extends StatelessWidget {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Expanded(child: Text(
+                  Expanded(
+                      child: Text(
                     session.planName,
                     style: const TextStyle(
                       fontSize: 18,
@@ -161,7 +282,8 @@ class _WorkoutSessionCard extends StatelessWidget {
               const SizedBox(height: 12),
 
               // Date and time
-              Row(
+              Wrap(
+                crossAxisAlignment: WrapCrossAlignment.center,
                 children: [
                   Icon(Icons.calendar_today_outlined,
                       size: 16, color: Colors.grey[600]),
@@ -188,8 +310,9 @@ class _WorkoutSessionCard extends StatelessWidget {
               const SizedBox(height: 16),
 
               // Stats row
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceAround,
+              Wrap(
+                spacing: 24,
+                runSpacing: 12,
                 children: [
                   _StatItem(
                     icon: Icons.fitness_center,
@@ -201,7 +324,9 @@ class _WorkoutSessionCard extends StatelessWidget {
                     label: 'Duration',
                     value: duration == null
                         ? '—'
-                        : duration == 0 ? '<1 min' : '${duration}m',
+                        : duration == 0
+                            ? '<1 min'
+                            : '${duration}m',
                   ),
                   _StatItem(
                     icon: Icons.monitor_weight,

@@ -37,8 +37,9 @@ class _ProfileGateState extends ConsumerState<ProfileGate> {
   int _entrySerial = 0;
   bool _isHandlingUnauthorized = false;
 
-  /// A 401 arrived while Main was admitted: MainScreen performs the logout and
-  /// the navigation, so it must stay mounted until it leaves the route stack.
+  /// A 401 or user-initiated logout arrived while Main was admitted: MainScreen
+  /// performs the logout and the navigation, so it must stay mounted until it
+  /// leaves the route stack.
   bool _mainOwnsLogout = false;
 
   @override
@@ -81,21 +82,50 @@ class _ProfileGateState extends ConsumerState<ProfileGate> {
     _enteredOwner = null;
     _enteredEpoch = null;
     _enteredNotifier = null;
+    _mainOwnsLogout = false;
   }
 
   Future<void> _handleUnauthorized() async {
     if (_isHandlingUnauthorized || !mounted) return;
     _isHandlingUnauthorized = true;
-    _revokeEntry();
 
-    await AuthHelper.logout(ref);
-
-    if (mounted) {
-      Navigator.pushNamedAndRemoveUntil(
-        context,
-        AppRoutes.login,
-        (route) => false,
-      );
+    try {
+      await AuthHelper.logout(ref);
+      if (mounted) {
+        _revokeEntry();
+        Navigator.pushNamedAndRemoveUntil(
+          context,
+          AppRoutes.login,
+          (route) => false,
+        );
+      }
+    } catch (e) {
+      debugPrint('[PROFILE_GATE] Error in logout: $e');
+      _isHandlingUnauthorized = false;
+      if (mounted) {
+        if (e is LogoutException &&
+            (e.tokenState == AuthTokenState.confirmedLost ||
+             e.tokenState == AuthTokenState.indeterminate)) {
+          _revokeEntry();
+          Navigator.pushNamedAndRemoveUntil(
+            context,
+            AppRoutes.login,
+            (route) => false,
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Đăng xuất thất bại: $e'),
+              backgroundColor: const Color(0xFFEF4444),
+              action: SnackBarAction(
+                label: 'Thử lại',
+                textColor: Colors.white,
+                onPressed: _handleUnauthorized,
+              ),
+            ),
+          );
+        }
+      }
     }
   }
 
@@ -103,10 +133,14 @@ class _ProfileGateState extends ConsumerState<ProfileGate> {
   Widget build(BuildContext context) {
     final profileState = ref.watch(profileProvider);
     final notifier = ref.read(profileProvider.notifier);
+    final isLoggingOut = ref.watch(authLoggingOutProvider);
 
-    // MainScreen is mid-logout after a 401: leave it mounted until it navigates
-    // away (it removes this route), regardless of the reset it performs.
-    if (_mainOwnsLogout) return _buildMain();
+    // MainScreen is mid-logout after a 401 or while a user logout is executing:
+    // leave it mounted until navigation removes this route.
+    // Stable IgnorePointer wrapper is used across all states; only ignoring changes.
+    if (_mainOwnsLogout || (isLoggingOut && _enteredOwner != null)) {
+      return _buildMain(ignoring: isLoggingOut);
+    }
 
     // Entry granted earlier is revoked by a reset/invalidation (epoch or
     // notifier instance) or by an owner change.
@@ -116,16 +150,18 @@ class _ProfileGateState extends ConsumerState<ProfileGate> {
     // 1. Unauthorized session -> logout once, by a single owner.
     if (profileState.isUnauthorized) {
       // Once admitted, MainScreen owns the 401 (logout + navigation).
-      if (retained) return _buildMain();
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        _handleUnauthorized();
-      });
+      if (retained) return _buildMain(ignoring: isLoggingOut);
+      if (!isLoggingOut) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          _handleUnauthorized();
+        });
+      }
       return const _GateLoadingView();
     }
 
     // 2. Same owner and same session: background/edit loads must NOT tear
     // down MainScreen or reset active forms.
-    if (retained) return _buildMain();
+    if (retained) return _buildMain(ignoring: isLoggingOut);
 
     // 3. Complete and network-confirmed -> admit Main for this owner/session.
     if (profileState.isCompleteAndConfirmed) {
@@ -133,7 +169,7 @@ class _ProfileGateState extends ConsumerState<ProfileGate> {
       _enteredEpoch = notifier.sessionEpoch;
       _enteredNotifier = notifier;
       _entrySerial++;
-      return _buildMain();
+      return _buildMain(ignoring: isLoggingOut);
     }
 
     // 4. Incomplete and network-confirmed -> Onboarding Flow (CP3)
@@ -157,10 +193,13 @@ class _ProfileGateState extends ConsumerState<ProfileGate> {
     );
   }
 
-  Widget _buildMain() {
-    return MainScreen(
-      key: ValueKey('profile_gate_main_${_enteredOwner}_$_entrySerial'),
-      loadProfileOnInit: false,
+  Widget _buildMain({bool ignoring = false}) {
+    return IgnorePointer(
+      ignoring: ignoring,
+      child: MainScreen(
+        key: ValueKey('profile_gate_main_${_enteredOwner}_$_entrySerial'),
+        loadProfileOnInit: false,
+      ),
     );
   }
 }

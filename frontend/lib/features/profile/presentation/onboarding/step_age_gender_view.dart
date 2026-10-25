@@ -33,6 +33,7 @@ class StepAgeGenderView extends StatefulWidget {
 
 class _StepAgeGenderViewState extends State<StepAgeGenderView> {
   late final TextEditingController _ageController;
+  final FocusNode _ageFocusNode = FocusNode();
   late Gender? _gender;
 
   @override
@@ -41,7 +42,12 @@ class _StepAgeGenderViewState extends State<StepAgeGenderView> {
     _ageController = TextEditingController(
       text: widget.initialAge != null ? widget.initialAge.toString() : '',
     );
+    _ageFocusNode.addListener(_onFocusChanged);
     _gender = widget.initialGender;
+  }
+
+  void _onFocusChanged() {
+    setState(() {});
   }
 
   @override
@@ -59,6 +65,8 @@ class _StepAgeGenderViewState extends State<StepAgeGenderView> {
 
   @override
   void dispose() {
+    _ageFocusNode.removeListener(_onFocusChanged);
+    _ageFocusNode.dispose();
     _ageController.dispose();
     super.dispose();
   }
@@ -184,7 +192,7 @@ class _StepAgeGenderViewState extends State<StepAgeGenderView> {
                         ),
                         const SizedBox(height: 8),
                         Container(
-                          height: 72,
+                          height: 60,
                           padding: const EdgeInsets.symmetric(horizontal: 16),
                           decoration: BoxDecoration(
                             color: OnboardingTokens.surface,
@@ -193,34 +201,46 @@ class _StepAgeGenderViewState extends State<StepAgeGenderView> {
                             border: Border.all(color: OnboardingTokens.borderDefault),
                           ),
                           child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.center,
                             children: [
                               Expanded(
                                 child: TextField(
                                   key: const Key('age_input_field'),
                                   controller: _ageController,
+                                  focusNode: _ageFocusNode,
                                   onChanged: _onAgeTextChanged,
                                   keyboardType: TextInputType.number,
+                                  textAlignVertical: TextAlignVertical.center,
                                   inputFormatters: [
                                     FilteringTextInputFormatter.digitsOnly,
                                     LengthLimitingTextInputFormatter(3),
                                   ],
                                   style: const TextStyle(
-                                    fontSize: 30,
+                                    fontSize: 22,
                                     fontWeight: FontWeight.w600,
                                     color: OnboardingTokens.textPrimary,
-                                    letterSpacing: -0.5,
+                                    letterSpacing: -0.2,
                                   ),
                                   cursorColor: OnboardingTokens.textPrimary,
-                                  decoration: const InputDecoration(
+                                  decoration: InputDecoration(
+                                    filled: true,
+                                    fillColor: Colors.transparent,
                                     border: InputBorder.none,
-                                    hintText: 'Enter your age',
-                                    hintStyle: TextStyle(
-                                      fontSize: 20,
-                                      fontWeight: FontWeight.w500,
+                                    enabledBorder: InputBorder.none,
+                                    focusedBorder: InputBorder.none,
+                                    errorBorder: InputBorder.none,
+                                    focusedErrorBorder: InputBorder.none,
+                                    hintText: _ageFocusNode.hasFocus
+                                        ? null
+                                        : 'Enter your age',
+                                    hintStyle: const TextStyle(
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.w400,
                                       color: OnboardingTokens.textDisabled,
                                     ),
                                     isDense: true,
-                                    contentPadding: EdgeInsets.zero,
+                                    contentPadding:
+                                        const EdgeInsets.symmetric(vertical: 14),
                                   ),
                                 ),
                               ),
@@ -228,8 +248,8 @@ class _StepAgeGenderViewState extends State<StepAgeGenderView> {
                                 'YEARS',
                                 style: TextStyle(
                                   fontSize: 12,
-                                  fontWeight: FontWeight.w500,
-                                  color: OnboardingTokens.textMuted,
+                                  fontWeight: FontWeight.w600,
+                                  color: OnboardingTokens.textSecondary,
                                   letterSpacing: 0.8,
                                 ),
                               ),

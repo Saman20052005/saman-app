@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import '../config/app_theme.dart';
 import '../controllers/chat_controller.dart';
 import '../providers/daily_story_provider.dart';
+import '../services/nutrition_service.dart';
 import 'chat/tokens/saman_chat_tokens.dart';
 import 'chat/widgets/widgets.dart';
 import 'food_log_screen.dart';
@@ -29,6 +30,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   final ScrollController _scrollController = ScrollController();
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   SamanNudge? _activeNudge;
+  bool _isLoggingMeal = false;
 
   @override
   void initState() {
@@ -130,31 +132,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                     onLogMeal: _handleLogMeal,
                     onRetakeFoodPhoto: _handleAttachmentFlow,
                     onManualMealEntry: _handleManualMealEntry,
-                    latestAssistantActions: (chatState.pendingAction != null &&
-                            chatState.pendingAction!['status'] == 'pending')
-                        ? [
-                            SamanAssistantAction(
-                              label: 'Xác nhận (+250 ml nước)',
-                              icon: Icons.check_circle_outline,
-                              isPrimary: true,
-                              onTap: () {
-                                final actionId = chatState.pendingAction!['id']?.toString() ?? '';
-                                final convId = chatState.activeConversationId ?? '';
-                                ref.read(chatControllerProvider.notifier).confirmAction(convId, actionId);
-                              },
-                            ),
-                            SamanAssistantAction(
-                              label: 'Hủy',
-                              icon: Icons.close,
-                              isPrimary: false,
-                              onTap: () {
-                                final actionId = chatState.pendingAction!['id']?.toString() ?? '';
-                                final convId = chatState.activeConversationId ?? '';
-                                ref.read(chatControllerProvider.notifier).cancelAction(convId, actionId);
-                              },
-                            ),
-                          ]
-                        : null,
+                    latestAssistantActions: _buildAssistantActions(chatState),
                     activeNudge: hasNudge
                         ? _activeNudge!.copyWith(
                             onPrimary: () => _handleNudgePrimary(_activeNudge!),
@@ -178,6 +156,72 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   }
 
   // --- UI COMPONENTS ---
+
+  List<SamanAssistantAction>? _buildAssistantActions(ChatState chatState) {
+    final action = chatState.pendingAction;
+    if (action == null || action['status'] != 'pending') return null;
+
+    final type = action['type']?.toString();
+    final actionId = action['id']?.toString() ?? '';
+    final convId = chatState.activeConversationId ?? '';
+
+    String confirmLabel;
+    if (type == 'log_water') {
+      final amount = action['amount_ml'] ?? 250;
+      confirmLabel = 'Xác nhận (+$amount ml nước)';
+    } else if (type == 'log_meal') {
+      final cals = action['total_calories'];
+      final foods = action['foods'];
+      String foodName = '';
+      if (foods is List && foods.isNotEmpty && foods.first is Map) {
+        foodName = foods.first['name']?.toString() ?? '';
+      }
+      if (foodName.isNotEmpty && cals != null) {
+        confirmLabel = 'Xác nhận ($foodName: $cals kcal)';
+      } else if (cals != null) {
+        confirmLabel = 'Xác nhận ($cals kcal)';
+      } else {
+        confirmLabel = 'Xác nhận ghi nhận bữa ăn';
+      }
+    } else if (type == 'adjust_workout') {
+      final planName = action['plan_name']?.toString() ?? 'kế hoạch tập';
+      final changes = action['changes'] is Map
+          ? action['changes'] as Map
+          : (action['after'] is Map ? action['after'] as Map : null);
+      String detail = '';
+      if (changes != null && changes.containsKey('duration_minutes')) {
+        detail = '${changes['duration_minutes']} phút';
+      } else if (changes != null && changes.containsKey('difficulty')) {
+        detail = '${changes['difficulty']}';
+      }
+      if (detail.isNotEmpty) {
+        confirmLabel = 'Xác nhận (Điều chỉnh $planName: $detail)';
+      } else {
+        confirmLabel = 'Xác nhận (Điều chỉnh $planName)';
+      }
+    } else {
+      confirmLabel = 'Xác nhận';
+    }
+
+    return [
+      SamanAssistantAction(
+        label: confirmLabel,
+        icon: Icons.check_circle_outline,
+        isPrimary: true,
+        onTap: () {
+          ref.read(chatControllerProvider.notifier).confirmAction(convId, actionId);
+        },
+      ),
+      SamanAssistantAction(
+        label: 'Hủy',
+        icon: Icons.close,
+        isPrimary: false,
+        onTap: () {
+          ref.read(chatControllerProvider.notifier).cancelAction(convId, actionId);
+        },
+      ),
+    ];
+  }
 
   void _handlePromptSelected(String prompt) {
     ref.read(chatControllerProvider.notifier).sendMessage(prompt);
@@ -252,55 +296,67 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   Future<void> _handleAttachmentFlow() async {
     final source = await SamanAttachmentSheet.show(context);
     if (source == null || !mounted) return;
+    final guard = ref.read(nutritionSessionProvider);
+    NutritionRequestContext owner;
+    try { owner = await guard.capture(); }
+    on NutritionSessionChanged { return; }
+    if (!mounted) return;
 
     final picker = ImagePicker();
     final picked = await picker.pickImage(
-      source: source,
+      source: source.source,
       imageQuality: 70,
       maxWidth: 1024,
       maxHeight: 1024,
     );
 
     if (picked != null && mounted) {
-      ref.read(chatControllerProvider.notifier).analyzeFoodPhoto(picked);
+      try { await owner.validate(); }
+      on NutritionSessionChanged { return; }
+      if (!mounted) return;
+      ref.read(chatControllerProvider.notifier).analyzeFoodPhoto(picked, mode: source.mode);
     }
   }
 
   Future<void> _handleLogMeal() async {
+    if (_isLoggingMeal) return;
     final foodState = ref.read(chatControllerProvider).foodAnalysisState;
-    if (foodState?.result == null) return;
-
-    final confirmed = await MealReviewDialog.show(context, foodState!.result!);
-    if (confirmed != null && mounted) {
-      try {
-        final todayStr = DateFormat('yyyy-MM-dd').format(DateTime.now());
-        await ref
-            .read(dailyStoryControllerProvider(todayStr).notifier)
-            .confirmLog(confirmed, imageFile: foodState.imageFile);
-
+    if (foodState?.result == null || foodState!.isMealLogged) return;
+    _isLoggingMeal = true;
+    final todayStr = DateFormat('yyyy-MM-dd').format(DateTime.now());
+    // Keep the originating autoDispose provider alive while its dialog is open.
+    final subscription = ProviderScope.containerOf(context, listen: false)
+        .listen(dailyStoryControllerProvider(todayStr), (_, __) {});
+    try {
+      final owner = foodState.owner ?? await ref.read(nutritionSessionProvider).capture();
+      await owner.validate();
+      if (!mounted) return;
+      final controller = ref.read(dailyStoryControllerProvider(todayStr).notifier);
+      final confirmed = await MealReviewDialog.show(context, foodState.result!,
+        onConfirm: (data) async {
+          await owner.validate();
+          await controller.confirmLog(data, imageFile: foodState.imageFile, session: owner);
+          await owner.validate();
+        });
+      if (confirmed == null || !mounted) return;
+      await owner.validate();
+      if (!mounted) return;
+      if (identical(ref.read(chatControllerProvider).foodAnalysisState, foodState)) {
         ref.read(chatControllerProvider.notifier).markMealLogged();
-
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Meal logged successfully!'),
-              backgroundColor: SamanChatTokens.surfaceElevated,
-              behavior: SnackBarBehavior.floating,
-            ),
-          );
-        }
-      } catch (e) {
-        debugPrint('Meal logging error: $e');
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text("I couldn't log this meal. Please try again."),
-              backgroundColor: SamanChatTokens.surfaceElevated,
-              behavior: SnackBarBehavior.floating,
-            ),
-          );
-        }
       }
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        content: Text('Meal logged successfully!'),
+        backgroundColor: SamanChatTokens.surfaceElevated,
+        behavior: SnackBarBehavior.floating,
+      ));
+    } on NutritionSessionChanged {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(const NutritionSessionChanged().toString())));
+      }
+    } finally {
+      subscription.close();
+      _isLoggingMeal = false;
     }
   }
 

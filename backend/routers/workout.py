@@ -567,8 +567,85 @@ async def delete_workout_plan(
             "message": "Workout plan deleted successfully",
             "deleted_at": datetime.utcnow().isoformat(),
         }
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.put("/plans/{plan_id}")
+async def update_workout_plan(
+    plan_id: str,
+    plan: WorkoutPlan,
+    email: str = Depends(verify_token)
+):
+    """Update existing workout plan"""
+    try:
+        user = user_repo.get_by_email(email)
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+
+        if custom_plans_collection is None:
+            raise HTTPException(status_code=503, detail="Database not connected")
+
+        user_id = str(user.get("_id")) if user.get("_id") is not None else None
+        owner_query: dict = {"$or": [{"email": email}]}
+        if user_id:
+            owner_query["$or"].append({"user_id": user_id})
+
+        try:
+            oid = ObjectId(plan_id)
+            id_query = {"_id": oid}
+        except Exception:
+            id_query = {"id": plan_id}
+
+        if not plan.name or not plan.name.strip():
+            raise HTTPException(status_code=400, detail="Plan name cannot be empty")
+        if plan.duration_minutes <= 0 or plan.duration_minutes > 600:
+            raise HTTPException(status_code=400, detail="Invalid duration_minutes")
+        if not plan.difficulty or plan.difficulty.lower() not in ("beginner", "intermediate", "advanced"):
+            raise HTTPException(status_code=400, detail="Invalid difficulty")
+        for ex in plan.exercises:
+            if (
+                not ex.name
+                or not ex.name.strip()
+                or ex.sets <= 0
+                or ex.reps <= 0
+                or ex.rest_time < 0
+                or (ex.weight is not None and ex.weight < 0)
+            ):
+                raise HTTPException(status_code=400, detail="Invalid exercise parameters")
+
+        query = {"$and": [owner_query, id_query]}
+        existing = custom_plans_collection.find_one(query)
+        if not existing:
+            raise HTTPException(status_code=404, detail="Workout plan not found")
+
+        now = datetime.utcnow()
+        update_doc = {
+            "name": plan.name.strip(),
+            "description": plan.description,
+            "exercises": [e.model_dump() if hasattr(e, "model_dump") else e.dict() for e in plan.exercises],
+            "duration_minutes": plan.duration_minutes,
+            "difficulty": plan.difficulty.lower(),
+            "target_muscles": plan.target_muscles,
+            "updated_at": now,
+        }
+
+        custom_plans_collection.update_one(query, {"$set": update_doc})
+        updated = custom_plans_collection.find_one(query)
+
+        return {
+            "id": plan_id,
+            "message": "Workout plan updated successfully",
+            "plan": _serialize_mongo(updated),
+            "updated_at": now.isoformat(),
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 
 @router.post("/log-session", status_code=201)
 async def log_workout_session_legacy(

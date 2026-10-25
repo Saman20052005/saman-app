@@ -24,8 +24,12 @@ class NutritionRepositoryImpl implements INutritionRepository {
   }
 
   @override
-  Future<NutritionPlan> getDailyPlan(String dateStr) async {
-    final rawData = await _remoteDataSource.getDailyPlan(dateStr);
+  Future<NutritionPlan> getDailyPlan(String dateStr,
+      {NutritionRequestContext? session}) async {
+    await session?.validate();
+    final rawData =
+        await _remoteDataSource.getDailyPlan(dateStr, session: session);
+    await session?.validate();
 
     Map<String, dynamic> combinedJson;
     if (rawData.containsKey('plan')) {
@@ -50,18 +54,21 @@ class NutritionRepositoryImpl implements INutritionRepository {
     int? mealCount,
     String? style,
     bool remainingOnly = false,
+    NutritionRequestContext? session,
   }) async {
     final trimmedDate = dateStr.trim();
     if (trimmedDate.isEmpty) {
       throw ArgumentError('dateStr must not be empty');
     }
 
+    await session?.validate();
     final rawData = await _remoteDataSource.generatePlan(
       goal: goal,
       targetCalories: targetCalories,
       mealCount: mealCount,
       style: style,
       remainingOnly: remainingOnly,
+      session: session,
     );
 
     final planData = rawData['plan'] ?? rawData;
@@ -69,7 +76,8 @@ class NutritionRepositoryImpl implements INutritionRepository {
         NutritionPlanDto.fromJson(Map<String, dynamic>.from(planData))
             .toEntity();
 
-    final dailyPlan = await getDailyPlan(trimmedDate);
+    await session?.validate();
+    final dailyPlan = await getDailyPlan(trimmedDate, session: session);
 
     return generatedPlan.copyWith(
       date: trimmedDate,
@@ -77,6 +85,7 @@ class NutritionRepositoryImpl implements INutritionRepository {
       entries: dailyPlan.entries,
       currentWater: dailyPlan.currentWater,
       targetWater: dailyPlan.targetWater,
+      waterVersion: dailyPlan.waterVersion,
       totalCaloriesConsumed: dailyPlan.totalCaloriesConsumed,
       totalProteinConsumed: dailyPlan.totalProteinConsumed,
       totalCarbsConsumed: dailyPlan.totalCarbsConsumed,
@@ -97,13 +106,16 @@ class NutritionRepositoryImpl implements INutritionRepository {
     int? deltaMl,
     int? version,
     String? idempotencyKey,
+    NutritionRequestContext? session,
   }) async {
+    await session?.validate();
     return await _remoteDataSource.updateWater(
       date,
       amountMl,
       deltaMl: deltaMl,
       version: version,
       idempotencyKey: idempotencyKey,
+      session: session,
     );
   }
 
@@ -121,8 +133,10 @@ class NutritionRepositoryImpl implements INutritionRepository {
   }
 
   @override
-  Future<bool> resetDay(String dateStr) async {
-    return await _remoteDataSource.resetDay(dateStr);
+  Future<bool> resetDay(String dateStr,
+      {NutritionRequestContext? session}) async {
+    await session?.validate();
+    return await _remoteDataSource.resetDay(dateStr, session: session);
   }
 
   @override
@@ -151,8 +165,17 @@ class NutritionRepositoryImpl implements INutritionRepository {
   }
 
   @override
-  Future<AIAnalysisResult?> analyzeFoodImage(XFile imageFile) async {
-    final data = await _remoteDataSource.analyzeFoodImage(imageFile);
+  Future<AIAnalysisResult?> analyzeFoodImage(XFile imageFile,
+      {String? mode, NutritionRequestContext? session}) async {
+    final data = await _remoteDataSource.analyzeFoodImage(imageFile,
+        mode: mode, session: session);
+    final nutrition = data['nutrition'];
+    if (data['food_name'] is! String || (data['food_name'] as String).trim().isEmpty ||
+        nutrition is! Map ||
+        !['calories', 'protein', 'carbs', 'fat'].every((key) =>
+            nutrition[key] is num && (nutrition[key] as num).isFinite && nutrition[key] >= 0)) {
+      throw const FormatException('Food analysis returned incomplete nutrition');
+    }
     return AIAnalysisResult.fromJson(data);
   }
 

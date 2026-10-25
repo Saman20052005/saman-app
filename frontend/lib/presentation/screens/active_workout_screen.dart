@@ -1,7 +1,10 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../../features/workout_cv/presentation/screens/workout_cv_screen.dart';
 
 import '../../data/models/exercise.dart';
 import '../../features/workout/domain/entities/workout_plan.dart' as domain;
@@ -404,7 +407,7 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
                 bottom: 10,
                 child: InkWell(
                   key: const ValueKey('active_workout_form_check_badge'),
-                  onTap: () => _showFormCheckModal(context),
+                  onTap: () => _handleFormCheckTap(context, currentEx),
                   borderRadius:
                       BorderRadius.circular(SamanWorkoutTokens.radiusPill),
                   child: Container(
@@ -1540,6 +1543,58 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
         );
       },
     );
+  }
+
+  Future<void> _handleFormCheckTap(
+    BuildContext context,
+    ActiveExerciseInfo currentEx,
+  ) async {
+    // 1. Strictly verify exercise ID or slug (not display name, not ex_1/ex_2, not slug || cvSupported)
+    final id = currentEx.id.toLowerCase().trim();
+    final slug = currentEx.slug.toLowerCase().trim();
+    final isSupported = id == 'pull-up' ||
+        slug == 'pull-up' ||
+        id == 'lat-pulldown' ||
+        slug == 'lat-pulldown';
+
+    // 2. Only active on Android platform
+    final isAndroid =
+        !kIsWeb && defaultTargetPlatform == TargetPlatform.android;
+
+    if (!isSupported || !isAndroid) {
+      _showFormCheckModal(context);
+      return;
+    }
+
+    // 3. Capture wasPaused and sessionId before opening CV
+    final sessionNotifier = ref.read(activeWorkoutSessionProvider.notifier);
+    final wasPaused = ref.read(activeWorkoutSessionProvider).isPaused;
+    final currentSessionId = sessionNotifier.sessionId;
+
+    // 4. Pause workout timer
+    sessionNotifier.pauseWorkout();
+
+    // 5. Navigate to WorkoutCvScreen
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => WorkoutCvScreen(
+          exerciseId: currentEx.id,
+          exerciseSlug:
+              currentEx.slug.isNotEmpty ? currentEx.slug : currentEx.id,
+          exerciseName: currentEx.name,
+        ),
+      ),
+    );
+
+    if (!context.mounted) return;
+
+    // 6. Resume ONLY if workout was active before opening and remains in the same unfinished session
+    final currentSession = ref.read(activeWorkoutSessionProvider);
+    if (sessionNotifier.sessionId == currentSessionId &&
+        !currentSession.isFinished &&
+        !wasPaused) {
+      sessionNotifier.resumeWorkout();
+    }
   }
 
   void _showFormCheckModal(BuildContext context) {

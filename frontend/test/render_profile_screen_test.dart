@@ -96,7 +96,9 @@ Future<void> _captureScreen(WidgetTester tester, String filename) async {
     final image = await boundary.toImage(pixelRatio: 1.0);
     final bytes = await image.toByteData(format: ui.ImageByteFormat.png);
     if (bytes != null) {
-      final file = File('D:/SamanDev/runtime/saman-onboarding-cp5/$filename');
+      final evidenceDir = Platform.environment['SAMAN_RENDER_EVIDENCE'] ??
+          Directory.systemTemp.path;
+      final file = File('$evidenceDir/$filename');
       await file.parent.create(recursive: true);
       await file.writeAsBytes(bytes.buffer.asUint8List());
     }

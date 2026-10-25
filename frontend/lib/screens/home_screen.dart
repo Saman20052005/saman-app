@@ -8,6 +8,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
 import '../config/app_translations.dart';
+import '../config/routes.dart';
 import '../config/theme_provider.dart';
 import '../utils/auth_helper.dart';
 import '../providers/profile_provider.dart';
@@ -22,7 +23,6 @@ import 'home/widgets/widgets.dart';
 // Destination Screens
 import 'chat_screen.dart';
 import 'food_log_screen.dart';
-import 'login/login_screen.dart';
 import 'nutrition/nutrition_screen.dart';
 import 'profile_screen.dart';
 import 'report_screen.dart';
@@ -83,7 +83,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     return AppTranslations.text(key, locale);
   }
 
+  bool _isLoggingOut = false;
+
   Future<void> _logout() async {
+    if (_isLoggingOut) return;
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
@@ -120,13 +123,51 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     );
 
     if (confirmed == true && mounted) {
-      await AuthHelper.logout(ref);
-      if (mounted) {
-        Navigator.pushAndRemoveUntil(
-          context,
-          MaterialPageRoute(builder: (_) => const LoginScreen()),
-          (route) => false,
-        );
+      _isLoggingOut = true;
+      try {
+        await AuthHelper.logout(ref);
+        if (mounted) {
+          Navigator.pushNamedAndRemoveUntil(
+            context,
+            AppRoutes.login,
+            (route) => false,
+          );
+        }
+      } catch (e) {
+        _isLoggingOut = false;
+        debugPrint('[AUTH] Logout failed: $e');
+        if (mounted) {
+          if (e is LogoutException &&
+              (e.tokenState == AuthTokenState.confirmedLost ||
+               e.tokenState == AuthTokenState.indeterminate)) {
+            // Credentials lost or indeterminate: do not reopen protected UI on MainScreen.
+            // Navigate away to Login and display explanatory warning SnackBar.
+            Navigator.pushNamedAndRemoveUntil(
+              context,
+              AppRoutes.login,
+              (route) => false,
+            );
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Đã đăng xuất (lỗi xóa dữ liệu phụ: $e)'),
+                backgroundColor: const Color(0xFFF59E0B),
+              ),
+            );
+          } else {
+            // Token confirmed still intact: remain on screen and offer retry
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Đăng xuất thất bại: $e'),
+                backgroundColor: const Color(0xFFEF4444),
+                action: SnackBarAction(
+                  label: 'Thử lại',
+                  textColor: Colors.white,
+                  onPressed: _logout,
+                ),
+              ),
+            );
+          }
+        }
       }
     }
   }

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 // Import screens
+import '../config/routes.dart';
 import '../presentation/screens/workout_home_screen.dart';
 import 'home_screen.dart';
 import 'chat_screen.dart';
@@ -13,7 +14,6 @@ import 'home/tokens/saman_home_tokens.dart';
 import 'home/widgets/saman_bottom_navigation_bar.dart';
 
 import '../utils/auth_helper.dart';
-import 'login/login_screen.dart';
 
 // Import Provider
 import '../providers/profile_provider.dart';
@@ -64,17 +64,34 @@ class _MainScreenState extends ConsumerState<MainScreen> {
       ),
     );
 
-    await AuthHelper.logout(ref);
+    try {
+      await AuthHelper.logout(ref);
 
-    if (mounted) {
-      if (widget.onUnauthorizedLogout != null) {
-        widget.onUnauthorizedLogout!();
-      } else {
-        Navigator.pushAndRemoveUntil(
-          context,
-          MaterialPageRoute(builder: (_) => const LoginScreen()),
-          (route) => false,
-        );
+      if (mounted) {
+        if (widget.onUnauthorizedLogout != null) {
+          widget.onUnauthorizedLogout!();
+        } else {
+          Navigator.pushNamedAndRemoveUntil(
+            context,
+            AppRoutes.login,
+            (route) => false,
+          );
+        }
+      }
+    } catch (e) {
+      debugPrint('[MAIN] Error in unauthorized logout: $e');
+      if (mounted) {
+        if (widget.onUnauthorizedLogout != null) {
+          widget.onUnauthorizedLogout!();
+        } else if (e is LogoutException &&
+            (e.tokenState == AuthTokenState.confirmedLost ||
+             e.tokenState == AuthTokenState.indeterminate)) {
+          Navigator.pushNamedAndRemoveUntil(
+            context,
+            AppRoutes.login,
+            (route) => false,
+          );
+        }
       }
     }
   }

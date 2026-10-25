@@ -49,6 +49,8 @@ Future<ProviderContainer> mount(WidgetTester tester, Widget home,
   final container = ProviderContainer(overrides: [
     workoutSessionRepositoryProvider
         .overrideWith((ref) => ref.watch(exerciseRepositoryProvider)),
+    workoutHistoryProvider.overrideWith((ref) =>
+        ref.watch(workoutSessionRepositoryProvider).getWorkoutHistory()),
     dioProvider
         .overrideWith((ref) => throw StateError('Backend must not be used')),
     ...overrides,
@@ -88,6 +90,25 @@ class RetryRepository extends MockExerciseRepository {
     if (fail) throw StateError('Simulated local write failure');
     await super.saveWorkoutSession(session);
   }
+}
+
+class DelayedDetailRepository extends MockExerciseRepository {
+  DelayedDetailRepository() : super(curatedExerciseLibrary);
+  final gate = Completer<void>();
+
+  @override
+  Future<WorkoutSession> getSessionById(String id) async {
+    await gate.future;
+    return super.getSessionById(id);
+  }
+}
+
+void expectNoPersistenceClaims() {
+  expect(
+      find.textContaining(RegExp(
+          r'demo only|local / demo|in memory|synced|saved to cloud|offline',
+          caseSensitive: false)),
+      findsNothing);
 }
 
 void main() {
@@ -770,6 +791,9 @@ void main() {
     await tap(
         tester, find.byKey(const ValueKey('active_workout_finish_button')));
     expect(find.byType(WorkoutReviewScreen), findsOneWidget);
+    expect(find.text('Review your sets and save this session when ready.'),
+        findsOneWidget);
+    expectNoPersistenceClaims();
     expect(
         tester
             .widget<FilledButton>(
@@ -790,6 +814,179 @@ void main() {
         isEmpty);
     await tester.pumpWidget(const SizedBox());
   });
+
+  testWidgets('Review pending save blocks duplicate submits until completion',
+      (tester) async {
+    final repo = DelayedRepository();
+    final container = await mount(
+        tester, const ActiveWorkoutScreen(autoTick: false), overrides: [
+      exerciseRepositoryProvider.overrideWithValue(repo),
+    ]);
+    final active = container.read(activeWorkoutSessionProvider.notifier);
+    active.setDraftWeight(20);
+    active.setDraftReps(8);
+    await tester.pump();
+    await tap(tester, find.byKey(const ValueKey('active_workout_log_set_button')));
+    await tap(tester, find.byKey(const ValueKey('active_workout_finish_button')));
+    final before = container.read(activeWorkoutSessionProvider);
+    final id = container.read(activeWorkoutSessionProvider.notifier).sessionId;
+    expect(find.text('Review your sets and save this session when ready.'),
+        findsOneWidget);
+    expectNoPersistenceClaims();
+
+    final save = find.byKey(const ValueKey('save_session_button'));
+    await tester.tap(save);
+    await tester.pump();
+    expect(container.read(activeSessionSaverProvider).isLoading, isTrue);
+    expect(find.text('Saving session...'), findsOneWidget);
+    expect(tester.widget<FilledButton>(save).onPressed, isNull);
+    expect(find.byKey(const ValueKey('save_error_banner')), findsNothing);
+    expect(find.byType(WorkoutCompleteScreen), findsNothing);
+    expectNoPersistenceClaims();
+    await tester.tap(save);
+    await tester.binding.handlePopRoute();
+    await tester.pump();
+    expect(find.byType(WorkoutReviewScreen), findsOneWidget);
+    expect(repo.writes, 1);
+    expect(await repo.getWorkoutHistory(), isEmpty);
+    expect(container.read(activeWorkoutSessionProvider), same(before));
+
+    repo.gate.complete();
+    await tester.pumpAndSettle();
+    expect(find.byType(WorkoutCompleteScreen), findsOneWidget);
+    expect(find.text('View this session in your workout history.'),
+        findsOneWidget);
+    expectNoPersistenceClaims();
+    final saved = (await repo.getWorkoutHistory()).single;
+    expect(saved.id, id);
+    expect(saved.exerciseLogs.single.repsCompleted, 8);
+    expect(saved.exerciseLogs.single.weightKg, 20);
+    expect(saved.totalVolumeKg, 160);
+    expect(repo.writes, 1);
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets('Review save failure keeps error and retry preserves session data',
+      (tester) async {
+    final repo = RetryRepository();
+    final container = await mount(
+        tester, const ActiveWorkoutScreen(autoTick: false), overrides: [
+      exerciseRepositoryProvider.overrideWithValue(repo),
+    ]);
+    final active = container.read(activeWorkoutSessionProvider.notifier);
+    active.setDraftWeight(20);
+    active.setDraftReps(8);
+    await tester.pump();
+    await tap(tester, find.byKey(const ValueKey('active_workout_log_set_button')));
+    await tap(tester, find.byKey(const ValueKey('active_workout_finish_button')));
+    final before = container.read(activeWorkoutSessionProvider);
+    final id = container.read(activeWorkoutSessionProvider.notifier).sessionId;
+    await tap(tester, find.byKey(const ValueKey('save_session_button')));
+    expect(find.byType(WorkoutReviewScreen), findsOneWidget);
+    expect(find.byType(WorkoutCompleteScreen), findsNothing);
+    expect(find.byKey(const ValueKey('save_error_banner')), findsOneWidget);
+    expect(find.text('Could not confirm the save. Please retry.'), findsOneWidget);
+    expect(find.text('Review your sets and save this session when ready.'),
+        findsOneWidget);
+    expect(container.read(activeSessionSaverProvider).hasError, isTrue);
+    expect(container.read(activeWorkoutSessionProvider), same(before));
+    expect(container.read(activeWorkoutSessionProvider).isFinished, isFalse);
+    expect(await repo.getWorkoutHistory(), isEmpty);
+    expectNoPersistenceClaims();
+
+    repo.fail = false;
+    await tap(tester, find.byKey(const ValueKey('save_session_retry_button')));
+    await tester.pumpAndSettle();
+    expect(find.byType(WorkoutCompleteScreen), findsOneWidget);
+    expect(find.byKey(const ValueKey('save_error_banner')), findsNothing);
+    expectNoPersistenceClaims();
+    final saved = (await repo.getWorkoutHistory()).single;
+    expect(saved.id, id);
+    expect(saved.exerciseLogs.single.repsCompleted, 8);
+    expect(saved.exerciseLogs.single.weightKg, 20);
+    expect(saved.totalVolumeKg, 160);
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  for (final fail in [false, true]) {
+    testWidgets('Complete loading then detail failure=$fail keeps copy truthful',
+        (tester) async {
+      final repo = DelayedDetailRepository();
+      final session = WorkoutSession(
+        id: 'detail-gated', planName: 'Stored session',
+        startedAt: DateTime.utc(2026, 10, 24), exerciseLogs: const [],
+      );
+      await repo.saveWorkoutSession(session);
+      await mount(tester, WorkoutCompleteScreen(sessionId: session.id),
+          overrides: [exerciseRepositoryProvider.overrideWithValue(repo)]);
+      expect(find.byType(CircularProgressIndicator), findsOneWidget);
+      expect(find.text('View this session in your workout history.'),
+          findsNothing);
+      expectNoPersistenceClaims();
+
+      if (fail) {
+        repo.gate.completeError(StateError('Detail unavailable'));
+      } else {
+        repo.gate.complete();
+      }
+      await tester.pumpAndSettle();
+      expect(find.byType(CircularProgressIndicator), findsNothing);
+      if (fail) {
+        expect(find.textContaining('Failed to load session:'), findsOneWidget);
+        expect(find.text('View this session in your workout history.'),
+            findsNothing);
+        expect(find.text('Could not confirm the save. Please retry.'),
+            findsNothing);
+      } else {
+        expect(find.text('Stored session'), findsOneWidget);
+        expect(find.text('View this session in your workout history.'),
+            findsOneWidget);
+      }
+      // A failed detail read does not remove the stored session.
+      expect((await repo.getWorkoutHistory()).single.id, session.id);
+      expectNoPersistenceClaims();
+      expect(tester.takeException(), isNull);
+      await tester.pumpWidget(const SizedBox());
+    });
+  }
+
+  for (final state in ['empty', 'data', 'error']) {
+    testWidgets('History loading then $state has no storage-mode notice',
+        (tester) async {
+      final gate = Completer<List<WorkoutSession>>();
+      final container = await mount(tester, const WorkoutHistoryScreen(),
+          overrides: [workoutHistoryProvider.overrideWith((ref) => gate.future)]);
+      expect(find.text('Workout History'), findsOneWidget);
+      expect(find.byType(CircularProgressIndicator), findsOneWidget);
+      expect(tester.widget<AppBar>(find.byType(AppBar)).bottom, isNull);
+      expectNoPersistenceClaims();
+      final repo = container.read(workoutSessionRepositoryProvider);
+      if (state == 'error') {
+        gate.completeError(StateError('History unavailable'));
+      } else {
+        if (state == 'data') {
+          await repo.saveWorkoutSession(WorkoutSession(
+            id: 'history-copy', planName: 'Stored history session',
+            startedAt: DateTime.utc(2026, 10, 24), exerciseLogs: const [],
+          ));
+        }
+        gate.complete(await repo.getWorkoutHistory());
+      }
+      await tester.pumpAndSettle();
+      if (state == 'error') {
+        expect(find.text('Unable to load workout history'), findsOneWidget);
+        expect(find.text('Retry'), findsOneWidget);
+      } else if (state == 'empty') {
+        expect(find.text('No workout history yet'), findsOneWidget);
+      } else {
+        expect(find.text('Stored history session'), findsOneWidget);
+      }
+      expect(tester.widget<AppBar>(find.byType(AppBar)).bottom, isNull);
+      expectNoPersistenceClaims();
+      expect(tester.takeException(), isNull);
+      await tester.pumpWidget(const SizedBox());
+    });
+  }
 
   test(
       'Saver and repository reject repeated writes; new session has a new identity',
@@ -1010,11 +1207,12 @@ void main() {
     // Verify zero volume omits the volume breakdown bar
     expect(find.text('VOLUME BY EXERCISE'), findsNothing);
 
-    // Verify demo memory note
+    // Verify neutral guidance without inferring a storage mode from detail data.
     expect(
         find.textContaining(
-            'Demo only. This workout is kept in memory and disappears when the app restarts. It is not synced.'),
+            'View this session in your workout history.'),
         findsOneWidget);
+    expectNoPersistenceClaims();
 
     // Verify actions exist
     expect(find.text('Back to Workout'), findsOneWidget);
@@ -1024,6 +1222,8 @@ void main() {
     await tester.tap(find.text('View workout history'));
     await tester.pumpAndSettle();
     expect(find.byType(WorkoutHistoryScreen), findsOneWidget);
+    expect(find.text('Workout History'), findsOneWidget);
+    expectNoPersistenceClaims();
 
     await tester.pumpWidget(const SizedBox());
   });

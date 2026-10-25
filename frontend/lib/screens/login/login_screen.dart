@@ -116,7 +116,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   Widget _buildHeader() {
     return Column(
       children: [
-        const AppLogo(size: 90)
+        const AppLogo(size: 90, color: Color(0xFF1E1E1E))
             .animate()
             .scale(duration: 600.ms, curve: Curves.easeOutBack),
         const SizedBox(height: 20),

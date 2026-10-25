@@ -81,10 +81,10 @@ class LoginController extends StateNotifier<LoginState> {
       final endpoint =
           isLoginMode ? ApiConfig.loginEndpoint : ApiConfig.registerEndpoint;
       final body = {
-        'email': email,
+        'email': email.trim(),
         'password': password,
-        if (!isLoginMode) 'full_name': fullName,
-        if (!isLoginMode && (phone?.isNotEmpty ?? false)) 'phone': phone,
+        if (!isLoginMode) 'full_name': fullName?.trim(),
+        if (!isLoginMode && (phone?.isNotEmpty ?? false)) 'phone': phone?.trim(),
       };
 
       final response = await ApiClient.dio
@@ -100,7 +100,8 @@ class LoginController extends StateNotifier<LoginState> {
           final data = response.data is String
               ? jsonDecode(response.data as String)
               : response.data;
-          await _saveAuthData(data['access_token'], email, fullName);
+          await _saveAuthData(
+              data['access_token'], email.trim(), fullName?.trim());
           state = state.copyWith(
               isLoading: false,
               isSuccess: true,
@@ -115,16 +116,147 @@ class LoginController extends StateNotifier<LoginState> {
               outcome: AuthOutcome.registered);
         }
       } else {
-        final error = response.data is String
-            ? jsonDecode(response.data as String)
-            : response.data;
-        throw Exception((error is Map && error['detail'] != null)
-            ? error['detail']
-            : 'Auth failed');
+        final errorMsg = extractErrorMessage(response.data, response.statusCode);
+        state = state.copyWith(isLoading: false, errorMessage: errorMsg);
       }
+    } on DioException catch (e) {
+      final errorMsg = extractErrorMessage(e);
+      state = state.copyWith(isLoading: false, errorMessage: errorMsg);
     } catch (e) {
-      state = state.copyWith(isLoading: false, errorMessage: e.toString());
+      final errorMsg = extractErrorMessage(e);
+      state = state.copyWith(isLoading: false, errorMessage: errorMsg);
     }
+  }
+
+  static String extractErrorMessage(dynamic error, [int? statusCode]) {
+    if (error is DioException) {
+      if (error.type == DioExceptionType.connectionTimeout ||
+          error.type == DioExceptionType.sendTimeout ||
+          error.type == DioExceptionType.receiveTimeout) {
+        return 'Connection timed out. Please check your internet connection.';
+      }
+      if (error.type == DioExceptionType.connectionError) {
+        return 'Cannot connect to server. Please check your network connection.';
+      }
+
+      final response = error.response;
+      if (response != null) {
+        return _formatResponseError(response.data, response.statusCode);
+      }
+      return 'Network error occurred. Please try again.';
+    }
+
+    if (error is TimeoutException) {
+      return 'Request timed out. Please try again.';
+    }
+
+    if (error is FormatException) {
+      return 'Invalid response from server. Please try again.';
+    }
+
+    if (error is Map || error is List || error is String) {
+      return _formatResponseError(error, statusCode);
+    }
+
+    return 'Authentication failed. Please try again.';
+  }
+
+  static String _formatResponseError(dynamic data, int? statusCode) {
+    if (statusCode != null && statusCode >= 500) {
+      return 'Server error occurred. Please try again later.';
+    }
+
+    dynamic parsed = data;
+    if (parsed is String && parsed.isNotEmpty) {
+      try {
+        parsed = jsonDecode(parsed);
+      } catch (_) {
+        // Not JSON
+      }
+    }
+
+    if (parsed is Map) {
+      final detail = parsed['detail'];
+      if (detail != null) {
+        return _formatDetailError(detail, statusCode);
+      }
+      final message = parsed['message'];
+      if (message is String && message.isNotEmpty) {
+        return message;
+      }
+    }
+
+    if (parsed is String && parsed.isNotEmpty) {
+      return _formatDetailError(parsed, statusCode);
+    }
+
+    if (statusCode == 400) {
+      return 'Invalid request. Please check your information.';
+    } else if (statusCode == 401) {
+      return 'Invalid email or password.';
+    } else if (statusCode == 403) {
+      return 'Access denied.';
+    } else if (statusCode == 404) {
+      return 'Resource not found.';
+    } else if (statusCode == 409) {
+      return 'This email is already registered. Please log in or use another email.';
+    } else if (statusCode == 422) {
+      return 'Invalid input format. Please check your email and password.';
+    } else if (statusCode != null && statusCode >= 500) {
+      return 'Server error occurred. Please try again later.';
+    }
+
+    return 'Authentication failed. Please check your information.';
+  }
+
+  static String _formatDetailError(dynamic detail, int? statusCode) {
+    if (detail is String) {
+      if (detail.toLowerCase().contains('already exists')) {
+        return 'This email is already registered. Please log in or use another email.';
+      }
+      if (detail.toLowerCase().contains('invalid email or password')) {
+        return 'Invalid email or password.';
+      }
+      return detail;
+    }
+
+    if (detail is List) {
+      final messages = <String>[];
+      for (final item in detail) {
+        if (item is Map) {
+          final loc = item['loc'];
+          final locList =
+              loc is List ? loc.map((e) => e.toString()).toList() : <String>[];
+          final type = item['type']?.toString() ?? '';
+
+          if (locList.contains('password')) {
+            if (type == 'string_too_short' || type.contains('too_short')) {
+              messages.add('Password must be at least 8 characters.');
+            } else {
+              messages.add('Invalid password format.');
+            }
+          } else if (locList.contains('email')) {
+            messages.add('Please enter a valid email address.');
+          } else {
+            final msg = item['msg'];
+            if (msg is String && msg.isNotEmpty) {
+              messages.add(msg);
+            }
+          }
+        } else if (item is String && item.isNotEmpty) {
+          messages.add(item);
+        }
+      }
+
+      if (messages.isNotEmpty) {
+        return messages.toSet().join(' ');
+      }
+    }
+
+    if (statusCode == 422) {
+      return 'Invalid input format. Please check your email and password.';
+    }
+    return 'Authentication failed. Please check your details.';
   }
 
   // --- 2. SOCIAL LOGIN HANDLERS ---

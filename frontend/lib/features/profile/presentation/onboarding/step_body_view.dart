@@ -37,6 +37,8 @@ class StepBodyView extends StatefulWidget {
 class _StepBodyViewState extends State<StepBodyView> {
   late final TextEditingController _heightController;
   late final TextEditingController _weightController;
+  final FocusNode _heightFocusNode = FocusNode();
+  final FocusNode _weightFocusNode = FocusNode();
 
   @override
   void initState() {
@@ -49,6 +51,12 @@ class _StepBodyViewState extends State<StepBodyView> {
       text: widget.initialRawWeightText ??
           BiometricInputParser.formatBiometric(widget.initialWeight),
     );
+    _heightFocusNode.addListener(_onFocusChanged);
+    _weightFocusNode.addListener(_onFocusChanged);
+  }
+
+  void _onFocusChanged() {
+    setState(() {});
   }
 
   @override
@@ -79,6 +87,10 @@ class _StepBodyViewState extends State<StepBodyView> {
 
   @override
   void dispose() {
+    _heightFocusNode.removeListener(_onFocusChanged);
+    _weightFocusNode.removeListener(_onFocusChanged);
+    _heightFocusNode.dispose();
+    _weightFocusNode.dispose();
     _heightController.dispose();
     _weightController.dispose();
     super.dispose();
@@ -206,7 +218,7 @@ class _StepBodyViewState extends State<StepBodyView> {
                         ),
                         const SizedBox(height: 8),
                         Container(
-                          height: 72,
+                          height: 60,
                           padding: const EdgeInsets.symmetric(horizontal: 16),
                           decoration: BoxDecoration(
                             color: OnboardingTokens.surface,
@@ -215,37 +227,49 @@ class _StepBodyViewState extends State<StepBodyView> {
                             border: Border.all(color: OnboardingTokens.borderDefault),
                           ),
                           child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.center,
                             children: [
                               Expanded(
                                 child: TextField(
                                   key: const Key('height_input_field'),
                                   controller: _heightController,
+                                  focusNode: _heightFocusNode,
                                   onChanged: _onHeightChanged,
                                   keyboardType: const TextInputType.numberWithOptions(
                                     decimal: true,
                                   ),
+                                  textAlignVertical: TextAlignVertical.center,
                                   inputFormatters: [
                                     FilteringTextInputFormatter.allow(
                                       RegExp(r'[0-9.,]'),
                                     ),
                                   ],
                                   style: const TextStyle(
-                                    fontSize: 30,
+                                    fontSize: 22,
                                     fontWeight: FontWeight.w600,
                                     color: OnboardingTokens.textPrimary,
-                                    letterSpacing: -0.5,
+                                    letterSpacing: -0.2,
                                   ),
                                   cursorColor: OnboardingTokens.textPrimary,
-                                  decoration: const InputDecoration(
+                                  decoration: InputDecoration(
+                                    filled: true,
+                                    fillColor: Colors.transparent,
                                     border: InputBorder.none,
-                                    hintText: 'Enter height',
-                                    hintStyle: TextStyle(
-                                      fontSize: 17,
+                                    enabledBorder: InputBorder.none,
+                                    focusedBorder: InputBorder.none,
+                                    errorBorder: InputBorder.none,
+                                    focusedErrorBorder: InputBorder.none,
+                                    hintText: _heightFocusNode.hasFocus
+                                        ? null
+                                        : 'Enter height',
+                                    hintStyle: const TextStyle(
+                                      fontSize: 15,
                                       fontWeight: FontWeight.w400,
                                       color: OnboardingTokens.textDisabled,
                                     ),
                                     isDense: true,
-                                    contentPadding: EdgeInsets.zero,
+                                    contentPadding:
+                                        const EdgeInsets.symmetric(vertical: 14),
                                   ),
                                 ),
                               ),
@@ -253,7 +277,7 @@ class _StepBodyViewState extends State<StepBodyView> {
                                 'cm',
                                 style: TextStyle(
                                   fontSize: 14,
-                                  fontWeight: FontWeight.w400,
+                                  fontWeight: FontWeight.w500,
                                   color: OnboardingTokens.textSecondary,
                                 ),
                               ),
@@ -274,7 +298,7 @@ class _StepBodyViewState extends State<StepBodyView> {
                         ),
                         const SizedBox(height: 8),
                         Container(
-                          height: 72,
+                          height: 60,
                           padding: const EdgeInsets.symmetric(horizontal: 16),
                           decoration: BoxDecoration(
                             color: OnboardingTokens.surface,
@@ -283,37 +307,49 @@ class _StepBodyViewState extends State<StepBodyView> {
                             border: Border.all(color: OnboardingTokens.borderDefault),
                           ),
                           child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.center,
                             children: [
                               Expanded(
                                 child: TextField(
                                   key: const Key('weight_input_field'),
                                   controller: _weightController,
+                                  focusNode: _weightFocusNode,
                                   onChanged: _onWeightChanged,
                                   keyboardType: const TextInputType.numberWithOptions(
                                     decimal: true,
                                   ),
+                                  textAlignVertical: TextAlignVertical.center,
                                   inputFormatters: [
                                     FilteringTextInputFormatter.allow(
                                       RegExp(r'[0-9.,]'),
                                     ),
                                   ],
                                   style: const TextStyle(
-                                    fontSize: 30,
+                                    fontSize: 22,
                                     fontWeight: FontWeight.w600,
                                     color: OnboardingTokens.textPrimary,
-                                    letterSpacing: -0.5,
+                                    letterSpacing: -0.2,
                                   ),
                                   cursorColor: OnboardingTokens.textPrimary,
-                                  decoration: const InputDecoration(
+                                  decoration: InputDecoration(
+                                    filled: true,
+                                    fillColor: Colors.transparent,
                                     border: InputBorder.none,
-                                    hintText: 'Enter weight',
-                                    hintStyle: TextStyle(
-                                      fontSize: 17,
+                                    enabledBorder: InputBorder.none,
+                                    focusedBorder: InputBorder.none,
+                                    errorBorder: InputBorder.none,
+                                    focusedErrorBorder: InputBorder.none,
+                                    hintText: _weightFocusNode.hasFocus
+                                        ? null
+                                        : 'Enter weight',
+                                    hintStyle: const TextStyle(
+                                      fontSize: 15,
                                       fontWeight: FontWeight.w400,
                                       color: OnboardingTokens.textDisabled,
                                     ),
                                     isDense: true,
-                                    contentPadding: EdgeInsets.zero,
+                                    contentPadding:
+                                        const EdgeInsets.symmetric(vertical: 14),
                                   ),
                                 ),
                               ),
@@ -321,7 +357,7 @@ class _StepBodyViewState extends State<StepBodyView> {
                                 'kg',
                                 style: TextStyle(
                                   fontSize: 14,
-                                  fontWeight: FontWeight.w400,
+                                  fontWeight: FontWeight.w500,
                                   color: OnboardingTokens.textSecondary,
                                 ),
                               ),

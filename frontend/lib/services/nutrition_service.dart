@@ -1,10 +1,104 @@
 import 'package:flutter/foundation.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:dio/dio.dart';
 import 'package:image_picker/image_picker.dart';
 import '../features/nutrition/domain/repositories/nutrition_repository.dart';
 import '../features/nutrition/data/repositories/nutrition_repository_impl.dart';
 import '../features/nutrition/domain/entities/food.dart';
 import '../models/ai_analysis_result.dart';
 import '../screens/nutrition/widgets/meal_review_dialog.dart';
+import '../presentation/providers/workout_history_providers.dart';
+import '../providers/profile_provider.dart';
+import '../utils/auth_helper.dart';
+
+export '../features/nutrition/domain/repositories/nutrition_repository.dart'
+    show NutritionRequestContext, NutritionSessionChanged;
+
+/// Food requests reuse the existing logout scope; no credentials are persisted here.
+final nutritionSessionProvider = Provider<NutritionSession>((ref) {
+  final session = NutritionSession(ref);
+  ref.listen(workoutAuthScopeProvider, (_, __) => session.invalidate());
+  ref.listen(authLoggingOutProvider, (_, next) {
+    if (next) session.invalidate();
+  });
+  ref.onDispose(() => session._disposed = true);
+  return session;
+});
+
+class NutritionSession {
+  final Ref _ref;
+  int _generation = 0;
+  bool _disposed = false;
+  String? _lastToken;
+
+  NutritionSession(this._ref);
+
+  void invalidate() => _generation++;
+
+  Future<NutritionRequestContext> capture() async {
+    final generation = _generation;
+    if (_disposed || _ref.read(authLoggingOutProvider)) {
+      throw const NutritionSessionChanged();
+    }
+    final token = await _readToken();
+    if (_disposed || generation != _generation ||
+        _ref.read(authLoggingOutProvider)) {
+      throw const NutritionSessionChanged();
+    }
+    if (token == null || token.isEmpty) {
+      throw const NutritionSessionChanged();
+    }
+    if (_lastToken != null && _lastToken != token) invalidate();
+    _lastToken = token;
+    final capturedGeneration = _generation;
+    return NutritionRequestContext(
+      authorization: 'Bearer $token',
+      generation: capturedGeneration,
+      validate: () async {
+        if (_disposed || capturedGeneration != _generation ||
+            _ref.read(authLoggingOutProvider)) {
+          throw const NutritionSessionChanged();
+        }
+        final currentToken = await _readToken();
+        if (_disposed || capturedGeneration != _generation ||
+            _ref.read(authLoggingOutProvider) || currentToken != token) {
+          throw const NutritionSessionChanged();
+        }
+      },
+    );
+  }
+
+  Future<String?> _readToken() async {
+    try {
+      return await AuthHelper.getToken();
+    } catch (_) {
+      // Unreadable credentials invalidate this request, never a success estimate.
+      throw const NutritionSessionChanged();
+    }
+  }
+
+  Future<void> recoverAuthorization() =>
+      _ref.read(profileProvider.notifier).loadProfile();
+}
+
+String foodAnalysisErrorMessage(Object error) {
+  if (error is NutritionSessionChanged ||
+      (error is DioException && error.error is NutritionSessionChanged)) {
+    return const NutritionSessionChanged().toString();
+  }
+  if (error is DioException) {
+    switch (error.response?.statusCode) {
+      case 401:
+        return 'Session expired. Please sign in again.';
+      case 403:
+        return 'Advanced analysis is not enabled for this account. Try Standard.';
+      case 422:
+        return 'Please check the photo and analysis mode, then try again.';
+    }
+    return 'Food analysis is unavailable. Check your connection and try again.';
+  }
+  return "I couldn't estimate this meal confidently from the photo.";
+}
 
 class NutritionService {
   final INutritionRepository _repository;
@@ -141,13 +235,9 @@ class NutritionService {
   // ================================================================
   // 8. AI – ANALYZE FOOD IMAGE
   // ================================================================
-  Future<AIAnalysisResult?> analyzeFoodImage(XFile imageFile) async {
-    try {
-      return await _repository.analyzeFoodImage(imageFile);
-    } catch (e) {
-      debugPrint("❌ Analyze Image Error: $e");
-      return null;
-    }
+  Future<AIAnalysisResult?> analyzeFoodImage(XFile imageFile,
+      {String? mode, NutritionRequestContext? session}) async {
+    return _repository.analyzeFoodImage(imageFile, mode: mode, session: session);
   }
 
   // ================================================================

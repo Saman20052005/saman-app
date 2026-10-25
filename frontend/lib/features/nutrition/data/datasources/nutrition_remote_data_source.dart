@@ -6,15 +6,18 @@ import 'package:http_parser/http_parser.dart';
 import '../../../../services/api_client.dart';
 import '../../../../config/api_config.dart';
 import '../../../../screens/nutrition/widgets/meal_review_dialog.dart';
+import '../../domain/repositories/nutrition_repository.dart';
 
 abstract class INutritionRemoteDataSource {
-  Future<Map<String, dynamic>> getDailyPlan(String dateStr);
+  Future<Map<String, dynamic>> getDailyPlan(String dateStr,
+      {NutritionRequestContext? session});
   Future<Map<String, dynamic>> generatePlan({
     required String goal,
     int targetCalories,
     int? mealCount,
     String? style,
     bool remainingOnly,
+    NutritionRequestContext? session,
   });
   Future<bool> addMeal(Map<String, dynamic> body);
   Future<bool> updateWater(
@@ -23,6 +26,7 @@ abstract class INutritionRemoteDataSource {
     int? deltaMl,
     int? version,
     String? idempotencyKey,
+    NutritionRequestContext? session,
   });
   Future<bool> swapLoggedMeal({
     required String logId,
@@ -36,7 +40,7 @@ abstract class INutritionRemoteDataSource {
     required String goal,
   });
   Future<bool> swapLoggedMealSimple(String dateStr, String logId);
-  Future<bool> resetDay(String dateStr);
+  Future<bool> resetDay(String dateStr, {NutritionRequestContext? session});
   Future<bool> uploadLogStory({
     required XFile? imageFile,
     required String mealType,
@@ -45,7 +49,8 @@ abstract class INutritionRemoteDataSource {
   });
   Future<List<Map<String, dynamic>>> getLogStories(String date);
   Future<bool> deleteLogStory(String logId);
-  Future<Map<String, dynamic>> analyzeFoodImage(XFile imageFile);
+  Future<Map<String, dynamic>> analyzeFoodImage(XFile imageFile,
+      {String? mode, NutritionRequestContext? session});
   Future<void> confirmStoryLog(MealLogData data);
   Future<Map<String, dynamic>> createCustomFood(Map<String, dynamic> body);
   Future<Map<String, dynamic>> getWeeklyReport(String startDate);
@@ -54,6 +59,38 @@ abstract class INutritionRemoteDataSource {
 
 class NutritionRemoteDataSourceImpl implements INutritionRemoteDataSource {
   final Dio _dio = ApiClient.dio;
+
+  NutritionRemoteDataSourceImpl() {
+    installSessionGuard(_dio);
+  }
+
+  static final _guardedClients = Expando<bool>();
+
+  /// Runs after the shared auth interceptor and before dispatching Food requests.
+  static void installSessionGuard(Dio dio) {
+    if (_guardedClients[dio] == true) return;
+    _guardedClients[dio] = true;
+    dio.interceptors.add(InterceptorsWrapper(onRequest: (options, handler) async {
+      final session = options.extra['nutritionSession'];
+      if (session is! NutritionRequestContext) {
+        handler.next(options);
+        return;
+      }
+      try {
+        await session.validate();
+        if (options.headers['Authorization'] != session.authorization) {
+          throw const NutritionSessionChanged();
+        }
+        handler.next(options);
+      } catch (_) {
+        handler.reject(DioException(
+          requestOptions: options,
+          type: DioExceptionType.cancel,
+          error: const NutritionSessionChanged(),
+        ));
+      }
+    }));
+  }
 
   @override
   Future<List<dynamic>> searchFoods(String query, int limit) async {
@@ -75,9 +112,13 @@ class NutritionRemoteDataSourceImpl implements INutritionRemoteDataSource {
   }
 
   @override
-  Future<Map<String, dynamic>> getDailyPlan(String dateStr) async {
-    final response =
-        await _dio.get('${ApiConfig.nutritionGetEndpoint}/$dateStr');
+  Future<Map<String, dynamic>> getDailyPlan(String dateStr,
+      {NutritionRequestContext? session}) async {
+    final response = await _dio.get(
+        '${ApiConfig.nutritionGetEndpoint}/$dateStr',
+        options:
+            Options(extra: {if (session != null) 'nutritionSession': session}));
+    await session?.validate();
     if (response.statusCode == 200 &&
         response.data != null &&
         response.data != "null") {
@@ -99,9 +140,12 @@ class NutritionRemoteDataSourceImpl implements INutritionRemoteDataSource {
     int? mealCount,
     String? style,
     bool remainingOnly = false,
+    NutritionRequestContext? session,
   }) async {
     final response = await _dio.post(
       ApiConfig.generatePlanEndpoint,
+      options:
+          Options(extra: {if (session != null) 'nutritionSession': session}),
       data: {
         'target_calories': targetCalories,
         'goal': goal,
@@ -112,6 +156,7 @@ class NutritionRemoteDataSourceImpl implements INutritionRemoteDataSource {
         'allergies': [],
       },
     );
+    await session?.validate();
     if (response.statusCode == 200 && response.data != null) {
       return response.data is String
           ? jsonDecode(response.data as String)
@@ -133,6 +178,7 @@ class NutritionRemoteDataSourceImpl implements INutritionRemoteDataSource {
     int? deltaMl,
     int? version,
     String? idempotencyKey,
+    NutritionRequestContext? session,
   }) async {
     final Map<String, dynamic> data = {"date": date};
     if (amountMl != null) data["amount_ml"] = amountMl;
@@ -143,7 +189,10 @@ class NutritionRemoteDataSourceImpl implements INutritionRemoteDataSource {
     final response = await _dio.post(
       ApiConfig.updateWaterEndpoint,
       data: data,
+      options:
+          Options(extra: {if (session != null) 'nutritionSession': session}),
     );
+    await session?.validate();
     return response.statusCode == 200 || response.statusCode == 201;
   }
 
@@ -165,11 +214,15 @@ class NutritionRemoteDataSourceImpl implements INutritionRemoteDataSource {
   }
 
   @override
-  Future<bool> resetDay(String dateStr) async {
+  Future<bool> resetDay(String dateStr,
+      {NutritionRequestContext? session}) async {
     final response = await _dio.post(
       '${ApiConfig.baseUrl}/api/nutrition/reset-day',
       data: {"date": dateStr},
+      options:
+          Options(extra: {if (session != null) 'nutritionSession': session}),
     );
+    await session?.validate();
     return response.statusCode == 200;
   }
 
@@ -227,9 +280,14 @@ class NutritionRemoteDataSourceImpl implements INutritionRemoteDataSource {
   }
 
   @override
-  Future<Map<String, dynamic>> analyzeFoodImage(XFile imageFile) async {
+  Future<Map<String, dynamic>> analyzeFoodImage(XFile imageFile,
+      {String? mode, NutritionRequestContext? session}) async {
     final formData = FormData();
     final bytes = await imageFile.readAsBytes();
+    await session?.validate();
+    if (mode != null && mode.trim().isNotEmpty) {
+      formData.fields.add(MapEntry('mode', mode.trim().toLowerCase()));
+    }
     formData.files.add(MapEntry(
       'image',
       MultipartFile.fromBytes(bytes,
@@ -239,7 +297,9 @@ class NutritionRemoteDataSourceImpl implements INutritionRemoteDataSource {
     final response = await _dio.post(
       ApiConfig.analyzeFoodImageEndpoint,
       data: formData,
-      options: Options(contentType: 'multipart/form-data'),
+      options: Options(contentType: 'multipart/form-data', extra: {
+        if (session != null) 'nutritionSession': session,
+      }),
     );
 
     if (response.statusCode == 200 && response.data != null) {

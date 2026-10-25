@@ -491,7 +491,7 @@ class _WorkoutReviewScreenState extends ConsumerState<WorkoutReviewScreen> {
                         SizedBox(width: 10),
                         Expanded(
                           child: Text(
-                            'Demo only. This workout will be kept in memory and will disappear when the app restarts. It is not synced.',
+                            'Review your sets and save this session when ready.',
                             style: TextStyle(
                               fontSize: 12,
                               height: 1.4,
@@ -548,7 +548,7 @@ class _WorkoutReviewScreenState extends ConsumerState<WorkoutReviewScreen> {
                               const SizedBox(width: 8),
                               const Expanded(
                                 child: Text(
-                                  'Failed to save session. Please retry.',
+                                  'Could not confirm the save. Please retry.',
                                   style: TextStyle(
                                     color: SamanWorkoutTokens.textPrimary,
                                     fontSize: 12,
@@ -624,7 +624,7 @@ class _WorkoutReviewScreenState extends ConsumerState<WorkoutReviewScreen> {
                                     ),
                                     SizedBox(width: 10),
                                     Text(
-                                      'Committing log...',
+                                      'Saving session...',
                                       style: TextStyle(
                                         fontSize: 15,
                                         fontWeight: FontWeight.bold,

@@ -55,7 +55,7 @@ class _SplashScreenState extends State<SplashScreen> {
   Widget build(BuildContext context) {
     const primaryColor = Color(0xFF1E1E1E);
     final logo = widget.enableAnimations
-        ? const AppLogo(size: 130)
+        ? const AppLogo(size: 130, color: primaryColor)
             .animate()
             .fade(duration: 600.ms)
             .scale(
@@ -65,7 +65,7 @@ class _SplashScreenState extends State<SplashScreen> {
                 curve: Curves.elasticOut)
             .then()
             .shimmer(duration: 1500.ms, color: Colors.grey.shade300, angle: 45)
-        : const AppLogo(size: 130);
+        : const AppLogo(size: 130, color: primaryColor);
     final title = widget.enableAnimations
         ? const Text(
             'SAMAN',

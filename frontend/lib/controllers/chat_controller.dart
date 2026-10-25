@@ -8,6 +8,9 @@ import '../config/api_config.dart';
 import '../models/ai_analysis_result.dart';
 import '../services/api_client.dart';
 import '../services/nutrition_service.dart';
+import 'package:dio/dio.dart';
+import '../presentation/providers/workout_history_providers.dart';
+import '../utils/auth_helper.dart';
 
 // --- 1. MODEL TIN NHẮN ---
 class ChatMessage {
@@ -62,6 +65,8 @@ class ChatFoodAnalysisState {
   final AIAnalysisResult? result;
   final String? errorMessage;
   final bool isMealLogged;
+  final String? mode;
+  final NutritionRequestContext? owner;
 
   const ChatFoodAnalysisState({
     required this.status,
@@ -71,6 +76,8 @@ class ChatFoodAnalysisState {
     this.result,
     this.errorMessage,
     this.isMealLogged = false,
+    this.mode,
+    this.owner,
   });
 
   ChatFoodAnalysisState copyWith({
@@ -81,6 +88,8 @@ class ChatFoodAnalysisState {
     AIAnalysisResult? result,
     String? errorMessage,
     bool? isMealLogged,
+    String? mode,
+    NutritionRequestContext? owner,
   }) {
     return ChatFoodAnalysisState(
       status: status ?? this.status,
@@ -90,6 +99,8 @@ class ChatFoodAnalysisState {
       result: result ?? this.result,
       errorMessage: errorMessage ?? this.errorMessage,
       isMealLogged: isMealLogged ?? this.isMealLogged,
+      mode: mode ?? this.mode,
+      owner: owner ?? this.owner,
     );
   }
 }
@@ -161,11 +172,40 @@ class ChatController extends StateNotifier<ChatState> {
   final Ref ref;
   final NutritionService _nutritionService;
   int _requestEpoch = 0;
+  int _foodAnalysisEpoch = 0;
   String? _currentAccountToken;
 
   ChatController(this.ref, {NutritionService? nutritionService})
       : _nutritionService = nutritionService ?? NutritionService(),
-        super(ChatState(messages: []));
+        super(ChatState(messages: [])) {
+    ref.listen(workoutAuthScopeProvider, (_, __) => _onAuthScopeChanged());
+    ref.listen(authLoggingOutProvider, (_, next) {
+      if (next) _invalidateFood();
+    });
+  }
+
+  void _onAuthScopeChanged() {
+    _requestEpoch++;
+    _foodAnalysisEpoch++;
+    _currentAccountToken = null;
+    if (mounted) {
+      state = ChatState(messages: [], recentConversations: []);
+    }
+  }
+
+  void _invalidateFood() {
+    _requestEpoch++;
+    _foodAnalysisEpoch++;
+    if (mounted) {
+      state = state.copyWith(clearFoodAnalysis: true, isLoading: false);
+    }
+  }
+
+  Future<String?> _readActiveToken() async {
+    const storage = FlutterSecureStorage();
+    return await storage.read(key: 'auth_token') ??
+        await storage.read(key: 'jwt_token');
+  }
 
   Future<void> sendMessage(String text) async {
     final trimmed = text.trim();
@@ -288,13 +328,18 @@ class ChatController extends StateNotifier<ChatState> {
   Future<void> _confirmAction(String conversationId, String actionId) async {
     if (conversationId.isEmpty || actionId.isEmpty) return;
     final epoch = ++_requestEpoch;
+    final scopeAtStart = ref.read(workoutAuthScopeProvider);
     state = state.copyWith(
       isLoading: true,
       clearError: true,
       clearFailedUserMessage: true,
     );
 
+    String? tokenAtStart;
     try {
+      tokenAtStart = await _readActiveToken();
+      if (_requestEpoch != epoch || !mounted) return;
+
       final response = await ApiClient.dio.post(
         "${ApiConfig.baseUrl}/api/chat/actions/confirm",
         data: {
@@ -304,13 +349,24 @@ class ChatController extends StateNotifier<ChatState> {
       );
 
       if (_requestEpoch != epoch || !mounted) return;
+      if (ref.read(authLoggingOutProvider) ||
+          ref.read(workoutAuthScopeProvider) != scopeAtStart) {
+        return;
+      }
+      final tokenNow = await _readActiveToken();
+      if (_requestEpoch != epoch || !mounted || tokenNow != tokenAtStart) return;
 
       if (response.statusCode == 200) {
         final data = response.data is String
             ? jsonDecode(response.data as String)
             : response.data;
+        final actionType = state.pendingAction?['type'];
         final message = data['message']?.toString() ??
-            "Đã thêm 250 ml nước vào nhật ký hôm nay của bạn.";
+            (actionType == 'log_meal'
+                ? "Đã ghi nhận bữa ăn vào nhật ký hôm nay của bạn."
+                : (actionType == 'adjust_workout'
+                    ? "Đã điều chỉnh kế hoạch tập thành công."
+                    : "Đã thêm 250 ml nước vào nhật ký hôm nay của bạn."));
 
         final botMsg = ChatMessage(role: 'assistant', content: message);
         state = state.copyWith(
@@ -325,6 +381,12 @@ class ChatController extends StateNotifier<ChatState> {
       }
     } catch (e) {
       if (_requestEpoch != epoch || !mounted) return;
+      if (ref.read(authLoggingOutProvider) ||
+          ref.read(workoutAuthScopeProvider) != scopeAtStart) {
+        return;
+      }
+      final tokenNow = await _readActiveToken();
+      if (_requestEpoch != epoch || !mounted || tokenNow != tokenAtStart) return;
       debugPrint("Confirm Action Error: $e");
       state = state.copyWith(
         isLoading: false,
@@ -337,13 +399,18 @@ class ChatController extends StateNotifier<ChatState> {
   Future<void> _cancelAction(String conversationId, String actionId) async {
     if (conversationId.isEmpty || actionId.isEmpty) return;
     final epoch = ++_requestEpoch;
+    final scopeAtStart = ref.read(workoutAuthScopeProvider);
     state = state.copyWith(
       isLoading: true,
       clearError: true,
       clearFailedUserMessage: true,
     );
 
+    String? tokenAtStart;
     try {
+      tokenAtStart = await _readActiveToken();
+      if (_requestEpoch != epoch || !mounted) return;
+
       final response = await ApiClient.dio.post(
         "${ApiConfig.baseUrl}/api/chat/actions/cancel",
         data: {
@@ -353,13 +420,24 @@ class ChatController extends StateNotifier<ChatState> {
       );
 
       if (_requestEpoch != epoch || !mounted) return;
+      if (ref.read(authLoggingOutProvider) ||
+          ref.read(workoutAuthScopeProvider) != scopeAtStart) {
+        return;
+      }
+      final tokenNow = await _readActiveToken();
+      if (_requestEpoch != epoch || !mounted || tokenNow != tokenAtStart) return;
 
       if (response.statusCode == 200) {
         final data = response.data is String
             ? jsonDecode(response.data as String)
             : response.data;
-        final message =
-            data['message']?.toString() ?? "Đã hủy thao tác thêm nước.";
+        final actionType = state.pendingAction?['type'];
+        final message = data['message']?.toString() ??
+            (actionType == 'log_meal'
+                ? "Đã hủy thao tác ghi nhận bữa ăn."
+                : (actionType == 'adjust_workout'
+                    ? "Đã hủy thao tác điều chỉnh kế hoạch tập."
+                    : "Đã hủy thao tác thêm nước."));
 
         final botMsg = ChatMessage(role: 'assistant', content: message);
         state = state.copyWith(
@@ -374,6 +452,12 @@ class ChatController extends StateNotifier<ChatState> {
       }
     } catch (e) {
       if (_requestEpoch != epoch || !mounted) return;
+      if (ref.read(authLoggingOutProvider) ||
+          ref.read(workoutAuthScopeProvider) != scopeAtStart) {
+        return;
+      }
+      final tokenNow = await _readActiveToken();
+      if (_requestEpoch != epoch || !mounted || tokenNow != tokenAtStart) return;
       debugPrint("Cancel Action Error: $e");
       state = state.copyWith(
         isLoading: false,
@@ -499,6 +583,7 @@ class ChatController extends StateNotifier<ChatState> {
   /// Bắt đầu cuộc trò chuyện mới, xóa ID đang chọn và hủy các response cũ
   void newConversation() {
     _requestEpoch++;
+    _foodAnalysisEpoch++;
     state = state.copyWith(
       messages: [],
       clearActiveConversation: true,
@@ -511,56 +596,65 @@ class ChatController extends StateNotifier<ChatState> {
     );
   }
 
-  Future<void> analyzeFoodPhoto(XFile file, {String? caption}) async {
+  Future<void> analyzeFoodPhoto(XFile file, {String? caption, String? mode}) async {
+    final epoch = ++_foodAnalysisEpoch;
+    final guard = ref.read(nutritionSessionProvider);
+    NutritionRequestContext? owner;
     state = state.copyWith(
       foodAnalysisState: ChatFoodAnalysisState(
         status: FoodAnalysisStatus.analyzing,
         imagePath: file.path,
         imageFile: file,
         userCaption: caption ?? 'Can I fit this into today?',
+        mode: mode,
       ),
       clearError: true,
       clearFailedUserMessage: true,
     );
-
     try {
-      final analysisResult = await _nutritionService.analyzeFoodImage(file);
-
-      if (analysisResult == null ||
-          (analysisResult.calories <= 0 && analysisResult.lowConfidence)) {
-        state = state.copyWith(
-          foodAnalysisState: ChatFoodAnalysisState(
-            status: FoodAnalysisStatus.failure,
-            imagePath: file.path,
-            imageFile: file,
-            userCaption: caption ?? 'Can I fit this into today?',
-            errorMessage:
-                "I couldn't estimate this meal confidently from the photo.",
-          ),
-        );
-      } else {
-        state = state.copyWith(
-          foodAnalysisState: ChatFoodAnalysisState(
-            status: FoodAnalysisStatus.success,
-            imagePath: file.path,
-            imageFile: file,
-            userCaption: caption ?? 'Can I fit this into today?',
-            result: analysisResult,
-          ),
-        );
+      owner = await guard.capture();
+      if (!mounted || epoch != _foodAnalysisEpoch) return;
+      await owner.validate();
+      final result = await _nutritionService.analyzeFoodImage(file,
+          mode: mode, session: owner);
+      await owner.validate();
+      if (!mounted || epoch != _foodAnalysisEpoch) return;
+      final failed = result == null || (result.calories <= 0 && result.lowConfidence);
+      state = state.copyWith(foodAnalysisState: ChatFoodAnalysisState(
+        status: failed ? FoodAnalysisStatus.failure : FoodAnalysisStatus.success,
+        imagePath: file.path,
+        imageFile: file,
+        userCaption: caption ?? 'Can I fit this into today?',
+        mode: mode,
+        owner: owner,
+        result: failed ? null : result,
+        errorMessage: failed ? "I couldn't estimate this meal confidently from the photo." : null,
+      ));
+    } catch (error) {
+      if (!mounted || epoch != _foodAnalysisEpoch) return;
+      try {
+        await owner?.validate();
+      } on NutritionSessionChanged {
+        _invalidateFood();
+        return;
       }
-    } catch (e) {
-      debugPrint("Food photo analysis error: $e");
-      state = state.copyWith(
-        foodAnalysisState: ChatFoodAnalysisState(
-          status: FoodAnalysisStatus.failure,
-          imagePath: file.path,
-          imageFile: file,
-          userCaption: caption ?? 'Can I fit this into today?',
-          errorMessage:
-              "I couldn't estimate this meal confidently from the photo.",
-        ),
-      );
+      if (!mounted || epoch != _foodAnalysisEpoch) return;
+      if (error is NutritionSessionChanged ||
+          (error is DioException && error.error is NutritionSessionChanged)) {
+        _invalidateFood();
+        return;
+      }
+      state = state.copyWith(foodAnalysisState: ChatFoodAnalysisState(
+        status: FoodAnalysisStatus.failure,
+        imagePath: file.path,
+        imageFile: file,
+        userCaption: caption ?? 'Can I fit this into today?',
+        mode: mode,
+        errorMessage: foodAnalysisErrorMessage(error),
+      ));
+      if (error is DioException && error.response?.statusCode == 401) {
+        await guard.recoverAuthorization();
+      }
     }
   }
 
@@ -575,6 +669,7 @@ class ChatController extends StateNotifier<ChatState> {
   }
 
   void clearFoodAnalysis() {
+    _foodAnalysisEpoch++;
     state = state.copyWith(clearFoodAnalysis: true);
   }
 

@@ -1,3 +1,5 @@
+import 'package:health_ai_app/features/profile/presentation/onboarding/step_age_gender_view.dart';
+import 'package:health_ai_app/features/profile/presentation/onboarding/step_body_view.dart';
 import 'dart:async';
 import 'dart:io';
 import 'dart:ui' as ui;
@@ -117,7 +119,9 @@ void main() {
       final image = await boundary.toImage(pixelRatio: 1.0);
       final bytes = await image.toByteData(format: ui.ImageByteFormat.png);
       if (bytes != null) {
-        final file = File('D:/SamanDev/runtime/saman-onboarding-cp3/$name.png');
+        final evidenceDir = Platform.environment['SAMAN_RENDER_EVIDENCE'] ??
+            Directory.systemTemp.path;
+        final file = File('$evidenceDir/$name.png');
         await file.parent.create(recursive: true);
         await file.writeAsBytes(bytes.buffer.asUint8List());
       }
@@ -728,6 +732,188 @@ void main() {
       await tester.tap(editAct);
       await tester.pumpAndSettle();
       await captureScreen(tester, 'step4_activity_360x640');
+    });
+
+    testWidgets('Visual QA & Input Refinements: Step 2 & 3 states, focus/blur, narrow 320x568, and 1.5x scale',
+        (tester) async {
+      tester.view.physicalSize = const Size(390, 844);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+
+      // --- STEP 2: AGE & GENDER STATES ---
+      int? changedAge;
+      Gender? selectedGender = Gender.male;
+
+      Widget wrapWidget(Widget child, {Size? size, double textScale = 1.0}) {
+        return MaterialApp(
+          theme: SamanTheme.dark(),
+          home: MediaQuery(
+            data: MediaQueryData(
+              size: size ?? const Size(390, 844),
+              textScaler: TextScaler.linear(textScale),
+            ),
+            child: RepaintBoundary(
+              key: const ValueKey('capture_boundary'),
+              child: Scaffold(
+                body: child,
+              ),
+            ),
+          ),
+        );
+      }
+
+      // Step 2 Empty Unfocused
+      await tester.pumpWidget(wrapWidget(
+        StepAgeGenderView(
+          initialAge: null,
+          initialGender: selectedGender,
+          onAgeChanged: (val) => changedAge = val,
+          onGenderSelected: (g) => selectedGender = g,
+          onContinue: () {},
+          onBack: () {},
+        ),
+      ));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Enter your age'), findsOneWidget);
+      expect(find.text('YEARS'), findsOneWidget);
+      await captureScreen(tester, 'step2_age_empty_unfocused');
+
+      // Step 2 Empty Focused -> Hint disappears so no overlap with cursor
+      await tester.tap(find.byKey(const Key('age_input_field')));
+      await tester.pumpAndSettle();
+      expect(find.text('Enter your age'), findsNothing);
+      await captureScreen(tester, 'step2_age_empty_focused');
+
+      // Step 2 Filled Focused
+      await tester.enterText(find.byKey(const Key('age_input_field')), '28');
+      await tester.pumpAndSettle();
+      expect(find.text('28'), findsOneWidget);
+      expect(find.text('YEARS'), findsOneWidget);
+      expect(changedAge, 28);
+      await captureScreen(tester, 'step2_age_filled_focused');
+
+      // Step 2 Narrow Viewport (320x568)
+      tester.view.physicalSize = const Size(320, 568);
+      await tester.pumpWidget(wrapWidget(
+        StepAgeGenderView(
+          initialAge: 28,
+          initialGender: selectedGender,
+          onAgeChanged: (val) => changedAge = val,
+          onGenderSelected: (g) => selectedGender = g,
+          onContinue: () {},
+          onBack: () {},
+        ),
+        size: const Size(320, 568),
+      ));
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull);
+      await captureScreen(tester, 'step2_age_narrow_320x568');
+
+      // Step 2 Large Text Scale (1.5x)
+      tester.view.physicalSize = const Size(390, 844);
+      await tester.pumpWidget(wrapWidget(
+        StepAgeGenderView(
+          initialAge: 28,
+          initialGender: selectedGender,
+          onAgeChanged: (val) => changedAge = val,
+          onGenderSelected: (g) => selectedGender = g,
+          onContinue: () {},
+          onBack: () {},
+        ),
+        textScale: 1.5,
+      ));
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull);
+      await captureScreen(tester, 'step2_age_text_scale_1_5x');
+
+      // --- STEP 3: BODY MEASUREMENT STATES ---
+      String? rawHeight;
+      String? rawWeight;
+      double? pHeight;
+      double? pWeight;
+
+      // Step 3 Empty Unfocused
+      await tester.pumpWidget(wrapWidget(
+        StepBodyView(
+          initialHeight: null,
+          initialWeight: null,
+          onHeightChanged: (raw, val) {
+            rawHeight = raw;
+            pHeight = val;
+          },
+          onWeightChanged: (raw, val) {
+            rawWeight = raw;
+            pWeight = val;
+          },
+          onContinue: () {},
+          onBack: () {},
+        ),
+      ));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Enter height'), findsOneWidget);
+      expect(find.text('Enter weight'), findsOneWidget);
+      expect(find.text('cm'), findsOneWidget);
+      expect(find.text('kg'), findsOneWidget);
+      await captureScreen(tester, 'step3_body_empty_unfocused');
+
+      // Step 3 Height Focused -> Hint disappears
+      await tester.tap(find.byKey(const Key('height_input_field')));
+      await tester.pumpAndSettle();
+      expect(find.text('Enter height'), findsNothing);
+      expect(find.text('Enter weight'), findsOneWidget);
+      await captureScreen(tester, 'step3_body_height_focused');
+
+      // Step 3 Filled Focused
+      await tester.enterText(find.byKey(const Key('height_input_field')), '178.5');
+      await tester.enterText(find.byKey(const Key('weight_input_field')), '72.4');
+      await tester.pumpAndSettle();
+
+      expect(find.text('178.5'), findsOneWidget);
+      expect(find.text('72.4'), findsOneWidget);
+      expect(find.text('cm'), findsOneWidget);
+      expect(find.text('kg'), findsOneWidget);
+      expect(pHeight, 178.5);
+      expect(pWeight, 72.4);
+      await captureScreen(tester, 'step3_body_filled');
+
+      // Step 3 Narrow Viewport (320x568)
+      tester.view.physicalSize = const Size(320, 568);
+      await tester.pumpWidget(wrapWidget(
+        StepBodyView(
+          initialHeight: 178.5,
+          initialWeight: 72.4,
+          onHeightChanged: (raw, val) {},
+          onWeightChanged: (raw, val) {},
+          onContinue: () {},
+          onBack: () {},
+        ),
+        size: const Size(320, 568),
+      ));
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull);
+      await captureScreen(tester, 'step3_body_narrow_320x568');
+
+      // Step 3 Large Text Scale (1.5x)
+      tester.view.physicalSize = const Size(390, 844);
+      await tester.pumpWidget(wrapWidget(
+        StepBodyView(
+          initialHeight: 178.5,
+          initialWeight: 72.4,
+          onHeightChanged: (raw, val) {},
+          onWeightChanged: (raw, val) {},
+          onContinue: () {},
+          onBack: () {},
+        ),
+        textScale: 1.5,
+      ));
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull);
+      await captureScreen(tester, 'step3_body_text_scale_1_5x');
     });
   });
 }

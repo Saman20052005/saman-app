@@ -7,20 +7,32 @@ class LoadDailyPlanUseCase {
 
   LoadDailyPlanUseCase(this._repository);
 
-  Future<NutritionPlan> execute(DateTime date) async {
+  Future<NutritionPlan> execute(DateTime date,
+      {NutritionRequestContext? session}) async {
     final dateStr =
         "${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}";
-    final plan = await _repository.getDailyPlan(dateStr);
+    final plan = await _repository.getDailyPlan(dateStr, session: session);
 
     if (plan.meals.isEmpty && plan.entries.isEmpty) {
       // Auto-generate if empty
       // In a real app, 'goal' might come from a UserProfile repository
-      return await _repository.generatePlan(
+      final generated = await _repository.generatePlan(
         dateStr: dateStr,
         goal: 'maintain', // Default or from profile
         targetCalories: 0,
         remainingOnly: true,
+        session: session,
       );
+      // Water versions belong to this owner's daily document, not meal plans.
+      if (generated.date == plan.date &&
+          generated.waterVersion < plan.waterVersion) {
+        return generated.copyWith(
+          currentWater: plan.currentWater,
+          targetWater: plan.targetWater,
+          waterVersion: plan.waterVersion,
+        );
+      }
+      return generated;
     }
 
     return plan;

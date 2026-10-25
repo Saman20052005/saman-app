@@ -86,7 +86,7 @@ class _FakeLoadingRecoveryNotifier extends StateNotifier<ChatState>
   }
 
   @override
-  Future<void> analyzeFoodPhoto(XFile file, {String? caption}) async {}
+  Future<void> analyzeFoodPhoto(XFile file, {String? caption, String? mode}) async {}
 
   @override
   void markMealLogged() {}

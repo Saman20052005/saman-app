@@ -6,6 +6,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 
+import 'fixtures/chat_render/render_resources.dart';
+
 import 'package:health_ai_app/config/app_theme.dart';
 import 'package:health_ai_app/controllers/chat_controller.dart';
 import 'package:health_ai_app/models/ai_analysis_result.dart';
@@ -35,13 +37,28 @@ class _FakeVisualFoodChatNotifier extends StateNotifier<ChatState>
   }
 
   @override
-  Future<void> analyzeFoodPhoto(XFile file, {String? caption}) async {}
+  Future<void> analyzeFoodPhoto(XFile file, {String? caption, String? mode}) async {}
 
   @override
   void markMealLogged() {}
 
   @override
   void clearFoodAnalysis() {}
+
+  // Render scenarios supply their visible conversation state directly.
+  @override
+  Future<void> loadConversations({bool loadLatest = false}) async {}
+
+  @override
+  Future<void> loadConversation(String conversationId) async {
+    throw UnsupportedError('Conversation detail loading has no render fixture.');
+  }
+
+  @override
+  void newConversation() {
+    clearChat();
+  }
+
 }
 
 Future<void> _capturePng(
@@ -55,6 +72,7 @@ Future<void> _capturePng(
     if (byteData == null) return;
     final buffer = byteData.buffer.asUint8List();
     final file = File(outputPath);
+    await file.parent.create(recursive: true);
     await file.writeAsBytes(buffer);
   });
 }
@@ -104,8 +122,10 @@ Widget _buildWrapper({
 }
 
 void main() {
-  const testImagePath =
-      '/Users/saman/Desktop/project-root/frontend/assets/images/nutrition.jpg';
+  setUpAll(loadChatRenderFonts);
+
+  const testImagePath = 'assets/images/nutrition.jpg';
+  setUpAll(() => expect(File(testImagePath).existsSync(), isTrue));
 
   testWidgets('Capture visual render of State 06 Food Analysis Loading at 390x844',
       (tester) async {
@@ -118,8 +138,8 @@ void main() {
     addTearDown(tester.view.resetDevicePixelRatio);
 
     final repaintKey = GlobalKey();
-    const outputPath =
-        '/Users/saman/.gemini/antigravity-ide/brain/3f6beed2-836f-4f92-acf2-501da675c85b/saman_chat_state_06_analysis_render.png';
+    final outputPath =
+        '${Platform.environment['SAMAN_RENDER_EVIDENCE'] ?? Directory.systemTemp.path}/saman_chat_state_06_analysis_render.png';
 
     final chatState = ChatState(
       foodAnalysisState: const ChatFoodAnalysisState(
@@ -128,6 +148,8 @@ void main() {
         userCaption: 'Can I fit this into today?',
       ),
     );
+
+    await tester.runAsync(() => cacheChatRenderPhoto(testImagePath));
 
     await tester.pumpWidget(
       _buildWrapper(repaintKey: repaintKey, chatState: chatState),
@@ -150,8 +172,8 @@ void main() {
     addTearDown(tester.view.resetDevicePixelRatio);
 
     final repaintKey = GlobalKey();
-    const outputPath =
-        '/Users/saman/.gemini/antigravity-ide/brain/3f6beed2-836f-4f92-acf2-501da675c85b/saman_chat_state_03_result_render.png';
+    final outputPath =
+        '${Platform.environment['SAMAN_RENDER_EVIDENCE'] ?? Directory.systemTemp.path}/saman_chat_state_03_result_render.png';
 
     const result = AIAnalysisResult(
       foodName: 'Grilled chicken, quinoa & steamed broccoli',
@@ -177,6 +199,8 @@ void main() {
       ),
     );
 
+    await tester.runAsync(() => cacheChatRenderPhoto(testImagePath));
+
     await tester.pumpWidget(
       _buildWrapper(repaintKey: repaintKey, chatState: chatState),
     );
@@ -198,8 +222,8 @@ void main() {
     addTearDown(tester.view.resetDevicePixelRatio);
 
     final repaintKey = GlobalKey();
-    const outputPath =
-        '/Users/saman/.gemini/antigravity-ide/brain/3f6beed2-836f-4f92-acf2-501da675c85b/saman_chat_state_08_failure_render.png';
+    final outputPath =
+        '${Platform.environment['SAMAN_RENDER_EVIDENCE'] ?? Directory.systemTemp.path}/saman_chat_state_08_failure_render.png';
 
     final chatState = ChatState(
       foodAnalysisState: const ChatFoodAnalysisState(
@@ -210,6 +234,8 @@ void main() {
             "I couldn't estimate this meal confidently from the photo.",
       ),
     );
+
+    await tester.runAsync(() => cacheChatRenderPhoto(testImagePath));
 
     await tester.pumpWidget(
       _buildWrapper(repaintKey: repaintKey, chatState: chatState),

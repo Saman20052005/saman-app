@@ -24,16 +24,30 @@ class SessionDetailScreen extends ConsumerWidget {
       body: sessionAsync.when(
         data: (session) {
           // Nhóm các log theo exerciseId
-          final Map<String, List<ExerciseSetLog>> groupedLogs = {};
-          for (var log in session.exerciseLogs) {
-            groupedLogs.putIfAbsent(log.exerciseId, () => []).add(log);
-          }
+          final metrics = SessionDetailMetrics.compute(session);
+          final groupedLogs = {
+            for (final group in metrics.exerciseGroups)
+              group.exerciseId: group.sets
+          };
 
           return ListView.builder(
             padding: const EdgeInsets.all(AppDimens.paddingL),
-            itemCount: groupedLogs.length,
+            itemCount: groupedLogs.length + 1,
             itemBuilder: (context, index) {
-              final exerciseId = groupedLogs.keys.elementAt(index);
+              if (index == 0) {
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: Text(
+                    'Session: ${session.planName}\n'
+                    '${metrics.completedExercisesCount} exercises / ${metrics.completedSetsCount} completed sets\n'
+                    '${metrics.totalReps} total reps / ${metrics.totalTimedSeconds} timed seconds\n'
+                    '${_formatVolume(metrics.totalVolumeKg)} kg external load volume / '
+                    '${metrics.durationSeconds == null ? "Unknown duration" : "${metrics.durationSeconds} s session duration"}',
+                  ),
+                );
+              }
+              final group = metrics.exerciseGroups[index - 1];
+              final exerciseId = group.exerciseId;
               final logs = groupedLogs[exerciseId]!;
               return Card(
                 margin: const EdgeInsets.only(bottom: 16),
@@ -42,7 +56,7 @@ class SessionDetailScreen extends ConsumerWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      DefaultTextStyle(
+                      DefaultTextStyle.merge(
                         style: const TextStyle(
                             fontSize: 18, fontWeight: FontWeight.w700),
                         child: _SessionExerciseName(
@@ -55,12 +69,18 @@ class SessionDetailScreen extends ConsumerWidget {
                       Row(
                         children: [
                           const SizedBox(width: 40, child: Text('Set')),
-                          Expanded(child: Text(
-                            logs.every((log) => log.effectiveUnit == SetUnit.seconds)
-                                ? 'Seconds' : logs.every((log) => log.effectiveUnit == SetUnit.reps)
-                                    ? 'Reps' : 'Reps / Seconds',
+                          Expanded(
+                              child: Text(
+                            logs.every((log) =>
+                                    log.effectiveUnit == SetUnit.seconds)
+                                ? 'Seconds'
+                                : logs.every((log) =>
+                                        log.effectiveUnit == SetUnit.reps)
+                                    ? 'Reps'
+                                    : 'Reps / Seconds',
                           )),
-                          if (logs.any((log) => log.effectiveUnit == SetUnit.reps))
+                          if (logs
+                              .any((log) => log.effectiveUnit == SetUnit.reps))
                             const Expanded(child: Text('Weight (kg)')),
                         ],
                       ),
@@ -73,15 +93,16 @@ class SessionDetailScreen extends ConsumerWidget {
                       }).toList(),
                       const SizedBox(height: 8),
                       // Tổng volume cho bài tập
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.end,
-                        children: [
-                          Text(
-                            'Total volume: ${_calculateVolume(logs)} kg',
-                            style: const TextStyle(fontWeight: FontWeight.w600),
-                          ),
-                        ],
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: Text(
+                          'Total volume: ${_formatVolume(group.totalVolumeKg)} kg',
+                          style: const TextStyle(fontWeight: FontWeight.w600),
+                        ),
                       ),
+                      if (!group.hasExternalLoad)
+                        const Text('External load only; timed sets and bodyweight add no kg volume.',
+                            style: TextStyle(fontSize: 12)),
                     ],
                   ),
                 ),
@@ -108,10 +129,9 @@ class SessionDetailScreen extends ConsumerWidget {
     );
   }
 
-  int _calculateVolume(List<ExerciseSetLog> logs) {
-    return logs.fold(
-        0, (sum, log) => sum + log.volumeKg.round());
-  }
+  String _formatVolume(double value) => value == value.roundToDouble()
+      ? value.toInt().toString()
+      : value.toString();
 }
 
 class _SessionExerciseName extends ConsumerStatefulWidget {
@@ -180,7 +200,22 @@ class _SessionExerciseNameState extends ConsumerState<_SessionExerciseName> {
           );
         }
         final name = snapshot.data!.name.trim();
-        return Text(name.isEmpty ? 'Bài tập không có tên' : name);
+        final exercise = snapshot.data!;
+        final muscles = exercise.targetMuscles.isNotEmpty
+            ? exercise.targetMuscles.join(', ')
+            : exercise.muscleGroup.trim();
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(name.isEmpty ? 'Bài tập không có tên' : name),
+            Text(
+                muscles.isEmpty
+                    ? 'Muscle information unavailable'
+                    : 'Muscles: $muscles',
+                style:
+                    const TextStyle(fontSize: 12, fontWeight: FontWeight.w400)),
+          ],
+        );
       },
     );
   }
