@@ -6,6 +6,24 @@ import 'dart:typed_data';
 import 'package:flutter/services.dart';
 import 'package:flutter/painting.dart';
 
+/// Supports the SDK archive's casing and existing lowercase font caches.
+Future<ByteData> readChatRenderFont(Directory directory, String name) async {
+  final candidates = [name, name.toLowerCase()]
+      .toSet()
+      .map((candidate) => File.fromUri(directory.uri.resolve(candidate)))
+      .toList();
+  for (final file in candidates) {
+    if (await file.exists()) {
+      return ByteData.sublistView(await file.readAsBytes());
+    }
+  }
+  throw FileSystemException(
+    'Missing render font $name. Tried: '
+    '${candidates.map((file) => file.path).join(', ')}',
+    directory.path,
+  );
+}
+
 /// Loads real glyphs explicitly because flutter test disables asset fonts.
 Future<void> loadChatRenderFonts() async {
   final packageConfig = File('.dart_tool/package_config.json').absolute;
@@ -22,25 +40,19 @@ Future<void> loadChatRenderFonts() async {
     sdkRoot.uri.resolve('bin/cache/artifacts/material_fonts/'),
   );
 
-  Future<ByteData> readFont(String name) async {
-    final bytes =
-        await File.fromUri(fontDirectory.uri.resolve(name)).readAsBytes();
-    return ByteData.sublistView(bytes);
-  }
-
   final textFont = FontLoader('Roboto');
   for (final name in [
-    'roboto-regular.ttf',
-    'roboto-medium.ttf',
-    'roboto-bold.ttf',
-    'roboto-italic.ttf',
+    'Roboto-Regular.ttf',
+    'Roboto-Medium.ttf',
+    'Roboto-Bold.ttf',
+    'Roboto-Italic.ttf',
   ]) {
-    textFont.addFont(readFont(name));
+    textFont.addFont(readChatRenderFont(fontDirectory, name));
   }
   await textFont.load();
 
   final iconFont = FontLoader('MaterialIcons')
-    ..addFont(readFont('materialicons-regular.otf'));
+    ..addFont(readChatRenderFont(fontDirectory, 'MaterialIcons-Regular.otf'));
   await iconFont.load();
 }
 
