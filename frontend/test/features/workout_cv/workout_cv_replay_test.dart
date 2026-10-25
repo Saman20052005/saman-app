@@ -1284,6 +1284,7 @@ void main() {
 
       // Perform reset: state and tracker must be cleared
       sourceReset.reset();
+      trackerReset.reset();
       await pumpEventQueue();
       expect(trackerReset.completedReps, 0);
       expect(trackerReset.phase, LatPulldownPhase.notReady);

@@ -43,11 +43,58 @@ class WorkoutCvNativeSource {
     }
   }
 
+  Future<bool> startVideoReplay(String videoPath) async {
+    try {
+      final result = await _methodChannel.invokeMethod<bool>(
+        'startVideoReplay',
+        {'videoPath': videoPath},
+      );
+      return result ?? false;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  Future<bool> switchSource(String mode, {String? videoPath}) async {
+    try {
+      final result = await _methodChannel.invokeMethod<bool>(
+        'switchSource',
+        {'mode': mode, 'videoPath': videoPath},
+      );
+      return result ?? false;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  Future<bool> restartVideoReplay() async {
+    try {
+      final result = await _methodChannel.invokeMethod<bool>('restartVideoReplay');
+      return result ?? false;
+    } catch (_) {
+      return false;
+    }
+  }
+
   Future<bool> stopSession() async {
     try {
       final result = await _methodChannel.invokeMethod<bool>('stopSession');
       return result ?? false;
     } catch (_) {
+      return false;
+    }
+  }
+
+  Future<bool> acknowledgeReplayFrame(int sessionGen, int videoPtsMs, String phase) async {
+    try {
+      return await _methodChannel.invokeMethod<bool>('acknowledgeReplayFrame', {
+        'sessionGen': sessionGen,
+        'videoPtsMs': videoPtsMs,
+        'phase': phase,
+      }).timeout(const Duration(seconds: 2)) ?? false;
+    } on PlatformException {
+      return false;
+    } on TimeoutException {
       return false;
     }
   }
