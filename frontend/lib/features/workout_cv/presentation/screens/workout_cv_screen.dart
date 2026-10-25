@@ -7,6 +7,7 @@ import '../../../../presentation/tokens/saman_workout_tokens.dart';
 import '../../domain/entities/exercise_cv_state.dart';
 import '../controllers/workout_cv_controller.dart';
 import '../widgets/pose_skeleton_painter.dart';
+import '../workout_cv_replay_trial.dart';
 
 class WorkoutCvScreen extends ConsumerStatefulWidget {
   final String exerciseId;
@@ -26,16 +27,22 @@ class WorkoutCvScreen extends ConsumerStatefulWidget {
 
 class _WorkoutCvScreenState extends ConsumerState<WorkoutCvScreen>
     with WidgetsBindingObserver {
+  bool get _useReplayTrial =>
+      shouldUseWorkoutCvReplayTrial(exerciseSlug: widget.exerciseSlug);
+
+  Future<void> _initializeSession() =>
+      ref.read(workoutCvControllerProvider.notifier).initialize(
+            exerciseId: widget.exerciseId,
+            exerciseSlug: widget.exerciseSlug,
+            videoReplay: _useReplayTrial,
+          );
+
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      ref.read(workoutCvControllerProvider.notifier).initialize(
-            exerciseId: widget.exerciseId,
-            exerciseSlug: widget.exerciseSlug,
-            videoReplay: !kIsWeb && Platform.isAndroid && widget.exerciseSlug == 'lat-pulldown',
-          );
+      _initializeSession();
     });
   }
 
@@ -46,11 +53,7 @@ class _WorkoutCvScreenState extends ConsumerState<WorkoutCvScreen>
         state == AppLifecycleState.inactive) {
       notifier.stop();
     } else if (state == AppLifecycleState.resumed) {
-      notifier.initialize(
-        exerciseId: widget.exerciseId,
-        exerciseSlug: widget.exerciseSlug,
-        videoReplay: !kIsWeb && Platform.isAndroid && widget.exerciseSlug == 'lat-pulldown',
-      );
+      _initializeSession();
     }
   }
 
@@ -154,7 +157,7 @@ class _WorkoutCvScreenState extends ConsumerState<WorkoutCvScreen>
           ),
         ),
         const SizedBox(width: 8),
-        if (!kIsWeb && Platform.isAndroid && widget.exerciseSlug == 'lat-pulldown')
+        if (_useReplayTrial)
           IconButton(
             key: const ValueKey('workout_cv_switch_replay_button'),
             tooltip: cvState.sourceMode == 'video_replay' ? 'Chạy lại từ 0' : 'Video Replay',
@@ -292,7 +295,9 @@ class _WorkoutCvScreenState extends ConsumerState<WorkoutCvScreen>
             _ReplayRepSummary(
               countLabel: cvState.repCountLabel,
               statusLabel: cvState.replayAnalysisLabel,
-              onRestart: () => ref.read(workoutCvControllerProvider.notifier).restartVideoReplay(),
+              onRestart: _useReplayTrial
+                  ? () => ref.read(workoutCvControllerProvider.notifier).restartVideoReplay()
+                  : null,
             ),
           // Guide banner
           Row(
@@ -390,12 +395,7 @@ class _WorkoutCvScreenState extends ConsumerState<WorkoutCvScreen>
             ),
             const SizedBox(height: 24),
             ElevatedButton(
-              onPressed: () {
-                ref.read(workoutCvControllerProvider.notifier).initialize(
-                      exerciseId: widget.exerciseId,
-                      exerciseSlug: widget.exerciseSlug,
-                    );
-              },
+              onPressed: _initializeSession,
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF10B981),
                 foregroundColor: Colors.black,
@@ -421,7 +421,7 @@ class _WorkoutCvScreenState extends ConsumerState<WorkoutCvScreen>
 class _ReplayRepSummary extends StatelessWidget {
   final String countLabel;
   final String statusLabel;
-  final VoidCallback onRestart;
+  final VoidCallback? onRestart;
 
   const _ReplayRepSummary({required this.countLabel, required this.statusLabel, required this.onRestart});
 
@@ -440,12 +440,13 @@ class _ReplayRepSummary extends StatelessWidget {
               ),
             ),
           ),
-          TextButton.icon(
-            onPressed: onRestart,
-            icon: const Icon(Icons.replay),
-            label: const Text('Chạy lại'),
-            style: TextButton.styleFrom(foregroundColor: SamanWorkoutTokens.textPrimary),
-          ),
+          if (onRestart != null)
+            TextButton.icon(
+              onPressed: onRestart,
+              icon: const Icon(Icons.replay),
+              label: const Text('Chạy lại'),
+              style: TextButton.styleFrom(foregroundColor: SamanWorkoutTokens.textPrimary),
+            ),
         ],
       ),
     );
