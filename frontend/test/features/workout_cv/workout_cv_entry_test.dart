@@ -11,6 +11,9 @@ import 'package:health_ai_app/features/workout_cv/data/datasources/workout_cv_na
 import 'package:health_ai_app/features/workout_cv/presentation/controllers/workout_cv_controller.dart';
 
 class FakeWorkoutCvNativeSource implements WorkoutCvNativeSource {
+  @override
+  Future<bool> acknowledgeReplayFrame(int sessionGen, int videoPtsMs, String phase) async => true;
+
   String permissionStatus = 'granted';
   bool requestPermissionResult = true;
   bool startSessionResult = true;
@@ -28,6 +31,15 @@ class FakeWorkoutCvNativeSource implements WorkoutCvNativeSource {
     startSessionCalled = true;
     return startSessionResult;
   }
+
+  @override
+  Future<bool> startVideoReplay(String videoPath) async => false;
+
+  @override
+  Future<bool> switchSource(String mode, {String? videoPath}) async => false;
+
+  @override
+  Future<bool> restartVideoReplay() async => false;
 
   @override
   Future<bool> stopSession() async {

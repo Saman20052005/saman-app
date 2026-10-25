@@ -1,8 +1,11 @@
 import 'dart:async';
+import 'package:flutter/scheduler.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../data/datasources/workout_cv_native_source.dart';
 import '../../domain/entities/exercise_cv_state.dart';
 import '../../domain/entities/pose_landmark.dart';
+import '../../domain/services/lat_pulldown_baseline.dart';
+import '../../domain/services/workout_cv_motion_features.dart';
 
 final workoutCvNativeSourceProvider = Provider<WorkoutCvNativeSource>((ref) {
   return WorkoutCvNativeSource();
@@ -20,21 +23,35 @@ class WorkoutCvNotifier extends StateNotifier<ExerciseCvState> {
   StreamSubscription<Map<String, dynamic>>? _subscription;
   int _lastFpsWindowCount = 0;
   DateTime _lastFpsWindowTime = DateTime.now();
+  int _latestSeenSessionGen = 0;
+  int _minRejectedSessionGen = 0;
   int _initGeneration = 0;
   bool _isStopped = false;
+  final LatPulldownBaseline _replayTracker = LatPulldownBaseline();
+  int? _repSessionGen;
+  int? _lastRepPtsMs;
+  bool _replayAnalysisClosed = false;
+  String? _replayVideoPath;
 
   WorkoutCvNotifier(this._nativeSource) : super(const ExerciseCvState());
 
   Future<void> initialize({
     required String exerciseId,
     required String exerciseSlug,
+    bool videoReplay = false,
   }) async {
     final opId = ++_initGeneration;
     _isStopped = false;
+    _minRejectedSessionGen = _latestSeenSessionGen;
     _subscription?.cancel();
     _subscription = null;
 
+    _resetReplayAnalysis();
+
     state = state.copyWith(
+      sourceMode: 'camera',
+      isEndOfStream: false,
+      isPtsVerified: true,
       exerciseId: exerciseId,
       exerciseSlug: exerciseSlug,
       guideMessage: 'Checking camera permission...',
@@ -43,6 +60,11 @@ class WorkoutCvNotifier extends StateNotifier<ExerciseCvState> {
       landmarks: const [],
       clearErrorMessage: true,
     );
+
+    if (videoReplay) {
+      await startVideoReplay();
+      return;
+    }
 
     final perm = await _nativeSource.checkPermission();
     if (!mounted || _isStopped || opId != _initGeneration) return;
@@ -91,6 +113,113 @@ class WorkoutCvNotifier extends StateNotifier<ExerciseCvState> {
     _listenToEvents();
   }
 
+  Future<void> startVideoReplay({String? videoPath}) async {
+    final path = videoPath ?? '/data/data/com.example.health_ai_app/files/test_videos/15620300_1080_1920_50fps.mp4';
+    final name = path.split('/').last;
+    _replayVideoPath = path;
+
+    final opId = ++_initGeneration;
+    _isStopped = false;
+    _subscription?.cancel();
+    _subscription = null;
+    _minRejectedSessionGen = _latestSeenSessionGen;
+    _lastFpsWindowTime = DateTime.now();
+    _lastFpsWindowCount = 0;
+
+    _resetReplayAnalysis();
+
+    state = state.copyWith(
+      sourceMode: 'video_replay',
+      clipName: name,
+      guideMessage: 'Starting video replay...',
+      trackingStatus: TrackingStatus.needsSetup,
+      isCameraActive: true,
+      isEndOfStream: false,
+      frameCount: 0,
+      fps: 0.0,
+      landmarks: const [],
+      latencyHistoryMs: const [],
+      videoPtsMs: 0,
+      previewPtsMs: 0,
+      ptsSkewMs: 0,
+      isPtsVerified: false,
+      sourceFps: 50.0,
+      overlayVisiblePct: 0.0,
+      overlayHiddenSkewPct: 0.0,
+      overlayHiddenNoResultPct: 0.0,
+      overlayHiddenGatePct: 0.0,
+      clearErrorMessage: true,
+    );
+
+    // Subscribe before native starts its first bounded frame handshake.
+    _listenToEvents();
+    final started = await _nativeSource.startVideoReplay(path);
+    if (!mounted || _isStopped || opId != _initGeneration) return;
+    if (!started) {
+      _closeReplayAnalysis(failed: true);
+      state = state.copyWith(
+        trackingStatus: TrackingStatus.error,
+        isCameraActive: false,
+        landmarks: const [],
+        errorMessage: 'Failed to start native CV source.',
+        guideMessage: 'Unable to start requested source.',
+      );
+      return;
+    }
+  }
+
+  Future<void> restartVideoReplay() async {
+    await startVideoReplay(videoPath: _replayVideoPath);
+  }
+
+  Future<void> switchToCamera() async {
+    final opId = ++_initGeneration;
+    _isStopped = false;
+    _subscription?.cancel();
+    _subscription = null;
+    _minRejectedSessionGen = _latestSeenSessionGen;
+    _lastFpsWindowTime = DateTime.now();
+    _lastFpsWindowCount = 0;
+
+    _resetReplayAnalysis();
+
+    state = state.copyWith(
+      sourceMode: 'camera',
+      clipName: '',
+      guideMessage: 'Switching to live camera...',
+      trackingStatus: TrackingStatus.needsSetup,
+      isCameraActive: true,
+      isEndOfStream: false,
+      frameCount: 0,
+      fps: 0.0,
+      landmarks: const [],
+      latencyHistoryMs: const [],
+      videoPtsMs: 0,
+      previewPtsMs: 0,
+      ptsSkewMs: 0,
+      isPtsVerified: true,
+      overlayVisiblePct: 0.0,
+      overlayHiddenSkewPct: 0.0,
+      overlayHiddenNoResultPct: 0.0,
+      overlayHiddenGatePct: 0.0,
+      clearErrorMessage: true,
+    );
+
+    final started = await _nativeSource.switchSource('camera');
+    if (!mounted || _isStopped || opId != _initGeneration) return;
+    if (!started) {
+      state = state.copyWith(
+        trackingStatus: TrackingStatus.error,
+        isCameraActive: false,
+        landmarks: const [],
+        errorMessage: 'Failed to start native CV source.',
+        guideMessage: 'Unable to start requested source.',
+      );
+      return;
+    }
+    _listenToEvents();
+  }
+
   void _listenToEvents() {
     _subscription?.cancel();
     _lastFpsWindowTime = DateTime.now();
@@ -99,12 +228,35 @@ class WorkoutCvNotifier extends StateNotifier<ExerciseCvState> {
     _subscription = _nativeSource.eventStream.listen(
       (event) {
         if (!mounted || _isStopped || !state.isCameraActive) return;
+        final generation = (event['sessionGen'] as num?)?.toInt();
+        if (generation != null && (generation <= _minRejectedSessionGen ||
+            generation < _latestSeenSessionGen)) return;
+        if (state.sourceMode == 'video_replay') {
+          if (_replayAnalysisClosed) return;
+          if (generation != null && generation != _repSessionGen) {
+            _resetReplayAnalysis();
+            _repSessionGen = generation;
+          }
+        }
         _processEvent(event);
+        _processReplayAnalysis(event);
+        if (state.sourceMode == 'video_replay' && !state.isEndOfStream &&
+            generation == state.sessionGen && state.trackingStatus != TrackingStatus.error) {
+          if (event['status'] == 'replayPreparing') {
+            _acknowledgeAfterFrame(generation!, (event['nextVideoPtsMs'] as num).toInt(), 'clear');
+          } else if (event['requiresReplayAck'] == true &&
+              state.videoPtsMs == (event['videoPtsMs'] as num?)?.toInt()) {
+            _acknowledgeAfterFrame(generation!, state.videoPtsMs, 'pose');
+          }
+        }
       },
       onError: (err) {
         if (!mounted || _isStopped) return;
+        if (state.sourceMode == 'video_replay' && _replayAnalysisClosed) return;
+        _closeReplayAnalysis(failed: true);
         state = state.copyWith(
           trackingStatus: TrackingStatus.error,
+          landmarks: const [],
           errorMessage: 'Stream error: $err',
           guideMessage: 'Error receiving camera stream.',
         );
@@ -113,11 +265,95 @@ class WorkoutCvNotifier extends StateNotifier<ExerciseCvState> {
   }
 
   void _processEvent(Map<String, dynamic> event) {
+    final eventSessionGen = (event['sessionGen'] as num?)?.toInt();
+    if (eventSessionGen != null) {
+      if (eventSessionGen <= _minRejectedSessionGen || eventSessionGen < _latestSeenSessionGen) {
+        return;
+      }
+      _latestSeenSessionGen = eventSessionGen;
+    }
+
     final statusStr = event['status'] as String? ?? 'lost';
-    final timestamp = (event['timestamp'] as num?)?.toInt() ??
-        DateTime.now().millisecondsSinceEpoch;
+    if (statusStr == 'replayPreparing') {
+      if (state.isEndOfStream) return;
+      state = state.copyWith(
+        sessionGen: eventSessionGen,
+        landmarks: const [],
+        posesDetected: 0,
+        isPtsVerified: false,
+        guideMessage: 'Slow video replay: waiting for the next pose...',
+      );
+      return;
+    }
+    final timestamp = (event['timestamp'] as num?)?.toInt() ?? DateTime.now().millisecondsSinceEpoch;
     final latency = (event['latencyMs'] as num?)?.toInt() ?? 0;
     final numPoses = (event['numPoses'] as num?)?.toInt() ?? 0;
+
+    final sourceMode = event['sourceMode'] as String? ?? state.sourceMode;
+    final clipName = event['clipName'] as String? ?? state.clipName;
+    final videoPtsMs = (event['videoPtsMs'] as num?)?.toInt() ?? timestamp;
+    final previewPtsMs = (event['previewPtsMs'] as num?)?.toInt() ?? videoPtsMs;
+    final ptsSkewMs = (event['ptsSkewMs'] as num?)?.toInt() ?? (previewPtsMs - videoPtsMs).abs();
+    final isPtsVerified = event['isPtsVerified'] as bool? ?? (sourceMode == 'camera');
+    final sourceFps = (event['sourceFps'] as num?)?.toDouble() ?? (sourceMode == 'video_replay' ? 50.0 : 30.0);
+    final isEos = event['isEndOfStream'] == true || statusStr == 'endOfStream';
+    final readbackLatency = (event['readbackMs'] as num?)?.toDouble() ?? state.readbackLatencyMs;
+
+    final overlayVisiblePct = (event['overlayVisiblePct'] as num?)?.toDouble() ?? state.overlayVisiblePct;
+    final overlayHiddenSkewPct = (event['overlayHiddenSkewPct'] as num?)?.toDouble() ?? state.overlayHiddenSkewPct;
+    final overlayHiddenNoResultPct = (event['overlayHiddenNoResultPct'] as num?)?.toDouble() ?? state.overlayHiddenNoResultPct;
+    final overlayHiddenGatePct = (event['overlayHiddenGatePct'] as num?)?.toDouble() ?? state.overlayHiddenGatePct;
+
+    // Ignore late frame callbacks after EOS has been reached for this generation
+    if (state.isEndOfStream && eventSessionGen == state.sessionGen && !isEos) {
+      return;
+    }
+
+    // Continuous preview progress tick (updates previewPtsMs, skew & auto-hides stale skeleton if >80ms)
+    if (statusStr == 'previewProgress') {
+      state = state.copyWith(
+        sessionGen: eventSessionGen ?? state.sessionGen,
+        videoPtsMs: videoPtsMs,
+        previewPtsMs: previewPtsMs,
+        ptsSkewMs: ptsSkewMs,
+        isPtsVerified: isPtsVerified,
+        sourceMode: sourceMode,
+        clipName: clipName,
+        sourceFps: sourceFps,
+        readbackLatencyMs: readbackLatency,
+        overlayVisiblePct: overlayVisiblePct,
+        overlayHiddenSkewPct: overlayHiddenSkewPct,
+        overlayHiddenNoResultPct: overlayHiddenNoResultPct,
+        overlayHiddenGatePct: overlayHiddenGatePct,
+      );
+      return;
+    }
+
+    // End of stream handling
+    if (isEos) {
+      _closeReplayAnalysis();
+      state = state.copyWith(
+        sessionGen: eventSessionGen ?? state.sessionGen,
+        isEndOfStream: true,
+        trackingStatus: TrackingStatus.uninitialized,
+        landmarks: const [],
+        posesDetected: 0,
+        guideMessage: 'Video replay finished. Tap Restart to replay.',
+        videoPtsMs: videoPtsMs,
+        previewPtsMs: previewPtsMs,
+        ptsSkewMs: ptsSkewMs,
+        isPtsVerified: false,
+        sourceMode: sourceMode,
+        clipName: clipName,
+        sourceFps: sourceFps,
+        readbackLatencyMs: readbackLatency,
+        overlayVisiblePct: overlayVisiblePct,
+        overlayHiddenSkewPct: overlayHiddenSkewPct,
+        overlayHiddenNoResultPct: overlayHiddenNoResultPct,
+        overlayHiddenGatePct: overlayHiddenGatePct,
+      );
+      return;
+    }
 
     // Moving FPS calculation
     final now = DateTime.now();
@@ -137,6 +373,22 @@ class WorkoutCvNotifier extends StateNotifier<ExerciseCvState> {
     if (updatedLatencyHistory.length > 500) {
       updatedLatencyHistory.removeAt(0);
     }
+
+    state = state.copyWith(
+        sourceMode: sourceMode,
+        clipName: clipName,
+        sessionGen: eventSessionGen ?? state.sessionGen,
+        videoPtsMs: videoPtsMs,
+        previewPtsMs: previewPtsMs,
+        ptsSkewMs: ptsSkewMs,
+        isPtsVerified: isPtsVerified,
+        sourceFps: sourceFps,
+        readbackLatencyMs: readbackLatency,
+        overlayVisiblePct: overlayVisiblePct,
+        overlayHiddenSkewPct: overlayHiddenSkewPct,
+        overlayHiddenNoResultPct: overlayHiddenNoResultPct,
+        overlayHiddenGatePct: overlayHiddenGatePct,
+    );
 
     // Quality Gate 1: Native reported error
     if (statusStr == 'error') {
@@ -251,6 +503,96 @@ class WorkoutCvNotifier extends StateNotifier<ExerciseCvState> {
     );
   }
 
+  void _resetReplayAnalysis() {
+    _replayTracker.reset();
+    _repSessionGen = null;
+    _lastRepPtsMs = null;
+    _replayAnalysisClosed = false;
+    state = state.copyWith(
+      replayRepEvents: const [],
+      replayAnalysisStatus: ReplayAnalysisStatus.waiting,
+    );
+  }
+
+  void _closeReplayAnalysis({bool failed = false}) {
+    if (state.sourceMode != 'video_replay') return;
+    _replayAnalysisClosed = true;
+    // Drop any incomplete cycle, preserving only completed events in UI state.
+    _replayTracker.reset();
+    state = state.copyWith(
+      replayAnalysisStatus: failed
+          ? ReplayAnalysisStatus.error
+          : ReplayAnalysisStatus.finished,
+    );
+  }
+
+  void _processReplayAnalysis(Map<String, dynamic> event) {
+    if (state.sourceMode != 'video_replay' || _replayAnalysisClosed) return;
+    if (state.trackingStatus == TrackingStatus.error) {
+      _closeReplayAnalysis(failed: true);
+      return;
+    }
+    // Display handshakes/progress are not pose samples or recognition failures.
+    if (event['status'] == 'replayPreparing' ||
+        event['status'] == 'previewProgress') return;
+    if (state.exerciseSlug != 'lat-pulldown') return;
+
+    final ptsMs = (event['videoPtsMs'] as num?)?.toInt();
+    if (_repSessionGen == null || event['sessionGen'] != _repSessionGen ||
+        ptsMs == null || ptsMs < 0) {
+      _closeReplayAnalysis(failed: true);
+      state = state.copyWith(
+        trackingStatus: TrackingStatus.error,
+        landmarks: const [],
+        errorMessage: 'Replay pose is missing its generation or video PTS.',
+      );
+      return;
+    }
+    if (_lastRepPtsMs != null && ptsMs <= _lastRepPtsMs!) return;
+    _lastRepPtsMs = ptsMs;
+
+    final features = WorkoutCvMotionFeatures.extractLatPulldownFeatures(
+      frameIndex: state.frameCount - 1,
+      timestampMs: ptsMs,
+      landmarks: state.landmarks,
+      imageWidth: (event['inputImageWidth'] as num?)?.toDouble() ?? 0,
+      imageHeight: (event['inputImageHeight'] as num?)?.toDouble() ?? 0,
+      isGateDetecting: state.trackingStatus == TrackingStatus.detecting &&
+          state.isSyncValid,
+    );
+    // Invalid/lost samples must reach the baseline to interrupt holds/cycles.
+    final result = _replayTracker.processFrameFeatures(features);
+    state = state.copyWith(
+      replayRepEvents: _replayTracker.repHistory,
+      replayAnalysisStatus: result.isSampleValid &&
+              result.phase != LatPulldownPhase.notReady
+          ? ReplayAnalysisStatus.analyzing
+          : ReplayAnalysisStatus.insufficientData,
+    );
+  }
+
+  void _acknowledgeAfterFrame(int generation, int ptsMs, String phase) {
+    final operation = _initGeneration;
+    SchedulerBinding.instance.addPostFrameCallback((_) async {
+      if (!mounted || _isStopped || operation != _initGeneration ||
+          state.sessionGen != generation || state.isEndOfStream ||
+          state.sourceMode != 'video_replay') return;
+      final accepted = await _nativeSource.acknowledgeReplayFrame(generation, ptsMs, phase);
+      if (!accepted && mounted && !_isStopped && operation == _initGeneration &&
+          state.sessionGen == generation && !state.isEndOfStream) {
+        _closeReplayAnalysis(failed: true);
+        state = state.copyWith(
+          trackingStatus: TrackingStatus.error,
+          landmarks: const [],
+          isPtsVerified: false,
+          errorMessage: 'Replay frame acknowledgement failed.',
+          guideMessage: 'Replay stopped. Restart to try again.',
+        );
+      }
+    });
+    SchedulerBinding.instance.ensureVisualUpdate();
+  }
+
   bool _isJointConfident(List<PoseLandmark> landmarks, int index) {
     PoseLandmark? lm;
     if (index < landmarks.length && landmarks[index].index == index) {
@@ -273,6 +615,8 @@ class WorkoutCvNotifier extends StateNotifier<ExerciseCvState> {
   Future<void> stop() async {
     ++_initGeneration;
     _isStopped = true;
+    _replayTracker.reset();
+    _replayAnalysisClosed = true;
     _subscription?.cancel();
     _subscription = null;
     await _nativeSource.stopSession();

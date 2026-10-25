@@ -3,9 +3,11 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../../presentation/tokens/saman_workout_tokens.dart';
 import '../../domain/entities/exercise_cv_state.dart';
 import '../controllers/workout_cv_controller.dart';
 import '../widgets/pose_skeleton_painter.dart';
+import '../workout_cv_replay_trial.dart';
 
 class WorkoutCvScreen extends ConsumerStatefulWidget {
   final String exerciseId;
@@ -25,15 +27,22 @@ class WorkoutCvScreen extends ConsumerStatefulWidget {
 
 class _WorkoutCvScreenState extends ConsumerState<WorkoutCvScreen>
     with WidgetsBindingObserver {
+  bool get _useReplayTrial =>
+      shouldUseWorkoutCvReplayTrial(exerciseSlug: widget.exerciseSlug);
+
+  Future<void> _initializeSession() =>
+      ref.read(workoutCvControllerProvider.notifier).initialize(
+            exerciseId: widget.exerciseId,
+            exerciseSlug: widget.exerciseSlug,
+            videoReplay: _useReplayTrial,
+          );
+
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      ref.read(workoutCvControllerProvider.notifier).initialize(
-            exerciseId: widget.exerciseId,
-            exerciseSlug: widget.exerciseSlug,
-          );
+      _initializeSession();
     });
   }
 
@@ -44,10 +53,7 @@ class _WorkoutCvScreenState extends ConsumerState<WorkoutCvScreen>
         state == AppLifecycleState.inactive) {
       notifier.stop();
     } else if (state == AppLifecycleState.resumed) {
-      notifier.initialize(
-        exerciseId: widget.exerciseId,
-        exerciseSlug: widget.exerciseSlug,
-      );
+      _initializeSession();
     }
   }
 
@@ -86,6 +92,7 @@ class _WorkoutCvScreenState extends ConsumerState<WorkoutCvScreen>
                   painter: PoseSkeletonPainter(
                     landmarks: cvState.landmarks,
                     trackingStatus: cvState.trackingStatus,
+                    isSyncValid: cvState.isSyncValid,
                   ),
                 ),
               ),
@@ -137,9 +144,11 @@ class _WorkoutCvScreenState extends ConsumerState<WorkoutCvScreen>
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
               ),
-              const Text(
-                'MediaPipe Pose Lite · Back Camera',
-                style: TextStyle(
+              Text(
+                cvState.sourceMode == 'video_replay'
+                    ? 'Replay thử nghiệm • phát chậm'
+                    : 'MediaPipe Pose Lite · Back Camera',
+                style: const TextStyle(
                   color: Colors.white70,
                   fontSize: 11,
                 ),
@@ -148,18 +157,33 @@ class _WorkoutCvScreenState extends ConsumerState<WorkoutCvScreen>
           ),
         ),
         const SizedBox(width: 8),
-        _buildStatusChip(cvState.trackingStatus),
+        if (_useReplayTrial)
+          IconButton(
+            key: const ValueKey('workout_cv_switch_replay_button'),
+            tooltip: cvState.sourceMode == 'video_replay' ? 'Chạy lại từ 0' : 'Video Replay',
+            icon: const Icon(Icons.video_library_outlined),
+            style: IconButton.styleFrom(foregroundColor: SamanWorkoutTokens.textPrimary),
+            onPressed: () {
+              final notifier = ref.read(workoutCvControllerProvider.notifier);
+              if (cvState.sourceMode == 'video_replay') {
+                notifier.restartVideoReplay();
+              } else {
+                notifier.startVideoReplay();
+              }
+            },
+          ),
+        _buildStatusChip(cvState),
       ],
     );
   }
 
-  Widget _buildStatusChip(TrackingStatus status) {
+  Widget _buildStatusChip(ExerciseCvState cvState) {
     Color bg;
     Color fg;
     String label;
     IconData icon;
 
-    switch (status) {
+    switch (cvState.trackingStatus) {
       case TrackingStatus.detecting:
         bg = const Color(0x3310B981);
         fg = const Color(0xFF10B981);
@@ -204,6 +228,31 @@ class _WorkoutCvScreenState extends ConsumerState<WorkoutCvScreen>
         break;
     }
 
+    if (cvState.sourceMode == 'video_replay') {
+      label = cvState.replayAnalysisLabel;
+      switch (cvState.replayAnalysisStatus) {
+        case ReplayAnalysisStatus.waiting:
+          icon = Icons.hourglass_empty;
+          break;
+        case ReplayAnalysisStatus.analyzing:
+          icon = Icons.accessibility_new;
+          break;
+        case ReplayAnalysisStatus.insufficientData:
+          fg = SamanWorkoutTokens.amberAccent;
+          bg = SamanWorkoutTokens.surfaceElevated;
+          icon = Icons.info_outline;
+          break;
+        case ReplayAnalysisStatus.finished:
+          fg = SamanWorkoutTokens.textSecondary;
+          bg = SamanWorkoutTokens.surfaceElevated;
+          icon = Icons.stop_circle_outlined;
+          break;
+        case ReplayAnalysisStatus.error:
+          icon = Icons.error_outline;
+          break;
+      }
+    }
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: BoxDecoration(
@@ -242,6 +291,14 @@ class _WorkoutCvScreenState extends ConsumerState<WorkoutCvScreen>
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          if (cvState.sourceMode == 'video_replay')
+            _ReplayRepSummary(
+              countLabel: cvState.repCountLabel,
+              statusLabel: cvState.replayAnalysisLabel,
+              onRestart: _useReplayTrial
+                  ? () => ref.read(workoutCvControllerProvider.notifier).restartVideoReplay()
+                  : null,
+            ),
           // Guide banner
           Row(
             children: [
@@ -259,7 +316,9 @@ class _WorkoutCvScreenState extends ConsumerState<WorkoutCvScreen>
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
-                  cvState.guideMessage,
+                  cvState.sourceMode == 'video_replay'
+                      ? (cvState.errorMessage ?? cvState.replayAnalysisLabel)
+                      : cvState.guideMessage,
                   style: const TextStyle(
                     color: Colors.white,
                     fontSize: 13,
@@ -296,9 +355,11 @@ class _WorkoutCvScreenState extends ConsumerState<WorkoutCvScreen>
             ],
           ),
           const SizedBox(height: 4),
-          const Text(
-            'PoC Form Check · Auto-log & rep counting disabled · Manual workout preserved',
-            style: TextStyle(
+          Text(
+            cvState.sourceMode == 'video_replay'
+                ? 'Chỉ thử nghiệm • Không tự lưu lịch sử hoặc hoàn thành set'
+                : 'PoC Form Check · Auto-log & rep counting disabled · Manual workout preserved',
+            style: const TextStyle(
               color: Colors.white38,
               fontSize: 10,
             ),
@@ -334,12 +395,7 @@ class _WorkoutCvScreenState extends ConsumerState<WorkoutCvScreen>
             ),
             const SizedBox(height: 24),
             ElevatedButton(
-              onPressed: () {
-                ref.read(workoutCvControllerProvider.notifier).initialize(
-                      exerciseId: widget.exerciseId,
-                      exerciseSlug: widget.exerciseSlug,
-                    );
-              },
+              onPressed: _initializeSession,
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF10B981),
                 foregroundColor: Colors.black,
@@ -357,6 +413,41 @@ class _WorkoutCvScreenState extends ConsumerState<WorkoutCvScreen>
       child: Text(
         'Camera PlatformView is available on Android devices.',
         style: TextStyle(color: Colors.white54, fontSize: 13),
+      ),
+    );
+  }
+}
+
+class _ReplayRepSummary extends StatelessWidget {
+  final String countLabel;
+  final String statusLabel;
+  final VoidCallback? onRestart;
+
+  const _ReplayRepSummary({required this.countLabel, required this.statusLabel, required this.onRestart});
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      label: '$countLabel. $statusLabel',
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              countLabel,
+              key: const ValueKey('workout_cv_replay_rep_count'),
+              style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                color: SamanWorkoutTokens.textPrimary,
+              ),
+            ),
+          ),
+          if (onRestart != null)
+            TextButton.icon(
+              onPressed: onRestart,
+              icon: const Icon(Icons.replay),
+              label: const Text('Chạy lại'),
+              style: TextButton.styleFrom(foregroundColor: SamanWorkoutTokens.textPrimary),
+            ),
+        ],
       ),
     );
   }

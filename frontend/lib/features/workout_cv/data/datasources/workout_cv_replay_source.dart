@@ -98,10 +98,13 @@ class WorkoutCvReplaySource extends WorkoutCvNativeSource {
     return true;
   }
 
+  @override
   Future<bool> startVideoReplay(String videoPath) async => false;
 
+  @override
   Future<bool> switchSource(String mode, {String? videoPath}) async => false;
 
+  @override
   Future<bool> restartVideoReplay() async => false;
 
   @override

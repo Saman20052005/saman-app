@@ -5,10 +5,12 @@ import '../../domain/entities/pose_landmark.dart';
 class PoseSkeletonPainter extends CustomPainter {
   final List<PoseLandmark> landmarks;
   final TrackingStatus trackingStatus;
+  final bool isSyncValid;
 
   PoseSkeletonPainter({
     required this.landmarks,
     required this.trackingStatus,
+    this.isSyncValid = true,
   });
 
   @override
@@ -16,7 +18,7 @@ class PoseSkeletonPainter extends CustomPainter {
     // 1. Draw subtle framing guide box to assist positioning
     _drawFramingGuide(canvas, size);
 
-    if (landmarks.isEmpty ||
+    if (!isSyncValid || landmarks.isEmpty ||
         trackingStatus == TrackingStatus.lost ||
         trackingStatus == TrackingStatus.multiplePeople) {
       return;
@@ -111,6 +113,6 @@ class PoseSkeletonPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant PoseSkeletonPainter oldDelegate) {
-    return oldDelegate.landmarks != landmarks || oldDelegate.trackingStatus != trackingStatus;
+    return oldDelegate.isSyncValid != isSyncValid || oldDelegate.landmarks != landmarks || oldDelegate.trackingStatus != trackingStatus;
   }
 }
