@@ -30,6 +30,9 @@ class NutritionLoggedMealCard extends StatelessWidget {
   }
 
   String? _findImageUrl() {
+    if (entry.imageUrl != null && entry.imageUrl!.isNotEmpty) {
+      return entry.imageUrl;
+    }
     for (final food in entry.foods) {
       final img = food['image'] ?? food['image_url'] ?? food['thumbnail'];
       if (img != null && img.toString().isNotEmpty) {

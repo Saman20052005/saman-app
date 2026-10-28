@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport"/>
+<title>App Settings - Saman</title>
+<!-- Tailwind CSS CDN with plugins -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Tailwind Configuration -->
+<script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            app: {
+              bg: '#0A0A0C',
+              card: '#151518',
+              cardHover: '#1B1B20',
+              border: 'rgba(255, 255, 255, 0.08)',
+              subtle: '#8E8E93',
+              dim: '#636366'
+            }
+          },
+          fontFamily: {
+            sans: ['-apple-system', 'BlinkMacSystemFont', '"SF Pro Text"', '"SF Pro Display"', 'Inter', 'sans-serif'],
+          }
+        }
+      }
+    }
+  </script>
+<!-- Custom CSS for mobile frame layout -->
+<style data-purpose="mobile-viewport">
+    body {
+      background-color: #030304;
+      color: #FFFFFF;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", Inter, sans-serif;
+    }
+    /* Mobile frame container */
+    .mobile-frame {
+      width: 100%;
+      max-width: 390px;
+      min-height: 844px;
+      background-color: #0A0A0C;
+      position: relative;
+      overflow-x: hidden;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
+    }
+    /* Hide scrollbar for standard look */
+    .no-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+    .no-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+  </style>
+</head>
+<body>
+<!-- BEGIN: MobileDeviceFrame -->
+<div class="mobile-frame no-scrollbar" data-purpose="app-container">
+<!-- BEGIN: iOSStatusBar -->
+<header class="w-full pt-3 px-7 pb-2 flex justify-between items-center text-white z-20" data-purpose="status-bar">
+<!-- Current Time -->
+<span class="text-sm font-semibold tracking-tight">9:41</span>
+<!-- Hardware / Connectivity Indicators -->
+<div aria-label="System Indicators" class="flex items-center space-x-1.5">
+<!-- Cellular Signal Icon -->
+<svg class="w-4 h-4" fill="currentColor" viewbox="0 0 24 24">
+<path d="M2 17h3v4H2v-4zm6-5h3v9H8v-9zm6-4h3v13h-3V8zm6-5h3v18h-3V3z"></path>
+</svg>
+<!-- Wi-Fi Icon -->
+<svg class="w-4 h-4" fill="currentColor" viewbox="0 0 24 24">
+<path d="M12 4C7.31 4 3.07 5.9 0 8.98L12 21 24 8.98C20.93 5.9 16.69 4 12 4zm0 3.32c3.78 0 7.23 1.48 9.8 3.92L12 18.25 2.2 11.24C4.77 8.8 8.22 7.32 12 7.32z"></path>
+</svg>
+<!-- Battery Icon -->
+<div class="w-6 h-3 border border-white/80 rounded-sm p-0.5 flex items-center relative">
+<div class="h-full w-4/5 bg-white rounded-xs"></div>
+<div class="absolute -right-1 top-1 w-0.5 h-1 bg-white/80 rounded-r-xs"></div>
+</div>
+</div>
+</header>
+<!-- END: iOSStatusBar -->
+<!-- BEGIN: NavigationHeader -->
+<nav class="px-5 pt-3 pb-4 flex items-center justify-between" data-purpose="top-navigation-bar">
+<div class="flex items-center space-x-3">
+<!-- Back Navigation Button -->
+<button aria-label="Go back" class="w-10 h-10 -ml-2 rounded-full flex items-center justify-center text-neutral-300 hover:text-white hover:bg-neutral-800/50 transition-colors active:scale-95" type="button">
+<svg class="w-6 h-6 stroke-[2]" fill="none" stroke="currentColor" viewbox="0 0 24 24">
+<path d="M15.75 19.5L8.25 12l7.5-7.5" stroke-linecap="round" stroke-linejoin="round"></path>
+</svg>
+</button>
+<!-- Title -->
+<h1 class="text-xl font-bold text-white tracking-tight">App settings</h1>
+</div>
+</nav>
+<!-- END: NavigationHeader -->
+<!-- BEGIN: MainContentArea -->
+<main class="flex-1 px-5 pt-2 pb-8 space-y-6 overflow-y-auto no-scrollbar" data-purpose="settings-list">
+<!-- BEGIN: SectionPreferences -->
+<section data-purpose="preferences-group">
+<!-- Section Header -->
+<h2 class="text-xs font-semibold uppercase tracking-wider text-neutral-400 px-1 mb-2.5">
+          PREFERENCES
+        </h2>
+<!-- Card Container -->
+<div class="bg-app-card rounded-2xl border border-app-border overflow-hidden divide-y divide-white/[0.06]">
+<!-- Row: Language -->
+<button class="w-full px-4 py-3.5 min-h-[56px] flex items-center justify-between text-left hover:bg-app-cardHover transition-colors focus:outline-none focus:bg-app-cardHover" data-purpose="setting-row-language" type="button">
+<!-- Leading Content -->
+<div class="flex items-center space-x-3.5">
+<div class="text-neutral-400 flex items-center justify-center">
+<!-- Globe Icon -->
+<svg class="w-5 h-5 stroke-[1.6]" fill="none" stroke="currentColor" viewbox="0 0 24 24">
+<path d="M12 21a9 9 0 100-18 9 9 0 000 18z" stroke-linecap="round" stroke-linejoin="round"></path>
+<path d="M3.6 9h16.8M3.6 15h16.8" stroke-linecap="round" stroke-linejoin="round"></path>
+<path d="M11.5 3a17 17 0 000 18M12.5 3a17 17 0 010 18" stroke-linecap="round" stroke-linejoin="round"></path>
+</svg>
+</div>
+<span class="text-[15px] font-medium text-white tracking-normal">Ngôn ngữ / Language</span>
+</div>
+<!-- Trailing Indicator & Value -->
+<div class="flex items-center space-x-2 pl-2">
+<span class="text-sm text-neutral-400">English</span>
+<svg class="w-4 h-4 text-neutral-500 stroke-[2]" fill="none" stroke="currentColor" viewbox="0 0 24 24">
+<path d="M8.25 4.5l7.5 7.5-7.5 7.5" stroke-linecap="round" stroke-linejoin="round"></path>
+</svg>
+</div>
+</button>
+<!-- Row: Units -->
+<button class="w-full px-4 py-3.5 min-h-[56px] flex items-center justify-between text-left hover:bg-app-cardHover transition-colors focus:outline-none focus:bg-app-cardHover" data-purpose="setting-row-units" type="button">
+<!-- Leading Content -->
+<div class="flex items-center space-x-3.5">
+<div class="text-neutral-400 flex items-center justify-center">
+<!-- Ruler / Units Icon -->
+<svg class="w-5 h-5 stroke-[1.6]" fill="none" stroke="currentColor" viewbox="0 0 24 24">
+<path d="M4.5 19.5l15-15m-15 15h4.5m-4.5 0v-4.5m15-10.5l-2.25 2.25m-3-3l-2.25 2.25m8.25 3.75l-2.25 2.25m-3-3l-2.25 2.25" stroke-linecap="round" stroke-linejoin="round"></path>
+</svg>
+</div>
+<div class="flex flex-col">
+<span class="text-[15px] font-medium text-white tracking-normal leading-snug">Units</span>
+<span class="text-xs text-neutral-400">kg, cm</span>
+</div>
+</div>
+<!-- Trailing Indicator & Value -->
+<div class="flex items-center space-x-2 pl-2">
+<span class="text-sm text-neutral-400">Metric</span>
+<svg class="w-4 h-4 text-neutral-500 stroke-[2]" fill="none" stroke="currentColor" viewbox="0 0 24 24">
+<path d="M8.25 4.5l7.5 7.5-7.5 7.5" stroke-linecap="round" stroke-linejoin="round"></path>
+</svg>
+</div>
+</button>
+</div>
+</section>
+<!-- END: SectionPreferences -->
+<!-- BEGIN: SectionAboutSaman -->
+<section data-purpose="about-group">
+<!-- Section Header -->
+<h2 class="text-xs font-semibold uppercase tracking-wider text-neutral-400 px-1 mb-2.5">
+          ABOUT SAMAN
+        </h2>
+<!-- Card Container -->
+<div class="bg-app-card rounded-2xl border border-app-border overflow-hidden divide-y divide-white/[0.06]">
+<!-- Row: Privacy Policy -->
+<button class="w-full px-4 py-3.5 min-h-[52px] flex items-center justify-between text-left hover:bg-app-cardHover transition-colors focus:outline-none focus:bg-app-cardHover" data-purpose="link-privacy-policy" type="button">
+<!-- Leading Content -->
+<div class="flex items-center space-x-3.5">
+<div class="text-neutral-400 flex items-center justify-center">
+<!-- Shield Icon -->
+<svg class="w-5 h-5 stroke-[1.6]" fill="none" stroke="currentColor" viewbox="0 0 24 24">
+<path d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" stroke-linecap="round" stroke-linejoin="round"></path>
+</svg>
+</div>
+<span class="text-[15px] font-medium text-white tracking-normal">Privacy policy</span>
+</div>
+<!-- Trailing Chevron -->
+<svg class="w-4 h-4 text-neutral-500 stroke-[2]" fill="none" stroke="currentColor" viewbox="0 0 24 24">
+<path d="M8.25 4.5l7.5 7.5-7.5 7.5" stroke-linecap="round" stroke-linejoin="round"></path>
+</svg>
+</button>
+<!-- Row: Terms of Service -->
+<button class="w-full px-4 py-3.5 min-h-[52px] flex items-center justify-between text-left hover:bg-app-cardHover transition-colors focus:outline-none focus:bg-app-cardHover" data-purpose="link-terms-of-service" type="button">
+<!-- Leading Content -->
+<div class="flex items-center space-x-3.5">
+<div class="text-neutral-400 flex items-center justify-center">
+<!-- Document Icon -->
+<svg class="w-5 h-5 stroke-[1.6]" fill="none" stroke="currentColor" viewbox="0 0 24 24">
+<path d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" stroke-linecap="round" stroke-linejoin="round"></path>
+</svg>
+</div>
+<span class="text-[15px] font-medium text-white tracking-normal">Terms of service</span>
+</div>
+<!-- Trailing Chevron -->
+<svg class="w-4 h-4 text-neutral-500 stroke-[2]" fill="none" stroke="currentColor" viewbox="0 0 24 24">
+<path d="M8.25 4.5l7.5 7.5-7.5 7.5" stroke-linecap="round" stroke-linejoin="round"></path>
+</svg>
+</button>
+<!-- Row: Help & Support -->
+<button class="w-full px-4 py-3.5 min-h-[52px] flex items-center justify-between text-left hover:bg-app-cardHover transition-colors focus:outline-none focus:bg-app-cardHover" data-purpose="link-help-support" type="button">
+<!-- Leading Content -->
+<div class="flex items-center space-x-3.5">
+<div class="text-neutral-400 flex items-center justify-center">
+<!-- Help Circle Icon -->
+<svg class="w-5 h-5 stroke-[1.6]" fill="none" stroke="currentColor" viewbox="0 0 24 24">
+<path d="M9.879 7.519c1.171-1.025 3.071-1.025 4.242 0 1.172 1.025 1.172 2.687 0 3.712-.203.179-.43.326-.67.442-.745.361-1.45.999-1.45 1.827v.75M12 18h.008v.008H12V18z" stroke-linecap="round" stroke-linejoin="round"></path>
+<path d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" stroke-linecap="round" stroke-linejoin="round"></path>
+</svg>
+</div>
+<span class="text-[15px] font-medium text-white tracking-normal">Help &amp; support</span>
+</div>
+<!-- Trailing Chevron -->
+<svg class="w-4 h-4 text-neutral-500 stroke-[2]" fill="none" stroke="currentColor" viewbox="0 0 24 24">
+<path d="M8.25 4.5l7.5 7.5-7.5 7.5" stroke-linecap="round" stroke-linejoin="round"></path>
+</svg>
+</button>
+</div>
+</section>
+<!-- END: SectionAboutSaman -->
+<!-- BEGIN: SectionAppInformation -->
+<section data-purpose="info-group">
+<!-- Section Header -->
+<h2 class="text-xs font-semibold uppercase tracking-wider text-neutral-400 px-1 mb-2.5">
+          APP INFORMATION
+        </h2>
+<!-- Card Container (Non-interactive) -->
+<div class="bg-app-card rounded-2xl border border-app-border overflow-hidden">
+<div class="w-full px-4 py-3.5 min-h-[52px] flex items-center justify-between" data-purpose="info-row-version">
+<!-- Leading Content -->
+<div class="flex items-center space-x-3.5">
+<div class="text-neutral-400 flex items-center justify-center">
+<!-- Info Icon -->
+<svg class="w-5 h-5 stroke-[1.6]" fill="none" stroke="currentColor" viewbox="0 0 24 24">
+<path d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z" stroke-linecap="round" stroke-linejoin="round"></path>
+</svg>
+</div>
+<span class="text-[15px] font-medium text-neutral-300 tracking-normal">App version</span>
+</div>
+<!-- Version String -->
+<span class="text-sm font-medium text-neutral-500 pr-1">1.0.0</span>
+</div>
+</div>
+</section>
+<!-- END: SectionAppInformation -->
+<!-- BEGIN: ScreenFooter -->
+<footer class="pt-8 pb-4 text-center select-none" data-purpose="screen-footer">
+<p class="text-xs text-neutral-600 font-normal tracking-wide">
+          Saman · Your fitness companion
+        </p>
+</footer>
+<!-- END: ScreenFooter -->
+</main>
+<!-- END: MainContentArea -->
+<!-- iOS Home Indicator -->
+<div class="w-full flex justify-center pb-2 pt-1 pointer-events-none" data-purpose="home-indicator">
+<div class="w-32 h-1 bg-white/20 rounded-full"></div>
+</div>
+</div>
+<!-- END: MobileDeviceFrame -->
+</body></html>

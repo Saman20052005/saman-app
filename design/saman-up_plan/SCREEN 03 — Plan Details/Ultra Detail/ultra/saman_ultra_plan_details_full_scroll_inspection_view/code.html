@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html class="dark" lang="en">
+<head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" name="viewport">
+<title>Saman Ultra Plan Details (Full Scroll Inspection View)</title>
+<link href="https://fonts.googleapis.com" rel="preconnect">
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
+<style>
+    @layer base {
+      html, body {
+        width: 100%;
+        margin: 0;
+        padding: 0;
+        background-color: #0C0D0E;
+        color: #F3F4F6;
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      }
+      body {
+        -webkit-tap-highlight-color: transparent;
+      }
+    }
+    ::-webkit-scrollbar {
+      display: none;
+    }
+    .tabular-nums {
+      font-variant-numeric: tabular-nums;
+    }
+</style>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script>
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              bg: "#0C0D0E",
+              card: "#16171B",
+              cardHover: "#1F2126",
+              border: "#26282F",
+              iconBg: "#212328",
+              muted: "#94979E",
+              accent: "#10B981"
+            }
+          },
+          fontFamily: {
+            headline: ["Space Grotesk", "sans-serif"],
+            body: ["Inter", "sans-serif"],
+            mono: ["JetBrains Mono", "monospace"]
+          }
+        }
+      }
+    };
+</script>
+</head>
+<body class="bg-[#0C0D0E] font-body text-sm text-[#F3F4F6] antialiased min-h-screen py-10 flex flex-col justify-start items-center selection:bg-[#10B981]/30 selection:text-[#F3F4F6]">
+
+<!-- INSPECTION CONTAINER (Unclipped 390px content canvas) -->
+<div class="w-full max-w-[420px] px-4 flex flex-col">
+
+  <!-- FRAME HEADER -->
+  <div class="w-full bg-[#16171B] border border-[#26282F] rounded-2xl p-4 mb-4 flex items-center justify-between">
+    <div class="flex items-center gap-2.5">
+      <span class="w-2.5 h-2.5 rounded-full bg-[#10B981]"></span>
+      <span class="font-mono text-xs font-semibold uppercase tracking-wider text-[#F3F4F6]">Ultra Plan Details · Full Scroll Spec</span>
+    </div>
+    <span class="font-mono text-[11px] text-[#94979E] bg-[#212328] px-2 py-0.5 rounded border border-[#26282F]">Expanded State</span>
+  </div>
+
+  <div class="w-full bg-[#0C0D0E] border border-[#26282F] rounded-3xl p-5 shadow-2xl space-y-6">
+
+    <!-- TOP NAVIGATION BAR -->
+    <header class="flex items-center justify-between pb-2 border-b border-[#26282F]/70">
+      <div class="flex items-center gap-3">
+        <button class="w-10 h-10 rounded-xl bg-[#16171B] border border-[#26282F] flex items-center justify-center text-[#94979E] hover:text-[#F3F4F6]">
+          <span class="material-symbols-outlined text-[20px]">arrow_back</span>
+        </button>
+        <span class="font-headline font-semibold text-base text-[#F3F4F6]">Ultra</span>
+      </div>
+      <span class="font-mono text-[10px] uppercase tracking-wider text-[#94979E] bg-[#212328] px-2 py-0.5 rounded border border-[#26282F]">FULL INSPECTION</span>
+    </header>
+
+    <!-- 1. PLAN HERO -->
+    <section class="flex flex-col pt-1">
+      <div class="flex items-center justify-between gap-3 mb-3">
+        <!-- Neutral charcoal icon tile matching Plus & Pro -->
+        <div class="w-12 h-12 rounded-2xl bg-[#16171B] border border-[#26282F] flex items-center justify-center text-[#F3F4F6] shadow-sm shrink-0">
+          <span class="material-symbols-outlined text-[24px]">psychology</span>
+        </div>
+        <!-- Availability badge: COMING SOON -->
+        <div class="flex items-center gap-2">
+          <span class="font-mono text-[11px] font-semibold uppercase tracking-wider text-[#94979E] bg-[#16171B] border border-[#26282F] px-2.5 py-1 rounded-full">
+            COMING SOON
+          </span>
+        </div>
+      </div>
+
+      <div class="space-y-1.5">
+        <h2 class="font-headline text-[32px] font-bold text-[#F3F4F6] tracking-tight leading-tight">Ultra</h2>
+        <p class="font-mono text-xs uppercase tracking-wider font-semibold text-[#94979E]">Personalized Intelligence</p>
+        <p class="text-sm text-[#94979E] leading-relaxed pt-1">
+          Planned advanced intelligence, a larger AI allowance, and more personalized context.
+        </p>
+      </div>
+    </section>
+
+    <!-- 2. DEMO PRICING CARD -->
+    <section class="bg-[#16171B] border border-[#26282F] rounded-2xl p-4 flex flex-col space-y-4">
+      <!-- Monthly / Yearly Segmented Control -->
+      <div class="w-full bg-[#0C0D0E] p-1 rounded-xl border border-[#26282F] flex items-center">
+        <button class="flex-1 py-2.5 text-xs font-medium rounded-lg bg-[#212328] text-[#F3F4F6] shadow-sm text-center">
+          Monthly
+        </button>
+        <button class="flex-1 py-2.5 text-xs font-medium rounded-lg text-[#94979E] text-center">
+          Yearly
+        </button>
+      </div>
+
+      <!-- Price Presentation (Monthly State Example) -->
+      <div class="pt-1 flex flex-col">
+        <div class="flex items-baseline gap-1.5">
+          <span class="font-headline text-3xl font-bold tracking-tight text-[#F3F4F6] tabular-nums">$30</span>
+          <span class="font-mono text-xs text-[#94979E]">/ month</span>
+        </div>
+        <div class="h-px bg-[#26282F]/70 my-3"></div>
+        <span class="font-mono text-[11px] text-[#94979E]">Demo pricing · Subject to change</span>
+      </div>
+    </section>
+
+    <!-- 3. PLANNED BENEFITS -->
+    <section class="flex flex-col space-y-2.5">
+      <div class="flex items-center justify-between px-1">
+        <h3 class="font-mono text-[11px] font-semibold uppercase tracking-wider text-[#94979E]">Planned with Ultra</h3>
+        <span class="font-mono text-[10px] uppercase tracking-wider text-[#94979E] bg-[#212328] px-2 py-0.5 rounded border border-[#26282F]">Roadmap</span>
+      </div>
+
+      <div class="bg-[#16171B] border border-[#26282F] rounded-2xl divide-y divide-[#26282F] overflow-hidden">
+        <!-- Row 1: 5× Pro AI allowance -->
+        <div class="p-4 flex items-start gap-3.5">
+          <div class="w-8 h-8 rounded-xl bg-[#212328] border border-[#26282F] flex items-center justify-center text-[#94979E] shrink-0 mt-0.5">
+            <span class="material-symbols-outlined text-[18px]">bolt</span>
+          </div>
+          <div class="flex-1 min-w-0">
+            <div class="flex items-center justify-between gap-2">
+              <h4 class="font-medium text-sm text-[#F3F4F6]">5× Pro AI allowance</h4>
+              <span class="material-symbols-outlined text-[#94979E] text-[16px] shrink-0" title="Planned">schedule</span>
+            </div>
+            <p class="text-xs text-[#94979E] mt-0.5 leading-relaxed">
+              A planned AI allowance five times the Pro tier.
+            </p>
+          </div>
+        </div>
+
+        <!-- Row 2: Advanced Thinking -->
+        <div class="p-4 flex items-start gap-3.5">
+          <div class="w-8 h-8 rounded-xl bg-[#212328] border border-[#26282F] flex items-center justify-center text-[#94979E] shrink-0 mt-0.5">
+            <span class="material-symbols-outlined text-[18px]">neurology</span>
+          </div>
+          <div class="flex-1 min-w-0">
+            <div class="flex items-center justify-between gap-2">
+              <h4 class="font-medium text-sm text-[#F3F4F6]">Advanced Thinking</h4>
+              <span class="material-symbols-outlined text-[#94979E] text-[16px] shrink-0" title="Planned">schedule</span>
+            </div>
+            <p class="text-xs text-[#94979E] mt-0.5 leading-relaxed">
+              Planned advanced reasoning capabilities.
+            </p>
+          </div>
+        </div>
+
+        <!-- Row 3: Extended history and personalized memory -->
+        <div class="p-4 flex items-start gap-3.5">
+          <div class="w-8 h-8 rounded-xl bg-[#212328] border border-[#26282F] flex items-center justify-center text-[#94979E] shrink-0 mt-0.5">
+            <span class="material-symbols-outlined text-[18px]">memory</span>
+          </div>
+          <div class="flex-1 min-w-0">
+            <div class="flex items-center justify-between gap-2">
+              <h4 class="font-medium text-sm text-[#F3F4F6]">Extended history and personalized memory</h4>
+              <span class="material-symbols-outlined text-[#94979E] text-[16px] shrink-0" title="Planned">schedule</span>
+            </div>
+            <p class="text-xs text-[#94979E] mt-0.5 leading-relaxed">
+              Planned expanded history and memory for personalized context.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 4. ALLOWANCE SUMMARY -->
+    <section class="bg-[#16171B] border border-[#26282F] rounded-2xl p-4 flex flex-col space-y-3">
+      <div class="divide-y divide-[#26282F]/70">
+        <!-- Row 1: AI allowance -->
+        <div class="pb-3 flex items-center justify-between text-xs">
+          <span class="font-medium text-[#F3F4F6]">AI allowance</span>
+          <span class="font-mono text-[#F3F4F6] bg-[#212328] px-2.5 py-1 rounded-md border border-[#26282F] font-semibold">5× Pro · Planned</span>
+        </div>
+        <!-- Row 2: Workout CV allowance -->
+        <div class="pt-3 flex items-center justify-between text-xs">
+          <span class="font-medium text-[#F3F4F6]">Workout CV allowance</span>
+          <span class="font-mono text-[#94979E] bg-[#212328] px-2 py-0.5 rounded border border-[#26282F]">To be announced</span>
+        </div>
+      </div>
+      <div class="border-t border-[#26282F]/70 pt-2.5">
+        <p class="text-xs text-[#94979E] leading-relaxed">
+          Absolute limits will be confirmed before launch. The 5× multiplier applies to AI allowance, not the separate Workout CV allowance.
+        </p>
+      </div>
+    </section>
+
+    <!-- 5. INHERITED BENEFITS (Fully Expanded for Design Handoff) -->
+    <section class="flex flex-col space-y-2.5">
+      <div class="flex items-center justify-between px-1">
+        <h3 class="font-mono text-[11px] font-semibold uppercase tracking-wider text-[#94979E]">Also Included</h3>
+        <span class="font-mono text-[10px] uppercase tracking-wider text-[#10B981] bg-[#10B981]/10 px-2 py-0.5 rounded border border-[#10B981]/20">Tier Inherited</span>
+      </div>
+
+      <div class="bg-[#16171B] border border-[#26282F] rounded-2xl p-4 flex flex-col">
+        <!-- Master Row Header -->
+        <div class="flex items-center justify-between pb-3.5 border-b border-[#26282F]">
+          <div class="flex items-center gap-3">
+            <div class="w-7 h-7 rounded-lg bg-[#212328] border border-[#26282F] flex items-center justify-center text-[#10B981] shrink-0">
+              <span class="material-symbols-outlined text-[16px]">check</span>
+            </div>
+            <div>
+              <h4 class="font-medium text-sm text-[#F3F4F6]">Everything in Pro</h4>
+              <p class="text-xs text-[#94979E] mt-0.5">Free essentials, planned Nutrition AI, and planned Workout CV.</p>
+            </div>
+          </div>
+          <span class="material-symbols-outlined text-[#94979E] text-[18px]">expand_less</span>
+        </div>
+
+        <!-- Expanded Inclusions Breakdown -->
+        <div class="pt-4 space-y-5">
+
+          <!-- Group A: Free essentials -->
+          <div class="space-y-2">
+            <span class="font-mono text-[10px] uppercase tracking-wider text-[#94979E] block px-1">Free Essentials (Included Today)</span>
+            <div class="bg-[#0C0D0E]/60 rounded-xl p-3 border border-[#26282F]/70 space-y-2.5">
+              <div class="flex items-center gap-2.5 text-xs text-[#F3F4F6]">
+                <span class="material-symbols-outlined text-[#10B981] text-[15px] shrink-0">check</span>
+                <span>Nutrition logging</span>
+              </div>
+              <div class="flex items-center gap-2.5 text-xs text-[#F3F4F6]">
+                <span class="material-symbols-outlined text-[#10B981] text-[15px] shrink-0">check</span>
+                <span>Manual workout tracking</span>
+              </div>
+              <div class="flex items-center gap-2.5 text-xs text-[#F3F4F6]">
+                <span class="material-symbols-outlined text-[#10B981] text-[15px] shrink-0">check</span>
+                <span>Free food photo analysis</span>
+              </div>
+              <div class="flex items-center gap-2.5 text-xs text-[#F3F4F6]">
+                <span class="material-symbols-outlined text-[#10B981] text-[15px] shrink-0">check</span>
+                <span>Basic health metrics</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Group B: Planned Nutrition AI -->
+          <div class="space-y-2">
+            <span class="font-mono text-[10px] uppercase tracking-wider text-[#94979E] block px-1">Planned Nutrition AI (From Plus)</span>
+            <div class="bg-[#0C0D0E]/60 rounded-xl p-3 border border-[#26282F]/70 space-y-2.5">
+              <div class="flex items-center gap-2.5 text-xs text-[#CBD5E1]">
+                <span class="material-symbols-outlined text-[#94979E] text-[15px] shrink-0">schedule</span>
+                <span>Gemini food photo analysis</span>
+              </div>
+              <div class="flex items-center gap-2.5 text-xs text-[#CBD5E1]">
+                <span class="material-symbols-outlined text-[#94979E] text-[15px] shrink-0">schedule</span>
+                <span>Monthly AI allowance</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Group C: Planned Workout Intelligence -->
+          <div class="space-y-2">
+            <span class="font-mono text-[10px] uppercase tracking-wider text-[#94979E] block px-1">Planned Workout Intelligence (From Pro)</span>
+            <div class="bg-[#0C0D0E]/60 rounded-xl p-3 border border-[#26282F]/70 space-y-2.5">
+              <div class="flex items-center gap-2.5 text-xs text-[#CBD5E1]">
+                <span class="material-symbols-outlined text-[#94979E] text-[15px] shrink-0">schedule</span>
+                <span>Workout CV AI</span>
+              </div>
+              <div class="flex items-center gap-2.5 text-xs text-[#CBD5E1]">
+                <span class="material-symbols-outlined text-[#94979E] text-[15px] shrink-0">schedule</span>
+                <span>Movement analysis and rep counting</span>
+              </div>
+              <div class="flex items-center gap-2.5 text-xs text-[#CBD5E1]">
+                <span class="material-symbols-outlined text-[#94979E] text-[15px] shrink-0">schedule</span>
+                <span>Separate Workout CV allowance</span>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+    <!-- 6. AVAILABILITY NOTICE & ACTIONS -->
+    <section class="pt-2 flex flex-col space-y-4">
+      <p class="text-xs text-[#94979E] text-center leading-relaxed px-2">
+        Ultra is not available yet. Planned features, limits, and pricing may change before launch.
+      </p>
+
+      <!-- Primary Action: Coming Soon CTA -->
+      <div class="flex flex-col items-center space-y-2">
+        <button class="w-full py-3.5 px-5 rounded-xl bg-[#F9FAFB] text-[#0C0D0E] font-medium text-sm flex items-center justify-center gap-2 shadow-sm" type="button">
+          <span class="font-semibold">Coming Soon</span>
+          <span class="material-symbols-outlined text-[18px]">arrow_forward</span>
+        </button>
+        <span class="font-mono text-[11px] text-[#94979E]">Preview only · Your account stays on Free</span>
+      </div>
+
+      <!-- Secondary Navigation: Back to Membership -->
+      <div class="flex justify-center pt-1 pb-2">
+        <a href="#" class="inline-flex items-center gap-1.5 text-xs font-medium text-[#10B981] py-2 px-3">
+          <span class="material-symbols-outlined text-[16px]">arrow_back</span>
+          <span>Back to Membership</span>
+        </a>
+      </div>
+    </section>
+
+  </div>
+
+</div>
+
+</body>
+</html>

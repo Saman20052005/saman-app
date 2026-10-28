@@ -30,19 +30,24 @@ class _WorkoutCvScreenState extends ConsumerState<WorkoutCvScreen>
   bool get _useReplayTrial =>
       shouldUseWorkoutCvReplayTrial(exerciseSlug: widget.exerciseSlug);
 
-  Future<void> _initializeSession() =>
-      ref.read(workoutCvControllerProvider.notifier).initialize(
-            exerciseId: widget.exerciseId,
-            exerciseSlug: widget.exerciseSlug,
-            videoReplay: _useReplayTrial,
-          );
+  bool get _supportsCamera =>
+      !kIsWeb && defaultTargetPlatform == TargetPlatform.android;
+
+  Future<void> _initializeSession() async {
+    if (!_supportsCamera) return;
+    await ref.read(workoutCvControllerProvider.notifier).initialize(
+          exerciseId: widget.exerciseId,
+          exerciseSlug: widget.exerciseSlug,
+          videoReplay: _useReplayTrial,
+        );
+  }
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _initializeSession();
+      if (mounted) _initializeSession();
     });
   }
 
@@ -147,7 +152,9 @@ class _WorkoutCvScreenState extends ConsumerState<WorkoutCvScreen>
               Text(
                 cvState.sourceMode == 'video_replay'
                     ? 'Replay thử nghiệm • phát chậm'
-                    : 'MediaPipe Pose Lite · Back Camera',
+                    : (_supportsCamera
+                        ? 'MediaPipe Pose Lite · Back Camera'
+                        : 'Camera CV chỉ hỗ trợ Android'),
                 style: const TextStyle(
                   color: Colors.white70,
                   fontSize: 11,
@@ -291,10 +298,11 @@ class _WorkoutCvScreenState extends ConsumerState<WorkoutCvScreen>
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          if (cvState.sourceMode == 'video_replay')
+          if (cvState.exerciseSlug == 'lat-pulldown')
             _ReplayRepSummary(
               countLabel: cvState.repCountLabel,
-              statusLabel: cvState.replayAnalysisLabel,
+              statusLabel:
+                  '${cvState.replayAnalysisLabel} · Pha: ${cvState.analysisPhase.name}',
               onRestart: _useReplayTrial
                   ? () => ref.read(workoutCvControllerProvider.notifier).restartVideoReplay()
                   : null,
@@ -358,7 +366,9 @@ class _WorkoutCvScreenState extends ConsumerState<WorkoutCvScreen>
           Text(
             cvState.sourceMode == 'video_replay'
                 ? 'Chỉ thử nghiệm • Không tự lưu lịch sử hoặc hoàn thành set'
-                : 'PoC Form Check · Auto-log & rep counting disabled · Manual workout preserved',
+                : (cvState.exerciseSlug == 'lat-pulldown'
+                    ? 'Baseline quy tắc · Rep tạm tính · Không tự lưu vào buổi tập'
+                    : 'PoC Form Check · Không tự lưu vào buổi tập'),
             style: const TextStyle(
               color: Colors.white38,
               fontSize: 10,
@@ -411,8 +421,10 @@ class _WorkoutCvScreenState extends ConsumerState<WorkoutCvScreen>
   Widget _buildNonAndroidPlaceholder() {
     return const Center(
       child: Text(
-        'Camera PlatformView is available on Android devices.',
+        'Camera CV chỉ hỗ trợ Android.\n'
+        'Web/iOS chưa có replay landmarks được đóng gói để demo.',
         style: TextStyle(color: Colors.white54, fontSize: 13),
+        textAlign: TextAlign.center,
       ),
     );
   }
@@ -432,12 +444,23 @@ class _ReplayRepSummary extends StatelessWidget {
       child: Row(
         children: [
           Expanded(
-            child: Text(
-              countLabel,
-              key: const ValueKey('workout_cv_replay_rep_count'),
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                color: SamanWorkoutTokens.textPrimary,
-              ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  countLabel,
+                  key: const ValueKey('workout_cv_replay_rep_count'),
+                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                    color: SamanWorkoutTokens.textPrimary,
+                  ),
+                ),
+                Text(
+                  statusLabel,
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: SamanWorkoutTokens.textSecondary,
+                  ),
+                ),
+              ],
             ),
           ),
           if (onRestart != null)

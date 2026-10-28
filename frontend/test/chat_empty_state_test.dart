@@ -7,6 +7,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:health_ai_app/config/app_theme.dart';
 import 'package:health_ai_app/controllers/chat_controller.dart';
 import 'package:health_ai_app/screens/chat/tokens/saman_chat_tokens.dart';
+import 'package:health_ai_app/screens/chat/widgets/widgets.dart';
 import 'package:health_ai_app/screens/chat_screen.dart';
 
 class _FakeChatNotifier extends StateNotifier<ChatState>
@@ -172,10 +173,29 @@ void main() {
       expect(find.text('Plan next meal'), findsOneWidget);
       expect(find.text('Check recovery'), findsOneWidget);
 
-      // Icons for each action
-      expect(find.byIcon(Icons.fitness_center_rounded), findsOneWidget);
-      expect(find.byIcon(Icons.restaurant_rounded), findsOneWidget);
-      expect(find.byIcon(Icons.favorite_rounded), findsOneWidget);
+      // Icons for each action within SamanChatActionRow
+      final actionRowsFinder = find.byType(SamanChatActionRow);
+      expect(
+        find.descendant(
+          of: actionRowsFinder,
+          matching: find.byIcon(Icons.fitness_center_outlined),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(
+          of: actionRowsFinder,
+          matching: find.byIcon(Icons.restaurant_outlined),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(
+          of: actionRowsFinder,
+          matching: find.byIcon(Icons.favorite_border_rounded),
+        ),
+        findsOneWidget,
+      );
     });
 
     testWidgets('7. Tapping suggested actions dispatches approved prompts',

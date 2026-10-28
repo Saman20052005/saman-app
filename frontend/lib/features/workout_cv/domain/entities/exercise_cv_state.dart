@@ -44,7 +44,8 @@ class ExerciseCvState {
   final double overlayHiddenNoResultPct;
   final double overlayHiddenGatePct;
   final ReplayAnalysisStatus replayAnalysisStatus;
-  // Session-only results; never written to workout history or set completion.
+  // Shared camera/replay analysis. Session-only; never written to workout sets.
+  final LatPulldownPhase analysisPhase;
   final List<LatPulldownRepEvent> replayRepEvents;
 
   const ExerciseCvState({
@@ -77,6 +78,7 @@ class ExerciseCvState {
     this.overlayHiddenGatePct = 0.0,
     this.replayAnalysisStatus = ReplayAnalysisStatus.waiting,
     this.replayRepEvents = const [],
+    this.analysisPhase = LatPulldownPhase.notReady,
   });
 
   int get completedReps => replayRepEvents.length;
@@ -134,6 +136,7 @@ class ExerciseCvState {
     double? overlayHiddenGatePct,
     ReplayAnalysisStatus? replayAnalysisStatus,
     List<LatPulldownRepEvent>? replayRepEvents,
+    LatPulldownPhase? analysisPhase,
   }) {
     return ExerciseCvState(
       trackingStatus: trackingStatus ?? this.trackingStatus,
@@ -165,6 +168,7 @@ class ExerciseCvState {
       overlayHiddenGatePct: overlayHiddenGatePct ?? this.overlayHiddenGatePct,
       replayAnalysisStatus: replayAnalysisStatus ?? this.replayAnalysisStatus,
       replayRepEvents: replayRepEvents ?? this.replayRepEvents,
+      analysisPhase: analysisPhase ?? this.analysisPhase,
     );
   }
 

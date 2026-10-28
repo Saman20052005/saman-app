@@ -89,6 +89,25 @@ void main() {
         ),
       ));
       await tester.pumpAndSettle();
+      if (entry.$1 != TargetPlatform.android) {
+        expect(notifier.replayEntries, isEmpty);
+        expect(source.startSessionCalled, isFalse);
+        expect(source.startVideoReplayCalled, isFalse);
+        expect(find.textContaining('Web/iOS chưa có replay'), findsOneWidget);
+        tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
+        await tester.pumpAndSettle();
+        tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+        await tester.pumpAndSettle();
+        expect(notifier.replayEntries, isEmpty);
+        expect(source.startSessionCalled, isFalse);
+        expect(source.startVideoReplayCalled, isFalse);
+        expect(tester.takeException(), isNull);
+        await tester.pumpWidget(const SizedBox.shrink());
+        container.dispose();
+        source.dispose();
+        debugDefaultTargetPlatformOverride = null;
+        return;
+      }
       expect(notifier.replayEntries, [replayExpected]);
       expect(source.startVideoReplayCalled, replayExpected);
       expect(source.startSessionCalled, !replayExpected);

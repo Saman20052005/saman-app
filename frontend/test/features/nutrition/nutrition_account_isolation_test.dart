@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:health_ai_app/providers/profile_provider.dart';
 import 'package:health_ai_app/controllers/chat_controller.dart';
 import 'package:health_ai_app/providers/daily_story_provider.dart';
 import 'package:health_ai_app/services/nutrition_service.dart';
@@ -10,6 +12,7 @@ import 'daily_story_controller_test.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+  accountContinuityTests();
   for (final transition in ['logout', 'A-B', 'A-B-A', 'dispose']) {
     test('late Chat analysis discarded after $transition', () async {
       final entered = Completer<void>();
@@ -184,5 +187,125 @@ void main() {
     expect(h.requests.where((o) => o.path.endsWith('/analyze')), isEmpty);
     expect(h.writes('/log-story'), 0);
     expect(h.writes('/logs'), 0);
+  });
+}
+
+void accountContinuityTests() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+
+  for (final stage in ['story', 'meal']) {
+    test('$stage uncertainty survives real logout/login A-B-A', () async {
+      late FoodHarness h;
+      h = FoodHarness(onRequest: (o) async {
+        if (o.method == 'POST' &&
+            o.headers['Authorization'] == 'Bearer test-account-A' &&
+            o.path.endsWith(stage == 'story' ? '/log-story' : '/logs')) {
+          throw DioException(
+              requestOptions: o, type: DioExceptionType.receiveTimeout);
+        }
+        return h.defaults(o);
+      });
+      await h.start();
+      addTearDown(h.close);
+      final photo = h.photo();
+      final data = mealData();
+      final unknown = isA<ConfirmLogException>()
+          .having((e) => e.outcomeUnknown, 'uncertain', true)
+          .having((e) => e.canRetry, 'blind retry', false);
+      await expectLater(
+          h.controller.confirmLog(data, imageFile: photo), throwsA(unknown));
+      await h.switchAccount('test-account-B');
+      expect(h.container.read(profileProvider).confirmedUserId, 'user-B');
+      await h.controller.confirmLog(data, imageFile: photo);
+      await h.container
+          .read(dailyStoryControllerProvider(FoodHarness.date).future);
+      final writes = h.requests.where((o) => o.method == 'POST').length;
+      await h.switchAccount('test-account-A');
+      expect(h.container.read(profileProvider).confirmedUserId, 'user-A');
+      final beforeRetry = h.requests.where((o) => o.method == 'POST').length;
+      await expectLater(
+          h.controller.confirmLog(data, imageFile: photo), throwsA(unknown));
+      expect(h.requests.where((o) => o.method == 'POST').length, beforeRetry);
+      expect(beforeRetry, writes + 1); // Only the real login POST.
+    });
+
+    test('$stage pending at logout cannot continue or unlock returning A',
+        () async {
+      final entered = Completer<void>();
+      final response = Completer<ResponseBody>();
+      late FoodHarness h;
+      h = FoodHarness(onRequest: (o) async {
+        if (o.method == 'POST' &&
+            o.headers['Authorization'] == 'Bearer test-account-A' &&
+            o.path.endsWith(stage == 'story' ? '/log-story' : '/logs')) {
+          entered.complete();
+          return response.future;
+        }
+        return h.defaults(o);
+      });
+      await h.start();
+      addTearDown(h.close);
+      final photo = h.photo();
+      final data = mealData();
+      final pending = h.controller.confirmLog(data, imageFile: photo);
+      final rejected = expectLater(pending, throwsA(isA<NutritionSessionChanged>()));
+      await entered.future;
+      await h.switchAccount('test-account-B');
+      response.complete(foodReply(stage == 'story'
+          ? {'log_id': 'late-story-A'}
+          : {'status': 'saved'}));
+      await rejected;
+      expect(h.container.read(profileProvider).confirmedUserId, 'user-B');
+      expect(h.writes('/logs'), stage == 'story' ? 0 : 1);
+      await h.controller.confirmLog(data, imageFile: photo);
+      await h.container
+          .read(dailyStoryControllerProvider(FoodHarness.date).future);
+      await h.switchAccount('test-account-A');
+      final writes = h.requests.where((o) => o.method == 'POST').length;
+      await expectLater(
+          h.controller.confirmLog(data, imageFile: photo),
+          throwsA(isA<ConfirmLogException>()
+              .having((e) => e.outcomeUnknown, 'uncertain', true)));
+      expect(h.requests.where((o) => o.method == 'POST').length, writes);
+    });
+  }
+
+  test('missing identity blocks confirmation and photo-only writes', () async {
+    final h = FoodHarness();
+    await h.start();
+    addTearDown(h.close);
+    h.container.read(profileProvider.notifier).resetSession();
+    final before = h.requests.where((o) => o.method == 'POST').length;
+    await expectLater(h.controller.confirmLog(mealData(), imageFile: h.photo()),
+        throwsA(isA<NutritionSessionChanged>()));
+    await expectLater(
+        h.controller.saveStoryWithoutAI(
+            imageFile: h.photo(), mealType: 'lunch', note: 'Local test'),
+        throwsA(isA<ConfirmLogException>()));
+    expect(h.requests.where((o) => o.method == 'POST').length, before);
+  });
+
+  test('token refresh keeps the stable account uncertain lock', () async {
+    late FoodHarness h;
+    h = FoodHarness(onRequest: (o) async {
+      if (o.method == 'POST' && o.path.endsWith('/log-story')) {
+        throw DioException(
+            requestOptions: o, type: DioExceptionType.receiveTimeout);
+      }
+      return h.defaults(o);
+    });
+    await h.start();
+    addTearDown(h.close);
+    final photo = h.photo();
+    final data = mealData();
+    final owner = await h.container.read(nutritionSessionProvider).capture();
+    await expectLater(h.controller.confirmLog(data, imageFile: photo),
+        throwsA(isA<ConfirmLogException>()));
+    await const FlutterSecureStorage()
+        .write(key: 'auth_token', value: 'refreshed-test-account-A');
+    await expectLater(h.controller.confirmLog(data, imageFile: photo),
+        throwsA(isA<ConfirmLogException>()));
+    expect(h.writes('/log-story'), 1);
+    await expectLater(owner.validate(), throwsA(isA<NutritionSessionChanged>()));
   });
 }

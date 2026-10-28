@@ -35,13 +35,30 @@ class NutritionSession {
 
   void invalidate() => _generation++;
 
+  String? _accountIdentity() {
+    final profile = _ref.read(profileProvider);
+    final identity = profile.confirmedUserId;
+    return profile.isNetworkConfirmed && !profile.isFromCache &&
+            identity != null && identity.trim().isNotEmpty
+        ? identity
+        : null;
+  }
+
+  Future<String> accountIdentity(NutritionRequestContext owner) async {
+    await owner.validate();
+    final identity = _accountIdentity();
+    if (identity == null) throw const NutritionSessionChanged();
+    return identity;
+  }
+
   Future<NutritionRequestContext> capture() async {
     final generation = _generation;
+    final identity = _accountIdentity();
     if (_disposed || _ref.read(authLoggingOutProvider)) {
       throw const NutritionSessionChanged();
     }
     final token = await _readToken();
-    if (_disposed || generation != _generation ||
+    if (_disposed || generation != _generation || identity != _accountIdentity() ||
         _ref.read(authLoggingOutProvider)) {
       throw const NutritionSessionChanged();
     }
@@ -56,11 +73,13 @@ class NutritionSession {
       generation: capturedGeneration,
       validate: () async {
         if (_disposed || capturedGeneration != _generation ||
+            identity != _accountIdentity() ||
             _ref.read(authLoggingOutProvider)) {
           throw const NutritionSessionChanged();
         }
         final currentToken = await _readToken();
         if (_disposed || capturedGeneration != _generation ||
+            identity != _accountIdentity() ||
             _ref.read(authLoggingOutProvider) || currentToken != token) {
           throw const NutritionSessionChanged();
         }

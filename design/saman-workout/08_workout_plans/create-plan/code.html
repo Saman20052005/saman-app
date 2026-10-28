@@ -1,0 +1,190 @@
+<!DOCTYPE html><html lang="en"><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" name="viewport">
+<title>Create Plan — Saman Fitness</title>
+<!-- Tailwind CSS v3 with Plugins -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Tailwind Custom Configuration -->
+<script data-purpose="tailwind-config">
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            appBg: '#0C0D0E',
+            surface: '#16171B',
+            surfaceMuted: '#212328',
+            surfaceDisabled: '#1F2126',
+            borderDim: '#26282F',
+            contentPrimary: '#F3F4F6',
+            contentMuted: '#94979E',
+            accentEmerald: '#10B981'
+          },
+          fontFamily: {
+            sans: ['Inter', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
+            display: ['"Space Grotesk"', 'sans-serif'],
+            mono: ['"JetBrains Mono"', 'monospace']
+          },
+          borderRadius: {
+            '20': '20px'
+          }
+        }
+      }
+    }
+  </script>
+<!-- Google Fonts Definition -->
+<link href="https://fonts.googleapis.com" rel="preconnect">
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=JetBrains+Mono:wght@400;500;600&amp;family=Space+Grotesk:wght@500;600;700&amp;display=swap" rel="stylesheet">
+<style data-purpose="app-shell-styles">
+    /* Prevent rubber-banding and default iOS bounce in mobile mockups */
+    html, body {
+      background-color: #050607;
+      margin: 0;
+      padding: 0;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    /* Target portrait mobile frame container */
+    .mobile-frame {
+      width: 100%;
+      max-width: 390px;
+      min-height: 100vh;
+      background-color: #0C0D0E;
+      position: relative;
+      margin: 0 auto;
+      box-shadow: 0 0 50px rgba(0, 0, 0, 0.8);
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Remove outline highlight on inputs */
+    input:focus {
+      outline: none;
+      box-shadow: none;
+    }
+  </style>
+</head>
+<body class="flex items-center justify-center min-h-screen text-contentPrimary bg-[#050607]">
+<!-- BEGIN: MobileFrame -->
+<div class="mobile-frame" data-purpose="mobile-viewport">
+<!-- BEGIN: iOSStatusBar -->
+<header class="w-full pt-3 px-6 pb-2 flex justify-between items-center z-30 select-none" data-purpose="ios-status-bar">
+<!-- Time -->
+<span class="text-[15px] font-semibold tracking-tight text-contentPrimary">9:41</span>
+<!-- Right System Icons -->
+<div class="flex items-center space-x-2 text-contentPrimary">
+<!-- Cellular Signal -->
+<svg class="w-4 h-3.5 fill-current" viewBox="0 0 17 12">
+<path d="M1 11h2V8H1v3zm4 0h2V6H5v5zm4 0h2V3H9v8zm4 0h2V0h-2v11z"></path>
+</svg>
+<!-- Wi-Fi -->
+<svg class="w-4 h-3.5 fill-current" viewBox="0 0 16 12">
+<path d="M8 2.5C4.85 2.5 2.05 3.86.09 6.01L8 15.5l7.91-9.49C13.95 3.86 11.15 2.5 8 2.5zm0-2.5C12.42 0 16 3.58 16 8c0 1.25-.29 2.43-.8 3.5H.8C.29 10.43 0 9.25 0 8 0 3.58 3.58 0 8 0z" fill-opacity="0"></path>
+<path d="M8 3.2c-3.1 0-5.87 1.34-7.8 3.47L8 14.5l7.8-7.83C13.87 4.54 11.1 3.2 8 3.2zm0 2.2c2.44 0 4.62 1.05 6.15 2.73L8 13.08 1.85 8.13C3.38 6.45 5.56 5.4 8 5.4z"></path>
+</svg>
+<!-- Battery -->
+<div class="w-6 h-3 border border-contentPrimary/80 rounded-sm p-0.5 flex items-center relative">
+<div class="h-full bg-contentPrimary w-full rounded-2xs"></div>
+<div class="absolute -right-1 top-0.5 w-0.5 h-1.5 bg-contentPrimary rounded-r-xs"></div>
+</div>
+</div>
+</header>
+<!-- END: iOSStatusBar -->
+<!-- BEGIN: NavigationHeader -->
+<nav class="px-4 py-2.5 flex items-center justify-between z-20" data-purpose="screen-header">
+<!-- Left: Title with Back/Close -->
+<div class="flex items-center gap-2.5">
+<!-- Close Touch Target (No border/box) -->
+<button aria-label="Close modal" class="w-8 h-8 -ml-1.5 flex items-center justify-center text-contentMuted hover:text-contentPrimary transition-colors active:opacity-60" type="button">
+<svg class="w-5 h-5 stroke-current stroke-2" fill="none" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+<line x1="18" x2="6" y1="6" y2="18"></line>
+<line x1="6" x2="18" y1="6" y2="18"></line>
+</svg>
+</button>
+<!-- Screen Title -->
+<h1 class="font-display text-xl font-bold tracking-tight text-contentPrimary">
+          Create plan
+        </h1>
+</div>
+<!-- Right: Discreet Demo Mode Pill -->
+<div class="bg-surfaceMuted/80 px-2.5 py-1 rounded-full border border-borderDim/40">
+<span class="text-[11px] font-mono tracking-wide text-contentMuted">Demo mode</span>
+</div>
+</nav>
+<!-- END: NavigationHeader -->
+<!-- BEGIN: MainContentArea -->
+<main class="flex-1 px-4 pt-2 pb-28 flex flex-col gap-5 overflow-y-auto">
+<!-- Panoramic Gym Introduction Card -->
+<div class="w-full h-28 rounded-2xl overflow-hidden relative border border-borderDim/50 shrink-0 shadow-lg" data-purpose="hero-gym-card">
+<img alt="Modern commercial gym with weight training equipment, dumbbell racks, and bench press" class="w-full h-full object-cover object-center filter brightness-[0.82] contrast-[1.05]" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCfaarpwXoFw66dPuKthpZXuhvBYeuybHYm4miOfkhFv5C7OUlLSO_mf-yEzB-dqdXLd-jo5kpAOjA44PkXb7gGyJloEWynHuLiVRHpgerAoeabbMm4qlkl0VqWbFAwK3qv2QDO4CFciVDxKP_xUeJmCogJV6gXkI47G1YeZ8pCfKkXP8cknGdOLCT8rPjpgZpYb1ViFeZMj3Q_E4rxR0iadAkNB1I9KtJ86dpH-cIQ-ZtIs7Orkm9C">
+<!-- Atmospheric Vignette & Gradients -->
+<div class="absolute inset-0 bg-gradient-to-t from-appBg/90 via-transparent to-black/30 pointer-events-none"></div>
+<div class="absolute inset-0 bg-black/15 pointer-events-none"></div>
+</div>
+<!-- Plan Name Input Section -->
+<section class="flex flex-col gap-2" data-purpose="plan-name-form-group">
+<label class="font-mono text-[10px] tracking-wider text-contentMuted uppercase font-semibold pl-1" for="plan-name">
+          PLAN NAME
+        </label>
+<div class="relative w-full">
+<input class="w-full h-12 bg-surface border border-borderDim rounded-xl px-4 text-sm text-contentPrimary placeholder:text-contentMuted focus:border-accentEmerald/60 focus:ring-0 transition-colors" id="plan-name" name="plan-name" placeholder="e.g. Upper Body Strength" type="text">
+</div>
+</section>
+<!-- Exercises Header -->
+<section class="flex flex-col gap-3" data-purpose="exercises-list-section">
+<div class="flex items-center justify-between px-1">
+<div class="flex items-center gap-2">
+<h2 class="text-base font-semibold text-contentPrimary tracking-tight">Exercises</h2>
+<!-- Count Pill Badge -->
+<span class="font-mono bg-surfaceMuted px-2 py-0.5 rounded text-xs text-contentMuted leading-none font-medium">0</span>
+</div>
+<!-- Add Action Trigger -->
+<button class="text-accentEmerald font-medium text-sm hover:opacity-80 active:opacity-60 transition-opacity" type="button">
+            + Add
+          </button>
+</div>
+<!-- BEGIN: EmptyStateCard -->
+<div class="w-full bg-surface border border-borderDim rounded-20 p-6 flex flex-col items-center text-center shadow-sm" data-purpose="exercise-empty-state">
+<!-- Refined Dumbbell Icon Container -->
+<div class="w-13 h-13 p-3.5 bg-surfaceMuted rounded-xl flex items-center justify-center mb-4 text-contentPrimary shadow-inner">
+<svg class="w-6 h-6 stroke-current stroke-2" fill="none" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+<path d="M6 5v14M18 5v14M2 9v6M22 9v6M6 12h12"></path>
+</svg>
+</div>
+<!-- Empty State Headline & Helper -->
+<h3 class="font-display font-semibold text-base text-contentPrimary mb-1">
+            Add your first exercise
+          </h3>
+<p class="text-xs text-contentMuted leading-relaxed max-w-[210px] mb-5">
+            Choose exercises from your library.
+          </p>
+<!-- Browse Library Action Button -->
+<button class="h-12 bg-surfaceMuted text-contentPrimary rounded-xl px-5 text-sm font-medium flex items-center gap-2 hover:bg-surfaceMuted/80 active:scale-[0.98] transition-all" data-purpose="browse-library-button" type="button">
+<!-- Search Icon -->
+<svg class="w-4 h-4 text-contentMuted stroke-current stroke-2" fill="none" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+<circle cx="11" cy="11" r="8"></circle>
+<line x1="21" x2="16.65" y1="21" y2="16.65"></line>
+</svg>
+<span class="">Browse library</span>
+</button>
+</div>
+<!-- END: EmptyStateCard -->
+</section>
+</main>
+<!-- END: MainContentArea -->
+<!-- BEGIN: FixedBottomAction -->
+<div class="absolute bottom-0 left-0 right-0 px-4 pt-3 pb-8 bg-gradient-to-t from-appBg via-appBg to-transparent z-40" data-purpose="bottom-sticky-cta">
+<!-- Save Plan Button (Disabled State) -->
+<button aria-disabled="true" class="w-full h-[50px] rounded-2xl bg-surfaceDisabled text-contentMuted font-medium text-sm flex items-center justify-center cursor-not-allowed select-none transition-colors" data-purpose="save-plan-cta" disabled="" type="button">
+        Save plan
+      </button>
+<!-- iOS Home Indicator -->
+<div class="w-32 h-1 bg-white/20 rounded-full mx-auto mt-4 pointer-events-none"></div>
+</div>
+<!-- END: FixedBottomAction -->
+</div>
+<!-- END: MobileFrame -->
+
+
+</body></html>

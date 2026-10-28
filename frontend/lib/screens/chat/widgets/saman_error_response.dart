@@ -39,13 +39,7 @@ class SamanErrorResponse extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              SamanMonogram(
-                size: 20,
-                borderRadius: 4,
-                fontSize: 11,
-                backgroundColor: SamanChatTokens.iconContainerBg,
-                borderColor: SamanChatTokens.borderSubtle,
-              ),
+              SamanMonogram.chat(),
               SizedBox(width: 8.0),
               Text(
                 'Saman',

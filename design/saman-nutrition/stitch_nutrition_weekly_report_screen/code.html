@@ -1,0 +1,78 @@
+<!DOCTYPE html><html lang="vi"><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport">
+<title>Báo cáo tuần - Saman Fitness</title>
+<!-- Tailwind CSS v3 CDN with forms and container queries plugins -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            surface: {
+              base: '#0F0F0F',
+              card: '#1C1C1C',
+              inner: '#242424',
+              border: '#2A2A2A',
+            },
+            content: {
+              primary: '#F0F0F0',
+              secondary: '#AAAAAA',
+            },
+            brand: {
+              emerald: '#0E8F5E',
+            },
+            macro: {
+              protein: '#4D96FF',
+              carbs: '#FFD93D',
+              fat: '#A78BFA',
+            }
+          },
+          fontFamily: {
+            sans: ['-apple-system', 'BlinkMacSystemFont', '"SF Pro Display"', '"SF Pro Text"', 'Inter', 'system-ui', 'sans-serif'],
+          }
+        }
+      }
+    }
+  </script>
+<style data-purpose="custom-layout">
+    /* Remove default iOS tap highlight & setup smooth scrolling */
+    * {
+      -webkit-tap-highlight-color: transparent;
+      box-sizing: border-box;
+    }
+    body {
+      background-color: #0F0F0F;
+      color: #F0F0F0;
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", Inter, system-ui, sans-serif;
+      letter-spacing: -0.01em;
+    }
+  </style>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin=""><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"></head>
+<body class="bg-surface-base text-content-primary antialiased selection:bg-brand-emerald selection:text-white flex justify-center min-h-screen">
+<!-- Mobile Screen Frame Container (390px locked frame) -->
+<main class="w-full max-w-[390px] min-h-screen bg-[#0F0F0F] text-[#F4F4F5] flex flex-col pb-12 px-5 pt-4 relative shadow-2xl font-['Inter',sans-serif] selection:bg-[#10B981] selection:text-white">
+<!-- BEGIN: Header -->
+<header class="pt-2 pb-4 flex flex-col gap-3" data-purpose="screen-header"><div class="flex items-center justify-between pb-1"><button aria-label="Quay lại" class="w-9 h-9 -ml-1 rounded-full flex items-center justify-center text-[#F4F4F5] hover:bg-[#191B1D] active:scale-95 transition-all" type="button"><svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"></path></svg></button><span class="text-[13px] font-medium text-[#9CA3AF]">Tuần 44</span></div><div class="space-y-1"><h1 class="text-[26px] leading-tight font-semibold tracking-tight text-[#F4F4F5]">Báo cáo tuần</h1><p class="text-[14px] text-[#9CA3AF]">Nhìn lại dinh dưỡng của bạn</p></div></header>
+<!-- END: Header -->
+<div class="flex flex-col gap-6">
+<!-- BEGIN: WeekSelector -->
+<section class="bg-[#191B1D] border border-[#272A30] rounded-[18px] p-3.5 flex items-center justify-between shadow-sm" data-purpose="week-selector"><div class="flex items-center gap-1.5"><button aria-label="Tuần trước" class="w-8 h-8 rounded-lg flex items-center justify-center text-[#9CA3AF] hover:text-[#F4F4F5] hover:bg-[#26292E] transition-colors" type="button"><svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"></path></svg></button><div class="flex flex-col px-1"><span class="text-[14px] font-semibold text-[#F4F4F5] tracking-tight leading-tight">26 thg 10 – 1 thg 11</span><span class="text-[12px] text-[#9CA3AF]">Năm 2026</span></div><button aria-label="Tuần sau" class="w-8 h-8 rounded-lg flex items-center justify-center text-[#9CA3AF] hover:text-[#F4F4F5] hover:bg-[#26292E] transition-colors" type="button"><svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"></path></svg></button></div><div class="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#0F0F0F] border border-[#272A30]"><span class="w-1.5 h-1.5 rounded-full bg-[#10B981]"></span><span class="text-[12px] font-medium text-[#9CA3AF]">1/7 ngày đã ghi</span></div></section>
+<!-- END: WeekSelector -->
+<!-- BEGIN: DailyCalorieChart -->
+<section class="bg-[#191B1D] border border-[#272A30] rounded-[18px] p-4 flex flex-col gap-3.5 shadow-sm" data-purpose="calorie-chart-card"><div class="flex items-start justify-between"><div><h2 class="text-[16px] font-semibold text-[#F4F4F5] tracking-tight">Năng lượng theo ngày</h2><p class="text-[13px] text-[#9CA3AF]">Lượng đã ghi so với mục tiêu</p></div><div class="text-[12px] font-medium text-[#9CA3AF] pt-0.5">Mục tiêu · 3.129 kcal</div></div><div class="relative pt-2 pb-0" data-purpose="chart-canvas-simulation"><div class="relative h-36 w-full flex flex-col justify-between select-none"><div class="w-full flex items-center gap-2"><span class="text-[11px] text-[#71717A] w-7 text-right tabular-nums">3755</span><div class="flex-1 h-[1px] bg-[#222429]"></div></div><div class="absolute left-0 right-0 top-[17%] flex items-center gap-2 z-10"><span class="text-[11px] font-medium text-[#71717A] w-7 text-right tabular-nums">3129</span><div class="flex-1 border-t border-dashed border-[#52525B]"></div></div><div class="w-full flex items-center gap-2"><span class="text-[11px] text-[#71717A] w-7 text-right tabular-nums">2000</span><div class="flex-1 h-[1px] bg-[#222429]"></div></div><div class="w-full flex items-center gap-2"><span class="text-[11px] text-[#71717A] w-7 text-right tabular-nums">1000</span><div class="flex-1 h-[1px] bg-[#222429]"></div></div><div class="w-full flex items-center gap-2"><span class="text-[11px] text-[#71717A] w-7 text-right tabular-nums">0</span><div class="flex-1 h-[1px] bg-[#2E3138]"></div></div><div class="absolute left-9 right-1 bottom-0 top-0 flex justify-between items-end pb-[1px] px-1 pointer-events-none"><div class="flex flex-col items-center justify-end h-full w-8"><span class="w-2 h-[2px] bg-[#3F3F46] rounded-full mb-0.5"></span></div><div class="flex flex-col items-center justify-end h-full w-8 relative"><div class="w-5 bg-[#10B981] rounded-t-[3px] shadow-[0_0_8px_rgba(16,185,129,0.25)]" style="height: 8px;"></div></div><div class="flex flex-col items-center justify-end h-full w-8"><span class="w-2 h-[2px] bg-[#3F3F46] rounded-full mb-0.5"></span></div><div class="flex flex-col items-center justify-end h-full w-8"><span class="w-2 h-[2px] bg-[#3F3F46] rounded-full mb-0.5"></span></div><div class="flex flex-col items-center justify-end h-full w-8"><span class="w-2 h-[2px] bg-[#3F3F46] rounded-full mb-0.5"></span></div><div class="flex flex-col items-center justify-end h-full w-8"><span class="w-2 h-[2px] bg-[#3F3F46] rounded-full mb-0.5"></span></div><div class="flex flex-col items-center justify-end h-full w-8"><span class="w-2 h-[2px] bg-[#3F3F46] rounded-full mb-0.5"></span></div></div></div><div class="flex justify-between pl-9 pr-1 pt-2.5 text-[12px] text-[#9CA3AF] font-medium"><span class="w-8 text-center">T2</span><span class="w-8 text-center text-[#10B981] font-semibold">T3</span><span class="w-8 text-center">T4</span><span class="w-8 text-center">T5</span><span class="w-8 text-center">T6</span><span class="w-8 text-center">T7</span><span class="w-8 text-center">CN</span></div></div><div class="border-t border-[#272A30] pt-3 mt-1 flex flex-col gap-1" data-purpose="selected-day-details"><div class="flex items-center justify-between"><span class="text-[14px] font-medium text-[#F4F4F5] flex items-center gap-2"><span class="w-2 h-2 rounded-full bg-[#10B981]"></span>Thứ Ba, 27/10</span><span class="text-[15px] font-semibold text-[#10B981] tabular-nums">125 kcal</span></div><div class="flex items-center gap-2.5 text-[12px] text-[#9CA3AF] pl-4"><span class="flex items-center gap-1.5"><span class="w-1.5 h-1.5 rounded-full bg-[#60A5FA]"></span>Đạm 17 g</span><span class="">·</span><span class="flex items-center gap-1.5"><span class="w-1.5 h-1.5 rounded-full bg-[#FBBF24]"></span>Carb 4 g</span><span class="">·</span><span class="flex items-center gap-1.5"><span class="w-1.5 h-1.5 rounded-full bg-[#C084FC]"></span>Béo 4 g</span></div></div></section>
+<!-- END: DailyCalorieChart -->
+<!-- BEGIN: WeeklyMacros -->
+<section class="bg-[#191B1D] border border-[#272A30] rounded-[18px] p-5 flex flex-col gap-4 shadow-sm" data-purpose="weekly-macros-card"><h2 class="text-[16px] font-semibold text-[#F4F4F5] tracking-tight">Macro trong tuần</h2><div class="flex flex-col gap-5 pt-1"><div class="flex flex-col gap-2" data-purpose="protein-stat"><div class="flex items-start justify-between"><div class="flex items-center gap-2"><span class="w-2 h-2 rounded-full bg-[#60A5FA]"></span><span class="text-[14px] font-medium text-[#F4F4F5]">Đạm</span></div><div class="text-right"><div class="text-[16px] font-semibold text-[#F4F4F5] tabular-nums leading-tight">17 g</div><div class="text-[12px] text-[#9CA3AF]">Mục tiêu 952 g</div></div></div><div class="w-full h-1 bg-[#26292E] rounded-full overflow-hidden"><div class="bg-[#60A5FA] h-full rounded-full" style="width: 1.8%;"></div></div></div><div class="flex flex-col gap-2" data-purpose="carbs-stat"><div class="flex items-start justify-between"><div class="flex items-center gap-2"><span class="w-2 h-2 rounded-full bg-[#FBBF24]"></span><span class="text-[14px] font-medium text-[#F4F4F5]">Carb</span></div><div class="text-right"><div class="text-[16px] font-semibold text-[#F4F4F5] tabular-nums leading-tight">4 g</div><div class="text-[12px] text-[#9CA3AF]">Mục tiêu 3.157 g</div></div></div><div class="w-full h-1 bg-[#26292E] rounded-full overflow-hidden"><div class="bg-[#FBBF24] h-full rounded-full" style="width: 0.1%;"></div></div></div><div class="flex flex-col gap-2" data-purpose="fat-stat"><div class="flex items-start justify-between"><div class="flex items-center gap-2"><span class="w-2 h-2 rounded-full bg-[#C084FC]"></span><span class="text-[14px] font-medium text-[#F4F4F5]">Béo</span></div><div class="text-right"><div class="text-[16px] font-semibold text-[#F4F4F5] tabular-nums leading-tight">4 g</div><div class="text-[12px] text-[#9CA3AF]">Mục tiêu 609 g</div></div></div><div class="w-full h-1 bg-[#26292E] rounded-full overflow-hidden"><div class="bg-[#C084FC] h-full rounded-full" style="width: 0.7%;"></div></div></div></div></section>
+<!-- END: WeeklyMacros -->
+<!-- BEGIN: SummaryMetrics -->
+<section class="bg-[#191B1D] border border-[#272A30] rounded-[18px] p-5 flex flex-col gap-4 shadow-sm" data-purpose="summary-metrics-card"><div class="grid grid-cols-2 gap-4"><div class="space-y-1"><span class="text-[13px] text-[#9CA3AF]">Trung bình / ngày</span><div class="text-[26px] font-semibold tracking-tight text-[#F4F4F5] tabular-nums">18 <span class="text-[13px] font-normal text-[#9CA3AF]">kcal</span></div></div><div class="space-y-1 text-right"><span class="text-[13px] text-[#9CA3AF]">So với mục tiêu</span><div class="text-[26px] font-semibold tracking-tight text-[#9CA3AF] tabular-nums">−3.111 <span class="text-[13px] font-normal text-[#9CA3AF]">kcal</span></div></div></div><p class="text-[12px] text-[#9CA3AF] leading-relaxed border-t border-[#272A30] pt-3">Trung bình tính trên 7 ngày của tuần.</p><div class="bg-[#0F0F0F] rounded-xl p-3 border border-[#272A30] flex items-start gap-2.5"><svg class="w-4 h-4 text-[#9CA3AF] mt-0.5 shrink-0" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><path d="M12 16v-4"></path><path d="M12 8h.01"></path></svg><p class="text-[12px] text-[#9CA3AF] leading-normal">Bạn mới ghi 1/7 ngày. Báo cáo chưa phản ánh đầy đủ lượng ăn thực tế.</p></div></section>
+<!-- END: SummaryMetrics -->
+<!-- BEGIN: DailyBreakdown -->
+<section class="space-y-3 pt-1" data-purpose="daily-breakdown-list"><h2 class="text-[16px] font-semibold text-[#F4F4F5] tracking-tight px-1">Chi tiết từng ngày</h2><div class="bg-[#191B1D] border border-[#272A30] rounded-[18px] divide-y divide-[#272A30] overflow-hidden"><article class="px-4 py-3 flex items-center justify-between"><div class="flex items-center gap-3"><span class="text-[13px] font-medium text-[#71717A] w-6 tabular-nums">26</span><span class="text-[13px] text-[#71717A]">Chưa có dữ liệu</span></div><span class="text-[13px] text-[#52525B] font-mono">—</span></article><article class="px-4 py-3 flex items-center justify-between bg-[#10B981]/10"><div class="flex items-center gap-3"><span class="text-[13px] font-bold text-[#10B981] w-6 tabular-nums">27</span><div class="flex items-center gap-2 text-[12px] text-[#9CA3AF]"><span class="font-medium text-[#F4F4F5]">Đạm 17g</span><span class="text-[#52525B]">·</span><span class="">Carb 4g</span><span class="text-[#52525B]">·</span><span class="">Béo 4g</span></div></div><div class="text-right"><span class="text-[14px] font-bold text-[#10B981] tabular-nums">125</span><span class="text-[11px] text-[#10B981] ml-0.5">kcal</span></div></article><article class="px-4 py-3 flex items-center justify-between"><div class="flex items-center gap-3"><span class="text-[13px] font-medium text-[#71717A] w-6 tabular-nums">28</span><span class="text-[13px] text-[#71717A]">Chưa có dữ liệu</span></div><span class="text-[13px] text-[#52525B] font-mono">—</span></article><article class="px-4 py-3 flex items-center justify-between"><div class="flex items-center gap-3"><span class="text-[13px] font-medium text-[#71717A] w-6 tabular-nums">29</span><span class="text-[13px] text-[#71717A]">Chưa có dữ liệu</span></div><span class="text-[13px] text-[#52525B] font-mono">—</span></article><article class="px-4 py-3 flex items-center justify-between"><div class="flex items-center gap-3"><span class="text-[13px] font-medium text-[#71717A] w-6 tabular-nums">30</span><span class="text-[13px] text-[#71717A]">Chưa có dữ liệu</span></div><span class="text-[13px] text-[#52525B] font-mono">—</span></article><article class="px-4 py-3 flex items-center justify-between"><div class="flex items-center gap-3"><span class="text-[13px] font-medium text-[#71717A] w-6 tabular-nums">31</span><span class="text-[13px] text-[#71717A]">Chưa có dữ liệu</span></div><span class="text-[13px] text-[#52525B] font-mono">—</span></article><article class="px-4 py-3 flex items-center justify-between"><div class="flex items-center gap-3"><span class="text-[13px] font-medium text-[#71717A] w-6 tabular-nums">01</span><span class="text-[13px] text-[#71717A]">Chưa có dữ liệu</span></div><span class="text-[13px] text-[#52525B] font-mono">—</span></article></div></section>
+<!-- END: DailyBreakdown -->
+</div>
+</main>
+
+
+</body></html>

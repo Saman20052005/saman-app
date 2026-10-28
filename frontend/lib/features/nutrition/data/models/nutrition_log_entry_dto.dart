@@ -9,6 +9,7 @@ class NutritionLogEntryDto {
   final double protein;
   final double carbs;
   final double fat;
+  final String? imageUrl;
   final List<Map<String, dynamic>> foods;
 
   NutritionLogEntryDto({
@@ -19,10 +20,12 @@ class NutritionLogEntryDto {
     this.protein = 0,
     this.carbs = 0,
     this.fat = 0,
+    this.imageUrl,
     this.foods = const [],
   });
 
   factory NutritionLogEntryDto.fromJson(Map<String, dynamic> json) {
+    final rawFoods = json['foods'] ?? json['foodsList'];
     return NutritionLogEntryDto(
       logId: (json['log_id'] ?? json['_id'] ?? '').toString(),
       foodName: json['food_name'] ?? json['name'] ?? 'Unknown',
@@ -33,7 +36,8 @@ class NutritionLogEntryDto {
       protein: (json['protein'] as num?)?.toDouble() ?? 0,
       carbs: (json['carbs'] as num?)?.toDouble() ?? 0,
       fat: (json['fat'] as num?)?.toDouble() ?? 0,
-      foods: (json['foods'] as List<dynamic>?)
+      imageUrl: (json['image_url'] ?? json['imageUrl'] ?? json['image'])?.toString(),
+      foods: (rawFoods as List<dynamic>?)
               ?.map((e) => Map<String, dynamic>.from(e as Map))
               .toList() ??
           [],
@@ -49,6 +53,7 @@ class NutritionLogEntryDto {
       protein: protein,
       carbs: carbs,
       fat: fat,
+      imageUrl: imageUrl,
       foods: foods,
     );
   }

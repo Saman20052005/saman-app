@@ -36,9 +36,10 @@ class _SaveTracker {
   final operations = Map<Object, _SaveProgress>.identity();
 }
 
-// Survives autoDispose/recreation, scoped to this container and auth generation.
+// Survives autoDispose and A-B-A logins within this container, keyed by the
+// server-confirmed account identity and date. Generations only guard requests.
 // No token, image or operation state is persisted on disk.
-final _saveTrackerProvider = Provider.family<_SaveTracker, (int, String)>(
+final _saveTrackerProvider = Provider.family<_SaveTracker, (String, String)>(
     (ref, key) => _SaveTracker());
 
 class DailyStoryController
@@ -113,8 +114,9 @@ class DailyStoryController
     final epoch = _buildEpoch;
     final guard = ref.read(nutritionSessionProvider);
     final owner = session ?? await guard.capture();
+    final identity = await guard.accountIdentity(owner);
     await _validate(owner, epoch);
-    final tracker = ref.read(_saveTrackerProvider((owner.generation, arg)));
+    final tracker = ref.read(_saveTrackerProvider((identity, arg)));
     if (tracker.busy) {
       throw const ConfirmLogException(ConfirmLogFailureStage.busy,
           'This meal is already being saved. Please wait.');
@@ -159,21 +161,32 @@ class DailyStoryController
         }
         await _validate(owner, epoch);
         dispatched = true;
+        progress.uncertain = const ConfirmLogException(
+          ConfirmLogFailureStage.story,
+          'Photo save is unconfirmed. Check your diary before trying again.',
+          outcomeUnknown: true,
+        );
         final response = await dio.post(ApiConfig.logStoryEndpoint,
             data: formData, options: options);
-        // Record confirmed progress even if the originating provider was disposed.
-        // This tracker belongs only to its captured auth generation.
+        // Only the originating session can confirm its account-scoped progress.
         await owner.validate();
         final storyId = response.data is Map ? response.data['log_id']?.toString() : null;
         if (storyId == null || storyId.isEmpty) {
           throw StateError('Story save was not confirmed');
         }
         progress.storyId = storyId;
+        progress.uncertain = null;
         dispatched = false;
         await _validate(owner, epoch);
       }
       await _validate(owner, epoch);
       dispatched = true;
+      progress.uncertain = const ConfirmLogException(
+        ConfirmLogFailureStage.meal,
+        'Photo saved. Meal save is unconfirmed. Check your diary before trying again.',
+        storySaved: true,
+        outcomeUnknown: true,
+      );
       final mealResponse = await dio.post('${ApiConfig.baseUrl}/api/nutrition/logs', options: options,
           data: {
         'date': arg,
@@ -197,6 +210,7 @@ class DailyStoryController
       }
       await owner.validate();
       progress.mealSaved = true;
+      progress.uncertain = null;
       dispatched = false;
       await _validate(owner, epoch);
       ref.invalidate(nutritionProvider);
@@ -227,7 +241,7 @@ class DailyStoryController
         outcomeUnknown: !definite,
       );
       await owner.validate();
-      if (!definite) progress.uncertain = failure;
+      progress.uncertain = definite ? null : failure;
       await _validate(owner, epoch);
       if (error is DioException && error.response?.statusCode == 401) {
         await guard.recoverAuthorization();

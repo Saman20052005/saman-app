@@ -15,6 +15,9 @@ import 'widgets/nutrition_summary.dart';
 import 'widgets/nutrition_water_card.dart';
 import 'widgets/plan_generator_sheet.dart';
 import 'widgets/planned_meal_card.dart';
+import '../../features/membership/domain/models/membership_plan.dart';
+import '../../features/membership/presentation/screens/plan_detail_screen.dart';
+import '../../features/membership/presentation/widgets/upgrade_bottom_sheet.dart';
 
 /// Redesigned Nutrition Screen for Saman App (Milestone CP2)
 /// Implements authentic Calm Athleticism design spec:
@@ -114,6 +117,22 @@ class _NutritionScreenState extends ConsumerState<NutritionScreen> {
     );
   }
 
+  Future<void> _openNutritionUpgradeSheet() async {
+    final selectedTier = await showUpgradeBottomSheet(
+      context,
+      tier: MembershipTier.plus,
+    );
+    if (!mounted || selectedTier == null) return;
+
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        settings:
+            RouteSettings(name: '/membership/detail/${selectedTier.name}'),
+        builder: (_) => PlanDetailScreen(tier: selectedTier),
+      ),
+    );
+  }
+
   Future<void> _handleAddWater(int currentWater) async {
     if (_isWaterUpdating) return;
     setState(() => _isWaterUpdating = true);
@@ -123,9 +142,7 @@ class _NutritionScreenState extends ConsumerState<NutritionScreen> {
     final dateStr = DateFormat('yyyy-MM-dd').format(pinnedDate);
 
     try {
-      await ref
-          .read(nutritionProvider.notifier)
-          .addWater(250, date: dateStr);
+      await ref.read(nutritionProvider.notifier).addWater(250, date: dateStr);
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -173,7 +190,8 @@ class _NutritionScreenState extends ConsumerState<NutritionScreen> {
                           ),
                         ),
                         IconButton(
-                          icon: const Icon(Icons.close, color: Color(0xFF9CA3AF)),
+                          icon:
+                              const Icon(Icons.close, color: Color(0xFF9CA3AF)),
                           onPressed: isSaving ? null : () => Navigator.pop(ctx),
                         ),
                       ],
@@ -245,7 +263,8 @@ class _NutritionScreenState extends ConsumerState<NutritionScreen> {
                                   if (ok) {
                                     if (ctx.mounted) Navigator.pop(ctx);
                                     if (mounted) {
-                                      ScaffoldMessenger.of(context).showSnackBar(
+                                      ScaffoldMessenger.of(context)
+                                          .showSnackBar(
                                         const SnackBar(
                                           content: Text(
                                             '✅ Đã ghi nhận bữa ăn vào nhật ký!',
@@ -256,7 +275,8 @@ class _NutritionScreenState extends ConsumerState<NutritionScreen> {
                                   } else {
                                     setModalState(() {
                                       isSaving = false;
-                                      errorMessage = 'Không thể ghi nhận bữa ăn. Vui lòng thử lại.';
+                                      errorMessage =
+                                          'Không thể ghi nhận bữa ăn. Vui lòng thử lại.';
                                     });
                                   }
                                 } catch (e) {
@@ -458,82 +478,154 @@ class _NutritionScreenState extends ConsumerState<NutritionScreen> {
   // ─── Header Section ───────────────────────────────────────────────────────
 
   Widget _buildHeader() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: const [
-              Text(
-                'Nutrition',
-                style: TextStyle(
-                  fontSize: 28,
-                  fontWeight: FontWeight.w700,
-                  color: Color(0xFFF9FAFB),
-                  letterSpacing: -0.6,
-                  height: 1.1,
-                ),
-              ),
-              SizedBox(height: 2),
-              Text(
-                'Fuel, log & track your day',
-                style: TextStyle(
-                  fontSize: 13,
-                  color: Color(0xFF9CA3AF),
-                  fontWeight: FontWeight.w400,
-                ),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(width: 12),
-
-        // Report action button
-        Material(
-          color: Colors.transparent,
-          child: InkWell(
-            onTap: _openReport,
-            borderRadius: BorderRadius.circular(10),
-            child: Container(
-              constraints: const BoxConstraints(minHeight: 44),
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              decoration: BoxDecoration(
-                color: const Color(0xFF16171B),
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: const Color(0xFF26282F)),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: const [
-                  Icon(
-                    Icons.bar_chart_rounded,
-                    size: 16,
-                    color: Color(0xFF10B981),
-                  ),
-                  SizedBox(width: 6),
                   Text(
-                    'Report',
+                    'Nutrition',
                     style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
+                      fontSize: 28,
+                      fontWeight: FontWeight.w700,
+                      color: Color(0xFFF9FAFB),
+                      letterSpacing: -0.6,
+                      height: 1.1,
+                    ),
+                  ),
+                  SizedBox(height: 2),
+                  Text(
+                    'Fuel, log & track your day',
+                    style: TextStyle(
+                      fontSize: 13,
                       color: Color(0xFF9CA3AF),
+                      fontWeight: FontWeight.w400,
                     ),
                   ),
                 ],
               ),
             ),
+            const SizedBox(width: 12),
+
+            // Report action button
+            Material(
+              color: Colors.transparent,
+              child: InkWell(
+                onTap: _openReport,
+                borderRadius: BorderRadius.circular(10),
+                child: Container(
+                  constraints: const BoxConstraints(minHeight: 44),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF16171B),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: const Color(0xFF26282F)),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: const [
+                      Icon(
+                        Icons.bar_chart_rounded,
+                        size: 16,
+                        color: Color(0xFF10B981),
+                      ),
+                      SizedBox(width: 6),
+                      Text(
+                        'Report',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: Color(0xFF9CA3AF),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        _buildUpgradeChip(),
+      ],
+    );
+  }
+
+  Widget _buildUpgradeChip() {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        key: const ValueKey('nutrition_upgrade_chip'),
+        onTap: _openNutritionUpgradeSheet,
+        borderRadius: BorderRadius.circular(20),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+          decoration: BoxDecoration(
+            color: const Color(0xFF16171B),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: const Color(0xFF26282F)),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 6,
+                height: 6,
+                decoration: const BoxDecoration(
+                  color: Color(0xFF10B981),
+                  shape: BoxShape.circle,
+                ),
+              ),
+              const SizedBox(width: 6),
+              RichText(
+                text: const TextSpan(
+                  children: [
+                    TextSpan(
+                      text: 'PLUS',
+                      style: TextStyle(
+                        color: Color(0xFF10B981),
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                    TextSpan(
+                      text: ' · PREVIEW',
+                      style: TextStyle(
+                        color: Color(0xFF94979E),
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 4),
+              const Icon(
+                Icons.chevron_right,
+                size: 14,
+                color: Color(0xFF94979E),
+              ),
+            ],
           ),
         ),
-      ],
+      ),
     );
   }
 
   // ─── Populated Content ────────────────────────────────────────────────────
 
   Widget _buildDataView(NutritionPlan? plan, ProfileState profile) {
-    final bool hasValidWaterTarget = profile.isProfileValid && profile.waterTargetMl > 0;
+    final bool hasValidWaterTarget =
+        profile.isProfileValid && profile.waterTargetMl > 0;
     final int waterTarget = hasValidWaterTarget ? profile.waterTargetMl : 0;
 
     final effectivePlan = plan ??
@@ -680,8 +772,10 @@ class _NutritionScreenState extends ConsumerState<NutritionScreen> {
 
   // ─── Logged Meals Section ─────────────────────────────────────────────────
 
-  Widget _buildLoggedMealsSection(List<NutritionLogEntry> entries, int totalCaloriesConsumed) {
-    final bool hasAggregateMismatch = totalCaloriesConsumed > 0 && entries.isEmpty;
+  Widget _buildLoggedMealsSection(
+      List<NutritionLogEntry> entries, int totalCaloriesConsumed) {
+    final bool hasAggregateMismatch =
+        totalCaloriesConsumed > 0 && entries.isEmpty;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -709,7 +803,8 @@ class _NutritionScreenState extends ConsumerState<NutritionScreen> {
                 onTap: _openMealStory,
                 borderRadius: BorderRadius.circular(6),
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: const [
@@ -735,7 +830,6 @@ class _NutritionScreenState extends ConsumerState<NutritionScreen> {
           ],
         ),
         const SizedBox(height: 10),
-
         if (entries.isEmpty)
           if (hasAggregateMismatch)
             Container(
@@ -744,7 +838,8 @@ class _NutritionScreenState extends ConsumerState<NutritionScreen> {
               decoration: BoxDecoration(
                 color: const Color(0xFF16171B),
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: const Color(0xFFF59E0B).withOpacity(0.3)),
+                border:
+                    Border.all(color: const Color(0xFFF59E0B).withOpacity(0.3)),
               ),
               child: Column(
                 children: [
@@ -778,7 +873,8 @@ class _NutritionScreenState extends ConsumerState<NutritionScreen> {
                       onTap: () => _loadData(forceRefresh: true),
                       borderRadius: BorderRadius.circular(8),
                       child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 14, vertical: 8),
                         decoration: BoxDecoration(
                           color: const Color(0xFF212328),
                           borderRadius: BorderRadius.circular(8),
@@ -852,7 +948,8 @@ class _NutritionScreenState extends ConsumerState<NutritionScreen> {
 
   // ─── Planned Meal Section ─────────────────────────────────────────────────
 
-  Widget _buildPlannedMealSection(List<Meal> meals, ProfileState profile, int remainCal, int consumedCal) {
+  Widget _buildPlannedMealSection(
+      List<Meal> meals, ProfileState profile, int remainCal, int consumedCal) {
     if (meals.isEmpty) {
       return Container(
         padding: const EdgeInsets.all(16),
@@ -877,7 +974,8 @@ class _NutritionScreenState extends ConsumerState<NutritionScreen> {
                   ),
                 ),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                   decoration: BoxDecoration(
                     color: const Color(0xFF212328),
                     borderRadius: BorderRadius.circular(4),

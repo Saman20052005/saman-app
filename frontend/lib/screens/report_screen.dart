@@ -1,15 +1,20 @@
 // [File: lib/screens/report_screen.dart]
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:intl/intl.dart';
 
 import '../features/report/presentation/providers/report_provider.dart';
 import '../features/report/domain/entities/weekly_report_entity.dart';
-import '../providers/profile_provider.dart';
-import '../models/report_model.dart';
-import '../config/app_theme.dart';
-import '../widgets/nutrition_primitives.dart';
-import '../widgets/trend_chart_card.dart';
+import '../features/report/presentation/widgets/report_header.dart';
+import '../features/report/presentation/widgets/report_week_navigator.dart';
+import '../features/report/presentation/widgets/report_tab_bar.dart';
+import '../features/report/presentation/widgets/report_weekly_summary_card.dart';
+import '../features/report/presentation/widgets/calories_consumed_chart_card.dart';
+import '../features/report/presentation/widgets/protein_intake_chart_card.dart';
+import '../features/report/presentation/widgets/calories_burned_chart_card.dart';
+import '../features/report/presentation/widgets/report_takeaway_card.dart';
+import '../features/report/presentation/widgets/daily_breakdown_sheet.dart';
+import '../features/report/presentation/widgets/report_nutrition_tab.dart';
+import '../features/report/presentation/widgets/report_activity_tab.dart';
 
 class ReportScreen extends ConsumerStatefulWidget {
   const ReportScreen({super.key});
@@ -19,264 +24,320 @@ class ReportScreen extends ConsumerStatefulWidget {
 }
 
 class _ReportScreenState extends ConsumerState<ReportScreen> {
-  DateTime _selectedDate = DateTime.now();
-  int _selectedIndex = 0; // Để quản lý Filter Tab
+  late DateTime _selectedDate;
+  int _selectedTab = 0; // 0: Overview, 1: Nutrition, 2: Activity
+  int _selectedDayIndex = 0; // 0: Mo .. 6: Su
+
+  @override
+  void initState() {
+    super.initState();
+    final now = DateTime.now();
+    _selectedDate = DateTime(now.year, now.month, now.day);
+    _selectedDayIndex = now.weekday - 1; // 0 = Mon, 6 = Sun
+  }
+
+  DateTime get _weekMonday {
+    final monday = _selectedDate.subtract(Duration(days: _selectedDate.weekday - 1));
+    return DateTime(monday.year, monday.month, monday.day);
+  }
+
+  void _onPreviousWeek() {
+    setState(() {
+      _selectedDate = _selectedDate.subtract(const Duration(days: 7));
+      _selectedDayIndex = 0;
+    });
+  }
+
+  void _onNextWeek() {
+    final nextWeek = _selectedDate.add(const Duration(days: 7));
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    if (!nextWeek.isAfter(today.add(const Duration(days: 6)))) {
+      setState(() {
+        _selectedDate = nextWeek;
+        final monday = _weekMonday;
+        final sunday = monday.add(const Duration(days: 6));
+        if (!today.isBefore(monday) && !today.isAfter(sunday)) {
+          _selectedDayIndex = today.weekday - 1;
+        } else {
+          _selectedDayIndex = 0;
+        }
+      });
+    }
+  }
+
+  Future<void> _onPickDate() async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _selectedDate,
+      firstDate: DateTime(2023),
+      lastDate: DateTime.now(),
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: const ColorScheme.dark(
+              primary: Color(0xFF10B981),
+              onPrimary: Color(0xFF0C0D0E),
+              surface: Color(0xFF16171A),
+              onSurface: Color(0xFFF3F4F6),
+            ),
+            dialogBackgroundColor: const Color(0xFF16171A),
+          ),
+          child: child!,
+        );
+      },
+    );
+
+    if (picked != null) {
+      setState(() {
+        _selectedDate = picked;
+        final now = DateTime.now();
+        final today = DateTime(now.year, now.month, now.day);
+        final monday = _weekMonday;
+        final sunday = monday.add(const Duration(days: 6));
+        if (!today.isBefore(monday) && !today.isAfter(sunday)) {
+          _selectedDayIndex = today.weekday - 1;
+        } else {
+          _selectedDayIndex = picked.weekday - 1;
+        }
+      });
+    }
+  }
+
+  bool get _canGoNext {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final monday = _weekMonday;
+    final nextMonday = monday.add(const Duration(days: 7));
+    return !nextMonday.isAfter(today);
+  }
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final colors = theme.colorScheme;
-    final tokens = theme.extension<AppThemeExtension>()!;
-    final profileState = ref.watch(profileProvider);
-    final targetCalories = profileState.targetCalories;
-    final targetProtein = profileState.targetProtein;
-    final targetBurned =
-        profileState.targetBurned > 0 ? profileState.targetBurned : 300;
-
     final reportAsync = ref.watch(weeklyReportProvider(_selectedDate));
 
     return Scaffold(
-      backgroundColor: context.bgColor,
-      appBar: AppBar(
-        backgroundColor: context.bgColor,
-        elevation: 0,
-        centerTitle: false,
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Report', style: theme.textTheme.headlineSmall),
-            Text(
-              "Week of ${DateFormat('MMM dd').format(_selectedDate.subtract(const Duration(days: 6)))} - ${DateFormat('MMM dd').format(_selectedDate)}",
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: tokens.inkMuted,
-              ),
-            )
-          ],
-        ),
-        actions: [
-          Container(
-            margin: const EdgeInsets.only(right: AppSpacing.lg),
-            decoration: BoxDecoration(
-              color: colors.surface,
-              borderRadius: BorderRadius.circular(AppRadius.md),
-              border: Border.all(color: tokens.hairline),
-            ),
-            child: IconButton(
-              icon: const Icon(Icons.calendar_today_outlined, size: 20),
-              onPressed: () async {
-                final picked = await showDatePicker(
-                  context: context,
-                  initialDate: _selectedDate,
-                  firstDate: DateTime(2023),
-                  lastDate: DateTime.now(),
-                );
-                if (picked != null) setState(() => _selectedDate = picked);
-              },
-            ),
-          )
-        ],
-      ),
-      body: reportAsync.when(
-        loading: () => Center(
-          child: CircularProgressIndicator(color: colors.primary),
-        ),
-        error: (err, stack) => Center(
-          child: Padding(
-            padding: const EdgeInsets.all(AppSpacing.xl),
+      backgroundColor: const Color(0xFF0C0D0E),
+      body: SafeArea(
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 440),
             child: Column(
-              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                // 1. Compact Header
+                ReportHeader(
+                  onBack: () => Navigator.of(context).pop(),
+                ),
+
+                // 2. Week Navigation
+                ReportWeekNavigator(
+                  weekMonday: _weekMonday,
+                  onPrevious: _onPreviousWeek,
+                  onNext: _canGoNext ? _onNextWeek : null,
+                  onPickDate: _onPickDate,
+                ),
+
+                // 3. Segmented 3-Tab Switcher
+                ReportTabBar(
+                  selectedIndex: _selectedTab,
+                  onTabSelected: (idx) {
+                    setState(() => _selectedTab = idx);
+                  },
+                ),
+                const SizedBox(height: 8),
+
+                // Main Tab Content
+                Expanded(
+                  child: reportAsync.when(
+                    loading: () => const Center(
+                      child: CircularProgressIndicator(
+                        color: Color(0xFF10B981),
+                        strokeWidth: 2.5,
+                      ),
+                    ),
+                    error: (err, stack) => Center(
+                      child: Padding(
+                        padding: const EdgeInsets.all(24),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(
+                              Icons.cloud_off_rounded,
+                              size: 36,
+                              color: Color(0xFF71717A),
+                            ),
+                            const SizedBox(height: 12),
+                            const Text(
+                              'Could not load weekly report data.',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: Color(0xFFA1A1AA),
+                              ),
+                            ),
+                            const SizedBox(height: 16),
+                            ElevatedButton(
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xFF26282F),
+                                foregroundColor: Colors.white,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                              ),
+                              onPressed: () {
+                                ref.invalidate(weeklyReportProvider(_selectedDate));
+                              },
+                              child: const Text('Retry'),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    data: (report) {
+                      return RefreshIndicator(
+                        color: const Color(0xFF10B981),
+                        backgroundColor: const Color(0xFF16171A),
+                        onRefresh: () async {
+                          ref.invalidate(weeklyReportProvider(_selectedDate));
+                        },
+                        child: SingleChildScrollView(
+                          physics: const AlwaysScrollableScrollPhysics(),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 8,
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              // Content matching active tab
+                              if (_selectedTab == 0) ...[
+                                _buildOverviewTab(report),
+                              ] else if (_selectedTab == 1) ...[
+                                ReportNutritionTab(
+                                  report: report,
+                                  selectedIndex: _selectedDayIndex,
+                                  onSelectIndex: (idx) {
+                                    setState(() => _selectedDayIndex = idx);
+                                  },
+                                ),
+                              ] else ...[
+                                ReportActivityTab(
+                                  report: report,
+                                  selectedIndex: _selectedDayIndex,
+                                  onSelectIndex: (idx) {
+                                    setState(() => _selectedDayIndex = idx);
+                                  },
+                                ),
+                              ],
+                              const SizedBox(height: 36),
+                            ],
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildOverviewTab(WeeklyReportEntity report) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        // 4. Weekly Summary ("Your week, at a glance")
+        ReportWeeklySummaryCard(
+          daysLogged: report.daysLogged,
+          avgProtein: report.avgProtein,
+          targetProtein: report.targetProtein,
+          activeDays: report.activeDays,
+          targetActiveDays: 4,
+          avgRpe: report.workoutSessions.isNotEmpty ? 8.2 : null,
+        ),
+        const SizedBox(height: 16),
+
+        // 5. Calories Consumed Card (White/Gray Bar Chart)
+        CaloriesConsumedChartCard(
+          days: report.days,
+          avgCalories: report.avgCaloriesIn,
+          targetCalories: report.targetCalories,
+          selectedIndex: _selectedDayIndex,
+          onSelectIndex: (idx) {
+            setState(() => _selectedDayIndex = idx);
+          },
+        ),
+        const SizedBox(height: 16),
+
+        // 6. Protein Intake Card (Emerald Line Chart)
+        ProteinIntakeChartCard(
+          days: report.days,
+          avgProtein: report.avgProtein,
+          targetProtein: report.targetProtein,
+          selectedIndex: _selectedDayIndex,
+          onSelectIndex: (idx) {
+            setState(() => _selectedDayIndex = idx);
+          },
+        ),
+        const SizedBox(height: 16),
+
+        // 7. Calories Burned Card (Compact Amber Bar Chart)
+        CaloriesBurnedChartCard(
+          days: report.days,
+          avgCaloriesBurned: report.avgCaloriesBurned,
+          targetBurned: report.targetBurned,
+          selectedIndex: _selectedDayIndex,
+          onSelectIndex: (idx) {
+            setState(() => _selectedDayIndex = idx);
+          },
+        ),
+        const SizedBox(height: 16),
+
+        // 8. Weekly Takeaway Card
+        if (report.takeaway != null && report.takeaway!.isNotEmpty) ...[
+          ReportTakeawayCard(takeaway: report.takeaway!),
+          const SizedBox(height: 12),
+        ],
+
+        // 9. View Daily Breakdown Action
+        Center(
+          child: TextButton(
+            style: TextButton.styleFrom(
+              foregroundColor: const Color(0xFFD1D5DB),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+            ),
+            onPressed: () {
+              DailyBreakdownSheet.show(
+                context,
+                days: report.days,
+                targetCalories: report.targetCalories,
+                targetProtein: report.targetProtein,
+              );
+            },
+            child: const Wrap(
+              crossAxisAlignment: WrapCrossAlignment.center,
               children: [
                 Text(
-                  'We could not load this report.',
-                  textAlign: TextAlign.center,
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: tokens.inkMuted,
+                  'View daily breakdown',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
-                const SizedBox(height: AppSpacing.sm),
-                TextButton(
-                  onPressed: () =>
-                      ref.invalidate(weeklyReportProvider(_selectedDate)),
-                  child: const Text('Retry'),
-                ),
+                SizedBox(width: 6),
+                Icon(Icons.arrow_forward_rounded, size: 14),
               ],
             ),
           ),
         ),
-        data: (report) {
-          final consumedData = report.days
-              .map((e) => DailyReportItem(
-                    date: e.date.toIso8601String(),
-                    calories: e.caloriesIn.toInt(),
-                    protein: e.protein,
-                    water: 0,
-                  ))
-              .toList();
-
-          final burnedData = report.days
-              .map((e) => DailyReportItem(
-                    date: e.date.toIso8601String(),
-                    calories: e.caloriesBurned.toInt(),
-                    protein: 0,
-                    water: 0,
-                  ))
-              .toList();
-
-          return SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(
-              horizontal: AppSpacing.lg,
-              vertical: AppSpacing.sm,
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // 1. FILTER TABS (Tăng tính tương tác)
-                _buildFilterTabs(),
-                const SizedBox(height: AppSpacing.lg),
-
-                // 2. SUMMARY CARD (Design mới gọn hơn)
-                _buildModernSummaryCard(report, targetCalories),
-                const SizedBox(height: AppSpacing.xl),
-
-                const NutritionSectionHeader(label: 'Weekly trends'),
-                const SizedBox(height: AppSpacing.md),
-
-                // 3. CHARTS AREA
-                // Logic hiển thị theo Tab
-                if (_selectedIndex == 0 || _selectedIndex == 1) ...[
-                  TrendChartCard(
-                    title: "Calories Consumed",
-                    data: consumedData,
-                    targetValue: targetCalories.toDouble(),
-                    baseColor: tokens.warning,
-                    unit: "kcal",
-                  ),
-                ],
-
-                if (_selectedIndex == 0 || _selectedIndex == 2) ...[
-                  TrendChartCard(
-                    title: "Calories Burned",
-                    data: burnedData,
-                    targetValue: targetBurned.toDouble(),
-                    baseColor: colors.error,
-                    unit: "kcal",
-                  ),
-                ],
-
-                if (_selectedIndex == 0 || _selectedIndex == 1) ...[
-                  TrendChartCard(
-                    title: "Protein Intake",
-                    data: consumedData,
-                    targetValue: targetProtein.toDouble(),
-                    baseColor: colors.primary,
-                    unit: "g",
-                  ),
-                ],
-
-                const SizedBox(height: AppSpacing.xxxl),
-              ],
-            ),
-          );
-        },
-      ),
-    );
-  }
-
-  Widget _buildFilterTabs() {
-    final theme = Theme.of(context);
-    final colors = theme.colorScheme;
-    final tokens = theme.extension<AppThemeExtension>()!;
-    final tabs = ["Overview", "Nutrition", "Activity"];
-    return Row(
-      children: tabs.asMap().entries.map((e) {
-        final isActive = _selectedIndex == e.key;
-        return GestureDetector(
-          onTap: () => setState(() => _selectedIndex = e.key),
-          child: Container(
-            margin: const EdgeInsets.only(right: AppSpacing.md),
-            padding: const EdgeInsets.symmetric(
-              horizontal: AppSpacing.lg,
-              vertical: AppSpacing.sm,
-            ),
-            decoration: BoxDecoration(
-              color: isActive ? colors.primary : colors.surface,
-              borderRadius: BorderRadius.circular(AppRadius.pill),
-              border: isActive ? null : Border.all(color: tokens.hairline),
-            ),
-            child: Text(
-              e.value,
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: isActive ? colors.onPrimary : colors.onSurface,
-              ),
-            ),
-          ),
-        );
-      }).toList(),
-    );
-  }
-
-  Widget _buildModernSummaryCard(WeeklyReportEntity report, int dailyTarget) {
-    final theme = Theme.of(context);
-    final colors = theme.colorScheme;
-    final tokens = theme.extension<AppThemeExtension>()!;
-    // Tính toán đơn giản
-    final avg = report.avgCaloriesIn.toInt();
-    final isGood = avg <= dailyTarget + 100 && avg >= dailyTarget - 200;
-
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(AppSpacing.xl),
-      decoration: BoxDecoration(
-        color: colors.surface,
-        borderRadius: BorderRadius.circular(AppRadius.lg),
-        border: Border.all(color: tokens.hairline),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text('Weekly Average', style: tokens.labelCaps),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: AppSpacing.sm,
-                  vertical: AppSpacing.xs,
-                ),
-                decoration: BoxDecoration(
-                  color: isGood
-                      ? colors.primary.withOpacity(0.12)
-                      : tokens.warning.withOpacity(0.12),
-                  borderRadius: BorderRadius.circular(AppRadius.sm),
-                ),
-                child: Text(
-                  isGood ? 'On Track' : 'Needs Attention',
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: isGood ? colors.primary : tokens.warning,
-                  ),
-                ),
-              )
-            ],
-          ),
-          const SizedBox(height: AppSpacing.md),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Text("$avg", style: tokens.heroNumeric),
-              const SizedBox(width: AppSpacing.sm),
-              Padding(
-                padding: const EdgeInsets.only(bottom: AppSpacing.sm),
-                child: Text(
-                  'kcal/day',
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: tokens.inkMuted,
-                  ),
-                ),
-              )
-            ],
-          ),
-        ],
-      ),
+      ],
     );
   }
 }

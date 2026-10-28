@@ -75,7 +75,7 @@ void main() {
     expect(h.writes('/log-story'), 1);
     expect(h.writes('/logs'), 1);
     fail = false;
-    final retry = find.widgetWithText(FilledButton, 'Retry meal save');
+    final retry = find.widgetWithText(FilledButton, 'Thử lưu lại');
     await tester.ensureVisible(retry);
     await tester.pumpAndSettle();
     await tester.tap(retry);

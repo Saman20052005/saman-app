@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 
 class WorkoutCvNativeSource {
@@ -14,6 +15,7 @@ class WorkoutCvNativeSource {
             const EventChannel('com.example.health_ai_app/workout_cv/events');
 
   Future<String> checkPermission() async {
+    if (kIsWeb || defaultTargetPlatform != TargetPlatform.android) return 'unsupported';
     try {
       final result = await _methodChannel.invokeMethod<String>('checkPermission');
       return result ?? 'denied';
@@ -23,6 +25,7 @@ class WorkoutCvNativeSource {
   }
 
   Future<bool> requestPermission() async {
+    if (kIsWeb || defaultTargetPlatform != TargetPlatform.android) return false;
     try {
       final result = await _methodChannel.invokeMethod<bool>('requestPermission');
       return result ?? false;
@@ -32,6 +35,7 @@ class WorkoutCvNativeSource {
   }
 
   Future<bool> startSession(String exerciseSlug) async {
+    if (kIsWeb || defaultTargetPlatform != TargetPlatform.android) return false;
     try {
       final result = await _methodChannel.invokeMethod<bool>(
         'startSession',
@@ -44,6 +48,7 @@ class WorkoutCvNativeSource {
   }
 
   Future<bool> startVideoReplay(String videoPath) async {
+    if (kIsWeb || defaultTargetPlatform != TargetPlatform.android) return false;
     try {
       final result = await _methodChannel.invokeMethod<bool>(
         'startVideoReplay',
@@ -56,6 +61,7 @@ class WorkoutCvNativeSource {
   }
 
   Future<bool> switchSource(String mode, {String? videoPath}) async {
+    if (kIsWeb || defaultTargetPlatform != TargetPlatform.android) return false;
     try {
       final result = await _methodChannel.invokeMethod<bool>(
         'switchSource',
@@ -68,6 +74,7 @@ class WorkoutCvNativeSource {
   }
 
   Future<bool> restartVideoReplay() async {
+    if (kIsWeb || defaultTargetPlatform != TargetPlatform.android) return false;
     try {
       final result = await _methodChannel.invokeMethod<bool>('restartVideoReplay');
       return result ?? false;
@@ -77,6 +84,7 @@ class WorkoutCvNativeSource {
   }
 
   Future<bool> stopSession() async {
+    if (kIsWeb || defaultTargetPlatform != TargetPlatform.android) return false;
     try {
       final result = await _methodChannel.invokeMethod<bool>('stopSession');
       return result ?? false;
@@ -86,6 +94,7 @@ class WorkoutCvNativeSource {
   }
 
   Future<bool> acknowledgeReplayFrame(int sessionGen, int videoPtsMs, String phase) async {
+    if (kIsWeb || defaultTargetPlatform != TargetPlatform.android) return false;
     try {
       return await _methodChannel.invokeMethod<bool>('acknowledgeReplayFrame', {
         'sessionGen': sessionGen,
@@ -100,6 +109,9 @@ class WorkoutCvNativeSource {
   }
 
   Stream<Map<String, dynamic>> get eventStream {
+    if (kIsWeb || defaultTargetPlatform != TargetPlatform.android) {
+      return const Stream.empty();
+    }
     return _eventChannel.receiveBroadcastStream().map((event) {
       if (event is Map) {
         return Map<String, dynamic>.from(event);

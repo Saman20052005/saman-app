@@ -1,0 +1,278 @@
+<!DOCTYPE html><html class="dark" lang="en" style=""><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" name="viewport">
+<title>POPUP 01 — Nutrition AI Upgrade</title>
+<link href="https://fonts.googleapis.com" rel="preconnect">
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=JetBrains+Mono:wght@400;500;600&amp;family=Space+Grotesk:wght@500;600;700&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script>
+  tailwind.config = {
+    darkMode: "class",
+    theme: {
+      extend: {
+        colors: {
+          brand: {
+            bg: "#0C0D0E",
+            card: "#16171B",
+            inner: "#212328",
+            border: "#26282F",
+            textPrimary: "#F3F4F6",
+            textSecondary: "#94979E",
+            accent: "#10B981"
+          }
+        },
+        fontFamily: {
+          headline: ["Space Grotesk", "sans-serif"],
+          body: ["Inter", "sans-serif"],
+          mono: ["JetBrains Mono", "monospace"]
+        }
+      }
+    }
+  };
+</script>
+<style>
+  @layer base {
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      background-color: #0C0D0E;
+      color: #F3F4F6;
+      font-family: 'Inter', sans-serif;
+      -webkit-font-smoothing: antialiased;
+      overscroll-behavior: none;
+    }
+    .pb-safe {
+      padding-bottom: env(safe-area-inset-bottom, 16px);
+    }
+    .pt-safe {
+      padding-top: env(safe-area-inset-top, 0px);
+    }
+  }
+  .material-symbols-outlined {
+    font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+  }
+</style>
+</head>
+<body class="bg-[#0C0D0E] text-[#F3F4F6] flex justify-center items-center min-h-screen">
+
+<!-- Android Viewport Frame: 390 x 844 logical pixels -->
+<div class="relative w-[390px] h-[844px] max-w-full max-h-full bg-[#0C0D0E] overflow-hidden shadow-2xl flex flex-col justify-end select-none">
+
+  <!-- ======================================================== -->
+  <!-- 1. DIMMED BACKGROUND: Nutrition Context                     -->
+  <!-- ======================================================== -->
+  <div class="absolute inset-0 z-0 flex flex-col bg-[#0C0D0E] filter brightness-40 pointer-events-none aria-hidden" aria-hidden="true">
+    
+    <!-- Top Status Bar -->
+    <div class="w-full pt-safe bg-[#0C0D0E] shrink-0">
+      <div class="h-11 px-6 flex items-center justify-between text-xs text-[#F3F4F6] font-medium">
+        <span class="font-mono text-[13px] font-semibold text-[#94979E]">9:41</span>
+        <div class="flex items-center gap-2 text-[#94979E]">
+          <span class="material-symbols-outlined text-[15px]">signal_cellular_alt</span>
+          <span class="material-symbols-outlined text-[15px]">wifi</span>
+          <span class="material-symbols-outlined text-[18px]">battery_full</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Nutrition Header -->
+    <div class="px-4 pt-2 pb-3 flex items-center justify-between border-b border-[#26282F]/40">
+      <div>
+        <h1 class="font-headline text-2xl font-bold text-[#F3F4F6]">Nutrition</h1>
+        <p class="text-xs text-[#94979E] mt-0.5">Macro guardrails &amp; fuel tracking</p>
+      </div>
+      <div class="w-9 h-9 rounded-xl bg-[#16171B] border border-[#26282F] flex items-center justify-center text-[#94979E]">
+        <span class="material-symbols-outlined text-[18px]">photo_camera</span>
+      </div>
+    </div>
+
+    <!-- Nutrition Backdrop Content Mockup (Minimal, non-invented) -->
+    <div class="p-4 space-y-4 flex-1 overflow-hidden opacity-50">
+      <!-- Daily Targets Card -->
+      <div class="bg-[#16171B] border border-[#26282F] rounded-2xl p-4 space-y-3">
+        <div class="flex justify-between items-center text-xs">
+          <span class="font-mono uppercase tracking-wider text-[#94979E]">DAILY TARGETS</span>
+          <span class="text-[#10B981] font-mono text-[11px]">74% on track</span>
+        </div>
+        <div class="space-y-1">
+          <div class="flex justify-between text-xs font-mono">
+            <span class="text-[#94979E]">Calories</span>
+            <span class="">1,850 / 2,500 kcal</span>
+          </div>
+          <div class="w-full h-1.5 bg-[#212328] rounded-full overflow-hidden">
+            <div class="w-3/4 h-full bg-[#F3F4F6] rounded-full"></div>
+          </div>
+        </div>
+        <div class="grid grid-cols-3 gap-2 pt-1 text-center">
+          <div class="bg-[#212328] rounded-xl p-2">
+            <span class="font-mono text-[10px] uppercase text-[#94979E] block">Protein</span>
+            <span class="font-mono text-xs font-semibold text-[#10B981]">120g</span>
+          </div>
+          <div class="bg-[#212328] rounded-xl p-2">
+            <span class="font-mono text-[10px] uppercase text-[#94979E] block">Carbs</span>
+            <span class="font-mono text-xs font-semibold text-[#F59E0B]">210g</span>
+          </div>
+          <div class="bg-[#212328] rounded-xl p-2">
+            <span class="font-mono text-[10px] uppercase text-[#94979E] block">Fat</span>
+            <span class="font-mono text-xs font-semibold text-[#A855F7]">55g</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Food Photo Analysis Card -->
+      <div class="bg-[#16171B] border border-[#26282F] rounded-2xl p-4 flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-xl bg-[#212328] border border-[#26282F] flex items-center justify-center text-[#94979E]">
+            <span class="material-symbols-outlined text-[20px]">add_a_photo</span>
+          </div>
+          <div>
+            <span class="text-sm font-medium text-[#F3F4F6] block">Scan your meal</span>
+            <span class="text-xs text-[#94979E]">Standard food detection</span>
+          </div>
+        </div>
+        <span class="material-symbols-outlined text-[#94979E] text-[18px]">chevron_right</span>
+      </div>
+    </div>
+
+    <!-- Persistent Bottom Nav Bar (Obscured) -->
+    <div class="h-16 border-t border-[#26282F] bg-[#0C0D0E] flex items-center justify-around px-2 shrink-0">
+      <div class="flex flex-col items-center gap-1 text-[#94979E]">
+        <span class="material-symbols-outlined text-[20px]">home</span>
+        <span class="font-mono text-[9px] uppercase">Home</span>
+      </div>
+      <div class="flex flex-col items-center gap-1 text-[#94979E]">
+        <span class="material-symbols-outlined text-[20px]">fitness_center</span>
+        <span class="font-mono text-[9px] uppercase">Workout</span>
+      </div>
+      <div class="flex flex-col items-center text-[#94979E]">
+        <span class="font-headline font-bold text-lg leading-none">S</span>
+      </div>
+      <div class="flex flex-col items-center gap-1 text-[#F3F4F6]">
+        <span class="material-symbols-outlined text-[20px]">restaurant</span>
+        <span class="font-mono text-[9px] uppercase font-semibold">Nutrition</span>
+      </div>
+      <div class="flex flex-col items-center gap-1 text-[#94979E]">
+        <span class="material-symbols-outlined text-[20px]">person</span>
+        <span class="font-mono text-[9px] uppercase">Profile</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Dim Black Modal Backdrop Overlay -->
+  <div class="absolute inset-0 z-10 bg-black/75 backdrop-blur-[2px] transition-opacity" aria-label="Dismiss modal"></div>
+
+  <!-- ======================================================== -->
+  <!-- 2. POPUP 01: MODAL BOTTOM SHEET CONTAINER                  -->
+  <!-- ======================================================== -->
+  <div class="relative z-20 w-full bg-[#16171B] border-t border-x border-[#26282F] rounded-t-[20px] shadow-2xl flex flex-col max-h-[85vh] overflow-y-auto">
+    
+    <!-- Top Sheet Controls: Drag Handle & Close Button -->
+    <div class="pt-3 px-4 flex items-center justify-between relative shrink-0">
+      <!-- Centered Drag Handle -->
+      <div class="absolute left-1/2 -translate-x-1/2 top-3 w-10 h-1 bg-[#26282F] hover:bg-[#383A42] rounded-full transition-colors cursor-grab" aria-hidden="true"></div>
+
+      <!-- Spacer for alignment -->
+      <div class="w-12 h-12"></div>
+
+      <!-- Top-Right Close Touch Target (>= 48x48px) -->
+      <button type="button" aria-label="Close dialog" class="w-12 h-12 -mr-2 rounded-xl flex items-center justify-center text-[#94979E] hover:text-[#F3F4F6] hover:bg-[#212328] active:scale-95 transition-all">
+        <span class="material-symbols-outlined text-[20px]">close</span>
+      </button>
+    </div>
+
+    <!-- Modal Sheet Inner Content -->
+    <div class="px-5 pt-1 pb-6 flex flex-col space-y-5">
+
+      <!-- INTRODUCTION SECTION -->
+      <div class="flex flex-col items-center text-center space-y-2.5">
+        <!-- Compact food-photo icon in a charcoal tile -->
+        <div class="w-12 h-12 rounded-2xl bg-[#212328] border border-[#26282F] flex items-center justify-center text-[#F3F4F6] shrink-0 shadow-inner">
+          <span class="material-symbols-outlined text-[24px]">restaurant</span>
+        </div>
+
+        <!-- Neutral Badge: PLUS · COMING SOON -->
+        <div class="pt-0.5">
+          <span class="font-mono text-[10px] font-semibold uppercase tracking-wider text-[#94979E] bg-[#212328] border border-[#26282F] px-2.5 py-1 rounded-full inline-block"><span class="text-[#10B981]">PLUS</span> · COMING SOON</span>
+        </div>
+
+        <!-- Heading & Supporting Text -->
+        <div class="space-y-1.5 px-2">
+          <h2 class="font-headline text-[22px] font-bold text-[#F3F4F6] tracking-tight leading-snug">
+            Explore Nutrition AI
+          </h2>
+          <p class="font-body text-sm text-[#94979E] leading-relaxed max-w-[290px] mx-auto">
+            Discover planned Gemini food photo analysis with Saman Plus.
+          </p>
+        </div>
+      </div>
+
+      <!-- BENEFIT PREVIEW (Compact Inset Card) -->
+      <div class="bg-[#212328] border border-[#26282F] rounded-xl p-3.5 space-y-3">
+        <!-- Feature Rows -->
+        <div class="space-y-2.5 divide-y divide-[#26282F]/60">
+          
+          <!-- Row 1: Gemini food photo analysis -->
+          <div class="flex items-center gap-3 pt-0.5 first:pt-0">
+            <div class="w-7 h-7 rounded-lg bg-[#16171B] border border-[#26282F] flex items-center justify-center text-[#94979E] shrink-0">
+              <span class="material-symbols-outlined text-[16px]">schedule</span>
+            </div>
+            <div class="flex-1 min-w-0">
+              <span class="font-body text-[13.5px] font-medium text-[#F3F4F6] block truncate">Gemini food photo analysis</span>
+            </div>
+          </div>
+
+          <!-- Row 2: Monthly AI allowance -->
+          <div class="flex items-center gap-3 pt-2.5">
+            <div class="w-7 h-7 rounded-lg bg-[#16171B] border border-[#26282F] flex items-center justify-center text-[#94979E] shrink-0">
+              <span class="material-symbols-outlined text-[16px]">schedule</span>
+            </div>
+            <div class="flex-1 min-w-0">
+              <span class="font-body text-[13.5px] font-medium text-[#F3F4F6] block truncate">Monthly AI allowance</span>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Limits Footnote -->
+        <div class="pt-1 border-t border-[#26282F]/80 flex items-center justify-between">
+          <span class="font-mono text-[11px] text-[#94979E] tracking-tight">Limits to be announced.</span>
+          <span class="font-mono text-[10px] text-[#94979E] uppercase tracking-wider bg-[#16171B] px-1.5 py-0.5 rounded border border-[#26282F]/60">Planned</span>
+        </div>
+      </div>
+
+      <!-- ACTIONS CONTAINER -->
+      <div class="space-y-3 pt-1">
+        <!-- 4. Primary Action: Explore Plus (Approved Light Primary Button Specification) -->
+        <button type="button" class="w-full h-[52px] min-h-[52px] rounded-xl bg-[#F9FAFB] hover:bg-white text-[#0C0D0E] font-body text-[15px] font-semibold flex items-center justify-center px-5 shadow-none active:scale-[0.99] active:bg-[#E5E7EB] focus:outline-none focus:ring-2 focus:ring-[#F9FAFB]/50 transition-all select-none">
+          Explore Plus
+        </button>
+
+        <!-- 5. Secondary Action: Continue with Free -->
+        <div class="flex justify-center">
+          <button type="button" class="min-h-[48px] px-4 flex items-center justify-center font-body text-sm font-medium text-[#94979E] hover:text-[#F3F4F6] active:scale-95 transition-colors">
+            Continue with Free
+          </button>
+        </div>
+      </div>
+
+      <!-- 6. Supporting Notice -->
+      <div class="text-center pt-0 pb-safe">
+        <p class="font-body text-xs text-[#94979E]/80 leading-normal">
+          Preview only · Paid memberships are not available yet.
+        </p>
+      </div>
+
+    </div>
+
+  </div>
+
+</div>
+
+
+
+
+</body></html>

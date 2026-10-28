@@ -1,0 +1,252 @@
+# Saman Fitness: Master Product Requirements Document (PRD) & Technical Design Specification (v11.0)
+
+---
+
+## 1. Executive Summary & Vision
+
+**Saman** is an editorial, workout-first, AI-augmented strength and conditioning mobile companion engineered specifically for dedicated trainees, lifters, and performance athletes.
+
+In deliberate contrast to conventional consumer fitness applications that subject users to hyperactive gamification, neon aesthetic gimmicks, cartoon avatars, unsolicited community feeds, and high cognitive load before a lift, Saman is anchored in the foundational philosophy of **Calm Athleticism**. It provides a focused digital sanctuary pairing stoic ergonomics, high-contrast typography, authentic sports documentary photography, and mathematically grounded biometric telemetry.
+
+### 1.1 The 5-Second Athlete Contract
+The app answers three fundamental questions for an athlete in under 5 seconds:
+1. **What can I train today?** (Immediate access to today's scheduled workout hero and movement splits without navigation friction).
+2. **How do I start?** (Frictionless one-tap initiation into structured sessions via `Start workout` or unstructured tracking via `Quick start`).
+3. **Where can I see what I actually completed?** (Verifiable, chronological history of volume, duration, and exertion without vanity metrics or fabricated estimates).
+
+---
+
+## 2. Core Personas & Problem Space
+
+### 2.1 The Core Problems
+1. **Dashboard & Metric Fatigue:** Modern fitness apps present disconnected widgets (sleep scores, heart rate spikes, steps, random badges) without providing actionable training guidance.
+2. **Gimmicky, Disconnected AI:** AI assistants often feel like detached novelty chatbots lacking real-time awareness of the user’s recovery state, prior volume loads, and macro deltas.
+3. **Rigid Workout Routines:** Static spreadsheet-style apps lead to trainee burnout when unexpected fatigue or time constraints occur.
+4. **Distracting Commercialization:** Flashing discount banners, countdown timers, and neon gamification erode the serious, focused mindset lifters cultivate on the gym floor.
+
+### 2.2 Primary Persona: "The Methodical Lifter" (Alex, 28)
+- **Profile:** Trains 4–5 days/week with barbells, dumbbells, cables, and bodyweight; tracks caloric intake and macronutrient splits (protein/carbs/fat).
+- **Core Goals:** Consistent progressive overload, balanced recovery, and clean macro adherence without spending 20 minutes manually fiddling with mobile inputs.
+- **Key Frustrations:** Cluttered UIs, high cognitive friction before a lift, and assistants that feel like gimmicks.
+- **Aesthetic Preference:** Dark obsidian interfaces, high-contrast typography, matte textures, and calm visual feedback.
+
+---
+
+## 3. Global Information Architecture & Navigation Modes
+
+Saman enforces a **tri-mode navigation architecture**:
+1. **Persistent 5-Tab Navigation System** across general exploration, coaching, nutrition, and profile hubs.
+2. **Dedicated In-Session Operational Mode** during active training, live camera tracking, and initial onboarding setup, deliberately suppressing the global bottom tab bar to prevent accidental exits or destructive context switching.
+3. **Focused Sub-Flow / Sub-Page Mode** (e.g., Edit Profile, Membership Overview, Compare All Plans, Plan Details) utilizing a dedicated safe-area top app bar with explicit back routing, omitting the global 5-tab bar to maintain task focus.
+
+```
++-------------------------------------------------------------+
+| Viewport Top: Safe-Area Context Header / Subpage Back Arrow |
++-------------------------------------------------------------+
+| Dynamic Scrollable Viewport (Smooth Inertial Scrolling)     |
+|   - Minimum Content clearance: pb-28 / pb-32                |
++-------------------------------------------------------------+
+| Fixed Bottom Navigation Bar (Glass Obsidian #0C0D0E / 95%)  |
+| [1. Home] [2. Workout*] [3. Saman (S)] [4. Nutrition] [5. Profile] |
++-------------------------------------------------------------+
+```
+
+### 3.1 Top-Level Navigation Tabs
+1. **Home**: Daily holistic summary (readiness telemetry, nutrition overview, adherence streak).
+2. **Workout [Active Operational Core]**: Training launchpad, scheduled hero session, quick-start matrix, movement-focus exploration, forward horizon, and verified history.
+3. **Saman Coach (Monogram `S`)**: Multimodal conversational AI coach providing workout and nutrition adjustments, RPE calibrations, and telemetry analysis.
+4. **Nutrition**: Macronutrient tracking (protein, carbs, fats), meal logging, and hydration telemetry.
+5. **Profile [Core Hub]**: User biometric telemetry, primary goals, activity level, connected apps, membership preview entry, and pre-CP0 fallback contracts.
+
+---
+
+## 4. Complete Screen Specifications & Design Contracts
+
+### 4.1 Onboarding Flow (Steps 1–5)
+- **Step 1: "Choose Your Goal"**:
+  - 5-segment progress bar (Segment 1 active).
+  - Editorial header with dark gym documentary photography.
+  - Three photographic cards (120px height, 16px radius): *Lose weight*, *Maintain weight*, *Build muscle* with seamless right 35–40% photo blend.
+  - Disabled Continue button until an explicit selection is made.
+- **Step 2: "A little about you" (Age & Gender)**:
+  - Direct numeric Age entry panel (30–32px tabular digits, `YEARS` label, `Enter age` placeholder).
+  - Side-by-side equal-width Gender selection cards (*Male* / *Female*).
+  - Provisional CP0 verification note for enums and age validation.
+- **Step 3: "Your body measurements" (Height & Weight)**:
+  - Stacked numeric input cards with lowercase non-wrapping `cm` and `kg` labels.
+  - Supports exact decimal precision (e.g., `175.5 cm`, `72.5 kg`).
+  - Zero premature BMI or body-fat predictions.
+- **Step 4: "Activity Level"**:
+  - 5 ergonomic tiers (*Mostly sitting*, *Lightly active*, *Moderately active*, *Very active*, *Extremely active*).
+  - Neutrally weighted without gamified "Recommended" tags.
+  - Enforces `pb-28` clearance ensuring the 5th card is accessible above the docked CTA.
+- **Step 5: "Review & Confirm"**:
+  - Four grouped cards displaying entered telemetry with dedicated `Edit` triggers (44×44px touch areas).
+  - Tapping Edit returns to the exact step with draft preserved; finishing routes back to Step 5.
+  - Backend Gate Contract: Requires confirmed profile save and backend readback confirming all 6 fields (`goal`, `age`, `gender`, `height`, `weight`, `activity level`).
+  - External save state machine: *Saving (in-flight lock)*, *Save Failed (retry)*, and *Verification Timeout (readback retry)*.
+
+---
+
+### 4.2 Profile Tab & Pre-CP0 Architecture
+- **Header**: Single-line title `Profile` (`Space Grotesk`, 30px bold) with blended documentary gym photo in top-right. Zero step counters or back chevrons.
+- **Identity Card**: Display-only circular initials avatar (`NA` / `AM`), member name, email, and Free plan badge.
+- **Friendly Profile Summary**: Cohesive charcoal container (`#16171B`, 16px radius) displaying Goal card, Age (`25 years`), Gender (`Male`), Height (`175.5 cm`), Weight (`72.5 kg`), and Activity Level (`Moderately active`). No inline form fields or sliders.
+- **Action Triggers**: Full-width 54px `Edit profile` CTA leading into Milestone 5 mutation flow.
+- **Account & Support**: Manage membership, Privacy & security, Export data log, Help & feedback, and `Log out`.
+
+---
+
+### 4.3 Edit Profile Mutation Flow (Milestone 5)
+- **Container Architecture**:
+  1. *Fixed Header*: Safe-area top bar, back chevron, title `Edit profile`, and subtitle with photo blend.
+  2. *Scrollable Form (`flex-1`)*: Clips strictly above the Save dock; contains all 6 editable fields.
+  3. *Static Save Dock (`shrink-0`)*: Sits outside scrollable container; houses full-width 54px `Save changes` button and home indicator.
+- **Sub-States & Sheets**:
+  - Goal Selection bottom sheet (reusing Step 1 photographic assets).
+  - Activity Level bottom sheet (reusing Step 4 tiers).
+  - Discard Confirmation dialog when navigating back with a dirty draft.
+  - Keypad accessory toolbar with `Done` action.
+- **Save State Machine**: Single-flight lock during persistence, 100% draft preservation on failure, and idempotent readback retry.
+
+---
+
+### 4.4 Membership Preview & Plan Architecture (Milestones 8 & 8.1)
+
+The Membership architecture is an **editorial preview and pricing demo** designed to communicate planned tier features without implying active subscription billing.
+
+#### 4.4.1 Tier Hierarchy & Value Proposition
+| Tier | Pricing (Monthly / Yearly) | Target Trainee | Core Planned Capabilities |
+| :--- | :--- | :--- | :--- |
+| **Free** | **$0** (Current Baseline) | Everyday Lifter | Nutrition logging, manual workout tracking, free food photo model, basic health metrics. |
+| **Plus** | **$10 / mo** ($60 / yr) | Nutrition & Fuel Focus | Everything in Free + Gemini food photo analysis, monthly AI allowance (Limits TBA). |
+| **Pro** | **$15 / mo** ($120 / yr) — *Recommended* | Serious Strength Athlete | Everything in Plus + Workout CV AI, movement analysis & rep counting, separate CV allowance. |
+| **Ultra** | **$30 / mo** ($240 / yr) | Peak Performance / Power User | Everything in Pro + 5× Pro AI allowance, Advanced Thinking, extended history & memory. |
+
+#### 4.4.2 Screen 01: Saman Membership Overview
+- **Header**: Back arrow (48×48px touch area) returning to Profile, title `Saman Membership`.
+- **Hero**: Intrinsic `COMING SOON` tag, headline `Your next level.`, editorial subtitle.
+- **Current Plan Summary**: Compact charcoal row with membership icon, `Your current plan: Free`, and neutral `CURRENT` badge.
+- **Pricing Controls**: Full-width `Monthly` / `Yearly` segmented control with $\ge 48\text{px}$ touch targets, paired with text link `Compare all plans →` and disclaimer *"Demo pricing · Subject to change"*.
+- **Four Plan Cards**:
+  - Consistent `#16171B` container, 16px radius, 16px padding, 1px `#26282F` border.
+  - *Pro Card*: Highlighted with a restrained 1px emerald border (`#10B981`), `RECOMMENDED` badge, and prominent off-white CTA `Explore Pro →`.
+  - *Plus & Ultra Cards*: Secondary outlined triggers `Explore Plus →` and `Explore Ultra →`.
+  - *Free Card*: Non-interactive status `Your current plan`.
+- **Yearly Pricing State**: Annual total dominant, followed by monthly equivalent (e.g., `$120 / year` · *Equivalent to $10 / month*).
+- **Substantive Footer**: *"Paid memberships are not available yet. Features, limits, and prices may change before launch."*
+
+#### 4.4.3 Screen 02: Compare All Plans
+- **Header**: 48×48px back control returning to Membership Overview, title `Compare plans`.
+- **Hero**: Intrinsic single-line `MEMBERSHIP PREVIEW` badge with exact 12px margin before headline `Find your fit.`.
+- **Compact Price Summary**: Flexible 2-column rows for Free, Plus, Pro, and Ultra that expand naturally without fixed-height clipping. Shared line: *"Plus, Pro, and Ultra are Coming Soon."*
+- **Comparison Legend**:
+  - ✓ `Included in Free` (baseline capabilities inherited by all tiers)
+  - 🕒 `Planned inclusion` (future roadmap benefits)
+  - — `Not in this tier`
+- **Mobile Comparison Matrix (358px Content Width)**:
+  - Sticky header (`Feature`, `Free`, `Plus`, `Pro`, `Ultra`).
+  - Dedicated `● Recommended: Pro` badge placed on its own row above the table.
+  - Grouped roadmap sections:
+    1. **Core Essentials**: Nutrition logging, manual workouts, free food photo model, basic health metrics (all checks).
+    2. **Nutrition AI**: Gemini food analysis, monthly AI allowance (Plus, Pro, Ultra).
+    3. **Workout CV Intelligence**: Workout CV AI, movement analysis & rep counting, separate CV allowance (Pro, Ultra).
+    4. **Advanced Intelligence**: Advanced Thinking, extended history & personalized memory (Ultra only).
+  - Explicit limits note: *"AI and Workout CV limits will be announced. Ultra's planned AI allowance is 5× Pro. Note: Workout CV uses a separate allowance model."*
+- **Plan Exploration Rows**: Dedicated `Explore Plus`, `Explore Pro` (emerald accent), and `Explore Ultra` navigation rows linking to detailed plan screens.
+
+#### 4.4.4 Screen 03A: Plus Plan Details (Milestone 8.1)
+- **Header & Hero**: Back arrow titled `Plus`, charcoal icon tile (`restaurant` glyph), intrinsic `COMING SOON` badge, Space Grotesk title `Plus`, micro-caps subtitle `NUTRITION AI`, and description: *"A planned step beyond everyday food tracking, with Gemini food photo analysis."*
+- **Demo Pricing**: Full-width `Monthly` ($10 / mo) / `Yearly` ($60 / yr · Equivalent to $5 / mo) segmented toggle with disclaimer *"Demo pricing · Subject to change"*.
+- **Planned with Plus**: Separated feature rows with schedule indicators:
+  1. *Gemini food photo analysis*: Planned Gemini-powered analysis of food photos.
+  2. *Monthly AI allowance*: A planned monthly allowance for Nutrition AI.
+- **Allowance Summary**: Compact card with single row: `AI allowance` — `To be announced` (*"Monthly limits will be confirmed before launch."*).
+- **Inherited Benefits**: Expandable row `Everything in Free` (*"Nutrition logging, manual workouts, and basic tracking."*). Expanded state shows 4 checked items: Nutrition logging, Manual workout tracking, Free food photo analysis, Basic health metrics.
+- **Action & Navigation**: Full-width off-white CTA `Coming Soon →` (*"Preview only · Your account stays on Free"*) and green text link `Back to Membership`.
+
+#### 4.4.5 Screen 03B: Pro Plan Details (Milestone 8.1)
+- **Header & Hero**: Back arrow titled `Pro`, workout intelligence tile (`fitness_center` glyph) with subtle emerald hairline accent, dual badges `COMING SOON` and `RECOMMENDED` (`#10B981`), headline `Pro`, micro-caps subtitle `WORKOUT INTELLIGENCE`, and description: *"Planned movement analysis and rep counting, alongside Nutrition AI."*
+- **Demo Pricing**: Full-width `Monthly` ($15 / mo) / `Yearly` ($120 / yr · Equivalent to $10 / mo) toggle with disclaimer *"Demo pricing · Subject to change"*.
+- **Planned with Pro**: Three separated feature rows with roadmap indicators:
+  1. *Workout CV AI*: Planned computer-vision support for workout movement analysis.
+  2. *Movement analysis and rep counting*: Planned tools to analyze movement and count repetitions.
+  3. *Separate Workout CV allowance*: A dedicated allowance for Workout CV, separate from Nutrition AI.
+- **Allowance Summary**: Two separated rows: `Nutrition AI` — `To be announced` and `Workout CV` — `To be announced` (*"AI and Workout CV limits will be confirmed before launch."*).
+- **Inherited Benefits**: Expandable row `Everything in Plus` (*"Free essentials and planned Nutrition AI."*). Expanded state distinguishes Free essentials (checked) from planned Plus capabilities (clock icons).
+- **Action & Navigation**: Full-width off-white CTA `Coming Soon →` (*"Preview only · Your account stays on Free"*) and green text link `Back to Membership`.
+
+---
+
+### 4.5 Workout Tab & Execution Ecosystem
+- **Workout Home**: Hero photo card showing scheduled session (`Upper Body Strength · 50 min · 5 exercises`), `Start workout` CTA, `Quick start`, `Browse library`, movement categories (`Upper Body`, `Lower Body`), and last completed workout card.
+- **Workout History**: Monday-first calendar grid (October 2026), monthly summary card ($3\text{ workouts}$, $1\text{h } 32\text{m}$, $14\text{ sets}$, $3,078\text{ kg}$), date filters, and transparent demo indicator.
+- **Session Detail**: Verified set-by-set breakdown, muscle group tags, volume tallies, and mixed-unit logic (timed plank sets contribute duration but never rep or weight volume).
+- **Active Workout Execution**: Suppressed bottom nav, live pulsing chronometer, tactical 48px stepper controls (`−` / `+`), contextual rest interval strip (`REST 01:14`), and single bottom commit action (`✓ Log Set`).
+- **Live Form Check (Optical CV)**: Edge-to-edge camera feed, distance-readable HUD, transient observed rep observer, and single-cue actionable feedback across 4 canonical states (*Amber Adjustment*, *Emerald Confirmation*, *Neutral Tempo*, *Paused Guidance*).
+
+---
+
+## 5. Visual Design System: "Calm Athleticism"
+
+### 5.1 Color Architecture
+| Token Name | Hex Value | Semantic Usage |
+| :--- | :--- | :--- |
+| **Canvas Base** | `#0C0D0E` | Root canvas background, screen borders, modal backdrops |
+| **Surface Low** | `#121316` | Secondary containers, bottom navigation background |
+| **Surface Card** | `#16171B` | Primary interactive cards, panels, exercise rows, plan cards |
+| **Surface High** | `#1E2026` / `#212328` | Active set containers, stepper inputs, pill badges, segmented toggle active fill |
+| **Hairline Border** | `#26282F` / `rgba(255,255,255,0.08)` | 1px structural dividing lines |
+| **Text Primary** | `#F9FAFB` / `#F3F4F6` | Headlines, primary CTA background, critical numbers |
+| **Text Slate** | `#CBD5E1` / `#9CA3AF` | Subtitles, duration badges, exercise counts, secondary copy |
+| **Text Muted** | `#6B7280` | Column headers, micro-caps, inactive navigation icons |
+| **Performance Green** | `#10B981` | Completed checks, active streaks, planned status, Pro recommendation accent |
+| **Fuel Amber** | `#F59E0B` | Moderate exertion cautions, form adjustment cues, paused tracking state |
+| **Metabolic Violet**| `#A855F7` | Recovery status, fat macronutrients |
+
+### 5.2 Typographic Hierarchy
+- **Headlines (`Space Grotesk`)**: Screen titles (24–30px), plan titles, card headlines, and primary metric figures.
+- **Body & Interface (`Inter` / `SF Pro`)**: UI labels, body text, form cues, table rows, and benefit bullets. Monospace typography is strictly excluded from client-facing input fields.
+- **Telemetry & Numbers (`JetBrains Mono` / Tabular Sans)**: Strict tabular numerals (`tabular-nums`) for prices, in-session chronometers, set tallies, calendar grids, and charts.
+
+### 5.3 Elevation & Contour Philosophy
+- **Zero Ambient Drop Shadows**: Depth achieved strictly via tonal stratification and 1px hairline borders.
+- **Machined Radii**: 12px (`rounded-xl`) for buttons and small controls; 16px (`rounded-2xl`) for cards, panels, and modal containers.
+
+---
+
+## 6. Mathematical Data Honesty & Audit Rules
+
+1. **Volume Calculation**: External Load $\times$ Completed Reps. Bodyweight exercises do not contribute to lifted volume.
+2. **Timed Sets**: Contribute to set count and total timed work; excluded from rep totals and weight volume tallies.
+3. **Cross-Screen Audit Agreement**:
+   - Oct 10: Dumbbell Bench Press ($24\text{ kg} \times 8 = 192\text{ kg}$).
+   - Oct 8: Upper Body Strength ($656\text{ kg} + 760\text{ kg} + 420\text{ kg} = 1,836\text{ kg}$).
+   - Oct 6: Lower Body & Core ($480\text{ kg} + 570\text{ kg} = 1,050\text{ kg}$ + $1\text{m } 30\text{s}$ plank).
+   - Monthly Overview: $192 + 1,836 + 1,050 = \mathbf{3,078\text{ kg}}$ across $3\text{ workouts}$, $14\text{ sets}$, and $1\text{h } 32\text{m}$.
+4. **Membership Annual Pricing Math**:
+   - Plus: $\$60 / 12 = \mathbf{\$5 / \text{month}}$ equivalent.
+   - Pro: $\$120 / 12 = \mathbf{\$10 / \text{month}}$ equivalent.
+   - Ultra: $\$240 / 12 = \mathbf{\$20 / \text{month}}$ equivalent.
+
+---
+
+## 7. Product Roadmap & Milestones
+
+| Milestone | Deliverables | Status |
+| :--- | :--- | :--- |
+| **Milestone 1** | Design Tokens ("Calm Athleticism"), Home Screen, Workout Launchpad, Movement Library | **Completed** |
+| **Milestone 2** | Active Workout Execution flow: tactile steppers & rest interval countdown | **Completed** |
+| **Milestone 3** | Live Form Check (Optical CV): Edge-to-edge camera viewport & distance HUD cues | **Completed** |
+| **Milestone 4** | Workout History & Session Detail: Calendar filtering, mathematical audit, mixed units | **Completed** |
+| **Milestone 4.1–4.5** | Complete Onboarding Flow (Steps 1–5): Goal, Demographics, Measurements, Activity, Review & Confirm | **Completed** |
+| **Milestone 4.6** | Profile Tab (Tab 5) & Pre-CP0 Architecture: Summary, Edit CTA, Loading & Fallback contracts | **Completed** |
+| **Milestone 5** | Prefilled "Edit Profile" Mutation Flow & Biometric Update State Machine | **Completed** |
+| **Milestone 8** | Saman Membership Preview: Tier Architecture, Overview Screen, Compare All Plans Matrix | **Completed** |
+| **Milestone 8.1** | Plan Detail Sub-Screens: Plus Detail (Monthly/Yearly/Expanded), Pro Detail (Monthly/Yearly/Expanded) | **Completed** |
+| **Milestone 8.2** | Plan Detail Sub-Screens: Ultra Detail (Personalized Intelligence & 5× Allowance) | **Next Up** |
+| **Milestone 6** | Post-Workout Review & Save Summary: RPE exertion logging, session recap, history commit | **Scheduled** |
+| **Milestone 7** | Wearable Biometric Integration (Apple Health, Whoop) & JSON/CSV Training Diary Export | **Scheduled** |
+
+---
+*Authored for Saman Design & Engineering Handoff. Preserves all verified Calm Athleticism tokens, product contracts, and viewport standards.*

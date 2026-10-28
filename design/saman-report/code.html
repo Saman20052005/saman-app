@@ -1,0 +1,828 @@
+<!DOCTYPE html>
+<html class="dark" lang="en">
+<head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport">
+<title>Saman - Weekly Report</title>
+<!-- Tailwind CSS v3 -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script>
+  tailwind.config = {
+    darkMode: 'class',
+    theme: {
+      extend: {
+        colors: {
+          surface: {
+            base: '#0C0D0E',
+            card: '#16171A',
+            cardHover: '#1C1D22',
+            elevated: '#212329',
+            border: '#26282F',
+            subtle: 'rgba(255, 255, 255, 0.06)'
+          },
+          brand: {
+            emerald: '#10B981',
+            amber: '#F59E0B',
+            purple: '#A855F7',
+            blue: '#3B82F6'
+          }
+        },
+        fontFamily: {
+          sans: ['-apple-system', 'BlinkMacSystemFont', '"SF Pro Text"', '"SF Pro Display"', 'Inter', 'sans-serif']
+        }
+      }
+    }
+  }
+</script>
+<style>
+  body {
+    background-color: #050506;
+    color: #F3F4F6;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .tab-pane {
+    display: none;
+  }
+  .tab-pane.active {
+    display: block;
+  }
+</style>
+</head>
+<body class="bg-[#050506] text-[#F3F4F6] min-h-screen flex justify-center py-0 sm:py-6 selection:bg-neutral-800">
+
+<!-- Screen Wrapper (393px phone frame matching Home screen) -->
+<div class="w-full max-w-[420px] min-h-screen bg-[#0C0D0E] flex flex-col border-x border-[#1A1B1F] relative shadow-2xl pb-24">
+
+  <!-- BEGIN: iOS Status Bar -->
+  <header class="w-full pt-3 px-6 pb-2 flex justify-between items-center text-xs tracking-tight text-neutral-400 select-none z-30 bg-[#0C0D0E]/95 backdrop-blur sticky top-0">
+    <span class="font-semibold text-sm text-neutral-200">9:41</span>
+    <div class="flex items-center space-x-2">
+      <!-- Cellular Signal -->
+      <svg class="w-3.5 h-3.5 fill-current text-neutral-300" viewBox="0 0 24 24">
+        <path d="M2 20h2v-4H2v4zm4 0h2v-8H6v8zm4 0h2v-12h-2v12zm4 0h2v-16h-2v16zm4 0h2V0h-2v20z"></path>
+      </svg>
+      <!-- Wifi Icon -->
+      <svg class="w-3.5 h-3.5 fill-current text-neutral-300" viewBox="0 0 24 24">
+        <path d="M12 4C7.31 4 3.07 5.9 0 8.98L12 21 24 8.98C20.93 5.9 16.69 4 12 4zm0 3.66c3.78 0 7.2 1.48 9.77 3.91L12 19.33 2.23 11.57C4.8 9.14 8.22 7.66 12 7.66z"></path>
+      </svg>
+      <!-- Battery Icon -->
+      <div class="w-5 h-2.5 border border-neutral-400 rounded-sm p-0.5 flex items-center">
+        <div class="h-full bg-neutral-200 rounded-[1px] w-3/4"></div>
+      </div>
+    </div>
+  </header>
+  <!-- END: iOS Status Bar -->
+
+  <!-- BEGIN: 1. Compact Header -->
+  <section class="px-5 pt-1 pb-3 flex items-center justify-between" data-purpose="report-header">
+    <div class="flex items-center gap-3">
+      <button onclick="window.history.back()" aria-label="Go Back" class="w-9 h-9 rounded-xl bg-[#16171A] border border-[#26282F] flex items-center justify-center text-neutral-300 hover:text-white transition active:scale-95">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"></path>
+        </svg>
+      </button>
+      <div>
+        <h1 class="text-xl font-bold tracking-tight text-white leading-tight">Report</h1>
+        <p class="text-[11px] text-[#A1A1AA] font-normal tracking-tight mt-0.5">Your progress, in perspective.</p>
+      </div>
+    </div>
+
+    <!-- Calendar quick-filter trigger -->
+    <div class="flex items-center space-x-1.5">
+      <button aria-label="Export or Share" class="w-9 h-9 rounded-xl bg-[#16171A] border border-[#26282F] flex items-center justify-center text-neutral-400 hover:text-white transition active:scale-95">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path>
+        </svg>
+      </button>
+    </div>
+  </section>
+  <!-- END: 1. Compact Header -->
+
+  <!-- BEGIN: 2. Week Navigation -->
+  <section class="px-5 pb-3.5" data-purpose="week-navigation">
+    <div class="flex items-center justify-between bg-[#16171A] border border-[#26282F] px-2.5 py-1.5 rounded-xl">
+      <!-- Previous Week -->
+      <button aria-label="Previous week" class="w-7 h-7 rounded-lg flex items-center justify-center text-neutral-400 hover:text-white hover:bg-neutral-800/60 transition active:scale-90">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"></path>
+        </svg>
+      </button>
+
+      <!-- Date Range Label + Calendar Icon -->
+      <div class="flex items-center gap-1.5 cursor-pointer hover:opacity-90 transition">
+        <svg class="w-3.5 h-3.5 text-neutral-400" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+        </svg>
+        <span class="text-xs font-semibold tracking-tight text-neutral-200">Oct 19 – 25, 2026</span>
+        <span class="text-[10px] text-neutral-500 font-medium">· This week</span>
+      </div>
+
+      <!-- Next Week (Disabled/Current week look) -->
+      <button aria-label="Next week" class="w-7 h-7 rounded-lg flex items-center justify-center text-neutral-600 transition cursor-not-allowed">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"></path>
+        </svg>
+      </button>
+    </div>
+  </section>
+  <!-- END: 2. Week Navigation -->
+
+  <!-- BEGIN: 3. Segmented Tabs -->
+  <section class="px-5 pb-3.5" data-purpose="tab-switcher">
+    <div class="grid grid-cols-3 p-1 rounded-xl bg-[#131417] border border-[#26282F] text-xs font-medium" role="tablist">
+      <button id="tab-btn-overview" onclick="switchTab('overview')" class="tab-trigger py-1.5 text-center rounded-lg transition-all font-semibold bg-[#F9FAFB] text-[#0C0D0E] shadow-sm" role="tab" aria-selected="true">
+        Overview
+      </button>
+      <button id="tab-btn-nutrition" onclick="switchTab('nutrition')" class="tab-trigger py-1.5 text-center rounded-lg transition-all text-[#A1A1AA] hover:text-white" role="tab" aria-selected="false">
+        Nutrition
+      </button>
+      <button id="tab-btn-activity" onclick="switchTab('activity')" class="tab-trigger py-1.5 text-center rounded-lg transition-all text-[#A1A1AA] hover:text-white" role="tab" aria-selected="false">
+        Activity
+      </button>
+    </div>
+  </section>
+  <!-- END: 3. Segmented Tabs -->
+
+  <!-- Scrollable Main Content -->
+  <main class="flex-1 px-4 space-y-4 overflow-y-auto no-scrollbar pb-6">
+
+    <!-- ============================================================ -->
+    <!-- TAB 1: OVERVIEW TAB CONTENT -->
+    <!-- ============================================================ -->
+    <div id="pane-overview" class="tab-pane active space-y-4">
+
+      <!-- 4. Weekly Summary (At a Glance) -->
+      <section class="rounded-2xl bg-[#16171A] border border-[#26282F] p-4" data-purpose="weekly-summary">
+        <div class="flex items-center justify-between mb-3">
+          <div>
+            <h2 class="text-xs font-semibold uppercase tracking-wider text-neutral-300">Your week, at a glance</h2>
+            <p class="text-[11px] text-[#A1A1AA] mt-0.5">High consistency with nutrition & training</p>
+          </div>
+          <span class="inline-flex items-center px-2 py-0.5 rounded-full bg-[#1F2228] border border-white/5 text-[10.5px] font-medium text-neutral-300">
+            <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 mr-1.5"></span>
+            6 / 7 days recorded
+          </span>
+        </div>
+
+        <!-- Two compact summary tiles -->
+        <div class="grid grid-cols-2 gap-2.5 pt-1">
+          <!-- Tile 1: Avg Protein -->
+          <div class="bg-[#101114] border border-[#23252A] rounded-xl p-3 flex flex-col justify-between">
+            <div class="flex items-center justify-between">
+              <span class="text-[10.5px] font-medium text-[#A1A1AA] uppercase tracking-wide">Avg Protein</span>
+              <span class="text-[10px] text-emerald-400 font-semibold bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20">Target 160g</span>
+            </div>
+            <div class="mt-2 flex items-baseline gap-1">
+              <span class="text-2xl font-bold tracking-tight text-white">152<span class="text-sm font-normal text-neutral-400 ml-1">g / day</span></span>
+            </div>
+            <p class="text-[10.5px] text-neutral-400 mt-1">95% of target met</p>
+          </div>
+
+          <!-- Tile 2: Active Days -->
+          <div class="bg-[#101114] border border-[#23252A] rounded-xl p-3 flex flex-col justify-between">
+            <div class="flex items-center justify-between">
+              <span class="text-[10.5px] font-medium text-[#A1A1AA] uppercase tracking-wide">Active Days</span>
+              <span class="text-[10px] text-neutral-300 font-semibold bg-white/5 px-1.5 py-0.5 rounded border border-white/10">Plan: 4 days</span>
+            </div>
+            <div class="mt-2 flex items-baseline gap-1">
+              <span class="text-2xl font-bold tracking-tight text-white">4<span class="text-sm font-normal text-neutral-400 ml-1">/ 7 days</span></span>
+            </div>
+            <p class="text-[10.5px] text-emerald-400 mt-1">Goal achieved · RPE 8.2</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- 5. Primary Chart Card: Calories Consumed -->
+      <section class="rounded-2xl bg-[#16171A] border border-[#26282F] p-4" data-purpose="chart-calories-consumed">
+        <!-- Header & Big Average Number -->
+        <div class="flex items-start justify-between">
+          <div>
+            <div class="flex items-center gap-1.5">
+              <span class="w-2 h-2 rounded-full bg-neutral-200"></span>
+              <h3 class="text-xs font-semibold uppercase tracking-wider text-neutral-300">Calories Consumed</h3>
+            </div>
+            <div class="mt-1.5 flex items-baseline gap-1.5">
+              <span class="text-3xl font-bold tracking-tight text-white">2,410</span>
+              <span class="text-xs font-medium text-neutral-400">kcal / day avg</span>
+            </div>
+          </div>
+          <!-- Goal Reference Pill -->
+          <div class="text-right">
+            <span class="text-[10px] uppercase font-semibold text-neutral-500 tracking-wider block">Daily Goal</span>
+            <span class="text-xs font-semibold text-neutral-200 bg-[#212329] border border-white/5 px-2 py-0.5 rounded-md inline-block mt-0.5">2,500 kcal</span>
+          </div>
+        </div>
+
+        <!-- Chart Grid & 7 Vertical Bars -->
+        <div class="mt-6 relative">
+          <!-- Numerical Y-Axis Scale + Grid Lines -->
+          <div class="space-y-6 text-[10px] text-neutral-500 font-mono">
+            <!-- 3000 kcal -->
+            <div class="flex items-center gap-2">
+              <span class="w-7 text-right">3,000</span>
+              <div class="flex-1 border-b border-[#23252A]"></div>
+            </div>
+            <!-- 2500 kcal GOAL LINE (dashed line) -->
+            <div class="flex items-center gap-2 relative">
+              <span class="w-7 text-right text-neutral-400 font-semibold">2,500</span>
+              <div class="flex-1 border-b border-dashed border-neutral-500/60 relative">
+                <span class="absolute right-0 -top-4 text-[9px] font-sans font-medium uppercase tracking-wider text-neutral-400 bg-[#16171A] px-1">Goal</span>
+              </div>
+            </div>
+            <!-- 2000 kcal -->
+            <div class="flex items-center gap-2">
+              <span class="w-7 text-right">2,000</span>
+              <div class="flex-1 border-b border-[#23252A]"></div>
+            </div>
+            <!-- 1000 kcal -->
+            <div class="flex items-center gap-2">
+              <span class="w-7 text-right">1,000</span>
+              <div class="flex-1 border-b border-[#23252A]"></div>
+            </div>
+            <!-- 0 Baseline (Solid line) -->
+            <div class="flex items-center gap-2">
+              <span class="w-7 text-right">0</span>
+              <div class="flex-1 border-b border-[#2D3039]"></div>
+            </div>
+          </div>
+
+          <!-- 7 Bars Overlay aligned to baseline -->
+          <!-- Absolute container mapped exactly on the chart area above baseline -->
+          <div class="absolute inset-x-0 bottom-[14px] left-9 right-1 h-[135px] flex items-end justify-between px-1.5">
+            
+            <!-- Mo: 2,460 kcal (82%) -->
+            <div class="flex-1 flex flex-col items-center group cursor-pointer" onclick="selectDayCal('Mon, Oct 19', '2,460 kcal')">
+              <div class="w-5 rounded-t-[5px] bg-[#3A3D46] hover:bg-neutral-300 transition-all duration-200" style="height: 82%;"></div>
+            </div>
+
+            <!-- Tu (Selected / Emphasized): 2,580 kcal (86%) -->
+            <div class="flex-1 flex flex-col items-center group cursor-pointer" onclick="selectDayCal('Tue, Oct 20', '2,580 kcal')">
+              <div class="w-5 rounded-t-[5px] bg-[#F3F4F6] shadow-[0_0_12px_rgba(255,255,255,0.2)] transition-all duration-200 relative ring-1 ring-white" style="height: 86%;">
+                <div class="absolute -top-6 left-1/2 -translate-x-1/2 bg-white text-black text-[9.5px] font-bold px-1.5 py-0.5 rounded shadow whitespace-nowrap">2,580</div>
+              </div>
+            </div>
+
+            <!-- We: 2,390 kcal (79.6%) -->
+            <div class="flex-1 flex flex-col items-center group cursor-pointer" onclick="selectDayCal('Wed, Oct 21', '2,390 kcal')">
+              <div class="w-5 rounded-t-[5px] bg-[#3A3D46] hover:bg-neutral-300 transition-all duration-200" style="height: 79%;"></div>
+            </div>
+
+            <!-- Th: 2,520 kcal (84%) -->
+            <div class="flex-1 flex flex-col items-center group cursor-pointer" onclick="selectDayCal('Thu, Oct 22', '2,520 kcal')">
+              <div class="w-5 rounded-t-[5px] bg-[#3A3D46] hover:bg-neutral-300 transition-all duration-200" style="height: 84%;"></div>
+            </div>
+
+            <!-- Fr: 2,610 kcal (87%) -->
+            <div class="flex-1 flex flex-col items-center group cursor-pointer" onclick="selectDayCal('Fri, Oct 23', '2,610 kcal')">
+              <div class="w-5 rounded-t-[5px] bg-[#3A3D46] hover:bg-neutral-300 transition-all duration-200" style="height: 87%;"></div>
+            </div>
+
+            <!-- Sa: 1,900 kcal (63.3%) -->
+            <div class="flex-1 flex flex-col items-center group cursor-pointer" onclick="selectDayCal('Sat, Oct 24', '1,900 kcal')">
+              <div class="w-5 rounded-t-[5px] bg-[#3A3D46] hover:bg-neutral-300 transition-all duration-200" style="height: 63%;"></div>
+            </div>
+
+            <!-- Su: Missing entry (Calm gap, no fabricated zero) -->
+            <div class="flex-1 flex flex-col items-center justify-end group cursor-pointer" onclick="selectDayCal('Sun, Oct 25', 'No entry')">
+              <div class="w-5 h-5 flex items-center justify-center text-neutral-600 font-mono text-xs mb-1">
+                —
+              </div>
+            </div>
+          </div>
+
+          <!-- Day Labels (X-Axis) -->
+          <div class="flex justify-between items-center pl-9 pr-1 pt-2 text-[11px]">
+            <span class="flex-1 text-center text-neutral-400 font-normal">Mo</span>
+            <span class="flex-1 text-center text-white font-bold bg-white/10 rounded py-0.5">Tu</span>
+            <span class="flex-1 text-center text-neutral-400 font-normal">We</span>
+            <span class="flex-1 text-center text-neutral-400 font-normal">Th</span>
+            <span class="flex-1 text-center text-neutral-400 font-normal">Fr</span>
+            <span class="flex-1 text-center text-neutral-400 font-normal">Sa</span>
+            <span class="flex-1 text-center text-neutral-500 font-normal italic">Su</span>
+          </div>
+        </div>
+
+        <!-- Selected Date & Exact Value Footer -->
+        <div class="mt-4 pt-3 border-t border-[#23252A] flex items-center justify-between text-xs">
+          <div class="flex items-center space-x-2">
+            <span class="w-1.5 h-1.5 rounded-full bg-white"></span>
+            <span id="cal-selected-date" class="font-medium text-neutral-300">Tuesday, Oct 20</span>
+          </div>
+          <div class="flex items-center space-x-2">
+            <span id="cal-selected-val" class="font-bold text-white tracking-tight">2,580 kcal</span>
+            <span class="text-[10px] text-neutral-400">(+80 over goal)</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- 6. Secondary Card: Protein Intake (Emerald Line Chart) -->
+      <section class="rounded-2xl bg-[#16171A] border border-[#26282F] p-4" data-purpose="chart-protein-intake">
+        <div class="flex items-start justify-between">
+          <div>
+            <div class="flex items-center gap-1.5">
+              <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+              <h3 class="text-xs font-semibold uppercase tracking-wider text-neutral-300">Protein Intake</h3>
+            </div>
+            <div class="mt-1.5 flex items-baseline gap-1.5">
+              <span class="text-2xl font-bold tracking-tight text-white">152</span>
+              <span class="text-xs font-medium text-neutral-400">g / day avg</span>
+            </div>
+          </div>
+          <div class="text-right">
+            <span class="text-[10px] uppercase font-semibold text-neutral-500 tracking-wider block">Daily Goal</span>
+            <span class="text-xs font-semibold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-md inline-block mt-0.5">160 g</span>
+          </div>
+        </div>
+
+        <!-- SVG Line Chart with Subtle Gradient Area -->
+        <div class="mt-4 pt-2">
+          <div class="w-full">
+            <svg class="w-full h-28 overflow-visible" viewBox="0 0 320 90" fill="none">
+              <defs>
+                <linearGradient id="proteinGradient" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stop-color="#10B981" stop-opacity="0.22"></stop>
+                  <stop offset="100%" stop-color="#10B981" stop-opacity="0.00"></stop>
+                </linearGradient>
+              </defs>
+
+              <!-- Subtle horizontal grid lines -->
+              <line x1="16" y1="15" x2="304" y2="15" stroke="#23252A" stroke-width="1"></line>
+              <line x1="16" y1="42" x2="304" y2="42" stroke="#23252A" stroke-width="1"></line>
+              <line x1="16" y1="70" x2="304" y2="70" stroke="#23252A" stroke-width="1"></line>
+
+              <!-- Dashed Goal Line at 160g (y=26) -->
+              <line x1="16" y1="26" x2="304" y2="26" stroke="#10B981" stroke-dasharray="3 3" stroke-width="1.2" stroke-opacity="0.65"></line>
+              <text x="300" y="22" fill="#10B981" font-size="8.5" text-anchor="end" font-weight="500">160g GOAL</text>
+
+              <!-- Line values: Mo: 148g (y=36), Tu: 165g (y=22), We: 155g (y=30), Th: 162g (y=24), Fr: 140g (y=44), Sa: 142g (y=42). Su is missing! -->
+              <!-- Area Fill (Mo to Sa only; Su has no connection) -->
+              <path d="M 24 36 L 72 22 L 120 30 L 168 24 L 216 44 L 264 42 L 264 78 L 24 78 Z" fill="url(#proteinGradient)"></path>
+
+              <!-- Emerald Curve Path -->
+              <path d="M 24 36 Q 48 29 72 22 T 120 30 T 168 24 T 216 44 T 264 42" stroke="#10B981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" fill="none"></path>
+
+              <!-- Data Points (Mon to Sat) -->
+              <circle cx="24" cy="36" r="3.5" fill="#16171A" stroke="#10B981" stroke-width="2"></circle>
+              <!-- Tue (Selected point) -->
+              <circle cx="72" cy="22" r="6" fill="#16171A" stroke="#10B981" stroke-width="2.5"></circle>
+              <circle cx="72" cy="22" r="3" fill="#FFFFFF"></circle>
+              <circle cx="120" cy="30" r="3.5" fill="#16171A" stroke="#10B981" stroke-width="2"></circle>
+              <circle cx="168" cy="24" r="3.5" fill="#16171A" stroke="#10B981" stroke-width="2"></circle>
+              <circle cx="216" cy="44" r="3.5" fill="#16171A" stroke="#10B981" stroke-width="2"></circle>
+              <circle cx="264" cy="42" r="3.5" fill="#16171A" stroke="#10B981" stroke-width="2"></circle>
+
+              <!-- Sunday Missing Data Indicator (no connecting line to obey rule) -->
+              <text x="296" y="52" fill="#52525B" font-size="12" font-family="monospace" text-anchor="middle">—</text>
+            </svg>
+          </div>
+
+          <!-- Day Labels -->
+          <div class="flex justify-between items-center px-1 text-[11px] pt-1">
+            <span class="w-8 text-center text-neutral-400">Mo</span>
+            <span class="w-8 text-center text-white font-bold bg-white/10 rounded py-0.5">Tu</span>
+            <span class="w-8 text-center text-neutral-400">We</span>
+            <span class="w-8 text-center text-neutral-400">Th</span>
+            <span class="w-8 text-center text-neutral-400">Fr</span>
+            <span class="w-8 text-center text-neutral-400">Sa</span>
+            <span class="w-8 text-center text-neutral-500 italic">Su</span>
+          </div>
+        </div>
+
+        <!-- Selected date & value below chart -->
+        <div class="mt-3 pt-2.5 border-t border-[#23252A] flex items-center justify-between text-xs">
+          <span class="font-medium text-neutral-300">Tuesday, Oct 20</span>
+          <div class="flex items-center space-x-1.5">
+            <span class="font-bold text-emerald-400">165 g</span>
+            <span class="text-[10.5px] text-neutral-400">· 103% goal</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- 7. Secondary Card: Calories Burned (Compact Amber Bar Chart) -->
+      <section class="rounded-2xl bg-[#16171A] border border-[#26282F] p-4" data-purpose="chart-calories-burned">
+        <div class="flex items-start justify-between">
+          <div>
+            <div class="flex items-center gap-1.5">
+              <span class="w-2 h-2 rounded-full bg-[#F59E0B]"></span>
+              <h3 class="text-xs font-semibold uppercase tracking-wider text-neutral-300">Calories Burned</h3>
+            </div>
+            <div class="mt-1.5 flex items-baseline gap-1.5">
+              <span class="text-2xl font-bold tracking-tight text-white">435</span>
+              <span class="text-xs font-medium text-neutral-400">kcal / day avg</span>
+            </div>
+          </div>
+          <div class="text-right">
+            <span class="text-[10px] uppercase font-semibold text-neutral-500 tracking-wider block">Daily Goal</span>
+            <span class="text-xs font-semibold text-[#F59E0B] bg-[#F59E0B]/10 border border-[#F59E0B]/20 px-2 py-0.5 rounded-md inline-block mt-0.5">400 kcal</span>
+          </div>
+        </div>
+
+        <!-- Compact Amber Bars (Starts at 0; distinguishes recorded 0 vs missing) -->
+        <div class="mt-5 relative">
+          <!-- Scale guidelines -->
+          <div class="space-y-4 text-[9.5px] text-neutral-500 font-mono">
+            <!-- 600 kcal -->
+            <div class="flex items-center gap-2">
+              <span class="w-6 text-right">600</span>
+              <div class="flex-1 border-b border-[#23252A]"></div>
+            </div>
+            <!-- 400 kcal Goal Line -->
+            <div class="flex items-center gap-2">
+              <span class="w-6 text-right text-[#F59E0B]">400</span>
+              <div class="flex-1 border-b border-dashed border-[#F59E0B]/60"></div>
+            </div>
+            <!-- 200 kcal -->
+            <div class="flex items-center gap-2">
+              <span class="w-6 text-right">200</span>
+              <div class="flex-1 border-b border-[#23252A]"></div>
+            </div>
+            <!-- 0 Baseline -->
+            <div class="flex items-center gap-2">
+              <span class="w-6 text-right">0</span>
+              <div class="flex-1 border-b border-[#2D3039]"></div>
+            </div>
+          </div>
+
+          <!-- Bar Overlay -->
+          <div class="absolute inset-x-0 bottom-[14px] left-8 right-1 h-[78px] flex items-end justify-between px-2">
+            <!-- Mo: 520 kcal (86% of 600) -->
+            <div class="flex-1 flex flex-col items-center">
+              <div class="w-4 rounded-t-[4px] bg-[#F59E0B]/85" style="height: 86%;"></div>
+            </div>
+            <!-- Tu: 610 kcal (100% of 600) -->
+            <div class="flex-1 flex flex-col items-center">
+              <div class="w-4 rounded-t-[4px] bg-[#F59E0B] ring-1 ring-[#F59E0B]/50" style="height: 98%;"></div>
+            </div>
+            <!-- We: Rest day / Recorded 0 activity day (Explicit flat pill marker) -->
+            <div class="flex-1 flex flex-col items-center">
+              <div class="w-4 h-1 rounded bg-[#4B3B22] mb-0.5" title="Rest day: 0 kcal recorded"></div>
+            </div>
+            <!-- Th: 480 kcal (80%) -->
+            <div class="flex-1 flex flex-col items-center">
+              <div class="w-4 rounded-t-[4px] bg-[#F59E0B]/85" style="height: 80%;"></div>
+            </div>
+            <!-- Fr: 550 kcal (91%) -->
+            <div class="flex-1 flex flex-col items-center">
+              <div class="w-4 rounded-t-[4px] bg-[#F59E0B]/85" style="height: 91%;"></div>
+            </div>
+            <!-- Sa: 380 kcal (63%) -->
+            <div class="flex-1 flex flex-col items-center">
+              <div class="w-4 rounded-t-[4px] bg-[#F59E0B]/85" style="height: 63%;"></div>
+            </div>
+            <!-- Su: Missing / unrecorded (gap with dash) -->
+            <div class="flex-1 flex flex-col items-center justify-end">
+              <span class="text-neutral-600 font-mono text-xs mb-0.5">—</span>
+            </div>
+          </div>
+
+          <!-- Day Labels -->
+          <div class="flex justify-between items-center pl-8 pr-1 pt-2 text-[10.5px]">
+            <span class="flex-1 text-center text-neutral-400">Mo</span>
+            <span class="flex-1 text-center text-white font-bold bg-white/10 rounded py-0.5">Tu</span>
+            <span class="flex-1 text-center text-neutral-400">We</span>
+            <span class="flex-1 text-center text-neutral-400">Th</span>
+            <span class="flex-1 text-center text-neutral-400">Fr</span>
+            <span class="flex-1 text-center text-neutral-400">Sa</span>
+            <span class="flex-1 text-center text-neutral-500 italic">Su</span>
+          </div>
+        </div>
+
+        <!-- Clarifying Legend for 0 vs Missing -->
+        <div class="mt-3.5 pt-2.5 border-t border-[#23252A] flex items-center justify-between text-[11px] text-neutral-400">
+          <div class="flex items-center gap-1.5">
+            <span class="w-2.5 h-1 rounded bg-[#4B3B22]"></span>
+            <span>Wed: Rest (0 kcal)</span>
+          </div>
+          <div class="flex items-center gap-1.5">
+            <span class="text-neutral-500 font-mono">—</span>
+            <span>Sun: Unlogged</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- 8. Small Weekly Takeaway (Quiet, factual observation) -->
+      <section class="bg-[#131417] border border-[#23252A] rounded-xl px-3.5 py-3 flex items-start gap-3">
+        <svg class="w-4 h-4 text-emerald-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+        </svg>
+        <p class="text-xs text-neutral-300 leading-relaxed">
+          <span class="text-white font-medium">Weekly takeaway:</span> Caloric intake stayed within 4% of target while hitting protein targets across 4 heavy training sessions.
+        </p>
+      </section>
+
+      <!-- 9. Text Action -->
+      <div class="pt-1 text-center">
+        <a href="#breakdown" class="inline-flex items-center space-x-1.5 text-xs font-semibold text-neutral-300 hover:text-white transition py-2 px-3 rounded-lg hover:bg-neutral-800/40">
+          <span>View daily breakdown</span>
+          <span class="text-sm">→</span>
+        </a>
+      </div>
+
+    </div>
+    <!-- END TAB 1: OVERVIEW -->
+
+
+    <!-- ============================================================ -->
+    <!-- TAB 2: NUTRITION TAB CONTENT -->
+    <!-- ============================================================ -->
+    <div id="pane-nutrition" class="tab-pane space-y-4">
+
+      <!-- Nutrition Summary Header -->
+      <section class="rounded-2xl bg-[#16171A] border border-[#26282F] p-4" data-purpose="nutrition-summary">
+        <div class="flex items-center justify-between mb-3">
+          <div>
+            <h2 class="text-xs font-semibold uppercase tracking-wider text-neutral-300">NUTRITION BREAKDOWN</h2>
+            <p class="text-[11px] text-[#A1A1AA] mt-0.5">Macro split & calorie adherence</p>
+          </div>
+          <span class="text-xs font-medium text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full">
+            6 of 7 logged
+          </span>
+        </div>
+
+        <!-- 3 Macro Cards -->
+        <div class="grid grid-cols-3 gap-2 py-1">
+          <div class="bg-[#101114] border border-[#23252A] rounded-xl p-2.5">
+            <span class="text-[10px] font-semibold uppercase text-emerald-400">Protein</span>
+            <div class="text-base font-bold text-white mt-0.5">152g <span class="text-[10px] font-normal text-neutral-400">/ 160g</span></div>
+            <div class="w-full h-1 bg-neutral-800 rounded-full mt-1.5 overflow-hidden">
+              <div class="bg-emerald-500 h-full rounded-full" style="width: 95%;"></div>
+            </div>
+          </div>
+          <div class="bg-[#101114] border border-[#23252A] rounded-xl p-2.5">
+            <span class="text-[10px] font-semibold uppercase text-[#F59E0B]">Carbs</span>
+            <div class="text-base font-bold text-white mt-0.5">245g <span class="text-[10px] font-normal text-neutral-400">/ 260g</span></div>
+            <div class="w-full h-1 bg-neutral-800 rounded-full mt-1.5 overflow-hidden">
+              <div class="bg-[#F59E0B] h-full rounded-full" style="width: 94%;"></div>
+            </div>
+          </div>
+          <div class="bg-[#101114] border border-[#23252A] rounded-xl p-2.5">
+            <span class="text-[10px] font-semibold uppercase text-[#A855F7]">Fats</span>
+            <div class="text-base font-bold text-white mt-0.5">64g <span class="text-[10px] font-normal text-neutral-400">/ 70g</span></div>
+            <div class="w-full h-1 bg-neutral-800 rounded-full mt-1.5 overflow-hidden">
+              <div class="bg-[#A855F7] h-full rounded-full" style="width: 91%;"></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Re-used Consistent Calories Consumed Card -->
+      <section class="rounded-2xl bg-[#16171A] border border-[#26282F] p-4">
+        <div class="flex items-start justify-between">
+          <div>
+            <span class="text-xs font-semibold uppercase tracking-wider text-neutral-300">Calories Consumed</span>
+            <div class="mt-1 flex items-baseline gap-1.5">
+              <span class="text-2xl font-bold tracking-tight text-white">2,410</span>
+              <span class="text-xs font-normal text-neutral-400">kcal avg</span>
+            </div>
+          </div>
+          <span class="text-xs font-semibold text-neutral-300 bg-[#212329] px-2 py-0.5 rounded border border-white/5">Target: 2,500 kcal</span>
+        </div>
+        
+        <!-- Bar representation in Nutrition state -->
+        <div class="mt-4 pt-1 flex items-end justify-between h-24 border-b border-[#2D3039] pb-1 px-1">
+          <div class="flex-1 flex flex-col items-center"><div class="w-4 rounded-t bg-[#3A3D46]" style="height: 80%;"></div><span class="text-[10px] text-neutral-400 mt-2">Mo</span></div>
+          <div class="flex-1 flex flex-col items-center"><div class="w-4 rounded-t bg-white" style="height: 86%;"></div><span class="text-[10px] text-white font-bold mt-2">Tu</span></div>
+          <div class="flex-1 flex flex-col items-center"><div class="w-4 rounded-t bg-[#3A3D46]" style="height: 78%;"></div><span class="text-[10px] text-neutral-400 mt-2">We</span></div>
+          <div class="flex-1 flex flex-col items-center"><div class="w-4 rounded-t bg-[#3A3D46]" style="height: 82%;"></div><span class="text-[10px] text-neutral-400 mt-2">Th</span></div>
+          <div class="flex-1 flex flex-col items-center"><div class="w-4 rounded-t bg-[#3A3D46]" style="height: 87%;"></div><span class="text-[10px] text-neutral-400 mt-2">Fr</span></div>
+          <div class="flex-1 flex flex-col items-center"><div class="w-4 rounded-t bg-[#3A3D46]" style="height: 63%;"></div><span class="text-[10px] text-neutral-400 mt-2">Sa</span></div>
+          <div class="flex-1 flex flex-col items-center"><span class="text-xs text-neutral-600 font-mono">—</span><span class="text-[10px] text-neutral-500 italic mt-2">Su</span></div>
+        </div>
+      </section>
+
+      <!-- Protein Deep-Dive Card -->
+      <section class="rounded-2xl bg-[#16171A] border border-[#26282F] p-4">
+        <div class="flex items-start justify-between">
+          <div>
+            <span class="text-xs font-semibold uppercase tracking-wider text-emerald-400">Protein Intake Distribution</span>
+            <div class="mt-1 flex items-baseline gap-1.5">
+              <span class="text-2xl font-bold tracking-tight text-white">152g</span>
+              <span class="text-xs font-normal text-neutral-400">daily avg</span>
+            </div>
+          </div>
+          <span class="text-xs font-semibold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">Target 160g</span>
+        </div>
+        <p class="text-xs text-neutral-400 mt-3 leading-relaxed">
+          Best timing observed on Tuesday: 42g post-workout shake + 50g dinner preserved lean recovery.
+        </p>
+      </section>
+
+      <!-- Micronutrient & Water Snapshot -->
+      <section class="rounded-2xl bg-[#16171A] border border-[#26282F] p-4 flex items-center justify-between">
+        <div>
+          <span class="text-[10.5px] uppercase font-semibold text-neutral-400">Average Water Hydration</span>
+          <div class="text-lg font-bold text-white mt-0.5">2.2 L <span class="text-xs font-normal text-neutral-400">/ 2.5 L</span></div>
+        </div>
+        <div class="w-24 h-1.5 bg-neutral-800 rounded-full overflow-hidden">
+          <div class="bg-neutral-200 h-full rounded-full" style="width: 88%;"></div>
+        </div>
+      </section>
+
+    </div>
+    <!-- END TAB 2: NUTRITION -->
+
+
+    <!-- ============================================================ -->
+    <!-- TAB 3: ACTIVITY TAB CONTENT -->
+    <!-- ============================================================ -->
+    <div id="pane-activity" class="tab-pane space-y-4">
+
+      <!-- Activity Summary Header -->
+      <section class="rounded-2xl bg-[#16171A] border border-[#26282F] p-4" data-purpose="activity-summary">
+        <div class="flex items-center justify-between mb-3">
+          <div>
+            <h2 class="text-xs font-semibold uppercase tracking-wider text-neutral-300">WEEKLY EXERTION</h2>
+            <p class="text-[11px] text-[#A1A1AA] mt-0.5">Total recorded burn & completed volume</p>
+          </div>
+          <span class="text-xs font-medium text-[#F59E0B] bg-[#F59E0B]/10 border border-[#F59E0B]/20 px-2 py-0.5 rounded-full">
+            4 active days
+          </span>
+        </div>
+
+        <div class="grid grid-cols-2 gap-2.5 pt-1">
+          <div class="bg-[#101114] border border-[#23252A] rounded-xl p-3">
+            <span class="text-[10.5px] font-medium text-[#A1A1AA] uppercase tracking-wide">Total Burned</span>
+            <div class="mt-1.5 text-2xl font-bold tracking-tight text-white">2,610 <span class="text-xs font-normal text-neutral-400">kcal</span></div>
+            <p class="text-[10px] text-[#F59E0B] mt-1">+210 kcal over goal</p>
+          </div>
+
+          <div class="bg-[#101114] border border-[#23252A] rounded-xl p-3">
+            <span class="text-[10.5px] font-medium text-[#A1A1AA] uppercase tracking-wide">Training Sessions</span>
+            <div class="mt-1.5 text-2xl font-bold tracking-tight text-white">4 <span class="text-xs font-normal text-neutral-400">sessions</span></div>
+            <p class="text-[10px] text-emerald-400 mt-1">100% plan adherence</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Calories Burned Detailed Chart -->
+      <section class="rounded-2xl bg-[#16171A] border border-[#26282F] p-4">
+        <div class="flex items-start justify-between">
+          <div>
+            <span class="text-xs font-semibold uppercase tracking-wider text-[#F59E0B]">Calories Burned by Day</span>
+            <div class="mt-1 flex items-baseline gap-1.5">
+              <span class="text-2xl font-bold tracking-tight text-white">435</span>
+              <span class="text-xs font-normal text-neutral-400">kcal / day avg</span>
+            </div>
+          </div>
+          <span class="text-xs font-semibold text-[#F59E0B] bg-[#F59E0B]/10 px-2 py-0.5 rounded border border-[#F59E0B]/20">Target 400 kcal</span>
+        </div>
+
+        <!-- Amber Bar Chart in Activity state -->
+        <div class="mt-5 pt-1 flex items-end justify-between h-28 border-b border-[#2D3039] pb-1 px-1">
+          <div class="flex-1 flex flex-col items-center"><div class="w-4 rounded-t bg-[#F59E0B]/80" style="height: 75%;"></div><span class="text-[10px] text-neutral-400 mt-2">Mo</span></div>
+          <div class="flex-1 flex flex-col items-center"><div class="w-4 rounded-t bg-[#F59E0B]" style="height: 98%;"></div><span class="text-[10px] text-white font-bold mt-2">Tu</span></div>
+          <div class="flex-1 flex flex-col items-center"><div class="w-4 h-1 rounded bg-[#4B3B22] mb-0.5"></div><span class="text-[10px] text-neutral-400 mt-2">We</span></div>
+          <div class="flex-1 flex flex-col items-center"><div class="w-4 rounded-t bg-[#F59E0B]/80" style="height: 70%;"></div><span class="text-[10px] text-neutral-400 mt-2">Th</span></div>
+          <div class="flex-1 flex flex-col items-center"><div class="w-4 rounded-t bg-[#F59E0B]/80" style="height: 85%;"></div><span class="text-[10px] text-neutral-400 mt-2">Fr</span></div>
+          <div class="flex-1 flex flex-col items-center"><div class="w-4 rounded-t bg-[#F59E0B]/80" style="height: 55%;"></div><span class="text-[10px] text-neutral-400 mt-2">Sa</span></div>
+          <div class="flex-1 flex flex-col items-center"><span class="text-xs text-neutral-600 font-mono mb-1">—</span><span class="text-[10px] text-neutral-500 italic mt-2">Su</span></div>
+        </div>
+
+        <div class="mt-3 flex items-center justify-between text-xs text-neutral-400">
+          <span>Peak session: Tuesday (Leg Day)</span>
+          <span class="text-white font-semibold">610 kcal</span>
+        </div>
+      </section>
+
+      <!-- Completed Sessions Log list -->
+      <section class="rounded-2xl bg-[#16171A] border border-[#26282F] p-4 space-y-2.5">
+        <h3 class="text-xs font-semibold uppercase tracking-wider text-neutral-300">LOGGED SESSIONS THIS WEEK</h3>
+        
+        <div class="space-y-2 pt-1">
+          <div class="flex items-center justify-between p-2.5 rounded-xl bg-[#101114] border border-[#23252A]">
+            <div>
+              <p class="text-xs font-semibold text-white">Leg Day & Posterior Chain</p>
+              <p class="text-[10px] text-neutral-400">Tuesday · 45 min · RPE 8.5</p>
+            </div>
+            <span class="text-xs font-bold text-[#F59E0B]">610 kcal</span>
+          </div>
+
+          <div class="flex items-center justify-between p-2.5 rounded-xl bg-[#101114] border border-[#23252A]">
+            <div>
+              <p class="text-xs font-semibold text-white">Upper Strength & Core</p>
+              <p class="text-[10px] text-neutral-400">Thursday · 40 min · RPE 8.0</p>
+            </div>
+            <span class="text-xs font-bold text-[#F59E0B]">480 kcal</span>
+          </div>
+
+          <div class="flex items-center justify-between p-2.5 rounded-xl bg-[#101114] border border-[#23252A]">
+            <div>
+              <p class="text-xs font-semibold text-white">Conditioning & Mobility</p>
+              <p class="text-[10px] text-neutral-400">Friday · 35 min · RPE 7.5</p>
+            </div>
+            <span class="text-xs font-bold text-[#F59E0B]">550 kcal</span>
+          </div>
+        </div>
+      </section>
+
+    </div>
+    <!-- END TAB 3: ACTIVITY -->
+
+  </main>
+  <!-- END: Scrollable Main Content -->
+
+  <!-- BEGIN: 10. Fixed Bottom Navigation Bar (Matches Saman Home Screen) -->
+  <nav class="fixed bottom-0 max-w-[420px] w-full bg-[#0C0D0E] border-t border-[#23252A] px-2 pt-2 pb-5 flex justify-around items-center z-30" data-purpose="bottom-nav">
+    <!-- 1. Home -->
+    <a class="flex flex-col items-center flex-1 text-center group text-neutral-400 hover:text-neutral-200 transition" href="#home">
+      <div class="py-0.5 flex items-center justify-center text-neutral-400 group-hover:text-neutral-200 transition">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24">
+          <path d="M3 10.5l9-7 9 7v9.5a1 1 0 01-1 1h-5v-6h-6v6H4a1 1 0 01-1-1v-9.5z"></path>
+        </svg>
+      </div>
+      <span class="text-[10px] font-medium text-neutral-400 mt-0.5 tracking-tight group-hover:text-neutral-200 transition">Home</span>
+      <span class="w-1 h-1 bg-transparent rounded-full mt-0.5"></span>
+    </a>
+
+    <!-- 2. Workout -->
+    <a class="flex flex-col items-center flex-1 text-center group text-neutral-400 hover:text-neutral-200 transition" href="#workout">
+      <div class="py-0.5 flex items-center justify-center text-neutral-400 group-hover:text-neutral-200 transition">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24">
+          <path d="M6 5v14M18 5v14M2 9v6M22 9v6M6 12h12"></path>
+        </svg>
+      </div>
+      <span class="text-[10px] font-medium text-neutral-400 mt-0.5 tracking-tight group-hover:text-neutral-200 transition">Workout</span>
+      <span class="w-1 h-1 bg-transparent rounded-full mt-0.5"></span>
+    </a>
+
+    <!-- 3. AI Coach (Saman) -->
+    <a class="flex flex-col items-center flex-1 text-center group text-neutral-400 hover:text-neutral-200 transition" href="#coach">
+      <div class="py-0.5 flex items-center justify-center text-neutral-400 group-hover:text-neutral-200 transition">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" viewBox="0 0 24 24">
+          <path d="M17.5 7.5A4.5 4.5 0 0 0 8 6c-3 1.8-3.5 5-1 7.2l2.5 1.8"></path>
+          <path d="M6.5 16.5A4.5 4.5 0 0 0 16 18c3-1.8 3.5-5 1-7.2l-2.5-1.8"></path>
+        </svg>
+      </div>
+      <span class="text-[10px] font-medium text-neutral-400 mt-0.5 tracking-tight group-hover:text-neutral-200 transition">Saman</span>
+      <span class="w-1 h-1 bg-transparent rounded-full mt-0.5"></span>
+    </a>
+
+    <!-- 4. Nutrition / Report (Active indicator) -->
+    <a class="flex flex-col items-center flex-1 text-center group" href="#report">
+      <div class="py-0.5 flex items-center justify-center text-white">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24">
+          <path d="M18 3v5a3 3 0 01-3 3h-1m4-8h-4m4 0v18M6 3v6a2.5 2.5 0 005 0V3M8.5 11.5V21"></path>
+        </svg>
+      </div>
+      <span class="text-[10px] font-semibold text-white mt-0.5 tracking-tight">Report</span>
+      <span class="w-1 h-1 bg-white rounded-full mt-0.5"></span>
+    </a>
+
+    <!-- 5. Profile -->
+    <a class="flex flex-col items-center flex-1 text-center group text-neutral-400 hover:text-neutral-200 transition" href="#profile">
+      <div class="py-0.5 flex items-center justify-center text-neutral-400 group-hover:text-neutral-200 transition">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24">
+          <circle cx="12" cy="7" r="4"></circle>
+          <path d="M5.5 20.5a6.5 6.5 0 0113 0"></path>
+        </svg>
+      </div>
+      <span class="text-[10px] font-medium text-neutral-400 mt-0.5 tracking-tight group-hover:text-neutral-200 transition">Profile</span>
+      <span class="w-1 h-1 bg-transparent rounded-full mt-0.5"></span>
+    </a>
+  </nav>
+  <!-- END: Fixed Bottom Navigation Bar -->
+
+</div>
+
+<!-- BEGIN: Interactive Tab & Chart Day Selection Script -->
+<script>
+  function switchTab(tabName) {
+    // Hide all panes
+    document.querySelectorAll('.tab-pane').forEach(el => el.classList.remove('active'));
+    // De-activate all buttons
+    document.querySelectorAll('.tab-trigger').forEach(btn => {
+      btn.className = "tab-trigger py-1.5 text-center rounded-lg transition-all text-[#A1A1AA] hover:text-white";
+      btn.setAttribute('aria-selected', 'false');
+    });
+
+    // Activate selected
+    const activePane = document.getElementById('pane-' + tabName);
+    const activeBtn = document.getElementById('tab-btn-' + tabName);
+    if (activePane) activePane.classList.add('active');
+    if (activeBtn) {
+      activeBtn.className = "tab-trigger py-1.5 text-center rounded-lg transition-all font-semibold bg-[#F9FAFB] text-[#0C0D0E] shadow-sm";
+      activeBtn.setAttribute('aria-selected', 'true');
+    }
+  }
+
+  function selectDayCal(dateLabel, valLabel) {
+    const dateEl = document.getElementById('cal-selected-date');
+    const valEl = document.getElementById('cal-selected-val');
+    if (dateEl) dateEl.innerText = dateLabel;
+    if (valEl) valEl.innerText = valLabel;
+  }
+</script>
+<!-- END: Interactive Tab & Chart Day Selection Script -->
+
+</body>
+</html>

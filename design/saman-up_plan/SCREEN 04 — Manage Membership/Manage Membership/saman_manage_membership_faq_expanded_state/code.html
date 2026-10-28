@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html class="dark" lang="en">
+<head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" name="viewport">
+<title>Manage Membership - FAQ Expanded - Saman</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script>
+  tailwind.config = {
+    darkMode: "class",
+    theme: {
+      extend: {
+        colors: {
+          brand: {
+            bg: "#0C0D0E",
+            card: "#16171B",
+            cardHover: "#1F2126",
+            border: "#26282F",
+            iconBg: "#212328",
+            muted: "#94979E",
+            textPrimary: "#F3F4F6",
+            accent: "#10B981"
+          }
+        },
+        fontFamily: {
+          headline: ["Space Grotesk", "sans-serif"],
+          body: ["Inter", "sans-serif"],
+          mono: ["JetBrains Mono", "monospace"]
+        }
+      }
+    }
+  };
+</script>
+<style>
+  @layer base {
+    html, body {
+      margin: 0;
+      padding: 0;
+      background-color: #0C0D0E;
+      color: #F3F4F6;
+      font-family: 'Inter', sans-serif;
+    }
+    .pb-safe {
+      padding-bottom: env(safe-area-inset-bottom, 16px);
+    }
+    .pt-safe {
+      padding-top: env(safe-area-inset-top, 0px);
+    }
+  }
+  ::-webkit-scrollbar {
+    display: none;
+  }
+  .tabular-nums {
+    font-variant-numeric: tabular-nums;
+  }
+</style>
+</head>
+<body class="bg-[#0C0D0E] font-body text-sm text-[#F3F4F6] antialiased min-h-screen flex flex-col selection:bg-[#10B981]/30 selection:text-[#F3F4F6]">
+
+  <!-- TOP SAFE AREA & STATUS BAR -->
+  <div class="w-full pt-safe bg-[#0C0D0E] sticky top-0 z-40 border-b border-[#26282F]/40">
+    <div class="h-11 px-6 flex items-center justify-between text-xs text-[#F3F4F6] font-medium tracking-tight">
+      <span class="font-mono text-[13px] font-semibold">9:41</span>
+      <div class="flex items-center gap-2 text-[14px]">
+        <span class="material-symbols-outlined text-[15px] leading-none">signal_cellular_alt</span>
+        <span class="material-symbols-outlined text-[15px] leading-none">wifi</span>
+        <span class="material-symbols-outlined text-[18px] leading-none">battery_full</span>
+      </div>
+    </div>
+
+    <!-- 1. APP HEADER -->
+    <header class="h-14 px-4 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <a href="#profile" class="w-10 h-10 rounded-xl bg-[#16171B] border border-[#26282F] flex items-center justify-center text-[#F3F4F6] hover:bg-[#212328] active:scale-95 transition-all" aria-label="Back to Profile">
+          <span class="material-symbols-outlined text-[20px]">arrow_back</span>
+        </a>
+        <h1 class="font-headline text-[18px] font-semibold text-[#F3F4F6] tracking-tight">Manage membership</h1>
+      </div>
+      <span class="font-mono text-[10px] uppercase tracking-wider text-[#94979E] bg-[#16171B] px-2 py-1 rounded-md border border-[#26282F]">Account</span>
+    </header>
+  </div>
+
+  <!-- SCROLLABLE CONTENT VIEWPORT (FAQ 2 Expanded) -->
+  <main class="flex-1 w-full max-w-[390px] mx-auto px-4 py-4 space-y-5 pb-12 overflow-y-auto">
+
+    <!-- 2. CURRENT PLAN CARD -->
+    <section class="bg-[#16171B] border border-[#26282F] rounded-2xl p-4 flex flex-col space-y-3">
+      <div class="flex items-center justify-between">
+        <span class="font-mono text-[11px] font-semibold uppercase tracking-wider text-[#94979E]">CURRENT PLAN</span>
+        <span class="font-mono text-[10px] font-semibold uppercase tracking-wider text-[#F3F4F6] bg-[#212328] border border-[#26282F] px-2.5 py-0.5 rounded-full">
+          CURRENT
+        </span>
+      </div>
+
+      <div class="flex items-start gap-3.5 pt-1">
+        <!-- Leading Icon Tile -->
+        <div class="w-11 h-11 rounded-xl bg-[#212328] border border-[#26282F] flex items-center justify-center text-[#F3F4F6] shrink-0">
+          <span class="material-symbols-outlined text-[22px]">card_membership</span>
+        </div>
+        <div class="flex flex-col min-w-0">
+          <div class="flex items-baseline gap-2">
+            <h2 class="font-headline text-xl font-bold text-[#F3F4F6] tracking-tight">Free</h2>
+            <span class="font-mono text-xs text-[#94979E]">· $0</span>
+          </div>
+          <p class="text-sm text-[#94979E] mt-0.5 leading-snug">Your everyday tracking essentials.</p>
+        </div>
+      </div>
+
+      <div class="pt-2 border-t border-[#26282F] flex items-center justify-between text-xs text-[#94979E]">
+        <span class="flex items-center gap-1.5 font-medium">
+          <span class="w-1.5 h-1.5 rounded-full bg-[#94979E]"></span>
+          No paid membership activated.
+        </span>
+      </div>
+    </section>
+
+    <!-- 3. FREE BENEFITS -->
+    <section class="flex flex-col space-y-2">
+      <h3 class="font-mono text-[11px] font-semibold uppercase tracking-wider text-[#94979E] px-1">Your Free benefits</h3>
+      
+      <div class="bg-[#16171B] border border-[#26282F] rounded-2xl divide-y divide-[#26282F] overflow-hidden">
+        <!-- Row 1: Nutrition logging -->
+        <div class="p-3.5 flex items-start gap-3">
+          <div class="w-6 h-6 rounded-lg bg-[#212328] border border-[#26282F] flex items-center justify-center text-[#F3F4F6] shrink-0 mt-0.5">
+            <span class="material-symbols-outlined text-[15px]">check</span>
+          </div>
+          <div class="flex flex-col min-w-0">
+            <span class="text-sm font-medium text-[#F3F4F6] leading-tight">Nutrition logging</span>
+            <span class="text-xs text-[#94979E] mt-1 leading-normal">Keep a record of your meals.</span>
+          </div>
+        </div>
+
+        <!-- Row 2: Manual workout tracking -->
+        <div class="p-3.5 flex items-start gap-3">
+          <div class="w-6 h-6 rounded-lg bg-[#212328] border border-[#26282F] flex items-center justify-center text-[#F3F4F6] shrink-0 mt-0.5">
+            <span class="material-symbols-outlined text-[15px]">check</span>
+          </div>
+          <div class="flex flex-col min-w-0">
+            <span class="text-sm font-medium text-[#F3F4F6] leading-tight">Manual workout tracking</span>
+            <span class="text-xs text-[#94979E] mt-1 leading-normal">Log your workouts manually.</span>
+          </div>
+        </div>
+
+        <!-- Row 3: Free food photo analysis -->
+        <div class="p-3.5 flex items-start gap-3">
+          <div class="w-6 h-6 rounded-lg bg-[#212328] border border-[#26282F] flex items-center justify-center text-[#F3F4F6] shrink-0 mt-0.5">
+            <span class="material-symbols-outlined text-[15px]">check</span>
+          </div>
+          <div class="flex flex-col min-w-0">
+            <span class="text-sm font-medium text-[#F3F4F6] leading-tight">Free food photo analysis</span>
+            <span class="text-xs text-[#94979E] mt-1 leading-normal">Use the existing free analysis model.</span>
+          </div>
+        </div>
+
+        <!-- Row 4: Basic health metrics -->
+        <div class="p-3.5 flex items-start gap-3">
+          <div class="w-6 h-6 rounded-lg bg-[#212328] border border-[#26282F] flex items-center justify-center text-[#F3F4F6] shrink-0 mt-0.5">
+            <span class="material-symbols-outlined text-[15px]">check</span>
+          </div>
+          <div class="flex flex-col min-w-0">
+            <span class="text-sm font-medium text-[#F3F4F6] leading-tight">Basic health metrics</span>
+            <span class="text-xs text-[#94979E] mt-1 leading-normal">Track your core health measurements.</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 4. MEMBERSHIP DISCOVERY CARD -->
+    <section class="bg-[#16171B] border border-[#26282F] rounded-2xl p-4 flex flex-col space-y-3">
+      <div class="flex items-center gap-2">
+        <span class="font-mono text-[10px] font-semibold uppercase tracking-wider text-[#94979E] bg-[#212328] border border-[#26282F] px-2 py-0.5 rounded">
+          COMING SOON
+        </span>
+      </div>
+
+      <div>
+        <h3 class="font-headline text-base font-semibold text-[#F3F4F6] tracking-tight">Explore what’s next.</h3>
+        <p class="text-sm text-[#94979E] mt-1 leading-relaxed">
+          Discover planned Nutrition AI, Workout Intelligence, and personalized features across Plus, Pro, and Ultra.
+        </p>
+      </div>
+
+      <!-- Action Button: Opens Membership Overview -->
+      <a href="#membership-overview" class="w-full h-12 rounded-xl bg-[#F9FAFB] hover:bg-white text-[#0C0D0E] font-medium text-sm flex items-center justify-center gap-2 transition-all active:scale-[0.98] shadow-sm">
+        <span>Explore Plans</span>
+        <span class="material-symbols-outlined text-[18px]">arrow_forward</span>
+      </a>
+    </section>
+
+    <!-- 5. MEMBERSHIP FAQ (With "Can I upgrade now?" Expanded) -->
+    <section class="flex flex-col space-y-2">
+      <h3 class="font-mono text-[11px] font-semibold uppercase tracking-wider text-[#94979E] px-1">Membership FAQ</h3>
+
+      <div class="bg-[#16171B] border border-[#26282F] rounded-2xl divide-y divide-[#26282F] overflow-hidden">
+        
+        <!-- FAQ 1 (Collapsed) -->
+        <details class="group">
+          <summary class="min-h-[48px] p-3.5 flex items-center justify-between cursor-pointer list-none select-none hover:bg-[#212328]/40 transition-colors">
+            <span class="text-sm font-medium text-[#F3F4F6] pr-2">What does my Free plan include?</span>
+            <span class="material-symbols-outlined text-[#94979E] text-[20px] transition-transform duration-200 group-open:rotate-180 shrink-0">keyboard_arrow_down</span>
+          </summary>
+          <div class="px-3.5 pb-3.5 pt-1 text-xs text-[#94979E] leading-relaxed border-t border-[#26282F]/40 bg-[#121316]/50">
+            Nutrition logging, manual workout tracking, the existing free food photo analysis model, and basic health metrics.
+          </div>
+        </details>
+
+        <!-- FAQ 2 (EXPANDED by default in this state) -->
+        <details class="group" open>
+          <summary class="min-h-[48px] p-3.5 flex items-center justify-between cursor-pointer list-none select-none bg-[#212328]/30 transition-colors">
+            <span class="text-sm font-medium text-[#F3F4F6] pr-2">Can I upgrade now?</span>
+            <span class="material-symbols-outlined text-[#10B981] text-[20px] transition-transform duration-200 rotate-180 shrink-0">keyboard_arrow_down</span>
+          </summary>
+          <div class="px-3.5 pb-3.5 pt-2 text-xs text-[#CBD5E1] leading-relaxed border-t border-[#26282F]/60 bg-[#121316]">
+            Paid memberships are Coming Soon. You can explore the planned benefits, but this preview does not purchase or activate a plan.
+          </div>
+        </details>
+
+        <!-- FAQ 3 (Collapsed) -->
+        <details class="group">
+          <summary class="min-h-[48px] p-3.5 flex items-center justify-between cursor-pointer list-none select-none hover:bg-[#212328]/40 transition-colors">
+            <span class="text-sm font-medium text-[#F3F4F6] pr-2">Are prices and AI limits final?</span>
+            <span class="material-symbols-outlined text-[#94979E] text-[20px] transition-transform duration-200 group-open:rotate-180 shrink-0">keyboard_arrow_down</span>
+          </summary>
+          <div class="px-3.5 pb-3.5 pt-1 text-xs text-[#94979E] leading-relaxed border-t border-[#26282F]/40 bg-[#121316]/50">
+            No. Displayed prices are demo estimates, and AI limits will be announced. Features, limits, and pricing may change before launch.
+          </div>
+        </details>
+
+      </div>
+    </section>
+
+    <!-- 6. QUIET FOOTER -->
+    <footer class="pt-2 pb-6 text-center">
+      <p class="font-mono text-xs text-[#94979E] leading-relaxed">
+        Membership preview · Paid plans are not available yet.
+      </p>
+    </footer>
+
+  </main>
+
+</body>
+</html>

@@ -1562,7 +1562,7 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
         !kIsWeb && defaultTargetPlatform == TargetPlatform.android;
 
     if (!isSupported || !isAndroid) {
-      _showFormCheckModal(context);
+      _showFormCheckModal(context, cameraUnavailable: isSupported && !isAndroid);
       return;
     }
 
@@ -1597,7 +1597,7 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
     }
   }
 
-  void _showFormCheckModal(BuildContext context) {
+  void _showFormCheckModal(BuildContext context, {bool cameraUnavailable = false}) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -1631,9 +1631,11 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
                 ],
               ),
               const SizedBox(height: 12),
-              const Text(
-                'Computer Vision Form Check is planned for a future release (deferred checkpoint). No camera feed has been activated and no reps will be auto-logged.',
-                style: TextStyle(
+              Text(
+                cameraUnavailable
+                    ? 'Camera CV chỉ hỗ trợ Android. Web/iOS chưa có replay landmarks được đóng gói để demo. Không gọi camera native, không tự ghi rep vào buổi tập.'
+                    : 'Computer Vision Form Check is planned for a future release (deferred checkpoint). No camera feed has been activated and no reps will be auto-logged.',
+                style: const TextStyle(
                   fontSize: 13,
                   color: SamanWorkoutTokens.textSecondary,
                   height: 1.4,

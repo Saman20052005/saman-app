@@ -7,6 +7,7 @@ import '../../features/profile/domain/entities/profile_entity.dart';
 import '../../providers/profile_provider.dart';
 import '../../utils/auth_helper.dart';
 import '../login/login_screen.dart';
+import '../../services/unit_converter.dart';
 
 /// Screen 07 — Edit Profile under Dark Calm Athleticism.
 ///
@@ -122,6 +123,7 @@ class _EditHealthProfileScreenState
   }
 
   void _applyInitialData(ProfileEntity profile) {
+    final unitSystem = ref.read(unitProvider);
     _initialAge = profile.age;
     _initialHeight = profile.height;
     _initialWeight = profile.weight;
@@ -132,8 +134,19 @@ class _EditHealthProfileScreenState
             OnboardingActivityChoice.fromLegacy(profile.rawActivityLevel);
 
     _initialAgeText = _initialAge?.toString() ?? '';
-    _initialHeightText = _formatDecimal(_initialHeight);
-    _initialWeightText = _formatDecimal(_initialWeight);
+    if (unitSystem == UnitSystem.imperial) {
+      _initialHeightText = _initialHeight != null
+          ? UnitConverter.formatDecimal(
+              (UnitConverter.cmToInches(_initialHeight!) * 10).round() / 10)
+          : '';
+      _initialWeightText = _initialWeight != null
+          ? UnitConverter.formatDecimal(
+              (UnitConverter.kgToLb(_initialWeight!) * 10).round() / 10)
+          : '';
+    } else {
+      _initialHeightText = _formatDecimal(_initialHeight);
+      _initialWeightText = _formatDecimal(_initialWeight);
+    }
 
     if (_initialAge != null) {
       _ageController.text = _initialAgeText;
@@ -228,6 +241,9 @@ class _EditHealthProfileScreenState
     if (parsed == null) {
       return raw != _initialHeightText;
     }
+    if (ref.read(unitProvider) == UnitSystem.imperial) {
+      return raw != _initialHeightText;
+    }
     return parsed != _initialHeight;
   }
 
@@ -241,6 +257,9 @@ class _EditHealthProfileScreenState
     }
     final parsed = double.tryParse(raw);
     if (parsed == null) {
+      return raw != _initialWeightText;
+    }
+    if (ref.read(unitProvider) == UnitSystem.imperial) {
       return raw != _initialWeightText;
     }
     return parsed != _initialWeight;
@@ -842,12 +861,31 @@ class _EditHealthProfileScreenState
           _initialActivityChoice ??
           OnboardingActivityChoice.moderate;
 
+      final unitSystem = ref.read(unitProvider);
+      final double finalHeight;
+      if (_heightController.text.trim() == _initialHeightText && _initialHeight != null) {
+        finalHeight = _initialHeight!;
+      } else if (unitSystem == UnitSystem.imperial) {
+        finalHeight = UnitConverter.inchesToCm(_parsedHeight!);
+      } else {
+        finalHeight = _parsedHeight!;
+      }
+
+      final double finalWeight;
+      if (_weightController.text.trim() == _initialWeightText && _initialWeight != null) {
+        finalWeight = _initialWeight!;
+      } else if (unitSystem == UnitSystem.imperial) {
+        finalWeight = UnitConverter.lbToKg(_parsedWeight!);
+      } else {
+        finalWeight = _parsedWeight!;
+      }
+
       final success = await ref
           .read(profileProvider.notifier)
           .saveAndVerifyEditProfile(
             age: _parsedAge!,
-            height: _parsedHeight!,
-            weight: _parsedWeight!,
+            height: finalHeight,
+            weight: finalWeight,
             gender: gender,
             goal: goal,
             activityChoice: activityChoice,
@@ -1340,7 +1378,7 @@ class _EditHealthProfileScreenState
                             // Height Input Card
                             _buildNumericCard(
                               label: 'Height',
-                              suffix: 'cm',
+                              suffix: ref.watch(unitProvider) == UnitSystem.imperial ? 'in' : 'cm',
                               controller: _heightController,
                               fieldKey: const Key('edit_profile_height_input'),
                               keyboardType: const TextInputType.numberWithOptions(
@@ -1352,7 +1390,7 @@ class _EditHealthProfileScreenState
                             // Weight Input Card
                             _buildNumericCard(
                               label: 'Weight',
-                              suffix: 'kg',
+                              suffix: ref.watch(unitProvider) == UnitSystem.imperial ? 'lb' : 'kg',
                               controller: _weightController,
                               fieldKey: const Key('edit_profile_weight_input'),
                               keyboardType: const TextInputType.numberWithOptions(
@@ -1589,16 +1627,31 @@ class _EditHealthProfileScreenState
                   key: fieldKey,
                   controller: controller,
                   keyboardType: keyboardType,
+                  cursorColor: const Color(0xFFF9FAFB),
                   style: const TextStyle(
                     fontSize: 30,
                     fontWeight: FontWeight.w600,
-                    color: Colors.white,
+                    color: Color(0xFFF9FAFB),
                     fontFeatures: [FontFeature.tabularFigures()],
                   ),
                   decoration: const InputDecoration(
+                    filled: true,
+                    fillColor: Colors.transparent,
+                    hoverColor: Colors.transparent,
+                    focusColor: Colors.transparent,
                     border: InputBorder.none,
+                    enabledBorder: InputBorder.none,
+                    focusedBorder: InputBorder.none,
+                    errorBorder: InputBorder.none,
+                    focusedErrorBorder: InputBorder.none,
+                    disabledBorder: InputBorder.none,
                     isDense: true,
                     contentPadding: EdgeInsets.zero,
+                    hintStyle: TextStyle(
+                      fontSize: 30,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF9CA3AF),
+                    ),
                   ),
                   onTap: () => _hasUserInteracted = true,
                   onChanged: (_) => _hasUserInteracted = true,

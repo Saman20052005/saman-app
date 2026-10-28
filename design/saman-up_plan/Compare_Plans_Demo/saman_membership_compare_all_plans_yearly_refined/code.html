@@ -1,0 +1,453 @@
+<!DOCTYPE html><html class="dark" lang="en" style=""><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" name="viewport">
+<title>Saman - Compare Plans (Yearly)</title>
+<link href="https://fonts.googleapis.com" rel="preconnect">
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=JetBrains+Mono:wght@400;500;600&amp;family=Space+Grotesk:wght@500;600;700&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script>
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              bg: "#0C0D0E",
+              card: "#16171B",
+              cardHover: "#1F2126",
+              border: "#26282F",
+              iconBg: "#212328",
+              muted: "#94979E",
+              accent: "#10B981"
+            }
+          },
+          fontFamily: {
+            headline: ["Space Grotesk", "sans-serif"],
+            body: ["Inter", "sans-serif"],
+            mono: ["JetBrains Mono", "monospace"]
+          }
+        }
+      }
+    };
+  </script>
+<style>
+    @layer base {
+      html, body {
+        width: 100%;
+        height: 100%;
+        margin: 0;
+        padding: 0;
+        background-color: #0C0D0E;
+        color: #F3F4F6;
+        font-family: 'Inter', sans-serif;
+        overflow: hidden;
+      }
+      body {
+        -webkit-tap-highlight-color: transparent;
+      }
+    }
+    .custom-scroll::-webkit-scrollbar {
+      display: none;
+    }
+    .custom-scroll {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+    .tabular-nums {
+      font-variant-numeric: tabular-nums;
+    }
+  </style>
+</head>
+<body class="bg-[#0C0D0E] text-[#F3F4F6] antialiased flex justify-center items-center w-screen h-screen">
+<!-- Android Native Mobile Viewport (390 x 844 px) -->
+<div class="w-[390px] h-[844px] max-h-screen bg-[#0C0D0E] flex flex-col relative overflow-hidden shadow-2xl border border-[#26282F]/60">
+<!-- Top System Status Bar -->
+<header class="w-full pt-2 px-6 pb-1 bg-[#0C0D0E] z-30 shrink-0 select-none">
+<div class="h-8 flex items-center justify-between text-xs text-[#F3F4F6] font-medium tracking-tight">
+<span class="font-mono text-[13px] font-semibold">9:41</span>
+<div class="flex items-center gap-2 text-[14px]">
+<span class="material-symbols-outlined text-[15px] leading-none">signal_cellular_alt</span>
+<span class="material-symbols-outlined text-[15px] leading-none">wifi</span>
+<span class="material-symbols-outlined text-[18px] leading-none">battery_full</span>
+</div>
+</div>
+</header>
+<!-- App Header (Sticky) -->
+<div class="px-4 py-1.5 flex items-center gap-2 bg-[#0C0D0E]/95 backdrop-blur-md border-b border-[#26282F] z-20 shrink-0">
+<button aria-label="Back to Membership Overview" class="w-12 h-12 -ml-2 rounded-xl flex items-center justify-center text-[#F3F4F6] hover:bg-[#16171B] active:scale-95 transition-all" type="button">
+<span class="material-symbols-outlined text-[24px]">arrow_back</span>
+</button>
+<h1 class="font-headline text-lg font-semibold text-[#F3F4F6] tracking-tight">Compare plans</h1>
+</div>
+<!-- Scrollable Main Container -->
+<main class="flex-1 overflow-y-auto custom-scroll px-4 pb-12 flex flex-col space-y-6 pt-3">
+<!-- 2. Introduction -->
+<section class="flex flex-col">
+<div class="w-fit max-w-fit inline-flex items-center mb-3" style="box-sizing: border-box;"><span class="font-mono text-[11px] uppercase tracking-wider text-[#94979E] font-semibold px-2.5 py-1 rounded-md border border-[#26282F] bg-[#16171B] whitespace-nowrap leading-none block" style="box-sizing: border-box; white-space: nowrap;">MEMBERSHIP PREVIEW</span></div>
+<h2 class="font-headline text-2xl font-bold text-[#F3F4F6] tracking-tight leading-tight">
+          Find your fit.
+        </h2>
+<p class="text-sm text-[#94979E] mt-1 leading-snug">
+          Compare the essentials and the intelligence planned for each tier.
+        </p>
+</section>
+<!-- 3. Billing Selector (Yearly Active) -->
+<section class="flex flex-col space-y-2">
+<div class="w-full bg-[#16171B] p-1 rounded-2xl border border-[#26282F] flex items-center">
+<button class="flex-1 min-h-[48px] rounded-xl text-[#94979E] hover:text-[#F3F4F6] text-sm font-medium transition-all flex items-center justify-center" type="button">
+            Monthly
+          </button>
+<button class="flex-1 min-h-[48px] rounded-xl bg-[#212328] border border-[#383A42] text-[#F3F4F6] text-sm font-medium transition-all flex items-center justify-center" type="button">
+            Yearly
+          </button>
+</div>
+<div class="flex items-center justify-between px-1"><span class="text-xs text-[#94979E]">Demo pricing · Subject to change</span></div>
+</section>
+<!-- 4. Compact Price Summary (Yearly State Hierarchy) -->
+<section class="flex flex-col">
+<div class="bg-[#16171B] border border-[#26282F] rounded-2xl p-4 flex flex-col divide-y divide-[#26282F]/80"><!-- Free Row -->
+<div class="min-h-0 py-4 flex items-start justify-between gap-3">
+<div class="flex flex-col gap-1">
+<div class="flex items-center gap-2">
+<span class="font-headline text-sm font-semibold text-[#F3F4F6]">Free</span>
+<span class="font-mono text-[10px] uppercase tracking-wider bg-[#212328] text-[#94979E] px-1.5 py-0.5 rounded border border-[#26282F] font-medium">CURRENT</span>
+</div>
+</div>
+<div class="flex flex-col items-end text-right">
+<span class="font-mono text-base font-semibold text-[#F3F4F6] tabular-nums">$0</span>
+</div>
+</div>
+<!-- Plus Row -->
+<div class="min-h-0 py-4 flex items-start justify-between gap-3">
+<div class="flex flex-col gap-1">
+<span class="font-headline text-sm font-semibold text-[#F3F4F6]">Plus</span>
+<span class="text-xs text-[#94979E]">Nutrition AI</span>
+</div>
+<div class="flex flex-col items-end text-right">
+<span class="font-mono text-base font-semibold text-[#F3F4F6] tabular-nums">$60 <span class="text-xs font-normal text-[#94979E]">/ year</span></span>
+<span class="text-[11px] text-[#94979E] mt-0.5">Equivalent to $5 / month</span>
+</div>
+</div>
+<!-- Pro Row -->
+<div class="min-h-0 py-4 flex items-start justify-between gap-3">
+<div class="flex flex-col gap-1">
+<div class="flex items-center gap-2">
+<span class="font-headline text-sm font-semibold text-[#F3F4F6]">Pro</span>
+<span class="font-mono text-[10px] uppercase tracking-wider bg-[#10B981]/10 text-[#10B981] px-1.5 py-0.5 rounded border border-[#10B981]/20 font-medium">RECOMMENDED</span>
+</div>
+<span class="text-xs text-[#94979E]">Workout Intelligence</span>
+</div>
+<div class="flex flex-col items-end text-right">
+<span class="font-mono text-base font-semibold text-[#10B981] tabular-nums">$120 <span class="text-xs font-normal text-[#94979E]">/ year</span></span>
+<span class="text-[11px] text-[#10B981]/90 mt-0.5">Equivalent to $10 / month</span>
+</div>
+</div>
+<!-- Ultra Row -->
+<div class="min-h-0 py-4 flex items-start justify-between gap-3">
+<div class="flex flex-col gap-1">
+<span class="font-headline text-sm font-semibold text-[#F3F4F6]">Ultra</span>
+<span class="text-xs text-[#94979E]">Personalized Intelligence</span>
+</div>
+<div class="flex flex-col items-end text-right">
+<span class="font-mono text-base font-semibold text-[#F3F4F6] tabular-nums">$240 <span class="text-xs font-normal text-[#94979E]">/ year</span></span>
+<span class="text-[11px] text-[#94979E] mt-0.5">Equivalent to $20 / month</span>
+</div>
+</div></div>
+<p class="text-xs text-[#94979E] mt-2 px-1">
+          Plus, Pro, and Ultra are Coming Soon.
+        </p>
+</section>
+<!-- 5. Comparison Legend -->
+<section class="bg-[#16171B] border border-[#26282F] rounded-2xl p-3.5 flex flex-col space-y-2">
+<span class="font-mono text-[10px] uppercase tracking-wider text-[#94979E] font-semibold">
+          STATUS LEGEND
+        </span>
+<div class="grid grid-cols-1 gap-2 text-xs"><div class="flex items-center gap-2.5">
+<span class="w-5 h-5 rounded-md bg-[#212328] border border-[#26282F] flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-[15px] text-[#F3F4F6]">check</span>
+</span>
+<span class="text-[#F3F4F6]">Included in Free</span>
+</div>
+<div class="flex items-center gap-2.5">
+<span class="w-5 h-5 rounded-md bg-[#212328] border border-[#26282F] flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-[15px] text-[#10B981]">schedule</span>
+</span>
+<span class="text-[#F3F4F6]">Planned inclusion</span>
+</div>
+<div class="flex items-center gap-2.5">
+<span class="w-5 h-5 rounded-md bg-[#212328] border border-[#26282F] flex items-center justify-center shrink-0">
+<span class="text-[#94979E] font-mono text-sm leading-none font-bold">—</span>
+</span>
+<span class="text-[#94979E]">Not in this tier</span>
+</div></div>
+</section>
+<!-- 6. Mobile Comparison Matrix -->
+<section class="flex flex-col space-y-2.5">
+<!-- Matrix Recommendation Callout Header -->
+<div class="flex items-center justify-between px-1">
+<span class="font-mono text-[11px] uppercase tracking-wider text-[#94979E] font-semibold">
+            FEATURE MATRIX
+          </span>
+<span class="font-mono text-[11px] text-[#10B981] flex items-center gap-1 font-medium bg-[#10B981]/10 px-2 py-0.5 rounded border border-[#10B981]/20">
+<span class="w-1.5 h-1.5 rounded-full bg-[#10B981]"></span>
+            Recommended: Pro
+          </span>
+</div>
+<!-- Coherent Table Card -->
+<div class="bg-[#16171B] border border-[#26282F] rounded-2xl overflow-hidden flex flex-col">
+<!-- Sticky Column Header -->
+<div class="sticky top-0 z-10 bg-[#16171B] border-b border-[#26282F] px-3 py-2.5 flex items-center text-xs">
+<div class="w-[118px] shrink-0 font-mono text-[11px] uppercase tracking-wider text-[#94979E] font-semibold">
+              Feature
+            </div>
+<div class="flex-1 grid grid-cols-4 text-center">
+<span class="font-headline font-semibold text-[#94979E] text-[13px]">Free</span>
+<span class="font-headline font-semibold text-[#94979E] text-[13px]">Plus</span>
+<span class="font-headline font-semibold text-[#10B981] text-[13px] relative">
+                Pro
+                <span class="block h-0.5 w-4 bg-[#10B981] mx-auto mt-0.5 rounded-full"></span>
+</span>
+<span class="font-headline font-semibold text-[#94979E] text-[13px]">Ultra</span>
+</div>
+</div>
+<!-- GROUP 1: CORE -->
+<div class="bg-[#212328]/50 px-3 py-1.5 border-b border-[#26282F]">
+<span class="font-mono text-[10px] uppercase tracking-wider text-[#94979E] font-semibold">
+              CORE ESSENTIALS
+            </span>
+</div>
+<div class="divide-y divide-[#26282F]/60">
+<!-- Row: Nutrition logging -->
+<div class="px-3 py-2.5 flex items-center hover:bg-[#212328]/30 transition-colors">
+<div class="w-[118px] shrink-0 text-sm text-[#F3F4F6] pr-2 leading-snug">
+                Nutrition logging
+              </div>
+<div class="flex-1 grid grid-cols-4 text-center items-center">
+<span class="material-symbols-outlined text-[17px] text-[#F3F4F6]">check</span>
+<span class="material-symbols-outlined text-[17px] text-[#F3F4F6]">check</span>
+<span class="material-symbols-outlined text-[17px] text-[#10B981]">check</span>
+<span class="material-symbols-outlined text-[17px] text-[#F3F4F6]">check</span>
+</div>
+</div>
+<!-- Row: Manual workouts -->
+<div class="px-3 py-2.5 flex items-center hover:bg-[#212328]/30 transition-colors">
+<div class="w-[118px] shrink-0 text-sm text-[#F3F4F6] pr-2 leading-snug">
+                Manual workouts
+              </div>
+<div class="flex-1 grid grid-cols-4 text-center items-center">
+<span class="material-symbols-outlined text-[17px] text-[#F3F4F6]">check</span>
+<span class="material-symbols-outlined text-[17px] text-[#F3F4F6]">check</span>
+<span class="material-symbols-outlined text-[17px] text-[#10B981]">check</span>
+<span class="material-symbols-outlined text-[17px] text-[#F3F4F6]">check</span>
+</div>
+</div>
+<!-- Row: Free food photo model -->
+<div class="px-3 py-2.5 flex items-center hover:bg-[#212328]/30 transition-colors">
+<div class="w-[118px] shrink-0 text-sm text-[#F3F4F6] pr-2 leading-snug">
+                Free food photo model
+              </div>
+<div class="flex-1 grid grid-cols-4 text-center items-center">
+<span class="material-symbols-outlined text-[17px] text-[#F3F4F6]">check</span>
+<span class="material-symbols-outlined text-[17px] text-[#F3F4F6]">check</span>
+<span class="material-symbols-outlined text-[17px] text-[#10B981]">check</span>
+<span class="material-symbols-outlined text-[17px] text-[#F3F4F6]">check</span>
+</div>
+</div>
+<!-- Row: Basic health metrics -->
+<div class="px-3 py-2.5 flex items-center hover:bg-[#212328]/30 transition-colors">
+<div class="w-[118px] shrink-0 text-sm text-[#F3F4F6] pr-2 leading-snug">
+                Basic health metrics
+              </div>
+<div class="flex-1 grid grid-cols-4 text-center items-center">
+<span class="material-symbols-outlined text-[17px] text-[#F3F4F6]">check</span>
+<span class="material-symbols-outlined text-[17px] text-[#F3F4F6]">check</span>
+<span class="material-symbols-outlined text-[17px] text-[#10B981]">check</span>
+<span class="material-symbols-outlined text-[17px] text-[#F3F4F6]">check</span>
+</div>
+</div>
+</div>
+<!-- GROUP 2: NUTRITION AI -->
+<div class="bg-[#212328]/50 px-3 py-1.5 border-t border-b border-[#26282F]">
+<span class="font-mono text-[10px] uppercase tracking-wider text-[#94979E] font-semibold">
+              NUTRITION AI
+            </span>
+</div>
+<div class="divide-y divide-[#26282F]/60">
+<!-- Row: Gemini food analysis -->
+<div class="px-3 py-2.5 flex items-center hover:bg-[#212328]/30 transition-colors">
+<div class="w-[118px] shrink-0 text-sm text-[#F3F4F6] pr-2 leading-snug">
+                Gemini food analysis
+              </div>
+<div class="flex-1 grid grid-cols-4 text-center items-center">
+<span class="text-[#94979E] font-mono text-sm leading-none font-bold">—</span>
+<span class="material-symbols-outlined text-[17px] text-[#10B981]">schedule</span>
+<span class="material-symbols-outlined text-[17px] text-[#10B981]">schedule</span>
+<span class="material-symbols-outlined text-[17px] text-[#10B981]">schedule</span>
+</div>
+</div>
+<!-- Row: Monthly AI allowance -->
+<div class="px-3 py-2.5 flex items-center hover:bg-[#212328]/30 transition-colors">
+<div class="w-[118px] shrink-0 text-sm text-[#F3F4F6] pr-2 leading-snug">
+                Monthly AI allowance
+              </div>
+<div class="flex-1 grid grid-cols-4 text-center items-center">
+<span class="text-[#94979E] font-mono text-sm leading-none font-bold">—</span>
+<span class="material-symbols-outlined text-[17px] text-[#10B981]">schedule</span>
+<span class="material-symbols-outlined text-[17px] text-[#10B981]">schedule</span>
+<span class="material-symbols-outlined text-[17px] text-[#10B981]">schedule</span>
+</div>
+</div>
+</div>
+<!-- GROUP 3: WORKOUT CV -->
+<div class="bg-[#212328]/50 px-3 py-1.5 border-t border-b border-[#26282F]">
+<span class="font-mono text-[10px] uppercase tracking-wider text-[#94979E] font-semibold">
+              WORKOUT CV INTELLIGENCE
+            </span>
+</div>
+<div class="divide-y divide-[#26282F]/60">
+<!-- Row: Workout CV AI -->
+<div class="px-3 py-2.5 flex items-center hover:bg-[#212328]/30 transition-colors">
+<div class="w-[118px] shrink-0 text-sm text-[#F3F4F6] pr-2 leading-snug">
+                Workout CV AI
+              </div>
+<div class="flex-1 grid grid-cols-4 text-center items-center">
+<span class="text-[#94979E] font-mono text-sm leading-none font-bold">—</span>
+<span class="text-[#94979E] font-mono text-sm leading-none font-bold">—</span>
+<span class="material-symbols-outlined text-[17px] text-[#10B981]">schedule</span>
+<span class="material-symbols-outlined text-[17px] text-[#10B981]">schedule</span>
+</div>
+</div>
+<!-- Row: Movement analysis & rep counting -->
+<div class="px-3 py-2.5 flex items-center hover:bg-[#212328]/30 transition-colors">
+<div class="w-[118px] shrink-0 text-sm text-[#F3F4F6] pr-2 leading-snug">
+                Movement analysis &amp; rep counting
+              </div>
+<div class="flex-1 grid grid-cols-4 text-center items-center">
+<span class="text-[#94979E] font-mono text-sm leading-none font-bold">—</span>
+<span class="text-[#94979E] font-mono text-sm leading-none font-bold">—</span>
+<span class="material-symbols-outlined text-[17px] text-[#10B981]">schedule</span>
+<span class="material-symbols-outlined text-[17px] text-[#10B981]">schedule</span>
+</div>
+</div>
+<!-- Row: Separate CV allowance -->
+<div class="px-3 py-2.5 flex items-center hover:bg-[#212328]/30 transition-colors">
+<div class="w-[118px] shrink-0 text-sm text-[#F3F4F6] pr-2 leading-snug">
+                Separate CV allowance
+              </div>
+<div class="flex-1 grid grid-cols-4 text-center items-center">
+<span class="text-[#94979E] font-mono text-sm leading-none font-bold">—</span>
+<span class="text-[#94979E] font-mono text-sm leading-none font-bold">—</span>
+<span class="material-symbols-outlined text-[17px] text-[#10B981]">schedule</span>
+<span class="material-symbols-outlined text-[17px] text-[#10B981]">schedule</span>
+</div>
+</div>
+</div>
+<!-- GROUP 4: ADVANCED INTELLIGENCE -->
+<div class="bg-[#212328]/50 px-3 py-1.5 border-t border-b border-[#26282F]">
+<span class="font-mono text-[10px] uppercase tracking-wider text-[#94979E] font-semibold">
+              ADVANCED INTELLIGENCE
+            </span>
+</div>
+<div class="divide-y divide-[#26282F]/60">
+<!-- Row: Advanced Thinking -->
+<div class="px-3 py-2.5 flex items-center hover:bg-[#212328]/30 transition-colors">
+<div class="w-[118px] shrink-0 text-sm text-[#F3F4F6] pr-2 leading-snug">
+                Advanced Thinking
+              </div>
+<div class="flex-1 grid grid-cols-4 text-center items-center">
+<span class="text-[#94979E] font-mono text-sm leading-none font-bold">—</span>
+<span class="text-[#94979E] font-mono text-sm leading-none font-bold">—</span>
+<span class="text-[#94979E] font-mono text-sm leading-none font-bold">—</span>
+<span class="material-symbols-outlined text-[17px] text-[#10B981]">schedule</span>
+</div>
+</div>
+<!-- Row: Extended history & personalized memory -->
+<div class="px-3 py-2.5 flex items-center hover:bg-[#212328]/30 transition-colors">
+<div class="w-[118px] shrink-0 text-sm text-[#F3F4F6] pr-2 leading-snug">
+                Extended history &amp; memory
+              </div>
+<div class="flex-1 grid grid-cols-4 text-center items-center">
+<span class="text-[#94979E] font-mono text-sm leading-none font-bold">—</span>
+<span class="text-[#94979E] font-mono text-sm leading-none font-bold">—</span>
+<span class="text-[#94979E] font-mono text-sm leading-none font-bold">—</span>
+<span class="material-symbols-outlined text-[17px] text-[#10B981]">schedule</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Telemetry Notes below matrix -->
+<div class="p-3 bg-[#16171B] border border-[#26282F] rounded-xl flex flex-col space-y-1 text-xs text-[#94979E]">
+<p class="">• AI and Workout CV limits will be announced.</p>
+<p class="">• Ultra's planned AI allowance is 5× Pro.</p>
+<p class="text-[11px] text-[#94979E]/80 pt-0.5">Note: Workout CV uses a separate allowance model.</p>
+</div>
+</section>
+<!-- 7. Plan Exploration Navigation Rows -->
+<section class="flex flex-col space-y-2">
+<span class="font-mono text-[11px] uppercase tracking-wider text-[#94979E] font-semibold px-1">
+          EXPLORE PLAN DETAILS
+        </span>
+<div class="bg-[#16171B] border border-[#26282F] rounded-2xl overflow-hidden divide-y divide-[#26282F]">
+<!-- Explore Plus -->
+<a class="min-h-[50px] px-4 py-3 flex items-center justify-between hover:bg-[#212328]/60 transition-colors group" href="#">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-lg bg-[#212328] border border-[#26282F] flex items-center justify-center text-[#94979E] group-hover:text-[#F3F4F6] transition-colors">
+<span class="material-symbols-outlined text-[18px]">restaurant</span>
+</div>
+<div class="flex flex-col">
+<span class="font-headline text-sm font-semibold text-[#F3F4F6]">Explore Plus</span>
+<span class="text-xs text-[#94979E]">Nutrition AI details &amp; allowances</span>
+</div>
+</div>
+<span class="material-symbols-outlined text-[#94979E] group-hover:text-[#F3F4F6] text-[18px] transition-colors">chevron_right</span>
+</a>
+<!-- Explore Pro (Recommended Accent) -->
+<a class="min-h-[50px] px-4 py-3 flex items-center justify-between hover:bg-[#212328]/60 transition-colors group" href="#">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-lg bg-[#10B981]/10 border border-[#10B981]/30 flex items-center justify-center text-[#10B981]">
+<span class="material-symbols-outlined text-[18px]">fitness_center</span>
+</div>
+<div class="flex flex-col">
+<div class="flex items-center gap-1.5">
+<span class="font-headline text-sm font-semibold text-[#F3F4F6]">Explore Pro</span>
+<span class="font-mono text-[9px] uppercase tracking-wider bg-[#10B981]/15 text-[#10B981] px-1.5 py-0.2 rounded font-medium">Recommended</span>
+</div>
+<span class="text-xs text-[#94979E]">Workout CV &amp; rep analysis roadmap</span>
+</div>
+</div>
+<span class="material-symbols-outlined text-[#10B981] text-[18px] transition-colors">chevron_right</span>
+</a>
+<!-- Explore Ultra -->
+<a class="min-h-[50px] px-4 py-3 flex items-center justify-between hover:bg-[#212328]/60 transition-colors group" href="#">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-lg bg-[#212328] border border-[#26282F] flex items-center justify-center text-[#94979E] group-hover:text-[#F3F4F6] transition-colors">
+<span class="material-symbols-outlined text-[18px]">psychology</span>
+</div>
+<div class="flex flex-col">
+<span class="font-headline text-sm font-semibold text-[#F3F4F6]">Explore Ultra</span>
+<span class="text-xs text-[#94979E]">Advanced Thinking &amp; 5× allowance</span>
+</div>
+</div>
+<span class="material-symbols-outlined text-[#94979E] group-hover:text-[#F3F4F6] text-[18px] transition-colors">chevron_right</span>
+</a>
+</div>
+</section>
+<!-- 8. Footer -->
+<footer class="pt-2 pb-6 flex flex-col items-center text-center px-2">
+<p class="text-xs text-[#94979E] leading-relaxed max-w-[320px]">
+          Paid memberships are not available yet. Features, limits, and prices may change before launch.
+        </p>
+</footer>
+</main>
+<!-- Bottom Gesture Area (Android Safe Inset) -->
+<div class="w-full h-5 bg-[#0C0D0E] flex items-center justify-center shrink-0 z-20">
+<div class="w-28 h-1 bg-[#343538] rounded-full"></div>
+</div>
+</div>
+
+
+
+
+</body></html>

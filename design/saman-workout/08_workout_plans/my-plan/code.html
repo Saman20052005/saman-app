@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport"/>
+<title>My Plans — Saman Fitness</title>
+<!-- Tailwind CSS CDN with plugins -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Google Fonts Configuration -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=JetBrains+Mono:wght@400;500&amp;family=Space+Grotesk:wght@500;600;700&amp;display=swap" rel="stylesheet"/>
+<script data-purpose="tailwind-config">
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            appBg: '#0C0D0E',
+            cardBg: '#16171B',
+            surfaceBorder: '#26282F',
+            subtleBorder: '#212328',
+            textPrimary: '#F3F4F6',
+            textMuted: '#94979E',
+            accentEmerald: '#10B981',
+          },
+          fontFamily: {
+            space: ['"Space Grotesk"', 'sans-serif'],
+            inter: ['"Inter"', 'sans-serif'],
+            mono: ['"JetBrains Mono"', 'monospace'],
+          }
+        }
+      }
+    };
+  </script>
+<style data-purpose="base-resets">
+    body {
+      background-color: #050506;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      -webkit-tap-highlight-color: transparent;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      justify-content: center;
+      min-height: 100vh;
+    }
+    /* Mobile canvas viewport container */
+    .mobile-frame {
+      width: 100%;
+      max-width: 390px;
+      min-height: 844px;
+      background-color: #0C0D0E;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      overflow-x: hidden;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
+    }
+  </style>
+</head>
+<body class="antialiased text-[#F3F4F6]">
+<!-- BEGIN: MobileContainer -->
+<main class="mobile-frame" data-purpose="screen-viewport">
+<!-- BEGIN: StatusBar -->
+<header class="w-full pt-3 px-7 flex justify-between items-center z-20 select-none" data-purpose="ios-status-bar">
+<!-- Time indicator -->
+<span class="text-[15px] font-semibold tracking-tight text-[#F3F4F6] font-mono">9:41</span>
+<!-- Right Status Icons (Cellular, Wifi, Battery) -->
+<div class="flex items-center space-x-2 text-[#F3F4F6]">
+<!-- Cellular Signal Icon -->
+<svg class="w-4 h-3.5 fill-current" fill="none" viewbox="0 0 17 12" xmlns="http://www.w3.org/2000/svg">
+<rect height="4" rx="0.75" width="3" y="8"></rect>
+<rect height="6.5" rx="0.75" width="3" x="4.5" y="5.5"></rect>
+<rect height="9" rx="0.75" width="3" x="9.5" y="3"></rect>
+<rect height="11.5" rx="0.75" width="3" x="14" y="0.5"></rect>
+</svg>
+<!-- WiFi Icon -->
+<svg class="w-4 h-3.5 fill-current" fill="none" viewbox="0 0 16 12" xmlns="http://www.w3.org/2000/svg">
+<path clip-rule="evenodd" d="M8 2.25C10.97 2.25 13.66 3.4 15.65 5.28C15.89 5.51 15.9 5.89 15.67 6.13L14.47 7.37C14.25 7.6 13.88 7.6 13.65 7.39C12.16 5.98 10.18 5.12 8 5.12C5.82 5.12 3.84 5.98 2.35 7.39C2.12 7.6 1.75 7.6 1.53 7.37L0.33 6.13C0.1 5.89 0.11 5.51 0.35 5.28C2.34 3.4 5.03 2.25 8 2.25ZM8 6.5C9.72 6.5 11.28 7.18 12.44 8.28C12.67 8.5 12.67 8.87 12.44 9.1L8.35 13.19C8.16 13.38 7.84 13.38 7.65 13.19L3.56 9.1C3.33 8.87 3.33 8.5 3.56 8.28C4.72 7.18 6.28 6.5 8 6.5Z" fill-rule="evenodd"></path>
+</svg>
+<!-- Battery Icon with Level -->
+<div class="flex items-center">
+<div class="w-5 h-2.5 rounded-[4px] border border-[#F3F4F6] p-[1.5px] flex items-center">
+<div class="h-full w-full bg-[#F3F4F6] rounded-[1.5px]"></div>
+</div>
+<div class="w-0.5 h-1 bg-[#F3F4F6] rounded-r-sm ml-[1px]"></div>
+</div>
+</div>
+</header>
+<!-- END: StatusBar -->
+<!-- BEGIN: NavigationAndHeader -->
+<section class="px-4 pt-3 pb-4" data-purpose="screen-header">
+<!-- Back Arrow Button with generous touch padding and no visible borders -->
+<button aria-label="Go back" class="inline-flex items-center justify-center -ml-2 w-11 h-11 text-textPrimary hover:text-white transition-colors duration-150 active:scale-95 cursor-pointer focus:outline-none" type="button">
+<svg class="w-6 h-6 stroke-current" fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" viewbox="0 0 24 24">
+<path d="M15 19l-7-7 7-7"></path>
+</svg>
+</button>
+<!-- Main Title Block & Badge -->
+<div class="mt-2 flex items-center justify-between">
+<h1 class="font-space text-3xl font-bold tracking-tight text-textPrimary">
+          My Plans
+        </h1>
+<!-- Discreet Demo Mode Badge in JetBrains Mono -->
+<span class="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-mono tracking-wide text-textMuted bg-[#16171B] border border-subtleBorder uppercase font-medium">
+          Demo mode
+        </span>
+</div>
+<!-- Subtitle description -->
+<p class="mt-1 text-sm font-inter text-textMuted leading-relaxed">
+        Your routines, ready when you are.
+      </p>
+</section>
+<!-- END: NavigationAndHeader -->
+<!-- BEGIN: HeroCardSection -->
+<section class="px-4 pt-2 pb-6 flex-1 flex flex-col justify-start" data-purpose="empty-state-hero-container">
+<!-- Primary Empty State Card with Photography and Dark Gradient Layer -->
+<div class="relative w-full rounded-[20px] overflow-hidden border border-surfaceBorder bg-cardBg shadow-2xl flex flex-col justify-end min-h-[460px]">
+<!-- Photographic Gym Background Image -->
+<img alt="Moody atmospheric dark gym sanctuary with barbell rack" class="absolute inset-0 w-full h-full object-cover object-center transform scale-105" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAlfy_oy2vgr1YUWHToqkHbKuK_aYmxfcAuklCkL53mvpqpuD64uJGopzN7HIpzRFC-o3-oCkpRMPvCqUFVDV6kWuPPI_qJt9I33y1oZyvCytwU0Ke0TcgWseXNa4hgsTmtg2FPTkqbAIvfrg9_2DcdGjkz3ubZ52wl6XeNOsdPXh9YnZlC615mTk-J5h8ZxjNZNqReH8maMCzxYzJKpp-X4VY_kWdIM3KiNLdq-LamsfWCpGlKxRsx"/>
+<!-- High-Contrast Multilayer Atmospheric Gradient Overlay -->
+<div class="absolute inset-0 bg-gradient-to-t from-[#0C0D0E] via-[#0C0D0E]/85 via-45% to-transparent pointer-events-none"></div>
+<div class="absolute inset-0 bg-black/35 pointer-events-none"></div>
+<!-- Hero Content Layer -->
+<div class="relative z-10 p-6 flex flex-col items-start w-full">
+<!-- Category Accent Pill Tag -->
+<div class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#10B981]/15 border border-[#10B981]/30 backdrop-blur-md mb-3.5">
+<span class="w-1.5 h-1.5 rounded-full bg-accentEmerald animate-pulse"></span>
+<span class="text-[10px] font-mono tracking-widest font-semibold uppercase text-accentEmerald">
+              Custom Training
+            </span>
+</div>
+<!-- Hero Heading -->
+<h2 class="font-space text-2xl font-bold text-textPrimary tracking-tight mb-2">
+            Build your first plan
+          </h2>
+<!-- Supporting Text -->
+<p class="font-inter text-sm text-[#cbd5e1] leading-relaxed mb-6 max-w-[270px]">
+            Create a routine that fits your goals.
+          </p>
+<!-- Primary CTA Button -->
+<button class="w-full h-[50px] rounded-[16px] bg-[#F9FAFB] text-[#0C0D0E] font-medium font-inter text-[15px] flex items-center justify-center gap-2 transition-all duration-150 active:scale-[0.98] shadow-lg cursor-pointer focus:outline-none" data-purpose="create-plan-action" type="button">
+<!-- Plus Icon -->
+<svg class="w-5 h-5 text-[#0C0D0E]" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" viewbox="0 0 24 24">
+<path d="M12 5v14M5 12h14"></path>
+</svg>
+<span>Create plan</span>
+</button>
+</div>
+</div>
+<!-- Breathing room area under hero without secondary FAB -->
+</section>
+<!-- END: HeroCardSection -->
+<!-- BEGIN: HomeIndicator -->
+<div class="w-full pb-2 pt-1 flex justify-center items-center" data-purpose="ios-home-indicator">
+<div class="w-32 h-1 bg-[#F3F4F6]/25 rounded-full"></div>
+</div>
+<!-- END: HomeIndicator -->
+</main>
+<!-- END: MobileContainer -->
+</body></html>

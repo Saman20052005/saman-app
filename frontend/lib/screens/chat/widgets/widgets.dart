@@ -1,6 +1,7 @@
 export 'saman_assistant_response.dart';
 export 'saman_attachment_sheet.dart';
 export 'saman_chat_action_row.dart';
+export 'saman_chat_background.dart';
 export 'saman_chat_composer.dart';
 export 'saman_chat_context_card.dart';
 export 'saman_chat_drawer.dart';

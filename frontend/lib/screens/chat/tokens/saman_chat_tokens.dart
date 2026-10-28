@@ -24,6 +24,35 @@ class SamanChatTokens {
   static const Color drawerBg = Color(0xFF111215);
   static const Color drawerScrim = Color(0x99000000);
 
+  // ─── Suggestion Rows & Rapid Chips (Refined Translucent Tokens) ──────
+  /// Lightweight translucent white background (alpha 0.025–0.035)
+  static const Color actionRowBg = Color(0x08FFFFFF); // ~0.031 white alpha
+  /// Hairline translucent white border (alpha ~0.06, max 1px)
+  static const Color actionRowBorder = Color(0x0FFFFFFF); // ~0.059 white alpha
+  /// Uniform outline icon color (#A8ADB7)
+  static const Color actionRowIconColor = Color(0xFFA8ADB7);
+  /// Subtle chevron color (#737985)
+  static const Color actionRowChevronColor = Color(0xFF737985);
+  /// Hover background feedback
+  static const Color actionRowHoverBg = Color(0x0DFFFFFF);
+  /// Focus background feedback
+  static const Color actionRowFocusBg = Color(0x14FFFFFF);
+  /// Pressed background feedback (alpha ~0.07)
+  static const Color actionRowPressedBg = Color(0x12FFFFFF);
+
+  /// Compact rapid pill background (alpha ~0.025)
+  static const Color rapidChipBg = Color(0x06FFFFFF); // ~0.024 white alpha
+  /// Compact rapid pill border (alpha ~0.06)
+  static const Color rapidChipBorder = Color(0x0FFFFFFF);
+  /// Rapid chip outline icon color
+  static const Color rapidChipIconColor = Color(0xFFA8ADB7);
+  /// Rapid chip text color (#C0C5CF)
+  static const Color rapidChipTextColor = Color(0xFFC0C5CF);
+
+  /// Translucent background & border for the data context card to harmonize
+  static const Color contextCardBg = Color(0xCC16171B);
+  static const Color contextCardBorder = Color(0x1AFFFFFF);
+
   // ─── Borders & Hairlines ─────────────────────────────────────────────
   static const Color border = SamanHomeTokens.border; // #26282F
   static const Color borderSubtle = SamanHomeTokens.borderSubtle; // #23252A
@@ -58,8 +87,8 @@ class SamanChatTokens {
   static const Color textMuted = SamanHomeTokens.textMuted;
 
   // ─── Monogram Dimensions ─────────────────────────────────────────────
-  static const double headerMonogramSize = 20.0;
-  static const double heroMonogramSize = 44.0;
+  static const double headerMonogramSize = 22.0;
+  static const double heroMonogramSize = 42.0;
   static const double messageMonogramSize = 22.0;
 
   // ─── Typography Styles ───────────────────────────────────────────────
@@ -109,14 +138,14 @@ class SamanChatTokens {
     fontSize: 14,
     fontWeight: FontWeight.w500,
     letterSpacing: -0.1,
-    color: textWhite,
+    color: Color(0xFFD5D8E0),
   );
 
   static const TextStyle chipLabel = TextStyle(
-    fontSize: 12,
+    fontSize: 12.5,
     fontWeight: FontWeight.w400,
     letterSpacing: 0.1,
-    color: textWhite,
+    color: Color(0xFFC0C5CF),
   );
 
   static const TextStyle composerInput = TextStyle(

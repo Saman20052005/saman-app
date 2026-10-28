@@ -27,10 +27,10 @@ class WorkoutCvNotifier extends StateNotifier<ExerciseCvState> {
   int _minRejectedSessionGen = 0;
   int _initGeneration = 0;
   bool _isStopped = false;
-  final LatPulldownBaseline _replayTracker = LatPulldownBaseline();
+  final LatPulldownBaseline _repTracker = LatPulldownBaseline();
   int? _repSessionGen;
   int? _lastRepPtsMs;
-  bool _replayAnalysisClosed = false;
+  bool _analysisClosed = false;
   String? _replayVideoPath;
 
   WorkoutCvNotifier(this._nativeSource) : super(const ExerciseCvState());
@@ -46,7 +46,7 @@ class WorkoutCvNotifier extends StateNotifier<ExerciseCvState> {
     _subscription?.cancel();
     _subscription = null;
 
-    _resetReplayAnalysis();
+    _resetRepAnalysis();
 
     state = state.copyWith(
       sourceMode: 'camera',
@@ -126,7 +126,7 @@ class WorkoutCvNotifier extends StateNotifier<ExerciseCvState> {
     _lastFpsWindowTime = DateTime.now();
     _lastFpsWindowCount = 0;
 
-    _resetReplayAnalysis();
+    _resetRepAnalysis();
 
     state = state.copyWith(
       sourceMode: 'video_replay',
@@ -156,7 +156,7 @@ class WorkoutCvNotifier extends StateNotifier<ExerciseCvState> {
     final started = await _nativeSource.startVideoReplay(path);
     if (!mounted || _isStopped || opId != _initGeneration) return;
     if (!started) {
-      _closeReplayAnalysis(failed: true);
+      _closeRepAnalysis(failed: true);
       state = state.copyWith(
         trackingStatus: TrackingStatus.error,
         isCameraActive: false,
@@ -181,7 +181,7 @@ class WorkoutCvNotifier extends StateNotifier<ExerciseCvState> {
     _lastFpsWindowTime = DateTime.now();
     _lastFpsWindowCount = 0;
 
-    _resetReplayAnalysis();
+    _resetRepAnalysis();
 
     state = state.copyWith(
       sourceMode: 'camera',
@@ -231,15 +231,13 @@ class WorkoutCvNotifier extends StateNotifier<ExerciseCvState> {
         final generation = (event['sessionGen'] as num?)?.toInt();
         if (generation != null && (generation <= _minRejectedSessionGen ||
             generation < _latestSeenSessionGen)) return;
-        if (state.sourceMode == 'video_replay') {
-          if (_replayAnalysisClosed) return;
-          if (generation != null && generation != _repSessionGen) {
-            _resetReplayAnalysis();
-            _repSessionGen = generation;
-          }
+        if (_analysisClosed) return;
+        if (generation != null && generation != _repSessionGen) {
+          _resetRepAnalysis();
+          _repSessionGen = generation;
         }
         _processEvent(event);
-        _processReplayAnalysis(event);
+        _processRepAnalysis(event);
         if (state.sourceMode == 'video_replay' && !state.isEndOfStream &&
             generation == state.sessionGen && state.trackingStatus != TrackingStatus.error) {
           if (event['status'] == 'replayPreparing') {
@@ -252,8 +250,8 @@ class WorkoutCvNotifier extends StateNotifier<ExerciseCvState> {
       },
       onError: (err) {
         if (!mounted || _isStopped) return;
-        if (state.sourceMode == 'video_replay' && _replayAnalysisClosed) return;
-        _closeReplayAnalysis(failed: true);
+        if (state.sourceMode == 'video_replay' && _analysisClosed) return;
+        _closeRepAnalysis(failed: true);
         state = state.copyWith(
           trackingStatus: TrackingStatus.error,
           landmarks: const [],
@@ -331,7 +329,7 @@ class WorkoutCvNotifier extends StateNotifier<ExerciseCvState> {
 
     // End of stream handling
     if (isEos) {
-      _closeReplayAnalysis();
+      _closeRepAnalysis();
       state = state.copyWith(
         sessionGen: eventSessionGen ?? state.sessionGen,
         isEndOfStream: true,
@@ -503,33 +501,34 @@ class WorkoutCvNotifier extends StateNotifier<ExerciseCvState> {
     );
   }
 
-  void _resetReplayAnalysis() {
-    _replayTracker.reset();
+  void _resetRepAnalysis() {
+    _repTracker.reset();
     _repSessionGen = null;
     _lastRepPtsMs = null;
-    _replayAnalysisClosed = false;
+    _analysisClosed = false;
     state = state.copyWith(
       replayRepEvents: const [],
+      analysisPhase: LatPulldownPhase.notReady,
       replayAnalysisStatus: ReplayAnalysisStatus.waiting,
     );
   }
 
-  void _closeReplayAnalysis({bool failed = false}) {
-    if (state.sourceMode != 'video_replay') return;
-    _replayAnalysisClosed = true;
+  void _closeRepAnalysis({bool failed = false}) {
+    _analysisClosed = true;
     // Drop any incomplete cycle, preserving only completed events in UI state.
-    _replayTracker.reset();
+    _repTracker.reset();
     state = state.copyWith(
+      analysisPhase: LatPulldownPhase.notReady,
       replayAnalysisStatus: failed
           ? ReplayAnalysisStatus.error
           : ReplayAnalysisStatus.finished,
     );
   }
 
-  void _processReplayAnalysis(Map<String, dynamic> event) {
-    if (state.sourceMode != 'video_replay' || _replayAnalysisClosed) return;
+  void _processRepAnalysis(Map<String, dynamic> event) {
+    if (_analysisClosed) return;
     if (state.trackingStatus == TrackingStatus.error) {
-      _closeReplayAnalysis(failed: true);
+      _closeRepAnalysis(failed: true);
       return;
     }
     // Display handshakes/progress are not pose samples or recognition failures.
@@ -537,14 +536,19 @@ class WorkoutCvNotifier extends StateNotifier<ExerciseCvState> {
         event['status'] == 'previewProgress') return;
     if (state.exerciseSlug != 'lat-pulldown') return;
 
-    final ptsMs = (event['videoPtsMs'] as num?)?.toInt();
-    if (_repSessionGen == null || event['sessionGen'] != _repSessionGen ||
+    final isReplay = state.sourceMode == 'video_replay';
+    // Native camera timestamps are capture uptime, never inference arrival time.
+    final ptsMs = (event[isReplay ? 'videoPtsMs' : 'timestamp'] as num?)?.toInt();
+    if ((isReplay && (_repSessionGen == null ||
+            event['sessionGen'] != _repSessionGen)) ||
         ptsMs == null || ptsMs < 0) {
-      _closeReplayAnalysis(failed: true);
+      _closeRepAnalysis(failed: true);
       state = state.copyWith(
         trackingStatus: TrackingStatus.error,
         landmarks: const [],
-        errorMessage: 'Replay pose is missing its generation or video PTS.',
+        errorMessage: isReplay
+            ? 'Replay pose is missing its generation or video PTS.'
+            : 'Camera pose is missing its capture timestamp.',
       );
       return;
     }
@@ -561,9 +565,10 @@ class WorkoutCvNotifier extends StateNotifier<ExerciseCvState> {
           state.isSyncValid,
     );
     // Invalid/lost samples must reach the baseline to interrupt holds/cycles.
-    final result = _replayTracker.processFrameFeatures(features);
+    final result = _repTracker.processFrameFeatures(features);
     state = state.copyWith(
-      replayRepEvents: _replayTracker.repHistory,
+      replayRepEvents: _repTracker.repHistory,
+      analysisPhase: result.phase,
       replayAnalysisStatus: result.isSampleValid &&
               result.phase != LatPulldownPhase.notReady
           ? ReplayAnalysisStatus.analyzing
@@ -580,7 +585,7 @@ class WorkoutCvNotifier extends StateNotifier<ExerciseCvState> {
       final accepted = await _nativeSource.acknowledgeReplayFrame(generation, ptsMs, phase);
       if (!accepted && mounted && !_isStopped && operation == _initGeneration &&
           state.sessionGen == generation && !state.isEndOfStream) {
-        _closeReplayAnalysis(failed: true);
+        _closeRepAnalysis(failed: true);
         state = state.copyWith(
           trackingStatus: TrackingStatus.error,
           landmarks: const [],
@@ -615,8 +620,8 @@ class WorkoutCvNotifier extends StateNotifier<ExerciseCvState> {
   Future<void> stop() async {
     ++_initGeneration;
     _isStopped = true;
-    _replayTracker.reset();
-    _replayAnalysisClosed = true;
+    _repTracker.reset();
+    _analysisClosed = true;
     _subscription?.cancel();
     _subscription = null;
     await _nativeSource.stopSession();
@@ -625,6 +630,7 @@ class WorkoutCvNotifier extends StateNotifier<ExerciseCvState> {
         isCameraActive: false,
         landmarks: const [],
         trackingStatus: TrackingStatus.uninitialized,
+        analysisPhase: LatPulldownPhase.notReady,
       );
     }
   }

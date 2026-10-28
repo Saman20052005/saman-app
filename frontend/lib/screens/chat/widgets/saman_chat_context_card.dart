@@ -21,8 +21,8 @@ class SamanChatContextData {
 /// The approved single contextual card for the Saman Chat Empty State.
 ///
 /// Visual rules:
-/// - Dark charcoal surface (#16171B)
-/// - Hairline graphite border (#23252A)
+/// - Translucent dark charcoal surface (#16171B with subtle alpha)
+/// - Translucent hairline border
 /// - Off-white primary text, muted secondary text
 /// - Restrained green accent (#10B981) reserved strictly for the contextual action
 class SamanChatContextCard extends StatelessWidget {
@@ -40,10 +40,10 @@ class SamanChatContextCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14.0, vertical: 14.0),
       decoration: BoxDecoration(
-        color: SamanChatTokens.surface,
+        color: SamanChatTokens.contextCardBg,
         borderRadius: BorderRadius.circular(12.0),
         border: Border.all(
-          color: SamanChatTokens.borderSubtle,
+          color: SamanChatTokens.contextCardBorder,
           width: 1.0,
         ),
       ),

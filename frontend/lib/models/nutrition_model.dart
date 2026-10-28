@@ -37,6 +37,7 @@ class NutritionLogEntry {
   final double protein;
   final double carbs;
   final double fat;
+  final String? imageUrl;
   final List<Map<String, dynamic>> foods;
 
   NutritionLogEntry({
@@ -47,10 +48,12 @@ class NutritionLogEntry {
     this.protein = 0,
     this.carbs = 0,
     this.fat = 0,
+    this.imageUrl,
     this.foods = const [],
   });
 
   factory NutritionLogEntry.fromJson(Map<String, dynamic> json) {
+    final rawFoods = json['foods'] ?? json['foodsList'];
     return NutritionLogEntry(
       logId: (json['log_id'] ?? json['_id'] ?? '').toString(),
       foodName: json['food_name'] ?? json['name'] ?? 'Unknown',
@@ -61,7 +64,8 @@ class NutritionLogEntry {
       protein: (json['protein'] as num?)?.toDouble() ?? 0,
       carbs: (json['carbs'] as num?)?.toDouble() ?? 0,
       fat: (json['fat'] as num?)?.toDouble() ?? 0,
-      foods: (json['foods'] as List<dynamic>?)
+      imageUrl: (json['image_url'] ?? json['imageUrl'] ?? json['image'])?.toString(),
+      foods: (rawFoods as List<dynamic>?)
               ?.map((e) => Map<String, dynamic>.from(e as Map))
               .toList() ??
           [],

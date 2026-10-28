@@ -9,16 +9,19 @@ import '../services/nutrition_service.dart';
 import 'chat/tokens/saman_chat_tokens.dart';
 import 'chat/widgets/widgets.dart';
 import 'food_log_screen.dart';
+import 'main_screen.dart';
 import 'nutrition/widgets/meal_review_dialog.dart';
 
 class ChatScreen extends ConsumerStatefulWidget {
   final String? initialMessage;
   final SamanNudge? initialNudge;
+  final bool? isTabActive;
 
   const ChatScreen({
     super.key,
     this.initialMessage,
     this.initialNudge,
+    this.isTabActive,
   });
 
   @override
@@ -79,9 +82,16 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
 
     final hasNudge = _activeNudge != null;
 
+    final route = ModalRoute.of(context);
+    final isCurrentRoute = route?.isCurrent ?? true;
+    final isRoot = route?.isFirst ?? true;
+    final currentTabIndex = ref.watch(mainNavIndexProvider);
+    final isChatActive = widget.isTabActive ??
+        ((!isRoot || currentTabIndex == 2) && isCurrentRoute);
+
     return Scaffold(
       key: _scaffoldKey,
-      backgroundColor: SamanChatTokens.canvas,
+      backgroundColor: SamanAuroraTokens.baseBackground,
       drawerScrimColor: SamanChatTokens.drawerScrim,
       drawer: SamanChatDrawer(
         onNewChat: () {
@@ -115,32 +125,47 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       body: Column(
         children: [
           Expanded(
-            child: (chatState.messages.isEmpty &&
-                    chatState.foodAnalysisState == null &&
-                    !hasNudge)
-                ? SamanChatEmptyState(
-                    onPromptSelected: _handlePromptSelected,
-                  )
-                : SamanMessageList(
-                    messages: chatState.messages,
-                    scrollController: _scrollController,
-                    isLoading: chatState.isLoading,
-                    errorMessage: chatState.errorMessage,
-                    onRetry: _handleRetry,
-                    onEditQuestion: _handleEditQuestion,
-                    foodAnalysisState: chatState.foodAnalysisState,
-                    onLogMeal: _handleLogMeal,
-                    onRetakeFoodPhoto: _handleAttachmentFlow,
-                    onManualMealEntry: _handleManualMealEntry,
-                    latestAssistantActions: _buildAssistantActions(chatState),
-                    activeNudge: hasNudge
-                        ? _activeNudge!.copyWith(
-                            onPrimary: () => _handleNudgePrimary(_activeNudge!),
-                            onSecondary: () =>
-                                _handleNudgeSecondary(_activeNudge!),
-                          )
-                        : null,
+            child: ClipRect(
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  Positioned.fill(
+                    child: SamanChatBackground(
+                      hasConversation: chatState.messages.isNotEmpty ||
+                          chatState.foodAnalysisState != null ||
+                          hasNudge,
+                      isActive: isChatActive,
+                    ),
                   ),
+                  (chatState.messages.isEmpty &&
+                          chatState.foodAnalysisState == null &&
+                          !hasNudge)
+                      ? SamanChatEmptyState(
+                          onPromptSelected: _handlePromptSelected,
+                        )
+                      : SamanMessageList(
+                          messages: chatState.messages,
+                          scrollController: _scrollController,
+                          isLoading: chatState.isLoading,
+                          errorMessage: chatState.errorMessage,
+                          onRetry: _handleRetry,
+                          onEditQuestion: _handleEditQuestion,
+                          foodAnalysisState: chatState.foodAnalysisState,
+                          onLogMeal: _handleLogMeal,
+                          onRetakeFoodPhoto: _handleAttachmentFlow,
+                          onManualMealEntry: _handleManualMealEntry,
+                          latestAssistantActions: _buildAssistantActions(chatState),
+                          activeNudge: hasNudge
+                              ? _activeNudge!.copyWith(
+                                  onPrimary: () => _handleNudgePrimary(_activeNudge!),
+                                  onSecondary: () =>
+                                      _handleNudgeSecondary(_activeNudge!),
+                                )
+                              : null,
+                        ),
+                ],
+              ),
+            ),
           ),
           _buildComposerArea(
             isLoading: chatState.isLoading,
@@ -235,7 +260,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     final isBusy = isLoading || isAnalyzingFood;
 
     return Container(
-      color: SamanChatTokens.canvas,
+      color: SamanAuroraTokens.baseBackground,
       padding: const EdgeInsets.fromLTRB(16.0, 4.0, 16.0, 12.0),
       child: SafeArea(
         top: false,
@@ -332,12 +357,17 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       await owner.validate();
       if (!mounted) return;
       final controller = ref.read(dailyStoryControllerProvider(todayStr).notifier);
-      final confirmed = await MealReviewDialog.show(context, foodState.result!,
+      final confirmed = await MealReviewDialog.show(
+        context,
+        foodState.result!,
+        imageFile: foodState.imageFile,
+        imagePath: foodState.imagePath,
         onConfirm: (data) async {
           await owner.validate();
           await controller.confirmLog(data, imageFile: foodState.imageFile, session: owner);
           await owner.validate();
-        });
+        },
+      );
       if (confirmed == null || !mounted) return;
       await owner.validate();
       if (!mounted) return;

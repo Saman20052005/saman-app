@@ -9,9 +9,9 @@ import 'package:image_picker/image_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:health_ai_app/providers/daily_story_provider.dart';
 import 'package:health_ai_app/providers/profile_provider.dart';
-import 'package:health_ai_app/presentation/providers/workout_history_providers.dart';
 import 'package:health_ai_app/screens/nutrition/widgets/meal_review_dialog.dart';
 import 'package:health_ai_app/services/api_client.dart';
+import 'package:health_ai_app/screens/login/login_controller.dart';
 import 'package:health_ai_app/utils/auth_helper.dart';
 
 // Shared isolated HTTP harness. Production controllers, service, repository and
@@ -69,18 +69,36 @@ class FoodHarness {
     previousAdapter = ApiClient.dio.httpClientAdapter;
     ApiClient.dio.httpClientAdapter = FoodAdapter((options) async {
       requests.add(options);
+      if (options.path.endsWith('/api/user/profile') ||
+          options.path.endsWith('/api/auth/login')) {
+        return defaults(options);
+      }
       if (onRequest != null) return onRequest!(options);
       return defaults(options);
     });
     container = ProviderContainer(overrides: [
       sharedPreferencesProvider.overrideWithValue(prefs),
     ]);
+    await container.read(profileProvider.notifier).loadProfile();
     subscription =
         container.listen(dailyStoryControllerProvider(date), (_, __) {});
     await container.read(dailyStoryControllerProvider(date).future);
   }
 
   ResponseBody defaults(RequestOptions o) {
+    if (o.path.endsWith('/api/auth/login')) {
+      final account = (o.data as Map)['email'] == 'b@saman.test' ? 'B' : 'A';
+      return foodReply({
+        'access_token': 'test-account-$account',
+        'user_info': {'email': '${account.toLowerCase()}@saman.test'},
+      });
+    }
+    if (o.path.endsWith('/api/user/profile')) {
+      final account = o.headers['Authorization'] == 'Bearer test-account-B'
+          ? 'B'
+          : 'A';
+      return foodReply({'user_id': 'user-$account', 'profile': {}});
+    }
     if (o.method == 'GET') return foodReply({'stories': []});
     if (o.path.endsWith('/analyze')) return foodReply(foodPayload);
     if (o.path.endsWith('/log-story')) return foodReply({'log_id': 'story-1'});
@@ -96,10 +114,18 @@ class FoodHarness {
       .length;
 
   Future<void> switchAccount(String token) async {
-    container.read(authLoggingOutProvider.notifier).state = true;
-    await const FlutterSecureStorage().write(key: 'auth_token', value: token);
-    container.read(workoutAuthScopeProvider.notifier).state++;
-    container.read(authLoggingOutProvider.notifier).state = false;
+    await AuthHelper.logout(container);
+    final login = LoginController();
+    try {
+      await login.submitEmailAuth(
+        isLoginMode: true,
+        email: token == 'test-account-B' ? 'b@saman.test' : 'a@saman.test',
+        password: 'synthetic-test-password',
+      );
+    } finally {
+      login.dispose();
+    }
+    await container.read(profileProvider.notifier).loadProfile();
     await container.read(dailyStoryControllerProvider(date).future);
   }
 

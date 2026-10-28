@@ -9,6 +9,12 @@ import '../providers/profile_provider.dart';
 import '../utils/auth_helper.dart';
 import 'home/tokens/saman_home_tokens.dart';
 import 'profile/edit_health_profile_screen.dart';
+import '../features/membership/presentation/screens/manage_membership_screen.dart';
+import '../features/membership/presentation/screens/membership_overview_screen.dart';
+import 'profile/widgets/membership_banner_card.dart';
+import 'profile/widgets/profile_nav_row.dart';
+import '../services/unit_converter.dart';
+import 'settings/app_settings_screen.dart';
 
 /// Screen 06 — Profile & Telemetry Summary under Dark Calm Athleticism.
 ///
@@ -43,7 +49,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     final name = await AuthHelper.getUserName();
     if (!mounted) return;
     setState(() {
-      _userName = (name != null && name.trim().isNotEmpty) ? name.trim() : "Athlete";
+      _userName =
+          (name != null && name.trim().isNotEmpty) ? name.trim() : "Athlete";
     });
   }
 
@@ -55,14 +62,6 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       return parts[0].substring(0, parts[0].length.clamp(1, 2)).toUpperCase();
     }
     return '${parts.first[0]}${parts.last[0]}'.toUpperCase();
-  }
-
-  String _formatDecimal(double? val) {
-    if (val == null) return '—';
-    if (val % 1 == 0) {
-      return val.toInt().toString();
-    }
-    return val.toString();
   }
 
   String _formatGoalTitle(Goal? goal) {
@@ -102,8 +101,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   }
 
   String _formatActivityTitle(ProfileEntity profile) {
-    final choice = OnboardingActivityChoice.fromApi(profile.rawActivityCanonical) ??
-        OnboardingActivityChoice.fromLegacy(profile.rawActivityLevel);
+    final choice =
+        OnboardingActivityChoice.fromApi(profile.rawActivityCanonical) ??
+            OnboardingActivityChoice.fromLegacy(profile.rawActivityLevel);
     if (choice != null) {
       return choice.title;
     }
@@ -111,8 +111,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   }
 
   String _formatActivitySubtitle(ProfileEntity profile) {
-    final choice = OnboardingActivityChoice.fromApi(profile.rawActivityCanonical) ??
-        OnboardingActivityChoice.fromLegacy(profile.rawActivityLevel);
+    final choice =
+        OnboardingActivityChoice.fromApi(profile.rawActivityCanonical) ??
+            OnboardingActivityChoice.fromLegacy(profile.rawActivityLevel);
     if (choice != null) {
       return choice.subtitle;
     }
@@ -129,6 +130,33 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       default:
         return 'assets/profile/goal_build_muscle.jpg';
     }
+  }
+
+  void _navigateToMembershipOverview() {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        settings: const RouteSettings(name: MembershipOverviewScreen.routeName),
+        builder: (_) => const MembershipOverviewScreen(),
+      ),
+    );
+  }
+
+  void _navigateToAppSettings() {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        settings: const RouteSettings(name: AppRoutes.appSettings),
+        builder: (_) => const AppSettingsScreen(),
+      ),
+    );
+  }
+
+  void _navigateToManageMembership() {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        settings: const RouteSettings(name: '/membership/manage'),
+        builder: (_) => const ManageMembershipScreen(),
+      ),
+    );
   }
 
   void _navigateToEditProfile() {
@@ -207,7 +235,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         if (mounted) {
           if (e is LogoutException &&
               (e.tokenState == AuthTokenState.confirmedLost ||
-               e.tokenState == AuthTokenState.indeterminate)) {
+                  e.tokenState == AuthTokenState.indeterminate)) {
             // Credentials lost or indeterminate: do not reopen protected UI on MainScreen.
             // Navigate away to Login and display explanatory warning SnackBar.
             Navigator.pushNamedAndRemoveUntil(
@@ -244,9 +272,12 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   Widget build(BuildContext context) {
     final profileState = ref.watch(profileProvider);
     final profile = profileState.profile;
-    final isLoading = profileState.status == ProfileStatus.loading && !profile.isValid;
-    final hasError = profileState.status == ProfileStatus.error && !profile.isValid;
-    final isIncomplete = !profile.isValid || profileState.status == ProfileStatus.incomplete;
+    final isLoading =
+        profileState.status == ProfileStatus.loading && !profile.isValid;
+    final hasError =
+        profileState.status == ProfileStatus.error && !profile.isValid;
+    final isIncomplete =
+        !profile.isValid || profileState.status == ProfileStatus.incomplete;
 
     final initials = _getInitials(_userName);
 
@@ -330,7 +361,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     decoration: BoxDecoration(
                       color: const Color(0xFF16171B).withOpacity(0.95),
                       borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: const Color(0xFF26282F), width: 1),
+                      border:
+                          Border.all(color: const Color(0xFF26282F), width: 1),
                     ),
                     child: Row(
                       children: [
@@ -340,7 +372,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
                             color: const Color(0xFF212328),
-                            border: Border.all(color: const Color(0xFF26282F), width: 1),
+                            border: Border.all(
+                                color: const Color(0xFF26282F), width: 1),
                           ),
                           child: Center(
                             child: Text(
@@ -443,6 +476,12 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     _buildActivityLevelCard(profile),
                     const SizedBox(height: 14),
 
+                    // Membership Banner Card
+                    MembershipBannerCard(
+                      onTap: _navigateToMembershipOverview,
+                    ),
+                    const SizedBox(height: 14),
+
                     // 6. Full-Width Edit Profile Action
                     SizedBox(
                       width: double.infinity,
@@ -505,6 +544,51 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                       ),
                     ),
                     const SizedBox(height: 6),
+                    Container(
+                      width: double.infinity,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF16171B),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: const Color(0xFF26282F),
+                          width: 1,
+                        ),
+                      ),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(12),
+                        child: ProfileNavRow(
+                          key: const Key('manage_membership_nav_row'),
+                          title: 'Manage membership',
+                          value: 'Free',
+                          icon: Icons.card_membership_outlined,
+                          showDivider: false,
+                          onTap: _navigateToManageMembership,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    Container(
+                      width: double.infinity,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF16171B),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: const Color(0xFF26282F),
+                          width: 1,
+                        ),
+                      ),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(12),
+                        child: ProfileNavRow(
+                          key: const Key('app_settings_nav_row'),
+                          title: 'App settings',
+                          icon: Icons.settings_outlined,
+                          showDivider: false,
+                          onTap: _navigateToAppSettings,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 10),
                     Material(
                       color: Colors.transparent,
                       child: InkWell(
@@ -659,14 +743,11 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   }
 
   Widget _buildYourDetailsPanel(ProfileEntity profile) {
+    final unitSystem = ref.watch(unitProvider);
     final ageText = profile.age != null ? '${profile.age}' : '—';
     final genderText = _formatGender(profile.rawGender);
-    final heightText = profile.height != null
-        ? '${_formatDecimal(profile.height)} cm'
-        : '—';
-    final weightText = profile.weight != null
-        ? '${_formatDecimal(profile.weight)} kg'
-        : '—';
+    final heightText = UnitConverter.formatHeight(profile.height, unitSystem);
+    final weightText = UnitConverter.formatWeight(profile.weight, unitSystem);
 
     return Container(
       width: double.infinity,

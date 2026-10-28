@@ -821,6 +821,29 @@ async def get_nutrition_by_date(
         if reset_at:
             logs = [log for log in logs if _is_created_after_reset(log.get("created_at"), reset_at)]
 
+        # Batch lookup story images for linked stories, bounded strictly to current_user
+        story_images = {}
+        story_query_ids = []
+        for log in logs:
+            sid = log.get("story_id")
+            if sid:
+                try:
+                    story_query_ids.append(ObjectId(sid) if isinstance(sid, str) else sid)
+                except Exception:
+                    pass
+
+        if story_query_ids and story_logs_collection is not None:
+            try:
+                for sdoc in story_logs_collection.find(
+                    {"_id": {"$in": story_query_ids}, "user_email": current_user["email"]},
+                    {"_id": 1, "image_url": 1},
+                ):
+                    s_url = sdoc.get("image_url")
+                    if s_url:
+                        story_images[str(sdoc["_id"])] = s_url
+            except Exception as e:
+                logger.warning("Error fetching linked story images: %s", e)
+
         entries       = []
         total_calories = 0.0
         total_protein  = 0.0
@@ -842,8 +865,11 @@ async def get_nutrition_by_date(
             # Use first food as primary display food
             primary_food = foods_list[0] if foods_list else {}
             
-            # Create meal entry with foodsList
-            entries.append({
+            # Lookup image from linked story owned by current user
+            sid = str(log.get("story_id", ""))
+            story_img = story_images.get(sid)
+
+            entry_data = {
                 "food_name": primary_food.get("name", "Unknown Food"),
                 "calories": meal_total_cal,
                 "protein": meal_total_pro,
@@ -857,7 +883,11 @@ async def get_nutrition_by_date(
                 "total_protein": meal_total_pro,
                 "total_carbs": meal_total_carb,
                 "total_fat": meal_total_fat,
-            })
+            }
+            if story_img:
+                entry_data["image_url"] = story_img
+
+            entries.append(entry_data)
             
             total_calories += meal_total_cal
             total_protein  += meal_total_pro

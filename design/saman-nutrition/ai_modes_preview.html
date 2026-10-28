@@ -1,0 +1,1485 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Saman Nutrition — Trải nghiệm Hai Chế độ Phân tích Ảnh (G2 Hiệu chỉnh)</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-canvas: #0F0F0F;
+      --bg-surface: #1C1C1C;
+      --bg-card: #242424;
+      --border-subtle: #2A2A2A;
+      --border-strong: #3D3D3D;
+      
+      --brand-primary: #0E8F5E;
+      --brand-primary-hover: #12A36C;
+      --brand-primary-light: rgba(14, 143, 94, 0.15);
+      
+      --ai-accent: #FF8A3D;
+      --ai-accent-hover: #FFA05C;
+      --ai-accent-light: rgba(255, 138, 61, 0.15);
+
+      --protein-color: #4D96FF;
+      --carbs-color: #FFD93D;
+      --fat-color: #FF6B6B;
+      
+      --text-primary: #F0F0F0;
+      --text-secondary: #AAAAAA;
+      --text-muted: #707070;
+      --error-color: #CF6679;
+      --warning-color: #F59E0B;
+      
+      --font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg-canvas);
+      color: var(--text-primary);
+      font-family: var(--font-family);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow-x: hidden;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* Layout Container */
+    .app-header {
+      background-color: var(--bg-surface);
+      border-bottom: 1px solid var(--border-subtle);
+      padding: 16px 28px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 12px;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .brand-title {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .brand-logo {
+      width: 32px;
+      height: 32px;
+      background: linear-gradient(135deg, var(--brand-primary), #065F38);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 16px;
+      color: #FFF;
+    }
+
+    .brand-text h1 {
+      font-size: 16px;
+      font-weight: 600;
+      letter-spacing: -0.2px;
+    }
+
+    .brand-text p {
+      font-size: 12px;
+      color: var(--text-secondary);
+    }
+
+    .spec-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      padding: 6px 12px;
+      border-radius: 20px;
+      font-size: 12px;
+      color: var(--text-secondary);
+    }
+
+    .spec-badge .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background-color: var(--brand-primary);
+    }
+
+    .main-workspace {
+      display: flex;
+      flex: 1;
+      max-width: 1440px;
+      margin: 0 auto;
+      width: 100%;
+      padding: 24px;
+      gap: 32px;
+    }
+
+    /* Left: Phone Preview Container */
+    .preview-section {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+    }
+
+    .phone-viewport {
+      width: 380px;
+      height: 780px;
+      background: #000000;
+      border-radius: 44px;
+      border: 10px solid #282828;
+      box-shadow: 0 25px 60px rgba(0, 0, 0, 0.8), 0 0 0 1px var(--border-strong);
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      overflow: hidden;
+    }
+
+    /* Phone Dynamic Island / Camera Notch */
+    .phone-notch {
+      position: absolute;
+      top: 10px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 110px;
+      height: 24px;
+      background: #000;
+      border-radius: 20px;
+      z-index: 50;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+    }
+
+    .phone-notch .lens {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: #111;
+      border: 1px solid #222;
+    }
+
+    /* Phone Status Bar */
+    .phone-status-bar {
+      height: 44px;
+      padding: 12px 24px 0 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-primary);
+      z-index: 40;
+    }
+
+    .phone-content {
+      flex: 1;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      background: var(--bg-canvas);
+    }
+
+    .phone-content::-webkit-scrollbar {
+      display: none;
+    }
+
+    /* Right: Control Panel */
+    .control-panel {
+      width: 500px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .panel-card {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: 16px;
+      padding: 20px;
+    }
+
+    .panel-card h2 {
+      font-size: 15px;
+      font-weight: 600;
+      margin-bottom: 8px;
+      color: var(--text-primary);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .panel-card p.desc {
+      font-size: 13px;
+      color: var(--text-secondary);
+      line-height: 1.5;
+      margin-bottom: 16px;
+    }
+
+    .scenario-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 8px;
+    }
+
+    .scenario-btn {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      color: var(--text-primary);
+      padding: 12px 14px;
+      border-radius: 10px;
+      cursor: pointer;
+      font-family: inherit;
+      font-size: 13px;
+      font-weight: 500;
+      text-align: left;
+      transition: all 0.2s ease;
+    }
+
+    .scenario-btn:hover {
+      border-color: var(--border-strong);
+      background: #2a2a2a;
+    }
+
+    .scenario-btn.active {
+      border-color: var(--brand-primary);
+      background: var(--brand-primary-light);
+      color: #FFF;
+      font-weight: 600;
+    }
+
+    .scenario-btn .tag {
+      font-size: 11px;
+      padding: 2px 8px;
+      border-radius: 12px;
+      background: #111;
+      color: var(--text-secondary);
+      border: 1px solid var(--border-subtle);
+    }
+
+    .scenario-btn.active .tag {
+      background: var(--brand-primary);
+      color: #FFF;
+      border-color: transparent;
+    }
+
+    /* Screen Simulator Components */
+    .app-nav-top {
+      padding: 8px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--border-subtle);
+      background: var(--bg-surface);
+    }
+
+    .app-nav-title {
+      font-size: 14px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    /* Mode Selector Pill Component */
+    .mode-selector-container {
+      background: var(--bg-card);
+      padding: 4px;
+      border-radius: 24px;
+      display: flex;
+      border: 1px solid var(--border-subtle);
+      margin-bottom: 14px;
+      position: relative;
+    }
+
+    .mode-option-btn {
+      flex: 1;
+      padding: 8px 10px;
+      border-radius: 20px;
+      border: none;
+      background: transparent;
+      color: var(--text-secondary);
+      font-family: inherit;
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      transition: all 0.2s ease;
+    }
+
+    .mode-option-btn.selected-standard {
+      background: var(--brand-primary);
+      color: #FFFFFF;
+      font-weight: 600;
+      box-shadow: 0 2px 8px rgba(14, 143, 94, 0.4);
+    }
+
+    .mode-option-btn.selected-advanced {
+      background: var(--ai-accent);
+      color: #FFFFFF;
+      font-weight: 600;
+      box-shadow: 0 2px 8px rgba(255, 138, 61, 0.4);
+    }
+
+    .mode-hint {
+      font-size: 11px;
+      color: var(--text-secondary);
+      line-height: 1.4;
+      padding: 0 4px;
+      margin-bottom: 14px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    /* Attachment Bottom Sheet */
+    .sheet-wrapper {
+      background: var(--bg-surface);
+      border-top-left-radius: 24px;
+      border-top-right-radius: 24px;
+      border-top: 1px solid var(--border-strong);
+      padding: 16px 20px 24px 20px;
+      margin-top: auto;
+      box-shadow: 0 -10px 30px rgba(0,0,0,0.6);
+    }
+
+    .sheet-handle {
+      width: 40px;
+      height: 4px;
+      background: var(--border-strong);
+      border-radius: 2px;
+      margin: 0 auto 16px auto;
+    }
+
+    .sheet-title {
+      font-size: 14px;
+      font-weight: 600;
+      margin-bottom: 14px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .sheet-actions-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .action-tile {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: 14px;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .action-tile:hover {
+      border-color: var(--brand-primary);
+      background: #2b2b2b;
+    }
+
+    .action-tile .icon-box {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: #181818;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .action-tile span {
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--text-primary);
+    }
+
+    /* Review Dialog Component */
+    .review-dialog-container {
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      height: 100%;
+    }
+
+    .dish-hero-card {
+      position: relative;
+      width: 100%;
+      height: 140px;
+      border-radius: 16px;
+      overflow: hidden;
+      background: #252525;
+      border: 1px solid var(--border-subtle);
+    }
+
+    .provenance-badge {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      backdrop-filter: blur(8px);
+      box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+    }
+
+    .badge-standard {
+      background: rgba(14, 143, 94, 0.85);
+      color: #FFF;
+      border: 1px solid rgba(255,255,255,0.2);
+    }
+
+    .badge-advanced {
+      background: rgba(255, 138, 61, 0.9);
+      color: #FFF;
+      border: 1px solid rgba(255,255,255,0.2);
+    }
+
+    .dish-header-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+    }
+
+    .dish-title {
+      font-size: 17px;
+      font-weight: 700;
+      color: var(--text-primary);
+    }
+
+    .top3-relabel-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    .relabel-chip {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: 12px;
+      padding: 3px 8px;
+      font-size: 11px;
+      color: var(--text-secondary);
+      cursor: pointer;
+    }
+
+    .relabel-chip.active {
+      border-color: var(--brand-primary);
+      color: var(--brand-primary);
+      background: var(--brand-primary-light);
+    }
+
+    /* Grams Slider & Stepper (10g - 500g clamp) */
+    .grams-control-box {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: 14px;
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .grams-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .grams-value-display {
+      font-size: 17px;
+      font-weight: 700;
+      color: var(--brand-primary);
+    }
+
+    .slider-range {
+      width: 100%;
+      accent-color: var(--brand-primary);
+      cursor: pointer;
+    }
+
+    /* Macro Cards Grid */
+    .macro-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+    }
+
+    .macro-card {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: 12px;
+      padding: 10px 6px;
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .macro-card.calories {
+      border-color: rgba(255, 255, 255, 0.15);
+    }
+
+    .macro-card .val {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--text-primary);
+    }
+
+    .macro-card .lbl {
+      font-size: 10px;
+      font-weight: 500;
+      color: var(--text-secondary);
+    }
+
+    /* Meal Type Selector */
+    .meal-type-row {
+      display: flex;
+      gap: 6px;
+    }
+
+    .meal-pill {
+      flex: 1;
+      padding: 6px;
+      border-radius: 8px;
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      color: var(--text-secondary);
+      font-size: 11px;
+      font-weight: 500;
+      text-align: center;
+      cursor: pointer;
+    }
+
+    .meal-pill.active {
+      background: var(--bg-surface);
+      border-color: var(--brand-primary);
+      color: var(--brand-primary);
+      font-weight: 600;
+    }
+
+    /* Provenance Tooltip Info */
+    .provenance-info-bar {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid var(--border-subtle);
+      border-radius: 10px;
+      padding: 8px 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 11px;
+      color: var(--text-secondary);
+    }
+
+    .provenance-tooltip {
+      cursor: pointer;
+      color: var(--ai-accent);
+      font-weight: 500;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    /* Actions Bottom */
+    .dialog-footer-actions {
+      margin-top: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      padding-top: 8px;
+    }
+
+    .btn-primary-confirm {
+      background: var(--brand-primary);
+      color: #FFF;
+      border: none;
+      border-radius: 12px;
+      padding: 14px;
+      font-family: inherit;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: background 0.2s;
+    }
+
+    .btn-primary-confirm:hover {
+      background: var(--brand-primary-hover);
+    }
+
+    .btn-secondary-retake {
+      background: transparent;
+      color: var(--text-secondary);
+      border: 1px solid var(--border-subtle);
+      border-radius: 12px;
+      padding: 10px;
+      font-family: inherit;
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+      text-align: center;
+    }
+
+    .btn-secondary-retake:hover {
+      color: var(--text-primary);
+      border-color: var(--border-strong);
+    }
+
+    /* Loading Spinner */
+    .spinner {
+      width: 24px;
+      height: 24px;
+      border: 3px solid rgba(255, 255, 255, 0.1);
+      border-radius: 50%;
+      border-top-color: var(--brand-primary);
+      animation: spin 0.8s linear infinite;
+    }
+
+    .spinner-ai {
+      border-top-color: var(--ai-accent);
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    /* In-flight / Status Overlays */
+    .loading-overlay {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100%;
+      gap: 16px;
+      padding: 40px 20px;
+      text-align: center;
+    }
+
+    .loading-title {
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+
+    .loading-subtext {
+      font-size: 12px;
+      color: var(--text-secondary);
+      max-width: 240px;
+      line-height: 1.5;
+    }
+
+    /* Error & Lock Containers */
+    .state-banner {
+      border-radius: 12px;
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      font-size: 12px;
+      line-height: 1.4;
+    }
+
+    .state-banner.error {
+      background: rgba(207, 102, 121, 0.1);
+      border: 1px solid rgba(207, 102, 121, 0.4);
+      color: #FFB3BA;
+    }
+
+    .state-banner.locked {
+      background: rgba(245, 158, 11, 0.1);
+      border: 1px solid rgba(245, 158, 11, 0.4);
+      color: #FDE68A;
+    }
+
+    /* Popover */
+    .popover-box {
+      background: #222;
+      border: 1px solid var(--border-strong);
+      padding: 10px 12px;
+      border-radius: 8px;
+      font-size: 11px;
+      color: var(--text-secondary);
+      line-height: 1.5;
+    }
+
+    /* Code Block Box */
+    pre.code-json {
+      background: #111;
+      border: 1px solid var(--border-subtle);
+      border-radius: 8px;
+      padding: 10px;
+      font-family: monospace;
+      font-size: 11px;
+      color: #A0C0A0;
+      overflow-x: auto;
+      line-height: 1.4;
+      max-height: 220px;
+    }
+
+    /* Responsive */
+    @media (max-width: 900px) {
+      .main-workspace {
+        flex-direction: column;
+        align-items: center;
+      }
+      .control-panel {
+        width: 100%;
+        max-width: 500px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- App Header -->
+  <header class="app-header">
+    <div class="brand-title">
+      <div class="brand-logo">S</div>
+      <div class="brand-text">
+        <h1>Saman Nutrition — Interactive AI Modes Preview (G2 Hiệu chỉnh)</h1>
+        <p>Design Contract & Prototype đồng bộ chính xác với API và Clean Architecture</p>
+      </div>
+    </div>
+    <div class="spec-badge">
+      <span class="dot"></span>
+      <span>Đặc tả G2 Hiệu chỉnh • Chuẩn Hóa Schema & N2 Tracker</span>
+    </div>
+  </header>
+
+  <!-- Main Content Space -->
+  <main class="main-workspace">
+
+    <!-- Left: Phone Simulator Preview -->
+    <section class="preview-section">
+      <div class="phone-viewport">
+        
+        <!-- Camera Notch / Island -->
+        <div class="phone-notch">
+          <div class="lens"></div>
+        </div>
+
+        <!-- Status Bar -->
+        <div class="phone-status-bar">
+          <span>09:41</span>
+          <div style="display: flex; gap: 6px; align-items: center;">
+            <svg width="14" height="10" viewBox="0 0 14 10" fill="currentColor"><path d="M1 9h12a1 1 0 001-1V2a1 1 0 00-1-1H1a1 1 0 00-1 1v6a1 1 0 001 1z"/></svg>
+            <svg width="16" height="10" viewBox="0 0 16 10" fill="currentColor"><rect x="1" y="1" width="12" height="8" rx="2" stroke="currentColor" fill="none"/><rect x="3" y="3" width="8" height="4" fill="currentColor"/></svg>
+          </div>
+        </div>
+
+        <!-- Phone Dynamic View Container -->
+        <div class="phone-content" id="phoneContainer">
+          <!-- Dynamic rendered via JS -->
+        </div>
+
+      </div>
+    </section>
+
+    <!-- Right: Control Panel / Scenario Switcher -->
+    <aside class="control-panel">
+      
+      <div class="panel-card">
+        <h2>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18"/><path d="M15 9h6"/><path d="M15 15h6"/></svg>
+          Chọn Kịch bản Kiểm thử G2 (Hiệu chỉnh)
+        </h2>
+        <p class="desc">
+          Bấm để chuyển đổi trạng thái hiển thị. Mọi số liệu, trường JSON và luồng gọi đã được đối soát khớp với backend router, Gemini analyzer G1 và Clean Architecture.
+        </p>
+
+        <div class="scenario-grid">
+          
+          <button class="scenario-btn active" onclick="setScenario(1)">
+            <span>1. Chat: Attachment Sheet (Chọn Mode)</span>
+            <span class="tag">Chat Flow</span>
+          </button>
+
+          <button class="scenario-btn" onclick="setScenario(2)">
+            <span>2. Nutrition Tab: Log Meal Sheet</span>
+            <span class="tag">Nutrition Tab</span>
+          </button>
+
+          <button class="scenario-btn" onclick="setScenario(3)">
+            <span>3. Trạng thái Đang phân tích (In-flight)</span>
+            <span class="tag">Loading</span>
+          </button>
+
+          <button class="scenario-btn" onclick="setScenario(4)">
+            <span>4. Review: Chế độ Tiêu chuẩn (Dữ liệu tham chiếu)</span>
+            <span class="tag">Standard</span>
+          </button>
+
+          <button class="scenario-btn" onclick="setScenario(5)">
+            <span>5. Review: Chế độ AI nâng cao (AI ước tính)</span>
+            <span class="tag">Gemini</span>
+          </button>
+
+          <button class="scenario-btn" onclick="setScenario(6)">
+            <span>6. Cảnh báo Mức độ nhận diện thấp (lowConfidence)</span>
+            <span class="tag">Low Conf</span>
+          </button>
+
+          <button class="scenario-btn" onclick="setScenario(7)">
+            <span>7. Lỗi Phân tích API & Đổi chế độ</span>
+            <span class="tag">Analysis Error</span>
+          </button>
+
+          <button class="scenario-btn" onclick="setScenario(8)">
+            <span>8. N2 Invariant: Lỗi Lưu Bữa A & Cách ly Bữa B</span>
+            <span class="tag">N2 Tracker</span>
+          </button>
+
+          <button class="scenario-btn" onclick="setScenario(9)">
+            <span>9. Khảo sát: Phân quyền Thử nghiệm Nội bộ</span>
+            <span class="tag">Auth Access</span>
+          </button>
+
+        </div>
+      </div>
+
+      <!-- Live Contract Inspection Box -->
+      <div class="panel-card" style="border-left: 4px solid var(--brand-primary);">
+        <h2>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+          Đối soát Hợp đồng Dữ liệu Thực tế (Contract Inspector)
+        </h2>
+        <div id="contractSummary" style="font-size: 12px; color: var(--text-secondary); line-height: 1.6;">
+          Đang nạp thông tin hợp đồng...
+        </div>
+      </div>
+
+    </aside>
+
+  </main>
+
+  <script>
+    // State Variables
+    let currentScenario = 1;
+    let selectedMode = 'standard'; // 'standard' | 'advanced'
+    let currentGrams = 100; // clamp 10 - 500, default 100
+    let showTooltip = false;
+
+    // Actual sample dish data aligned with GeminiFoodAnalyzer and NutritionLookup
+    const sampleDish = {
+      name: "Phở Bò",
+      label: "pho_bo",
+      calPer100g: 135.0,
+      proPer100g: 9.5,
+      carbPer100g: 17.0,
+      fatPer100g: 3.2,
+      top3: [
+        { foodName: "Phở Bò", label: "pho_bo", confidence: 0.92 },
+        { foodName: "Bún Bò Huế", label: "bun_bo_hue", confidence: 0.05 },
+        { foodName: "Hủ Tiếu", label: "hu_tieu", confidence: 0.03 }
+      ]
+    };
+
+    function setScenario(index) {
+      currentScenario = index;
+      
+      document.querySelectorAll('.scenario-btn').forEach((btn, idx) => {
+        if (idx + 1 === index) {
+          btn.classList.add('active');
+        } else {
+          btn.classList.remove('active');
+        }
+      });
+
+      renderPhone();
+      renderContractSummary();
+    }
+
+    function toggleMode(mode) {
+      selectedMode = mode;
+      renderPhone();
+      renderContractSummary();
+    }
+
+    function updateGrams(val) {
+      currentGrams = Math.max(10, Math.min(500, parseInt(val, 10)));
+      const gramsDisp = document.getElementById('gramsDisplay');
+      if (gramsDisp) gramsDisp.innerText = currentGrams + 'g';
+      
+      const factor = currentGrams / 100.0;
+      const c = document.getElementById('calDisplay');
+      const p = document.getElementById('proDisplay');
+      const cb = document.getElementById('carbDisplay');
+      const f = document.getElementById('fatDisplay');
+      
+      if (c) c.innerText = Math.round(sampleDish.calPer100g * factor);
+      if (p) p.innerText = (sampleDish.proPer100g * factor).toFixed(1) + 'g';
+      if (cb) cb.innerText = (sampleDish.carbPer100g * factor).toFixed(1) + 'g';
+      if (f) f.innerText = (sampleDish.fatPer100g * factor).toFixed(1) + 'g';
+    }
+
+    function renderPhone() {
+      const container = document.getElementById('phoneContainer');
+
+      switch (currentScenario) {
+        
+        // Scenario 1: Chat Attachment Sheet
+        case 1:
+          container.innerHTML = `
+            <div class="app-nav-top">
+              <div class="app-nav-title">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+                <span>HLV Saman AI</span>
+              </div>
+              <span style="font-size: 11px; color: var(--brand-primary); font-weight:600;">Trực tuyến</span>
+            </div>
+
+            <div style="flex: 1; padding: 16px; display: flex; flex-direction: column; justify-content: flex-end; gap: 10px; opacity: 0.6;">
+              <div style="align-self: flex-start; background: #222; padding: 10px 14px; border-radius: 12px; font-size: 12px; max-width: 80%;">
+                Chào bạn! Hãy gửi ảnh đĩa ăn trưa để mình tính calo và macro giúp bạn nhé.
+              </div>
+            </div>
+
+            <!-- Bottom Sheet -->
+            <div class="sheet-wrapper">
+              <div class="sheet-handle"></div>
+              
+              <div class="sheet-title">
+                <span>Chọn phương thức phân tích</span>
+                <span style="font-size: 11px; color: var(--text-secondary);">G2 Contract</span>
+              </div>
+
+              <!-- Mode Selector Pill -->
+              <div class="mode-selector-container">
+                <button class="mode-option-btn ${selectedMode === 'standard' ? 'selected-standard' : ''}" onclick="toggleMode('standard')">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg>
+                  Tiêu chuẩn (Food-101)
+                </button>
+                <button class="mode-option-btn ${selectedMode === 'advanced' ? 'selected-advanced' : ''}" onclick="toggleMode('advanced')">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l2.4 7.4H22l-6 4.6 2.3 7-6.3-4.6-6.3 4.6 2.3-7-6-4.6h7.6z"/></svg>
+                  AI nâng cao
+                </button>
+              </div>
+
+              <div class="mode-hint">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+                <span>${selectedMode === 'standard' ? 'Phù hợp đĩa đơn lẻ (Food-101 + Dữ liệu tham chiếu)' : 'Hỗ trợ món ăn phức hợp & món Việt Nam (Gemini)'}</span>
+              </div>
+
+              <!-- Action Grid -->
+              <div class="sheet-actions-grid">
+                <div class="action-tile" onclick="setScenario(3)">
+                  <div class="icon-box">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--brand-primary)" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+                  </div>
+                  <span>Chụp ảnh đĩa ăn</span>
+                </div>
+                <div class="action-tile" onclick="setScenario(3)">
+                  <div class="icon-box">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--text-secondary)" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                  </div>
+                  <span>Chọn từ thư viện</span>
+                </div>
+              </div>
+
+            </div>
+          `;
+          break;
+
+        // Scenario 2: Nutrition Tab Log Meal Sheet
+        case 2:
+          container.innerHTML = `
+            <div class="app-nav-top">
+              <div class="app-nav-title">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>
+                <span>Ghi Nhận Dinh Dưỡng</span>
+              </div>
+              <span style="font-size: 11px; color: var(--text-secondary);">Hôm nay</span>
+            </div>
+
+            <div style="padding: 16px; display: flex; flex-direction: column; gap: 14px;">
+              
+              <!-- Quick Stats banner -->
+              <div style="background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: 14px; padding: 14px; display: flex; justify-content: space-between;">
+                <div>
+                  <div style="font-size: 11px; color: var(--text-secondary);">Mục tiêu calo hôm nay</div>
+                  <div style="font-size: 20px; font-weight: 700; color: var(--brand-primary);">1,450 / 2,100 kcal</div>
+                </div>
+                <div style="text-align: right;">
+                  <div style="font-size: 11px; color: var(--text-secondary);">Bữa đã ghi</div>
+                  <div style="font-size: 14px; font-weight: 600;">2 bữa</div>
+                </div>
+              </div>
+
+              <!-- Camera Capture Card with Mode Selector -->
+              <div style="background: var(--bg-surface); border: 1px solid var(--border-strong); border-radius: 16px; padding: 16px; display: flex; flex-direction: column; gap: 12px;">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                  <span style="font-size: 13px; font-weight: 600;">Quét ảnh món ăn</span>
+                  <span style="font-size: 10px; background: #333; padding: 2px 6px; border-radius: 6px;">Clean Architecture</span>
+                </div>
+
+                <!-- Mode Selector Pill -->
+                <div class="mode-selector-container" style="margin-bottom: 0;">
+                  <button class="mode-option-btn ${selectedMode === 'standard' ? 'selected-standard' : ''}" onclick="toggleMode('standard')">
+                    Tiêu chuẩn
+                  </button>
+                  <button class="mode-option-btn ${selectedMode === 'advanced' ? 'selected-advanced' : ''}" onclick="toggleMode('advanced')">
+                    ✨ AI nâng cao
+                  </button>
+                </div>
+
+                <div style="height: 120px; background: #151515; border: 1px dashed var(--border-strong); border-radius: 12px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; cursor: pointer;" onclick="setScenario(3)">
+                  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="${selectedMode === 'standard' ? 'var(--brand-primary)' : 'var(--ai-accent)'}" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+                  <span style="font-size: 12px; font-weight: 500;">Chạm để chụp đĩa ăn</span>
+                </div>
+
+                <div style="font-size: 11px; color: var(--text-secondary); text-align: center;">
+                  ${selectedMode === 'standard' ? 'Tra cứu nhanh • Cơ sở dữ liệu tham chiếu' : 'Nhận diện đa món • Hỗ trợ món ăn Việt'}
+                </div>
+              </div>
+
+              <!-- Manual Entry Option -->
+              <div style="background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: 14px; padding: 14px; display: flex; align-items: center; justify-content: space-between;">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                  <span style="font-size: 13px;">Nhập tay món ăn</span>
+                </div>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+              </div>
+
+            </div>
+          `;
+          break;
+
+        // Scenario 3: Loading In-Flight (neutral message)
+        case 3:
+          const isAi = selectedMode === 'advanced';
+          container.innerHTML = `
+            <div class="loading-overlay">
+              <div class="spinner ${isAi ? 'spinner-ai' : ''}"></div>
+              <div class="loading-title">Đang phân tích món ăn...</div>
+              <div class="loading-subtext">
+                Vui lòng đợi giây lát trong khi hệ thống nhận diện thành phần dinh dưỡng.
+              </div>
+
+              <div style="margin-top: 24px; padding: 8px 16px; border-radius: 20px; background: #1c1c1c; border: 1px solid var(--border-subtle); font-size: 11px; color: var(--text-muted);">
+                Chống gửi đúp: Toàn bộ nút thao tác đã tạm khóa
+              </div>
+
+              <div style="margin-top: 20px;">
+                <button class="btn-secondary-retake" onclick="setScenario(${isAi ? 5 : 4})">
+                  Bỏ qua mô phỏng (Xem kết quả)
+                </button>
+              </div>
+            </div>
+          `;
+          break;
+
+        // Scenario 4: Review Dialog Standard Mode (Food-101 + Reference Data)
+        case 4:
+          container.innerHTML = getReviewDialogHtml(false, false);
+          break;
+
+        // Scenario 5: Review Dialog Advanced Mode (Gemini)
+        case 5:
+          container.innerHTML = getReviewDialogHtml(true, false);
+          break;
+
+        // Scenario 6: Low Confidence Banner (no blurry assumption)
+        case 6:
+          container.innerHTML = getReviewDialogHtml(false, true);
+          break;
+
+        // Scenario 7: Analysis Error & Mode Switch (No auto-request)
+        case 7:
+          container.innerHTML = `
+            <div class="review-dialog-container" style="justify-content: center; text-align: center; padding: 32px 20px;">
+              <div style="width: 64px; height: 64px; border-radius: 50%; background: rgba(207, 102, 121, 0.15); margin: 0 auto 16px auto; display: flex; align-items: center; justify-content: center;">
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--error-color)" stroke-width="2"><polygon points="7.86 2 16.14 2 22 7.86 22 16.14 16.14 22 7.86 22 2 16.14 2 7.86 7.86 2"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+              </div>
+
+              <h2 style="font-size: 16px; font-weight: 600; margin-bottom: 8px;">Lỗi Phân tích Món ăn</h2>
+              <p style="font-size: 12px; color: var(--text-secondary); line-height: 1.5; margin-bottom: 18px;">
+                Máy chủ trả về mã lỗi 500. Bạn có thể bấm phân tích lại hoặc chuyển chế độ kiểm tra.
+              </p>
+
+              <div class="state-banner error" style="text-align: left; margin-bottom: 20px;">
+                <strong>HTTP 500 Internal Server Error</strong>
+                <span>detail: "Gemini food analysis failed: Gemini request timed out"</span>
+              </div>
+
+              <button class="btn-primary-confirm" style="width: 100%;" onclick="setScenario(3)">
+                Thử phân tích lại
+              </button>
+              
+              <!-- Switching mode only changes local state, does NOT trigger auto-request -->
+              <button class="btn-secondary-retake" style="width: 100%; margin-top: 8px;" onclick="selectedMode='standard'; alert('Đã chuyển lựa chọn sang Tiêu chuẩn. Hãy bấm Thử phân tích lại khi bạn sẵn sàng.'); setScenario(1);">
+                Chuyển lựa chọn sang Tiêu chuẩn
+              </button>
+            </div>
+          `;
+          break;
+
+        // Scenario 8: N2 Invariant Protection (Mapped to _DateSaveSessionTracker)
+        case 8:
+          container.innerHTML = `
+            <div class="review-dialog-container">
+              <div class="app-nav-top" style="padding: 0 0 8px 0; background: transparent;">
+                <span style="font-size: 14px; font-weight: 600;">Trạng thái Đồng bộ Bữa ăn</span>
+                <span style="font-size: 11px; color: var(--warning-color); font-weight: 600;">N2 Tracker</span>
+              </div>
+
+              <div class="state-banner locked">
+                <div style="font-weight: 600; display: flex; align-items: center; gap: 6px;">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                  Bữa A đang chờ xác nhận lưu (Timeout)
+                </div>
+                <div>Lần lưu gần nhất gặp gián đoạn mạng. Hệ thống đã khóa an toàn trong <code>_DateSaveSessionTracker</code> để tránh ghi nhận 2 lần.</div>
+              </div>
+
+              <div style="background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: 12px; padding: 14px; display: flex; flex-direction: column; gap: 8px;">
+                <div style="font-size: 11px; color: var(--text-secondary);">Bữa ăn bị gián đoạn lưu (opKey):</div>
+                <div style="font-size: 14px; font-weight: 600;">lunch:pho_bo:Phở Bò:135:100</div>
+                <div style="display: flex; gap: 8px; margin-top: 6px;">
+                  <button class="btn-primary-confirm" style="flex: 1; padding: 8px 12px; font-size: 12px;" onclick="alert('Đang thử đồng bộ lại bữa A theo cơ chế N2...')">
+                    Thử gửi lại bữa A
+                  </button>
+                  <button class="btn-secondary-retake" style="padding: 8px 12px; font-size: 12px;" onclick="alert('Đã hủy bỏ thao tác lưu bữa A.')">
+                    Hủy bỏ
+                  </button>
+                </div>
+              </div>
+
+              <div style="border-top: 1px solid var(--border-subtle); padding-top: 12px;">
+                <div style="font-size: 12px; font-weight: 600; margin-bottom: 8px; color: var(--brand-primary);">
+                  ✓ Ràng buộc Bất biến N2:
+                </div>
+                <p style="font-size: 11px; color: var(--text-secondary); line-height: 1.5;">
+                  Đổi mode, đổi ngày hoặc chuyển qua lại giữa Chat/Nutrition <b>không thể vượt qua ổ khóa này</b>.<br>
+                  Tuy nhiên, bạn hoàn toàn có thể chụp và ghi <b>Bữa B độc lập</b> mà không bị block.
+                </p>
+              </div>
+
+              <button class="btn-primary-confirm" style="margin-top: auto;" onclick="setScenario(1)">
+                Ghi bữa ăn mới (Bữa B)
+              </button>
+            </div>
+          `;
+          break;
+
+        // Scenario 9: Internal Testing Access Proposal
+        case 9:
+          container.innerHTML = `
+            <div class="sheet-wrapper" style="height: 100%; display: flex; flex-direction: column;">
+              <div class="sheet-handle"></div>
+              
+              <div class="sheet-title">
+                <span>Cơ chế Cấp quyền Thử nghiệm Nội bộ</span>
+                <span class="spec-badge" style="padding: 2px 8px; font-size: 10px;">G3 Auth Spec</span>
+              </div>
+
+              <p style="font-size: 12px; color: var(--text-secondary); line-height: 1.5; margin-bottom: 16px;">
+                Quyền thử nghiệm AI nâng cao ở G3 dựa trên <b>JWT email đã xác thực</b> từ backend (<code>GEMINI_ALLOWED_EMAILS</code>), không dùng cờ client hay tạo schema DB mới.
+              </p>
+
+              <div class="state-banner" style="background: rgba(14, 143, 94, 0.1); border: 1px solid rgba(14, 143, 94, 0.4); color: #85E3B3;">
+                <strong>Quy tắc An toàn Xác thực:</strong>
+                <span>• Client-side flag KHÔNG PHẢI là quyền.<br>• Ẩn/hiện nút bấm KHÔNG PHẢI là bảo mật.<br>• Server luôn kiểm tra email từ <code>verify_token</code>.</span>
+              </div>
+
+              <div style="margin-top: 16px; background: #222; border-radius: 10px; padding: 12px; font-size: 11px; color: var(--text-secondary); line-height: 1.6;">
+                <b>Tài khoản được duyệt:</b> <code>*@saman.ai, tester@saman.vn</code><br>
+                <b>Nếu tài khoản ngoài danh sách gọi mode=advanced:</b><br>
+                <code>HTTP 403 Forbidden</code><br>
+                <span>detail: "Advanced mode is restricted to authorized test accounts"</span>
+              </div>
+
+              <div style="margin-top: auto; display: flex; flex-direction: column; gap: 8px;">
+                <button class="btn-primary-confirm" onclick="setScenario(1)">
+                  Quay lại Kịch bản Chat
+                </button>
+              </div>
+            </div>
+          `;
+          break;
+      }
+    }
+
+    function getReviewDialogHtml(isAdvanced, isLowConfidence) {
+      const factor = currentGrams / 100.0;
+      const cal = Math.round(sampleDish.calPer100g * factor);
+      const pro = (sampleDish.proPer100g * factor).toFixed(1);
+      const carb = (sampleDish.carbPer100g * factor).toFixed(1);
+      const fat = (sampleDish.fatPer100g * factor).toFixed(1);
+
+      return `
+        <div class="review-dialog-container">
+          
+          <!-- Top Bar -->
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <span style="font-size: 14px; font-weight: 700;">Kiểm tra món ăn</span>
+            </div>
+            <button style="background: transparent; border: none; color: var(--text-secondary); cursor: pointer;" onclick="setScenario(1)">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+          </div>
+
+          <!-- Hero Dish Card -->
+          <div class="dish-hero-card">
+            <div style="width: 100%; height: 100%; background: linear-gradient(135deg, #2b1f1a, #1a241e); display: flex; align-items: center; justify-content: center;">
+              <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="#666" stroke-width="1.5"><path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/></svg>
+            </div>
+
+            <!-- Provenance Badge: Read from actual nutrition_source -->
+            <div class="provenance-badge ${isAdvanced ? 'badge-advanced' : 'badge-standard'}">
+              ${isAdvanced ? '✨ AI ước tính' : '⚖️ Dữ liệu tham chiếu'}
+            </div>
+          </div>
+
+          <!-- Low confidence warning (neutral, no blurry assumption) -->
+          ${isLowConfidence ? `
+            <div class="state-banner error" style="padding: 10px 12px; margin-bottom: 0;">
+              <span>⚠️ Mức độ nhận diện thấp — vui lòng kiểm tra lại món ăn và số gram.</span>
+            </div>
+          ` : ''}
+
+          <!-- Food Title & Top 3 Relabel (Existing codebase behavior) -->
+          <div>
+            <div class="dish-header-row">
+              <span class="dish-title">${sampleDish.name}</span>
+              <span style="font-size: 11px; color: var(--text-secondary);">${currentGrams}g • ${cal} kcal</span>
+            </div>
+
+            <div style="font-size: 11px; color: var(--text-muted); margin-top: 4px; margin-bottom: 6px;">Không đúng? Chọn lại từ gợi ý:</div>
+            <div class="top3-relabel-row">
+              ${sampleDish.top3.map((pred, i) => `
+                <span class="relabel-chip ${i === 0 ? 'active' : ''}">${pred.foodName}</span>
+              `).join('')}
+            </div>
+          </div>
+
+          <!-- Grams Slider & Stepper (Clamped 10g - 500g) -->
+          <div class="grams-control-box">
+            <div class="grams-header">
+              <span style="font-size: 11px; font-weight: 500; color: var(--text-secondary); text-transform: uppercase;">Khối lượng</span>
+              <span class="grams-value-display" id="gramsDisplay">${currentGrams}g</span>
+            </div>
+            <input type="range" class="slider-range" min="10" max="500" step="10" value="${currentGrams}" oninput="updateGrams(this.value)">
+            <div style="display: flex; justify-content: space-between; font-size: 10px; color: var(--text-muted);">
+              <span>10g</span>
+              <span>250g</span>
+              <span>500g</span>
+            </div>
+          </div>
+
+          <!-- Dynamic Macro Cards -->
+          <div class="macro-grid">
+            <div class="macro-card calories">
+              <span class="val" id="calDisplay" style="color: #FFF;">${cal}</span>
+              <span class="lbl">KCAL</span>
+            </div>
+            <div class="macro-card">
+              <span class="val" id="proDisplay" style="color: var(--protein-color);">${pro}g</span>
+              <span class="lbl">ĐẠM</span>
+            </div>
+            <div class="macro-card">
+              <span class="val" id="carbDisplay" style="color: var(--carbs-color);">${carb}g</span>
+              <span class="lbl">CARB</span>
+            </div>
+            <div class="macro-card">
+              <span class="val" id="fatDisplay" style="color: var(--fat-color);">${fat}g</span>
+              <span class="lbl">BÉO</span>
+            </div>
+          </div>
+
+          <!-- Provenance Transparency Bar & Plain explanation -->
+          <div class="provenance-info-bar">
+            <span>Nguồn số liệu: <b>${isAdvanced ? 'AI ước tính' : 'Dữ liệu tham chiếu'}</b></span>
+            <span class="provenance-tooltip" onclick="toggleTooltipInfo()">
+              <span>Giải thích</span>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+            </span>
+          </div>
+
+          <!-- Tooltip Popover (Short, plain language) -->
+          <div class="popover-box" id="provenanceTooltipBox" style="display: ${showTooltip ? 'block' : 'none'};">
+            ${isAdvanced ? 
+              'Chỉ số calo và macro do AI ước lượng từ hình ảnh thực phẩm. Vui lòng kiểm tra và điều chỉnh gram theo thực tế đĩa ăn.' : 
+              'Dinh dưỡng được tra cứu từ cơ sở dữ liệu tham chiếu theo số gram được phân loại.'}
+          </div>
+
+          <!-- Meal Selector -->
+          <div class="meal-type-row">
+            <div class="meal-pill">Sáng</div>
+            <div class="meal-pill active">Trưa</div>
+            <div class="meal-pill">Tối</div>
+            <div class="meal-pill">Phụ</div>
+          </div>
+
+          <!-- Bottom CTA -->
+          <div class="dialog-footer-actions">
+            <button class="btn-primary-confirm" onclick="triggerSave()">
+              <span>Lưu bữa này</span>
+            </button>
+            <button class="btn-secondary-retake" onclick="setScenario(1)">
+              Huỷ
+            </button>
+          </div>
+
+        </div>
+      `;
+    }
+
+    function toggleTooltipInfo() {
+      showTooltip = !showTooltip;
+      const box = document.getElementById('provenanceTooltipBox');
+      if (box) {
+        box.style.display = showTooltip ? 'block' : 'none';
+      }
+    }
+
+    function triggerSave() {
+      alert("Đã lưu bữa ăn vào nhật ký dinh dưỡng (N2 Invariant Verified)!");
+      setScenario(2);
+    }
+
+    function renderContractSummary() {
+      const summary = document.getElementById('contractSummary');
+      let text = "";
+      
+      switch(currentScenario) {
+        case 1:
+        case 2:
+          text = `
+            <b>Flow Thực tế & Clean Architecture:</b><br>
+            • <code>ChatScreen / LogMealSheet</code><br>
+            • → <code>ChatController / DailyStoryController</code><br>
+            • → <code>NutritionService</code><br>
+            • → <code>INutritionRepository</code> (domain)<br>
+            • → <code>NutritionRepositoryImpl</code> (data)<br>
+            • → <code>NutritionRemoteDataSourceImpl</code> (remote)<br>
+            • → <code>POST /api/food/analyze</code><br>
+            <div style="margin-top: 6px; color: #888;">
+              * Không sử dụng <code>services/nutrition_repository.dart</code> (file legacy).
+            </div>
+          `;
+          break;
+        case 3:
+          text = `
+            <b>Trạng thái Đang phân tích (In-Flight):</b><br>
+            • Thông điệp trung tính: <i>"Đang phân tích món ăn..."</i><br>
+            • Không phát biểu phóng đại về khả năng đo khẩu phần của mô hình.<br>
+            • Double-tap bị chặn triệt để ở cả hai giao diện.
+          `;
+          break;
+        case 4:
+        case 5:
+          text = `
+            <b>Response JSON Schema Thực tế từ Backend:</b>
+            <pre class="code-json">{
+  "food_name": "Phở Bò",
+  "food_label": "pho_bo",
+  "detected_food_name": "Phở Bò",
+  "confidence": 0.92,
+  "low_confidence": false,
+  "grams": 100.0,
+  "nutrition": {
+    "calories": 135.0,
+    "protein": 9.5,
+    "carbs": 17.0,
+    "fat": 3.2
+  },
+  "per_100g": { ... },
+  "nutrition_source": "${currentScenario === 5 ? 'gemini_estimate' : 'fallback'}",
+  "top3_predictions": [ ... ],
+  "mock": false,
+  "user_email": "...",
+  "temp_id": "",
+  "image_url": ""
+}</pre>
+            <div style="font-size: 11px; color: #BBB; margin-top: 4px;">
+              ✓ Macro nằm trong object con <code>nutrition</code>, không ở ngoài cùng.<br>
+              ✓ Không có trường <code>serving_size_g</code>; dùng <code>grams</code>.<br>
+              ✓ Frontend deserialize thành <code>AIAnalysisResult</code>.
+            </div>
+          `;
+          break;
+        case 6:
+          text = `
+            <b>Cảnh báo Nhận diện Thấp (lowConfidence):</b><br>
+            • Điểm tự đánh giá của Gemini là ước lượng nội bộ (0.0 - 1.0).<br>
+            • <b>Không hiển thị % confidence</b> cho Gemini trong UI.<br>
+            • Khi <code>lowConfidence == true</code>, hiển thị cảnh báo trung tính.<br>
+            • Tuyệt đối không suy diễn là do "ảnh mờ".
+          `;
+          break;
+        case 7:
+          text = `
+            <b>Phân biệt Lỗi & Hành vi Đổi Mode:</b><br>
+            • Lỗi phân tích ảnh (POST /api/food/analyze) khác hoàn toàn với lỗi lưu bữa (N2 timeout).<br>
+            • Không quy kết mọi lỗi 500 thành "không nhận diện được món".<br>
+            • Nút <b>"Chuyển lựa chọn sang Tiêu chuẩn"</b> chỉ đổi state cục bộ, <b>không tự động gửi thêm request</b>.
+          `;
+          break;
+        case 8:
+          text = `
+            <b>Bảo toàn N2 Tracker:</b><br>
+            • Ánh xạ trực tiếp vào <code>_DateSaveSessionTracker</code> & <code>_OperationSaveState</code>.<br>
+            • Khóa thao tác lưu chưa xác nhận theo <code>opKey</code>.<br>
+            • Đổi mode, đổi ngày hoặc đổi tab <b>không được phép bypass khóa</b>.<br>
+            • Bữa B độc lập vẫn được log bình thường.
+          `;
+          break;
+        case 9:
+          text = `
+            <b>Hợp đồng Phân quyền Dự kiến G3:</b><br>
+            • Xác thực bằng JWT token (<code>verify_token</code>).<br>
+            • Kiểm tra email người dùng trong <code>GEMINI_ALLOWED_EMAILS</code>.<br>
+            • Nếu không được phép: <code>HTTP 403 Forbidden</code> [Đề xuất mới].<br>
+            • Nếu mode sai: <code>HTTP 422 Unprocessable</code> [Đề xuất mới].<br>
+            • Không dùng cờ client hay tạo schema DB mới.
+          `;
+          break;
+      }
+      summary.innerHTML = text;
+    }
+
+    // Initial render
+    renderPhone();
+    renderContractSummary();
+  </script>
+</body>
+</html>
