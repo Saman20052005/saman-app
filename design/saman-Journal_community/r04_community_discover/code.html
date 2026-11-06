@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="vi"><head><meta charset="utf-8"/><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" name="viewport"/><meta content="mobile_tab" name="shell-type"/><link href="https://fonts.googleapis.com" rel="preconnect"/><link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/><link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config = { darkMode: "class", theme: { extend: { "colors": { "on-surface": "#e3e2e3", "error": "#ffb4ab", "primary-fixed": "#6ffbbe", "primary-fixed-dim": "#4edea3", "tertiary": "#ffb3af", "tertiary-fixed-dim": "#ffb3af", "surface-container-high": "#292a2b", "tertiary-container": "#fc7c78", "error-container": "#93000a", "surface-container-low": "#1b1c1d", "primary-container": "#10b981", "on-tertiary-fixed": "#410005", "on-secondary-container": "#b4b4bd", "on-primary-fixed-variant": "#005236", "secondary-fixed": "#e1e2eb", "tertiary-fixed": "#ffdad7", "surface-dim": "#121314", "on-primary": "#003824", "inverse-on-surface": "#303031", "inverse-primary": "#006c49", "on-tertiary-fixed-variant": "#842225", "surface": "#121314", "outline": "#86948a", "surface-variant": "#343536", "surface-bright": "#39393a", "on-background": "#e3e2e3", "on-secondary-fixed": "#191b22", "secondary": "#c5c6cf", "on-primary-fixed": "#002113", "on-secondary-fixed-variant": "#45464e", "surface-container-lowest": "#0d0e0f", "secondary-container": "#45464e", "secondary-fixed-dim": "#c5c6cf", "on-surface-variant": "#bbcabf", "surface-container-highest": "#343536", "on-secondary": "#2e3037", "background": "#121314", "on-error": "#690005", "on-tertiary-container": "#711419", "inverse-surface": "#e3e2e3", "primary": "#4edea3", "on-error-container": "#ffdad6", "surface-tint": "#4edea3", "on-tertiary": "#650911", "on-primary-container": "#00422b", "outline-variant": "#3c4a42", "surface-container": "#1f2021" }, "borderRadius": { "DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px" }, "spacing": { "space-md": "1rem", "space-xl": "2rem", "margin": "1rem", "gutter": "1rem", "space-sm": "0.5rem", "space-xs": "0.25rem", "space-lg": "1.5rem" }, "fontFamily": { "label-sm": ["Be Vietnam Pro"], "headline-lg": ["Be Vietnam Pro"], "body-sm": ["Be Vietnam Pro"], "body-md": ["Be Vietnam Pro"], "display-hero": ["Be Vietnam Pro"], "headline-md": ["Be Vietnam Pro"], "body-lg": ["Be Vietnam Pro"], "headline-sm": ["Be Vietnam Pro"], "label-md": ["Be Vietnam Pro"], "numeric-stat": ["Be Vietnam Pro"] }, "fontSize": { "label-sm": ["11px", { "lineHeight": "14px", "fontWeight": "600" }], "headline-lg": ["28px", { "lineHeight": "34px", "fontWeight": "600" }], "body-sm": ["13px", { "lineHeight": "18px", "fontWeight": "400" }], "body-md": ["14px", { "lineHeight": "20px", "fontWeight": "400" }], "display-hero": ["40px", { "lineHeight": "48px", "fontWeight": "700" }], "headline-md": ["22px", { "lineHeight": "28px", "fontWeight": "600" }], "body-lg": ["16px", { "lineHeight": "24px", "fontWeight": "400" }], "headline-sm": ["18px", { "lineHeight": "24px", "fontWeight": "600" }], "label-md": ["12px", { "lineHeight": "16px", "fontWeight": "500" }], "numeric-stat": ["32px", { "lineHeight": "36px", "fontWeight": "700" }] } } } }</script><style>@layer base{html,body{width:100vw;margin:0;padding:0;background-color:#121314;color:#e3e2e3;}body{overscroll-behavior:none;-webkit-tap-highlight-color:transparent;}.pb-safe{padding-bottom:env(safe-area-inset-bottom,0px);}.pt-safe{padding-top:env(safe-area-inset-top,0px);}main>:first-child{margin-top:0!important;}main>:last-child{margin-bottom:0!important;}}::-webkit-scrollbar{display:none;}</style><style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head><body class="bg-surface font-body-md text-body-md text-on-surface antialiased flex flex-col min-h-screen"><header class="fixed top-0 w-full z-50 bg-surface/80 backdrop-blur-xl pt-safe shadow-[0_1px_8px_rgba(0,0,0,0.04)]"><div class="h-14 px-margin flex items-center justify-between"><div class="flex items-center gap-space-sm"><span class="material-symbols-outlined text-primary text-[24px]">all_inclusive</span><h1 class="font-headline-sm text-headline-sm text-on-surface tracking-tight">Community Explore</h1></div><div class="flex items-center gap-space-sm"><button aria-label="Search" class="w-11 h-11 flex items-center justify-center text-on-surface-variant hover:text-on-surface transition-colors"><span class="material-symbols-outlined text-[22px]">search</span></button><div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center"><span class="material-symbols-outlined text-on-primary text-[18px]">person</span></div></div></div></header><main class="flex-1 flex flex-col relative w-full pt-14 pb-20 bg-surface"><div class="flex flex-col w-full pb-6">
+<!-- Internal Navigation Bar / Discover Header -->
+<div class="flex items-center justify-between px-margin py-space-sm bg-surface">
+<div class="flex items-center gap-space-sm">
+<button aria-label="Quay lại bảng tin" class="w-10 h-10 -ml-1 rounded-xl flex items-center justify-center text-on-surface-variant hover:text-on-surface active:scale-95 transition-all" type="button">
+<span class="material-symbols-outlined text-[24px]">arrow_back</span>
+</button>
+<div>
+<h2 class="font-headline-sm text-headline-sm text-on-surface">Khám phá cộng đồng</h2>
+<p class="font-label-sm text-label-sm text-primary">Không gian truyền cảm hứng</p>
+</div>
+</div>
+<div class="flex items-center gap-1">
+<button aria-label="Bộ lọc tìm kiếm" class="w-10 h-10 rounded-xl bg-surface-container flex items-center justify-center text-on-surface-variant hover:text-primary transition-colors" type="button">
+<span class="material-symbols-outlined text-[20px]">tune</span>
+</button>
+</div>
+</div>
+<!-- Search Input Container -->
+<div class="px-margin pt-space-xs pb-space-sm">
+<div class="relative flex items-center w-full h-12 bg-surface-container rounded-xl px-space-md focus-within:bg-surface-container-high transition-colors">
+<span class="material-symbols-outlined text-outline text-[20px] mr-space-sm">search</span>
+<input class="w-full bg-transparent text-on-surface placeholder:text-outline text-body-md font-body-md focus:outline-none" placeholder="Tìm bài viết, chủ đề, thành viên…" type="search"/>
+<button aria-label="Voice search" class="text-outline hover:text-on-surface transition-colors ml-1" type="button">
+<span class="material-symbols-outlined text-[20px]">mic</span>
+</button>
+</div>
+</div>
+<!-- Horizontal Scrollable Topic Chips -->
+<div class="w-full overflow-x-auto no-scrollbar px-margin py-space-xs mb-space-sm">
+<div class="flex items-center gap-2 whitespace-nowrap" id="topic-chips-container">
+<button class="topic-chip active px-3.5 py-1.5 rounded-lg bg-surface-container-highest text-primary font-label-md text-label-md transition-all active:scale-95 flex items-center gap-1.5" data-topic="all" type="button">
+<span class="material-symbols-outlined text-[16px]" style="font-variation-settings: 'FILL' 1;">arrow_back_ios_new</span>
+        Tất cả
+      </button>
+<button class="topic-chip px-3.5 py-1.5 rounded-lg bg-surface-container text-on-surface-variant hover:text-on-surface font-label-md text-label-md transition-all active:scale-95 flex items-center gap-1" data-topic="workout" type="button">
+<span class="material-symbols-outlined text-[16px]">fitness_center</span>
+        Tập luyện
+      </button>
+<button class="topic-chip px-3.5 py-1.5 rounded-lg bg-surface-container text-on-surface-variant hover:text-on-surface font-label-md text-label-md transition-all active:scale-95 flex items-center gap-1" data-topic="meal" type="button">
+<span class="material-symbols-outlined text-[16px]">lunch_dining</span>
+        Bữa ăn
+      </button>
+<button class="topic-chip px-3.5 py-1.5 rounded-lg bg-surface-container text-on-surface-variant hover:text-on-surface font-label-md text-label-md transition-all active:scale-95 flex items-center gap-1" data-topic="recipe" type="button">
+<span class="material-symbols-outlined text-[16px]">menu_book</span>
+        Công thức
+      </button>
+<button class="topic-chip px-3.5 py-1.5 rounded-lg bg-surface-container text-on-surface-variant hover:text-on-surface font-label-md text-label-md transition-all active:scale-95 flex items-center gap-1" data-topic="qna" type="button">
+<span class="material-symbols-outlined text-[16px]">help_center</span>
+        Hỏi đáp
+      </button>
+<button class="topic-chip px-3.5 py-1.5 rounded-lg bg-surface-container text-on-surface-variant hover:text-on-surface font-label-md text-label-md transition-all active:scale-95 flex items-center gap-1" data-topic="journey" type="button">
+<span class="material-symbols-outlined text-[16px]">route</span>
+        Hành trình
+      </button>
+</div>
+</div>
+<!-- Section 1: 3-Column Visual Grid (3x3 curated feed) -->
+<div class="px-margin mb-space-lg">
+<div class="flex items-center justify-between mb-space-sm">
+<div class="flex items-center gap-1.5">
+<span class="material-symbols-outlined text-primary text-[18px]">grid_view</span>
+<span class="font-headline-sm text-headline-sm text-on-surface">Khoảnh khắc tiêu biểu</span>
+</div>
+<button class="font-label-md text-label-md text-primary flex items-center hover:underline" type="button">
+        Mới nhất
+        <span class="material-symbols-outlined text-[16px]">keyboard_arrow_right</span>
+</button>
+</div>
+<div class="grid grid-cols-3 gap-1.5 rounded-2xl overflow-hidden bg-surface-container-lowest p-1 shadow-md">
+<!-- Item 1: Multi-photo carousel badge item -->
+<div class="relative aspect-square rounded-xl overflow-hidden group bg-surface-container active:opacity-90">
+<img class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" data-alt="Athletic woman practicing high intensity interval kettlebell swings in a dimly lit industrial gym with crisp emerald ambient backlight and chalk dust suspended in air, high definition photography." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAuVuIv4aDO7xftf0A3U9SfmnYAzH_E03uxGohtgS_Xvi0v0wCZl4Gzrx_Xcjp5uN7s1k1GiKpYK9AFDU1h6FlPXIYwweUtxEih2MCQu03NqAz9EkrFup9B4UUMJRivPisvFbqJjww1QQAPQXjDombrybFEbVCORJItYN-bpZ-VqC-FPAeeTcoJTFV15lBd4pwIQ4GtdPYKcctgncU7kYVIFzNvmgUYZ9iwo0QIEaiD"/>
+<div class="absolute top-1.5 right-1.5 w-6 h-6 rounded-md bg-surface-dim/80 backdrop-blur-sm flex items-center justify-center text-on-surface shadow-sm">
+<span class="material-symbols-outlined text-[14px]">photo_library</span>
+</div>
+<div class="absolute inset-x-0 bottom-0 bg-gradient-to-t from-surface-dim/90 via-surface-dim/20 to-transparent p-1.5 flex items-center gap-1">
+<span class="material-symbols-outlined text-primary text-[12px]" style="font-variation-settings: 'FILL' 1;">favorite</span>
+<span class="font-label-sm text-[10px] text-on-surface leading-none">412</span>
+</div>
+</div>
+<!-- Item 2: Meal prep bowls -->
+<div class="relative aspect-square rounded-xl overflow-hidden group bg-surface-container active:opacity-90">
+<img class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" data-alt="Meticulously arranged healthy meal prep glass bento boxes with grilled chicken breast, wild purple rice, steamed broccoli florets and avocado slices, natural soft lighting on dark slate table." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDzccEFK78q27tIDhlLIDcnFa20qNTvEVYen8wL0p0iHkH-YbCCRlBmbq0u7wcYPVF4p18PbXxVy9vNh76LCZpdZbfAzIPN9FNz9lNbWCnIXGjIc0xwznJOAcjv1Y6AvuUwHpXl_xhb88vxEHp1kYSTi-8621LSAyx2sxqyA-D1rj0QyPYP-ZqdhLj5c1ARBcfRz9zYNxg6CAFB8KNlhJuaPT7IEGrkgdyg9ER9mEiS"/>
+<div class="absolute inset-x-0 bottom-0 bg-gradient-to-t from-surface-dim/90 via-surface-dim/20 to-transparent p-1.5 flex items-center gap-1">
+<span class="material-symbols-outlined text-primary text-[12px]" style="font-variation-settings: 'FILL' 1;">favorite</span>
+<span class="font-label-sm text-[10px] text-on-surface leading-none">820</span>
+</div>
+</div>
+<!-- Item 3: Gym heavy lifting barbell -->
+<div class="relative aspect-square rounded-xl overflow-hidden group bg-surface-container active:opacity-90">
+<img class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" data-alt="Muscular male athlete locking out heavy deadlift in clean modern gym with dark matte plates and green neon lighting accents, dramatic side rim light capturing kinetic energy." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBKepUUSWPqTS2f7k5r0AECz4y9EaMxDCRhs6lp1ZYKmaCe-tA9-pO3w-cHR2sHezhy6hFFQZQq1fUSsD3TqTGlzOI4appTt3TE3ycHj1ZczFcMdcqjaUge2Sxy8R-pu-M2u1Va8reuukH5Q5TeUUvupLNHv-iGDHysFxAExVW_vKBcO3uHMhbSV6Wha_suEmV7RY_Byc_iHRRb8h0c6hsZ0tQw6YJzMcjU48wjuO65"/>
+<div class="absolute inset-x-0 bottom-0 bg-gradient-to-t from-surface-dim/90 via-surface-dim/20 to-transparent p-1.5 flex items-center gap-1">
+<span class="material-symbols-outlined text-primary text-[12px]" style="font-variation-settings: 'FILL' 1;">favorite</span>
+<span class="font-label-sm text-[10px] text-on-surface leading-none">1.1k</span>
+</div>
+</div>
+<!-- Item 4: Vibrant nutrition smoothie -->
+<div class="relative aspect-square rounded-xl overflow-hidden group bg-surface-container active:opacity-90">
+<img class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" data-alt="Macro close up shot of layered green spirulina protein smoothie glass garnished with chia seeds and mint leaves against a minimalist dark concrete background with soft specular reflections." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBR_AKBzNUrqnoZjX9g4ZruKnhOAi-AuNIeGn9GNzCnnrnTOPamPHYHZ4dERqrte4LCjaNSr9wZiOUXJouPkFsNGLZf-Pvs3oQA7-KqvvVCbY5DayYVr0YhczZ8rrAWiuuiNQ35EfXMDpDjxdZlZm5rMLP-cFXQt0JNkeX3GTzGGIr4p8fjuQO9PlITR5WfObUt8rO1-B3rsa4Otji7cZ_d-GD9hnIhhyYANQubpved"/>
+<div class="absolute inset-x-0 bottom-0 bg-gradient-to-t from-surface-dim/90 via-surface-dim/20 to-transparent p-1.5 flex items-center gap-1">
+<span class="material-symbols-outlined text-primary text-[12px]" style="font-variation-settings: 'FILL' 1;">favorite</span>
+<span class="font-label-sm text-[10px] text-on-surface leading-none">640</span>
+</div>
+</div>
+<!-- Item 5: Runner stretching track -->
+<div class="relative aspect-square rounded-xl overflow-hidden group bg-surface-container active:opacity-90">
+<img class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" data-alt="Dedicated female runner stretching hamstrings on synthetic running track during early morning golden hour with calm serene mood and subtle cyan shadows." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAnzHTD-_CUBmlZpFxCJLurlObU_FAGyNkek6OJFH_PkMaI5AriwbJl6Ql6MpsYnY9HGwbs3SC4dIsLDyz89db8atc_zUH_4Zy4oOYJHUhPDXvAwj4XzMwq0Z7igeQyYD3cel5tj9ppUCMJ6sTYX8TYqboHb55Lv3koa9pjqyn5wka3vi1861cLpOLEG0gjXmVubvejr-8Rqzt8FgfgMGks6wN5gYU_48kuDy-oSrlL"/>
+<div class="absolute top-1.5 right-1.5 w-6 h-6 rounded-md bg-surface-dim/80 backdrop-blur-sm flex items-center justify-center text-on-surface shadow-sm">
+<span class="material-symbols-outlined text-[14px]">play_circle</span>
+</div>
+<div class="absolute inset-x-0 bottom-0 bg-gradient-to-t from-surface-dim/90 via-surface-dim/20 to-transparent p-1.5 flex items-center gap-1">
+<span class="material-symbols-outlined text-primary text-[12px]" style="font-variation-settings: 'FILL' 1;">favorite</span>
+<span class="font-label-sm text-[10px] text-on-surface leading-none">954</span>
+</div>
+</div>
+<!-- Item 6: Clean macro lunch bowl -->
+<div class="relative aspect-square rounded-xl overflow-hidden group bg-surface-container active:opacity-90">
+<img class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" data-alt="Top down gourmet overhead view of high protein salmon poke bowl with edamame, sesame, cucumber and pickled ginger in matte black ceramic dish with natural diffused warm lighting." src="https://lh3.googleusercontent.com/aida-public/AB6AXuC1jnHt30cLbOPKeK_LrC7xGr90A1knGkNmBhXdd9kPfLfTN2sHjeAiUVg77R_f4jswFuPB7W-opfnDUFuTJVWFxBiJDEmqTJmRR2nF2Ih-JRk9LP5qHBz7IjT2Dh1Pqd1zx_KTLf897WndNR92hdIKN3AbuWvQdGhlcl5-SAdrv2b6kTVihnrJwn28Rdbf_cUXi4L_Z-WQTUjlbnZusAkAwnL2yV5Qs6PSdHBk0OE0"/>
+<div class="absolute inset-x-0 bottom-0 bg-gradient-to-t from-surface-dim/90 via-surface-dim/20 to-transparent p-1.5 flex items-center gap-1">
+<span class="material-symbols-outlined text-primary text-[12px]" style="font-variation-settings: 'FILL' 1;">favorite</span>
+<span class="font-label-sm text-[10px] text-on-surface leading-none">530</span>
+</div>
+</div>
+<!-- Item 7: Core calisthenics workout -->
+<div class="relative aspect-square rounded-xl overflow-hidden group bg-surface-container active:opacity-90">
+<img class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" data-alt="Athlete performing flawless calisthenics human flag on gym parallel bars with defined muscular back anatomy, high contrast black background with subtle emerald highlight." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDSnk3GYGaGaeFMv6YZqdjSf7u-Vj6LUq6ZzUhqEliJOtCPb0U2Bg_dD-MKwffw-1cbKwXcvDStCoWWF3-DQ8JGkyQCa2FWc3iHORkHfmHMFqZwFLMy_0zyt82fV4BeICNCi9mZjMk3AEQqVsp34mI6_3HwBuDeiZWxe57Ujt-BP5BQZ21_g9zsfQhSVP7XaqW7pgGc7eEOGjJv-Ld_arfugMBtk9WvukylwKbL2g-R"/>
+<div class="absolute inset-x-0 bottom-0 bg-gradient-to-t from-surface-dim/90 via-surface-dim/20 to-transparent p-1.5 flex items-center gap-1">
+<span class="material-symbols-outlined text-primary text-[12px]" style="font-variation-settings: 'FILL' 1;">favorite</span>
+<span class="font-label-sm text-[10px] text-on-surface leading-none">1.5k</span>
+</div>
+</div>
+<!-- Item 8: Healthy overnight oats prep -->
+<div class="relative aspect-square rounded-xl overflow-hidden group bg-surface-container active:opacity-90">
+<img class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" data-alt="Artisanal glass jar with overnight protein oatmeal topped with dark blueberries, sliced organic bananas, and crushed almonds with subtle kitchen morning sunlight ambience." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBiivBBj90l1DN1uVjqfZmSQbMj3-UOiAJb92DgVurMOueFKidSvgum2ioJL870ZyDdyv4tCW0_H1oaBhFK3uozUV3_okW_d1ET4HrfF65LLnrAx8EQzFQU8wTFre6gRNOj9GJx-xWmz3QyFci6pkH3h9rI6jMH6N2M0So1KgcQpF8NriwXnWQqclKSc7Gy0aCu2YckPx6n6k8oQJnDPbpoUV31CleLx-30MZVEkbN3"/>
+<div class="absolute inset-x-0 bottom-0 bg-gradient-to-t from-surface-dim/90 via-surface-dim/20 to-transparent p-1.5 flex items-center gap-1">
+<span class="material-symbols-outlined text-primary text-[12px]" style="font-variation-settings: 'FILL' 1;">favorite</span>
+<span class="font-label-sm text-[10px] text-on-surface leading-none">789</span>
+</div>
+</div>
+<!-- Item 9: Post-workout hydration & gear -->
+<div class="relative aspect-square rounded-xl overflow-hidden group bg-surface-container active:opacity-90">
+<img class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" data-alt="Minimalist fitness composition with stainless steel insulated shaker, gym straps, leather lifting belt and smart watch resting on dark textured gym mat under moody low key lighting." src="https://lh3.googleusercontent.com/aida-public/AB6AXuC_KTAwsA6h6gPLx7rFPoB4bzfuC8MH03cdpSp706OlYNqrCR_o6pbKxpSBOV_pT58Aip-H0kOxt8MxagiLa48fP4NqJyLWdDmstqTWUXex_PRvI_wWlNYMxW6ZxVO6TsSxHU0tE0Ktitc_ulkEFHhKlaiDyNKw93gAcCKKeoyPpen_D6BW49-ZiQUNhfqTwupISAk6RROGFMT3rVfmumFXWW9ASFHhVMOIytO3j9Dg"/>
+<div class="absolute inset-x-0 bottom-0 bg-gradient-to-t from-surface-dim/90 via-surface-dim/20 to-transparent p-1.5 flex items-center gap-1">
+<span class="material-symbols-outlined text-primary text-[12px]" style="font-variation-settings: 'FILL' 1;">favorite</span>
+<span class="font-label-sm text-[10px] text-on-surface leading-none">320</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Section 2: Trending Topics ('Chủ đề đang được quan tâm') -->
+<div class="px-margin mb-space-lg">
+<div class="flex items-center justify-between mb-space-sm">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-primary text-[20px]">trending_up</span>
+<h3 class="font-headline-sm text-headline-sm text-on-surface">Chủ đề đang được quan tâm</h3>
+</div>
+<span class="font-label-sm text-label-sm text-on-surface-variant">Thịnh hành</span>
+</div>
+<div class="space-y-2">
+<!-- Trend 1 -->
+<div class="flex items-center justify-between p-space-md bg-surface-container rounded-xl hover:bg-surface-container-high transition-all active:scale-[0.99] cursor-pointer">
+<div class="flex items-center gap-space-md min-w-0">
+<div class="w-10 h-10 rounded-xl bg-surface-container-high flex items-center justify-center text-primary shrink-0">
+<span class="material-symbols-outlined text-[20px]">bento</span>
+</div>
+<div class="min-w-0">
+<h4 class="font-headline-sm text-[15px] font-semibold text-on-surface truncate">#MealPrepCuoiTuan</h4>
+<p class="font-label-md text-label-md text-on-surface-variant flex items-center gap-1">
+<span class="w-1.5 h-1.5 rounded-full bg-primary inline-block"></span>
+              1.2k bài viết thảo luận
+            </p>
+</div>
+</div>
+<div class="flex items-center gap-2 text-on-surface-variant shrink-0">
+<span class="font-label-sm text-label-sm px-2 py-1 bg-surface-container-highest rounded-md text-primary">+28%</span>
+<span class="material-symbols-outlined text-[18px]">chevron_right</span>
+</div>
+</div>
+<!-- Trend 2 -->
+<div class="flex items-center justify-between p-space-md bg-surface-container rounded-xl hover:bg-surface-container-high transition-all active:scale-[0.99] cursor-pointer">
+<div class="flex items-center gap-space-md min-w-0">
+<div class="w-10 h-10 rounded-xl bg-surface-container-high flex items-center justify-center text-primary shrink-0">
+<span class="material-symbols-outlined text-[20px]">offline_bolt</span>
+</div>
+<div class="min-w-0">
+<h4 class="font-headline-sm text-[15px] font-semibold text-on-surface truncate">#TangCoGiamMo</h4>
+<p class="font-label-md text-label-md text-on-surface-variant flex items-center gap-1">
+<span class="w-1.5 h-1.5 rounded-full bg-primary inline-block"></span>
+              3.4k bài viết thảo luận
+            </p>
+</div>
+</div>
+<div class="flex items-center gap-2 text-on-surface-variant shrink-0">
+<span class="font-label-sm text-label-sm px-2 py-1 bg-surface-container-highest rounded-md text-primary">+45%</span>
+<span class="material-symbols-outlined text-[18px]">chevron_right</span>
+</div>
+</div>
+<!-- Trend 3 -->
+<div class="flex items-center justify-between p-space-md bg-surface-container rounded-xl hover:bg-surface-container-high transition-all active:scale-[0.99] cursor-pointer">
+<div class="flex items-center gap-space-md min-w-0">
+<div class="w-10 h-10 rounded-xl bg-surface-container-high flex items-center justify-center text-primary shrink-0">
+<span class="material-symbols-outlined text-[20px]">nutrition</span>
+</div>
+<div class="min-w-0">
+<h4 class="font-headline-sm text-[15px] font-semibold text-on-surface truncate">#HoiDapDinhDuong</h4>
+<p class="font-label-md text-label-md text-on-surface-variant flex items-center gap-1">
+<span class="w-1.5 h-1.5 rounded-full bg-primary inline-block"></span>
+              890 bài viết thảo luận
+            </p>
+</div>
+</div>
+<div class="flex items-center gap-2 text-on-surface-variant shrink-0">
+<span class="font-label-sm text-label-sm px-2 py-1 bg-surface-container-highest rounded-md text-on-surface-variant">Ổn định</span>
+<span class="material-symbols-outlined text-[18px]">chevron_right</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Section 3: Recommended Creators to Follow ('Có thể bạn muốn theo dõi') -->
+<div class="px-margin mb-space-md">
+<div class="flex items-center justify-between mb-space-sm">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-primary text-[20px]">person_add</span>
+<h3 class="font-headline-sm text-headline-sm text-on-surface">Có thể bạn muốn theo dõi</h3>
+</div>
+<button class="font-label-md text-label-md text-on-surface-variant hover:text-on-surface" type="button">Xem tất cả</button>
+</div>
+<div class="space-y-3">
+<!-- User 1: Hoàng Long -->
+<div class="p-space-md bg-surface-container rounded-2xl flex items-center justify-between gap-space-sm">
+<div class="flex items-center gap-space-sm min-w-0">
+<div class="relative w-12 h-12 rounded-full overflow-hidden shrink-0 bg-surface-container-highest ring-2 ring-primary/20">
+<img class="w-full h-full object-cover" data-alt="Portrait headshot of confident Vietnamese male fitness coach with short trim haircut, wearing athletic tech t-shirt against dark gym lighting, professional fitness coach look." src="https://lh3.googleusercontent.com/aida-public/AB6AXuA6cZ_V7KN9HbZyArcWKcozKnsg5RSa_Gucn7dG6juN_8a5w8-Mssda8CSdo2UsXESERkTIrDtfvChPLNg_G4G219692mBC3vIs-fnNask7wDs8tOXJSN-EyKOHr9K-lZBw94IShjCysREQF_5EaHndOx-TE-qzPqQtDX7Dd3p6FpdQb_hKZ_COEasDWokX5kzh0taBWWcYwMpKsws0pZfl30Xv8TWFeDsGPGAqNo65"/>
+<div class="absolute bottom-0 right-0 w-3.5 h-3.5 rounded-full bg-primary flex items-center justify-center border-2 border-surface">
+<span class="material-symbols-outlined text-on-primary text-[8px]" style="font-variation-settings: 'FILL' 1;">check</span>
+</div>
+</div>
+<div class="min-w-0">
+<div class="flex items-center gap-1.5">
+<h4 class="font-headline-sm text-[15px] font-semibold text-on-surface truncate">Hoàng Long</h4>
+<span class="material-symbols-outlined text-primary text-[16px]" style="font-variation-settings: 'FILL' 1;">verified</span>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant truncate">HLV Thể lực &amp; Sức bền</p>
+<p class="font-label-sm text-[11px] text-outline mt-0.5">14.8k người theo dõi</p>
+</div>
+</div>
+<button class="follow-btn shrink-0 px-3.5 py-2 rounded-xl bg-primary text-on-primary font-label-md text-label-md font-semibold active:scale-95 transition-all flex items-center gap-1" onclick="toggleFollow(this)" type="button">
+<span class="material-symbols-outlined text-[16px]">add</span>
+<span>Theo dõi</span>
+</button>
+</div>
+<!-- User 2: Thảo Mai -->
+<div class="p-space-md bg-surface-container rounded-2xl flex items-center justify-between gap-space-sm">
+<div class="flex items-center gap-space-sm min-w-0">
+<div class="relative w-12 h-12 rounded-full overflow-hidden shrink-0 bg-surface-container-highest ring-2 ring-primary/20">
+<img class="w-full h-full object-cover" data-alt="Warm welcoming portrait of young Asian female healthy food influencer with gentle radiant smile, natural soft daylight, wearing sage green activewear, nutrition lifestyle creator." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBukyG5SXs6qPL0qIu9rhGnm9EJDOg6042IpzsvtiTY1yF8Oe1WVkbLYnJ1B1Yd2WiGp90H0WfyaE2LB6z4W4uKljjEFJWUKL_iiaF40rotbIBxVyn-6ffXDmf4apsVCMIwK92zFnCihOOd-nPQjpP8_vBDUFUDnoyZ1wX4GSatAQ04a_cJB_6U8AAc0E_cCvPvOZ2RPwezHc9I665ntxR7BBpjXG0kpVlg5mx7n-uE"/>
+<div class="absolute bottom-0 right-0 w-3.5 h-3.5 rounded-full bg-primary flex items-center justify-center border-2 border-surface">
+<span class="material-symbols-outlined text-on-primary text-[8px]" style="font-variation-settings: 'FILL' 1;">check</span>
+</div>
+</div>
+<div class="min-w-0">
+<div class="flex items-center gap-1.5">
+<h4 class="font-headline-sm text-[15px] font-semibold text-on-surface truncate">Thảo Mai</h4>
+<span class="material-symbols-outlined text-primary text-[16px]" style="font-variation-settings: 'FILL' 1;">verified</span>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant truncate">Đam mê nấu ăn lành mạnh &amp; Gym</p>
+<p class="font-label-sm text-[11px] text-outline mt-0.5">8.9k người theo dõi</p>
+</div>
+</div>
+<button class="follow-btn shrink-0 px-3.5 py-2 rounded-xl bg-primary text-on-primary font-label-md text-label-md font-semibold active:scale-95 transition-all flex items-center gap-1" onclick="toggleFollow(this)" type="button">
+<span class="material-symbols-outlined text-[16px]">add</span>
+<span>Theo dõi</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Dedicated Community Bottom Navigation Bar -->
+<div class="fixed bottom-0 inset-x-0 z-50 bg-surface-container-lowest/90 backdrop-blur-xl border-t border-surface-container-high pb-safe">
+<div class="flex justify-around items-center h-16 max-w-md mx-auto px-space-sm">
+<!-- Tab 1: Bảng tin -->
+<a class="flex flex-col items-center justify-center flex-1 h-full text-on-surface-variant hover:text-on-surface transition-colors group" href="#">
+<span class="material-symbols-outlined text-[22px] group-hover:scale-105 transition-transform">dynamic_feed</span>
+<span class="font-label-sm text-label-sm mt-0.5">Bảng tin</span>
+</a>
+<!-- Tab 2: Khám phá (ACTIVE - Emerald Highlighted) -->
+<a class="flex flex-col items-center justify-center flex-1 h-full text-primary font-medium group relative" href="#">
+<span class="material-symbols-outlined text-[24px] scale-110" style="font-variation-settings: 'FILL' 1;">explore</span>
+<span class="font-label-sm text-label-sm mt-0.5 font-bold text-primary">Khám phá</span>
+<span class="absolute bottom-1 w-1 h-1 rounded-full bg-primary"></span>
+</a>
+<!-- Tab 3: Tạo bài viết (FAB) -->
+<a class="flex flex-col items-center justify-center flex-1 h-full group" href="#">
+<div class="w-10 h-10 rounded-xl bg-primary flex items-center justify-center shadow-lg active:scale-90 transition-transform">
+<span class="material-symbols-outlined text-on-primary text-[22px] font-bold">add</span>
+</div>
+</a>
+<!-- Tab 4: Hoạt động -->
+<a class="flex flex-col items-center justify-center flex-1 h-full text-on-surface-variant hover:text-on-surface transition-colors group relative" href="#">
+<span class="material-symbols-outlined text-[22px] group-hover:scale-105 transition-transform">notifications</span>
+<span class="font-label-sm text-label-sm mt-0.5">Thông báo</span>
+<span class="absolute top-2.5 right-6 w-2 h-2 rounded-full bg-primary"></span>
+</a>
+<!-- Tab 5: Hồ sơ cá nhân -->
+<a class="flex flex-col items-center justify-center flex-1 h-full text-on-surface-variant hover:text-on-surface transition-colors group" href="#">
+<div class="w-6 h-6 rounded-full bg-surface-container-high flex items-center justify-center overflow-hidden mb-0.5">
+<span class="material-symbols-outlined text-[16px]">person</span>
+</div>
+<span class="font-label-sm text-label-sm">Cá nhân</span>
+</a>
+</div>
+</div>
+</div>
+<script>
+  // Topic Chip active state switcher micro-interaction
+  document.querySelectorAll('.topic-chip').forEach(chip => {
+    chip.addEventListener('click', function() {
+      document.querySelectorAll('.topic-chip').forEach(c => {
+        c.classList.remove('bg-surface-container-highest', 'text-primary');
+        c.classList.add('bg-surface-container', 'text-on-surface-variant');
+      });
+      this.classList.remove('bg-surface-container', 'text-on-surface-variant');
+      this.classList.add('bg-surface-container-highest', 'text-primary');
+    });
+  });
+
+  // Toggle follow button state
+  function toggleFollow(btn) {
+    const isFollowing = btn.classList.contains('bg-surface-container-high');
+    if (isFollowing) {
+      btn.className = 'follow-btn shrink-0 px-3.5 py-2 rounded-xl bg-primary text-on-primary font-label-md text-label-md font-semibold active:scale-95 transition-all flex items-center gap-1';
+      btn.innerHTML = '<span class="material-symbols-outlined text-[16px]">add</span><span>Theo dõi</span>';
+    } else {
+      btn.className = 'follow-btn shrink-0 px-3.5 py-2 rounded-xl bg-surface-container-high text-on-surface-variant font-label-md text-label-md font-medium active:scale-95 transition-all flex items-center gap-1';
+      btn.innerHTML = '<span class="material-symbols-outlined text-[16px] text-primary" style="font-variation-settings: \'FILL\' 1;">check</span><span>Đang theo dõi</span>';
+    }
+  }
+</script></main><nav class="fixed bottom-0 w-full z-50 pb-safe bg-surface/85 backdrop-blur-xl shadow-[0_-2px_12px_rgba(0,0,0,0.25)]" data-active-classes="text-primary font-medium"><div class="flex justify-between items-center h-16 px-space-xs"><a class="flex flex-col items-center justify-center min-w-[56px] h-11 px-space-xs text-on-surface-variant hover:text-on-surface transition-colors" data-path="community-feed" href="#"><span class="material-symbols-outlined text-[22px]">dynamic_feed</span><span class="font-label-sm text-label-sm tracking-tight">Bảng tin</span></a><a aria-current="page" class="flex flex-col items-center justify-center min-w-[56px] h-11 px-space-xs transition-colors text-primary font-medium" data-path="community-explore" href="#"><span class="material-symbols-outlined text-[22px]">explore</span><span class="font-label-sm text-label-sm tracking-tight">Khám phá</span></a><a class="flex flex-col items-center justify-center min-w-[56px] h-11 px-space-xs group" data-path="community-create-post" href="#"><div class="w-11 h-11 rounded-xl bg-primary flex items-center justify-center shadow-lg active:scale-95 transition-transform"><span class="material-symbols-outlined text-on-primary text-[24px]">add</span></div></a><a class="flex flex-col items-center justify-center min-w-[56px] h-11 px-space-xs text-on-surface-variant hover:text-on-surface transition-colors" data-path="community-notifications" href="#"><span class="material-symbols-outlined text-[22px]">notifications</span><span class="font-label-sm text-label-sm tracking-tight">Thông báo</span></a><a class="flex flex-col items-center justify-center min-w-[56px] h-11 px-space-xs text-on-surface-variant hover:text-on-surface transition-colors" data-path="community-profile" href="#"><div class="w-6 h-6 rounded-full bg-surface-container-highest flex items-center justify-center overflow-hidden mb-0.5"><span class="material-symbols-outlined text-on-surface text-[16px]">person</span></div><span class="font-label-sm text-label-sm tracking-tight">Cá nhân</span></a></div></nav></body></html>

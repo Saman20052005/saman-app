@@ -1,6 +1,10 @@
 import 'dart:async';
+import 'dart:io';
+import 'dart:ui' as ui;
+import 'package:flutter/rendering.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:health_ai_app/models/nutrition_model.dart';
 import 'package:health_ai_app/providers/nutrition_provider.dart';
@@ -11,6 +15,7 @@ import 'package:health_ai_app/config/app_theme.dart';
 import 'package:health_ai_app/screens/food_log_screen.dart';
 import 'package:health_ai_app/screens/nutrition/meal_story_screen.dart';
 import 'package:health_ai_app/screens/nutrition/nutrition_screen.dart';
+import 'package:health_ai_app/features/nutrition/presentation/widgets/nutrition_home_components.dart';
 import 'package:health_ai_app/screens/nutrition/widgets/date_selector.dart';
 import 'package:health_ai_app/screens/nutrition/widgets/log_meal_sheet.dart';
 import 'package:health_ai_app/screens/nutrition/widgets/nutrition_summary.dart';
@@ -206,6 +211,7 @@ Widget createTestWidget({
   bool profileValid = true,
   int targetCalories = 2300,
   int waterTargetMl = 2000,
+  Locale? locale,
 }) {
   final plan = planState ?? AsyncValue.data(createSamplePlan());
   final notifier = customNutritionNotifier ?? TestNutritionNotifier(plan);
@@ -222,6 +228,17 @@ Widget createTestWidget({
     child: MaterialApp(
       debugShowCheckedModeBanner: false,
       theme: SamanTheme.dark(),
+      locale: locale,
+      supportedLocales: const [Locale('en'), Locale('vi')],
+      builder: (context, child) => RepaintBoundary(
+        key: const ValueKey('nutrition_screen_repaint_boundary'),
+        child: child!,
+      ),
+      localizationsDelegates: const [
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
       home: const NutritionScreen(),
     ),
   );
@@ -265,7 +282,7 @@ void main() {
       expect(find.byIcon(Icons.camera_alt_outlined), findsOneWidget);
 
       // 5. Logged Meals Section
-      expect(find.text('LOGGED MEALS'), findsOneWidget);
+      expect(find.text('Logged meals'), findsOneWidget);
       expect(find.text('Meal Story'), findsOneWidget);
       expect(find.byType(NutritionLoggedMealCard), findsNWidgets(2));
       expect(find.text('Rolled Oats with Greek Yogurt & Berries'), findsOneWidget);
@@ -295,8 +312,105 @@ void main() {
       await tester.pumpWidget(createTestWidget(planState: AsyncValue.data(emptyPlan)));
       await tester.pumpAndSettle();
 
-      expect(find.text('Chưa có bữa ăn nào được ghi hôm nay'), findsOneWidget);
+      expect(find.byType(NutritionEmptyMeals), findsOneWidget);
+      expect(find.text('DAILY FOOD JOURNAL'), findsOneWidget);
+      expect(find.text('Your next healthy habit'), findsOneWidget);
+      expect(find.text('No meals logged today.'), findsOneWidget);
+      expect(find.text('Start with your first meal.'), findsOneWidget);
       expect(find.byType(NutritionLoggedMealCard), findsNothing);
+    });
+
+    testWidgets('Renders Vietnamese localized empty logged meals state and header', (tester) async {
+      final emptyPlan = createSamplePlan().copyWith(entries: [], totalCaloriesConsumed: 0, totalProteinConsumed: 0, totalCarbsConsumed: 0, totalFatConsumed: 0);
+
+      await tester.pumpWidget(createTestWidget(
+        planState: AsyncValue.data(emptyPlan),
+        locale: const Locale('vi'),
+      ));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(NutritionEmptyMeals), findsOneWidget);
+      expect(find.text('Bữa ăn đã ghi'), findsOneWidget);
+      expect(find.text('NHẬT KÝ DINH DƯỠNG'), findsOneWidget);
+      expect(find.text('Bắt đầu thói quen ăn uống lành mạnh'), findsOneWidget);
+      expect(find.text('Hôm nay bạn chưa ghi bữa ăn nào.'), findsOneWidget);
+      expect(find.text('Bắt đầu với bữa ăn đầu tiên của bạn.'), findsOneWidget);
+    });
+
+    testWidgets('Renders other-day copy when selected date is in the past', (tester) async {
+      final pastDate = DateTime(2026, 10, 15);
+      await tester.pumpWidget(MaterialApp(
+        locale: const Locale('en'),
+        supportedLocales: const [Locale('en'), Locale('vi')],
+        localizationsDelegates: const [
+          GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+        ],
+        home: Scaffold(
+          body: NutritionEmptyMeals(selectedDate: pastDate),
+        ),
+      ));
+      await tester.pumpAndSettle();
+
+      expect(find.text('No meals logged for this day.'), findsOneWidget);
+      expect(find.text('No meals logged today.'), findsNothing);
+
+      await tester.pumpWidget(MaterialApp(
+        locale: const Locale('vi'),
+        supportedLocales: const [Locale('en'), Locale('vi')],
+        localizationsDelegates: const [
+          GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+        ],
+        home: Scaffold(
+          body: NutritionEmptyMeals(selectedDate: pastDate),
+        ),
+      ));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Chưa có bữa ăn nào được ghi cho ngày này.'), findsOneWidget);
+      expect(find.text('Hôm nay bạn chưa ghi bữa ăn nào.'), findsNothing);
+    });
+
+    testWidgets('NutritionEmptyMeals handles non-existent image fallback gracefully without crash', (tester) async {
+      await tester.pumpWidget(const MaterialApp(
+        supportedLocales: [Locale('en'), Locale('vi')],
+        home: Scaffold(
+          body: NutritionEmptyMeals(asset: 'assets/images/non_existent.webp'),
+        ),
+      ));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(NutritionEmptyMeals), findsOneWidget);
+      expect(find.text('Your next healthy habit'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('NutritionEmptyMeals layout responsive across widths (320, 360, 390, 430) and 200% text scale', (tester) async {
+      for (final width in [320.0, 360.0, 390.0, 430.0]) {
+        tester.view.physicalSize = Size(width * 2.0, 800 * 2.0);
+        tester.view.devicePixelRatio = 2.0;
+        tester.platformDispatcher.textScaleFactorTestValue = 2.0;
+
+        await tester.pumpWidget(const MaterialApp(
+          supportedLocales: [Locale('en'), Locale('vi')],
+          home: Scaffold(
+            body: SingleChildScrollView(
+              child: NutritionEmptyMeals(),
+            ),
+          ),
+        ));
+        await tester.pumpAndSettle();
+
+        expect(tester.takeException(), isNull);
+        expect(find.text('Your next healthy habit'), findsOneWidget);
+        expect(find.text('No meals logged today.'), findsOneWidget);
+      }
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+      tester.platformDispatcher.clearTextScaleFactorTestValue();
     });
 
     testWidgets('Renders loading skeleton view during loading state', (tester) async {
@@ -309,7 +423,7 @@ void main() {
 
     testWidgets('Renders error view with retry action on error state', (tester) async {
       await tester.pumpWidget(createTestWidget(
-        planState: AsyncValue.error('Network unreachable', StackTrace.empty),
+        planState: const AsyncValue.error('Network unreachable', StackTrace.empty),
       ));
       await tester.pumpAndSettle();
 
@@ -356,6 +470,7 @@ void main() {
       await tester.pumpAndSettle();
 
       // Tap Review & log button
+      await tester.ensureVisible(find.text('Review & log'));
       await tester.tap(find.text('Review & log'));
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 300));
@@ -383,6 +498,7 @@ void main() {
       await tester.pumpAndSettle();
 
       // Open sheet
+      await tester.ensureVisible(find.text('Review & log'));
       await tester.tap(find.text('Review & log'));
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 300));
@@ -422,6 +538,7 @@ void main() {
       await tester.pumpAndSettle();
 
       // Open sheet
+      await tester.ensureVisible(find.text('Review & log'));
       await tester.tap(find.text('Review & log'));
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 300));
@@ -453,6 +570,7 @@ void main() {
       expect(initialLoadCalls, 1);
 
       // First water tap
+      await tester.ensureVisible(find.text('250 ml'));
       await tester.tap(find.text('250 ml'));
       await tester.pump(); // Sets _isWaterUpdating = true
 
@@ -464,6 +582,7 @@ void main() {
       expect(notifier.updateWaterCalls, 1); // Still 1
 
       // Tap date navigation (chevron left) while water update is in flight
+      await tester.ensureVisible(find.byIcon(Icons.chevron_left));
       await tester.tap(find.byIcon(Icons.chevron_left));
       await tester.pump();
 
@@ -623,4 +742,243 @@ void main() {
       expect(find.text('20g over'), findsOneWidget);
     });
   });
+
+  Future<void> captureScreen(WidgetTester tester, String name) async {
+    final boundary = tester.renderObject<RenderRepaintBoundary>(
+        find.byKey(const ValueKey('nutrition_screen_repaint_boundary')));
+    await tester.runAsync(() async {
+      final image = await boundary.toImage(pixelRatio: 2.0);
+      final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
+      final dir = Directory(
+          'd:/SamanDev/workspace/saman-main-verified-CP26_20261025_072840/runtime_evidence/CP-NUTRITION-LOGGED-MEALS-UI-01/screenshots');
+      if (!dir.existsSync()) dir.createSync(recursive: true);
+      final file = File('${dir.path}/$name.png');
+      file.writeAsBytesSync(byteData!.buffer.asUint8List());
+      image.dispose();
+    });
+  }
+
+  group('Checkpoint CP-NUTRITION-LOGGED-MEALS-UI-01 Screenshot Capture', () {
+    testWidgets('Capture runtime screenshots for evidence verification', (tester) async {
+      tester.view.physicalSize = const Size(390 * 2.0, 920 * 2.0);
+      tester.view.devicePixelRatio = 2.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      final emptyPlan = createSamplePlan().copyWith(
+        entries: [],
+        totalCaloriesConsumed: 0,
+        totalProteinConsumed: 0,
+        totalCarbsConsumed: 0,
+        totalFatConsumed: 0,
+      );
+
+      // 1. Empty state today EN
+      await tester.pumpWidget(createTestWidget(
+        planState: AsyncValue.data(emptyPlan),
+        locale: const Locale('en'),
+      ));
+      await tester.pumpAndSettle();
+      if (find.byType(NutritionEmptyMeals).evaluate().isNotEmpty) {
+        await tester.runAsync(() => precacheImage(
+              const AssetImage(NutritionEmptyMeals.defaultAsset),
+              tester.element(find.byType(NutritionEmptyMeals)),
+            ));
+      }
+      await tester.pumpAndSettle();
+      await captureScreen(tester, 'runtime_empty_today_en');
+
+      // 2. Empty state today VI
+      await tester.pumpWidget(createTestWidget(
+        planState: AsyncValue.data(emptyPlan),
+        locale: const Locale('vi'),
+      ));
+      await tester.pumpAndSettle();
+      if (find.byType(NutritionEmptyMeals).evaluate().isNotEmpty) {
+        await tester.runAsync(() => precacheImage(
+              const AssetImage(NutritionEmptyMeals.defaultAsset),
+              tester.element(find.byType(NutritionEmptyMeals)),
+            ));
+      }
+      await tester.pumpAndSettle();
+      await captureScreen(tester, 'runtime_empty_today_vi');
+
+      // 3. Populated state
+      await tester.pumpWidget(createTestWidget(
+        planState: AsyncValue.data(createSamplePlan()),
+        locale: const Locale('vi'),
+      ));
+      await tester.pumpAndSettle();
+      await captureScreen(tester, 'runtime_populated_state');
+
+      // 4. Past day VI (direct card view)
+      final pastDate = DateTime(2026, 10, 15);
+      await tester.pumpWidget(MaterialApp(
+        locale: const Locale('vi'),
+        supportedLocales: const [Locale('en'), Locale('vi')],
+        localizationsDelegates: const [
+          GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+        ],
+        builder: (context, child) => RepaintBoundary(
+          key: const ValueKey('nutrition_screen_repaint_boundary'),
+          child: child!,
+        ),
+        home: Scaffold(
+          backgroundColor: const Color(0xFF0C0D0E),
+          body: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                NutritionMealsHeading(onMealStory: () {}),
+                const SizedBox(height: 10),
+                NutritionEmptyMeals(selectedDate: pastDate),
+              ],
+            ),
+          ),
+        ),
+      ));
+      await tester.pumpAndSettle();
+      if (find.byType(NutritionEmptyMeals).evaluate().isNotEmpty) {
+        await tester.runAsync(() => precacheImage(
+              const AssetImage(NutritionEmptyMeals.defaultAsset),
+              tester.element(find.byType(NutritionEmptyMeals)),
+            ));
+      }
+      await tester.pumpAndSettle();
+      await captureScreen(tester, 'runtime_empty_past_day_vi');
+
+      // 5. Past day EN (direct card view)
+      await tester.pumpWidget(MaterialApp(
+        locale: const Locale('en'),
+        supportedLocales: const [Locale('en'), Locale('vi')],
+        localizationsDelegates: const [
+          GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+        ],
+        builder: (context, child) => RepaintBoundary(
+          key: const ValueKey('nutrition_screen_repaint_boundary'),
+          child: child!,
+        ),
+        home: Scaffold(
+          backgroundColor: const Color(0xFF0C0D0E),
+          body: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                NutritionMealsHeading(onMealStory: () {}),
+                const SizedBox(height: 10),
+                NutritionEmptyMeals(selectedDate: pastDate),
+              ],
+            ),
+          ),
+        ),
+      ));
+      await tester.pumpAndSettle();
+      if (find.byType(NutritionEmptyMeals).evaluate().isNotEmpty) {
+        await tester.runAsync(() => precacheImage(
+              const AssetImage(NutritionEmptyMeals.defaultAsset),
+              tester.element(find.byType(NutritionEmptyMeals)),
+            ));
+      }
+      await tester.pumpAndSettle();
+      await captureScreen(tester, 'runtime_empty_past_day_en');
+
+      // 6. Focused Card Comparison Crop
+      await tester.pumpWidget(MaterialApp(
+        locale: const Locale('en'),
+        supportedLocales: const [Locale('en'), Locale('vi')],
+        localizationsDelegates: const [
+          GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+        ],
+        builder: (context, child) => RepaintBoundary(
+          key: const ValueKey('nutrition_screen_repaint_boundary'),
+          child: child!,
+        ),
+        home: Scaffold(
+          backgroundColor: const Color(0xFF0C0D0E),
+          body: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                NutritionMealsHeading(onMealStory: () {}),
+                const SizedBox(height: 10),
+                const NutritionEmptyMeals(),
+              ],
+            ),
+          ),
+        ),
+      ));
+      await tester.pumpAndSettle();
+      if (find.byType(NutritionEmptyMeals).evaluate().isNotEmpty) {
+        await tester.runAsync(() => precacheImage(
+              const AssetImage(NutritionEmptyMeals.defaultAsset),
+              tester.element(find.byType(NutritionEmptyMeals)),
+            ));
+      }
+      await tester.pumpAndSettle();
+      await captureScreen(tester, 'runtime_empty_card_focus');
+
+      // 7. Narrow screen (320px)
+      tester.view.physicalSize = const Size(320 * 2.0, 800 * 2.0);
+      await tester.pumpWidget(MaterialApp(
+        locale: const Locale('en'),
+        supportedLocales: const [Locale('en'), Locale('vi')],
+        localizationsDelegates: const [
+          GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+        ],
+        builder: (context, child) => RepaintBoundary(
+          key: const ValueKey('nutrition_screen_repaint_boundary'),
+          child: child!,
+        ),
+        home: const Scaffold(
+          backgroundColor: Color(0xFF0C0D0E),
+          body: SingleChildScrollView(
+            padding: EdgeInsets.all(12),
+            child: NutritionEmptyMeals(),
+          ),
+        ),
+      ));
+      await tester.pumpAndSettle();
+      await captureScreen(tester, 'runtime_narrow_320');
+
+      // 8. 200% text scale
+      tester.view.physicalSize = const Size(390 * 2.0, 900 * 2.0);
+      tester.platformDispatcher.textScaleFactorTestValue = 2.0;
+      addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+
+      await tester.pumpWidget(MaterialApp(
+        locale: const Locale('en'),
+        supportedLocales: const [Locale('en'), Locale('vi')],
+        localizationsDelegates: const [
+          GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+        ],
+        builder: (context, child) => RepaintBoundary(
+          key: const ValueKey('nutrition_screen_repaint_boundary'),
+          child: child!,
+        ),
+        home: const Scaffold(
+          backgroundColor: Color(0xFF0C0D0E),
+          body: SingleChildScrollView(
+            padding: EdgeInsets.all(16),
+            child: NutritionEmptyMeals(),
+          ),
+        ),
+      ));
+      await tester.pumpAndSettle();
+      await captureScreen(tester, 'runtime_text_scale_200');
+    });
+  });
+
 }

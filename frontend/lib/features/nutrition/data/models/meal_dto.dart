@@ -33,7 +33,7 @@ class MealDto {
   });
 
   factory MealDto.fromJson(Map<String, dynamic> json) {
-    final foods = json['foods'] as List<dynamic>?;
+    final foods = (json['foods'] ?? json['foodsList']) as List<dynamic>?;
     final firstFood = (foods != null && foods.isNotEmpty)
         ? Map<String, dynamic>.from(foods[0] as Map)
         : json;
@@ -44,7 +44,7 @@ class MealDto {
     final mealTotalFat = (json['total_fat'] as num?)?.toDouble();
 
     return MealDto(
-      foodId: firstFood['food_id']?.toString() ?? '',
+      foodId: firstFood['food_id']?.toString() ?? firstFood['id']?.toString() ?? json['food_id']?.toString() ?? '',
       name: firstFood['name']?.toString() ??
           json['name']?.toString() ??
           'Unknown Food',

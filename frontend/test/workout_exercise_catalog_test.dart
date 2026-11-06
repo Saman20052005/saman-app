@@ -163,7 +163,160 @@ const expectedRoundTwoExercises =
   ),
 };
 
-const allNewExercises = {...expectedNewExercises, ...expectedRoundTwoExercises};
+const expectedPilotExercises =
+    <String, (String, String, String, List<String>, String, String, int)>{
+  'barbell-bench-press': (
+    'Barbell Bench Press',
+    'Đẩy ngực với tạ đòn',
+    'Chest',
+    ['Barbell', 'Flat bench'],
+    'intermediate',
+    '8-10',
+    90,
+  ),
+};
+
+const expectedExpansion05Exercises =
+    <String, (String, String, String, List<String>, String, String, int)>{
+  'incline-barbell-bench-press': (
+    'Incline Barbell Bench Press',
+    'Đẩy ngực trên với tạ đòn',
+    'Chest',
+    ['Barbell', 'Incline Bench'],
+    'intermediate',
+    '8-10',
+    90,
+  ),
+  'bent-over-barbell-row': (
+    'Bent-Over Barbell Row',
+    'Kéo tạ đòn gập người',
+    'Back',
+    ['Barbell'],
+    'intermediate',
+    '8-10',
+    90,
+  ),
+  'barbell-overhead-press': (
+    'Barbell Overhead Press',
+    'Đẩy tạ đòn qua đầu',
+    'Shoulders',
+    ['Barbell'],
+    'intermediate',
+    '8-10',
+    90,
+  ),
+  'ez-bar-curl': (
+    'EZ-Bar Curl',
+    'Cuốn tay trước với thanh đòn EZ',
+    'Arms',
+    ['EZ Bar'],
+    'beginner',
+    '10-12',
+    60,
+  ),
+  'glute-bridge': (
+    'Glute Bridge',
+    'Cầu mông nâng hông trên thảm',
+    'Glutes',
+    ['Mat', 'Bodyweight'],
+    'beginner',
+    '12-15',
+    60,
+  ),
+};
+
+const expectedExpansion06Exercises =
+    <String, (String, String, String, List<String>, String, String, int)>{
+  'machine-chest-press': (
+    'Machine Chest Press',
+    'Đẩy ngực trên máy',
+    'Chest',
+    ['Machine'],
+    'beginner',
+    '10-12',
+    60,
+  ),
+  'chest-supported-dumbbell-row': (
+    'Chest-Supported Dumbbell Row',
+    'Kéo tạ đơn tựa ngực trên ghế dốc',
+    'Back',
+    ['Dumbbells', 'Incline Bench'],
+    'intermediate',
+    '8-10',
+    90,
+  ),
+  'cable-lateral-raise': (
+    'Cable Lateral Raise',
+    'Dang vai với dây cáp',
+    'Shoulders',
+    ['Cable'],
+    'beginner',
+    '24-30',
+    60,
+  ),
+  'lying-ez-bar-triceps-extension': (
+    'Lying EZ-Bar Triceps Extension',
+    'Duỗi tay sau nằm với thanh đòn EZ',
+    'Arms',
+    ['EZ Bar', 'Flat Bench'],
+    'intermediate',
+    '10-12',
+    60,
+  ),
+  'preacher-curl': (
+    'Preacher Curl',
+    'Cuốn tay trước trên ghế dốc Preacher',
+    'Arms',
+    ['EZ Bar', 'Preacher Bench'],
+    'beginner',
+    '10-12',
+    60,
+  ),
+};
+
+const expectedExpansion07Exercises =
+    <String, (String, String, String, List<String>, String, String, int)>{
+  'pec-deck-fly': (
+    'Pec Deck Fly',
+    'Ép ngực trên máy',
+    'Chest',
+    ['Machine'],
+    'beginner',
+    '10-12',
+    60,
+  ),
+  'reverse-pec-deck': (
+    'Reverse Pec Deck',
+    'Dang vai sau trên máy',
+    'Shoulders',
+    ['Machine'],
+    'beginner',
+    '12-15',
+    60,
+  ),
+  'cable-biceps-curl': (
+    'Cable Biceps Curl',
+    'Cuốn tay trước bằng cáp',
+    'Arms',
+    ['Cable'],
+    'beginner',
+    '10-12',
+    60,
+  ),
+};
+
+const allNewExercises = {
+  ...expectedNewExercises,
+  ...expectedRoundTwoExercises,
+  ...expectedPilotExercises,
+};
+
+const allCatalogExercises = {
+  ...allNewExercises,
+  ...expectedExpansion05Exercises,
+  ...expectedExpansion06Exercises,
+  ...expectedExpansion07Exercises,
+};
 
 const expectedCategoryIds = <String, List<String>>{
   'Upper Body': [
@@ -184,6 +337,19 @@ const expectedCategoryIds = <String, List<String>>{
     'cable-chest-fly',
     'pull-up',
     'reverse-dumbbell-fly',
+    'barbell-bench-press',
+    'incline-barbell-bench-press',
+    'bent-over-barbell-row',
+    'barbell-overhead-press',
+    'ez-bar-curl',
+    'machine-chest-press',
+    'chest-supported-dumbbell-row',
+    'cable-lateral-raise',
+    'lying-ez-bar-triceps-extension',
+    'preacher-curl',
+    'pec-deck-fly',
+    'reverse-pec-deck',
+    'cable-biceps-curl',
   ],
   'Lower Body': [
     'barbell-back-squat',
@@ -197,6 +363,7 @@ const expectedCategoryIds = <String, List<String>>{
     'bulgarian-split-squat',
     'leg-extension',
     'seated-calf-raise',
+    'glute-bridge',
   ],
   'Core': [
     'plank',
@@ -333,14 +500,14 @@ void main() {
     expect(active.state.currentExercise!.draftWeightKg, 0);
   });
 
-  test('Exactly eight additional IDs/slugs; all 27 existing records are unchanged',
+  test('Pilot adds one ID/slug; prior catalogs and legacy session stay unchanged',
       () {
     expect(expectedRoundTwoExercises, hasLength(8));
-    expect(curatedExerciseLibrary, hasLength(35));
+    expect(curatedExerciseLibrary, hasLength(49));
     expect(curatedExerciseLibrary.map((e) => e.id),
-        [...originalExerciseIds, ...allNewExercises.keys]);
-    expect(curatedExerciseLibrary.map((e) => e.id).toSet(), hasLength(35));
-    expect(curatedExerciseLibrary.map((e) => e.slug).toSet(), hasLength(35));
+        [...originalExerciseIds, ...allCatalogExercises.keys]);
+    expect(curatedExerciseLibrary.map((e) => e.id).toSet(), hasLength(49));
+    expect(curatedExerciseLibrary.map((e) => e.slug).toSet(), hasLength(49));
     final existingJson = jsonEncode(
         curatedExerciseLibrary.take(27).map((e) => e.toJson()).toList());
     expect(sha256.convert(utf8.encode(existingJson)).toString(),
@@ -368,7 +535,7 @@ void main() {
         .read(exercisesByMuscleProvider(muscleGroupSlug: 'all').future);
     expect(library, curatedExerciseLibrary);
     expect(all, library);
-    expect(await repo.getPopularExercises(limit: 35), library);
+    expect(await repo.getPopularExercises(limit: 49), library);
     for (final exercise in library) {
       expect(await repo.getExerciseById(exercise.id), exercise);
     }
@@ -380,7 +547,7 @@ void main() {
           search: 'bench press',
         ))
             .map((e) => e.id),
-        ['db-bench-press']);
+        ['db-bench-press', 'barbell-bench-press', 'incline-barbell-bench-press']);
     expect(
         (await repo.getExercisesByMuscleGroup(
           muscleGroupSlug: 'back',
@@ -391,7 +558,7 @@ void main() {
         ['lat-pulldown']);
   });
 
-  for (final entry in allNewExercises.entries) {
+  for (final entry in allCatalogExercises.entries) {
     final id = entry.key;
     final expected = entry.value;
     test('$id has its exact prescription, muscles, cues and approved mapping',
@@ -405,7 +572,14 @@ void main() {
       expect(e.difficulty, expected.$5);
       expect(e.defaultReps, expected.$6);
       expect(e.restSeconds, expected.$7);
-      expect(e.defaultSets, 3);
+      expect(
+          e.defaultSets,
+          (id == 'barbell-bench-press' ||
+                  id == 'incline-barbell-bench-press' ||
+                  id == 'bent-over-barbell-row' ||
+                  id == 'barbell-overhead-press')
+              ? 4
+              : 3);
       expect(e.repType, id == 'side-plank' ? 'seconds' : 'reps');
       expect(e.cvSupported, false);
       expect(e.cvModuleId, isNull);
@@ -446,16 +620,30 @@ void main() {
       expect(initial.id, id);
       expect(initial.slug, id);
       expect(initial.imageUrl, exercise.thumbnailUrl);
-      expect(initial.sets, hasLength(3));
+      final sets = (id == 'barbell-bench-press' ||
+              id == 'incline-barbell-bench-press' ||
+              id == 'bent-over-barbell-row' ||
+              id == 'barbell-overhead-press')
+          ? 4
+          : 3;
+      expect(initial.sets, hasLength(sets));
       expect(initial.restSeconds, expected.$7);
       expect(initial.unit, timed ? SetUnit.seconds : SetUnit.reps);
       expect(initial.sets.map((s) => s.targetReps), everyElement(timed ? 0 : reps));
       expect(initial.sets.map((s) => s.targetSeconds), everyElement(timed ? 40 : null));
       expect(initial.sets.map((s) => s.targetWeightKg), everyElement(timed ? 0 : 20));
       expect(initial.draftWeightKg, timed ? 0 : 20);
-      final weight = timed || ['reverse-lunge', 'dead-bug', 'pull-up', 'reverse-crunch'].contains(id)
-          ? 0.0 : 20.0;
-      for (var set = 0; set < 3; set++) {
+      final weight = timed ||
+              [
+                'reverse-lunge',
+                'dead-bug',
+                'pull-up',
+                'reverse-crunch',
+                'glute-bridge',
+              ].contains(id)
+          ? 0.0
+          : 20.0;
+      for (var set = 0; set < sets; set++) {
         // Existing session targets reset each next set to 20; bodyweight
         // needs this explicit manual adjustment for every logged set.
         active.setDraftWeight(weight);
@@ -469,7 +657,7 @@ void main() {
       final repo = container.read(exerciseRepositoryProvider);
       final saved = await repo.getSessionById(active.sessionId);
       expect(await repo.getWorkoutHistory(), hasLength(1));
-      expect(saved.exerciseLogs, hasLength(3));
+      expect(saved.exerciseLogs, hasLength(sets));
       expect(saved.exerciseLogs.map((l) => l.exerciseId), everyElement(id));
       expect(saved.exerciseLogs.map((l) => l.exerciseSlug), everyElement(id));
       expect(
@@ -479,7 +667,7 @@ void main() {
       expect(saved.exerciseLogs.map((l) => l.secondsCompleted),
           everyElement(timed ? 60 : null));
       expect(saved.exerciseLogs.map((l) => l.weightKg), everyElement(weight));
-      expect(saved.totalVolumeKg, timed ? 0 : (3 * reps * weight).round());
+      expect(saved.totalVolumeKg, timed ? 0 : (sets * reps * weight).round());
     });
   }
 
@@ -556,7 +744,12 @@ void main() {
     expect(logged.volumeKg, 0);
   });
 
-  for (final batch in [expectedNewExercises, expectedRoundTwoExercises]) {
+  for (final batch in [
+    expectedNewExercises,
+    expectedRoundTwoExercises,
+    expectedPilotExercises,
+    expectedExpansion05Exercises,
+  ]) {
   test('Create Plan saves, edits and resolves all ${batch.length} exact IDs for start',
       () async {
     final container = ProviderContainer();

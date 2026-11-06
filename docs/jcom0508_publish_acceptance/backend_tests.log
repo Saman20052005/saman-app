@@ -1,0 +1,70 @@
+🔌 Connecting to MongoDB: mongodb://127.0.0.1:27048
+📂 Database Name: saman_jcom0508_test_import
+⚠️  Detected Localhost. Disabling SSL.
+✅ Successfully connected to MongoDB!
+Warning: Failed to import shop router: cannot import name 'ActiveIngredientModel' from 'backend.app.models.shop' (D:\SamanDev\workspace\saman-main-verified-CP26_20261025_072840\backend\app\models\shop.py)
+PyTorch not available, defaulting to CPU device
+PyTorch not available, defaulting to CPU device
+Classification model path does not exist: food_classification_efficientnet_b3.pth
+Portion model path does not exist: portion_estimation_regressor.pth
+D:\SamanDev\runtime\saman-cp7-python\Lib\site-packages\pydantic\_internal\_config.py:408: UserWarning: Valid config keys have changed in V2:
+* 'allow_population_by_field_name' has been renamed to 'validate_by_name'
+  warnings.warn(message, UserWarning)
+D:\SamanDev\runtime\saman-cp7-python\Lib\site-packages\jwt\api_jwt.py:149: InsecureKeyLengthWarning: The HMAC key is 23 bytes long, which is below the minimum recommended length of 32 bytes for SHA256. See RFC 7518 Section 3.2.
+  return self._jws.encode(
+D:\SamanDev\runtime\saman-cp7-python\Lib\site-packages\jwt\api_jwt.py:370: InsecureKeyLengthWarning: The HMAC key is 23 bytes long, which is below the minimum recommended length of 32 bytes for SHA256. See RFC 7518 Section 3.2.
+  decoded = self.decode_complete(
+D:\SamanDev\runtime\saman-cp7-python\Lib\site-packages\jwt\api_jwt.py:149: InsecureKeyLengthWarning: The HMAC key is 23 bytes long, which is below the minimum recommended length of 32 bytes for SHA256. See RFC 7518 Section 3.2.
+  return self._jws.encode(
+----------------------------------------------------------------------
+Ran 7 tests in 0.854s
+
+OK
+sys:1: ResourceWarning: Unclosed MongoClient opened at:
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "C:\Users\GL\AppData\Local\Programs\Python\Python311\Lib\unittest\__main__.py", line 18, in <module>
+    main(module=None)
+  File "C:\Users\GL\AppData\Local\Programs\Python\Python311\Lib\unittest\main.py", line 101, in __init__
+    self.parseArgs(argv)
+  File "C:\Users\GL\AppData\Local\Programs\Python\Python311\Lib\unittest\main.py", line 150, in parseArgs
+    self.createTests()
+  File "C:\Users\GL\AppData\Local\Programs\Python\Python311\Lib\unittest\main.py", line 161, in createTests
+    self.test = self.testLoader.loadTestsFromNames(self.testNames,
+  File "C:\Users\GL\AppData\Local\Programs\Python\Python311\Lib\unittest\loader.py", line 232, in loadTestsFromNames
+    suites = [self.loadTestsFromName(name, module) for name in names]
+  File "C:\Users\GL\AppData\Local\Programs\Python\Python311\Lib\unittest\loader.py", line 232, in <listcomp>
+    suites = [self.loadTestsFromName(name, module) for name in names]
+  File "C:\Users\GL\AppData\Local\Programs\Python\Python311\Lib\unittest\loader.py", line 162, in loadTestsFromName
+    module = __import__(module_name)
+  File "<frozen importlib._bootstrap>", line 1176, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1147, in _find_and_load_unlocked
+  File "<frozen importlib._bootstrap>", line 690, in _load_unlocked
+  File "<frozen importlib._bootstrap_external>", line 940, in exec_module
+  File "<frozen importlib._bootstrap>", line 241, in _call_with_frames_removed
+  File "D:\SamanDev\workspace\saman-main-verified-CP26_20261025_072840\backend\tests\test_community_publish_mongo.py", line 16, in <module>
+    from backend.routers import community as r
+  File "<frozen importlib._bootstrap>", line 1176, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1147, in _find_and_load_unlocked
+  File "<frozen importlib._bootstrap>", line 690, in _load_unlocked
+  File "<frozen importlib._bootstrap_external>", line 940, in exec_module
+  File "<frozen importlib._bootstrap>", line 241, in _call_with_frames_removed
+  File "D:\SamanDev\workspace\saman-main-verified-CP26_20261025_072840\backend\routers\__init__.py", line 3, in <module>
+    from .auth import router as auth_router
+  File "<frozen importlib._bootstrap>", line 1176, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1147, in _find_and_load_unlocked
+  File "<frozen importlib._bootstrap>", line 690, in _load_unlocked
+  File "<frozen importlib._bootstrap_external>", line 940, in exec_module
+  File "<frozen importlib._bootstrap>", line 241, in _call_with_frames_removed
+  File "D:\SamanDev\workspace\saman-main-verified-CP26_20261025_072840\backend\routers\auth.py", line 20, in <module>
+    from backend.app.database import users_collection, db
+  File "<frozen importlib._bootstrap>", line 1176, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1147, in _find_and_load_unlocked
+  File "<frozen importlib._bootstrap>", line 690, in _load_unlocked
+  File "<frozen importlib._bootstrap_external>", line 940, in exec_module
+  File "<frozen importlib._bootstrap>", line 241, in _call_with_frames_removed
+  File "D:\SamanDev\workspace\saman-main-verified-CP26_20261025_072840\backend\app\database.py", line 39, in <module>
+    client = MongoClient(MONGO_URI, serverSelectionTimeoutMS=5000)
+  File "D:\SamanDev\runtime\saman-cp7-python\Lib\site-packages\pymongo\synchronous\mongo_client.py", line 918, in __init__
+    self._init_based_on_options(
+Call MongoClient.close() to safely shut down your client and free up resources.

@@ -14,6 +14,8 @@ class ProfileSnapshot {
   final String? email;
   final String? fullName;
   final String? avatar;
+  final String? avatarSource;
+  final bool canUseGoogleAvatar;
   final bool isFromCache;
 
   /// Required raw health_stats fields were finite JSON numbers in this
@@ -32,6 +34,8 @@ class ProfileSnapshot {
     this.email,
     this.fullName,
     this.avatar,
+    this.avatarSource = 'none',
+    this.canUseGoogleAvatar = false,
     this.isFromCache = false,
     bool hasConfirmedServerHealthStats = false,
   }) : hasConfirmedServerHealthStats =
@@ -52,6 +56,8 @@ class ProfileSnapshot {
     String? email,
     String? fullName,
     String? avatar,
+    String? avatarSource,
+    bool? canUseGoogleAvatar,
     bool? isFromCache,
   }) {
     return ProfileSnapshot(
@@ -66,6 +72,8 @@ class ProfileSnapshot {
       email: email ?? this.email,
       fullName: fullName ?? this.fullName,
       avatar: avatar ?? this.avatar,
+      avatarSource: avatarSource ?? this.avatarSource,
+      canUseGoogleAvatar: canUseGoogleAvatar ?? this.canUseGoogleAvatar,
       isFromCache: isFromCache ?? this.isFromCache,
       hasConfirmedServerHealthStats: hasConfirmedServerHealthStats,
     );

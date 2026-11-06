@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
@@ -49,7 +49,6 @@ class _WorkoutReviewScreenState extends ConsumerState<WorkoutReviewScreen> {
     });
 
     final notifier = ref.read(activeWorkoutSessionProvider.notifier);
-    final sessionId = notifier.sessionId;
     final saver = ref.read(activeSessionSaverProvider.notifier);
 
     final success = await saver.saveCurrentSession();
@@ -60,7 +59,8 @@ class _WorkoutReviewScreenState extends ConsumerState<WorkoutReviewScreen> {
     });
 
     if (success) {
-      Navigator.of(context).pop(sessionId);
+      // Canonical ID assigned by the saver from the backend response.
+      Navigator.of(context).pop(notifier.sessionId);
     } else {
       setState(() {
         _saveError = true;
@@ -72,8 +72,13 @@ class _WorkoutReviewScreenState extends ConsumerState<WorkoutReviewScreen> {
   Widget build(BuildContext context) {
     final session = ref.watch(activeWorkoutSessionProvider);
     final saverState = ref.watch(activeSessionSaverProvider);
-    final isSaving = _isSubmitting || saverState.isLoading;
-    final hasError = _saveError || saverState.hasError;
+    final saver = ref.read(activeSessionSaverProvider.notifier);
+    final saveStatus = saver.saveStatus;
+
+    final isSaving = _isSubmitting || saverState.isLoading || saveStatus == SessionSaveStatus.saving;
+    final isConflict = saveStatus == SessionSaveStatus.conflict;
+    final isUnconfirmed = saveStatus == SessionSaveStatus.unconfirmed || (_saveError && !isConflict);
+    final hasError = isUnconfirmed || isConflict || _saveError || saverState.hasError;
 
     final performedExercises = session.exercises.where((exercise) {
       return exercise.sets.any((set) => set.isCompleted);
@@ -101,10 +106,10 @@ class _WorkoutReviewScreenState extends ConsumerState<WorkoutReviewScreen> {
         '${isToday ? 'Today • ' : ''}$dateStr • Started $timeStr';
 
     final activeDurationMinutes = session.elapsedSeconds ~/ 60;
-    final canSave = session.completedSetsCount > 0 && !isSaving;
+    final canSave = session.completedSetsCount > 0 && !isSaving && !isConflict;
 
     return PopScope(
-      canPop: !isSaving,
+      canPop: !isSaving && !isUnconfirmed,
       child: Scaffold(
         backgroundColor: SamanWorkoutTokens.canvas,
         appBar: AppBar(
@@ -114,24 +119,28 @@ class _WorkoutReviewScreenState extends ConsumerState<WorkoutReviewScreen> {
           leadingWidth: 160,
           leading: InkWell(
             key: const ValueKey('workout_review_back_button'),
-            onTap: isSaving ? null : () => Navigator.of(context).pop(),
-            child: const Padding(
-              padding: EdgeInsetsDirectional.only(start: 16),
+            onTap: (isSaving || isUnconfirmed) ? null : () => Navigator.of(context).pop(),
+            child: Padding(
+              padding: const EdgeInsetsDirectional.only(start: 16),
               child: Row(
                 children: [
                   Icon(
                     Icons.arrow_back,
                     size: 20,
-                    color: SamanWorkoutTokens.textSecondary,
+                    color: (isSaving || isUnconfirmed)
+                        ? SamanWorkoutTokens.textSecondary.withOpacity(0.3)
+                        : SamanWorkoutTokens.textSecondary,
                   ),
-                  SizedBox(width: 6),
+                  const SizedBox(width: 6),
                   Flexible(
                     child: Text(
                       'Review session',
                       style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w500,
-                        color: SamanWorkoutTokens.textSecondary,
+                        color: (isSaving || isUnconfirmed)
+                            ? SamanWorkoutTokens.textSecondary.withOpacity(0.3)
+                            : SamanWorkoutTokens.textSecondary,
                       ),
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -524,7 +533,42 @@ class _WorkoutReviewScreenState extends ConsumerState<WorkoutReviewScreen> {
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      if (hasError)
+                      if (isConflict)
+                        Container(
+                          key: const ValueKey('save_conflict_banner'),
+                          margin: const EdgeInsets.only(bottom: 10),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 12, vertical: 8),
+                          decoration: BoxDecoration(
+                            color:
+                                SamanWorkoutTokens.amberAccent.withOpacity(0.15),
+                            borderRadius: BorderRadius.circular(
+                                SamanWorkoutTokens.radiusSm),
+                            border: Border.all(
+                                color: SamanWorkoutTokens.amberAccent),
+                          ),
+                          child: Row(
+                            children: [
+                              const Icon(
+                                Icons.warning_amber_rounded,
+                                color: SamanWorkoutTokens.amberAccent,
+                                size: 18,
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  saver.conflictMessage ??
+                                      'Session already exists on server with different data (409 Conflict). Draft is preserved in memory.',
+                                  style: const TextStyle(
+                                    color: SamanWorkoutTokens.textPrimary,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        )
+                      else if (hasError)
                         Container(
                           key: const ValueKey('save_error_banner'),
                           margin: const EdgeInsets.only(bottom: 10),
@@ -655,12 +699,14 @@ class _WorkoutReviewScreenState extends ConsumerState<WorkoutReviewScreen> {
                       TextButton(
                         key: const ValueKey('keep_training_button'),
                         onPressed:
-                            isSaving ? null : () => Navigator.of(context).pop(),
-                        child: const Text(
+                            (isSaving || isUnconfirmed) ? null : () => Navigator.of(context).pop(),
+                        child: Text(
                           'Keep training',
                           style: TextStyle(
                             fontSize: 14,
-                            color: SamanWorkoutTokens.textSecondary,
+                            color: (isSaving || isUnconfirmed)
+                                ? SamanWorkoutTokens.textSecondary.withOpacity(0.3)
+                                : SamanWorkoutTokens.textSecondary,
                           ),
                         ),
                       ),

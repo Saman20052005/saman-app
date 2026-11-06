@@ -1,3 +1,4 @@
+import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import '../../data/models/exercise.dart';
@@ -31,8 +32,28 @@ Future<List<WorkoutSession>> workoutHistory(WorkoutHistoryRef ref) async {
   return repo.getWorkoutHistory();
 }
 
+enum SessionSaveStatus {
+  notSaved,
+  saving,
+  unconfirmed,
+  saved,
+  conflict,
+}
+
 @riverpod
 class ActiveSessionSaver extends _$ActiveSessionSaver {
+  SessionSaveStatus _saveStatus = SessionSaveStatus.notSaved;
+  SessionSaveStatus get saveStatus => _saveStatus;
+
+  String? _conflictMessage;
+  String? get conflictMessage => _conflictMessage;
+
+  void resetStatus() {
+    _saveStatus = SessionSaveStatus.notSaved;
+    _conflictMessage = null;
+    state = const AsyncValue.data(null);
+  }
+
   @override
   AsyncValue<void> build() {
     return const AsyncValue.data(null);
@@ -58,7 +79,7 @@ class ActiveSessionSaver extends _$ActiveSessionSaver {
             isCompleted: true,
           ),
     ];
-    final session = WorkoutSession(
+    final draft = WorkoutSession(
       id: notifier.sessionId,
       planName: active.title,
       startedAt: notifier.startedAt.toUtc(),
@@ -69,23 +90,105 @@ class ActiveSessionSaver extends _$ActiveSessionSaver {
         0, (sum, log) => sum + log.volumeKg,
       ).round(),
     );
+
+    // Reuse existing immutable pending snapshot or lock draft
+    final pending = notifier.pendingSaveSnapshot;
+    final session = pending ?? draft;
+    notifier.pendingSaveSnapshot = session;
+
+    _saveStatus = SessionSaveStatus.saving;
+    _conflictMessage = null;
     state = const AsyncValue.loading();
     final repo = ref.read(workoutSessionRepositoryProvider);
     WorkoutSession? savedSession;
-    state = await AsyncValue.guard(() async {
+    Object? caughtError;
+    StackTrace? caughtStack;
+
+    try {
       if (repo is ExerciseRepositoryImpl) {
         savedSession = await repo.saveAndReturnWorkoutSession(session);
       } else {
         await repo.saveWorkoutSession(session);
         savedSession = session;
       }
-    });
-    if (state.hasError) return false;
-    if (savedSession != null) {
-      notifier.sessionId = savedSession!.id;
+    } catch (e, stack) {
+      caughtError = e;
+      caughtStack = stack;
     }
+
+    if (caughtError != null) {
+      final is409 = _isConflictError(caughtError);
+      if (is409) {
+        WorkoutSession? existing;
+        try {
+          existing = await repo.getSessionById(notifier.sessionId);
+        } catch (_) {}
+
+        if (existing != null && _areSessionLogsMatching(existing, session)) {
+          if (repo is ExerciseRepositoryImpl) {
+            notifier.sessionId = existing.id;
+          }
+          notifier.pendingSaveSnapshot = null;
+          notifier.markSaved();
+          _saveStatus = SessionSaveStatus.saved;
+          state = const AsyncValue.data(null);
+          ref.invalidate(workoutHistoryProvider);
+          return true;
+        } else {
+          _saveStatus = SessionSaveStatus.conflict;
+          _conflictMessage =
+              'Session already exists on server with different data (409 Conflict). Draft is preserved in memory.';
+          state = AsyncValue.error(caughtError, caughtStack ?? StackTrace.current);
+          return false;
+        }
+      }
+
+      _saveStatus = SessionSaveStatus.unconfirmed;
+      state = AsyncValue.error(caughtError, caughtStack ?? StackTrace.current);
+      return false;
+    }
+
+    if (savedSession != null) {
+      notifier.sessionId = savedSession.id;
+    }
+    notifier.pendingSaveSnapshot = null;
     notifier.markSaved();
+    _saveStatus = SessionSaveStatus.saved;
+    state = const AsyncValue.data(null);
     ref.invalidate(workoutHistoryProvider);
+    return true;
+  }
+
+  bool _isConflictError(Object error) {
+    if (error is DioException) {
+      return error.response?.statusCode == 409;
+    }
+    return error.toString().contains('409');
+  }
+
+  bool _areSessionLogsMatching(WorkoutSession a, WorkoutSession b) {
+    if (a.exerciseLogs.length != b.exerciseLogs.length) return false;
+    if (a.totalVolumeKg != b.totalVolumeKg) return false;
+    final logsA = [...a.exerciseLogs]..sort((x, y) {
+        final c = x.exerciseId.compareTo(y.exerciseId);
+        return c != 0 ? c : x.setNumber.compareTo(y.setNumber);
+      });
+    final logsB = [...b.exerciseLogs]..sort((x, y) {
+        final c = x.exerciseId.compareTo(y.exerciseId);
+        return c != 0 ? c : x.setNumber.compareTo(y.setNumber);
+      });
+    for (var i = 0; i < logsA.length; i++) {
+      final logA = logsA[i];
+      final logB = logsB[i];
+      if (logA.exerciseId != logB.exerciseId ||
+          logA.setNumber != logB.setNumber ||
+          logA.repsCompleted != logB.repsCompleted ||
+          logA.secondsCompleted != logB.secondsCompleted ||
+          (logA.weightKg - logB.weightKg).abs() > 0.001 ||
+          logA.isCompleted != logB.isCompleted) {
+        return false;
+      }
+    }
     return true;
   }
 }

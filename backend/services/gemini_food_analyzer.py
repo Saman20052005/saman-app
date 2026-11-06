@@ -21,6 +21,7 @@ GEMINI_FOOD_SCHEMA: Dict[str, Any] = {
             "type": "string",
             "description": "The specific name of the food dish (e.g., 'Phở Bò', 'Chicken Salad')."
         },
+        "dish_name": {"type": "string"},
         "food_label": {
             "type": "string",
             "description": "A lowercase snake_case label for the dish (e.g., 'pho_bo', 'chicken_salad')."
@@ -29,6 +30,35 @@ GEMINI_FOOD_SCHEMA: Dict[str, Any] = {
             "type": "number",
             "description": "Estimated confidence score between 0.0 and 1.0 for the dish identification."
         },
+        "total_weight_grams": {"type": "number"},
+        "total_nutrition": {
+            "type": "object",
+            "properties": {
+                "calories": {"type": "number"},
+                "protein": {"type": "number"},
+                "carbs": {"type": "number"},
+                "fat": {"type": "number"},
+                "fiber": {"type": "number"},
+            },
+            "required": ["calories", "protein", "carbs", "fat", "fiber"]
+        },
+        "ingredients": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "name": {"type": "string"},
+                    "portion_grams": {"type": "number"},
+                    "calories": {"type": "number"},
+                    "protein": {"type": "number"},
+                    "carbs": {"type": "number"},
+                    "fat": {"type": "number"},
+                    "confidence": {"type": "number"},
+                },
+                "required": ["name", "portion_grams", "calories", "protein", "carbs", "fat", "confidence"]
+            }
+        },
+        "health_insights": {"type": "array", "items": {"type": "string"}},
         "per_100g": {
             "type": "object",
             "properties": {
@@ -40,7 +70,7 @@ GEMINI_FOOD_SCHEMA: Dict[str, Any] = {
             "required": ["calories", "protein", "carbs", "fat"]
         }
     },
-    "required": ["is_food", "food_name", "food_label", "confidence", "per_100g"]
+    "required": ["is_food", "food_name", "food_label", "confidence", "per_100g", "total_weight_grams", "total_nutrition", "ingredients", "health_insights"]
 }
 
 GEMINI_FOOD_PROMPT: str = (
@@ -48,9 +78,12 @@ GEMINI_FOOD_PROMPT: str = (
     "1. Determine whether the image contains recognizable food or beverage.\n"
     "2. If not food, set 'is_food' to false, 'confidence' to 0.0, and provide an empty 'food_name'.\n"
     "3. If it is food, identify the single primary dish, its name, a snake_case label, "
-    "your self-assessed confidence score (0.0 to 1.0), and realistic nutritional estimates PER 100 GRAMS "
-    "(calories in kcal, protein, carbs, and fat in grams).\n"
-    "4. All nutritional values per 100g must be non-negative finite numbers."
+    "your self-assessed confidence score (0.0 to 1.0), total estimated edible weight, total nutrition "
+    "(calories in kcal; protein, carbs, fat, fiber in grams), visible ingredients with estimated portion "
+    "grams, calories, macros and confidence, plus concise health insights. Also provide realistic nutrition "
+    "estimates PER 100 GRAMS in the legacy per_100g object.\n"
+    "4. All nutritional values and ingredient portions must be non-negative finite numbers; confidence values "
+    "must be between 0 and 1. Use empty ingredient and insight lists when image details are unclear."
 )
 
 
@@ -91,7 +124,7 @@ class GeminiFoodAnalyzer:
 
     @property
     def model(self) -> Optional[str]:
-        return self._model or os.getenv("GEMINI_FOOD_MODEL")
+        return self._model or os.getenv("GEMINI_FOOD_MODEL") or "gemini-3.6-flash"
 
     @property
     def timeout(self) -> float:
@@ -154,6 +187,7 @@ class GeminiFoodAnalyzer:
             "generationConfig": {
                 "responseMimeType": "application/json",
                 "responseSchema": GEMINI_FOOD_SCHEMA,
+                "thinkingConfig": {"thinkingLevel": "minimal"},
             },
         }
 
@@ -220,7 +254,7 @@ class GeminiFoodAnalyzer:
         if parsed.get("is_food") is not True:
             raise GeminiAnalysisError("Image does not contain recognizable food")
 
-        food_name = str(parsed.get("food_name", "")).strip()
+        food_name = str(parsed.get("dish_name") or parsed.get("food_name") or "").strip()
         if not food_name:
             raise GeminiAnalysisError("Gemini returned empty food name")
 
@@ -266,24 +300,76 @@ class GeminiFoodAnalyzer:
 
         ratio = grams / 100.0
 
+        total_nutrition_raw = parsed.get("total_nutrition")
+        if not isinstance(total_nutrition_raw, dict):
+            total_nutrition_raw = {}
+        total_nutrition = {}
+        for nutrient in ("calories", "protein", "carbs", "fat", "fiber"):
+            fallback = per_100g_raw.get(nutrient, 0)
+            if (not isinstance(fallback, (int, float)) or isinstance(fallback, bool)
+                    or not math.isfinite(fallback) or fallback < 0):
+                fallback = 0
+            value = total_nutrition_raw.get(nutrient, fallback * ratio)
+            if (not isinstance(value, (int, float)) or isinstance(value, bool)
+                    or not math.isfinite(value) or value < 0):
+                value = fallback * ratio
+            total_nutrition[nutrient] = round(float(value), 1)
+
+        ingredients = []
+        raw_ingredients = parsed.get("ingredients")
+        if isinstance(raw_ingredients, list):
+            for item in raw_ingredients:
+                if not isinstance(item, dict):
+                    continue
+                name = str(item.get("name") or "").strip()
+                if not name:
+                    continue
+                normalized = {"name": name}
+                for field in ("portion_grams", "calories", "protein", "carbs", "fat", "confidence"):
+                    value = item.get(field, 0)
+                    if (not isinstance(value, (int, float)) or isinstance(value, bool)
+                            or not math.isfinite(value) or value < 0):
+                        value = 0
+                    normalized[field] = round(float(value), 3)
+                normalized["confidence"] = min(1.0, normalized["confidence"])
+                ingredients.append(normalized)
+
+        raw_insights = parsed.get("health_insights")
+        health_insights = (
+            [str(value).strip() for value in raw_insights if str(value).strip()]
+            if isinstance(raw_insights, list) else []
+        )
+        total_weight = parsed.get("total_weight_grams", grams)
+        if (not isinstance(total_weight, (int, float)) or isinstance(total_weight, bool)
+                or not math.isfinite(total_weight) or total_weight <= 0):
+            total_weight = grams
+        effective_grams = float(total_weight)
+
         return {
             "food_name": food_name,
             "food_label": food_label,
             "detected_food_name": food_name,
             "confidence": confidence,
             "low_confidence": low_confidence,
-            "grams": grams,
+            "grams": effective_grams,
             "nutrition": {
-                "calories": round(c100 * ratio, 1),
-                "protein": round(p100 * ratio, 1),
-                "carbs": round(cb100 * ratio, 1),
-                "fat": round(f100 * ratio, 1),
+                "calories": total_nutrition["calories"],
+                "protein": total_nutrition["protein"],
+                "carbs": total_nutrition["carbs"],
+                "fat": total_nutrition["fat"],
+                "fiber": total_nutrition["fiber"],
             },
+            "fiber": total_nutrition["fiber"],
+            "total_weight_grams": round(float(total_weight), 1),
+            "total_nutrition": total_nutrition,
+            "ingredients": ingredients,
+            "health_insights": health_insights,
             "per_100g": {
                 "calories": c100,
                 "protein": p100,
                 "carbs": cb100,
                 "fat": f100,
+                "fiber": round(total_nutrition["fiber"] / effective_grams * 100, 1),
             },
             "nutrition_source": "gemini_estimate",
             "top3_predictions": [

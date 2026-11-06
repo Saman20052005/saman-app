@@ -1,0 +1,13 @@
+JCOM0507 actual verification record
+
+Baseline: branch agent/nutrition-active-localhost-f02 /10be1ab; before-task SHA/status in baseline.json. Flutter flow+remote read19 PASS; backend read11 PASS.
+Backend: new real-Mongo module8 PASS. Explicit isolated-env read+answers19 PASS. Earlier omitted-env invocation503 disclosed, raw log retained. Strict publication regression status=None: before-fix1 FAIL (200!=404), after-fix1 PASS;19-test run predates final one-line refinement.
+Frontend:7 new answer tests + existing R15 targeted case =8 PASS. Strengthened late-answer/editor checks separately2 PASS. Old remote-read and other features cases passed in combined attempt; initial legacy R15 failure cleared by the focused run. New test compilation/async-pump mistakes corrected without weakening assertions.
+Scoped analyze:0 errors,0 warnings,2 inherited const infos. No broad unrelated suite repeated.
+Main web release build to unique server run output:PASS110.4s; BACKEND_URL18097, remote Journal/Community true, lib/main.dart. No old static artifact overwritten.
+Runtime first ui_20261102T152421Z_a07bf0:PARTIAL at B tooltip locator; preserved unchanged.
+Runtime final ui_20261102T152759Z_ede4cf:PASS. Real keyboard answer/reload/count; actual POST200 then injected delivery loss and same-key/canonical-ID retry/no duplicate; B UI/projection/vote/reload/unvote and dropped real PUT reconciled by GET; followers audience and private revocation read/replay/vote404, only detail, UI hidden. Final DB4 answers/1 helpful vote. No page errors.
+Backend final compileall:PASS. Harness ast.parse:PASS. Current backend hashes, frontend source-before-build timestamps, artifact and executed harness hashes:PASS (source_review.json).
+Handoff process check after interruption: no current listeners18097/18096/27046/8096/3000 or recorded PIDs. No end-of-run service/data cleanup action by this agent; previous checkpoint services not managed.
+Evidence directories are unique, no overwrites. Branch/HEAD unchanged; no commit/push/merge/deploy/release/next checkpoint.
+Final scope audit: all checkpoint docs/runtime files covered, including generated Python bytecode. Positive process query succeeded (28 listeners/192 processes total) with zero target listeners/PIDs. New docs whitespace and acceptance checklist checks PASS. Original raw backend log retained with readable UTF-8 derivative.

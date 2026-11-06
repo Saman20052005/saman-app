@@ -1,0 +1,342 @@
+{
+  "status": "PASS",
+  "text_handoff_historical": {
+    "reviewed_at_utc": "2026-11-03T02:04:25.634975+00:00",
+    "branch": "agent/nutrition-active-localhost-f02",
+    "head": "10be1ab1971214acd2487ef893df3fcc80212fc9",
+    "source_build_manifest": "runtime_evidence/jcom0508_publish/runs/final_20261103T015247Z_72e65d/server.json",
+    "clearing_run": "runtime_evidence/jcom0508_publish/runs/ui_20261103T020143Z_c0188a",
+    "source_hashes_match": true,
+    "web_hash_matches": true,
+    "frontend_sources_predate_build": true,
+    "harness_current_matches_snapshot": true,
+    "page_errors": [],
+    "keyboard_and_canonical_checks": [
+      {
+        "native_matches": true,
+        "dialogs": 0,
+        "canonical_matches": true
+      },
+      {
+        "native_matches": true,
+        "dialogs": 0,
+        "canonical_matches": true
+      },
+      {
+        "native_matches": true,
+        "dialogs": 0,
+        "canonical_matches": true
+      },
+      {
+        "native_matches": true,
+        "dialogs": 0,
+        "canonical_matches": true
+      },
+      {
+        "native_matches": true,
+        "dialogs": 0,
+        "canonical_matches": true
+      }
+    ],
+    "own_actor_db_records": [
+      {
+        "id": "6ae940a1301df3a0e42a9649",
+        "privacy": "public",
+        "status": "published",
+        "caption_matches_payload": true,
+        "run_marker": true
+      },
+      {
+        "id": "6ae940b4301df3a0e42a964a",
+        "privacy": "private",
+        "status": "published",
+        "caption_matches_payload": true,
+        "run_marker": true
+      },
+      {
+        "id": "6ae940ba301df3a0e42a964b",
+        "privacy": "followers_only",
+        "status": "published",
+        "caption_matches_payload": true,
+        "run_marker": true
+      },
+      {
+        "id": "6ae940bf301df3a0e42a964c",
+        "privacy": "public",
+        "status": "published",
+        "caption_matches_payload": true,
+        "run_marker": true
+      },
+      {
+        "id": "6ae940ee301df3a0e42a964d",
+        "privacy": "private",
+        "status": "draft",
+        "caption_matches_payload": true,
+        "run_marker": true
+      }
+    ],
+    "duplicate_request_keys": 0,
+    "source_baseline_and_final": {
+      "backend/app/models/community.py": {
+        "before": "dbea8216849c6b25516503b6a8f2cec964d730439bf347d23087caa4f2ff5897",
+        "final": "29bb1ce2cef04dcf66167d00681d96a2be1ddfaf56669c01cedec8536d152a9b",
+        "in_exact_allowlist": true
+      },
+      "backend/routers/community.py": {
+        "before": "f9ee78d6794f77503e14af0d3bbb32448af65340c9ec721eb16fc6d821c6882d",
+        "final": "97827aa1c290dcc93202ea98c1b69d8481b4409e1f08346b563595f02891504b",
+        "in_exact_allowlist": true
+      },
+      "frontend/lib/features/community/domain/models/community_post.dart": {
+        "before": "7e9ee28b81908624529192e2006c36178595fe5ed920e9ea45d74782968b2fb2",
+        "final": "ccfe9ea78501492dc404fce2e9cbc26c75edaa557b57763c33d5ba9b7bd7b87a",
+        "in_exact_allowlist": true
+      },
+      "frontend/lib/features/community/domain/repositories/community_repository.dart": {
+        "before": "a847da7e981f142b759a0f48542695b5ba0ec441105fa25372313c2de80907e4",
+        "final": "214ae45c97deb0607d079f20e1979167e18426c64714313da0818205a82d2553",
+        "in_exact_allowlist": true
+      },
+      "frontend/lib/features/community/data/datasources/community_remote_datasource.dart": {
+        "before": "d4cd69affb9d49f501a5fe9f7b3eb88fb3389a5dea63802cae0f9debc8904f1f",
+        "final": "7eb11562ff923cf734b91a89450a5f50d23ecb8195050505682635d64fc46385",
+        "in_exact_allowlist": true
+      },
+      "frontend/lib/features/community/data/repositories/community_repository_impl.dart": {
+        "before": "ac47f17e1dcd66ac0e6d816bb185b28cfb29abf951ed4d7558d0daec409c0ff9",
+        "final": "d22a7453c32578683fd9fdc1a578173a4443c896ee797b8535eb1bb30ffe9652",
+        "in_exact_allowlist": true
+      },
+      "frontend/lib/features/community/presentation/providers/community_providers.dart": {
+        "before": "1b751f65b39a87a0a342bcb50d96d39de9485302ed4c227c39592b9d57403f26",
+        "final": "15f993c5f967508b06fcf79e360d987e89496c58913d2570e7e00162a5f40973",
+        "in_exact_allowlist": true
+      },
+      "frontend/lib/features/community/presentation/providers/community_composer_provider.dart": {
+        "before": "19c92ffb5dd0129029861305b500638aa2af2431d6b0b4dd5a8c2854d82ebffb",
+        "final": "9ab55278708fc52bdc063770b2b6365e980a435830d500427e0b272bf9b93d1c",
+        "in_exact_allowlist": true
+      },
+      "frontend/lib/features/community/presentation/screens/compose/post_compose_publish_screen.dart": {
+        "before": "15f463e5e00c1d58f94f68a873dda88988c724f351f47c1c6d193876bf48b4e4",
+        "final": "603b2e614a3786222f12dc0fdff1ec1ee961a1d33388418e8afaeeffb7dbef9a",
+        "in_exact_allowlist": true
+      },
+      "frontend/lib/features/community/presentation/screens/compose/community_ask_question_screen.dart": {
+        "before": "e9d98f9b406761e88ba8d8a8ef237f844a8cb15c8c39c6a23b57b60794575695",
+        "final": "4af114f64cc1d859599c987ff8a6393373f0beb7acc639959688e3f0a6103ceb",
+        "in_exact_allowlist": true
+      },
+      "frontend/lib/features/community/presentation/widgets/create_content_bottom_sheet.dart": {
+        "before": "992c4d4b3814c5dad323fd4ca51f810456bee4a2397e7137bec883af992ca634",
+        "final": "9d37baf202f0849e339eeb519b54926c5317c719140581050047175cace33302",
+        "in_exact_allowlist": true
+      },
+      "frontend/lib/config/app_translations.dart": {
+        "before": "37eaf112091b6e73b956943827192a01bbc02cd78617e52a0d89a8ed3f1e7aa0",
+        "final": "a53a11609f287c6ad6bfac5d037d2f148f9fd7e2fd3a1e53427fa2e3efd8335a",
+        "in_exact_allowlist": true
+      },
+      "frontend/test/features/community/community_remote_read_test.dart": {
+        "before": "2c944594b8b52cb26e240edc5e9a1e40ab8c073689073357169e0e44451baf5e",
+        "final": "c196e4fb2ace659fd1661b0cb62c3d4006b1cc2533146363f6c8b465bc76beac",
+        "in_exact_allowlist": true
+      },
+      "frontend/test/features/community/community_follow_test.dart": {
+        "before": "d6410401d1c420b94f9238284bc03e681cabd91693267f9b75902612cc44afa0",
+        "final": "8f5011dc76b03b2cf5bfdffe158614a4dad091f86856809a4bddbad3031c8610",
+        "in_exact_allowlist": true
+      },
+      "frontend/test/features/community/community_interactions_test.dart": {
+        "before": "df3e8903379a63a59e40cc4b465b1dee2916ee2169a5d1f56edfad7b5a157e85",
+        "final": "5a969d57172cd966bc3656648041ebc805c7d659330c9af2c21055f346f31c52",
+        "in_exact_allowlist": true
+      },
+      "frontend/test/features/community/community_timeout_reconciliation_test.dart": {
+        "before": "2a62b61dac19108476ba0e499fd5dc38594e7f6acb9f5d0ade69b053bbef7743",
+        "final": "05118a64150d21a9c153a358e7f457624a4419236a221b24f9b87e302b7b0f51",
+        "in_exact_allowlist": true
+      },
+      "docs/CONTINUOUS_RUN_STATUS.md": {
+        "before": "488a4b9e1d86e2fc2d777b9e24acb86217c77e98b861f7fda27d9624d0ff0877",
+        "final": "481abd7035ec990a4874abd7a5c10214764af1c89c702b505ffbf378de52678c",
+        "in_exact_allowlist": true
+      },
+      "docs/jcom0508_publish_acceptance/JCOM0508_SCOPE.md": {
+        "before": "3ae502a6b03bfd9d1342ec6954217d3230f2dabfb6cad0717a441229e7ce0d90",
+        "final": "6e0de9e1199ea056e1213348131c2c0c01180a759d032a27ead014d4aa756ee8",
+        "in_exact_allowlist": true
+      }
+    },
+    "new_source_and_tests": {
+      "backend/scripts/setup_community_publish_indexes.py": "5d82f0d9dc456cd47cf61f95bc867feca14ac39b4cc4c0a6ea7a5252bffe6ef4",
+      "backend/tests/test_community_publish_mongo.py": "befe60e2701989bc81d3e48725322ab25be002ef3c482ea0f353d7efd57b6e80",
+      "frontend/test/features/community/community_publish_test.dart": "72d9006798a3f0ad010b372e7e83ef5858348b4a8673ca88d740f59449c4d7a8",
+      "runtime_evidence/jcom0508_publish/run_publish_runtime.py": "97480b711ca3df36ca8ca59acbc6e66e379ac5c334adece2078edf643f0001d8"
+    },
+    "scope_review": "All session-edited source/tests/docs and immutable run directories are explicitly allowlisted. Generated build/bytecode are authorized tool output. Other repository WIP is not attributed to this task.",
+    "diff_review": "Tracked git diff inspected; most Community files are inherited untracked WIP, so baseline hashes and focused final source review supplement git diff. Translation EOF blank line inherited and retained.",
+    "process_check": {
+      "mongo": {
+        "listener": "127.0.0.1:27048",
+        "pid": 14064,
+        "parent_pid": 14260
+      },
+      "backend": {
+        "listener": "127.0.0.1:18098",
+        "pid": 2632,
+        "parent_pid": 3672
+      },
+      "launcher_parent_pid": 280,
+      "temporary_static_3000": "closed",
+      "native_workspace_record": [
+        {
+          "pid": 2632,
+          "cwd": "D:\\SamanDev\\workspace\\saman-main-verified-CP26_20261025_072840\\"
+        },
+        {
+          "pid": 3672,
+          "cwd": "D:\\SamanDev\\workspace\\saman-main-verified-CP26_20261025_072840\\"
+        },
+        {
+          "pid": 14064,
+          "cwd": "D:\\SamanDev\\workspace\\saman-main-verified-CP26_20261025_072840\\"
+        }
+      ]
+    },
+    "status": "PARTIAL",
+    "text_runtime": "PASS",
+    "question_policy": "BLOCKED pending user decision; no automatic approval or alternative policy assumed",
+    "commit_push_merge_deploy_release": false,
+    "documentation_finalized": true
+  },
+  "qa_resume": {
+    "time_utc": "2026-11-03T03:14:18.640765+00:00",
+    "status": "PASS",
+    "clearing_run": "runtime_evidence/jcom0508_publish/runs/qa_ui_20261103T031117Z_d2e575",
+    "server_manifest": "runtime_evidence/jcom0508_publish/runs/qa_clearing_20261103T030900Z/server.json",
+    "fingerprint_sha256": "34346683ba09938b8995fa2cd12a5c2856e5e9a715ba543b9958f0636fbc8d00",
+    "web_sha256": "7fe7b9adb61d9f7de3d72a8c68775ef1008f36ff462f710dd1ac51b9a1d40ed0",
+    "all_source_hashes_match": true,
+    "web_hash_matches": true,
+    "harness_snapshot_matches": true,
+    "db_records": [
+      {
+        "id": "6ae950efda93e86e5b0867da",
+        "privacy": "public",
+        "status": "published",
+        "canonical_input_matches": true
+      },
+      {
+        "id": "6ae95103da93e86e5b0867db",
+        "privacy": "private",
+        "status": "published",
+        "canonical_input_matches": true
+      },
+      {
+        "id": "6ae9510ada93e86e5b0867dc",
+        "privacy": "followers_only",
+        "status": "published",
+        "canonical_input_matches": true
+      },
+      {
+        "id": "6ae95110da93e86e5b0867dd",
+        "privacy": "public",
+        "status": "published",
+        "canonical_input_matches": true
+      },
+      {
+        "id": "6ae9514dda93e86e5b0867de",
+        "privacy": "private",
+        "status": "draft",
+        "canonical_input_matches": true
+      }
+    ],
+    "duplicate_keys": 0,
+    "unique_index": {
+      "v": 2,
+      "key": [
+        [
+          "user_id",
+          1
+        ],
+        [
+          "request_key",
+          1
+        ]
+      ],
+      "unique": true,
+      "partialFilterExpression": {
+        "request_key": {
+          "$type": "string"
+        }
+      }
+    },
+    "all_native_input_checks": [
+      {
+        "id": "6ae950efda93e86e5b0867da",
+        "native_and_canonical": true,
+        "privacy": "public"
+      },
+      {
+        "id": "6ae95103da93e86e5b0867db",
+        "native_and_canonical": true,
+        "privacy": "private"
+      },
+      {
+        "id": "6ae9510ada93e86e5b0867dc",
+        "native_and_canonical": true,
+        "privacy": "followers_only"
+      },
+      {
+        "id": "6ae95110da93e86e5b0867dd",
+        "native_and_canonical": true,
+        "privacy": "public"
+      },
+      {
+        "id": "6ae9514dda93e86e5b0867de",
+        "native_and_canonical": true,
+        "privacy": "private"
+      }
+    ],
+    "page_errors": [],
+    "branch": "agent/nutrition-active-localhost-f02",
+    "head": "10be1ab1971214acd2487ef893df3fcc80212fc9",
+    "process_handoff": "runtime_evidence/jcom0508_publish/runs/qa_clearing_20261103T030900Z/process_handoff.json",
+    "temporary_3000": "closed",
+    "services_retained": [
+      "Mongo14064:27048",
+      "backend18028/17964:18098"
+    ],
+    "approval_blocker": null,
+    "unchanged_text_script": true,
+    "public_A_detail_requests": 2,
+    "session_file_scope_review": [
+      "backend/app/models/community.py",
+      "backend/routers/community.py",
+      "backend/tests/test_community_publish_mongo.py",
+      "frontend/lib/features/community/domain/repositories/community_repository.dart",
+      "frontend/lib/features/community/data/repositories/community_repository_impl.dart",
+      "frontend/lib/features/community/presentation/providers/community_composer_provider.dart",
+      "frontend/lib/features/community/presentation/providers/community_providers.dart",
+      "frontend/lib/features/community/presentation/screens/compose/community_ask_question_screen.dart",
+      "frontend/lib/config/app_translations.dart",
+      "frontend/test/features/community/community_publish_test.dart",
+      "runtime_evidence/jcom0508_publish/run_questions_runtime.py",
+      "docs/CONTINUOUS_RUN_STATUS.md",
+      "docs/jcom0508_publish_acceptance/JCOM0508_REPORT.md",
+      "docs/jcom0508_publish_acceptance/JCOM0508_SCOPE.md",
+      "docs/jcom0508_publish_acceptance/JCOM0508_CONTRACT.md",
+      "docs/jcom0508_publish_acceptance/qa_verification.txt",
+      "docs/jcom0508_publish_acceptance/resume_qa_baseline.json",
+      "docs/jcom0508_publish_acceptance/source_review.json"
+    ],
+    "tests_final_sha256": {
+      "backend/tests/test_community_publish_mongo.py": "0f5c6b00235d14b498645f0560b42d5c3a9b0cd21e7815529d86b9395a61674f",
+      "frontend/test/features/community/community_publish_test.dart": "e1efd6d1a55a74165dc2f4d01f4193539114c9784e4f7ea2f75c0edd8718b5b9"
+    },
+    "scope_confirmed": true,
+    "documentation_finalized": true,
+    "diff_review": "Tracked translation diff reviewed; inherited EOF blank line retained. Focused Community models/router/repository/notifier/R08/test source reviewed in place; untracked inherited WIP supplemented by input hashes. No generated source manually edited."
+  }
+}

@@ -1,6 +1,6 @@
 from pydantic import BaseModel, EmailStr, Field, field_validator
 import math
-from typing import Optional
+from typing import Optional, Dict, Any
 from datetime import datetime
 from .common import Gender, ActivityLevel, Goal
 
@@ -13,6 +13,7 @@ class UserProfileInput(BaseModel):
     weight: Optional[float] = Field(None, gt=0)
     activity_level: Optional[ActivityLevel] = None
     goal: Optional[Goal] = None
+    preferences: Optional[Dict[str, Any]] = Field(default_factory=dict)
 
     @field_validator("height", "weight")
     @classmethod
@@ -47,6 +48,11 @@ class UserDB(BaseModel):
     created_at: datetime
     updated_at: datetime
     health_stats: Optional[UserHealthStats] = None
+    avatar: Optional[str] = None
+    avatar_source: Optional[str] = None
+    custom_avatar: Optional[str] = None
+    google_avatar: Optional[str] = None
+    preferences: Optional[Dict[str, Any]] = Field(default_factory=dict)
 
 class UserAuth(BaseModel):
     email: EmailStr
@@ -60,3 +66,11 @@ class ProfileUpdateRequest(BaseModel):
     weight: Optional[float] = Field(None, gt=0)
     activity_level: Optional[ActivityLevel] = None
     goal: Optional[Goal] = None
+    preferences: Optional[Dict[str, Any]] = Field(default_factory=dict)
+
+class AvatarResponse(BaseModel):
+    success: bool
+    avatar: Optional[str] = None
+    avatar_source: str
+    can_use_google_avatar: bool = False
+    message: str

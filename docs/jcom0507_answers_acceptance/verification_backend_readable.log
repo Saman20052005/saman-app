@@ -1,0 +1,633 @@
+Derived from original raw log SHA256 124b1d6761e647892d9b7958d9c76b70bdde5909dda8355e916e751d252ffbcf; initial PowerShell UTF-16 section decoded, later UTF-8 sections retained. Original file unchanged.
+
+D:/SamanDev/runtime/saman-cp7-python/Scripts/python.exe : PyTorch not available, defaulting to CPU device
+At line:149 char:1
++ D:/SamanDev/runtime/saman-cp7-python/Scripts/python.exe -X utf8 -m un ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (PyTorch not ava...g to CPU device:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+PyTorch not available, defaulting to CPU device
+Classification model path does not exist: food_classification_efficientnet_b3.pth
+Portion model path does not exist: portion_estimation_regressor.pth
+D:\SamanDev\runtime\saman-cp7-python\Lib\site-packages\pydantic\_internal\_config.py:408: UserWarning: Valid config 
+keys have changed in V2:
+* 'allow_population_by_field_name' has been renamed to 'validate_by_name'
+  warnings.warn(message, UserWarning)
+D:\SamanDev\runtime\saman-cp7-python\Lib\site-packages\jwt\api_jwt.py:149: InsecureKeyLengthWarning: The HMAC key is 
+23 bytes long, which is below the minimum recommended length of 32 bytes for SHA256. See RFC 7518 Section 3.2.
+  return self._jws.encode(
+D:\SamanDev\runtime\saman-cp7-python\Lib\site-packages\jwt\api_jwt.py:370: InsecureKeyLengthWarning: The HMAC key is 
+23 bytes long, which is below the minimum recommended length of 32 bytes for SHA256. See RFC 7518 Section 3.2.
+  decoded = self.decode_complete(
+D:\SamanDev\runtime\saman-cp7-python\Lib\site-packages\jwt\api_jwt.py:149: InsecureKeyLengthWarning: The HMAC key is 
+23 bytes long, which is below the minimum recommended length of 32 bytes for SHA256. See RFC 7518 Section 3.2.
+  return self._jws.encode(
+----------------------------------------------------------------------
+Ran 8 tests in 1.493s
+
+OK
+🔌 Connecting to MongoDB: mongodb://127.0.0.1:27046
+📂 Database Name: saman_jcom0507_test_import
+⚠️  Detected Localhost. Disabling SSL.
+✅ Successfully connected to MongoDB!
+Warning: Failed to import shop router: cannot import name 'ActiveIngredientModel' from 'backend.app.models.shop' (D:\SamanDev\workspace\saman-main-verified-CP26_20261025_072840\backend\app\models\shop.py)
+sys:1: ResourceWarning: Unclosed MongoClient opened at:
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "C:\Users\GL\AppData\Local\Programs\Python\Python311\Lib\unittest\__main__.py", line 18, in <module>
+    main(module=None)
+  File "C:\Users\GL\AppData\Local\Programs\Python\Python311\Lib\unittest\main.py", line 101, in __init__
+    self.parseArgs(argv)
+  File "C:\Users\GL\AppData\Local\Programs\Python\Python311\Lib\unittest\main.py", line 150, in parseArgs
+    self.createTests()
+  File "C:\Users\GL\AppData\Local\Programs\Python\Python311\Lib\unittest\main.py", line 161, in createTests
+    self.test = self.testLoader.loadTestsFromNames(self.testNames,
+  File "C:\Users\GL\AppData\Local\Programs\Python\Python311\Lib\unittest\loader.py", line 232, in loadTestsFromNames
+    suites = [self.loadTestsFromName(name, module) for name in names]
+  File "C:\Users\GL\AppData\Local\Programs\Python\Python311\Lib\unittest\loader.py", line 232, in <listcomp>
+    suites = [self.loadTestsFromName(name, module) for name in names]
+  File "C:\Users\GL\AppData\Local\Programs\Python\Python311\Lib\unittest\loader.py", line 162, in loadTestsFromName
+    module = __import__(module_name)
+  File "<frozen importlib._bootstrap>", line 1176, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1147, in _find_and_load_unlocked
+  File "<frozen importlib._bootstrap>", line 690, in _load_unlocked
+  File "<frozen importlib._bootstrap_external>", line 940, in exec_module
+  File "<frozen importlib._bootstrap>", line 241, in _call_with_frames_removed
+  File "D:\SamanDev\workspace\saman-main-verified-CP26_20261025_072840\backend\tests\test_community_answers_mongo.py", 
+line 15, in <module>
+    from backend.routers import community as r
+  File "<frozen importlib._bootstrap>", line 1176, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1147, in _find_and_load_unlocked
+  File "<frozen importlib._bootstrap>", line 690, in _load_unlocked
+  File "<frozen importlib._bootstrap_external>", line 940, in exec_module
+  File "<frozen importlib._bootstrap>", line 241, in _call_with_frames_removed
+  File "D:\SamanDev\workspace\saman-main-verified-CP26_20261025_072840\backend\routers\__init__.py", line 3, in 
+<module>
+    from .auth import router as auth_router
+  File "<frozen importlib._bootstrap>", line 1176, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1147, in _find_and_load_unlocked
+  File "<frozen importlib._bootstrap>", line 690, in _load_unlocked
+  File "<frozen importlib._bootstrap_external>", line 940, in exec_module
+  File "<frozen importlib._bootstrap>", line 241, in _call_with_frames_removed
+  File "D:\SamanDev\workspace\saman-main-verified-CP26_20261025_072840\backend\routers\auth.py", line 20, in <module>
+    from backend.app.database import users_collection, db
+  File "<frozen importlib._bootstrap>", line 1176, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1147, in _find_and_load_unlocked
+  File "<frozen importlib._bootstrap>", line 690, in _load_unlocked
+  File "<frozen importlib._bootstrap_external>", line 940, in exec_module
+  File "<frozen importlib._bootstrap>", line 241, in _call_with_frames_removed
+  File "D:\SamanDev\workspace\saman-main-verified-CP26_20261025_072840\backend\app\database.py", line 39, in <module>
+    client = MongoClient(MONGO_URI, serverSelectionTimeoutMS=5000)
+  File "D:\SamanDev\runtime\saman-cp7-python\Lib\site-packages\pymongo\synchronous\mongo_client.py", line 918, in 
+__init__
+    self._init_based_on_options(
+Call MongoClient.close() to safely shut down your client and free up resources.
+
+FINAL READ + ANSWER VERIFICATION
+🔌 Connecting to MongoDB: mongodb://localhost:27017
+📂 Database Name: saman_fitness
+⚠️  Detected Localhost. Disabling SSL.
+❌ MongoDB Connection Error: localhost:27017: [WinError 10061] No connection could be made because the target machine actively refused it (configured timeouts: socketTimeoutMS: 20000.0ms, connectTimeoutMS: 20000.0ms), Timeout: 5.0s, Topology Description: <TopologyDescription id: 6ae8a9f8a2a408ad4b6c5321, topology_type: Unknown, servers: [<ServerDescription ('localhost', 27017) server_type: Unknown, rtt: None, error=AutoReconnect('localhost:27017: [WinError 10061] No connection could be made because the target machine actively refused it (configured timeouts: socketTimeoutMS: 20000.0ms, connectTimeoutMS: 20000.0ms)')>]>
+⚠️  Continuing without database connection (some features may not work)
+Warning: Failed to import shop router: cannot import name 'ActiveIngredientModel' from 'backend.app.models.shop' (D:\SamanDev\workspace\saman-main-verified-CP26_20261025_072840\backend\app\models\shop.py)
+
+=== REGISTERED ROUTES ===
+/openapi.json -> openapi [GET,HEAD]
+/docs -> swagger_ui_html [GET,HEAD]
+/docs/oauth2-redirect -> swagger_ui_redirect [GET,HEAD]
+/redoc -> redoc_html [GET,HEAD]
+_IncludedRouter(original_router=<fastapi.routing.APIRouter object at 0x000001D7B737D250>, include_context=_RouterIncludeContext(included_router=<fastapi.routing.APIRouter object at 0x000001D7B737D250>, prefix='', tags=[], dependencies=[], default_response_class=<fastapi.datastructures.DefaultPlaceholder object at 0x000001D7B58B3F10>, responses={}, callbacks=[], deprecated=None, include_in_schema=True, generate_unique_id_function=<fastapi.datastructures.DefaultPlaceholder object at 0x000001D7B58C8190>, strict_content_type=True, dependency_overrides_provider=<fastapi.applications.FastAPI object at 0x000001D7C626D6D0>), _effective_candidates=[], _effective_candidates_version=None, _effective_low_priority_routes=[], _effective_low_priority_routes_version=None) -> _IncludedRouter
+_IncludedRouter(original_router=<fastapi.routing.APIRouter object at 0x000001D7B794F890>, include_context=_RouterIncludeContext(included_router=<fastapi.routing.APIRouter object at 0x000001D7B794F890>, prefix='', tags=[], dependencies=[], default_response_class=<fastapi.datastructures.DefaultPlaceholder object at 0x000001D7B58B3F10>, responses={}, callbacks=[], deprecated=None, include_in_schema=True, generate_unique_id_function=<fastapi.datastructures.DefaultPlaceholder object at 0x000001D7B58C8190>, strict_content_type=True, dependency_overrides_provider=<fastapi.applications.FastAPI object at 0x000001D7C626D6D0>), _effective_candidates=[], _effective_candidates_version=None, _effective_low_priority_routes=[], _effective_low_priority_routes_version=None) -> _IncludedRouter
+_IncludedRouter(original_router=<fastapi.routing.APIRouter object at 0x000001D7B798E850>, include_context=_RouterIncludeContext(included_router=<fastapi.routing.APIRouter object at 0x000001D7B798E850>, prefix='', tags=[], dependencies=[], default_response_class=<fastapi.datastructures.DefaultPlaceholder object at 0x000001D7B58B3F10>, responses={}, callbacks=[], deprecated=None, include_in_schema=True, generate_unique_id_function=<fastapi.datastructures.DefaultPlaceholder object at 0x000001D7B58C8190>, strict_content_type=True, dependency_overrides_provider=<fastapi.applications.FastAPI object at 0x000001D7C626D6D0>), _effective_candidates=[], _effective_candidates_version=None, _effective_low_priority_routes=[], _effective_low_priority_routes_version=None) -> _IncludedRouter
+_IncludedRouter(original_router=<fastapi.routing.APIRouter object at 0x000001D7B79C91D0>, include_context=_RouterIncludeContext(included_router=<fastapi.routing.APIRouter object at 0x000001D7B79C91D0>, prefix='', tags=[], dependencies=[], default_response_class=<fastapi.datastructures.DefaultPlaceholder object at 0x000001D7B58B3F10>, responses={}, callbacks=[], deprecated=None, include_in_schema=True, generate_unique_id_function=<fastapi.datastructures.DefaultPlaceholder object at 0x000001D7B58C8190>, strict_content_type=True, dependency_overrides_provider=<fastapi.applications.FastAPI object at 0x000001D7C626D6D0>), _effective_candidates=[], _effective_candidates_version=None, _effective_low_priority_routes=[], _effective_low_priority_routes_version=None) -> _IncludedRouter
+_IncludedRouter(original_router=<fastapi.routing.APIRouter object at 0x000001D7C5FAE310>, include_context=_RouterIncludeContext(included_router=<fastapi.routing.APIRouter object at 0x000001D7C5FAE310>, prefix='', tags=[], dependencies=[], default_response_class=<fastapi.datastructures.DefaultPlaceholder object at 0x000001D7B58B3F10>, responses={}, callbacks=[], deprecated=None, include_in_schema=True, generate_unique_id_function=<fastapi.datastructures.DefaultPlaceholder object at 0x000001D7B58C8190>, strict_content_type=True, dependency_overrides_provider=<fastapi.applications.FastAPI object at 0x000001D7C626D6D0>), _effective_candidates=[], _effective_candidates_version=None, _effective_low_priority_routes=[], _effective_low_priority_routes_version=None) -> _IncludedRouter
+_IncludedRouter(original_router=<fastapi.routing.APIRouter object at 0x000001D7C6033790>, include_context=_RouterIncludeContext(included_router=<fastapi.routing.APIRouter object at 0x000001D7C6033790>, prefix='', tags=[], dependencies=[], default_response_class=<fastapi.datastructures.DefaultPlaceholder object at 0x000001D7B58B3F10>, responses={}, callbacks=[], deprecated=None, include_in_schema=True, generate_unique_id_function=<fastapi.datastructures.DefaultPlaceholder object at 0x000001D7B58C8190>, strict_content_type=True, dependency_overrides_provider=<fastapi.applications.FastAPI object at 0x000001D7C626D6D0>), _effective_candidates=[], _effective_candidates_version=None, _effective_low_priority_routes=[], _effective_low_priority_routes_version=None) -> _IncludedRouter
+_IncludedRouter(original_router=<fastapi.routing.APIRouter object at 0x000001D7C60A9F10>, include_context=_RouterIncludeContext(included_router=<fastapi.routing.APIRouter object at 0x000001D7C60A9F10>, prefix='', tags=[], dependencies=[], default_response_class=<fastapi.datastructures.DefaultPlaceholder object at 0x000001D7B58B3F10>, responses={}, callbacks=[], deprecated=None, include_in_schema=True, generate_unique_id_function=<fastapi.datastructures.DefaultPlaceholder object at 0x000001D7B58C8190>, strict_content_type=True, dependency_overrides_provider=<fastapi.applications.FastAPI object at 0x000001D7C626D6D0>), _effective_candidates=[], _effective_candidates_version=None, _effective_low_priority_routes=[], _effective_low_priority_routes_version=None) -> _IncludedRouter
+_IncludedRouter(original_router=<fastapi.routing.APIRouter object at 0x000001D7C60ACDD0>, include_context=_RouterIncludeContext(included_router=<fastapi.routing.APIRouter object at 0x000001D7C60ACDD0>, prefix='', tags=[], dependencies=[], default_response_class=<fastapi.datastructures.DefaultPlaceholder object at 0x000001D7B58B3F10>, responses={}, callbacks=[], deprecated=None, include_in_schema=True, generate_unique_id_function=<fastapi.datastructures.DefaultPlaceholder object at 0x000001D7B58C8190>, strict_content_type=True, dependency_overrides_provider=<fastapi.applications.FastAPI object at 0x000001D7C626D6D0>), _effective_candidates=[], _effective_candidates_version=None, _effective_low_priority_routes=[], _effective_low_priority_routes_version=None) -> _IncludedRouter
+_IncludedRouter(original_router=<fastapi.routing.APIRouter object at 0x000001D7C60DAE10>, include_context=_RouterIncludeContext(included_router=<fastapi.routing.APIRouter object at 0x000001D7C60DAE10>, prefix='', tags=[], dependencies=[], default_response_class=<fastapi.datastructures.DefaultPlaceholder object at 0x000001D7B58B3F10>, responses={}, callbacks=[], deprecated=None, include_in_schema=True, generate_unique_id_function=<fastapi.datastructures.DefaultPlaceholder object at 0x000001D7B58C8190>, strict_content_type=True, dependency_overrides_provider=<fastapi.applications.FastAPI object at 0x000001D7C626D6D0>), _effective_candidates=[], _effective_candidates_version=None, _effective_low_priority_routes=[], _effective_low_priority_routes_version=None) -> _IncludedRouter
+_IncludedRouter(original_router=<fastapi.routing.APIRouter object at 0x000001D7C6261F90>, include_context=_RouterIncludeContext(included_router=<fastapi.routing.APIRouter object at 0x000001D7C6261F90>, prefix='', tags=[], dependencies=[], default_response_class=<fastapi.datastructures.DefaultPlaceholder object at 0x000001D7B58B3F10>, responses={}, callbacks=[], deprecated=None, include_in_schema=True, generate_unique_id_function=<fastapi.datastructures.DefaultPlaceholder object at 0x000001D7B58C8190>, strict_content_type=True, dependency_overrides_provider=<fastapi.applications.FastAPI object at 0x000001D7C626D6D0>), _effective_candidates=[], _effective_candidates_version=None, _effective_low_priority_routes=[], _effective_low_priority_routes_version=None) -> _IncludedRouter
+_IncludedRouter(original_router=<fastapi.routing.APIRouter object at 0x000001D7C5F99350>, include_context=_RouterIncludeContext(included_router=<fastapi.routing.APIRouter object at 0x000001D7C5F99350>, prefix='', tags=[], dependencies=[], default_response_class=<fastapi.datastructures.DefaultPlaceholder object at 0x000001D7B58B3F10>, responses={}, callbacks=[], deprecated=None, include_in_schema=True, generate_unique_id_function=<fastapi.datastructures.DefaultPlaceholder object at 0x000001D7B58C8190>, strict_content_type=True, dependency_overrides_provider=<fastapi.applications.FastAPI object at 0x000001D7C626D6D0>), _effective_candidates=[], _effective_candidates_version=None, _effective_low_priority_routes=[], _effective_low_priority_routes_version=None) -> _IncludedRouter
+=== END ROUTES ===
+
+PyTorch not available, defaulting to CPU device
+PyTorch not available, defaulting to CPU device
+Classification model path does not exist: food_classification_efficientnet_b3.pth
+Portion model path does not exist: portion_estimation_regressor.pth
+D:\SamanDev\runtime\saman-cp7-python\Lib\site-packages\pydantic\_internal\_config.py:408: UserWarning: Valid config keys have changed in V2:
+* 'allow_population_by_field_name' has been renamed to 'validate_by_name'
+  warnings.warn(message, UserWarning)
+D:\SamanDev\runtime\saman-cp7-python\Lib\site-packages\jwt\api_jwt.py:149: InsecureKeyLengthWarning: The HMAC key is 23 bytes long, which is below the minimum recommended length of 32 bytes for SHA256. See RFC 7518 Section 3.2.
+  return self._jws.encode(
+2026-11-02 22:19:26,971 - INFO - HTTP Request: GET http://testserver/api/community/feed?tab=for_you "HTTP/1.1 200 OK"
+D:\SamanDev\runtime\saman-cp7-python\Lib\site-packages\jwt\api_jwt.py:370: InsecureKeyLengthWarning: The HMAC key is 23 bytes long, which is below the minimum recommended length of 32 bytes for SHA256. See RFC 7518 Section 3.2.
+  decoded = self.decode_complete(
+2026-11-02 22:19:26,977 - INFO - HTTP Request: GET http://testserver/api/community/feed?tab=for_you "HTTP/1.1 200 OK"
+2026-11-02 22:19:26,984 - INFO - HTTP Request: GET http://testserver/api/community/feed?tab=following "HTTP/1.1 200 OK"
+2026-11-02 22:19:26,989 - INFO - HTTP Request: GET http://testserver/api/community/feed?tab=qa "HTTP/1.1 200 OK"
+2026-11-02 22:19:26,997 - INFO - HTTP Request: GET http://testserver/api/community/feed?cursor=not-a-valid-base64-cursor! "HTTP/1.1 400 Bad Request"
+2026-11-02 22:19:27,004 - INFO - HTTP Request: GET http://testserver/api/community/feed?tab=unknown_tab_name "HTTP/1.1 400 Bad Request"
+2026-11-02 22:19:27,018 - INFO - HTTP Request: GET http://testserver/api/community/posts/post_deleted_03 "HTTP/1.1 404 Not Found"
+2026-11-02 22:19:27,025 - INFO - HTTP Request: GET http://testserver/api/community/posts/post_private_02 "HTTP/1.1 404 Not Found"
+2026-11-02 22:19:27,033 - INFO - HTTP Request: GET http://testserver/api/community/posts/post_private_02 "HTTP/1.1 200 OK"
+2026-11-02 22:19:27,040 - INFO - HTTP Request: GET http://testserver/api/community/posts/post_public_01 "HTTP/1.1 200 OK"
+2026-11-02 22:19:27,049 - INFO - HTTP Request: GET http://testserver/api/community/questions/post_qa_04/answers "HTTP/1.1 503 Service Unavailable"
+D:\SamanDev\runtime\saman-cp7-python\Lib\site-packages\jwt\api_jwt.py:149: InsecureKeyLengthWarning: The HMAC key is 23 bytes long, which is below the minimum recommended length of 32 bytes for SHA256. See RFC 7518 Section 3.2.
+  return self._jws.encode(
+D:\SamanDev\runtime\saman-cp7-python\Lib\site-packages\jwt\api_jwt.py:370: InsecureKeyLengthWarning: The HMAC key is 23 bytes long, which is below the minimum recommended length of 32 bytes for SHA256. See RFC 7518 Section 3.2.
+  decoded = self.decode_complete(
+2026-11-02 22:19:27,288 - INFO - HTTP Request: POST http://testserver/api/community/questions/q_cce50c0721ef4ed98a77bed7080e84eb/answers "HTTP/1.1 200 OK"
+2026-11-02 22:19:27,302 - INFO - HTTP Request: GET http://testserver/api/community/questions/q_cce50c0721ef4ed98a77bed7080e84eb/answers "HTTP/1.1 404 Not Found"
+2026-11-02 22:19:27,314 - INFO - HTTP Request: POST http://testserver/api/community/questions/q_cce50c0721ef4ed98a77bed7080e84eb/answers "HTTP/1.1 404 Not Found"
+2026-11-02 22:19:27,328 - INFO - HTTP Request: PUT http://testserver/api/community/questions/q_cce50c0721ef4ed98a77bed7080e84eb/answers/6ae8a9ffa2a408ad4b6c5324/helpful "HTTP/1.1 404 Not Found"
+2026-11-02 22:19:27,338 - INFO - HTTP Request: GET http://testserver/api/community/questions/q_cce50c0721ef4ed98a77bed7080e84eb/answers/6ae8a9ffa2a408ad4b6c5324 "HTTP/1.1 404 Not Found"
+2026-11-02 22:19:27,363 - INFO - HTTP Request: GET http://testserver/api/community/questions/q_cce50c0721ef4ed98a77bed7080e84eb/answers "HTTP/1.1 200 OK"
+2026-11-02 22:19:27,377 - INFO - HTTP Request: GET http://testserver/api/community/questions/q_cce50c0721ef4ed98a77bed7080e84eb/answers "HTTP/1.1 404 Not Found"
+2026-11-02 22:19:27,389 - INFO - HTTP Request: POST http://testserver/api/community/questions/q_cce50c0721ef4ed98a77bed7080e84eb/answers "HTTP/1.1 404 Not Found"
+2026-11-02 22:19:27,400 - INFO - HTTP Request: PUT http://testserver/api/community/questions/q_cce50c0721ef4ed98a77bed7080e84eb/answers/6ae8a9ffa2a408ad4b6c5324/helpful "HTTP/1.1 404 Not Found"
+2026-11-02 22:19:27,409 - INFO - HTTP Request: GET http://testserver/api/community/questions/q_cce50c0721ef4ed98a77bed7080e84eb/answers/6ae8a9ffa2a408ad4b6c5324 "HTTP/1.1 404 Not Found"
+2026-11-02 22:19:27,426 - INFO - HTTP Request: GET http://testserver/api/community/questions/q_cce50c0721ef4ed98a77bed7080e84eb/answers "HTTP/1.1 200 OK"
+2026-11-02 22:19:27,470 - INFO - HTTP Request: GET http://testserver/api/community/questions/q_cce50c0721ef4ed98a77bed7080e84eb/answers "HTTP/1.1 200 OK"
+2026-11-02 22:19:27,499 - INFO - HTTP Request: POST http://testserver/api/community/questions/q_cce50c0721ef4ed98a77bed7080e84eb/answers "HTTP/1.1 200 OK"
+2026-11-02 22:19:27,511 - INFO - HTTP Request: GET http://testserver/api/community/questions/q_cce50c0721ef4ed98a77bed7080e84eb/answers "HTTP/1.1 404 Not Found"
+2026-11-02 22:19:27,528 - INFO - HTTP Request: POST http://testserver/api/community/questions/q_cce50c0721ef4ed98a77bed7080e84eb/answers "HTTP/1.1 404 Not Found"
+D:\SamanDev\runtime\saman-cp7-python\Lib\site-packages\jwt\api_jwt.py:149: InsecureKeyLengthWarning: The HMAC key is 23 bytes long, which is below the minimum recommended length of 32 bytes for SHA256. See RFC 7518 Section 3.2.
+  return self._jws.encode(
+2026-11-02 22:19:27,642 - INFO - HTTP Request: POST http://testserver/api/community/questions/q_320e73b7d61b466d861fd2f71c4a0cdd/answers "HTTP/1.1 401 Unauthorized"
+2026-11-02 22:19:27,673 - INFO - HTTP Request: POST http://testserver/api/community/questions/q_320e73b7d61b466d861fd2f71c4a0cdd/answers "HTTP/1.1 422 Unprocessable Content"
+2026-11-02 22:19:27,693 - INFO - HTTP Request: POST http://testserver/api/community/questions/q_320e73b7d61b466d861fd2f71c4a0cdd/answers "HTTP/1.1 422 Unprocessable Content"
+2026-11-02 22:19:27,702 - INFO - HTTP Request: POST http://testserver/api/community/questions/q_320e73b7d61b466d861fd2f71c4a0cdd/answers "HTTP/1.1 422 Unprocessable Content"
+2026-11-02 22:19:27,708 - INFO - HTTP Request: POST http://testserver/api/community/questions/q_320e73b7d61b466d861fd2f71c4a0cdd/answers "HTTP/1.1 422 Unprocessable Content"
+2026-11-02 22:19:27,722 - INFO - HTTP Request: POST http://testserver/api/community/questions/q_320e73b7d61b466d861fd2f71c4a0cdd/answers "HTTP/1.1 422 Unprocessable Content"
+2026-11-02 22:19:27,742 - INFO - HTTP Request: POST http://testserver/api/community/questions/q_320e73b7d61b466d861fd2f71c4a0cdd/answers "HTTP/1.1 422 Unprocessable Content"
+2026-11-02 22:19:27,748 - INFO - HTTP Request: POST http://testserver/api/community/questions/q_320e73b7d61b466d861fd2f71c4a0cdd/answers "HTTP/1.1 422 Unprocessable Content"
+2026-11-02 22:19:27,765 - INFO - HTTP Request: POST http://testserver/api/community/questions/q_320e73b7d61b466d861fd2f71c4a0cdd/answers "HTTP/1.1 200 OK"
+2026-11-02 22:19:27,774 - INFO - HTTP Request: POST http://testserver/api/community/questions/q_320e73b7d61b466d861fd2f71c4a0cdd/answers "HTTP/1.1 404 Not Found"
+2026-11-02 22:19:27,786 - INFO - HTTP Request: GET http://testserver/api/community/questions/q_320e73b7d61b466d861fd2f71c4a0cdd/answers "HTTP/1.1 404 Not Found"
+2026-11-02 22:19:27,813 - INFO - HTTP Request: POST http://testserver/api/community/questions/q_66dcec04acde4ed4801f4744a6d78a92/answers "HTTP/1.1 200 OK"
+2026-11-02 22:19:27,827 - INFO - HTTP Request: GET http://testserver/api/community/questions/q_66dcec04acde4ed4801f4744a6d78a92/answers "HTTP/1.1 404 Not Found"
+2026-11-02 22:19:27,839 - INFO - HTTP Request: POST http://testserver/api/community/questions/q_66dcec04acde4ed4801f4744a6d78a92/answers "HTTP/1.1 404 Not Found"
+2026-11-02 22:19:27,851 - INFO - HTTP Request: PUT http://testserver/api/community/questions/q_66dcec04acde4ed4801f4744a6d78a92/answers/6ae8a9ffa2a408ad4b6c5329/helpful "HTTP/1.1 404 Not Found"
+2026-11-02 22:19:27,864 - INFO - HTTP Request: GET http://testserver/api/community/questions/q_66dcec04acde4ed4801f4744a6d78a92/answers "HTTP/1.1 404 Not Found"
+2026-11-02 22:19:27,880 - INFO - HTTP Request: POST http://testserver/api/community/questions/q_66dcec04acde4ed4801f4744a6d78a92/answers "HTTP/1.1 404 Not Found"
+2026-11-02 22:19:27,894 - INFO - HTTP Request: PUT http://testserver/api/community/questions/q_66dcec04acde4ed4801f4744a6d78a92/answers/6ae8a9ffa2a408ad4b6c5329/helpful "HTTP/1.1 404 Not Found"
+2026-11-02 22:19:27,910 - INFO - HTTP Request: GET http://testserver/api/community/questions/q_66dcec04acde4ed4801f4744a6d78a92/answers "HTTP/1.1 404 Not Found"
+2026-11-02 22:19:27,920 - INFO - HTTP Request: POST http://testserver/api/community/questions/q_66dcec04acde4ed4801f4744a6d78a92/answers "HTTP/1.1 404 Not Found"
+2026-11-02 22:19:27,931 - INFO - HTTP Request: PUT http://testserver/api/community/questions/q_66dcec04acde4ed4801f4744a6d78a92/answers/6ae8a9ffa2a408ad4b6c5329/helpful "HTTP/1.1 404 Not Found"
+2026-11-02 22:19:27,944 - INFO - HTTP Request: GET http://testserver/api/community/questions/q_66dcec04acde4ed4801f4744a6d78a92/answers "HTTP/1.1 404 Not Found"
+2026-11-02 22:19:28,001 - INFO - HTTP Request: POST http://testserver/api/community/questions/q_66dcec04acde4ed4801f4744a6d78a92/answers "HTTP/1.1 404 Not Found"
+2026-11-02 22:19:28,024 - INFO - HTTP Request: PUT http://testserver/api/community/questions/q_66dcec04acde4ed4801f4744a6d78a92/answers/6ae8a9ffa2a408ad4b6c5329/helpful "HTTP/1.1 404 Not Found"
+2026-11-02 22:19:28,040 - INFO - HTTP Request: POST http://testserver/api/community/questions/q_66dcec04acde4ed4801f4744a6d78a92/answers "HTTP/1.1 401 Unauthorized"
+2026-11-02 22:19:28,052 - INFO - HTTP Request: GET http://testserver/api/community/questions/q_66dcec04acde4ed4801f4744a6d78a92/answers "HTTP/1.1 401 Unauthorized"
+2026-11-02 22:19:28,072 - INFO - HTTP Request: POST http://testserver/api/community/questions/q_9f2afb5ddcc24b67b802ea0edcd00bdc/answers "HTTP/1.1 200 OK"
+2026-11-02 22:19:28,080 - INFO - HTTP Request: PUT http://testserver/api/community/questions/q_9f2afb5ddcc24b67b802ea0edcd00bdc/answers/6ae8aa00a2a408ad4b6c532b/helpful "HTTP/1.1 403 Forbidden"
+2026-11-02 22:19:28,170 - INFO - HTTP Request: PUT http://testserver/api/community/questions/q_9f2afb5ddcc24b67b802ea0edcd00bdc/answers/6ae8aa00a2a408ad4b6c532b/helpful "HTTP/1.1 200 OK"
+2026-11-02 22:19:28,190 - INFO - HTTP Request: PUT http://testserver/api/community/questions/q_9f2afb5ddcc24b67b802ea0edcd00bdc/answers/6ae8aa00a2a408ad4b6c532b/helpful "HTTP/1.1 200 OK"
+2026-11-02 22:19:28,208 - INFO - HTTP Request: PUT http://testserver/api/community/questions/q_9f2afb5ddcc24b67b802ea0edcd00bdc/answers/6ae8aa00a2a408ad4b6c532b/helpful "HTTP/1.1 200 OK"
+2026-11-02 22:19:28,213 - INFO - HTTP Request: PUT http://testserver/api/community/questions/q_9f2afb5ddcc24b67b802ea0edcd00bdc/answers/6ae8aa00a2a408ad4b6c532b/helpful "HTTP/1.1 200 OK"
+2026-11-02 22:19:28,220 - INFO - HTTP Request: PUT http://testserver/api/community/questions/q_9f2afb5ddcc24b67b802ea0edcd00bdc/answers/6ae8aa00a2a408ad4b6c532b/helpful "HTTP/1.1 200 OK"
+2026-11-02 22:19:28,225 - INFO - HTTP Request: PUT http://testserver/api/community/questions/q_9f2afb5ddcc24b67b802ea0edcd00bdc/answers/6ae8aa00a2a408ad4b6c532b/helpful "HTTP/1.1 200 OK"
+2026-11-02 22:19:28,240 - INFO - HTTP Request: PUT http://testserver/api/community/questions/q_9f2afb5ddcc24b67b802ea0edcd00bdc/answers/6ae8aa00a2a408ad4b6c532b/helpful "HTTP/1.1 200 OK"
+2026-11-02 22:19:28,242 - INFO - HTTP Request: PUT http://testserver/api/community/questions/q_9f2afb5ddcc24b67b802ea0edcd00bdc/answers/6ae8aa00a2a408ad4b6c532b/helpful "HTTP/1.1 200 OK"
+2026-11-02 22:19:28,262 - INFO - HTTP Request: PUT http://testserver/api/community/questions/q_9f2afb5ddcc24b67b802ea0edcd00bdc/answers/6ae8aa00a2a408ad4b6c532b/helpful "HTTP/1.1 200 OK"
+2026-11-02 22:19:28,262 - INFO - HTTP Request: PUT http://testserver/api/community/questions/q_9f2afb5ddcc24b67b802ea0edcd00bdc/answers/6ae8aa00a2a408ad4b6c532b/helpful "HTTP/1.1 200 OK"
+2026-11-02 22:19:28,264 - INFO - HTTP Request: PUT http://testserver/api/community/questions/q_9f2afb5ddcc24b67b802ea0edcd00bdc/answers/6ae8aa00a2a408ad4b6c532b/helpful "HTTP/1.1 200 OK"
+2026-11-02 22:19:28,267 - INFO - HTTP Request: PUT http://testserver/api/community/questions/q_9f2afb5ddcc24b67b802ea0edcd00bdc/answers/6ae8aa00a2a408ad4b6c532b/helpful "HTTP/1.1 200 OK"
+2026-11-02 22:19:28,292 - INFO - HTTP Request: GET http://testserver/api/community/questions/q_9f2afb5ddcc24b67b802ea0edcd00bdc/answers "HTTP/1.1 200 OK"
+2026-11-02 22:19:28,309 - INFO - HTTP Request: DELETE http://testserver/api/community/questions/q_9f2afb5ddcc24b67b802ea0edcd00bdc/answers/6ae8aa00a2a408ad4b6c532b/helpful "HTTP/1.1 200 OK"
+2026-11-02 22:19:28,323 - INFO - HTTP Request: DELETE http://testserver/api/community/questions/q_9f2afb5ddcc24b67b802ea0edcd00bdc/answers/6ae8aa00a2a408ad4b6c532b/helpful "HTTP/1.1 200 OK"
+2026-11-02 22:19:28,340 - INFO - HTTP Request: DELETE http://testserver/api/community/questions/q_9f2afb5ddcc24b67b802ea0edcd00bdc/answers/6ae8aa00a2a408ad4b6c532b/helpful "HTTP/1.1 200 OK"
+2026-11-02 22:19:28,356 - INFO - HTTP Request: GET http://testserver/api/community/questions/q_9f2afb5ddcc24b67b802ea0edcd00bdc/answers/6ae8aa00a2a408ad4b6c532b "HTTP/1.1 200 OK"
+2026-11-02 22:19:28,370 - INFO - HTTP Request: GET http://testserver/api/community/questions/q_9f2afb5ddcc24b67b802ea0edcd00bdc/answers "HTTP/1.1 200 OK"
+2026-11-02 22:19:28,389 - INFO - HTTP Request: POST http://testserver/api/community/questions/q_0e2c5ed99493433abb258aeb8415b4ca/answers "HTTP/1.1 200 OK"
+2026-11-02 22:19:28,467 - INFO - HTTP Request: POST http://testserver/api/community/questions/q_0e2c5ed99493433abb258aeb8415b4ca/answers "HTTP/1.1 200 OK"
+2026-11-02 22:19:28,472 - INFO - HTTP Request: POST http://testserver/api/community/questions/q_0e2c5ed99493433abb258aeb8415b4ca/answers "HTTP/1.1 200 OK"
+2026-11-02 22:19:28,480 - INFO - HTTP Request: POST http://testserver/api/community/questions/q_0e2c5ed99493433abb258aeb8415b4ca/answers "HTTP/1.1 200 OK"
+2026-11-02 22:19:28,485 - INFO - HTTP Request: POST http://testserver/api/community/questions/q_0e2c5ed99493433abb258aeb8415b4ca/answers "HTTP/1.1 200 OK"
+2026-11-02 22:19:28,490 - INFO - HTTP Request: POST http://testserver/api/community/questions/q_0e2c5ed99493433abb258aeb8415b4ca/answers "HTTP/1.1 200 OK"
+2026-11-02 22:19:28,492 - INFO - HTTP Request: POST http://testserver/api/community/questions/q_0e2c5ed99493433abb258aeb8415b4ca/answers "HTTP/1.1 200 OK"
+2026-11-02 22:19:28,496 - INFO - HTTP Request: POST http://testserver/api/community/questions/q_0e2c5ed99493433abb258aeb8415b4ca/answers "HTTP/1.1 200 OK"
+2026-11-02 22:19:28,500 - INFO - HTTP Request: POST http://testserver/api/community/questions/q_0e2c5ed99493433abb258aeb8415b4ca/answers "HTTP/1.1 200 OK"
+2026-11-02 22:19:28,536 - INFO - HTTP Request: POST http://testserver/api/community/questions/q_0e2c5ed99493433abb258aeb8415b4ca/answers "HTTP/1.1 200 OK"
+2026-11-02 22:19:28,537 - INFO - HTTP Request: POST http://testserver/api/community/questions/q_0e2c5ed99493433abb258aeb8415b4ca/answers "HTTP/1.1 200 OK"
+2026-11-02 22:19:28,556 - INFO - HTTP Request: POST http://testserver/api/community/questions/q_0e2c5ed99493433abb258aeb8415b4ca/answers "HTTP/1.1 200 OK"
+2026-11-02 22:19:28,556 - INFO - HTTP Request: POST http://testserver/api/community/questions/q_0e2c5ed99493433abb258aeb8415b4ca/answers "HTTP/1.1 200 OK"
+2026-11-02 22:19:28,556 - INFO - HTTP Request: POST http://testserver/api/community/questions/q_0e2c5ed99493433abb258aeb8415b4ca/answers "HTTP/1.1 200 OK"
+2026-11-02 22:19:28,564 - INFO - HTTP Request: POST http://testserver/api/community/questions/q_0e2c5ed99493433abb258aeb8415b4ca/answers "HTTP/1.1 200 OK"
+2026-11-02 22:19:28,565 - INFO - HTTP Request: POST http://testserver/api/community/questions/q_0e2c5ed99493433abb258aeb8415b4ca/answers "HTTP/1.1 200 OK"
+2026-11-02 22:19:28,565 - INFO - HTTP Request: POST http://testserver/api/community/questions/q_0e2c5ed99493433abb258aeb8415b4ca/answers "HTTP/1.1 200 OK"
+2026-11-02 22:19:28,575 - INFO - HTTP Request: POST http://testserver/api/community/questions/q_0e2c5ed99493433abb258aeb8415b4ca/answers "HTTP/1.1 409 Conflict"
+2026-11-02 22:19:28,594 - INFO - HTTP Request: GET http://testserver/api/community/posts/q_0e2c5ed99493433abb258aeb8415b4ca "HTTP/1.1 200 OK"
+2026-11-02 22:19:28,607 - INFO - HTTP Request: GET http://testserver/api/community/questions/q_0e2c5ed99493433abb258aeb8415b4ca/answers "HTTP/1.1 200 OK"
+2026-11-02 22:19:28,655 - INFO - HTTP Request: POST http://testserver/api/community/questions/q_cb0d16300a484750b9a4ba219490c664/answers "HTTP/1.1 503 Service Unavailable"
+2026-11-02 22:19:28,674 - INFO - HTTP Request: POST http://testserver/api/community/questions/q_d810d4e64ff44d5fb4d81465fc5bf101/answers "HTTP/1.1 200 OK"
+2026-11-02 22:19:28,681 - INFO - HTTP Request: GET http://testserver/api/community/questions/missing/answers "HTTP/1.1 404 Not Found"
+2026-11-02 22:19:28,688 - INFO - HTTP Request: POST http://testserver/api/community/questions/missing/answers "HTTP/1.1 404 Not Found"
+2026-11-02 22:19:28,695 - INFO - HTTP Request: PUT http://testserver/api/community/questions/missing/answers/6ae8aa00a2a408ad4b6c533d/helpful "HTTP/1.1 404 Not Found"
+2026-11-02 22:19:28,717 - INFO - HTTP Request: POST http://testserver/api/community/questions/q_d6853a11028a436785bd1514dc417d83/answers "HTTP/1.1 200 OK"
+2026-11-02 22:19:28,733 - INFO - HTTP Request: POST http://testserver/api/community/questions/q_d6853a11028a436785bd1514dc417d83/answers "HTTP/1.1 200 OK"
+2026-11-02 22:19:28,751 - INFO - HTTP Request: POST http://testserver/api/community/questions/q_d6853a11028a436785bd1514dc417d83/answers "HTTP/1.1 200 OK"
+2026-11-02 22:19:28,770 - INFO - HTTP Request: POST http://testserver/api/community/questions/q_d6853a11028a436785bd1514dc417d83/answers "HTTP/1.1 200 OK"
+2026-11-02 22:19:28,784 - INFO - HTTP Request: POST http://testserver/api/community/questions/q_d6853a11028a436785bd1514dc417d83/answers "HTTP/1.1 200 OK"
+2026-11-02 22:19:28,798 - INFO - HTTP Request: POST http://testserver/api/community/questions/q_d6853a11028a436785bd1514dc417d83/answers "HTTP/1.1 200 OK"
+2026-11-02 22:19:28,813 - INFO - HTTP Request: POST http://testserver/api/community/questions/q_d6853a11028a436785bd1514dc417d83/answers "HTTP/1.1 200 OK"
+2026-11-02 22:19:28,829 - INFO - HTTP Request: GET http://testserver/api/community/questions/q_d6853a11028a436785bd1514dc417d83/answers?limit=2 "HTTP/1.1 200 OK"
+2026-11-02 22:19:28,842 - INFO - HTTP Request: PUT http://testserver/api/community/questions/q_d6853a11028a436785bd1514dc417d83/answers/6ae8aa00a2a408ad4b6c5345/helpful "HTTP/1.1 200 OK"
+2026-11-02 22:19:28,856 - INFO - HTTP Request: GET http://testserver/api/community/questions/q_d6853a11028a436785bd1514dc417d83/answers?limit=2&cursor=MjAyNi0wMS0wMVQwMDowMDowMHw2YWU4YWEwMGEyYTQwOGFkNGI2YzUzNDA%3D "HTTP/1.1 200 OK"
+2026-11-02 22:19:28,871 - INFO - HTTP Request: PUT http://testserver/api/community/questions/q_d6853a11028a436785bd1514dc417d83/answers/6ae8aa00a2a408ad4b6c5345/helpful "HTTP/1.1 200 OK"
+2026-11-02 22:19:28,886 - INFO - HTTP Request: GET http://testserver/api/community/questions/q_d6853a11028a436785bd1514dc417d83/answers?limit=2&cursor=MjAyNi0wMS0wMVQwMDowMDowMHw2YWU4YWEwMGEyYTQwOGFkNGI2YzUzNDI%3D "HTTP/1.1 200 OK"
+2026-11-02 22:19:28,901 - INFO - HTTP Request: PUT http://testserver/api/community/questions/q_d6853a11028a436785bd1514dc417d83/answers/6ae8aa00a2a408ad4b6c5345/helpful "HTTP/1.1 200 OK"
+2026-11-02 22:19:28,913 - INFO - HTTP Request: GET http://testserver/api/community/questions/q_d6853a11028a436785bd1514dc417d83/answers?limit=2&cursor=MjAyNi0wMS0wMVQwMDowMDowMHw2YWU4YWEwMGEyYTQwOGFkNGI2YzUzNDQ%3D "HTTP/1.1 200 OK"
+2026-11-02 22:19:28,926 - INFO - HTTP Request: PUT http://testserver/api/community/questions/q_d6853a11028a436785bd1514dc417d83/answers/6ae8aa00a2a408ad4b6c5345/helpful "HTTP/1.1 200 OK"
+2026-11-02 22:19:28,933 - INFO - HTTP Request: GET http://testserver/api/community/questions/q_d6853a11028a436785bd1514dc417d83/answers?cursor=bad "HTTP/1.1 400 Bad Request"
+======================================================================
+FAIL: test_question_answers_ordered_and_projected_safely (backend.tests.test_community_read_api.TestCommunityReadApiContract.test_question_answers_ordered_and_projected_safely)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Users\GL\AppData\Local\Programs\Python\Python311\Lib\unittest\mock.py", line 1378, in patched
+    return func(*newargs, **newkeywargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\SamanDev\workspace\saman-main-verified-CP26_20261025_072840\backend\tests\test_community_read_api.py", line 322, in test_question_answers_ordered_and_projected_safely
+    self.assertEqual(res.status_code, 200)
+AssertionError: 503 != 200
+
+----------------------------------------------------------------------
+Ran 19 tests in 2.099s
+
+FAILED (failures=1)
+
+EXPLICIT ISOLATED ENV READ + ANSWER VERIFICATION
+🔌 Connecting to MongoDB: mongodb://127.0.0.1:27046
+📂 Database Name: saman_jcom0507_test_import
+⚠️  Detected Localhost. Disabling SSL.
+✅ Successfully connected to MongoDB!
+Warning: Failed to import shop router: cannot import name 'ActiveIngredientModel' from 'backend.app.models.shop' (D:\SamanDev\workspace\saman-main-verified-CP26_20261025_072840\backend\app\models\shop.py)
+
+=== REGISTERED ROUTES ===
+/openapi.json -> openapi [GET,HEAD]
+/docs -> swagger_ui_html [GET,HEAD]
+/docs/oauth2-redirect -> swagger_ui_redirect [GET,HEAD]
+/redoc -> redoc_html [GET,HEAD]
+_IncludedRouter(original_router=<fastapi.routing.APIRouter object at 0x000001D1A651AC10>, include_context=_RouterIncludeContext(included_router=<fastapi.routing.APIRouter object at 0x000001D1A651AC10>, prefix='', tags=[], dependencies=[], default_response_class=<fastapi.datastructures.DefaultPlaceholder object at 0x000001D1A4A68110>, responses={}, callbacks=[], deprecated=None, include_in_schema=True, generate_unique_id_function=<fastapi.datastructures.DefaultPlaceholder object at 0x000001D1A4A68350>, strict_content_type=True, dependency_overrides_provider=<fastapi.applications.FastAPI object at 0x000001D1A4DBA010>), _effective_candidates=[], _effective_candidates_version=None, _effective_low_priority_routes=[], _effective_low_priority_routes_version=None) -> _IncludedRouter
+_IncludedRouter(original_router=<fastapi.routing.APIRouter object at 0x000001D1A4C23190>, include_context=_RouterIncludeContext(included_router=<fastapi.routing.APIRouter object at 0x000001D1A4C23190>, prefix='', tags=[], dependencies=[], default_response_class=<fastapi.datastructures.DefaultPlaceholder object at 0x000001D1A4A68110>, responses={}, callbacks=[], deprecated=None, include_in_schema=True, generate_unique_id_function=<fastapi.datastructures.DefaultPlaceholder object at 0x000001D1A4A68350>, strict_content_type=True, dependency_overrides_provider=<fastapi.applications.FastAPI object at 0x000001D1A4DBA010>), _effective_candidates=[], _effective_candidates_version=None, _effective_low_priority_routes=[], _effective_low_priority_routes_version=None) -> _IncludedRouter
+_IncludedRouter(original_router=<fastapi.routing.APIRouter object at 0x000001D1A67FE3D0>, include_context=_RouterIncludeContext(included_router=<fastapi.routing.APIRouter object at 0x000001D1A67FE3D0>, prefix='', tags=[], dependencies=[], default_response_class=<fastapi.datastructures.DefaultPlaceholder object at 0x000001D1A4A68110>, responses={}, callbacks=[], deprecated=None, include_in_schema=True, generate_unique_id_function=<fastapi.datastructures.DefaultPlaceholder object at 0x000001D1A4A68350>, strict_content_type=True, dependency_overrides_provider=<fastapi.applications.FastAPI object at 0x000001D1A4DBA010>), _effective_candidates=[], _effective_candidates_version=None, _effective_low_priority_routes=[], _effective_low_priority_routes_version=None) -> _IncludedRouter
+_IncludedRouter(original_router=<fastapi.routing.APIRouter object at 0x000001D1A6846B50>, include_context=_RouterIncludeContext(included_router=<fastapi.routing.APIRouter object at 0x000001D1A6846B50>, prefix='', tags=[], dependencies=[], default_response_class=<fastapi.datastructures.DefaultPlaceholder object at 0x000001D1A4A68110>, responses={}, callbacks=[], deprecated=None, include_in_schema=True, generate_unique_id_function=<fastapi.datastructures.DefaultPlaceholder object at 0x000001D1A4A68350>, strict_content_type=True, dependency_overrides_provider=<fastapi.applications.FastAPI object at 0x000001D1A4DBA010>), _effective_candidates=[], _effective_candidates_version=None, _effective_low_priority_routes=[], _effective_low_priority_routes_version=None) -> _IncludedRouter
+_IncludedRouter(original_router=<fastapi.routing.APIRouter object at 0x000001D1B4E23550>, include_context=_RouterIncludeContext(included_router=<fastapi.routing.APIRouter object at 0x000001D1B4E23550>, prefix='', tags=[], dependencies=[], default_response_class=<fastapi.datastructures.DefaultPlaceholder object at 0x000001D1A4A68110>, responses={}, callbacks=[], deprecated=None, include_in_schema=True, generate_unique_id_function=<fastapi.datastructures.DefaultPlaceholder object at 0x000001D1A4A68350>, strict_content_type=True, dependency_overrides_provider=<fastapi.applications.FastAPI object at 0x000001D1A4DBA010>), _effective_candidates=[], _effective_candidates_version=None, _effective_low_priority_routes=[], _effective_low_priority_routes_version=None) -> _IncludedRouter
+_IncludedRouter(original_router=<fastapi.routing.APIRouter object at 0x000001D1B4EA8910>, include_context=_RouterIncludeContext(included_router=<fastapi.routing.APIRouter object at 0x000001D1B4EA8910>, prefix='', tags=[], dependencies=[], default_response_class=<fastapi.datastructures.DefaultPlaceholder object at 0x000001D1A4A68110>, responses={}, callbacks=[], deprecated=None, include_in_schema=True, generate_unique_id_function=<fastapi.datastructures.DefaultPlaceholder object at 0x000001D1A4A68350>, strict_content_type=True, dependency_overrides_provider=<fastapi.applications.FastAPI object at 0x000001D1A4DBA010>), _effective_candidates=[], _effective_candidates_version=None, _effective_low_priority_routes=[], _effective_low_priority_routes_version=None) -> _IncludedRouter
+_IncludedRouter(original_router=<fastapi.routing.APIRouter object at 0x000001D1B4F03950>, include_context=_RouterIncludeContext(included_router=<fastapi.routing.APIRouter object at 0x000001D1B4F03950>, prefix='', tags=[], dependencies=[], default_response_class=<fastapi.datastructures.DefaultPlaceholder object at 0x000001D1A4A68110>, responses={}, callbacks=[], deprecated=None, include_in_schema=True, generate_unique_id_function=<fastapi.datastructures.DefaultPlaceholder object at 0x000001D1A4A68350>, strict_content_type=True, dependency_overrides_provider=<fastapi.applications.FastAPI object at 0x000001D1A4DBA010>), _effective_candidates=[], _effective_candidates_version=None, _effective_low_priority_routes=[], _effective_low_priority_routes_version=None) -> _IncludedRouter
+_IncludedRouter(original_router=<fastapi.routing.APIRouter object at 0x000001D1B4F1E750>, include_context=_RouterIncludeContext(included_router=<fastapi.routing.APIRouter object at 0x000001D1B4F1E750>, prefix='', tags=[], dependencies=[], default_response_class=<fastapi.datastructures.DefaultPlaceholder object at 0x000001D1A4A68110>, responses={}, callbacks=[], deprecated=None, include_in_schema=True, generate_unique_id_function=<fastapi.datastructures.DefaultPlaceholder object at 0x000001D1A4A68350>, strict_content_type=True, dependency_overrides_provider=<fastapi.applications.FastAPI object at 0x000001D1A4DBA010>), _effective_candidates=[], _effective_candidates_version=None, _effective_low_priority_routes=[], _effective_low_priority_routes_version=None) -> _IncludedRouter
+_IncludedRouter(original_router=<fastapi.routing.APIRouter object at 0x000001D1B4F3DD50>, include_context=_RouterIncludeContext(included_router=<fastapi.routing.APIRouter object at 0x000001D1B4F3DD50>, prefix='', tags=[], dependencies=[], default_response_class=<fastapi.datastructures.DefaultPlaceholder object at 0x000001D1A4A68110>, responses={}, callbacks=[], deprecated=None, include_in_schema=True, generate_unique_id_function=<fastapi.datastructures.DefaultPlaceholder object at 0x000001D1A4A68350>, strict_content_type=True, dependency_overrides_provider=<fastapi.applications.FastAPI object at 0x000001D1A4DBA010>), _effective_candidates=[], _effective_candidates_version=None, _effective_low_priority_routes=[], _effective_low_priority_routes_version=None) -> _IncludedRouter
+_IncludedRouter(original_router=<fastapi.routing.APIRouter object at 0x000001D1B50D5550>, include_context=_RouterIncludeContext(included_router=<fastapi.routing.APIRouter object at 0x000001D1B50D5550>, prefix='', tags=[], dependencies=[], default_response_class=<fastapi.datastructures.DefaultPlaceholder object at 0x000001D1A4A68110>, responses={}, callbacks=[], deprecated=None, include_in_schema=True, generate_unique_id_function=<fastapi.datastructures.DefaultPlaceholder object at 0x000001D1A4A68350>, strict_content_type=True, dependency_overrides_provider=<fastapi.applications.FastAPI object at 0x000001D1A4DBA010>), _effective_candidates=[], _effective_candidates_version=None, _effective_low_priority_routes=[], _effective_low_priority_routes_version=None) -> _IncludedRouter
+_IncludedRouter(original_router=<fastapi.routing.APIRouter object at 0x000001D1B4E18610>, include_context=_RouterIncludeContext(included_router=<fastapi.routing.APIRouter object at 0x000001D1B4E18610>, prefix='', tags=[], dependencies=[], default_response_class=<fastapi.datastructures.DefaultPlaceholder object at 0x000001D1A4A68110>, responses={}, callbacks=[], deprecated=None, include_in_schema=True, generate_unique_id_function=<fastapi.datastructures.DefaultPlaceholder object at 0x000001D1A4A68350>, strict_content_type=True, dependency_overrides_provider=<fastapi.applications.FastAPI object at 0x000001D1A4DBA010>), _effective_candidates=[], _effective_candidates_version=None, _effective_low_priority_routes=[], _effective_low_priority_routes_version=None) -> _IncludedRouter
+=== END ROUTES ===
+
+PyTorch not available, defaulting to CPU device
+PyTorch not available, defaulting to CPU device
+Classification model path does not exist: food_classification_efficientnet_b3.pth
+Portion model path does not exist: portion_estimation_regressor.pth
+D:\SamanDev\runtime\saman-cp7-python\Lib\site-packages\pydantic\_internal\_config.py:408: UserWarning: Valid config keys have changed in V2:
+* 'allow_population_by_field_name' has been renamed to 'validate_by_name'
+  warnings.warn(message, UserWarning)
+D:\SamanDev\runtime\saman-cp7-python\Lib\site-packages\jwt\api_jwt.py:149: InsecureKeyLengthWarning: The HMAC key is 23 bytes long, which is below the minimum recommended length of 32 bytes for SHA256. See RFC 7518 Section 3.2.
+  return self._jws.encode(
+2026-11-02 22:20:10,435 - INFO - HTTP Request: GET http://testserver/api/community/feed?tab=for_you "HTTP/1.1 200 OK"
+D:\SamanDev\runtime\saman-cp7-python\Lib\site-packages\jwt\api_jwt.py:370: InsecureKeyLengthWarning: The HMAC key is 23 bytes long, which is below the minimum recommended length of 32 bytes for SHA256. See RFC 7518 Section 3.2.
+  decoded = self.decode_complete(
+2026-11-02 22:20:10,447 - INFO - HTTP Request: GET http://testserver/api/community/feed?tab=for_you "HTTP/1.1 200 OK"
+2026-11-02 22:20:10,453 - INFO - HTTP Request: GET http://testserver/api/community/feed?tab=following "HTTP/1.1 200 OK"
+2026-11-02 22:20:10,460 - INFO - HTTP Request: GET http://testserver/api/community/feed?tab=qa "HTTP/1.1 200 OK"
+2026-11-02 22:20:10,465 - INFO - HTTP Request: GET http://testserver/api/community/feed?cursor=not-a-valid-base64-cursor! "HTTP/1.1 400 Bad Request"
+2026-11-02 22:20:10,470 - INFO - HTTP Request: GET http://testserver/api/community/feed?tab=unknown_tab_name "HTTP/1.1 400 Bad Request"
+2026-11-02 22:20:10,475 - INFO - HTTP Request: GET http://testserver/api/community/posts/post_deleted_03 "HTTP/1.1 404 Not Found"
+2026-11-02 22:20:10,481 - INFO - HTTP Request: GET http://testserver/api/community/posts/post_private_02 "HTTP/1.1 404 Not Found"
+2026-11-02 22:20:10,489 - INFO - HTTP Request: GET http://testserver/api/community/posts/post_private_02 "HTTP/1.1 200 OK"
+2026-11-02 22:20:10,495 - INFO - HTTP Request: GET http://testserver/api/community/posts/post_public_01 "HTTP/1.1 200 OK"
+2026-11-02 22:20:10,507 - INFO - HTTP Request: GET http://testserver/api/community/questions/post_qa_04/answers "HTTP/1.1 200 OK"
+D:\SamanDev\runtime\saman-cp7-python\Lib\site-packages\jwt\api_jwt.py:149: InsecureKeyLengthWarning: The HMAC key is 23 bytes long, which is below the minimum recommended length of 32 bytes for SHA256. See RFC 7518 Section 3.2.
+  return self._jws.encode(
+D:\SamanDev\runtime\saman-cp7-python\Lib\site-packages\jwt\api_jwt.py:370: InsecureKeyLengthWarning: The HMAC key is 23 bytes long, which is below the minimum recommended length of 32 bytes for SHA256. See RFC 7518 Section 3.2.
+  decoded = self.decode_complete(
+2026-11-02 22:20:10,660 - INFO - HTTP Request: POST http://testserver/api/community/questions/q_2711f92969204059aacc6db1ccd0cfc4/answers "HTTP/1.1 200 OK"
+2026-11-02 22:20:10,667 - INFO - HTTP Request: GET http://testserver/api/community/questions/q_2711f92969204059aacc6db1ccd0cfc4/answers "HTTP/1.1 404 Not Found"
+2026-11-02 22:20:10,673 - INFO - HTTP Request: POST http://testserver/api/community/questions/q_2711f92969204059aacc6db1ccd0cfc4/answers "HTTP/1.1 404 Not Found"
+2026-11-02 22:20:10,680 - INFO - HTTP Request: PUT http://testserver/api/community/questions/q_2711f92969204059aacc6db1ccd0cfc4/answers/6ae8aa2a028f1de6000ddaa7/helpful "HTTP/1.1 404 Not Found"
+2026-11-02 22:20:10,688 - INFO - HTTP Request: GET http://testserver/api/community/questions/q_2711f92969204059aacc6db1ccd0cfc4/answers/6ae8aa2a028f1de6000ddaa7 "HTTP/1.1 404 Not Found"
+2026-11-02 22:20:10,703 - INFO - HTTP Request: GET http://testserver/api/community/questions/q_2711f92969204059aacc6db1ccd0cfc4/answers "HTTP/1.1 200 OK"
+2026-11-02 22:20:10,712 - INFO - HTTP Request: GET http://testserver/api/community/questions/q_2711f92969204059aacc6db1ccd0cfc4/answers "HTTP/1.1 404 Not Found"
+2026-11-02 22:20:10,721 - INFO - HTTP Request: POST http://testserver/api/community/questions/q_2711f92969204059aacc6db1ccd0cfc4/answers "HTTP/1.1 404 Not Found"
+2026-11-02 22:20:10,730 - INFO - HTTP Request: PUT http://testserver/api/community/questions/q_2711f92969204059aacc6db1ccd0cfc4/answers/6ae8aa2a028f1de6000ddaa7/helpful "HTTP/1.1 404 Not Found"
+2026-11-02 22:20:10,738 - INFO - HTTP Request: GET http://testserver/api/community/questions/q_2711f92969204059aacc6db1ccd0cfc4/answers/6ae8aa2a028f1de6000ddaa7 "HTTP/1.1 404 Not Found"
+2026-11-02 22:20:10,752 - INFO - HTTP Request: GET http://testserver/api/community/questions/q_2711f92969204059aacc6db1ccd0cfc4/answers "HTTP/1.1 200 OK"
+2026-11-02 22:20:10,783 - INFO - HTTP Request: GET http://testserver/api/community/questions/q_2711f92969204059aacc6db1ccd0cfc4/answers "HTTP/1.1 200 OK"
+2026-11-02 22:20:10,796 - INFO - HTTP Request: POST http://testserver/api/community/questions/q_2711f92969204059aacc6db1ccd0cfc4/answers "HTTP/1.1 200 OK"
+2026-11-02 22:20:10,804 - INFO - HTTP Request: GET http://testserver/api/community/questions/q_2711f92969204059aacc6db1ccd0cfc4/answers "HTTP/1.1 404 Not Found"
+2026-11-02 22:20:10,811 - INFO - HTTP Request: POST http://testserver/api/community/questions/q_2711f92969204059aacc6db1ccd0cfc4/answers "HTTP/1.1 404 Not Found"
+D:\SamanDev\runtime\saman-cp7-python\Lib\site-packages\jwt\api_jwt.py:149: InsecureKeyLengthWarning: The HMAC key is 23 bytes long, which is below the minimum recommended length of 32 bytes for SHA256. See RFC 7518 Section 3.2.
+  return self._jws.encode(
+2026-11-02 22:20:10,818 - INFO - HTTP Request: POST http://testserver/api/community/questions/q_79bdd1574e2c461f92044088bb2ee318/answers "HTTP/1.1 401 Unauthorized"
+2026-11-02 22:20:10,823 - INFO - HTTP Request: POST http://testserver/api/community/questions/q_79bdd1574e2c461f92044088bb2ee318/answers "HTTP/1.1 422 Unprocessable Content"
+2026-11-02 22:20:10,828 - INFO - HTTP Request: POST http://testserver/api/community/questions/q_79bdd1574e2c461f92044088bb2ee318/answers "HTTP/1.1 422 Unprocessable Content"
+2026-11-02 22:20:10,833 - INFO - HTTP Request: POST http://testserver/api/community/questions/q_79bdd1574e2c461f92044088bb2ee318/answers "HTTP/1.1 422 Unprocessable Content"
+2026-11-02 22:20:10,837 - INFO - HTTP Request: POST http://testserver/api/community/questions/q_79bdd1574e2c461f92044088bb2ee318/answers "HTTP/1.1 422 Unprocessable Content"
+2026-11-02 22:20:10,841 - INFO - HTTP Request: POST http://testserver/api/community/questions/q_79bdd1574e2c461f92044088bb2ee318/answers "HTTP/1.1 422 Unprocessable Content"
+2026-11-02 22:20:10,845 - INFO - HTTP Request: POST http://testserver/api/community/questions/q_79bdd1574e2c461f92044088bb2ee318/answers "HTTP/1.1 422 Unprocessable Content"
+2026-11-02 22:20:10,849 - INFO - HTTP Request: POST http://testserver/api/community/questions/q_79bdd1574e2c461f92044088bb2ee318/answers "HTTP/1.1 422 Unprocessable Content"
+2026-11-02 22:20:10,861 - INFO - HTTP Request: POST http://testserver/api/community/questions/q_79bdd1574e2c461f92044088bb2ee318/answers "HTTP/1.1 200 OK"
+2026-11-02 22:20:10,869 - INFO - HTTP Request: POST http://testserver/api/community/questions/q_79bdd1574e2c461f92044088bb2ee318/answers "HTTP/1.1 404 Not Found"
+2026-11-02 22:20:10,875 - INFO - HTTP Request: GET http://testserver/api/community/questions/q_79bdd1574e2c461f92044088bb2ee318/answers "HTTP/1.1 404 Not Found"
+2026-11-02 22:20:10,888 - INFO - HTTP Request: POST http://testserver/api/community/questions/q_ba8bb021f67e45b4bc1368f0d22c817f/answers "HTTP/1.1 200 OK"
+2026-11-02 22:20:10,895 - INFO - HTTP Request: GET http://testserver/api/community/questions/q_ba8bb021f67e45b4bc1368f0d22c817f/answers "HTTP/1.1 404 Not Found"
+2026-11-02 22:20:10,901 - INFO - HTTP Request: POST http://testserver/api/community/questions/q_ba8bb021f67e45b4bc1368f0d22c817f/answers "HTTP/1.1 404 Not Found"
+2026-11-02 22:20:10,907 - INFO - HTTP Request: PUT http://testserver/api/community/questions/q_ba8bb021f67e45b4bc1368f0d22c817f/answers/6ae8aa2a028f1de6000ddaac/helpful "HTTP/1.1 404 Not Found"
+2026-11-02 22:20:10,914 - INFO - HTTP Request: GET http://testserver/api/community/questions/q_ba8bb021f67e45b4bc1368f0d22c817f/answers "HTTP/1.1 404 Not Found"
+2026-11-02 22:20:10,920 - INFO - HTTP Request: POST http://testserver/api/community/questions/q_ba8bb021f67e45b4bc1368f0d22c817f/answers "HTTP/1.1 404 Not Found"
+2026-11-02 22:20:10,927 - INFO - HTTP Request: PUT http://testserver/api/community/questions/q_ba8bb021f67e45b4bc1368f0d22c817f/answers/6ae8aa2a028f1de6000ddaac/helpful "HTTP/1.1 404 Not Found"
+2026-11-02 22:20:10,936 - INFO - HTTP Request: GET http://testserver/api/community/questions/q_ba8bb021f67e45b4bc1368f0d22c817f/answers "HTTP/1.1 404 Not Found"
+2026-11-02 22:20:10,942 - INFO - HTTP Request: POST http://testserver/api/community/questions/q_ba8bb021f67e45b4bc1368f0d22c817f/answers "HTTP/1.1 404 Not Found"
+2026-11-02 22:20:10,950 - INFO - HTTP Request: PUT http://testserver/api/community/questions/q_ba8bb021f67e45b4bc1368f0d22c817f/answers/6ae8aa2a028f1de6000ddaac/helpful "HTTP/1.1 404 Not Found"
+2026-11-02 22:20:10,957 - INFO - HTTP Request: GET http://testserver/api/community/questions/q_ba8bb021f67e45b4bc1368f0d22c817f/answers "HTTP/1.1 404 Not Found"
+2026-11-02 22:20:10,963 - INFO - HTTP Request: POST http://testserver/api/community/questions/q_ba8bb021f67e45b4bc1368f0d22c817f/answers "HTTP/1.1 404 Not Found"
+2026-11-02 22:20:10,970 - INFO - HTTP Request: PUT http://testserver/api/community/questions/q_ba8bb021f67e45b4bc1368f0d22c817f/answers/6ae8aa2a028f1de6000ddaac/helpful "HTTP/1.1 404 Not Found"
+2026-11-02 22:20:10,976 - INFO - HTTP Request: POST http://testserver/api/community/questions/q_ba8bb021f67e45b4bc1368f0d22c817f/answers "HTTP/1.1 401 Unauthorized"
+2026-11-02 22:20:10,982 - INFO - HTTP Request: GET http://testserver/api/community/questions/q_ba8bb021f67e45b4bc1368f0d22c817f/answers "HTTP/1.1 401 Unauthorized"
+2026-11-02 22:20:10,994 - INFO - HTTP Request: POST http://testserver/api/community/questions/q_f0189f0a0e7d45488d72ab3e8998329a/answers "HTTP/1.1 200 OK"
+2026-11-02 22:20:11,001 - INFO - HTTP Request: PUT http://testserver/api/community/questions/q_f0189f0a0e7d45488d72ab3e8998329a/answers/6ae8aa2a028f1de6000ddaae/helpful "HTTP/1.1 403 Forbidden"
+2026-11-02 22:20:11,053 - INFO - HTTP Request: PUT http://testserver/api/community/questions/q_f0189f0a0e7d45488d72ab3e8998329a/answers/6ae8aa2a028f1de6000ddaae/helpful "HTTP/1.1 200 OK"
+2026-11-02 22:20:11,072 - INFO - HTTP Request: PUT http://testserver/api/community/questions/q_f0189f0a0e7d45488d72ab3e8998329a/answers/6ae8aa2a028f1de6000ddaae/helpful "HTTP/1.1 200 OK"
+2026-11-02 22:20:11,088 - INFO - HTTP Request: PUT http://testserver/api/community/questions/q_f0189f0a0e7d45488d72ab3e8998329a/answers/6ae8aa2a028f1de6000ddaae/helpful "HTTP/1.1 200 OK"
+2026-11-02 22:20:11,091 - INFO - HTTP Request: PUT http://testserver/api/community/questions/q_f0189f0a0e7d45488d72ab3e8998329a/answers/6ae8aa2a028f1de6000ddaae/helpful "HTTP/1.1 200 OK"
+2026-11-02 22:20:11,096 - INFO - HTTP Request: PUT http://testserver/api/community/questions/q_f0189f0a0e7d45488d72ab3e8998329a/answers/6ae8aa2a028f1de6000ddaae/helpful "HTTP/1.1 200 OK"
+2026-11-02 22:20:11,097 - INFO - HTTP Request: PUT http://testserver/api/community/questions/q_f0189f0a0e7d45488d72ab3e8998329a/answers/6ae8aa2a028f1de6000ddaae/helpful "HTTP/1.1 200 OK"
+2026-11-02 22:20:11,101 - INFO - HTTP Request: PUT http://testserver/api/community/questions/q_f0189f0a0e7d45488d72ab3e8998329a/answers/6ae8aa2a028f1de6000ddaae/helpful "HTTP/1.1 200 OK"
+2026-11-02 22:20:11,106 - INFO - HTTP Request: PUT http://testserver/api/community/questions/q_f0189f0a0e7d45488d72ab3e8998329a/answers/6ae8aa2a028f1de6000ddaae/helpful "HTTP/1.1 200 OK"
+2026-11-02 22:20:11,115 - INFO - HTTP Request: PUT http://testserver/api/community/questions/q_f0189f0a0e7d45488d72ab3e8998329a/answers/6ae8aa2a028f1de6000ddaae/helpful "HTTP/1.1 200 OK"
+2026-11-02 22:20:11,120 - INFO - HTTP Request: PUT http://testserver/api/community/questions/q_f0189f0a0e7d45488d72ab3e8998329a/answers/6ae8aa2a028f1de6000ddaae/helpful "HTTP/1.1 200 OK"
+2026-11-02 22:20:11,120 - INFO - HTTP Request: PUT http://testserver/api/community/questions/q_f0189f0a0e7d45488d72ab3e8998329a/answers/6ae8aa2a028f1de6000ddaae/helpful "HTTP/1.1 200 OK"
+2026-11-02 22:20:11,121 - INFO - HTTP Request: PUT http://testserver/api/community/questions/q_f0189f0a0e7d45488d72ab3e8998329a/answers/6ae8aa2a028f1de6000ddaae/helpful "HTTP/1.1 200 OK"
+2026-11-02 22:20:11,133 - INFO - HTTP Request: GET http://testserver/api/community/questions/q_f0189f0a0e7d45488d72ab3e8998329a/answers "HTTP/1.1 200 OK"
+2026-11-02 22:20:11,145 - INFO - HTTP Request: DELETE http://testserver/api/community/questions/q_f0189f0a0e7d45488d72ab3e8998329a/answers/6ae8aa2a028f1de6000ddaae/helpful "HTTP/1.1 200 OK"
+2026-11-02 22:20:11,157 - INFO - HTTP Request: DELETE http://testserver/api/community/questions/q_f0189f0a0e7d45488d72ab3e8998329a/answers/6ae8aa2a028f1de6000ddaae/helpful "HTTP/1.1 200 OK"
+2026-11-02 22:20:11,169 - INFO - HTTP Request: DELETE http://testserver/api/community/questions/q_f0189f0a0e7d45488d72ab3e8998329a/answers/6ae8aa2a028f1de6000ddaae/helpful "HTTP/1.1 200 OK"
+2026-11-02 22:20:11,179 - INFO - HTTP Request: GET http://testserver/api/community/questions/q_f0189f0a0e7d45488d72ab3e8998329a/answers/6ae8aa2a028f1de6000ddaae "HTTP/1.1 200 OK"
+2026-11-02 22:20:11,190 - INFO - HTTP Request: GET http://testserver/api/community/questions/q_f0189f0a0e7d45488d72ab3e8998329a/answers "HTTP/1.1 200 OK"
+2026-11-02 22:20:11,203 - INFO - HTTP Request: POST http://testserver/api/community/questions/q_fa4638652f0c4f90a94d33c86401e122/answers "HTTP/1.1 200 OK"
+2026-11-02 22:20:11,254 - INFO - HTTP Request: POST http://testserver/api/community/questions/q_fa4638652f0c4f90a94d33c86401e122/answers "HTTP/1.1 200 OK"
+2026-11-02 22:20:11,255 - INFO - HTTP Request: POST http://testserver/api/community/questions/q_fa4638652f0c4f90a94d33c86401e122/answers "HTTP/1.1 200 OK"
+2026-11-02 22:20:11,262 - INFO - HTTP Request: POST http://testserver/api/community/questions/q_fa4638652f0c4f90a94d33c86401e122/answers "HTTP/1.1 200 OK"
+2026-11-02 22:20:11,265 - INFO - HTTP Request: POST http://testserver/api/community/questions/q_fa4638652f0c4f90a94d33c86401e122/answers "HTTP/1.1 200 OK"
+2026-11-02 22:20:11,268 - INFO - HTTP Request: POST http://testserver/api/community/questions/q_fa4638652f0c4f90a94d33c86401e122/answers "HTTP/1.1 200 OK"
+2026-11-02 22:20:11,269 - INFO - HTTP Request: POST http://testserver/api/community/questions/q_fa4638652f0c4f90a94d33c86401e122/answers "HTTP/1.1 200 OK"
+2026-11-02 22:20:11,274 - INFO - HTTP Request: POST http://testserver/api/community/questions/q_fa4638652f0c4f90a94d33c86401e122/answers "HTTP/1.1 200 OK"
+2026-11-02 22:20:11,277 - INFO - HTTP Request: POST http://testserver/api/community/questions/q_fa4638652f0c4f90a94d33c86401e122/answers "HTTP/1.1 200 OK"
+2026-11-02 22:20:11,317 - INFO - HTTP Request: POST http://testserver/api/community/questions/q_fa4638652f0c4f90a94d33c86401e122/answers "HTTP/1.1 200 OK"
+2026-11-02 22:20:11,318 - INFO - HTTP Request: POST http://testserver/api/community/questions/q_fa4638652f0c4f90a94d33c86401e122/answers "HTTP/1.1 200 OK"
+2026-11-02 22:20:11,319 - INFO - HTTP Request: POST http://testserver/api/community/questions/q_fa4638652f0c4f90a94d33c86401e122/answers "HTTP/1.1 200 OK"
+2026-11-02 22:20:11,324 - INFO - HTTP Request: POST http://testserver/api/community/questions/q_fa4638652f0c4f90a94d33c86401e122/answers "HTTP/1.1 200 OK"
+2026-11-02 22:20:11,324 - INFO - HTTP Request: POST http://testserver/api/community/questions/q_fa4638652f0c4f90a94d33c86401e122/answers "HTTP/1.1 200 OK"
+2026-11-02 22:20:11,325 - INFO - HTTP Request: POST http://testserver/api/community/questions/q_fa4638652f0c4f90a94d33c86401e122/answers "HTTP/1.1 200 OK"
+2026-11-02 22:20:11,325 - INFO - HTTP Request: POST http://testserver/api/community/questions/q_fa4638652f0c4f90a94d33c86401e122/answers "HTTP/1.1 200 OK"
+2026-11-02 22:20:11,327 - INFO - HTTP Request: POST http://testserver/api/community/questions/q_fa4638652f0c4f90a94d33c86401e122/answers "HTTP/1.1 200 OK"
+2026-11-02 22:20:11,335 - INFO - HTTP Request: POST http://testserver/api/community/questions/q_fa4638652f0c4f90a94d33c86401e122/answers "HTTP/1.1 409 Conflict"
+2026-11-02 22:20:11,366 - INFO - HTTP Request: GET http://testserver/api/community/posts/q_fa4638652f0c4f90a94d33c86401e122 "HTTP/1.1 200 OK"
+2026-11-02 22:20:11,376 - INFO - HTTP Request: GET http://testserver/api/community/questions/q_fa4638652f0c4f90a94d33c86401e122/answers "HTTP/1.1 200 OK"
+2026-11-02 22:20:11,420 - INFO - HTTP Request: POST http://testserver/api/community/questions/q_60bde48a1c5d4b239017755c516a70b2/answers "HTTP/1.1 503 Service Unavailable"
+2026-11-02 22:20:11,434 - INFO - HTTP Request: POST http://testserver/api/community/questions/q_6aab129561674c0ba47cd8e439ffaf67/answers "HTTP/1.1 200 OK"
+2026-11-02 22:20:11,440 - INFO - HTTP Request: GET http://testserver/api/community/questions/missing/answers "HTTP/1.1 404 Not Found"
+2026-11-02 22:20:11,446 - INFO - HTTP Request: POST http://testserver/api/community/questions/missing/answers "HTTP/1.1 404 Not Found"
+2026-11-02 22:20:11,453 - INFO - HTTP Request: PUT http://testserver/api/community/questions/missing/answers/6ae8aa2b028f1de6000ddac0/helpful "HTTP/1.1 404 Not Found"
+2026-11-02 22:20:11,466 - INFO - HTTP Request: POST http://testserver/api/community/questions/q_3dffb844fffc4eac840f52eb30075f5c/answers "HTTP/1.1 200 OK"
+2026-11-02 22:20:11,478 - INFO - HTTP Request: POST http://testserver/api/community/questions/q_3dffb844fffc4eac840f52eb30075f5c/answers "HTTP/1.1 200 OK"
+2026-11-02 22:20:11,489 - INFO - HTTP Request: POST http://testserver/api/community/questions/q_3dffb844fffc4eac840f52eb30075f5c/answers "HTTP/1.1 200 OK"
+2026-11-02 22:20:11,502 - INFO - HTTP Request: POST http://testserver/api/community/questions/q_3dffb844fffc4eac840f52eb30075f5c/answers "HTTP/1.1 200 OK"
+2026-11-02 22:20:11,513 - INFO - HTTP Request: POST http://testserver/api/community/questions/q_3dffb844fffc4eac840f52eb30075f5c/answers "HTTP/1.1 200 OK"
+2026-11-02 22:20:11,525 - INFO - HTTP Request: POST http://testserver/api/community/questions/q_3dffb844fffc4eac840f52eb30075f5c/answers "HTTP/1.1 200 OK"
+2026-11-02 22:20:11,535 - INFO - HTTP Request: POST http://testserver/api/community/questions/q_3dffb844fffc4eac840f52eb30075f5c/answers "HTTP/1.1 200 OK"
+2026-11-02 22:20:11,548 - INFO - HTTP Request: GET http://testserver/api/community/questions/q_3dffb844fffc4eac840f52eb30075f5c/answers?limit=2 "HTTP/1.1 200 OK"
+2026-11-02 22:20:11,559 - INFO - HTTP Request: PUT http://testserver/api/community/questions/q_3dffb844fffc4eac840f52eb30075f5c/answers/6ae8aa2b028f1de6000ddac8/helpful "HTTP/1.1 200 OK"
+2026-11-02 22:20:11,572 - INFO - HTTP Request: GET http://testserver/api/community/questions/q_3dffb844fffc4eac840f52eb30075f5c/answers?limit=2&cursor=MjAyNi0wMS0wMVQwMDowMDowMHw2YWU4YWEyYjAyOGYxZGU2MDAwZGRhYzM%3D "HTTP/1.1 200 OK"
+2026-11-02 22:20:11,586 - INFO - HTTP Request: PUT http://testserver/api/community/questions/q_3dffb844fffc4eac840f52eb30075f5c/answers/6ae8aa2b028f1de6000ddac8/helpful "HTTP/1.1 200 OK"
+2026-11-02 22:20:11,606 - INFO - HTTP Request: GET http://testserver/api/community/questions/q_3dffb844fffc4eac840f52eb30075f5c/answers?limit=2&cursor=MjAyNi0wMS0wMVQwMDowMDowMHw2YWU4YWEyYjAyOGYxZGU2MDAwZGRhYzU%3D "HTTP/1.1 200 OK"
+2026-11-02 22:20:11,625 - INFO - HTTP Request: PUT http://testserver/api/community/questions/q_3dffb844fffc4eac840f52eb30075f5c/answers/6ae8aa2b028f1de6000ddac8/helpful "HTTP/1.1 200 OK"
+2026-11-02 22:20:11,643 - INFO - HTTP Request: GET http://testserver/api/community/questions/q_3dffb844fffc4eac840f52eb30075f5c/answers?limit=2&cursor=MjAyNi0wMS0wMVQwMDowMDowMHw2YWU4YWEyYjAyOGYxZGU2MDAwZGRhYzc%3D "HTTP/1.1 200 OK"
+2026-11-02 22:20:11,662 - INFO - HTTP Request: PUT http://testserver/api/community/questions/q_3dffb844fffc4eac840f52eb30075f5c/answers/6ae8aa2b028f1de6000ddac8/helpful "HTTP/1.1 200 OK"
+2026-11-02 22:20:11,673 - INFO - HTTP Request: GET http://testserver/api/community/questions/q_3dffb844fffc4eac840f52eb30075f5c/answers?cursor=bad "HTTP/1.1 400 Bad Request"
+----------------------------------------------------------------------
+Ran 19 tests in 1.377s
+
+OK
+sys:1: ResourceWarning: Unclosed MongoClient opened at:
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "C:\Users\GL\AppData\Local\Programs\Python\Python311\Lib\unittest\__main__.py", line 18, in <module>
+    main(module=None)
+  File "C:\Users\GL\AppData\Local\Programs\Python\Python311\Lib\unittest\main.py", line 101, in __init__
+    self.parseArgs(argv)
+  File "C:\Users\GL\AppData\Local\Programs\Python\Python311\Lib\unittest\main.py", line 150, in parseArgs
+    self.createTests()
+  File "C:\Users\GL\AppData\Local\Programs\Python\Python311\Lib\unittest\main.py", line 161, in createTests
+    self.test = self.testLoader.loadTestsFromNames(self.testNames,
+  File "C:\Users\GL\AppData\Local\Programs\Python\Python311\Lib\unittest\loader.py", line 232, in loadTestsFromNames
+    suites = [self.loadTestsFromName(name, module) for name in names]
+  File "C:\Users\GL\AppData\Local\Programs\Python\Python311\Lib\unittest\loader.py", line 232, in <listcomp>
+    suites = [self.loadTestsFromName(name, module) for name in names]
+  File "C:\Users\GL\AppData\Local\Programs\Python\Python311\Lib\unittest\loader.py", line 162, in loadTestsFromName
+    module = __import__(module_name)
+  File "<frozen importlib._bootstrap>", line 1176, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1147, in _find_and_load_unlocked
+  File "<frozen importlib._bootstrap>", line 690, in _load_unlocked
+  File "<frozen importlib._bootstrap_external>", line 940, in exec_module
+  File "<frozen importlib._bootstrap>", line 241, in _call_with_frames_removed
+  File "D:\SamanDev\workspace\saman-main-verified-CP26_20261025_072840\backend\tests\test_community_read_api.py", line 14, in <module>
+    from backend.main import app
+  File "<frozen importlib._bootstrap>", line 1176, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1147, in _find_and_load_unlocked
+  File "<frozen importlib._bootstrap>", line 690, in _load_unlocked
+  File "<frozen importlib._bootstrap_external>", line 940, in exec_module
+  File "<frozen importlib._bootstrap>", line 241, in _call_with_frames_removed
+  File "D:\SamanDev\workspace\saman-main-verified-CP26_20261025_072840\backend\main.py", line 10, in <module>
+    from backend.routers import (
+  File "<frozen importlib._bootstrap>", line 1176, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1147, in _find_and_load_unlocked
+  File "<frozen importlib._bootstrap>", line 690, in _load_unlocked
+  File "<frozen importlib._bootstrap_external>", line 940, in exec_module
+  File "<frozen importlib._bootstrap>", line 241, in _call_with_frames_removed
+  File "D:\SamanDev\workspace\saman-main-verified-CP26_20261025_072840\backend\routers\__init__.py", line 3, in <module>
+    from .auth import router as auth_router
+  File "<frozen importlib._bootstrap>", line 1176, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1147, in _find_and_load_unlocked
+  File "<frozen importlib._bootstrap>", line 690, in _load_unlocked
+  File "<frozen importlib._bootstrap_external>", line 940, in exec_module
+  File "<frozen importlib._bootstrap>", line 241, in _call_with_frames_removed
+  File "D:\SamanDev\workspace\saman-main-verified-CP26_20261025_072840\backend\routers\auth.py", line 20, in <module>
+    from backend.app.database import users_collection, db
+  File "<frozen importlib._bootstrap>", line 1176, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1147, in _find_and_load_unlocked
+  File "<frozen importlib._bootstrap>", line 690, in _load_unlocked
+  File "<frozen importlib._bootstrap_external>", line 940, in exec_module
+  File "<frozen importlib._bootstrap>", line 241, in _call_with_frames_removed
+  File "D:\SamanDev\workspace\saman-main-verified-CP26_20261025_072840\backend\app\database.py", line 39, in <module>
+    client = MongoClient(MONGO_URI, serverSelectionTimeoutMS=5000)
+  File "D:\SamanDev\runtime\saman-cp7-python\Lib\site-packages\pymongo\synchronous\mongo_client.py", line 918, in __init__
+    self._init_based_on_options(
+Call MongoClient.close() to safely shut down your client and free up resources.
+
+STRICT PUBLICATION BEFORE FIX
+🔌 Connecting to MongoDB: mongodb://127.0.0.1:27046
+📂 Database Name: saman_jcom0507_test_import
+⚠️  Detected Localhost. Disabling SSL.
+✅ Successfully connected to MongoDB!
+Warning: Failed to import shop router: cannot import name 'ActiveIngredientModel' from 'backend.app.models.shop' (D:\SamanDev\workspace\saman-main-verified-CP26_20261025_072840\backend\app\models\shop.py)
+PyTorch not available, defaulting to CPU device
+PyTorch not available, defaulting to CPU device
+Classification model path does not exist: food_classification_efficientnet_b3.pth
+Portion model path does not exist: portion_estimation_regressor.pth
+D:\SamanDev\runtime\saman-cp7-python\Lib\site-packages\pydantic\_internal\_config.py:408: UserWarning: Valid config keys have changed in V2:
+* 'allow_population_by_field_name' has been renamed to 'validate_by_name'
+  warnings.warn(message, UserWarning)
+D:\SamanDev\runtime\saman-cp7-python\Lib\site-packages\jwt\api_jwt.py:149: InsecureKeyLengthWarning: The HMAC key is 23 bytes long, which is below the minimum recommended length of 32 bytes for SHA256. See RFC 7518 Section 3.2.
+  return self._jws.encode(
+D:\SamanDev\runtime\saman-cp7-python\Lib\site-packages\jwt\api_jwt.py:370: InsecureKeyLengthWarning: The HMAC key is 23 bytes long, which is below the minimum recommended length of 32 bytes for SHA256. See RFC 7518 Section 3.2.
+  decoded = self.decode_complete(
+======================================================================
+FAIL: test_deleted_unpublished_unknown_audience_and_identity (backend.tests.test_community_answers_mongo.AnswersMongoTest.test_deleted_unpublished_unknown_audience_and_identity)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "D:\SamanDev\workspace\saman-main-verified-CP26_20261025_072840\backend\tests\test_community_answers_mongo.py", line 122, in test_deleted_unpublished_unknown_audience_and_identity
+    self.assertEqual(self.read().status_code,404); self.assertEqual(self.send(key=key).status_code,404)
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 200 != 404
+
+----------------------------------------------------------------------
+Ran 1 test in 0.191s
+
+FAILED (failures=1)
+sys:1: ResourceWarning: Unclosed MongoClient opened at:
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "C:\Users\GL\AppData\Local\Programs\Python\Python311\Lib\unittest\__main__.py", line 18, in <module>
+    main(module=None)
+  File "C:\Users\GL\AppData\Local\Programs\Python\Python311\Lib\unittest\main.py", line 101, in __init__
+    self.parseArgs(argv)
+  File "C:\Users\GL\AppData\Local\Programs\Python\Python311\Lib\unittest\main.py", line 150, in parseArgs
+    self.createTests()
+  File "C:\Users\GL\AppData\Local\Programs\Python\Python311\Lib\unittest\main.py", line 161, in createTests
+    self.test = self.testLoader.loadTestsFromNames(self.testNames,
+  File "C:\Users\GL\AppData\Local\Programs\Python\Python311\Lib\unittest\loader.py", line 232, in loadTestsFromNames
+    suites = [self.loadTestsFromName(name, module) for name in names]
+  File "C:\Users\GL\AppData\Local\Programs\Python\Python311\Lib\unittest\loader.py", line 232, in <listcomp>
+    suites = [self.loadTestsFromName(name, module) for name in names]
+  File "C:\Users\GL\AppData\Local\Programs\Python\Python311\Lib\unittest\loader.py", line 162, in loadTestsFromName
+    module = __import__(module_name)
+  File "<frozen importlib._bootstrap>", line 1176, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1126, in _find_and_load_unlocked
+  File "<frozen importlib._bootstrap>", line 241, in _call_with_frames_removed
+  File "<frozen importlib._bootstrap>", line 1176, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1126, in _find_and_load_unlocked
+  File "<frozen importlib._bootstrap>", line 241, in _call_with_frames_removed
+  File "<frozen importlib._bootstrap>", line 1176, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1147, in _find_and_load_unlocked
+  File "<frozen importlib._bootstrap>", line 690, in _load_unlocked
+  File "<frozen importlib._bootstrap_external>", line 940, in exec_module
+  File "<frozen importlib._bootstrap>", line 241, in _call_with_frames_removed
+  File "D:\SamanDev\workspace\saman-main-verified-CP26_20261025_072840\backend\tests\test_community_answers_mongo.py", line 15, in <module>
+    from backend.routers import community as r
+  File "<frozen importlib._bootstrap>", line 1176, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1147, in _find_and_load_unlocked
+  File "<frozen importlib._bootstrap>", line 690, in _load_unlocked
+  File "<frozen importlib._bootstrap_external>", line 940, in exec_module
+  File "<frozen importlib._bootstrap>", line 241, in _call_with_frames_removed
+  File "D:\SamanDev\workspace\saman-main-verified-CP26_20261025_072840\backend\routers\__init__.py", line 3, in <module>
+    from .auth import router as auth_router
+  File "<frozen importlib._bootstrap>", line 1176, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1147, in _find_and_load_unlocked
+  File "<frozen importlib._bootstrap>", line 690, in _load_unlocked
+  File "<frozen importlib._bootstrap_external>", line 940, in exec_module
+  File "<frozen importlib._bootstrap>", line 241, in _call_with_frames_removed
+  File "D:\SamanDev\workspace\saman-main-verified-CP26_20261025_072840\backend\routers\auth.py", line 20, in <module>
+    from backend.app.database import users_collection, db
+  File "<frozen importlib._bootstrap>", line 1176, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1147, in _find_and_load_unlocked
+  File "<frozen importlib._bootstrap>", line 690, in _load_unlocked
+  File "<frozen importlib._bootstrap_external>", line 940, in exec_module
+  File "<frozen importlib._bootstrap>", line 241, in _call_with_frames_removed
+  File "D:\SamanDev\workspace\saman-main-verified-CP26_20261025_072840\backend\app\database.py", line 39, in <module>
+    client = MongoClient(MONGO_URI, serverSelectionTimeoutMS=5000)
+  File "D:\SamanDev\runtime\saman-cp7-python\Lib\site-packages\pymongo\synchronous\mongo_client.py", line 918, in __init__
+    self._init_based_on_options(
+Call MongoClient.close() to safely shut down your client and free up resources.
+
+STRICT PUBLICATION AFTER FIX
+🔌 Connecting to MongoDB: mongodb://127.0.0.1:27046
+📂 Database Name: saman_jcom0507_test_import
+⚠️  Detected Localhost. Disabling SSL.
+✅ Successfully connected to MongoDB!
+Warning: Failed to import shop router: cannot import name 'ActiveIngredientModel' from 'backend.app.models.shop' (D:\SamanDev\workspace\saman-main-verified-CP26_20261025_072840\backend\app\models\shop.py)
+PyTorch not available, defaulting to CPU device
+PyTorch not available, defaulting to CPU device
+Classification model path does not exist: food_classification_efficientnet_b3.pth
+Portion model path does not exist: portion_estimation_regressor.pth
+D:\SamanDev\runtime\saman-cp7-python\Lib\site-packages\pydantic\_internal\_config.py:408: UserWarning: Valid config keys have changed in V2:
+* 'allow_population_by_field_name' has been renamed to 'validate_by_name'
+  warnings.warn(message, UserWarning)
+D:\SamanDev\runtime\saman-cp7-python\Lib\site-packages\jwt\api_jwt.py:149: InsecureKeyLengthWarning: The HMAC key is 23 bytes long, which is below the minimum recommended length of 32 bytes for SHA256. See RFC 7518 Section 3.2.
+  return self._jws.encode(
+D:\SamanDev\runtime\saman-cp7-python\Lib\site-packages\jwt\api_jwt.py:370: InsecureKeyLengthWarning: The HMAC key is 23 bytes long, which is below the minimum recommended length of 32 bytes for SHA256. See RFC 7518 Section 3.2.
+  decoded = self.decode_complete(
+----------------------------------------------------------------------
+Ran 1 test in 0.275s
+
+OK
+sys:1: ResourceWarning: Unclosed MongoClient opened at:
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "C:\Users\GL\AppData\Local\Programs\Python\Python311\Lib\unittest\__main__.py", line 18, in <module>
+    main(module=None)
+  File "C:\Users\GL\AppData\Local\Programs\Python\Python311\Lib\unittest\main.py", line 101, in __init__
+    self.parseArgs(argv)
+  File "C:\Users\GL\AppData\Local\Programs\Python\Python311\Lib\unittest\main.py", line 150, in parseArgs
+    self.createTests()
+  File "C:\Users\GL\AppData\Local\Programs\Python\Python311\Lib\unittest\main.py", line 161, in createTests
+    self.test = self.testLoader.loadTestsFromNames(self.testNames,
+  File "C:\Users\GL\AppData\Local\Programs\Python\Python311\Lib\unittest\loader.py", line 232, in loadTestsFromNames
+    suites = [self.loadTestsFromName(name, module) for name in names]
+  File "C:\Users\GL\AppData\Local\Programs\Python\Python311\Lib\unittest\loader.py", line 232, in <listcomp>
+    suites = [self.loadTestsFromName(name, module) for name in names]
+  File "C:\Users\GL\AppData\Local\Programs\Python\Python311\Lib\unittest\loader.py", line 162, in loadTestsFromName
+    module = __import__(module_name)
+  File "<frozen importlib._bootstrap>", line 1176, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1126, in _find_and_load_unlocked
+  File "<frozen importlib._bootstrap>", line 241, in _call_with_frames_removed
+  File "<frozen importlib._bootstrap>", line 1176, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1126, in _find_and_load_unlocked
+  File "<frozen importlib._bootstrap>", line 241, in _call_with_frames_removed
+  File "<frozen importlib._bootstrap>", line 1176, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1147, in _find_and_load_unlocked
+  File "<frozen importlib._bootstrap>", line 690, in _load_unlocked
+  File "<frozen importlib._bootstrap_external>", line 940, in exec_module
+  File "<frozen importlib._bootstrap>", line 241, in _call_with_frames_removed
+  File "D:\SamanDev\workspace\saman-main-verified-CP26_20261025_072840\backend\tests\test_community_answers_mongo.py", line 15, in <module>
+    from backend.routers import community as r
+  File "<frozen importlib._bootstrap>", line 1176, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1147, in _find_and_load_unlocked
+  File "<frozen importlib._bootstrap>", line 690, in _load_unlocked
+  File "<frozen importlib._bootstrap_external>", line 940, in exec_module
+  File "<frozen importlib._bootstrap>", line 241, in _call_with_frames_removed
+  File "D:\SamanDev\workspace\saman-main-verified-CP26_20261025_072840\backend\routers\__init__.py", line 3, in <module>
+    from .auth import router as auth_router
+  File "<frozen importlib._bootstrap>", line 1176, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1147, in _find_and_load_unlocked
+  File "<frozen importlib._bootstrap>", line 690, in _load_unlocked
+  File "<frozen importlib._bootstrap_external>", line 940, in exec_module
+  File "<frozen importlib._bootstrap>", line 241, in _call_with_frames_removed
+  File "D:\SamanDev\workspace\saman-main-verified-CP26_20261025_072840\backend\routers\auth.py", line 20, in <module>
+    from backend.app.database import users_collection, db
+  File "<frozen importlib._bootstrap>", line 1176, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1147, in _find_and_load_unlocked
+  File "<frozen importlib._bootstrap>", line 690, in _load_unlocked
+  File "<frozen importlib._bootstrap_external>", line 940, in exec_module
+  File "<frozen importlib._bootstrap>", line 241, in _call_with_frames_removed
+  File "D:\SamanDev\workspace\saman-main-verified-CP26_20261025_072840\backend\app\database.py", line 39, in <module>
+    client = MongoClient(MONGO_URI, serverSelectionTimeoutMS=5000)
+  File "D:\SamanDev\runtime\saman-cp7-python\Lib\site-packages\pymongo\synchronous\mongo_client.py", line 918, in __init__
+    self._init_based_on_options(
+Call MongoClient.close() to safely shut down your client and free up resources.

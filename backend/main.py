@@ -5,6 +5,7 @@ import logging
 import os
 from pathlib import Path
 from dotenv import load_dotenv
+from pymongo.errors import PyMongoError
 
 # 1. Import các router
 from backend.routers import (
@@ -15,7 +16,13 @@ from backend.routers import (
     nutrition_router,
     workout_router,
     health_router,
+    journey_router,
+    revenue_router,
+    shop_router,
+    journal_router,
+    community_router,
 )
+from backend.routers.analytics import router as analytics_router
 
 # Configure logging
 logging.basicConfig(
@@ -80,6 +87,17 @@ async def lifespan(app: FastAPI):
     logger.info("Starting up application...")
     try:
         _download_model_if_needed()
+
+        try:
+            from backend.app.database import db as application_db
+            from backend.app.services.history_analytics_service import (
+                ensure_history_analytics_indexes,
+            )
+
+            if application_db is not None:
+                ensure_history_analytics_indexes(application_db)
+        except (PyMongoError, RuntimeError) as exc:
+            logger.warning("History analytics index setup unavailable: %s", type(exc).__name__)
 
         from backend.app.services.classification_provider_factory import create_classification_service
         model_path = os.getenv("FOOD_MODEL_PATH", "models/checkpoint.pth")
@@ -186,6 +204,17 @@ if "workout_router" in globals() and workout_router:
     app.include_router(workout_router)
 if "health_router" in globals() and health_router:
     app.include_router(health_router)
+if "journey_router" in globals() and journey_router:
+    app.include_router(journey_router)
+if "revenue_router" in globals() and revenue_router:
+    app.include_router(revenue_router)
+if "shop_router" in globals() and shop_router:
+    app.include_router(shop_router)
+if "journal_router" in globals() and journal_router:
+    app.include_router(journal_router)
+if "community_router" in globals() and community_router:
+    app.include_router(community_router)
+app.include_router(analytics_router)
 
 # DEBUG: Print all registered routes
 print("\n=== REGISTERED ROUTES ===")
@@ -211,3 +240,20 @@ def read_root_head() -> Response:
 @app.get("/health")
 def health_check():
     return {"status": "healthy"}
+
+
+@app.get("/api/static/avatars/{filename}")
+async def get_static_avatar(filename: str):
+    import os
+    from fastapi.responses import FileResponse
+    from fastapi import HTTPException
+    from backend.services.avatar_service import LOCAL_AVATAR_DIR, is_local_storage_enabled
+    if not is_local_storage_enabled():
+        raise HTTPException(status_code=404, detail="Avatar image not found")
+    clean_name = os.path.basename(filename)
+    if clean_name != filename or not clean_name.startswith("avatar_") or not clean_name.endswith(".jpg"):
+        raise HTTPException(status_code=404, detail="Avatar image not found")
+    filepath = os.path.join(LOCAL_AVATAR_DIR, clean_name)
+    if not os.path.exists(filepath):
+        raise HTTPException(status_code=404, detail="Avatar image not found")
+    return FileResponse(filepath, media_type="image/jpeg")

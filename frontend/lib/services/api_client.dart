@@ -24,11 +24,15 @@ class ApiClient {
     dio.interceptors.add(
       InterceptorsWrapper(
         onRequest: (options, handler) async {
-          const storage = FlutterSecureStorage();
-          final token = await storage.read(key: 'auth_token') ??
-              await storage.read(key: 'jwt_token');
-          if (token != null && token.isNotEmpty) {
-            options.headers['Authorization'] = 'Bearer $token';
+          try {
+            const storage = FlutterSecureStorage();
+            final token = await storage.read(key: 'auth_token') ??
+                await storage.read(key: 'jwt_token');
+            if (token != null && token.isNotEmpty) {
+              options.headers['Authorization'] = 'Bearer $token';
+            }
+          } catch (_) {
+            // Unreadable storage or missing platform channel in test environment
           }
           options.headers['Cache-Control'] = 'no-cache';
           if (kDebugMode) {

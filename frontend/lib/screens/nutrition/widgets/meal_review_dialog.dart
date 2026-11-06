@@ -686,6 +686,33 @@ class _MealReviewDialogState extends State<MealReviewDialog> {
                   ),
                   const SizedBox(height: 12),
 
+                  if (_current.fiber != null) ...[
+                    const SizedBox(height: 8),
+                    Align(
+                      alignment: AlignmentDirectional.centerStart,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        decoration: BoxDecoration(
+                          color: _bgCard,
+                          border: Border.all(color: _borderSubtle),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Text(
+                          'Chất xơ  ${_current.fiber!.toStringAsFixed(1)}g',
+                          style: const TextStyle(
+                            color: _textPrimary,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                  if (_current.ingredients.isNotEmpty) ...[
+                    const SizedBox(height: 14),
+                    IngredientReviewSection(ingredients: _current.ingredients),
+                  ],
+
                   // Provenance Transparency Bar & Explanation
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -866,6 +893,58 @@ class _MealReviewDialogState extends State<MealReviewDialog> {
       ),
     );
   }
+}
+
+class IngredientReviewSection extends StatelessWidget {
+  final List<IngredientItem> ingredients;
+
+  const IngredientReviewSection({
+    super.key,
+    required this.ingredients,
+  });
+
+  @override
+  Widget build(BuildContext context) => Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: const Color(0xFF242424),
+          border: Border.all(color: const Color(0xFF2A2A2A)),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Thành phần ước tính',
+              style: TextStyle(
+                color: Color(0xFFF0F0F0),
+                fontSize: 14,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(height: 8),
+            for (final ingredient in ingredients)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 4),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        ingredient.name,
+                        style: const TextStyle(color: Color(0xFFF0F0F0)),
+                      ),
+                    ),
+                    Text(
+                      '${ingredient.portionGrams.toStringAsFixed(0)}g · ${ingredient.calories.toStringAsFixed(0)} kcal',
+                      style: const TextStyle(color: Color(0xFFAAAAAA), fontSize: 12),
+                    ),
+                  ],
+                ),
+              ),
+          ],
+        ),
+      );
 }
 
 class MealLogData {

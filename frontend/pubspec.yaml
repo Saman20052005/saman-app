@@ -55,6 +55,9 @@ dependencies:
   url_launcher: ^6.2.5
   shimmer: ^2.0.0
 
+  # --- PAYMENT & IN-APP PURCHASES (CP-07 / REVENUE-R02 / REVENUE-R03) ---
+  purchases_flutter: ^9.16.2
+
   equatable: any
 dev_dependencies:
   flutter_test:
@@ -83,7 +86,13 @@ flutter:
   assets:
     - assets/icons/
     - assets/images/
+    - assets/images/nutrition/
     - assets/images/exercises/
+    - assets/images/shop/
     - assets/onboarding/
     - assets/profile/
     - assets/logo/
+  fonts:
+    - family: Manrope
+      fonts:
+        - asset: assets/fonts/manrope/Manrope.ttf

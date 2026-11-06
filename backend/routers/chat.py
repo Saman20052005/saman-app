@@ -3,7 +3,11 @@ import os
 import re
 import logging
 import asyncio
-from typing import Optional, Dict, List, Any, Tuple
+import math
+import importlib.util
+import unicodedata
+from pathlib import Path
+from typing import Optional, Dict, List, Any, Literal, NamedTuple, Set, Tuple
 from datetime import datetime, timezone, timedelta, date
 from zoneinfo import ZoneInfo
 from fastapi import APIRouter, HTTPException, Depends, status
@@ -23,7 +27,7 @@ try:
         conversations_collection,
         messages_collection,
         water_collection,
-    exercises_collection,
+        exercises_collection,
         custom_plans_collection,
     )
     from backend.auth_utils import verify_token, get_current_user
@@ -36,7 +40,7 @@ except ImportError:
         conversations_collection,
         messages_collection,
         water_collection,
-    exercises_collection,
+        exercises_collection,
         custom_plans_collection,
     )
     from auth_utils import verify_token
@@ -44,6 +48,53 @@ except ImportError:
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/chat", tags=["AI Chat"])
+
+
+def _create_exercise_catalog_resolver():
+    resolver_path = (
+        Path(__file__).resolve().parents[1]
+        / "app"
+        / "services"
+        / "exercise_catalog_resolver.py"
+    )
+    spec = importlib.util.spec_from_file_location(
+        "_chat_exercise_catalog_resolver", resolver_path
+    )
+    if spec is None or spec.loader is None:
+        raise ImportError("Exercise catalog resolver module is unavailable.")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module.ExerciseCatalogResolver()
+
+
+exercise_catalog_resolver = _create_exercise_catalog_resolver()
+
+
+def _create_workout_recommendation_service():
+    service_path = (
+        Path(__file__).resolve().parents[1]
+        / "app"
+        / "services"
+        / "workout_recommendation.py"
+    )
+    spec = importlib.util.spec_from_file_location(
+        "_chat_workout_recommendation", service_path
+    )
+    if spec is None or spec.loader is None:
+        raise ImportError("Workout recommendation service is unavailable.")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+workout_recommendation_service = _create_workout_recommendation_service()
+
+
+class WorkoutHistoryContext(NamedTuple):
+    status: Literal["available", "empty", "unavailable"]
+    context: str
+    record_count: int
+    latest_uncertain: bool
 
 user_repo = UserRepository()
 chat_bearer = HTTPBearer(auto_error=False)
@@ -339,9 +390,313 @@ def _normalize_to_vn_datetime(val) -> Optional[datetime]:
     return None
 
 
-def _build_latest_workout_context(email: str, user_id: Optional[str], col) -> str:
+def _text_value(value: Any) -> Optional[str]:
+    if not isinstance(value, str):
+        return None
+    value = value.strip()
+    return value or None
+
+
+def _integer_value(value: Any, *, minimum: int = 0) -> Optional[int]:
+    if isinstance(value, bool) or not isinstance(value, int) or value < minimum:
+        return None
+    return value
+
+
+def _number_value(value: Any) -> Optional[float]:
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        return None
+    try:
+        number = float(value)
+    except (OverflowError, TypeError, ValueError):
+        return None
+    if not math.isfinite(number) or number < 0:
+        return None
+    return number
+
+
+def _first_value(item: dict, *keys: str) -> Any:
+    for key in keys:
+        value = item.get(key)
+        if value is not None:
+            return value
+    return None
+
+
+def _normalize_canonical_logs(raw_logs: list) -> Dict[str, Any]:
+    groups: Dict[Tuple[str, str, int], Dict[str, Any]] = {}
+    malformed_records = 0
+
+    for index, item in enumerate(raw_logs):
+        if not isinstance(item, dict):
+            malformed_records += 1
+            continue
+
+        exercise_id = _text_value(_first_value(item, "exercise_id", "exerciseId"))
+        exercise_slug = _text_value(_first_value(item, "exercise_slug", "exerciseSlug"))
+        recorded_name = _text_value(
+            _first_value(item, "name", "exercise_name", "exerciseName")
+        )
+        identity = (exercise_id or "", exercise_slug or "", -1)
+        if not exercise_id and not exercise_slug:
+            identity = ("", "", index)
+
+        exercise = groups.get(identity)
+        if exercise is None:
+            exercise = {
+                "exercise_id": exercise_id,
+                "exercise_slug": exercise_slug,
+                "recorded_name": recorded_name,
+                "identity_status": "unresolved",
+                "identity_reason": "catalog identity not resolved",
+                "sets": [],
+                "completed_sets": 0,
+                "incomplete_sets": 0,
+                "unknown_completion_sets": 0,
+                "volume_kg": None,
+                "volume_status": "unavailable",
+            }
+            groups[identity] = exercise
+        elif not exercise["recorded_name"] and recorded_name:
+            exercise["recorded_name"] = recorded_name
+
+        completed_value = _first_value(item, "is_completed", "isCompleted")
+        completion = (
+            "completed"
+            if completed_value is True
+            else "incomplete"
+            if completed_value is False
+            else "unknown"
+        )
+        unit_value = _text_value(item.get("unit"))
+        unit = unit_value.lower() if unit_value else None
+        unit = unit if unit in ("reps", "seconds") else None
+
+        reps_value = _integer_value(
+            _first_value(item, "reps_completed", "repsCompleted")
+        )
+        seconds_value = _integer_value(
+            _first_value(item, "seconds_completed", "secondsCompleted"),
+            minimum=1,
+        )
+        weight_value = _number_value(
+            _first_value(item, "weight_kg", "weightKg")
+        )
+        set_number = _integer_value(
+            _first_value(item, "set_number", "setNumber"),
+            minimum=1,
+        )
+
+        malformed = False
+        if unit == "reps" and _first_value(
+            item, "reps_completed", "repsCompleted"
+        ) is not None and reps_value is None:
+            malformed = True
+        if unit == "seconds":
+            raw_reps = _first_value(item, "reps_completed", "repsCompleted")
+            if raw_reps is not None and raw_reps != 0:
+                malformed = True
+            if _first_value(
+                item, "seconds_completed", "secondsCompleted"
+            ) is not None and seconds_value is None:
+                malformed = True
+        elif unit == "reps" and _first_value(
+            item, "seconds_completed", "secondsCompleted"
+        ) is not None:
+            malformed = True
+        if _first_value(item, "weight_kg", "weightKg") is not None and weight_value is None:
+            malformed = True
+        if completed_value is not None and not isinstance(completed_value, bool):
+            malformed = True
+
+        exercise["sets"].append(
+            {
+                "set_number": set_number,
+                "completion": completion,
+                "unit": unit,
+                "reps_completed": reps_value if unit == "reps" else None,
+                "seconds_completed": seconds_value if unit == "seconds" else None,
+                "weight_kg": weight_value,
+                "malformed": malformed,
+            }
+        )
+
+        if completion == "completed":
+            exercise["completed_sets"] += 1
+        elif completion == "incomplete":
+            exercise["incomplete_sets"] += 1
+        else:
+            exercise["unknown_completion_sets"] += 1
+
+    exercises = list(groups.values())
+    for exercise in exercises:
+        completed_rep_sets = [
+            item
+            for item in exercise["sets"]
+            if item["completion"] == "completed" and item["unit"] == "reps"
+        ]
+        measured_sets = [
+            item
+            for item in completed_rep_sets
+            if (
+                not item["malformed"]
+                and item["reps_completed"] is not None
+                and item["weight_kg"] is not None
+            )
+        ]
+        if measured_sets:
+            exercise["volume_kg"] = sum(
+                item["reps_completed"] * item["weight_kg"]
+                for item in measured_sets
+            )
+        if completed_rep_sets and len(measured_sets) == len(completed_rep_sets):
+            exercise["volume_status"] = "complete"
+        elif measured_sets:
+            exercise["volume_status"] = "partial"
+
+    return {
+        "source": "canonical",
+        "exercises": exercises,
+        "malformed_records": malformed_records,
+        "canonical_empty": not raw_logs,
+        "history_field": "exercise_logs",
+    }
+
+
+def _resolve_history_exercises(
+    normalized: Dict[str, Any], catalog_resolver=None
+) -> Dict[str, Any]:
+    if catalog_resolver is None:
+        catalog_resolver = exercise_catalog_resolver
+
+    unavailable_count = 0
+    for exercise in normalized["exercises"]:
+        resolution = catalog_resolver.resolve(
+            exercise.get("exercise_id"),
+            exercise.get("exercise_slug"),
+        )
+        exercise["history_source"] = normalized.get("history_field")
+        exercise["identity_provenance"] = resolution["provenance"]
+        exercise["identity_status"] = resolution["status"]
+        exercise["identity_reason"] = resolution["reason"]
+        exercise["catalog_metadata"] = resolution["exercise"]
+        if resolution["status"] == "unavailable":
+            unavailable_count += 1
+        elif resolution["status"] == "resolved":
+            exercise["canonical_exercise_id"] = resolution["exercise"]["id"]
+
+    normalized["catalog_unavailable"] = unavailable_count > 0
+    normalized["catalog_unavailable_count"] = unavailable_count
+    return normalized
+
+
+def normalize_exercise_logs(
+    session: dict, catalog_resolver=None
+) -> Dict[str, Any]:
+    """Normalize history and attach verified catalog identity without mutating source records."""
+    if "exercise_logs" in session:
+        raw_logs = session.get("exercise_logs")
+        if not isinstance(raw_logs, list):
+            normalized = {
+                "source": "canonical",
+                "exercises": [],
+                "malformed_records": 1,
+                "canonical_empty": False,
+                "history_field": "exercise_logs",
+            }
+        else:
+            normalized = _normalize_canonical_logs(raw_logs)
+        return _resolve_history_exercises(normalized, catalog_resolver)
+
+    legacy_key = None
+    legacy_logs = None
+    for key in ("completed_exercises", "exercises"):
+        if key in session:
+            candidate = session.get(key)
+            if isinstance(candidate, list) and candidate:
+                legacy_key, legacy_logs = key, candidate
+                break
+            if legacy_key is None:
+                legacy_key, legacy_logs = key, candidate
+
+    if legacy_key is None:
+        normalized = {
+            "source": "none",
+            "exercises": [],
+            "malformed_records": 0,
+            "canonical_empty": False,
+            "history_field": None,
+        }
+        return _resolve_history_exercises(normalized, catalog_resolver)
+    if not isinstance(legacy_logs, list):
+        normalized = {
+            "source": "legacy",
+            "exercises": [],
+            "malformed_records": 1,
+            "canonical_empty": False,
+            "history_field": legacy_key,
+        }
+        return _resolve_history_exercises(normalized, catalog_resolver)
+
+    exercises: List[Dict[str, Any]] = []
+    malformed_records = 0
+    for item in legacy_logs:
+        if isinstance(item, str):
+            name = _text_value(item)
+            exercise_id = exercise_slug = None
+        elif isinstance(item, dict):
+            name = _text_value(
+                _first_value(item, "name", "exercise_name", "exerciseName")
+            )
+            exercise_id = _text_value(
+                _first_value(item, "exercise_id", "exerciseId")
+            )
+            exercise_slug = _text_value(
+                _first_value(item, "exercise_slug", "exerciseSlug")
+            )
+        else:
+            malformed_records += 1
+            continue
+
+        if not name and not exercise_id and not exercise_slug:
+            malformed_records += 1
+            continue
+        exercises.append(
+            {
+                "exercise_id": exercise_id,
+                "exercise_slug": exercise_slug,
+                "recorded_name": name,
+                "identity_status": "unresolved",
+                "identity_reason": "legacy history has no verified catalog mapping",
+                "sets": [],
+                "completed_sets": 0,
+                "incomplete_sets": 0,
+                "unknown_completion_sets": 0,
+                "volume_kg": None,
+                "volume_status": "unavailable",
+            }
+        )
+
+    normalized = {
+        "source": "legacy",
+        "exercises": exercises,
+        "malformed_records": malformed_records,
+        "canonical_empty": False,
+        "history_field": legacy_key,
+    }
+    return _resolve_history_exercises(normalized, catalog_resolver)
+
+
+def _read_latest_workout_context(
+    email: str, user_id: Optional[str], col, catalog_resolver=None
+) -> WorkoutHistoryContext:
     if col is None or not email:
-        return "TẬP LUYỆN GẦN NHẤT: chưa có dữ liệu"
+        return WorkoutHistoryContext(
+            "unavailable",
+            "TẬP LUYỆN GẦN NHẤT: không khả dụng; không thể xác định có hay không có lịch sử.",
+            0,
+            False,
+        )
 
     query_or = [{"email": email}, {"user_email": email}]
     if user_id:
@@ -350,80 +705,245 @@ def _build_latest_workout_context(email: str, user_id: Optional[str], col) -> st
 
     try:
         sessions = list(col.find(workout_query))
-    except Exception as e:
-        logger.warning("Failed to query workout sessions: %s", type(e).__name__)
-        sessions = []
+    except Exception as exc:
+        logger.warning("Failed to query workout sessions: %s", type(exc).__name__)
+        return WorkoutHistoryContext(
+            "unavailable",
+            "TẬP LUYỆN GẦN NHẤT: không khả dụng; truy vấn lịch sử gặp lỗi, "
+            "nên không thể kết luận là không có buổi tập.",
+            0,
+            False,
+        )
 
     if not sessions:
-        try:
-            sessions = list(col.find({"email": email}))
-        except Exception:
-            pass
-    if not sessions:
-        try:
-            sessions = list(col.find({"user_email": email}))
-        except Exception:
-            pass
-    if not sessions and user_id:
-        try:
-            sessions = list(col.find({"user_id": user_id}))
-        except Exception:
-            pass
-
-    if not sessions:
-        return "TẬP LUYỆN GẦN NHẤT: chưa có dữ liệu"
+        return WorkoutHistoryContext(
+            "empty",
+            "TẬP LUYỆN GẦN NHẤT: truy vấn thành công nhưng không có bản ghi khớp "
+            "điều kiện sở hữu; không kết luận người dùng chưa từng tập.",
+            0,
+            False,
+        )
 
     best_session = None
     best_dt = None
+    latest_uncertain = False
 
     for s in sessions:
-        raw_val = s.get("start_time") or s.get("created_at") or s.get("date") or s.get("end_time")
+        if not isinstance(s, dict):
+            latest_uncertain = True
+            continue
+        raw_val = None
+        for key in ("start_time", "started_at", "created_at", "date", "end_time", "finished_at"):
+            candidate = s.get(key)
+            if candidate is not None and (
+                not isinstance(candidate, str) or candidate.strip()
+            ):
+                raw_val = candidate
+                break
+        if raw_val is None:
+            latest_uncertain = True
+            continue
         dt = _normalize_to_vn_datetime(raw_val)
-        if dt is not None and (best_dt is None or dt > best_dt):
-            best_dt = dt
-            best_session = s
+        if dt is None:
+            latest_uncertain = True
+        elif best_dt is None or dt > best_dt:
+            best_dt, best_session = dt, s
 
-    if best_session is None and sessions:
-        best_session = sessions[-1]
+    if latest_uncertain or best_session is None:
+        return WorkoutHistoryContext(
+            "available",
+            f"TẬP LUYỆN GẦN NHẤT: đã đọc {len(sessions)} bản ghi, nhưng không thể "
+            "xác nhận buổi gần nhất vì có bản ghi thiếu thời gian hoặc thời gian "
+            "không hợp lệ; không thay bằng một bản ghi cũ hơn.",
+            len(sessions),
+            True,
+        )
 
-    date_part = best_dt.strftime("%Y-%m-%d") if best_dt else (best_session.get("date") or "chưa có dữ liệu")
-    duration = (
-        best_session.get("duration_minutes")
-        if best_session.get("duration_minutes") is not None
-        else best_session.get("duration")
+    duration = best_session.get("total_duration_minutes")
+    if duration is None:
+        duration = best_session.get("duration_minutes")
+    if duration is None:
+        duration = best_session.get("duration")
+    duration_value = _number_value(duration)
+    if duration_value is None:
+        duration_str = "chưa ghi nhận"
+    else:
+        duration_str = f"{duration_value:g} phút"
+
+    status_label = (
+        "[Trạng thái: Đã hoàn thành (Completed)]"
+        if bool(best_session.get("finished_at") or best_session.get("end_time"))
+        else "[Trạng thái: Đang tập (Active)]"
     )
-    duration_str = f"{duration} phút" if duration is not None else "chưa có dữ liệu"
 
-    exercises = best_session.get("completed_exercises") or best_session.get("exercises")
-    exercise_names = []
-    if isinstance(exercises, list):
-        for ex in exercises:
-            if isinstance(ex, dict):
-                ex_name = ex.get("name") or ex.get("exercise_name")
-                if ex_name:
-                    exercise_names.append(str(ex_name))
-            elif isinstance(ex, str) and ex.strip():
-                exercise_names.append(ex.strip())
-
-    plan_name = (
-        best_session.get("plan_id")
-        or best_session.get("plan_name")
+    lines = [
+        "TẬP LUYỆN GẦN NHẤT:",
+        f"- Trạng thái: {status_label}",
+        f"- Bản ghi truy vấn: {len(sessions)} (toàn bộ kết quả; không có limit/phân trang).",
+        f"- Ngày: {best_dt.strftime('%Y-%m-%d')}",
+        f"- Thời lượng: {duration_str}",
+    ]
+    session_name = (
+        best_session.get("plan_name")
         or best_session.get("workout_name")
         or best_session.get("name")
     )
-    if exercise_names:
-        exercises_str = ", ".join(exercise_names[:5])
-    elif plan_name:
-        exercises_str = str(plan_name)
-    else:
-        exercises_str = "chưa có dữ liệu"
+    if isinstance(session_name, str) and session_name.strip():
+        lines.append(f"- Tên buổi được lưu: {session_name.strip()}")
 
-    return (
-        f"TẬP LUYỆN GẦN NHẤT:\n"
-        f"- Ngày: {date_part}\n"
-        f"- Thời lượng: {duration_str}\n"
-        f"- Bài tập: {exercises_str}"
+    normalized = normalize_exercise_logs(best_session, catalog_resolver)
+    exercises = normalized["exercises"]
+    if normalized["malformed_records"]:
+        lines.append(
+            f"- Bỏ qua {normalized['malformed_records']} mục bài tập không hợp lệ; "
+            "không thay bằng dữ liệu legacy."
+        )
+    if normalized["catalog_unavailable"]:
+        lines.append(
+            f"- Catalog không khả dụng cho {normalized['catalog_unavailable_count']} "
+            "bài tập; giữ danh tính chưa xác định và không thay đổi số liệu lịch sử."
+        )
+    if normalized["source"] == "canonical" and normalized["canonical_empty"]:
+        lines.append(
+            "- exercise_logs canonical rỗng; không fallback sang legacy trong cùng buổi."
+        )
+    elif normalized["source"] == "none":
+        lines.append("- Không có chi tiết bài tập trong bản ghi.")
+    elif not exercises:
+        lines.append("- Không có chi tiết bài tập hợp lệ để hiển thị.")
+    else:
+        for exercise in exercises[:5]:
+            label = exercise["recorded_name"] or "bài tập không có tên lưu"
+            identifiers = []
+            if exercise["exercise_id"]:
+                identifiers.append(f"ID ghi nhận={exercise['exercise_id']}")
+            if exercise["exercise_slug"]:
+                identifiers.append(f"slug ghi nhận={exercise['exercise_slug']}")
+            identity_detail = (
+                f"; {', '.join(identifiers)}" if identifiers else ""
+            )
+            if exercise["identity_status"] == "resolved":
+                metadata = exercise["catalog_metadata"]
+                provenance = exercise["identity_provenance"]
+                lines.append(
+                    f"- Bài tập đã xác minh: {metadata['name']} "
+                    f"(canonical ID={exercise['canonical_exercise_id']}; "
+                    f"history source={exercise['history_source']}; "
+                    f"identity resolution={provenance['kind']})."
+                )
+                if label != metadata["name"]:
+                    lines.append(f"  Tên ghi nhận trong history: {label}.")
+                lines.append(
+                    "  Catalog tham chiếu (không phải số liệu đã log): "
+                    f"nhóm cơ={metadata['muscleGroup']}; "
+                    f"mục tiêu={', '.join(metadata['targetMuscles']) or 'không có'}; "
+                    f"thiết bị={', '.join(metadata['equipment']) or 'không có'}; "
+                    f"độ khó={metadata['difficulty']}; "
+                    f"prescription={metadata['defaultSets']} sets x "
+                    f"{metadata['defaultReps']}, nghỉ {metadata['restSeconds']}s; "
+                    f"repType={metadata['repType']}; "
+                    f"CV={metadata['cvSupported']} "
+                    f"({metadata['cvModuleId'] or 'không có module'})."
+                )
+            else:
+                lines.append(
+                    f"- Bài được ghi nhận: {label} (catalog chưa xác định: "
+                    f"{exercise['identity_reason']}{identity_detail})."
+                )
+
+            if normalized["source"] == "canonical":
+                lines.append(
+                    f"  Hiệp: {exercise['completed_sets']} hoàn thành, "
+                    f"{exercise['incomplete_sets']} chưa hoàn thành, "
+                    f"{exercise['unknown_completion_sets']} trạng thái chưa rõ."
+                )
+                for set_data in exercise["sets"][:5]:
+                    set_label = (
+                        f"Hiệp {set_data['set_number']}"
+                        if set_data["set_number"] is not None
+                        else "Hiệp không ghi số"
+                    )
+                    details = []
+                    if set_data["unit"] == "reps":
+                        details.append(
+                            f"{set_data['reps_completed']} reps"
+                            if set_data["reps_completed"] is not None
+                            else "reps chưa ghi nhận"
+                        )
+                    elif set_data["unit"] == "seconds":
+                        details.append(
+                            f"{set_data['seconds_completed']} giây"
+                            if set_data["seconds_completed"] is not None
+                            else "thời lượng chưa ghi nhận"
+                        )
+                    else:
+                        details.append("đơn vị chưa xác định")
+                    if set_data["weight_kg"] is not None:
+                        details.append(f"{set_data['weight_kg']:g} kg")
+                    elif set_data["unit"] == "reps":
+                        details.append("mức tạ chưa ghi nhận")
+                    if set_data["malformed"]:
+                        details.append("có trường không hợp lệ đã bị bỏ")
+                    completion = {
+                        "completed": "đã hoàn thành",
+                        "incomplete": "chưa hoàn thành",
+                        "unknown": "trạng thái chưa rõ",
+                    }[set_data["completion"]]
+                    lines.append(
+                        f"  - {set_label}: {completion}; {', '.join(details)}."
+                    )
+                if len(exercise["sets"]) > 5:
+                    lines.append(
+                        f"  - Còn {len(exercise['sets']) - 5} hiệp không hiển thị."
+                    )
+                if exercise["volume_status"] in ("complete", "partial"):
+                    volume_label = (
+                        "Volume các hiệp reps hoàn thành"
+                        if exercise["volume_status"] == "complete"
+                        else "Volume một phần; hiệp thiếu số liệu bị loại"
+                    )
+                    lines.append(
+                        f"  - {volume_label}: {exercise['volume_kg']:g} kg."
+                    )
+        if len(exercises) > 5:
+            lines.append(f"- Còn {len(exercises) - 5} bài không hiển thị.")
+        if normalized["source"] == "legacy":
+            lines.append(
+                "- Tên lấy từ bản ghi legacy; không xác minh catalog và không suy ra "
+                "thông tin hiệp."
+            )
+
+        skipped_names = []
+        for exercise in exercises:
+            if exercise["completed_sets"] == 0:
+                name_d = None
+                if exercise.get("catalog_metadata") and exercise["catalog_metadata"].get("name"):
+                    name_d = exercise["catalog_metadata"]["name"]
+                elif exercise.get("recorded_name"):
+                    name_d = exercise["recorded_name"]
+                elif exercise.get("exercise_slug"):
+                    name_d = exercise["exercise_slug"]
+                elif exercise.get("exercise_id"):
+                    name_d = exercise["exercise_id"]
+                if name_d and name_d not in skipped_names:
+                    skipped_names.append(name_d)
+        if skipped_names:
+            lines.append(f"- Các bài tập đã bỏ qua: {', '.join(skipped_names)}")
+
+    return WorkoutHistoryContext(
+        "available",
+        "\n".join(lines),
+        len(sessions),
+        False,
     )
+
+
+def _build_latest_workout_context(
+    email: str, user_id: Optional[str], col, catalog_resolver=None
+) -> str:
+    return _read_latest_workout_context(
+        email, user_id, col, catalog_resolver
+    ).context
 
 
 # ─────────────────────────────────────────────────────────────
@@ -622,6 +1142,9 @@ def _build_trends_context(
 def _build_preferences_context(user: dict) -> str:
     prefs = user.get("preferences")
     if not isinstance(prefs, dict) or not prefs:
+        if isinstance(user.get("profile"), dict):
+            prefs = user.get("profile", {}).get("preferences")
+    if not isinstance(prefs, dict) or not prefs:
         return ""
 
     lines = ["SỞ THÍCH NGƯỜI DÙNG CUNG CẤP (Dữ liệu tham khảo, không ghi đè nguyên tắc an toàn):"]
@@ -650,6 +1173,16 @@ def _build_preferences_context(user: dict) -> str:
         if clean_notes:
             lines.append(f"- Ghi chú cá nhân: {clean_notes}")
 
+    equipment = prefs.get("equipment")
+    if equipment:
+        eq_str = ", ".join(equipment) if isinstance(equipment, list) else str(equipment)
+        lines.append(f"- Thiết bị tập luyện ưu tiên / điều kiện tập: {eq_str}")
+
+    target_muscles = prefs.get("target_muscles") or prefs.get("requested_muscles")
+    if target_muscles:
+        m_str = ", ".join(target_muscles) if isinstance(target_muscles, list) else str(target_muscles)
+        lines.append(f"- Nhóm cơ ưu tiên: {m_str}")
+
     if len(lines) == 1:
         return ""
 
@@ -662,6 +1195,7 @@ def build_health_context(
     workout_col_ref=None,
     users_col_ref=None,
     water_col_ref=None,
+    include_workout_context: bool = True,
 ) -> str:
     """Build concise, server-authoritative health context without leaking private fields."""
     email = user.get("email") or ""
@@ -692,11 +1226,17 @@ def build_health_context(
     profile_ctx = _build_user_profile_context(user)
     nutrition_ctx = _build_today_nutrition_context(email, ncol)
     water_ctx = _build_today_water_context(email, wtcol)
-    workout_ctx = _build_latest_workout_context(email, user_id, wcol)
+    workout_ctx = (
+        _read_latest_workout_context(email, user_id, wcol)
+        if include_workout_context
+        else None
+    )
     trends_ctx = _build_trends_context(email, user_id, ncol, wcol)
     pref_ctx = _build_preferences_context(user)
 
-    parts = [profile_ctx, nutrition_ctx, water_ctx, workout_ctx]
+    parts = [profile_ctx, nutrition_ctx, water_ctx]
+    if workout_ctx is not None:
+        parts.append(workout_ctx.context)
     if trends_ctx:
         parts.append(trends_ctx)
     if pref_ctx:
@@ -817,6 +1357,479 @@ class ChatRequest(BaseModel):
     history: Optional[List[Any]] = None
     meal: Optional[Dict[str, Any]] = None
     workout: Optional[Dict[str, Any]] = None
+    contract_version: Optional[str] = None
+    operation_id: Optional[str] = None
+
+
+_RECOMMENDATION_MUSCLE_ALIASES = {
+    "abs": "Abs",
+    "abdominals": "Abs",
+    "bung": "Abs",
+    "arms": "Arms",
+    "arm": "Arms",
+    "tay": "Arms",
+    "anterior deltoid": "Anterior Deltoid",
+    "back": "Back",
+    "lung": "Back",
+    "biceps": "Biceps",
+    "bicep": "Biceps",
+    "brachialis": "Brachialis",
+    "brachioradialis": "Brachioradialis",
+    "calves": "Calves",
+    "calf": "Calves",
+    "bap chan": "Calves",
+    "chest": "Chest",
+    "nguc": "Chest",
+    "deep core": "Deep Core",
+    "foot stabilizers": "Foot stabilizers",
+    "forearms": "Forearms",
+    "gastrocnemius": "Gastrocnemius",
+    "glutes": "Glutes",
+    "glute": "Glutes",
+    "mong": "Glutes",
+    "hamstrings": "Hamstrings",
+    "hamstring": "Hamstrings",
+    "gan kheo": "Hamstrings",
+    "hip flexors": "Hip Flexors",
+    "lateral deltoid": "Lateral Deltoid",
+    "lower back": "Lower Back",
+    "mid traps": "Mid Traps",
+    "obliques": "Obliques",
+    "co cheo": "Obliques",
+    "pectoralis major": "Pectoralis Major",
+    "quads": "Quads",
+    "quadriceps": "Quadriceps",
+    "dui truoc": "Quads",
+    "rear deltoid": "Rear Deltoid",
+    "rhomboids": "Rhomboids",
+    "shoulders": "Shoulders",
+    "shoulder": "Shoulders",
+    "vai": "Shoulders",
+    "soleus": "Soleus",
+    "triceps": "Triceps",
+    "tricep": "Triceps",
+    "trapezius": "Trapezius",
+    "traps": "Traps",
+    "core": "Core",
+    "lats": "Lats",
+    "latissimus dorsi": "Latissimus Dorsi",
+    "upper back": "Upper Back",
+    "upper chest": "Upper Chest",
+}
+_RECOMMENDATION_EQUIPMENT_ALIASES = {
+    "ab wheel": "Ab Wheel",
+    "barbell": "Barbell",
+    "bodyweight": "Bodyweight",
+    "body weight": "Bodyweight",
+    "cable": "Cable",
+    "cable machine": "Cable Machine",
+    "calf raise machine": "Calf Raise Machine",
+    "dumbbells": "Dumbbells",
+    "dumbbell": "Dumbbells",
+    "ta don": "Dumbbells",
+    "ez bar": "EZ Bar",
+    "flat bench": "Flat Bench",
+    "incline bench": "Incline Bench",
+    "incline vertical bench": "Incline/Vertical Bench",
+    "lat bar": "Lat Bar",
+    "leg curl machine": "Leg Curl Machine",
+    "leg extension machine": "Leg Extension Machine",
+    "leg press machine": "Leg Press Machine",
+    "machine": "Machine",
+    "mat": "Mat",
+    "tham tap": "Mat",
+    "preacher bench": "Preacher Bench",
+    "pull up bar": "Pull-Up Bar",
+    "xa don": "Pull-Up Bar",
+    "rope attachment": "Rope Attachment",
+    "seated calf raise machine": "Seated Calf Raise Machine",
+    "squat rack": "Squat Rack",
+    "v bar": "V-Bar",
+    "no equipment": "Bodyweight",
+    "khong can dung cu": "Bodyweight",
+    "khong co thiet bi": "Bodyweight",
+}
+_UNSUPPORTED_EQUIPMENT_TERMS = (
+    "resistance band",
+    "resistance bands",
+    "day khang luc",
+    "day dan hoi",
+    "bands",
+    "band",
+    "ankle weights",
+    "weighted vest",
+    "battle rope",
+    "gymnastic rings",
+    "kettlebell",
+    "kettlebells",
+    "medicine ball",
+    "trx",
+    "suspension trainer",
+    "smith machine",
+)
+
+
+def _normalize_workout_request_text(message: str) -> str:
+    normalized = unicodedata.normalize("NFD", message.casefold())
+    normalized = normalized.replace("đ", "d")
+    normalized = "".join(
+        character
+        for character in normalized
+        if unicodedata.category(character) != "Mn"
+    )
+    return re.sub(r"[^a-z0-9]+", " ", normalized).strip()
+
+
+def _contains_request_term(text: str, term: str) -> bool:
+    return bool(re.search(r"(?<![a-z0-9])" + re.escape(term) + r"(?![a-z0-9])", text))
+
+
+def _matched_alias_values(text: str, aliases: Dict[str, str]) -> Set[str]:
+    matched_aliases = [
+        alias for alias in aliases if _contains_request_term(text, alias)
+    ]
+    return {
+        aliases[alias]
+        for alias in matched_aliases
+        if not any(
+            alias != longer
+            and _contains_request_term(longer, alias)
+            and _contains_request_term(text, longer)
+            for longer in matched_aliases
+        )
+    }
+
+
+def _detect_workout_recommendation_intent(message: str) -> bool:
+    if not message or not message.strip():
+        return False
+
+    text = _normalize_workout_request_text(message)
+    if any(
+        _contains_request_term(text, term)
+        for term in (
+            "hom qua",
+            "yesterday",
+            "last night",
+            "last week",
+            "lich su tap",
+            "da tap",
+            "did i train",
+            "did i work out",
+            "what did i do",
+            "which exercises did i do",
+            "tap gi",
+            "nhung bai nao",
+        )
+    ):
+        return False
+
+    if any(
+        _contains_request_term(text, term)
+        for term in (
+            "how to",
+            "how do i",
+            "technique",
+            "correct form",
+            "cach tap",
+            "ky thuat",
+            "form",
+        )
+    ):
+        return False
+
+    return bool(
+        re.search(
+            r"\b(goi y|de xuat|recommend|recommendation|suggest|suggestion)\b",
+            text,
+        )
+        or re.search(
+            r"\b(what|which) (exercises?|workouts?) should i (do|try)\b",
+            text,
+        )
+        or re.search(r"\bwhat should i train\b", text)
+        or re.search(r"\bnen tap (bai tap )?(gi|bai nao|nhung bai nao)\b", text)
+        or re.search(r"\bcho toi (mot )?(bai tap|workout)\b", text)
+    )
+
+
+def _parse_workout_recommendation_constraints(
+    message: str,
+) -> Tuple[List[str], Optional[List[str]], Tuple[bool, bool, bool]]:
+    text = _normalize_workout_request_text(message)
+    muscles = _matched_alias_values(text, _RECOMMENDATION_MUSCLE_ALIASES)
+    equipment = _matched_alias_values(text, _RECOMMENDATION_EQUIPMENT_ALIASES)
+
+    unsupported_muscle = any(
+        _contains_request_term(text, term)
+        for term in (
+            "leg",
+            "legs",
+            "chan",
+            "full body",
+            "whole body",
+            "toan than",
+            "upper body",
+            "lower body",
+        )
+    )
+    unsupported_equipment = any(
+        _contains_request_term(text, term)
+        for term in _UNSUPPORTED_EQUIPMENT_TERMS
+    )
+    if (
+        not equipment
+        and (
+            re.search(r"\b(with|using|voi)\b", text)
+            or any(
+                _contains_request_term(text, term)
+                for term in ("equipment", "dung cu", "thiet bi")
+            )
+        )
+    ):
+        unsupported_equipment = True
+
+    injury_requested = any(
+        _contains_request_term(text, term)
+        for term in (
+            "injury",
+            "injured",
+            "pain",
+            "rehab",
+            "rehabilitation",
+            "chan thuong",
+            "bi dau",
+            "dau lung",
+        )
+    )
+    unsupported_personalization = any(
+        _contains_request_term(text, term)
+        for term in (
+            "lose weight",
+            "weight loss",
+            "fat loss",
+            "gain muscle",
+            "build muscle",
+            "muscle gain",
+            "hypertrophy",
+            "strength",
+            "endurance",
+            "giam can",
+            "giam mo",
+            "tang co",
+            "beginner",
+            "novice",
+            "intermediate",
+            "advanced",
+            "training experience",
+            "experience level",
+            "nguoi moi",
+            "moi bat dau",
+            "kinh nghiem",
+            "goal",
+            "muc tieu",
+            "schedule",
+            "weekly",
+            "per week",
+            "days week",
+            "moi tuan",
+            "lich tap",
+            "activity",
+            "activity level",
+            "muc do hoat dong",
+            "sedentary",
+            "at home",
+            "home workout",
+            "o nha",
+        )
+    ) or bool(re.search(r"\b\d+\s+(day|days|buoi|ngay)\b", text))
+    return sorted(muscles), sorted(equipment) if equipment else None, (
+        unsupported_muscle or unsupported_equipment,
+        injury_requested,
+        unsupported_personalization,
+    )
+
+
+def _read_recommendation_context(current_user: dict) -> Dict[str, Any]:
+    email = str(current_user.get("email") or "").strip().lower()
+
+    def read_profile(profile_email):
+        if users_col is None:
+            raise RuntimeError("User profile collection is unavailable")
+        return users_col.find_one({"email": profile_email})
+
+    def read_history(history_owner_id):
+        if workout_history_collection is None:
+            raise RuntimeError("Workout history collection is unavailable")
+        owner_queries = [
+            {"user_id": history_owner_id},
+            {"email": email},
+            {"user_email": email},
+        ]
+        if ObjectId.is_valid(history_owner_id):
+            owner_queries.append({"user_id": ObjectId(history_owner_id)})
+        return list(workout_history_collection.find({"$or": owner_queries}))
+
+    return workout_recommendation_service.load_workout_recommendation_context(
+        current_user,
+        read_profile,
+        read_history,
+        normalize_exercise_logs,
+        _normalize_to_vn_datetime,
+        exercise_catalog_resolver,
+    )
+
+
+def _format_workout_recommendation_reply(
+    result: Dict[str, Any],
+    requested_muscles: List[str],
+    equipment: Optional[List[str]],
+    unsupported_constraint: bool,
+    injury_requested: bool,
+    unsupported_personalization: bool,
+) -> str:
+    if injury_requested:
+        return (
+            "Danh mục và bộ gợi ý này không đánh giá chấn thương, đau hoặc phục hồi "
+            "chức năng, nên tôi không thể xác nhận bài tập phù hợp cho tình trạng đó. "
+            "Hãy hỏi chuyên gia y tế; tôi không tạo hoặc sửa kế hoạch tập."
+        )
+    if unsupported_constraint:
+        return (
+            "Bộ gợi ý hiện chỉ lọc được các nhóm cơ và thiết bị có tên rõ trong "
+            "danh mục. Tôi chưa áp dụng ràng buộc chưa hỗ trợ; vui lòng nêu nhóm cơ "
+            "hoặc thiết bị khác trong danh mục."
+        )
+    if result.get("status") == "catalog_unavailable":
+        return (
+            "Danh mục bài tập đã xác minh hiện không khả dụng, nên tôi chưa thể đưa "
+            "ra gợi ý có căn cứ. Vui lòng thử lại sau."
+        )
+    if result.get("status") == "no_candidates":
+        return (
+            "Không tìm thấy bài tập nào trong danh mục đã xác minh phù hợp với các "
+            "bộ lọc bạn nêu. Bạn có thể đổi nhóm cơ hoặc thiết bị."
+        )
+
+    lines = ["Gợi ý theo thứ hạng của danh mục bài tập đã xác minh:"]
+    history_status = result.get("history_status")
+    if history_status == "empty":
+        lines.append(
+            "Lịch sử đọc được không có bản ghi khớp; danh sách chưa được cá nhân hóa "
+            "theo lịch sử."
+        )
+    elif history_status == "unavailable":
+        lines.append(
+            "Không đọc được lịch sử tập, nên danh sách không được cá nhân hóa theo "
+            "lịch sử."
+        )
+    elif result.get("personalization_level") in ("history", "request_and_history"):
+        lines.append(
+            "Thứ hạng có dùng các buổi đã đọc và phân giải được trong cửa sổ 90 ngày."
+        )
+    else:
+        lines.append(
+            "Không có tín hiệu lịch sử đã phân giải ảnh hưởng thứ hạng."
+        )
+
+    if equipment is None:
+        lines.append(
+            "Bạn chưa nêu thiết bị sẵn có; kết quả không được lọc theo thiết bị "
+            "và chưa xác nhận phù hợp với dụng cụ. Bạn muốn lọc theo thiết bị nào?"
+        )
+    else:
+        lines.append("Đã áp dụng bộ lọc thiết bị bạn nêu.")
+    if requested_muscles:
+        lines.append("Đã áp dụng bộ lọc nhóm cơ bạn nêu.")
+    if unsupported_personalization:
+        lines.append(
+            "Lưu ý: danh sách chưa được lọc theo mục tiêu, kinh nghiệm, lịch tập "
+            "hoặc địa điểm bạn nêu."
+        )
+    lines.append(
+        "Điểm không dùng mục tiêu hoặc mức độ hoạt động trong hồ sơ."
+    )
+
+    displayed_ids = set()
+    displayed = 0
+    for recommendation in result.get("recommendations", [])[:5]:
+        if not isinstance(recommendation, dict):
+            continue
+        exercise = recommendation.get("exercise")
+        canonical_id = recommendation.get("canonical_id")
+        if (
+            not isinstance(exercise, dict)
+            or not isinstance(canonical_id, str)
+            or exercise.get("id") != canonical_id
+            or canonical_id in displayed_ids
+            or not isinstance(exercise.get("name"), str)
+            or not exercise["name"].strip()
+        ):
+            continue
+        displayed_ids.add(canonical_id)
+        displayed += 1
+        reasons = recommendation.get("reason_codes", [])
+        reason_text = []
+        if "requested_muscle_primary_match" in reasons:
+            reason_text.append(
+                "khớp nhóm cơ chính " + str(exercise.get("muscleGroup"))
+            )
+        if "requested_muscle_target_match" in reasons:
+            targets = exercise.get("targetMuscles", [])
+            matched_targets = [
+                target
+                for target in targets
+                if isinstance(target, str)
+                and target.casefold()
+                in {muscle.casefold() for muscle in requested_muscles}
+            ]
+            reason_text.append(
+                "khớp cơ mục tiêu " + ", ".join(matched_targets)
+                if matched_targets
+                else "khớp cơ mục tiêu trong danh mục"
+            )
+        if "requested_muscle_secondary_match" in reasons:
+            secondary = exercise.get("secondaryMuscles", [])
+            matched_secondary = [
+                muscle
+                for muscle in secondary
+                if isinstance(muscle, str)
+                and muscle.casefold()
+                in {requested.casefold() for requested in requested_muscles}
+            ]
+            reason_text.append(
+                "khớp cơ phụ " + ", ".join(matched_secondary)
+                if matched_secondary
+                else "khớp cơ phụ trong danh mục"
+            )
+        if "available_equipment_filter" in reasons:
+            reason_text.append("đã qua lọc thiết bị")
+        if "recent_history_variety" in reasons:
+            score_components = recommendation.get("score_components", {})
+            recent_sessions = score_components.get(
+                "recent_sessions_in_window", 0
+            )
+            reason_text.append(
+                f"đã ghi nhận {recent_sessions} buổi trong cửa sổ 90 ngày"
+            )
+        if "general_catalog_baseline" in reasons:
+            reason_text.append("thứ hạng danh mục chung")
+        if "canonical_id_tiebreak" in reasons:
+            reason_text.append("mã danh mục dùng để phá hòa")
+        lines.append(
+            f"{displayed}. {exercise['name']}"
+            + (f" — {', '.join(reason_text)}." if reason_text else ".")
+        )
+
+    if not displayed:
+        return (
+            "Không có kết quả hợp lệ để hiển thị từ danh mục bài tập đã xác minh."
+        )
+    lines.append(
+        "Đây là gợi ý chỉ đọc; tôi không ghi hồ sơ, dinh dưỡng, kế hoạch hoặc buổi "
+        "tập, và không đánh giá chấn thương, kinh nghiệm hay mức tạ."
+    )
+    return "\n".join(lines)
 
 
 class ActionDecisionRequest(BaseModel):
@@ -1233,22 +2246,6 @@ def _detect_adjust_workout_intent(
         "changes": {"duration_minutes": to_dur},
     }
 
-
-
-
-
-try:
-    from backend.app.data.exercises.back import BACK_EXERCISES
-except Exception:
-    BACK_EXERCISES = []
-
-# Mapping catalog bài tập tĩnh từ repo (nguồn: backend.app.data.exercises.back.BACK_EXERCISES)
-REPO_EXERCISES_MAP: Dict[str, dict] = {}
-for _ex in BACK_EXERCISES:
-    if "slug" in _ex:
-        REPO_EXERCISES_MAP[_ex["slug"]] = _ex
-
-
 def get_ai_reply(prompt: str) -> str:
     """Hàm wrapper để gọi AI: Thử Gemini trước, fallback sang OpenAI."""
     # 1. Thử Gemini
@@ -1323,6 +2320,11 @@ def parse_date_query(message: str) -> Tuple[str, Optional[str], Optional[str]]:
     if match_partial:
         raw_part = match_partial.group(0)
         return ("INVALID_DATE", None, f"Ngày '{raw_part}' thiếu năm hoặc định dạng mơ hồ (vui lòng sử dụng DD/MM/YYYY hoặc YYYY-MM-DD)")
+
+    yesterday_keywords = ["hôm qua", "hom qua", "yesterday"]
+    if any(keyword in msg_lower for keyword in yesterday_keywords):
+        target_date = (datetime.now(ICT_ZONE).date() - timedelta(days=1))
+        return ("SPECIFIC_DATE", target_date.strftime("%Y-%m-%d"), None)
 
     # 4. Kiểm tra câu hỏi buổi gần nhất (ưu tiên nếu có cụm từ chỉ tính gần nhất)
     recent_keywords = ["gần nhất", "gần đây nhất", "vừa rồi", "vừa qua", "buổi trước", "latest", "most recent"]
@@ -1418,53 +2420,26 @@ def _get_session_sort_key(doc: dict) -> datetime:
 
 
 def resolve_exercise_name(exercise_id: Optional[str], exercise_slug: Optional[str]) -> Tuple[str, str]:
-    """
-    Resolve tên bài tập theo quy tắc:
-    1. Ưu tiên tra catalog DB (exercises_collection) theo slug hoặc id/_id.
-    2. Nếu không có trong DB, tra catalog chuẩn repo (backend.app.data.exercises.back.BACK_EXERCISES).
-    3. Nếu không resolve được: giữ slug/id và nói rõ tên chưa xác định trong catalog.
-    Tuyệt đối không titlecase slug, không bịa tên, không dùng AI đoán.
-    """
-    # 1. Tra DB catalog
-    col = exercises_collection if exercises_collection is not None else exercises_col
-    if col is not None:
-        try:
-            doc = None
-            if exercise_slug:
-                doc = col.find_one({"slug": exercise_slug})
-            if not doc and exercise_id:
-                doc = col.find_one({"id": exercise_id})
-                if not doc:
-                    try:
-                        doc = col.find_one({"_id": ObjectId(exercise_id)})
-                    except Exception:
-                        pass
-            if doc:
-                name = doc.get("name")
-                name_vi = doc.get("nameVi")
-                if name_vi and name and name_vi.lower() != name.lower():
-                    display_name = f"{name_vi} ({name})"
-                else:
-                    display_name = name_vi or name or (exercise_slug or exercise_id or "")
-                return display_name, "catalog DB (exercises_collection)"
-        except Exception as e:
-            logging.warning(f"Error querying exercises_collection: {e}")
-
-    # 2. Tra catalog chuẩn repo
-    slug_key = exercise_slug or exercise_id
-    if slug_key and slug_key in REPO_EXERCISES_MAP:
-        ex = REPO_EXERCISES_MAP[slug_key]
-        name = ex.get("name")
-        name_vi = ex.get("nameVi")
+    resolution = exercise_catalog_resolver.resolve(exercise_id, exercise_slug)
+    if resolution["status"] == "resolved":
+        exercise = resolution["exercise"]
+        name = exercise["name"]
+        name_vi = exercise["nameVi"]
         if name_vi and name and name_vi.lower() != name.lower():
             display_name = f"{name_vi} ({name})"
         else:
-            display_name = name_vi or name or slug_key
-        return display_name, "catalog repo (backend.app.data.exercises.back.BACK_EXERCISES)"
+            display_name = name_vi or name
+        provenance = resolution["provenance"]["kind"]
+        return display_name, f"generated catalog ({provenance})"
 
-    # 3. Unresolved: giữ nguyên slug/ID và ghi rõ chưa xác định
     raw_ident = exercise_slug or exercise_id or "unspecified"
-    return f"{raw_ident} (tên chưa xác định)", "chưa xác định trong catalog chuẩn"
+    if resolution["status"] == "unavailable":
+        return f"{raw_ident} (tên chưa xác định)", "generated catalog unavailable"
+    reason = resolution["reason"] or "identity unresolved"
+    return (
+        f"{raw_ident} (tên chưa xác định)",
+        f"chưa xác định trong generated catalog ({reason})",
+    )
 
 
 def fetch_user_workout_sessions(user_id: str) -> List[dict]:
@@ -1505,8 +2480,12 @@ def _format_session_card(session: dict, idx: int = 1) -> str:
     else:
         vol_str = "Chưa ghi nhận"
 
+    has_finished = bool(session.get("finished_at") or session.get("end_time"))
+    status_label = "[Trạng thái: Đã hoàn thành (Completed)]" if has_finished else "[Trạng thái: Đang tập (Active)]"
+
     lines = [
         f"Buổi tập #{idx}: {plan_name}",
+        f"- Trạng thái: {status_label}",
         f"- Ngày: {vn_date}",
         f"- Bắt đầu (giờ VN): {start_str}",
         f"- Hoàn thành (giờ VN): {end_str}",
@@ -1562,6 +2541,29 @@ def _format_session_card(session: dict, idx: int = 1) -> str:
                 lines.append(f"    + Hiệp {set_num}: {', '.join(parts)}")
     else:
         lines.append("- Bài tập: Chưa ghi nhận chi tiết bài tập hoàn tất trong buổi tập này")
+
+    # Liệt kê bài tập đã bỏ qua
+    grouped_all: Dict[str, List[dict]] = {}
+    for item in raw_logs:
+        ex_key = str(item.get("exercise_slug") or item.get("exerciseSlug") or item.get("exercise_id") or item.get("exerciseId") or "unknown")
+        grouped_all.setdefault(ex_key, []).append(item)
+
+    skipped_names = []
+    for ex_key, sets in grouped_all.items():
+        has_any_comp = any(
+            (s.get("is_completed") if s.get("is_completed") is not None else s.get("isCompleted", True))
+            for s in sets
+        )
+        if not has_any_comp:
+            sample = sets[0]
+            ex_id = sample.get("exercise_id") or sample.get("exerciseId")
+            ex_slug = sample.get("exercise_slug") or sample.get("exerciseSlug")
+            name_d, _ = resolve_exercise_name(ex_id, ex_slug)
+            if name_d not in skipped_names:
+                skipped_names.append(name_d)
+
+    if skipped_names:
+        lines.append(f"- Các bài tập đã bỏ qua: {', '.join(skipped_names)}")
 
     return "\n".join(lines)
 
@@ -1964,6 +2966,75 @@ async def delete_user_preferences(
     }
 
 
+def _persist_chat_reply(
+    trimmed_message: str,
+    reply: str,
+    email: str,
+    user_id: Optional[str],
+    conv: Optional[dict],
+    query_or: List[Dict[str, Any]],
+) -> str:
+    if conversations_col is None:
+        logger.error("Conversations collection is not available")
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Chat storage unavailable",
+        )
+
+    now_iso = datetime.now(timezone.utc).isoformat()
+    messages = [
+        {"role": "user", "content": trimmed_message, "created_at": now_iso},
+        {"role": "assistant", "content": reply, "created_at": now_iso},
+    ]
+    if conv:
+        try:
+            update_res = conversations_col.update_one(
+                {"_id": conv["_id"], "$or": query_or},
+                {
+                    "$push": {"messages": {"$each": messages}},
+                    "$set": {"updated_at": now_iso},
+                },
+            )
+            matched_count = getattr(update_res, "matched_count", None)
+            if matched_count is not None and matched_count == 0:
+                logger.warning("Conversation update matched 0 documents")
+                raise HTTPException(
+                    status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                    detail="Chat storage unavailable",
+                )
+            return str(conv["_id"])
+        except HTTPException:
+            raise
+        except Exception as exc:
+            logger.error("Failed to append message to conversation: %s", type(exc).__name__)
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail="Chat storage unavailable",
+            )
+
+    title = trimmed_message[:40] + ("..." if len(trimmed_message) > 40 else "")
+    new_conversation = {
+        "user_email": email,
+        "user_id": user_id,
+        "title": title,
+        "messages": messages,
+        "created_at": now_iso,
+        "updated_at": now_iso,
+    }
+    try:
+        inserted = conversations_col.insert_one(new_conversation)
+        inserted_id = getattr(inserted, "inserted_id", None)
+        if not inserted or not inserted_id:
+            raise RuntimeError("Failed to obtain inserted_id")
+        return str(inserted_id)
+    except Exception as exc:
+        logger.error("Failed to insert new conversation: %s", type(exc).__name__)
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Chat storage unavailable",
+        )
+
+
 @router.post("")
 async def chat_with_ai(
     request: ChatRequest,
@@ -1975,9 +3046,29 @@ async def chat_with_ai(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Message cannot be empty",
         )
+    if request.contract_version not in (None, "core3-local-v1"):
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Unsupported chat contract")
 
     email = current_user.get("email") or ""
     user_id = str(current_user.get("_id")) if current_user.get("_id") is not None else None
+
+    core3_database = None
+    if request.contract_version == "core3-local-v1":
+        try:
+            from backend.app import database as core3_database
+        except ImportError:
+            import app.database as core3_database
+        from urllib.parse import urlparse
+        mongo_host = urlparse(core3_database.MONGO_URI).hostname
+        if (
+            core3_database.DB_NAME != "saman_test_core3_isolated"
+            or mongo_host not in {"localhost", "127.0.0.1", "::1"}
+            or core3_database.db is None
+        ):
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail="Core 3 is restricted to the isolated loopback test database",
+            )
 
     query_or: List[Dict[str, Any]] = [{"user_email": email}]
     if user_id:
@@ -2021,6 +3112,140 @@ async def chat_with_ai(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Conversation not found",
             )
+
+    if request.contract_version == "core3-local-v1":
+        if not request.operation_id:
+            raise HTTPException(status_code=422, detail="operation_id is required")
+        try:
+            from backend.app.database_chat import ensure_chat_operation_indexes
+            from backend.app.services.chat_operation_service import ChatOperationService
+        except ImportError:
+            from app.database_chat import ensure_chat_operation_indexes
+            from app.services.chat_operation_service import ChatOperationService
+        if core3_database is None:
+            raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="Chat storage unavailable")
+        if conversations_col is None:
+            raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="Chat storage unavailable")
+        ensure_chat_operation_indexes(core3_database.db)
+        operation_service = ChatOperationService(
+            db=core3_database.db,
+            conversations=conversations_col,
+            nutrition=nutrition_col,
+            workouts=workout_history_col,
+            users=users_col,
+        )
+        return await operation_service.handle(
+            principal=current_user,
+            operation_id=request.operation_id,
+            contract_version=request.contract_version,
+            message=trimmed_message,
+            conversation_id=request.conversation_id,
+            history=request.history,
+        )
+
+    if _detect_workout_recommendation_intent(trimmed_message):
+        requested_muscles, equipment, constraint_status = (
+            _parse_workout_recommendation_constraints(trimmed_message)
+        )
+        (
+            unsupported_constraint,
+            injury_requested,
+            unsupported_personalization,
+        ) = constraint_status
+        if injury_requested or unsupported_constraint:
+            recommendation_result = {}
+        else:
+            recommendation_context = _read_recommendation_context(current_user)
+            recommendation_result = (
+                workout_recommendation_service.recommend_workouts(
+                    recommendation_context,
+                    exercise_catalog_resolver,
+                    requested_muscle_groups=requested_muscles,
+                    available_equipment=equipment,
+                )
+            )
+        reply = _format_workout_recommendation_reply(
+            recommendation_result,
+            requested_muscles,
+            equipment,
+            unsupported_constraint,
+            injury_requested,
+            unsupported_personalization,
+        )
+        action_data = None
+        actions_list = None
+        if (
+            isinstance(recommendation_result, dict)
+            and recommendation_result.get("recommendations")
+            and not injury_requested
+            and not unsupported_constraint
+        ):
+            recommended_exercise_ids = []
+            for rec in recommendation_result.get("recommendations", [])[:5]:
+                if isinstance(rec, dict) and isinstance(rec.get("canonical_id"), str):
+                    cid = rec["canonical_id"]
+                    if cid not in recommended_exercise_ids:
+                        recommended_exercise_ids.append(cid)
+            if recommended_exercise_ids:
+                preview_action = {
+                    "id": str(ObjectId()),
+                    "type": "preview_workout",
+                    "label": "Xem trước buổi tập",
+                    "status": "pending",
+                    "payload": {
+                        "exercise_ids": recommended_exercise_ids,
+                    },
+                    "exercise_ids": recommended_exercise_ids,
+                }
+                save_action = {
+                    "id": str(ObjectId()),
+                    "type": "save_plan",
+                    "label": "Lưu thành Giáo án",
+                    "status": "pending",
+                    "payload": {
+                        "exercise_ids": recommended_exercise_ids,
+                    },
+                    "exercise_ids": recommended_exercise_ids,
+                }
+                actions_list = [preview_action, save_action]
+
+                detected_constraints = {}
+                if equipment:
+                    detected_constraints["equipment"] = equipment[0] if len(equipment) == 1 else equipment
+                if requested_muscles:
+                    detected_constraints["target_muscles"] = requested_muscles
+
+                if detected_constraints:
+                    pref_action = {
+                        "id": str(ObjectId()),
+                        "type": "save_preference",
+                        "label": "Lưu điều kiện này làm mặc định",
+                        "status": "pending",
+                        "payload": {
+                            "preferences": detected_constraints,
+                        },
+                    }
+                    actions_list.append(pref_action)
+
+                action_data = {
+                    **preview_action,
+                    "actions": actions_list,
+                }
+
+        conv_id_str = _persist_chat_reply(
+            trimmed_message,
+            reply,
+            email,
+            user_id,
+            conv,
+            query_or,
+        )
+        return {
+            "reply": reply,
+            "status": "success",
+            "conversation_id": conv_id_str,
+            "action": action_data,
+        }
 
     # Checkpoint 4a / 6: Check for clear water log intent, meal log intent, or adjust workout intent
     is_water_intent = _detect_log_water_intent(trimmed_message)
@@ -2174,6 +3399,8 @@ async def chat_with_ai(
             "action": action_data,
         }
 
+    query_type, target_date_iso, error_reason = parse_date_query(trimmed_message)
+
     # Checkpoint 2: Build server-authoritative read-only health context.
     # Note: request.context and request.history are ignored for prompt construction.
     health_context = build_health_context(
@@ -2182,6 +3409,7 @@ async def chat_with_ai(
         workout_col_ref=workout_history_col,
         users_col_ref=users_col,
         water_col_ref=water_col,
+        include_workout_context=query_type == "NONE",
     )
 
     # Checkpoint 4: Multi-turn prompt construction from server-stored turns (max 10 turns)
@@ -2221,7 +3449,6 @@ async def chat_with_ai(
     # Workout Grounding Retrieval
     workout_context_str = ""
     retrieval_meta = None
-    query_type, target_date_iso, error_reason = parse_date_query(trimmed_message)
     if query_type != "NONE":
         try:
             workout_context_str, retrieval_meta = build_workout_grounding_context(
@@ -2254,72 +3481,14 @@ async def chat_with_ai(
         reply = await _generate_ai_reply(full_prompt)
 
     # Checkpoint 3: Persist messages to DB after AI succeeds
-    if conversations_col is None:
-        logger.error("Conversations collection is not available")
-        raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="Chat storage unavailable",
-        )
-
-    now_iso = datetime.now(timezone.utc).isoformat()
-    user_msg_doc = {"role": "user", "content": trimmed_message, "created_at": now_iso}
-    ai_msg_doc = {"role": "assistant", "content": reply, "created_at": now_iso}
-
-    conv_id_str = ""
-    if conv:
-        # Giữ owner trong điều kiện update và kiểm tra kết quả ghi
-        update_query = {
-            "_id": conv["_id"],
-            "$or": query_or,
-        }
-        try:
-            update_res = conversations_col.update_one(
-                update_query,
-                {
-                    "$push": {"messages": {"$each": [user_msg_doc, ai_msg_doc]}},
-                    "$set": {"updated_at": now_iso},
-                },
-            )
-            matched_count = getattr(update_res, "matched_count", None)
-            if matched_count is not None and matched_count == 0:
-                logger.warning("Conversation update matched 0 documents")
-                raise HTTPException(
-                    status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-                    detail="Chat storage unavailable",
-                )
-            conv_id_str = str(conv["_id"])
-        except HTTPException:
-            raise
-        except Exception as e:
-            logger.error("Failed to append message to conversation: %s", type(e).__name__)
-            raise HTTPException(
-                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-                detail="Chat storage unavailable",
-            )
-    else:
-        title = trimmed_message[:40] + ("..." if len(trimmed_message) > 40 else "")
-        new_conv_doc = {
-            "user_email": email,
-            "user_id": user_id,
-            "title": title,
-            "messages": [user_msg_doc, ai_msg_doc],
-            "created_at": now_iso,
-            "updated_at": now_iso,
-        }
-        try:
-            res = conversations_col.insert_one(new_conv_doc)
-            inserted_id = getattr(res, "inserted_id", None)
-            if not res or not inserted_id:
-                raise RuntimeError("Failed to obtain inserted_id")
-            conv_id_str = str(inserted_id)
-        except HTTPException:
-            raise
-        except Exception as e:
-            logger.error("Failed to insert new conversation: %s", type(e).__name__)
-            raise HTTPException(
-                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-                detail="Chat storage unavailable",
-            )
+    conv_id_str = _persist_chat_reply(
+        trimmed_message,
+        reply,
+        email,
+        user_id,
+        conv,
+        query_or,
+    )
 
     status_str = "success" if not (isinstance(reply, str) and reply.startswith("Lỗi:")) else "error"
     response_data: Dict[str, Any] = {

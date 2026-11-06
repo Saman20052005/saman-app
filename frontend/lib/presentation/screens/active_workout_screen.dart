@@ -15,6 +15,8 @@ import '../providers/exercise_providers.dart';
 import '../widgets/exercise_thumbnail.dart';
 import 'workout_review_screen.dart';
 import 'workout_complete_screen.dart';
+import '../../features/journey/presentation/providers/journey_providers.dart';
+import '../../features/journey/domain/models/journey_models.dart';
 
 /// Active Workout Screen matching Stitch 04 Calm Athleticism specification
 class ActiveWorkoutScreen extends ConsumerStatefulWidget {
@@ -74,6 +76,11 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
   void _initSessionIfNeeded() {
     if (!mounted) return;
     final notifier = ref.read(activeWorkoutSessionProvider.notifier);
+    final session = ref.read(activeWorkoutSessionProvider);
+    if (session.isFinished) {
+      notifier.startScheduledSession();
+      return;
+    }
     if (widget.exercises != null) {
       notifier.startSession(widget.exercises!, title: widget.title);
     } else if (widget.workoutPlan != null) {
@@ -731,7 +738,7 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
         // Add set button
         InkWell(
           key: const ValueKey('active_workout_add_set_button'),
-          onTap: () => notifier.addSet(),
+          onTap: notifier.isSavePendingConfirmation ? null : () => notifier.addSet(),
           borderRadius: BorderRadius.circular(SamanWorkoutTokens.radiusMd),
           child: Container(
             width: double.infinity,
@@ -1295,7 +1302,7 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
             child: ElevatedButton.icon(
               key: const ValueKey('active_workout_log_set_button'),
               onPressed: currentEx.activeSet != null
-                  ? (currentEx.canLogSet ? notifier.logActiveSet : null)
+                  ? ((currentEx.canLogSet && !notifier.isSavePendingConfirmation) ? notifier.logActiveSet : null)
                   : session.nextExercise != null
                       ? notifier.nextExercise
                       : () => _showReviewScreen(context),
@@ -1417,6 +1424,11 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
     );
     if (!context.mounted) return;
     if (savedSessionId != null) {
+      await ref.read(journeyControllerProvider.notifier).onActivityCompleted(
+        type: JourneyTaskType.workout,
+        activityId: savedSessionId,
+      );
+      if (!context.mounted) return;
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(
           builder: (_) => WorkoutCompleteScreen(sessionId: savedSessionId),

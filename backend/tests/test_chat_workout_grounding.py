@@ -68,6 +68,7 @@ class MemoryWorkoutCollection:
 class MemoryExercisesCollection:
     def __init__(self):
         self.documents: List[dict] = []
+        self.queries: List[dict] = []
 
     def insert_one(self, doc: dict):
         stored = copy.deepcopy(doc)
@@ -77,6 +78,7 @@ class MemoryExercisesCollection:
         return stored
 
     def find_one(self, query: dict) -> Optional[dict]:
+        self.queries.append(copy.deepcopy(query))
         for doc in self.documents:
             match = True
             for k, v in query.items():
@@ -192,8 +194,8 @@ class TestChatWorkoutGrounding(unittest.TestCase):
             self.assertIn("Lưng và Bắp Tay", prompt)
             self.assertIn("45 phút", prompt)
             self.assertIn("350 kg", prompt)
-            # Pull-up tra catalog chuẩn repo
-            self.assertIn("Kéo xà (Pull-up)", prompt)
+            # Pull-up resolves from the generated catalog
+            self.assertIn("Hít xà (Pull-Up)", prompt)
             self.assertIn("10 reps", prompt)
             self.assertIn("mức tạ 0.0 kg", prompt)
             # Không rò rỉ email/user_id nhạy cảm vào prompt
@@ -240,7 +242,7 @@ class TestChatWorkoutGrounding(unittest.TestCase):
             self.assertEqual(len(self.captured_prompts), 1)
             prompt = self.captured_prompts[0]
             self.assertIn("Buổi Tập Hôm Nay", prompt)
-            self.assertIn("Kéo xà (Pull-up)", prompt)
+            self.assertIn("Hít xà (Pull-Up)", prompt)
 
     # 3. Test buổi tập gần nhất (sort timestamp giảm dần)
     def test_recent_workout_query(self):
@@ -465,18 +467,18 @@ class TestChatWorkoutGrounding(unittest.TestCase):
             prompt = self.captured_prompts[0]
             # Giữ nguyên slug và ghi rõ chưa xác định
             self.assertIn("custom-unknown-movement-123 (tên chưa xác định)", prompt)
-            self.assertIn("chưa xác định trong catalog chuẩn", prompt)
+            self.assertIn("chưa xác định trong generated catalog", prompt)
             # Tuyệt đối không tự titlecase
             self.assertNotIn("Custom Unknown Movement 123", prompt)
 
-    # 9. Test tra catalog DB ưu tiên (exercises_collection)
-    def test_db_catalog_exercise_resolution(self):
+    # 9. Exact history identity uses the generated catalog, not Mongo
+    def test_generated_catalog_exercise_resolution_without_database_fallback(self):
         self.active_user = self.user_a
 
         self.memory_exercises_col.insert_one({
             "slug": "seated-cable-row",
-            "name": "Seated Cable Row",
-            "nameVi": "Kéo cáp ngồi",
+            "name": "Unverified Database Name",
+            "nameVi": "Tên không xác minh từ DB",
         })
 
         self.memory_workout_col.insert_one({
@@ -489,6 +491,7 @@ class TestChatWorkoutGrounding(unittest.TestCase):
             "total_volume_kg": 100,
             "exercise_logs": [
                 {
+                    "exercise_id": "seated-cable-row",
                     "exercise_slug": "seated-cable-row",
                     "set_number": 1,
                     "reps_completed": 12,
@@ -504,7 +507,12 @@ class TestChatWorkoutGrounding(unittest.TestCase):
 
             prompt = self.captured_prompts[0]
             self.assertIn("Kéo cáp ngồi (Seated Cable Row)", prompt)
-            self.assertIn("catalog DB (exercises_collection)", prompt)
+            self.assertIn(
+                "generated catalog (canonical_id+exact_slug)", prompt
+            )
+            self.assertNotIn("Unverified Database Name", prompt)
+            self.assertNotIn("Tên không xác minh từ DB", prompt)
+            self.assertEqual(self.memory_exercises_col.queries, [])
 
     # 10. Test DB error không bị biến thành "không có dữ liệu"
     def test_db_error_not_reported_as_empty(self):

@@ -20,6 +20,11 @@ import '../data/models/exercise.dart';
 import 'home/tokens/saman_home_tokens.dart';
 import 'home/widgets/widgets.dart';
 
+// Journey Feature
+import 'package:shared_preferences/shared_preferences.dart';
+import '../features/journey/presentation/widgets/saman_journey_card.dart';
+import '../features/journey/presentation/screens/create_journey_screen.dart';
+
 // Destination Screens
 import 'chat_screen.dart';
 import 'food_log_screen.dart';
@@ -52,6 +57,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       ref.read(nutritionProvider.notifier).loadDailyPlan(DateTime.now());
+      _checkPostOnboardingJourneyInvitation();
     });
   }
 
@@ -68,6 +74,31 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       };
       _isLoading = false;
     });
+  }
+
+  Future<void> _checkPostOnboardingJourneyInvitation() async {
+    if (!mounted) return;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final userId = ref.read(profileProvider).userId;
+      if (userId == null || userId.isEmpty) return;
+
+      final isNew = prefs.getBool('just_finished_onboarding_$userId') ?? false;
+      final dismissed = prefs.getBool('has_dismissed_journey_prompt_$userId') ?? false;
+      if (isNew && !dismissed) {
+        await prefs.setBool('just_finished_onboarding_$userId', false);
+        await prefs.setBool('has_dismissed_journey_prompt_$userId', true);
+        if (!mounted) return;
+        showModalBottomSheet(
+          context: context,
+          isScrollControlled: true,
+          backgroundColor: Colors.transparent,
+          builder: (_) => CreateJourneyScreen(
+            onDismiss: () => Navigator.of(context).pop(),
+          ),
+        );
+      }
+    } catch (_) {}
   }
 
   Future<void> _onRefresh() async {
@@ -517,6 +548,17 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                       onLogMealTap: _handleLogMeal,
                       onAddWaterTap: _handleAddWater,
                     ).animate().fadeIn(delay: 140.ms, duration: 400.ms),
+                  ),
+                  const SliverToBoxAdapter(
+                    child: SizedBox(height: SamanHomeTokens.spacingSection),
+                  ),
+
+                  // 5B. Saman Journey & Gamification Module
+                  SliverToBoxAdapter(
+                    child: SamanJourneyCard(
+                      onCreateJourneyTap: () => Navigator.pushNamed(context, AppRoutes.createJourney),
+                      onViewJourneyTap: () => Navigator.pushNamed(context, AppRoutes.myJourney),
+                    ).animate().fadeIn(delay: 160.ms, duration: 400.ms),
                   ),
                   const SliverToBoxAdapter(
                     child: SizedBox(height: SamanHomeTokens.spacingSection),

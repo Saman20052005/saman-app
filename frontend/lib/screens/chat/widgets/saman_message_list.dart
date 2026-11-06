@@ -97,9 +97,14 @@ class SamanMessageList extends StatelessWidget {
                 return SamanUserMessage(message: msg);
               }
               final isLatestAssistant = msgIndex == messages.length - 1;
-              return SamanAssistantResponse(
+              final responseWidget = SamanAssistantResponse(
                 message: msg,
                 actions: isLatestAssistant ? latestAssistantActions : null,
+              );
+              return _FadeInMessage(
+                key: ValueKey('assistant_msg_$msgIndex'),
+                animate: isLatestAssistant,
+                child: responseWidget,
               );
             }
 
@@ -124,5 +129,57 @@ class SamanMessageList extends StatelessWidget {
         ),
       ),
     );
+  }
+}
+
+
+class _FadeInMessage extends StatefulWidget {
+  final Widget child;
+  final bool animate;
+
+  const _FadeInMessage({
+    super.key,
+    required this.child,
+    this.animate = true,
+  });
+
+  @override
+  State<_FadeInMessage> createState() => _FadeInMessageState();
+}
+
+class _FadeInMessageState extends State<_FadeInMessage>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+  late final Animation<double> _animation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 160),
+    );
+    _animation = CurvedAnimation(parent: _controller, curve: Curves.easeOut);
+    if (widget.animate) {
+      _controller.forward();
+    } else {
+      _controller.value = 1.0;
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final disableAnimations =
+        MediaQuery.maybeOf(context)?.disableAnimations ?? false;
+    if (disableAnimations || !widget.animate) {
+      return widget.child;
+    }
+    return FadeTransition(opacity: _animation, child: widget.child);
   }
 }

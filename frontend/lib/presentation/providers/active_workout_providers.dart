@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import '../../data/models/exercise.dart';
@@ -24,13 +26,34 @@ class ActiveWorkoutSessionNotifier
   ActiveWorkoutSessionNotifier([ActiveWorkoutSessionState? initial])
       : super(initial ?? createDefaultUpperBodySession());
 
-  static int _nextSessionId = 0;
-  String sessionId = 'demo-session-${++_nextSessionId}';
+  static final Random _idRandom = Random.secure();
+
+  /// 128-bit random client identity (`ws-<32 hex>`), unique across reloads.
+  static String _newSessionId() {
+    final buffer = StringBuffer('ws-');
+    for (var i = 0; i < 16; i++) {
+      buffer.write(_idRandom.nextInt(256).toRadixString(16).padLeft(2, '0'));
+    }
+    return buffer.toString();
+  }
+
+  String sessionId = _newSessionId();
   DateTime startedAt = DateTime.now();
 
+  /// Payload of the last unconfirmed Save, reused verbatim by Retry.
+  WorkoutSession? pendingSaveSnapshot;
+
+  /// Returns true when a Save request has started and is awaiting confirmation.
+  bool get isSavePendingConfirmation => pendingSaveSnapshot != null;
+
+  void clearPendingSave() {
+    pendingSaveSnapshot = null;
+  }
+
   void _beginSession(ActiveWorkoutSessionState session) {
-    sessionId = 'demo-session-${++_nextSessionId}';
+    sessionId = _newSessionId();
     startedAt = DateTime.now();
+    pendingSaveSnapshot = null;
     state = session;
   }
 
@@ -75,6 +98,7 @@ class ActiveWorkoutSessionNotifier
   }
 
   void setDraftWeight(double weight) {
+    if (isSavePendingConfirmation) return;
     final current = state.currentExercise;
     if (current == null) return;
     _updateCurrentExercise(current.copyWith(
@@ -82,12 +106,14 @@ class ActiveWorkoutSessionNotifier
   }
 
   void setDraftReps(int reps) {
+    if (isSavePendingConfirmation) return;
     final current = state.currentExercise;
     if (current == null) return;
     _updateCurrentExercise(current.copyWith(draftReps: reps.clamp(1, 999)));
   }
 
   void setDraftSeconds(int? seconds) {
+    if (isSavePendingConfirmation) return;
     final current = state.currentExercise;
     if (current == null || current.unit != SetUnit.seconds) return;
     final valid = seconds != null && seconds >= 1 && seconds <= 999;
@@ -98,6 +124,7 @@ class ActiveWorkoutSessionNotifier
   }
 
   void adjustDraftWeight(double delta) {
+    if (isSavePendingConfirmation) return;
     final current = state.currentExercise;
     if (current == null) return;
     final newWeight = current.unit == SetUnit.seconds
@@ -106,6 +133,7 @@ class ActiveWorkoutSessionNotifier
   }
 
   void adjustDraftReps(int delta) {
+    if (isSavePendingConfirmation) return;
     final current = state.currentExercise;
     if (current == null) return;
     final newReps = (current.draftReps + delta).clamp(1, 999);
@@ -114,6 +142,7 @@ class ActiveWorkoutSessionNotifier
 
   /// Single action contract: Log Set is the ONLY action that records the set
   void logActiveSet() {
+    if (isSavePendingConfirmation) return;
     final current = state.currentExercise;
     if (current == null || !current.canLogSet) return;
     final sets = [...current.sets];
@@ -177,6 +206,7 @@ class ActiveWorkoutSessionNotifier
   }
 
   void addSet() {
+    if (isSavePendingConfirmation) return;
     final current = state.currentExercise;
     if (current == null) return;
     final sets = [...current.sets];

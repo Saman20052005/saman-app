@@ -115,6 +115,7 @@ class MembershipPlan {
   final int yearlyEquivalentMonthlyPrice;
   final bool isRecommended;
   final bool isCurrent;
+  final bool purchasable;
   final IconData icon;
   final List<PlannedBenefit> plannedBenefits;
   final String aiAllowanceText;
@@ -135,6 +136,7 @@ class MembershipPlan {
     required this.yearlyEquivalentMonthlyPrice,
     this.isRecommended = false,
     this.isCurrent = false,
+    this.purchasable = false,
     required this.icon,
     required this.plannedBenefits,
     required this.aiAllowanceText,
@@ -145,6 +147,54 @@ class MembershipPlan {
     required this.inheritedGroups,
     required this.availabilityNotice,
   });
+
+  MembershipPlan copyWith({
+    MembershipTier? tier,
+    String? name,
+    String? subtitle,
+    String? heroDescription,
+    int? monthlyPrice,
+    int? yearlyPrice,
+    int? yearlyEquivalentMonthlyPrice,
+    bool? isRecommended,
+    bool? isCurrent,
+    bool? purchasable,
+    IconData? icon,
+    List<PlannedBenefit>? plannedBenefits,
+    String? aiAllowanceText,
+    String? workoutCvAllowanceText,
+    String? allowanceSubtext,
+    String? inheritedSectionTitle,
+    String? inheritedSectionSubtitle,
+    List<InheritedBenefitGroup>? inheritedGroups,
+    String? availabilityNotice,
+  }) {
+    return MembershipPlan(
+      tier: tier ?? this.tier,
+      name: name ?? this.name,
+      subtitle: subtitle ?? this.subtitle,
+      heroDescription: heroDescription ?? this.heroDescription,
+      monthlyPrice: monthlyPrice ?? this.monthlyPrice,
+      yearlyPrice: yearlyPrice ?? this.yearlyPrice,
+      yearlyEquivalentMonthlyPrice:
+          yearlyEquivalentMonthlyPrice ?? this.yearlyEquivalentMonthlyPrice,
+      isRecommended: isRecommended ?? this.isRecommended,
+      isCurrent: isCurrent ?? this.isCurrent,
+      purchasable: purchasable ?? this.purchasable,
+      icon: icon ?? this.icon,
+      plannedBenefits: plannedBenefits ?? this.plannedBenefits,
+      aiAllowanceText: aiAllowanceText ?? this.aiAllowanceText,
+      workoutCvAllowanceText:
+          workoutCvAllowanceText ?? this.workoutCvAllowanceText,
+      allowanceSubtext: allowanceSubtext ?? this.allowanceSubtext,
+      inheritedSectionTitle:
+          inheritedSectionTitle ?? this.inheritedSectionTitle,
+      inheritedSectionSubtitle:
+          inheritedSectionSubtitle ?? this.inheritedSectionSubtitle,
+      inheritedGroups: inheritedGroups ?? this.inheritedGroups,
+      availabilityNotice: availabilityNotice ?? this.availabilityNotice,
+    );
+  }
 
   int priceFor(BillingPeriod period) =>
       period.isMonthly ? monthlyPrice : yearlyPrice;

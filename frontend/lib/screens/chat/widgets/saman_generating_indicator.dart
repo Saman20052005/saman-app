@@ -19,7 +19,7 @@ class SamanGeneratingIndicator extends StatefulWidget {
 
   const SamanGeneratingIndicator({
     super.key,
-    this.supportingText = 'Reviewing your recent training...',
+    this.supportingText = 'Saman đang trả lời...',
   });
 
   @override
@@ -52,7 +52,7 @@ class _SamanGeneratingIndicatorState extends State<SamanGeneratingIndicator>
         MediaQuery.maybeOf(context)?.disableAnimations ?? false;
 
     return Semantics(
-      label: 'Saman is generating a response: ${widget.supportingText}',
+      label: widget.supportingText,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,

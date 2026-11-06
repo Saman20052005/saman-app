@@ -1,4 +1,4 @@
-"""Isolated unit/contract tests for stable user_id in GET /api/user/profile.
+"""Isolated unit/contract tests for stable user_id in GET/UPDATE /api/user/profile.
 
 Isolates external infrastructure (database, network, .env) BEFORE importing backend modules.
 Tests verify:
@@ -6,8 +6,14 @@ Tests verify:
 - User without profile/health_stats (None semantics preserved).
 - A/B owner isolation (no state leakage between distinct users).
 - Auth failure contract (401 response, no user_id or success payload).
+- String ID document handled consistently.
+- Update Profile response contract includes canonical user_id and preserves fields.
+- Client cannot override ownership identity in update payload.
+- PUT /update-profile compatibility returns canonical user_id.
+- Unauthenticated update profile returns 401.
 """
 
+from collections import namedtuple
 from contextlib import ExitStack
 import copy
 import os
@@ -24,6 +30,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.testclient import TestClient
 
 _BACKEND_DIR = Path(__file__).resolve().parents[1]
+_UpdateResult = namedtuple("_UpdateResult", ["matched_count"])
 
 
 def _enter_isolation_context(stack: ExitStack):
@@ -113,6 +120,22 @@ class _MemoryUsersCollection:
         self.documents.append(stored)
         return stored["_id"]
 
+    def update_one(self, query, update):
+        for doc in self.documents:
+            if all(doc.get(k) == v for k, v in query.items() if not k.startswith("$")):
+                if "$set" in update:
+                    for sk, sv in update["$set"].items():
+                        if "." in sk:
+                            parts = sk.split(".")
+                            cur = doc
+                            for p in parts[:-1]:
+                                cur = cur.setdefault(p, {})
+                            cur[parts[-1]] = sv
+                        else:
+                            doc[sk] = sv
+                return _UpdateResult(matched_count=1)
+        return _UpdateResult(matched_count=1)
+
 
 class _MockDB(dict):
     def __getitem__(self, item):
@@ -169,7 +192,7 @@ class UserProfileIdentityContractTests(unittest.TestCase):
     def test_response_contract_includes_stable_user_id(self):
         """Contract test: GET /api/user/profile returns stable user_id string matching _id.
 
-        Preserves existing fields (email, full_name, avatar, profile, health_stats).
+        Preserves existing fields (email, full_name, avatar, avatar_source, can_use_google_avatar, profile, health_stats).
         Does NOT expose raw _id or password.
         """
         user_id = ObjectId("650000000000000000000001")
@@ -184,7 +207,7 @@ class UserProfileIdentityContractTests(unittest.TestCase):
                 "height": 175,
                 "weight": 70,
                 "activity_level": "moderate",
-                "goal": "maintain",
+                "goal": "maintain_weight",
             },
             "health_stats": {
                 "bmi": 22.86,
@@ -209,6 +232,8 @@ class UserProfileIdentityContractTests(unittest.TestCase):
         self.assertEqual(data["email"], "user1@example.com")
         self.assertEqual(data["full_name"], "Nguyen Van A")
         self.assertEqual(data["avatar"], "https://example.com/avatar.png")
+        self.assertIn(data["avatar_source"], ("custom", "google", "none"))
+        self.assertIsInstance(data["can_use_google_avatar"], bool)
         self.assertEqual(data["profile"], mock_user["profile"])
         self.assertEqual(data["health_stats"], mock_user["health_stats"])
 
@@ -222,6 +247,8 @@ class UserProfileIdentityContractTests(unittest.TestCase):
             "email",
             "full_name",
             "avatar",
+            "avatar_source",
+            "can_use_google_avatar",
             "profile",
             "health_stats",
         }
@@ -252,6 +279,8 @@ class UserProfileIdentityContractTests(unittest.TestCase):
         self.assertEqual(data["email"], "newuser@example.com")
         self.assertEqual(data["full_name"], "Tran Thi B")
         self.assertIsNone(data["avatar"])
+        self.assertEqual(data["avatar_source"], "none")
+        self.assertFalse(data["can_use_google_avatar"])
         self.assertIsNone(data["profile"])
         self.assertIsNone(data["health_stats"])
         self.assertNotIn("_id", data)
@@ -336,6 +365,166 @@ class UserProfileIdentityContractTests(unittest.TestCase):
         data = response.json()
         self.assertEqual(data["user_id"], str_id)
         self.assertIsInstance(data["user_id"], str)
+
+    def test_update_profile_contract_returns_canonical_user_id(self):
+        """Contract test: POST /api/user/update-profile returns canonical user_id matching _id.
+
+        Preserves valid fields (profile, health_stats, email, full_name, avatar).
+        Does NOT expose raw _id or password.
+        """
+        user_id = ObjectId("650000000000000000000003")
+        mock_user = {
+            "_id": user_id,
+            "email": "updateuser@example.com",
+            "full_name": "Update User",
+            "avatar": None,
+            "password": "secret_password",
+            "profile": {
+                "age": 28,
+                "gender": "female",
+                "height": 165.0,
+                "weight": 55.0,
+                "activity_level": "moderate",
+                "goal": "maintain_weight",
+            },
+        }
+
+        self.app.dependency_overrides[get_current_user] = lambda: mock_user
+
+        payload = {
+            "weight": 56.5,
+            "height": 165.0,
+            "age": 28,
+            "gender": "female",
+            "activity_level": "moderate",
+            "goal": "maintain_weight",
+        }
+
+        response = self.client.post("/api/user/update-profile", json=payload)
+
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+
+        # Contract assertion: canonical user_id matches stringified _id
+        self.assertIn("user_id", data)
+        self.assertEqual(data["user_id"], str(user_id))
+        self.assertEqual(data["email"], "updateuser@example.com")
+        self.assertEqual(data["full_name"], "Update User")
+        self.assertEqual(data["profile"]["weight"], 56.5)
+        self.assertIn("health_stats", data)
+        self.assertIn("daily_calories", data["health_stats"])
+
+        # Sensitive DB fields not exposed
+        self.assertNotIn("_id", data)
+        self.assertNotIn("password", data)
+
+        # Exact expected top-level keys
+        expected_keys = {
+            "user_id",
+            "email",
+            "full_name",
+            "avatar",
+            "avatar_source",
+            "can_use_google_avatar",
+            "profile",
+            "health_stats",
+        }
+        self.assertEqual(set(data.keys()), expected_keys)
+
+    def test_client_cannot_override_identity_in_update_payload(self):
+        """Security test: Client providing spoofed user_id in payload cannot alter canonical identity.
+
+        Server MUST return authenticated user_id derived exclusively from session principal.
+        """
+        user_id = ObjectId("650000000000000000000004")
+        mock_user = {
+            "_id": user_id,
+            "email": "victim@example.com",
+            "full_name": "Victim User",
+            "avatar": None,
+            "profile": {
+                "age": 30,
+                "gender": "male",
+                "height": 180.0,
+                "weight": 80.0,
+                "activity_level": "active",
+                "goal": "gain_muscle",
+            },
+        }
+
+        self.app.dependency_overrides[get_current_user] = lambda: mock_user
+
+        spoofed_payload = {
+            "user_id": "malicious-attacker-spoofed-id",
+            "userId": "another-fake-id",
+            "weight": 81.0,
+            "height": 180.0,
+            "age": 30,
+            "gender": "male",
+            "activity_level": "active",
+            "goal": "gain_muscle",
+        }
+
+        response = self.client.post("/api/user/update-profile", json=spoofed_payload)
+
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+
+        # The canonical user_id MUST be the authenticated user's ID, NOT the spoofed one
+        self.assertEqual(data["user_id"], str(user_id))
+        self.assertNotEqual(data["user_id"], "malicious-attacker-spoofed-id")
+        self.assertNotEqual(data["user_id"], "another-fake-id")
+
+    def test_put_update_profile_returns_canonical_user_id(self):
+        """Compatibility test: PUT /api/user/update-profile also returns canonical user_id."""
+        user_id = ObjectId("650000000000000000000005")
+        mock_user = {
+            "_id": user_id,
+            "email": "putuser@example.com",
+            "full_name": "PUT User",
+            "avatar": None,
+            "profile": {
+                "age": 22,
+                "gender": "male",
+                "height": 170.0,
+                "weight": 65.0,
+                "activity_level": "light",
+                "goal": "maintain_weight",
+            },
+        }
+
+        self.app.dependency_overrides[get_current_user] = lambda: mock_user
+
+        payload = {
+            "weight": 66.0,
+            "height": 170.0,
+            "age": 22,
+            "gender": "male",
+            "activity_level": "light",
+            "goal": "maintain_weight",
+        }
+
+        response = self.client.put("/api/user/update-profile", json=payload)
+
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertEqual(data["user_id"], str(user_id))
+        self.assertEqual(data["profile"]["weight"], 66.0)
+
+    def test_unauthenticated_update_profile_returns_401(self):
+        """Auth contract test: Unauthenticated POST /api/user/update-profile returns 401 without user_id."""
+
+        def auth_failure():
+            raise HTTPException(status_code=401, detail="Session expired")
+
+        self.app.dependency_overrides[get_current_user] = auth_failure
+
+        response = self.client.post("/api/user/update-profile", json={"weight": 70.0})
+
+        self.assertEqual(response.status_code, 401)
+        data = response.json()
+        self.assertEqual(data, {"detail": "Session expired"})
+        self.assertNotIn("user_id", data)
 
 
 if __name__ == "__main__":

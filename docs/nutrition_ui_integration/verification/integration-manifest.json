@@ -1,0 +1,30 @@
+{
+  "repo": "D:\\SamanDev\\workspace\\saman-main-verified-CP26_20261025_072840",
+  "branch": "agent/nutrition-active-localhost-f02",
+  "production_entrypoint": "frontend/lib/main.dart",
+  "debug_url": "http://localhost:3000",
+  "asset_matches_approved_preview": true,
+  "existing_flow_methods_unchanged": {
+    "_openLogMeal": true,
+    "_openScanFood": true,
+    "_openMealStory": true,
+    "_openReport": true,
+    "_openNutritionUpgradeSheet": true,
+    "_handleAddWater": true,
+    "_reviewAndLogMeal": true,
+    "_loadDataIfProfileReady": true,
+    "_loadData": true
+  },
+  "files": {
+    "frontend/lib/screens/nutrition/nutrition_screen.dart": "11f22550c4c5ab06e713daf895d72ef2d6f5996acd64bc2acb27ced26dc282d5",
+    "frontend/lib/screens/nutrition/widgets/date_selector.dart": "6483dbfea9aad6c1f697f034621df5d6269e19465c17caba40ac8161873d2f93",
+    "frontend/lib/screens/nutrition/widgets/nutrition_summary.dart": "329a13f017b31181a49856754f75339bb34f178703fa445b3c01a5ac0b33ce83",
+    "frontend/lib/screens/nutrition/widgets/nutrition_logged_meal_card.dart": "6f04c2a79401e64cfb1dedb698c0ed9662b3216a0210fadf6d1cd0b8edffeaf7",
+    "frontend/lib/features/nutrition/presentation/widgets/nutrition_home_components.dart": "d6b6339f849e3d70e0fd23c0ca4c140153d58737e6a9ee9cd2b17fb49f79f0fa",
+    "frontend/lib/theme/nutrition_home_theme.dart": "366da964f0513bc598c67011d2485df0900e3c7ce5442969606077baaea649b0",
+    "frontend/assets/images/nutrition/food-hero.png": "0cd93f5acf854c2455a83c9a03beee1737c71fd23885ac9e875596a051b1985e",
+    "frontend/pubspec.yaml": "cceb0a88034944efa3791c621b5066203a7c62875e86f79a1830ec6eaebdd69e",
+    "frontend/test/features/nutrition/nutrition_ui_integration_test.dart": "23152256ade0a650e991a2da8fbcf2ba1b3bf4254756d434c49239a4694da0c3",
+    "frontend/test/features/nutrition/render_nutrition_integration_test.dart": "1419183aabd50ae9210e4b226ff53071d69d378876f612812d8bdaac9ad6fb31"
+  }
+}

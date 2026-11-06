@@ -165,18 +165,77 @@ class NutritionRepositoryImpl implements INutritionRepository {
   }
 
   @override
-  Future<AIAnalysisResult?> analyzeFoodImage(XFile imageFile,
-      {String? mode, NutritionRequestContext? session}) async {
-    final data = await _remoteDataSource.analyzeFoodImage(imageFile,
-        mode: mode, session: session);
+  Future<AIAnalysisResult?> analyzeFoodImage(
+    XFile imageFile, {
+    String? mode,
+    NutritionRequestContext? session,
+    String? idempotencyKey,
+    String? clientRequestId,
+  }) async {
+    final data = await _remoteDataSource.analyzeFoodImage(
+      imageFile,
+      mode: mode,
+      session: session,
+      idempotencyKey: idempotencyKey,
+      clientRequestId: clientRequestId,
+    );
     final nutrition = data['nutrition'];
-    if (data['food_name'] is! String || (data['food_name'] as String).trim().isEmpty ||
+    if (data['food_name'] is! String ||
+        (data['food_name'] as String).trim().isEmpty ||
         nutrition is! Map ||
         !['calories', 'protein', 'carbs', 'fat'].every((key) =>
-            nutrition[key] is num && (nutrition[key] as num).isFinite && nutrition[key] >= 0)) {
-      throw const FormatException('Food analysis returned incomplete nutrition');
+            nutrition[key] is num &&
+            (nutrition[key] as num).isFinite &&
+            nutrition[key] >= 0)) {
+      throw const FormatException(
+          'Food analysis returned incomplete nutrition');
     }
     return AIAnalysisResult.fromJson(data);
+  }
+
+  @override
+  Future<AIAnalysisResult?> lookupAnalysisOperation({
+    required String idempotencyKey,
+    String benefitId = 'ai.nutrition_gemini',
+    NutritionRequestContext? session,
+  }) async {
+    final op = await _remoteDataSource.lookupOperation(
+      idempotencyKey: idempotencyKey,
+      benefitId: benefitId,
+      session: session,
+    );
+    if (op == null) {
+      return null;
+    }
+    final status = op['status']?.toString() ?? '';
+    final cached = op['cached_payload'] ?? op['cached_response'];
+    if (status == 'committed') {
+      if (cached is Map) {
+        final data = Map<String, dynamic>.from(cached);
+        return AIAnalysisResult.fromJson(data);
+      }
+      throw const AnalysisOperationStateException(
+        'committed_missing_payload',
+        'Analysis completed, but cached result is unavailable. Please do not retry immediately.',
+      );
+    }
+    if (status == 'reserved' ||
+        status == 'executing' ||
+        status == 'in_progress' ||
+        status == 'pending') {
+      throw AnalysisOperationStateException(
+        status,
+        'An analysis is already in progress. Please wait a moment.',
+      );
+    }
+    if (status == 'failed_unknown') {
+      throw const AnalysisOperationStateException(
+        'failed_unknown',
+        'Previous analysis outcome is being reconciled. Please wait before retrying.',
+      );
+    }
+    // For 'released' or unknown non-blocking status, allow fresh dispatch
+    return null;
   }
 
   @override
@@ -216,5 +275,12 @@ class NutritionRepositoryImpl implements INutritionRepository {
   @override
   Future<bool> swapLoggedMealSimple(String dateStr, String logId) async {
     return await _remoteDataSource.swapLoggedMealSimple(dateStr, logId);
+  }
+
+  @override
+  Future<Food?> getFoodById(String foodId) async {
+    final data = await _remoteDataSource.getFoodById(foodId);
+    if (data == null) return null;
+    return FoodDto.fromJson(data).toEntity();
   }
 }

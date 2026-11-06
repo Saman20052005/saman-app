@@ -1,4 +1,6 @@
 import 'dart:async';
+import 'dart:convert';
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -7,6 +9,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:health_ai_app/config/app_theme.dart';
 import 'package:health_ai_app/data/models/exercise.dart';
+import 'package:health_ai_app/data/repositories/exercise_repository_impl.dart';
 import 'package:health_ai_app/features/workout/data/repositories/mock_exercise_repository.dart';
 import 'package:health_ai_app/presentation/providers/active_workout_providers.dart';
 import 'package:health_ai_app/presentation/providers/exercise_providers.dart';
@@ -115,6 +118,7 @@ void main() {
   setUpAll(() async {
     GoogleFonts.config.allowRuntimeFetching = false;
     await loadTestFonts();
+    PaintingBinding.instance.imageCache.maximumSizeBytes = 256 << 20;
   });
   testWidgets('Plank Detail -> seconds input -> Log -> Review/back -> Save -> Complete -> History/detail',
       (tester) async {
@@ -377,7 +381,8 @@ void main() {
       await tap(tester, find.byKey(ValueKey('exercise_row_${entry.key}')));
       expect(find.byType(CreatePlanScreen), findsOneWidget);
       expect(find.text(entry.value.$1), findsOneWidget);
-      expect(find.text('3 sets × ${entry.value.$6}${entry.key == "side-plank" ? " s" : ""}'), findsOneWidget);
+      final sets = entry.key == 'barbell-bench-press' ? 4 : 3;
+      expect(find.text('$sets sets × ${entry.value.$6}${entry.key == "side-plank" ? " s" : ""}'), findsOneWidget);
       await tap(tester, find.text('Lưu Plan'));
       final repo = container.read(exerciseRepositoryProvider);
       final plan = (await repo.getMyPlans()).single;
@@ -396,7 +401,7 @@ void main() {
       expect(started.exercises.single.slug, entry.key);
       expect(started.exercises.single.imageUrl,
           'assets/images/exercises/${entry.key}-thumb.jpg');
-      expect(started.exercises.single.sets, hasLength(3));
+      expect(started.exercises.single.sets, hasLength(sets));
       final timed = entry.key == 'side-plank';
       expect(started.exercises.single.unit, timed ? SetUnit.seconds : SetUnit.reps);
       expect(started.exercises.single.draftSeconds, timed ? 40 : null);
@@ -866,6 +871,87 @@ void main() {
     await tester.pumpWidget(const SizedBox());
   });
 
+  testWidgets(
+      'Gateway 503 after commit -> Retry reuses identity; Complete opens the canonical session',
+      (tester) async {
+    const canonicalId = '6ae201e94cbce547f0e0fbab';
+    final posted = <String>[];
+    final reads = <String>[];
+    final stored = <String, Map<String, dynamic>>{};
+    final dio = Dio();
+    dio.interceptors.add(InterceptorsWrapper(onRequest: (options, handler) {
+      if (options.method == 'POST') {
+        posted.add(jsonEncode(options.data));
+        final sent = jsonDecode(posted.last) as Map<String, dynamic>;
+        // Server-side idempotency: one record per client identity.
+        final firstCommit = stored.isEmpty;
+        stored.putIfAbsent(sent['id'] as String, () => {...sent, 'id': canonicalId});
+        if (firstCommit) {
+          return handler.reject(DioException(
+            requestOptions: options,
+            response: Response(requestOptions: options, statusCode: 503),
+            type: DioExceptionType.badResponse,
+          ));
+        }
+        return handler.resolve(Response(
+          requestOptions: options,
+          statusCode: 201,
+          data: {'session_id': canonicalId, 'session': stored[sent['id']]},
+        ));
+      }
+      if (options.path.endsWith('/history')) {
+        return handler.resolve(Response(
+          requestOptions: options,
+          statusCode: 200,
+          data: {'sessions': stored.values.toList()},
+        ));
+      }
+      reads.add(options.path);
+      final match = stored.values.where((s) => options.path.endsWith('/${s['id']}'));
+      if (match.isEmpty) {
+        return handler.reject(DioException(
+          requestOptions: options,
+          response: Response(requestOptions: options, statusCode: 404),
+          type: DioExceptionType.badResponse,
+        ));
+      }
+      return handler.resolve(Response(
+          requestOptions: options, statusCode: 200, data: {'session': match.first}));
+    }));
+    final repo = ExerciseRepositoryImpl(dio: dio);
+    final container = await mount(
+        tester, const ActiveWorkoutScreen(autoTick: false), overrides: [
+      exerciseRepositoryProvider.overrideWithValue(repo),
+    ]);
+    final active = container.read(activeWorkoutSessionProvider.notifier);
+    active.setDraftWeight(22);
+    active.setDraftReps(9);
+    await tester.pump();
+    await tap(tester, find.byKey(const ValueKey('active_workout_log_set_button')));
+    await tap(tester, find.byKey(const ValueKey('active_workout_finish_button')));
+    final clientId = active.sessionId;
+
+    await tap(tester, find.byKey(const ValueKey('save_session_button')));
+    expect(find.byKey(const ValueKey('save_error_banner')), findsOneWidget);
+    expect(stored, hasLength(1));
+    expect(active.sessionId, clientId);
+
+    await tap(tester, find.byKey(const ValueKey('save_session_retry_button')));
+    await tester.pumpAndSettle();
+    expect(posted, hasLength(2));
+    expect(posted[1], posted[0]);
+    expect((jsonDecode(posted[0]) as Map)['id'], clientId);
+    expect(stored, hasLength(1));
+    expect(find.byType(WorkoutCompleteScreen), findsOneWidget);
+    expect(
+        tester.widget<WorkoutCompleteScreen>(find.byType(WorkoutCompleteScreen)).sessionId,
+        canonicalId);
+    expect(reads, isNotEmpty);
+    expect(reads.every((path) => path.endsWith('/$canonicalId')), isTrue);
+    expect(find.text('View this session in your workout history.'), findsOneWidget);
+    await tester.pumpWidget(const SizedBox());
+  });
+
   testWidgets('Review save failure keeps error and retry preserves session data',
       (tester) async {
     final repo = RetryRepository();
@@ -1224,6 +1310,129 @@ void main() {
     expect(find.byType(WorkoutHistoryScreen), findsOneWidget);
     expect(find.text('Workout History'), findsOneWidget);
     expectNoPersistenceClaims();
+
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets('When save is unconfirmed (503), Keep training and Back are disabled, retry button is active',
+      (tester) async {
+    final dio = Dio();
+    dio.interceptors.add(InterceptorsWrapper(
+      onRequest: (options, handler) {
+        return handler.reject(DioException(
+          requestOptions: options,
+          response: Response(requestOptions: options, statusCode: 503),
+          type: DioExceptionType.badResponse,
+        ));
+      },
+    ));
+    final repo = ExerciseRepositoryImpl(dio: dio);
+    final container = await mount(
+        tester, const ActiveWorkoutScreen(autoTick: false), overrides: [
+      exerciseRepositoryProvider.overrideWithValue(repo),
+    ]);
+    final active = container.read(activeWorkoutSessionProvider.notifier);
+    active.setDraftWeight(22);
+    active.setDraftReps(9);
+    await tester.pump();
+    await tap(tester, find.byKey(const ValueKey('active_workout_log_set_button')));
+    await tap(tester, find.byKey(const ValueKey('active_workout_finish_button')));
+
+    expect(find.byType(WorkoutReviewScreen), findsOneWidget);
+
+    // Initial state: Keep training is active
+    final keepTrainingBefore = tester.widget<TextButton>(find.byKey(const ValueKey('keep_training_button')));
+    expect(keepTrainingBefore.onPressed, isNotNull);
+
+    // Attempt save -> fails with 503
+    await tap(tester, find.byKey(const ValueKey('save_session_button')));
+    expect(find.byKey(const ValueKey('save_error_banner')), findsOneWidget);
+    expect(find.byKey(const ValueKey('save_session_retry_button')), findsOneWidget);
+
+    // Keep training button must now be disabled
+    final keepTrainingAfter = tester.widget<TextButton>(find.byKey(const ValueKey('keep_training_button')));
+    expect(keepTrainingAfter.onPressed, isNull);
+
+    // Back button must also be disabled
+    final backInkWell = tester.widget<InkWell>(find.byKey(const ValueKey('workout_review_back_button')));
+    expect(backInkWell.onTap, isNull);
+
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets('When save returns 409 conflict with different data, conflict banner is shown without retry button',
+      (tester) async {
+    final dio = Dio();
+    late final String clientId;
+    dio.interceptors.add(InterceptorsWrapper(
+      onRequest: (options, handler) {
+        if (options.method == 'POST') {
+          return handler.reject(DioException(
+            requestOptions: options,
+            response: Response(
+              requestOptions: options,
+              statusCode: 409,
+              data: {'detail': 'Workout session identity already saved with different data'},
+            ),
+            type: DioExceptionType.badResponse,
+          ));
+        }
+        if (options.method == 'GET' && options.path.contains(clientId)) {
+          return handler.resolve(Response(
+            requestOptions: options,
+            statusCode: 200,
+            data: {
+              'session': {
+                'id': 'canonical_different_id',
+                'planName': 'Upper Body Strength',
+                'startedAt': '2026-10-12T03:00:00.000Z',
+                'finishedAt': '2026-10-12T03:45:00.000Z',
+                'exerciseLogs': [
+                  {
+                    'exerciseId': 'ex_999',
+                    'exerciseSlug': 'different-slug',
+                    'setNumber': 1,
+                    'repsCompleted': 50,
+                    'unit': 'reps',
+                    'weightKg': 200.0,
+                    'isCompleted': true,
+                  }
+                ],
+                'totalDurationMinutes': 60,
+                'totalVolumeKg': 10000,
+              }
+            },
+          ));
+        }
+        return handler.next(options);
+      },
+    ));
+    final repo = ExerciseRepositoryImpl(dio: dio);
+    final container = await mount(
+        tester, const ActiveWorkoutScreen(autoTick: false), overrides: [
+      exerciseRepositoryProvider.overrideWithValue(repo),
+    ]);
+    final active = container.read(activeWorkoutSessionProvider.notifier);
+    clientId = active.sessionId;
+    active.setDraftWeight(22);
+    active.setDraftReps(9);
+    await tester.pump();
+    await tap(tester, find.byKey(const ValueKey('active_workout_log_set_button')));
+    await tap(tester, find.byKey(const ValueKey('active_workout_finish_button')));
+
+    expect(find.byType(WorkoutReviewScreen), findsOneWidget);
+
+    // Attempt save -> fails with 409
+    await tap(tester, find.byKey(const ValueKey('save_session_button')));
+
+    // Conflict banner must be shown
+    expect(find.byKey(const ValueKey('save_conflict_banner')), findsOneWidget);
+    // Infinite retry button must NOT be present
+    expect(find.byKey(const ValueKey('save_session_retry_button')), findsNothing);
+
+    // Save session button must be disabled to prevent infinite loop
+    final saveButton = tester.widget<FilledButton>(find.byKey(const ValueKey('save_session_button')));
+    expect(saveButton.onPressed, isNull);
 
     await tester.pumpWidget(const SizedBox());
   });

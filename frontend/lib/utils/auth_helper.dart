@@ -9,6 +9,7 @@ import '../presentation/providers/workout_home_providers.dart';
 import '../presentation/providers/workout_history_providers.dart';
 import '../presentation/providers/active_workout_providers.dart';
 import '../presentation/providers/session_detail_providers.dart';
+import '../features/journey/presentation/providers/journey_providers.dart';
 
 enum AuthTokenState {
   confirmedRetained,
@@ -175,6 +176,7 @@ class AuthHelper {
 
       // 4. Invalidate session epoch immediately to discard late in-flight responses
       profileNotifier.resetSession();
+      await _clearPendingAvatarPicker();
       workoutAuthScopeNotifier.state++;
 
       // 5. Clear user-specific cache via synchronized repository queue and prefs
@@ -206,12 +208,15 @@ class AuthHelper {
       container.invalidate(workoutHistoryProvider);
       container.invalidate(activeWorkoutSessionProvider);
       container.invalidate(sessionDetailProvider);
+      container.invalidate(journeyControllerProvider);
+      container.invalidate(walletControllerProvider);
     } on LogoutException catch (e) {
       if (e.tokenState == AuthTokenState.confirmedLost ||
           e.tokenState == AuthTokenState.indeterminate) {
         // Credentials are lost or indeterminate:
         // Invalidate session epoch and scope to discard all pending responses
         profileNotifier.resetSession();
+        await _clearPendingAvatarPicker();
         workoutAuthScopeNotifier.state++;
 
         try {
@@ -237,12 +242,21 @@ class AuthHelper {
         container.invalidate(workoutHistoryProvider);
         container.invalidate(activeWorkoutSessionProvider);
         container.invalidate(sessionDetailProvider);
+      container.invalidate(journeyControllerProvider);
+      container.invalidate(walletControllerProvider);
       }
       rethrow;
     } finally {
       // 7. Guarantee authLoggingOutProvider is released on the stable container.
       container.read(authLoggingOutProvider.notifier).state = false;
     }
+  }
+
+  static Future<void> _clearPendingAvatarPicker() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('pending_avatar_picker_user');
+    await prefs.remove('pending_avatar_picker_timestamp');
+    await prefs.remove('pending_avatar_picker_path');
   }
 
   static Future<void> printAuthStatus() async {

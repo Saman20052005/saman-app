@@ -1,0 +1,108 @@
+{
+  "head": "10be1ab1971214acd2487ef893df3fcc80212fc9",
+  "branch": "agent/nutrition-active-localhost-f02",
+  "source_and_test_identities": {
+    "backend/app/models/community.py": {
+      "sha256": "dbea8216849c6b25516503b6a8f2cec964d730439bf347d23087caa4f2ff5897",
+      "mtime_ns": 1793632312593085200,
+      "before_task_sha256": "62f4f55aa9e77ed851f49e7fca8d9186e75068e6bbe39eb31e78bce2a78ee6b9"
+    },
+    "backend/routers/community.py": {
+      "sha256": "f9ee78d6794f77503e14af0d3bbb32448af65340c9ec721eb16fc6d821c6882d",
+      "mtime_ns": 1793633221623416800,
+      "before_task_sha256": "72192b371207a3405197e91394282691800fc90d1c14042cedd4c9b59f8c6ffb"
+    },
+    "backend/scripts/setup_community_answer_indexes.py": {
+      "sha256": "06de2b4b7694f60eae15cd7f4754aaeda12766c41b85bf5ef84ac2bafa988dbf",
+      "mtime_ns": 1793632312594087700,
+      "before_task_sha256": null
+    },
+    "backend/tests/test_community_answers_mongo.py": {
+      "sha256": "9658be396d7e1888ac12c0f6c4071021a30e68b18f9513e1c1564da9318ced7e",
+      "mtime_ns": 1793633218649264400,
+      "before_task_sha256": null
+    },
+    "frontend/lib/features/community/domain/models/question_answer.dart": {
+      "sha256": "76448e7a13e14671723904f47b22947cd52e74e09c2cc33e2211311cd0e51982",
+      "mtime_ns": 1793632419054786800,
+      "before_task_sha256": "d5e50ab23161ab7cd8037705abcca01ea9210e950adcce362eb4db3804e2b7f9"
+    },
+    "frontend/lib/features/community/domain/models/community_post.dart": {
+      "sha256": "7e9ee28b81908624529192e2006c36178595fe5ed920e9ea45d74782968b2fb2",
+      "mtime_ns": 1793632419055807100,
+      "before_task_sha256": "447bc676dadbff1bced6fb538f73b3bd5459317978273536b6083436cf3a5fb6"
+    },
+    "frontend/lib/features/community/domain/repositories/community_repository.dart": {
+      "sha256": "a847da7e981f142b759a0f48542695b5ba0ec441105fa25372313c2de80907e4",
+      "mtime_ns": 1793632419055807100,
+      "before_task_sha256": "fefddb1c8a9640c8bd040146442fc172dd221fd48d9ce1b4c66f02ac27204b95"
+    },
+    "frontend/lib/features/community/data/datasources/community_remote_datasource.dart": {
+      "sha256": "d4cd69affb9d49f501a5fe9f7b3eb88fb3389a5dea63802cae0f9debc8904f1f",
+      "mtime_ns": 1793632419056789600,
+      "before_task_sha256": "5b532c14071d702830eba2585a75740f171e0eff927a2fc1fb967770c2fead1b"
+    },
+    "frontend/lib/features/community/data/repositories/community_repository_impl.dart": {
+      "sha256": "ac47f17e1dcd66ac0e6d816bb185b28cfb29abf951ed4d7558d0daec409c0ff9",
+      "mtime_ns": 1793632554115845500,
+      "before_task_sha256": "2f1116eb70cba914eb80b95f48b465d59b5b4fa1ce8faa7789b0ead6bf57664c"
+    },
+    "frontend/lib/features/community/presentation/providers/community_providers.dart": {
+      "sha256": "1b751f65b39a87a0a342bcb50d96d39de9485302ed4c227c39592b9d57403f26",
+      "mtime_ns": 1793632593121609800,
+      "before_task_sha256": "b88a48be04e6b367a43c8bd89e035a275a25de464241719f8695fb96bd2734c3"
+    },
+    "frontend/lib/features/community/presentation/screens/qa/community_question_detail_screen.dart": {
+      "sha256": "4c244d5cc22fc6cd007c20a3c5924d62b1a8c1275ed18342c90d4ad393549082",
+      "mtime_ns": 1793632688105569700,
+      "before_task_sha256": "8cb4a587add0036bfb5b86dd02d4ac1d7dedcd2e7a4f05316294d7237b6d8dce"
+    },
+    "frontend/lib/features/community/presentation/widgets/community_answer_composer.dart": {
+      "sha256": "13942d334702883a09c765aa6d3faee76285c44e81bcf198512e4e6a65488ab6",
+      "mtime_ns": 1793632507140336200,
+      "before_task_sha256": null
+    },
+    "frontend/lib/config/app_translations.dart": {
+      "sha256": "37eaf112091b6e73b956943827192a01bbc02cd78617e52a0d89a8ed3f1e7aa0",
+      "mtime_ns": 1793632554113839600,
+      "before_task_sha256": "505c49914da3194588287e9921a7acfd9f5b37e737751e204cde5015a3c65ebd"
+    },
+    "frontend/test/features/community/community_answers_test.dart": {
+      "sha256": "06aedaf4cd5d72ac51fe2729106cfa7b57f3d9b6ef425374f89d74c98af7b585",
+      "mtime_ns": 1793633102436778700,
+      "before_task_sha256": null
+    },
+    "frontend/test/features/community/community_remote_read_test.dart": {
+      "sha256": "2c944594b8b52cb26e240edc5e9a1e40ab8c073689073357169e0e44451baf5e",
+      "mtime_ns": 1793632593136564000,
+      "before_task_sha256": "edf0a502e1aca45c1d8c622bfd5ec78c7cc582b235c9c73b300de50ab9415b49"
+    },
+    "frontend/test/features/community/community_follow_test.dart": {
+      "sha256": "d6410401d1c420b94f9238284bc03e681cabd91693267f9b75902612cc44afa0",
+      "mtime_ns": 1793632419058786500,
+      "before_task_sha256": "29d7164a751d50b8f3bf34b19acb4980f7f6fa84672f48c2a0c0d3ea3dcac750"
+    },
+    "frontend/test/features/community/community_interactions_test.dart": {
+      "sha256": "df3e8903379a63a59e40cc4b465b1dee2916ee2169a5d1f56edfad7b5a157e85",
+      "mtime_ns": 1793632419059790300,
+      "before_task_sha256": "dfc28eab43c0c44e1e238e5cb9eaa950b03bfad86f76a0795c31d45c7f43b260"
+    },
+    "frontend/test/features/community/community_timeout_reconciliation_test.dart": {
+      "sha256": "2a62b61dac19108476ba0e499fd5dc38594e7f6acb9f5d0ade69b053bbef7743",
+      "mtime_ns": 1793632419059790300,
+      "before_task_sha256": "993ab212dc03a800ce1053630c12be15aa5411389a2f3d9c61a7a8ed524b20d2"
+    },
+    "runtime_evidence/jcom0507_answers/run_answers_runtime.py": {
+      "sha256": "ae86923e4680886d2c2510456d11900518fef20c8d6b86f3db0aa8de0a2ff467",
+      "mtime_ns": 1793633224872278200,
+      "before_task_sha256": null
+    }
+  },
+  "frontend_sources_predate_release_artifact": true,
+  "backend_hashes_match_acceptance": true,
+  "executed_harness_unchanged": true,
+  "web_sha256": "4e0efd8278278bfee5943a6fd4299f8d9beaf5f6cd5a04c0e9e31faedd617982",
+  "runtime_result": "PASS",
+  "acceptance_run": "ui_20261102T152759Z_ede4cf",
+  "handoff_process_observation": "No listeners at18097/18096/27046/8096/3000 and none of recorded process IDs at resumed handoff; no cleanup action performed by agent."
+}

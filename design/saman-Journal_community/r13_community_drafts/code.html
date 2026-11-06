@@ -1,0 +1,295 @@
+<!DOCTYPE html><html class="dark" lang="vi"><head><meta charset="utf-8"><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" name="viewport"><meta content="mobile_stack" name="shell-type"><link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&amp;display=swap" rel="stylesheet"><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"><style>@layer base{html,body{width:100vw;margin:0;padding:0;background-color:#121314;}body{overscroll-behavior:none;font-family:'Be Vietnam Pro',sans-serif;}.pb-safe{padding-bottom:env(safe-area-inset-bottom,0px);}.pt-safe{padding-top:env(safe-area-inset-top,0px);}main>:first-child{margin-top:0!important;}main>:last-child{margin-bottom:0!important;}}::-webkit-scrollbar{display:none;}</style><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config = { darkMode: "class", theme: { extend: { colors: { "tertiary-fixed-dim": "#ffb3af", "surface": "#121314", "on-secondary": "#2e3037", "surface-container-lowest": "#0d0e0f", "on-background": "#e3e2e3", "inverse-on-surface": "#303031", "tertiary-fixed": "#ffdad7", "surface-container-highest": "#343536", "on-primary": "#003824", "secondary-container": "#45464e", "error-container": "#93000a", "primary-container": "#10b981", "on-surface": "#e3e2e3", "inverse-primary": "#006c49", "primary-fixed-dim": "#4edea3", "error": "#ffb4ab", "primary": "#4edea3", "on-primary-container": "#00422b", "background": "#121314", "surface-container-low": "#1b1c1d", "on-primary-fixed": "#002113", "on-tertiary-fixed": "#410005", "on-tertiary": "#650911", "on-primary-fixed-variant": "#005236", "on-tertiary-fixed-variant": "#842225", "outline-variant": "#3c4a42", "surface-bright": "#39393a", "surface-dim": "#121314", "surface-container": "#1f2021", "on-error": "#690005", "on-error-container": "#ffdad6", "inverse-surface": "#e3e2e3", "on-surface-variant": "#bbcabf", "primary-fixed": "#6ffbbe", "secondary": "#c5c6cf", "surface-variant": "#343536", "on-tertiary-container": "#711419", "tertiary-container": "fc7c78", "on-secondary-fixed": "#191b22", "on-secondary-container": "#b4b4bd", "surface-container-high": "#292a2b", "surface-tint": "#4edea3", "secondary-fixed-dim": "#c5c6cf", "outline": "#86948a", "on-secondary-fixed-variant": "#45464e", "tertiary": "#ffb3af", "secondary-fixed": "#e1e2eb" }, borderRadius: { "DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px" }, spacing: { "space-xs": "0.25rem", "space-sm": "0.5rem", "margin": "1rem", "gutter": "1rem", "space-xl": "2rem", "space-md": "1rem", "space-lg": "1.5rem" }, fontFamily: { "headline-sm": ["Be Vietnam Pro"], "numeric-stat": ["Be Vietnam Pro"], "label-sm": ["Be Vietnam Pro"], "label-md": ["Be Vietnam Pro"], "body-sm": ["Be Vietnam Pro"], "headline-md": ["Be Vietnam Pro"], "headline-lg": ["Be Vietnam Pro"], "display-hero": ["Be Vietnam Pro"], "body-md": ["Be Vietnam Pro"], "body-lg": ["Be Vietnam Pro"] }, fontSize: { "headline-sm": ["18px", { "lineHeight": "24px", "fontWeight": "600" }], "numeric-stat": ["32px", { "lineHeight": "36px", "fontWeight": "700" }], "label-sm": ["11px", { "lineHeight": "14px", "fontWeight": "600" }], "label-md": ["12px", { "lineHeight": "16px", "fontWeight": "500" }], "body-sm": ["13px", { "lineHeight": "18px", "fontWeight": "400" }], "headline-md": ["22px", { "lineHeight": "28px", "fontWeight": "600" }], "headline-lg": ["28px", { "lineHeight": "34px", "fontWeight": "600" }], "display-hero": ["40px", { "lineHeight": "48px", "fontWeight": "700" }], "body-md": ["14px", { "lineHeight": "20px", "fontWeight": "400" }], "body-lg": ["16px", { "lineHeight": "24px", "fontWeight": "400" }] } } } }</script><style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head><body class="bg-surface font-body-md text-on-surface flex flex-col min-h-screen"><header class="fixed top-0 w-full z-50 bg-surface/80 backdrop-blur-xl shadow-[0_1px_8px_rgba(0,0,0,0.04)] pt-safe"><div class="h-16 px-space-xs flex items-center justify-between"><div class="flex items-center"><button aria-label="Quay lại" class="w-11 h-11 flex items-center justify-center text-on-surface hover:text-primary transition-colors" onclick="history.back()"><span class="material-symbols-outlined text-[24px]">arrow_back</span></button><h1 class="font-headline-sm text-headline-sm text-on-surface ml-space-xs tracking-tight">Bản nháp</h1></div><div class="flex items-center gap-space-sm pr-space-sm"><button aria-label="More actions" class="w-11 h-11 flex items-center justify-center text-on-surface-variant hover:text-on-surface transition-colors"><span class="material-symbols-outlined text-[22px]">more_vert</span></button></div></div></header><main class="flex flex-col relative w-full pt-16 pb-safe bg-surface min-h-screen"><div class="flex flex-col w-full px-margin pb-10">
+<!-- Sub-header Information Pill -->
+<div class="flex items-center gap-space-sm bg-surface-container-low px-space-md py-space-sm rounded-xl mb-space-md mt-space-xs shadow-sm"><span class="material-symbols-outlined text-[18px] text-outline">lock</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant flex-1">Chỉ bạn nhìn thấy các bản nháp này</span></div>
+<!-- Draft List Container -->
+<div class="flex flex-col gap-space-md" id="drafts-container">
+<!-- Draft 1: Meal Prep Album -->
+<div class="relative group bg-surface-container-low hover:bg-surface-container rounded-xl p-space-md shadow-sm transition-all duration-200 cursor-pointer active:scale-[0.99]" id="draft-item-1" onclick="editDraft('1')">
+<div class="flex items-start gap-space-md">
+<!-- Thumbnail -->
+<div class="relative w-16 h-16 rounded-xl overflow-hidden shrink-0 bg-surface-container-high shadow-inner">
+<img class="w-full h-full object-cover" data-alt="Ảnh bản nháp bài viết" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCWluhYirfX6eOg8LmtNTXctG5s6uQsx0QgwFcVAm23NlyQh0qdmugwULqTpszz4xQMOhVvx5mWKZHsvrVA8MYT3snmhJz8-9cjkZhum73_bzfUAWMn9nSqISdNg-qiDY9c7UE3aSGtXtxBGsq2yqw0-5eEb2uIw1HM4mb4F3OwNYZ70nKMKHTjvpLpX-xVPmrqbLq1YvhGeJWa2d7nMyh2Dlb24pa9PevYiazxG7VG">
+<div class="absolute bottom-0 right-0 bg-surface-container-lowest/80 px-1 py-0.5 rounded-tl-lg backdrop-blur-sm flex items-center">
+<span class="material-symbols-outlined text-[12px] text-on-surface">photo_library</span>
+</div>
+</div>
+<!-- Content Info -->
+<div class="flex flex-col flex-1 min-w-0 pr-1">
+<div class="flex items-center gap-space-xs mb-1">
+<span class="font-label-sm text-label-sm text-secondary bg-surface-container-highest px-2 py-0.5 rounded-full tracking-wide">Bài viết • 2 ảnh</span>
+</div>
+<p class="font-body-md text-[15px] text-on-surface line-clamp-2 leading-snug">Hôm nay thử công thức ức gà ướp sốt sữa chua Hy Lạp kèm bí đỏ nướng thơm lừng...</p>
+<div class="flex items-center gap-1.5 mt-2">
+<span class="material-symbols-outlined text-outline text-[13px]">schedule</span>
+<span class="font-label-md text-label-md text-on-surface-variant">Chỉnh sửa 25 phút trước</span>
+</div>
+</div>
+<!-- Action Menu Button -->
+<button aria-label="Tùy chọn bản nháp" class="w-11 h-11 -mr-2 -mt-2 rounded-full flex items-center justify-center text-on-surface-variant hover:text-on-surface active:bg-surface-container-high transition-colors" onclick="toggleActionMenu(event, 'menu-draft-1')">
+<span class="material-symbols-outlined text-[20px]">more_vert</span>
+</button>
+</div>
+<!-- Dropdown Context Menu -->
+<div class="hidden absolute top-12 right-3 z-30 bg-surface-container-high rounded-xl shadow-xl w-48 py-1.5 backdrop-blur-md" id="menu-draft-1">
+<button class="w-full h-11 px-space-md flex items-center gap-space-sm text-left font-body-md text-body-md text-on-surface hover:bg-surface-container active:bg-surface-container transition-colors" onclick="editDraft('1')">
+<span class="material-symbols-outlined text-[18px] text-secondary">edit_note</span>
+<span class="">Chỉnh sửa</span>
+</button>
+<button class="w-full h-11 px-space-md flex items-center gap-space-sm text-left font-body-md text-body-md text-error hover:bg-surface-container active:bg-surface-container transition-colors" onclick="openDeleteModal('1', 'Bài viết ẩm thực ức gà nướng...')">
+<span class="material-symbols-outlined text-[18px] text-error">delete</span>
+<span class="">Xóa</span>
+</button>
+</div>
+</div>
+<!-- Draft 2: Workout PR Attachment -->
+<div class="relative group bg-surface-container-low hover:bg-surface-container rounded-xl p-space-md shadow-sm transition-all duration-200 cursor-pointer active:scale-[0.99]" id="draft-item-2" onclick="editDraft('2')">
+<div class="flex items-start gap-space-md">
+<!-- Dumbbell Icon Thumbnail -->
+<div class="w-16 h-16 rounded-xl shrink-0 bg-surface-container-high flex flex-col items-center justify-center text-secondary shadow-inner">
+<span class="material-symbols-outlined text-[26px]">fitness_center</span>
+</div>
+<!-- Content Info -->
+<div class="flex flex-col flex-1 min-w-0 pr-1">
+<div class="flex items-center gap-space-xs mb-1">
+<span class="font-label-sm text-label-sm bg-surface-container-highest text-secondary px-2 py-0.5 rounded-full tracking-wide">Chia sẻ buổi tập</span>
+</div>
+<p class="font-body-md text-[15px] text-on-surface line-clamp-2 leading-snug">Chinh phục PR Deadlift 140kg sau 6 tuần tích lũy thể lực bền bỉ và điều chỉnh posture...</p>
+<!-- Attachment Chip -->
+<div class="flex items-center gap-1.5 mt-2 bg-surface-container px-2 py-1 rounded-lg w-fit max-w-full">
+<span class="material-symbols-outlined text-[14px] text-outline shrink-0">attachment</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant truncate">Leg Day &amp; Posterior Chain (45 phút)</span>
+</div>
+<div class="flex items-center gap-1.5 mt-2">
+<span class="material-symbols-outlined text-outline text-[13px]">schedule</span>
+<span class="font-label-md text-label-md text-on-surface-variant">Chỉnh sửa hôm qua</span>
+</div>
+</div>
+<!-- Action Menu Button -->
+<button aria-label="Tùy chọn bản nháp" class="w-11 h-11 -mr-2 -mt-2 rounded-full flex items-center justify-center text-on-surface-variant hover:text-on-surface active:bg-surface-container-high transition-colors" onclick="toggleActionMenu(event, 'menu-draft-2')">
+<span class="material-symbols-outlined text-[20px]">more_vert</span>
+</button>
+</div>
+<!-- Dropdown Context Menu -->
+<div class="hidden absolute top-12 right-3 z-30 bg-surface-container-high rounded-xl shadow-xl w-48 py-1.5 backdrop-blur-md" id="menu-draft-2">
+<button class="w-full h-11 px-space-md flex items-center gap-space-sm text-left font-body-md text-body-md text-on-surface hover:bg-surface-container active:bg-surface-container transition-colors" onclick="editDraft('2')">
+<span class="material-symbols-outlined text-[18px] text-secondary">edit_note</span>
+<span class="">Chỉnh sửa</span>
+</button>
+<button class="w-full h-11 px-space-md flex items-center gap-space-sm text-left font-body-md text-body-md text-error hover:bg-surface-container active:bg-surface-container transition-colors" onclick="openDeleteModal('2', 'Buổi tập PR Deadlift 140kg...')">
+<span class="material-symbols-outlined text-[18px] text-error">delete</span>
+<span class="">Xóa</span>
+</button>
+</div>
+</div>
+<!-- Draft 3: Question / Q&A Draft -->
+<div class="relative group bg-surface-container-low hover:bg-surface-container rounded-xl p-space-md shadow-sm transition-all duration-200 cursor-pointer active:scale-[0.99]" id="draft-item-3" onclick="editDraft('3')">
+<div class="flex items-start gap-space-md">
+<!-- Q&A Icon Thumbnail -->
+<div class="w-16 h-16 rounded-xl shrink-0 bg-surface-container-high flex flex-col items-center justify-center text-secondary shadow-inner">
+<span class="material-symbols-outlined text-[28px]">help_center</span>
+</div>
+<!-- Content Info -->
+<div class="flex flex-col flex-1 min-w-0 pr-1">
+<div class="flex items-center gap-space-xs mb-1">
+<span class="font-label-sm text-label-sm bg-surface-container-highest text-secondary px-2 py-0.5 rounded-full tracking-wide">Câu hỏi • Dinh dưỡng</span>
+</div>
+<p class="font-body-md text-[15px] text-on-surface line-clamp-2 leading-snug font-medium">Nên bổ sung Creatine trước hay sau buổi tập để hấp thụ tốt nhất?</p>
+<div class="flex items-center gap-1.5 mt-2">
+<span class="material-symbols-outlined text-outline text-[13px]">schedule</span>
+<span class="font-label-md text-label-md text-on-surface-variant">Chỉnh sửa 3 ngày trước</span>
+</div>
+</div>
+<!-- Action Menu Button -->
+<button aria-label="Tùy chọn bản nháp" class="w-11 h-11 -mr-2 -mt-2 rounded-full flex items-center justify-center text-on-surface-variant hover:text-on-surface active:bg-surface-container-high transition-colors" onclick="toggleActionMenu(event, 'menu-draft-3')">
+<span class="material-symbols-outlined text-[20px]">more_vert</span>
+</button>
+</div>
+<!-- Dropdown Context Menu -->
+<div class="hidden absolute top-12 right-3 z-30 bg-surface-container-high rounded-xl shadow-xl w-48 py-1.5 backdrop-blur-md" id="menu-draft-3">
+<button class="w-full h-11 px-space-md flex items-center gap-space-sm text-left font-body-md text-body-md text-on-surface hover:bg-surface-container active:bg-surface-container transition-colors" onclick="editDraft('3')">
+<span class="material-symbols-outlined text-[18px] text-secondary">edit_note</span>
+<span class="">Chỉnh sửa</span>
+</button>
+<button class="w-full h-11 px-space-md flex items-center gap-space-sm text-left font-body-md text-body-md text-error hover:bg-surface-container active:bg-surface-container transition-colors" onclick="openDeleteModal('3', 'Câu hỏi Creatine trước/sau...')">
+<span class="material-symbols-outlined text-[18px] text-error">delete</span>
+<span class="">Xóa</span>
+</button>
+</div>
+</div>
+<!-- Draft 4: Text-only Insight -->
+<div class="relative group bg-surface-container-low hover:bg-surface-container rounded-xl p-space-md shadow-sm transition-all duration-200 cursor-pointer active:scale-[0.99]" id="draft-item-4" onclick="editDraft('4')">
+<div class="flex items-start gap-space-md">
+<!-- Document Icon Thumbnail -->
+<div class="w-16 h-16 rounded-xl shrink-0 bg-surface-container-high flex flex-col items-center justify-center text-secondary shadow-inner">
+<span class="material-symbols-outlined text-[26px]">notes</span>
+</div>
+<!-- Content Info -->
+<div class="flex flex-col flex-1 min-w-0 pr-1">
+<div class="flex items-center gap-space-xs mb-1">
+<span class="font-label-sm text-label-sm bg-surface-container-highest text-secondary px-2 py-0.5 rounded-full tracking-wide">Bài viết văn bản</span>
+</div>
+<p class="font-body-md text-[15px] text-on-surface line-clamp-2 leading-snug">3 bài học phục hồi cơ bắp mình rút ra sau chuỗi ngày tập liên tục không nghỉ ngơi hợp lý...</p>
+<div class="flex items-center gap-1.5 mt-2">
+<span class="material-symbols-outlined text-outline text-[13px]">schedule</span>
+<span class="font-label-md text-label-md text-on-surface-variant">Chỉnh sửa 1 tuần trước</span>
+</div>
+</div>
+<!-- Action Menu Button -->
+<button aria-label="Tùy chọn bản nháp" class="w-11 h-11 -mr-2 -mt-2 rounded-full flex items-center justify-center text-on-surface-variant hover:text-on-surface active:bg-surface-container-high transition-colors" onclick="toggleActionMenu(event, 'menu-draft-4')">
+<span class="material-symbols-outlined text-[20px]">more_vert</span>
+</button>
+</div>
+<!-- Dropdown Context Menu -->
+<div class="hidden absolute top-12 right-3 z-30 bg-surface-container-high rounded-xl shadow-xl w-48 py-1.5 backdrop-blur-md" id="menu-draft-4">
+<button class="w-full h-11 px-space-md flex items-center gap-space-sm text-left font-body-md text-body-md text-on-surface hover:bg-surface-container active:bg-surface-container transition-colors" onclick="editDraft('4')">
+<span class="material-symbols-outlined text-[18px] text-secondary">edit_note</span>
+<span class="">Chỉnh sửa</span>
+</button>
+<button class="w-full h-11 px-space-md flex items-center gap-space-sm text-left font-body-md text-body-md text-error hover:bg-surface-container active:bg-surface-container transition-colors" onclick="openDeleteModal('4', '3 bài học phục hồi cơ bắp...')">
+<span class="material-symbols-outlined text-[18px] text-error">delete</span>
+<span class="">Xóa</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Empty State (Hidden by default, shown if all drafts removed) -->
+<div class="hidden flex-col items-center justify-center py-16 px-space-lg text-center" id="empty-state">
+<div class="w-20 h-20 rounded-full bg-surface-container-high flex items-center justify-center text-outline mb-space-md">
+<span class="material-symbols-outlined text-[36px]">auto_stories</span>
+</div>
+<h2 class="font-headline-md text-headline-md text-on-surface mb-space-xs">Không có bản nháp nào</h2>
+<p class="font-body-md text-body-md text-on-surface-variant max-w-[280px]">Những bài viết, kế hoạch hoặc câu hỏi bạn đang soạn dở sẽ tự động lưu trữ tại đây.</p>
+</div>
+<!-- Custom Delete Confirmation Dialog Backdrop & Sheet -->
+<div class="fixed inset-0 bg-surface-container-lowest/70 backdrop-blur-sm z-50 flex items-end justify-center transition-opacity duration-200 opacity-0 pointer-events-none" id="delete-dialog-backdrop">
+<div class="w-full max-w-[420px] bg-surface-container-high rounded-t-[28px] p-space-lg flex flex-col gap-space-md transform translate-y-full transition-transform duration-300 ease-out shadow-2xl" id="delete-dialog-card">
+<!-- Handle Drag Bar -->
+<div class="w-12 h-1 bg-surface-container-highest rounded-full self-center -mt-1 mb-1"></div>
+<!-- Warning Icon & Title -->
+<div class="flex items-center gap-space-sm">
+<div class="w-10 h-10 rounded-full bg-error-container/60 flex items-center justify-center text-error shrink-0">
+<span class="material-symbols-outlined text-[22px]">delete_forever</span>
+</div>
+<div class="flex flex-col">
+<h3 class="font-headline-sm text-headline-sm text-on-surface">Xóa bản nháp này?</h3>
+<span class="font-label-md text-label-md text-on-surface-variant line-clamp-1 truncate" id="delete-target-preview"></span>
+</div>
+</div>
+<p class="font-body-md text-body-md text-on-surface-variant leading-relaxed">
+        Hành động này không thể hoàn tác và nội dung chưa đăng sẽ bị mất vĩnh viễn khỏi thiết bị của bạn.
+      </p>
+<!-- Action Buttons (Height 52px, Radius xl) -->
+<div class="flex flex-col gap-space-sm mt-space-xs">
+<button class="w-full h-[52px] bg-error-container hover:bg-error-container/90 active:scale-[0.98] text-error font-headline-sm text-body-lg rounded-xl flex items-center justify-center transition-all" id="btn-confirm-delete" onclick="confirmDeleteDraft()">
+          Xóa bản nháp
+        </button>
+<button class="w-full h-[52px] bg-surface-container hover:bg-surface-container-highest active:scale-[0.98] text-on-surface font-headline-sm text-body-lg rounded-xl flex items-center justify-center transition-all" onclick="closeDeleteModal()">
+          Hủy
+        </button>
+</div>
+</div>
+</div>
+</div>
+<script>
+  let targetDraftId = null;
+
+  function toggleActionMenu(event, menuId) {
+    event.stopPropagation();
+    // Close other menus first
+    document.querySelectorAll('[id^="menu-draft-"]').forEach(menu => {
+      if (menu.id !== menuId) {
+        menu.classList.add('hidden');
+      }
+    });
+    const targetMenu = document.getElementById(menuId);
+    if (targetMenu) {
+      targetMenu.classList.toggle('hidden');
+    }
+  }
+
+  // Close menus when clicking outside
+  document.addEventListener('click', function(e) {
+    if (!e.target.closest('[id^="menu-draft-"]') && !e.target.closest('button[aria-label="Tùy chọn bản nháp"]')) {
+      document.querySelectorAll('[id^="menu-draft-"]').forEach(menu => menu.classList.add('hidden'));
+    }
+  });
+
+  function editDraft(id) {
+    document.querySelectorAll('[id^="menu-draft-"]').forEach(menu => menu.classList.add('hidden'));
+    // Interactive feedback
+    const item = document.getElementById('draft-item-' + id);
+    if (item) {
+      item.classList.add('opacity-60');
+      setTimeout(() => {
+        item.classList.remove('opacity-60');
+      }, 300);
+    }
+  }
+
+  function openDeleteModal(draftId, snippet) {
+    targetDraftId = draftId;
+    document.querySelectorAll('[id^="menu-draft-"]').forEach(menu => menu.classList.add('hidden'));
+    
+    const previewEl = document.getElementById('delete-target-preview');
+    if (previewEl && snippet) {
+      previewEl.textContent = snippet;
+    }
+
+    const backdrop = document.getElementById('delete-dialog-backdrop');
+    const card = document.getElementById('delete-dialog-card');
+    
+    backdrop.classList.remove('pointer-events-none');
+    backdrop.classList.remove('opacity-0');
+    backdrop.classList.add('opacity-100');
+    
+    card.classList.remove('translate-y-full');
+    card.classList.add('translate-y-0');
+  }
+
+  function closeDeleteModal() {
+    const backdrop = document.getElementById('delete-dialog-backdrop');
+    const card = document.getElementById('delete-dialog-card');
+    
+    card.classList.remove('translate-y-0');
+    card.classList.add('translate-y-full');
+    
+    backdrop.classList.remove('opacity-100');
+    backdrop.classList.add('opacity-0');
+    backdrop.classList.add('pointer-events-none');
+    targetDraftId = null;
+  }
+
+  function confirmDeleteDraft() {
+    if (!targetDraftId) return;
+    const item = document.getElementById('draft-item-' + targetDraftId);
+    if (item) {
+      // Smooth collapse animation
+      item.style.transition = 'all 0.25s ease-out';
+      item.style.opacity = '0';
+      item.style.transform = 'scale(0.92)';
+      setTimeout(() => {
+        item.remove();
+        checkEmptyState();
+      }, 250);
+    }
+    closeDeleteModal();
+  }
+
+  function checkEmptyState() {
+    const container = document.getElementById('drafts-container');
+    const emptyState = document.getElementById('empty-state');
+    if (container && container.children.length === 0) {
+      emptyState.classList.remove('hidden');
+      emptyState.classList.add('flex');
+    }
+  }
+</script></main>
+
+</body></html>

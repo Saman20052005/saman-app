@@ -1,0 +1,68 @@
+{
+  "sdk": "Flutter 3.22.0 / Dart 3.4.0",
+  "existing_nutrition_ui_pass": 17,
+  "new_integration_and_render_pass": 10,
+  "targeted_baseline": {
+    "pass": 37,
+    "fail": 2
+  },
+  "standard_non_render": {
+    "pass": 992,
+    "skip_existing": 2,
+    "fail": 24
+  },
+  "baseline_reproduction": {
+    "pass": 122,
+    "fail": 24,
+    "same_failure_descriptions": true,
+    "new_failure_descriptions": []
+  },
+  "baseline_analyzer": {
+    "info": 71,
+    "warning": 16
+  },
+  "final_analyzer": {
+    "info": 66,
+    "warning": 16
+  },
+  "scoped_analyzer": "0 errors, 0 warnings, 1 pre-existing info (nutrition_screen.dart planned-meal save context)",
+  "format": "7 rewritten/new Dart widget/test files clean; untouched screen sections preserved",
+  "debug_runtime": "http://localhost:3000; lib/main.dart; --debug",
+  "static_build": "frontend/build/nutrition_ui_integration; local release compile",
+  "browser_runtime": "full lib/main.dart app; browser-only test HTTP responses; no real account/data changes",
+  "browser_js_page_errors": [],
+  "android": "unverified: no connected ADB device; other agents workout AVD not used",
+  "failure_descriptions": [
+    "test/auth_profile_gate_entry_test.dart: Auth entry points reach the ProfileGate A complete session -> logout to Login -> email login as B (incomplete): B reaches the gate and Main is never mounted for B [E]",
+    "test/auth_profile_gate_entry_test.dart: Auth entry points reach the ProfileGate direct /main route goes through the gate [E]",
+    "test/auth_profile_gate_entry_test.dart: Auth entry points reach the ProfileGate social authenticated success while UI is in register mode -> gate [E]",
+    "test/features/nutrition/daily_story_controller_test.dart: analysis performs no persistence; confirmation preserves file contract [E]",
+    "test/features/nutrition/daily_story_controller_test.dart: concurrent confirmation is rejected before a second write [E]",
+    "test/features/nutrition/food_analysis_modes_test.dart: Chat and Nutrition surface 401 safely; only 401 enters auth recovery [E]",
+    "test/features/nutrition/food_analysis_modes_test.dart: Chat and Nutrition surface 403 safely; only 401 enters auth recovery [E]",
+    "test/features/nutrition/food_analysis_modes_test.dart: Chat and Nutrition surface 422 safely; only 401 enters auth recovery [E]",
+    "test/features/nutrition/food_analysis_modes_test.dart: Chat and Nutrition surface 500 safely; only 401 enters auth recovery [E]",
+    "test/features/nutrition/food_log_flow_test.dart: CP3: FoodLogScreen & Log Meal Experience LogMealSheet: Quick meal log renders Calm Athleticism design with date anchor and screenshot before focus [E]",
+    "test/features/nutrition/nutrition_account_isolation_test.dart: new account request uses new auth header without prior progress [E]",
+    "test/features/nutrition/nutrition_account_isolation_test.dart: provider recreation reuses a confirmed Story after in-flight disposal [E]",
+    "test/home_screen_test.dart: HomeScreen renders all 7 modular sections with wired data [E]",
+    "test/onboarding_gate_test.dart: ProfileGate - Central Routing Gate Contract Tests complete and network-confirmed profile renders MainScreen [E]",
+    "test/onboarding_gate_test.dart: ProfileGate - Central Routing Gate Contract Tests once MainScreen is entered, background edit loading does NOT unmount MainScreen [E]",
+    "test/onboarding_gate_test.dart: ProfileGate - Central Routing Gate Contract Tests retry button in error view calls GET loadProfile and NOT update API [E]",
+    "test/onboarding_gate_test.dart: ProfileGate - Owner and Session Lifecycle 401 after Main was entered logs out and navigates exactly once [E]",
+    "test/onboarding_gate_test.dart: ProfileGate - Owner and Session Lifecycle A complete -> logout/reset -> B incomplete never mounts Main [E]",
+    "test/onboarding_gate_test.dart: ProfileGate - Owner and Session Lifecycle epoch change with the SAME owner requires re-confirmation [E]",
+    "test/onboarding_gate_test.dart: ProfileGate - Owner and Session Lifecycle loading or failing in the same owner/epoch keeps the same Main instance [E]",
+    "test/onboarding_gate_test.dart: ProfileGate - Owner and Session Lifecycle owner change in the same Gate lifecycle does not keep Main A [E]",
+    "test/onboarding_gate_test.dart: ProfileGate - Owner and Session Lifecycle owner change to a complete B remounts Main with fresh state and key [E]",
+    "test/onboarding_save_readback_test.dart: CP4 - Onboarding Save, Preservation & Verified Readback Contract Tests 8. All 5 activity choices round-trip with exact fidelity [E]",
+    "test/profile_edit_verified_save_test.dart: CP5 - Profile & Edit Profile Verified Save Contract Tests 1. Summary dung data that, khong sample/fallback so lieu [E]"
+  ],
+  "final_combined_nutrition_ui_tests_pass": 27,
+  "live_backend_preflight": {
+    "origin": "http://localhost:3000",
+    "preflight_status": 204,
+    "allowed_origin": "http://localhost:3000",
+    "debug_app_http_status": 200
+  }
+}

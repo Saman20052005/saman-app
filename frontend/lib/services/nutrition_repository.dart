@@ -207,18 +207,24 @@ class NutritionRepository {
     return response.statusCode == 200 || response.statusCode == 204;
   }
 
-  Future<AIAnalysisResult?> analyzeFoodImage(XFile imageFile) async {
+  Future<AIAnalysisResult?> analyzeFoodImage(
+    XFile imageFile, {
+    String mode = 'standard',
+    double grams = 100,
+  }) async {
     final formData = FormData();
+    formData.fields.add(MapEntry('mode', mode));
+    formData.fields.add(MapEntry('grams', grams.toString()));
     if (kIsWeb) {
       final bytes = await imageFile.readAsBytes();
       formData.files.add(MapEntry(
-        'file',
+        'image',
         MultipartFile.fromBytes(bytes,
             filename: imageFile.name, contentType: MediaType('image', 'jpeg')),
       ));
     } else {
       formData.files.add(MapEntry(
-        'file',
+        'image',
         await MultipartFile.fromFile(imageFile.path,
             filename: imageFile.name, contentType: MediaType('image', 'jpeg')),
       ));

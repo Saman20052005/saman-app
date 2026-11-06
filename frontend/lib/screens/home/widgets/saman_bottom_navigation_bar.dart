@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../config/app_translations.dart';
 import '../tokens/saman_home_tokens.dart';
 
 /// The approved Saman 5-tab bottom navigation bar matching the Obsidian design handoff:
@@ -47,11 +48,11 @@ class SamanBottomNavigationBar extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
-          _buildNavItem(0, 'Home', const _HomeIconPainter()),
-          _buildNavItem(1, 'Workout', const _WorkoutIconPainter()),
-          _buildNavItem(2, 'Saman', const _SamanIconPainter()),
-          _buildNavItem(3, 'Nutrition', const _NutritionIconPainter()),
-          _buildNavItem(4, 'Profile', const _ProfileIconPainter()),
+          _buildNavItem(0, context.tr('tab_home'), const _HomeIconPainter()),
+          _buildNavItem(1, context.tr('tab_workout'), const _WorkoutIconPainter()),
+          _buildNavItem(2, context.tr('tab_saman'), const _SamanIconPainter()),
+          _buildNavItem(3, context.tr('tab_nutrition'), const _NutritionIconPainter()),
+          _buildNavItem(4, context.tr('tab_profile'), const _ProfileIconPainter()),
         ],
       ),
     );

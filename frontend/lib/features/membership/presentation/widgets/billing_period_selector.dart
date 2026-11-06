@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../../config/app_translations.dart';
 import '../../domain/models/membership_plan.dart';
 import '../providers/membership_providers.dart';
 import '../tokens/membership_tokens.dart';
@@ -45,7 +46,7 @@ class BillingPeriodSelector extends ConsumerWidget {
               // Monthly Button
               Expanded(
                 child: _SegmentButton(
-                  title: 'Monthly',
+                  title: context.tr('billing_monthly'),
                   isSelected: activePeriod.isMonthly,
                   onTap: () {
                     if (onChanged != null) {
@@ -61,7 +62,7 @@ class BillingPeriodSelector extends ConsumerWidget {
               // Yearly Button
               Expanded(
                 child: _SegmentButton(
-                  title: 'Yearly',
+                  title: context.tr('billing_yearly'),
                   isSelected: activePeriod.isYearly,
                   onTap: () {
                     if (onChanged != null) {
@@ -81,7 +82,7 @@ class BillingPeriodSelector extends ConsumerWidget {
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 4.0),
             child: Text(
-              'Demo pricing · Subject to change',
+              context.tr('demo_pricing_disclaimer'),
               style: MembershipTokens.mono(
                 fontSize: 12,
                 fontWeight: FontWeight.w400,

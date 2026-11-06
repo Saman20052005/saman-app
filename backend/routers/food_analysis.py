@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, Depends, UploadFile, File, Form
+from fastapi import APIRouter, HTTPException, Depends, UploadFile, File, Form, Header
 from fastapi.responses import JSONResponse
 import io
 import logging
@@ -85,21 +85,33 @@ def get_classifier() -> FoodClassifier:
 
 @router.post("/analyze")
 async def analyze_food_image(
-    image: UploadFile = File(...),
+    image: Optional[UploadFile] = File(default=None),
+    file: Optional[UploadFile] = File(default=None),
     grams: float = Form(default=100.0),
-    mode: Optional[str] = Form(default=None),
+    mode: str = Form(default="standard"),
+    client_request_id: Optional[str] = Form(default=None),
+    idempotency_key: Optional[str] = Form(default=None),
+    x_client_request_id: Optional[str] = Header(default=None, alias="X-Client-Request-Id"),
+    x_idempotency_key: Optional[str] = Header(default=None, alias="X-Idempotency-Key"),
     email: str = Depends(verify_token),
 ):
     """
     Nhận ảnh món ăn → trả food label + macro (calories/protein/carbs/fat).
     Hỗ trợ provider food101 (mặc định) và gemini theo request mode hoặc cấu hình nội bộ.
     """
-    if image.content_type and image.content_type not in (
+    upload_file = image or file
+    if upload_file is None:
+        raise HTTPException(
+            status_code=400,
+            detail="Image file is required (use 'image' or 'file' field).",
+        )
+
+    if upload_file.content_type and upload_file.content_type not in (
         "image/jpeg", "image/png", "image/webp", "image/jpg"
-    ) and not image.content_type.startswith("image/"):
+    ) and not upload_file.content_type.startswith("image/"):
         raise HTTPException(status_code=400, detail="Only JPEG/PNG/WEBP supported")
 
-    image_bytes = await image.read()
+    image_bytes = await upload_file.read()
 
     if len(image_bytes) > 10 * 1024 * 1024:
         raise HTTPException(status_code=413, detail="Image too large (max 10MB)")
@@ -110,30 +122,18 @@ async def analyze_food_image(
     provider = resolve_analysis_provider(mode)
 
     if provider == "gemini":
-        if not is_gemini_allowed(email):
-            raise HTTPException(
-                status_code=403,
-                detail="Gemini food analysis is restricted to authorized test accounts",
-            )
-
-        from backend.services.gemini_food_analyzer import (
-            get_gemini_food_analyzer,
-            GeminiConfigurationError,
-            GeminiAnalysisError,
+        from backend.app.services.revenue_guard import orchestrate_nutrition_analysis
+        effective_client_id = client_request_id or x_client_request_id
+        effective_idemp_key = idempotency_key or x_idempotency_key
+        result = await orchestrate_nutrition_analysis(
+            image_bytes=image_bytes,
+            mime_type=upload_file.content_type or "image/jpeg",
+            grams=grams,
+            email=email,
+            client_request_id=effective_client_id,
+            idempotency_key=effective_idemp_key,
+            mode=mode or "advanced",
         )
-        try:
-            analyzer = get_gemini_food_analyzer()
-            result = await analyzer.analyze(
-                image_bytes=image_bytes,
-                mime_type=image.content_type or "image/jpeg",
-                grams=grams,
-            )
-        except (GeminiConfigurationError, GeminiAnalysisError) as exc:
-            logger.exception("Gemini food analysis failed: %s", exc)
-            raise HTTPException(status_code=500, detail=str(exc))
-        except Exception as exc:
-            logger.exception("Unexpected error in Gemini food analysis: %s", exc)
-            raise HTTPException(status_code=500, detail="Gemini food analysis failed")
 
         result["user_email"] = email
         return result

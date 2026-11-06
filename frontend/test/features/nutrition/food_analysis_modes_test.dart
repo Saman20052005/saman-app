@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:health_ai_app/controllers/chat_controller.dart';
 import 'package:health_ai_app/providers/daily_story_provider.dart';
 import 'package:health_ai_app/providers/profile_provider.dart';
+import 'package:health_ai_app/services/api_client.dart';
 import 'package:health_ai_app/services/nutrition_service.dart';
 import 'package:health_ai_app/utils/auth_helper.dart';
 import 'daily_story_controller_test.dart';
@@ -49,16 +50,20 @@ void main() {
     test(
         'Chat and Nutrition surface $status safely; only 401 enters auth recovery',
         () async {
-      late FoodHarness h;
-      h = FoodHarness(onRequest: (o) async {
-        if (o.path.endsWith('/analyze'))
-          return foodReply({'detail': 'SECRET'}, status);
-        if (o.path.contains('/users/') || o.path.contains('/profile'))
-          return foodReply({}, 401);
-        return h.defaults(o);
-      });
+      final h = FoodHarness();
       await h.start();
       addTearDown(h.close);
+      final profileStatusBefore = h.container.read(profileProvider).status;
+      ApiClient.dio.httpClientAdapter = FoodAdapter((o) async {
+        h.requests.add(o);
+        if (o.path.endsWith('/analyze')) {
+          return foodReply({'detail': 'SECRET'}, status);
+        }
+        if (status == 401 && o.path.contains('/profile')) {
+          return foodReply({}, 401);
+        }
+        return h.defaults(o);
+      });
       final chat = h.container.read(chatControllerProvider.notifier);
       await chat.analyzeFoodPhoto(h.photo(), mode: 'advanced');
       final state = h.container.read(chatControllerProvider).foodAnalysisState!;
@@ -73,7 +78,7 @@ void main() {
           throwsA(isA<DioException>()));
       expect(await AuthHelper.getToken(), 'test-account-A');
       expect(h.container.read(profileProvider).status,
-          status == 401 ? ProfileStatus.unauthorized : ProfileStatus.initial);
+          status == 401 ? ProfileStatus.unauthorized : profileStatusBefore);
       expect(h.writes('/log-story'), 0);
       expect(h.writes('/logs'), 0);
     });

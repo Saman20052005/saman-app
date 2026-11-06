@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -247,7 +249,7 @@ void main() {
       activeNotifier.logActiveSet();
 
       final initialClientSessionId = activeNotifier.sessionId;
-      expect(initialClientSessionId.startsWith('demo-session-'), isTrue);
+      expect(initialClientSessionId, matches(RegExp(r'^ws-[0-9a-f]{32}$')));
 
       final saver = container.read(activeSessionSaverProvider.notifier);
       final success = await saver.saveCurrentSession();
@@ -300,6 +302,331 @@ void main() {
       expect(container.read(activeSessionSaverProvider).hasError, isTrue);
       // Must NOT mark session as finished
       expect(container.read(activeWorkoutSessionProvider).isFinished, isFalse);
+    });
+
+    test('Every new workout gets a distinct high-entropy client identity',
+        () {
+      final ids = <String>{};
+      // Fresh containers model a reload: no process-local counter is reused.
+      for (var i = 0; i < 3; i++) {
+        final container = ProviderContainer();
+        final notifier = container.read(activeWorkoutSessionProvider.notifier);
+        ids.add(notifier.sessionId);
+        for (var j = 0; j < 100; j++) {
+          notifier.startScheduledSession();
+          ids.add(notifier.sessionId);
+        }
+        container.dispose();
+      }
+      expect(ids, hasLength(303));
+      for (final id in ids) {
+        expect(id, matches(RegExp(r'^ws-[0-9a-f]{32}$')));
+      }
+    });
+
+    test(
+        'Retry after an unconfirmed save resends the identical snapshot and adopts the canonical ID',
+        () async {
+      final payloads = <String>[];
+      final dio = Dio();
+      dio.interceptors.add(InterceptorsWrapper(
+        onRequest: (options, handler) {
+          payloads.add(jsonEncode(options.data));
+          final sent = jsonDecode(payloads.last) as Map<String, dynamic>;
+          if (payloads.length == 1) {
+            // Server committed, but the gateway lost the response.
+            return handler.reject(DioException(
+              requestOptions: options,
+              response: Response(requestOptions: options, statusCode: 503),
+              type: DioExceptionType.badResponse,
+            ));
+          }
+          return handler.resolve(Response(
+            requestOptions: options,
+            statusCode: 201,
+            data: {
+              'session_id': '6ae201e94cbce547f0e0fbab',
+              'session': {...sent, 'id': '6ae201e94cbce547f0e0fbab'},
+            },
+          ));
+        },
+      ));
+      final container = ProviderContainer(
+        overrides: [dioProvider.overrideWithValue(dio)],
+      );
+      addTearDown(container.dispose);
+      final subscription =
+          container.listen(activeSessionSaverProvider, (_, __) {});
+      addTearDown(subscription.close);
+
+      final activeNotifier =
+          container.read(activeWorkoutSessionProvider.notifier);
+      activeNotifier.setDraftWeight(22);
+      activeNotifier.setDraftReps(9);
+      activeNotifier.logActiveSet();
+      final clientId = activeNotifier.sessionId;
+      final saver = container.read(activeSessionSaverProvider.notifier);
+
+      expect(await saver.saveCurrentSession(), isFalse);
+      expect(container.read(activeWorkoutSessionProvider).isFinished, isFalse);
+      expect(activeNotifier.sessionId, clientId);
+      await Future<void>.delayed(const Duration(milliseconds: 5));
+      for (var i = 0; i < 90; i++) {
+        activeNotifier.tick();
+      }
+
+      expect(await saver.saveCurrentSession(), isTrue);
+      expect(payloads, hasLength(2));
+      expect(payloads[1], payloads[0]);
+      final sent = jsonDecode(payloads[0]) as Map<String, dynamic>;
+      expect(sent['id'], clientId);
+      expect(sent['totalVolumeKg'], 198);
+      expect(activeNotifier.sessionId, '6ae201e94cbce547f0e0fbab');
+      expect(activeNotifier.pendingSaveSnapshot, isNull);
+      expect(container.read(activeWorkoutSessionProvider).isFinished, isTrue);
+    });
+
+    test('Snapshot is immutable while save is pending confirmation; logging sets is blocked, and retry resends identical payload',
+        () async {
+      final payloads = <Map<String, dynamic>>[];
+      final dio = Dio();
+      dio.interceptors.add(InterceptorsWrapper(
+        onRequest: (options, handler) {
+          payloads.add(
+              jsonDecode(jsonEncode(options.data)) as Map<String, dynamic>);
+          return handler.reject(DioException(
+            requestOptions: options,
+            response: Response(requestOptions: options, statusCode: 503),
+            type: DioExceptionType.badResponse,
+          ));
+        },
+      ));
+      final container = ProviderContainer(
+        overrides: [dioProvider.overrideWithValue(dio)],
+      );
+      addTearDown(container.dispose);
+      final subscription =
+          container.listen(activeSessionSaverProvider, (_, __) {});
+      addTearDown(subscription.close);
+
+      final activeNotifier =
+          container.read(activeWorkoutSessionProvider.notifier);
+      activeNotifier.logActiveSet();
+      final saver = container.read(activeSessionSaverProvider.notifier);
+      expect(await saver.saveCurrentSession(), isFalse);
+      expect(saver.saveStatus, SessionSaveStatus.unconfirmed);
+      expect(activeNotifier.isSavePendingConfirmation, isTrue);
+
+      // Attempting to mutate sets while save is pending confirmation must be blocked
+      activeNotifier.logActiveSet();
+      activeNotifier.addSet();
+      activeNotifier.setDraftWeight(99.0);
+      expect(container.read(activeWorkoutSessionProvider).completedSetsCount, 1);
+
+      // Retry resends identical payload
+      expect(await saver.saveCurrentSession(), isFalse);
+
+      expect(payloads, hasLength(2));
+      expect(payloads[1]['id'], payloads[0]['id']);
+      expect(payloads[0]['exerciseLogs'], hasLength(1));
+      expect(payloads[1]['exerciseLogs'], hasLength(1));
+      expect(payloads[1], equals(payloads[0]));
+      expect(container.read(activeWorkoutSessionProvider).completedSetsCount, 1);
+    });
+
+    test('409 Conflict with matching server data confirms save and adopts canonical ID',
+        () async {
+      final dio = Dio();
+      late final String clientId;
+      dio.interceptors.add(InterceptorsWrapper(
+        onRequest: (options, handler) {
+          if (options.method == 'POST') {
+            return handler.reject(DioException(
+              requestOptions: options,
+              response: Response(
+                requestOptions: options,
+                statusCode: 409,
+                data: {'detail': 'Workout session identity already saved with different data'},
+              ),
+              type: DioExceptionType.badResponse,
+            ));
+          }
+          if (options.method == 'GET' && options.path.contains(clientId)) {
+            // Server has matching session
+            return handler.resolve(Response(
+              requestOptions: options,
+              statusCode: 200,
+              data: {
+                'session': {
+                  'id': 'canonical_server_match_409',
+                  'planName': 'Upper Body Strength',
+                  'startedAt': '2026-10-12T03:00:00.000Z',
+                  'finishedAt': '2026-10-12T03:45:00.000Z',
+                  'exerciseLogs': [
+                    {
+                      'exerciseId': 'ex_1',
+                      'exerciseSlug': 'ex_1',
+                      'setNumber': 1,
+                      'repsCompleted': 8,
+                      'unit': 'reps',
+                      'weightKg': 26.0,
+                      'isCompleted': true,
+                    }
+                  ],
+                  'totalDurationMinutes': 0,
+                  'totalVolumeKg': 208,
+                }
+              },
+            ));
+          }
+          return handler.next(options);
+        },
+      ));
+
+      final container = ProviderContainer(
+        overrides: [dioProvider.overrideWithValue(dio)],
+      );
+      addTearDown(container.dispose);
+      final subscription =
+          container.listen(activeSessionSaverProvider, (_, __) {});
+      addTearDown(subscription.close);
+
+      final activeNotifier =
+          container.read(activeWorkoutSessionProvider.notifier);
+      clientId = activeNotifier.sessionId;
+      activeNotifier.logActiveSet();
+
+      final saver = container.read(activeSessionSaverProvider.notifier);
+      final success = await saver.saveCurrentSession();
+
+      expect(success, isTrue);
+      expect(saver.saveStatus, SessionSaveStatus.saved);
+      expect(activeNotifier.sessionId, 'canonical_server_match_409');
+      expect(activeNotifier.pendingSaveSnapshot, isNull);
+      expect(container.read(activeWorkoutSessionProvider).isFinished, isTrue);
+    });
+
+    test('409 Conflict with different data sets conflict status, keeps draft, does not overwrite',
+        () async {
+      final dio = Dio();
+      late final String clientId;
+      dio.interceptors.add(InterceptorsWrapper(
+        onRequest: (options, handler) {
+          if (options.method == 'POST') {
+            return handler.reject(DioException(
+              requestOptions: options,
+              response: Response(
+                requestOptions: options,
+                statusCode: 409,
+                data: {'detail': 'Workout session identity already saved with different data'},
+              ),
+              type: DioExceptionType.badResponse,
+            ));
+          }
+          if (options.method == 'GET' && options.path.contains(clientId)) {
+            // Server has DIFFERENT session under this identity
+            return handler.resolve(Response(
+              requestOptions: options,
+              statusCode: 200,
+              data: {
+                'session': {
+                  'id': 'canonical_different_session',
+                  'planName': 'Upper Body Strength',
+                  'startedAt': '2026-10-12T03:00:00.000Z',
+                  'finishedAt': '2026-10-12T03:45:00.000Z',
+                  'exerciseLogs': [
+                    {
+                      'exerciseId': 'ex_1',
+                      'exerciseSlug': 'bench-press',
+                      'setNumber': 1,
+                      'repsCompleted': 20,
+                      'unit': 'reps',
+                      'weightKg': 100.0,
+                      'isCompleted': true,
+                    }
+                  ],
+                  'totalDurationMinutes': 40,
+                  'totalVolumeKg': 2000,
+                }
+              },
+            ));
+          }
+          return handler.next(options);
+        },
+      ));
+
+      final container = ProviderContainer(
+        overrides: [dioProvider.overrideWithValue(dio)],
+      );
+      addTearDown(container.dispose);
+      final subscription =
+          container.listen(activeSessionSaverProvider, (_, __) {});
+      addTearDown(subscription.close);
+
+      final activeNotifier =
+          container.read(activeWorkoutSessionProvider.notifier);
+      clientId = activeNotifier.sessionId;
+      activeNotifier.logActiveSet();
+
+      final saver = container.read(activeSessionSaverProvider.notifier);
+      final success = await saver.saveCurrentSession();
+
+      expect(success, isFalse);
+      expect(saver.saveStatus, SessionSaveStatus.conflict);
+      expect(saver.conflictMessage, contains('409 Conflict'));
+      // Draft remains in memory, unchanged
+      expect(activeNotifier.pendingSaveSnapshot, isNotNull);
+      expect(activeNotifier.sessionId, clientId);
+      expect(container.read(activeWorkoutSessionProvider).isFinished, isFalse);
+    });
+
+    test('Starting a new workout after save confirmed produces a new session identity and empty logs',
+        () async {
+      final dio = Dio();
+      dio.interceptors.add(InterceptorsWrapper(
+        onRequest: (options, handler) {
+          return handler.resolve(Response(
+            requestOptions: options,
+            statusCode: 201,
+            data: {
+              'session_id': 'saved_canonical_456',
+              'session': {
+                'id': 'saved_canonical_456',
+                'planName': 'Upper Body Strength',
+                'startedAt': '2026-10-12T03:00:00.000Z',
+                'finishedAt': '2026-10-12T03:45:00.000Z',
+                'exerciseLogs': [],
+                'totalVolumeKg': 0,
+              }
+            },
+          ));
+        },
+      ));
+
+      final container = ProviderContainer(
+        overrides: [dioProvider.overrideWithValue(dio)],
+      );
+      addTearDown(container.dispose);
+
+      final activeNotifier =
+          container.read(activeWorkoutSessionProvider.notifier);
+      final firstSessionId = activeNotifier.sessionId;
+      activeNotifier.logActiveSet();
+
+      final saver = container.read(activeSessionSaverProvider.notifier);
+      expect(await saver.saveCurrentSession(), isTrue);
+      expect(activeNotifier.sessionId, 'saved_canonical_456');
+
+      // Start new scheduled session
+      activeNotifier.startScheduledSession();
+      final newSession = container.read(activeWorkoutSessionProvider);
+
+      expect(activeNotifier.sessionId, isNot(equals(firstSessionId)));
+      expect(activeNotifier.sessionId, isNot(equals('saved_canonical_456')));
+      expect(activeNotifier.sessionId, matches(RegExp(r'^ws-[0-9a-f]{32}$')));
+      expect(newSession.isFinished, isFalse);
+      expect(newSession.completedSetsCount, 0);
+      expect(activeNotifier.pendingSaveSnapshot, isNull);
     });
 
     test('SessionDetailProvider reads through workoutSessionRepositoryProvider',

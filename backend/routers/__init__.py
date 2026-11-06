@@ -41,6 +41,36 @@ except ImportError as e:
     print(f"Warning: Failed to import health router: {e}")
     health_router = None
 
+try:
+    from .journey import router as journey_router
+except ImportError as e:
+    print(f"Warning: Failed to import journey router: {e}")
+    journey_router = None
+
+try:
+    from .revenue import router as revenue_router
+except ImportError as e:
+    print(f"Warning: Failed to import revenue router: {e}")
+    revenue_router = None
+
+try:
+    from .shop import router as shop_router
+except ImportError as e:
+    print(f"Warning: Failed to import shop router: {e}")
+    shop_router = None
+
+try:
+    from .journal import router as journal_router
+except ImportError as e:
+    print(f"Warning: Failed to import journal router: {e}")
+    journal_router = None
+
+try:
+    from .community import router as community_router
+except ImportError as e:
+    print(f"Warning: Failed to import community router: {e}")
+    community_router = None
+
 __all__ = [
     "auth_router",
     "user_router", 
@@ -48,5 +78,10 @@ __all__ = [
     "food_analysis_router",
     "nutrition_router",
     "workout_router",
-    "health_router"
+    "health_router",
+    "journey_router",
+    "revenue_router",
+    "shop_router",
+    "journal_router",
+    "community_router",
 ]

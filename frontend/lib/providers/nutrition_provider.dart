@@ -22,6 +22,8 @@ import '../features/nutrition/data/repositories/nutrition_repository_impl.dart';
 import '../config/api_config.dart';
 import '../services/api_client.dart';
 import '../presentation/providers/workout_history_providers.dart';
+import '../features/journey/presentation/providers/journey_providers.dart';
+import '../features/journey/domain/models/journey_models.dart';
 
 final nutritionRepositoryProvider = Provider<INutritionRepository>((ref) {
   return NutritionRepositoryImpl();
@@ -53,6 +55,7 @@ final nutritionProvider =
   final session = ref.watch(nutritionSessionProvider);
   final repository = ref.watch(nutritionRepositoryProvider);
   return NutritionNotifier(
+    ref: ref,
     captureSession: session.capture,
     repository: repository,
     loadDailyPlanUseCase: ref.watch(loadDailyPlanUseCaseProvider),
@@ -69,6 +72,7 @@ final macroTargetsProvider = Provider<MacroTargets?>((ref) {
 });
 
 class NutritionNotifier extends StateNotifier<AsyncValue<NutritionPlan?>> {
+  final Ref? _ref;
   final INutritionRepository _repository;
   final LoadDailyPlanUseCase _loadDailyPlanUseCase;
   final UpdateWaterUseCase _updateWaterUseCase;
@@ -76,13 +80,15 @@ class NutritionNotifier extends StateNotifier<AsyncValue<NutritionPlan?>> {
   final SwapLoggedMealUseCase _swapLoggedMealUseCase;
 
   NutritionNotifier({
+    Ref? ref,
     required INutritionRepository repository,
     Future<NutritionRequestContext> Function()? captureSession,
     required LoadDailyPlanUseCase loadDailyPlanUseCase,
     required UpdateWaterUseCase updateWaterUseCase,
     required SwapMealUseCase swapMealUseCase,
     required SwapLoggedMealUseCase swapLoggedMealUseCase,
-  })  : _captureSession = captureSession,
+  })  : _ref = ref,
+        _captureSession = captureSession,
         _repository = repository,
         _loadDailyPlanUseCase = loadDailyPlanUseCase,
         _updateWaterUseCase = updateWaterUseCase,
@@ -513,6 +519,13 @@ class NutritionNotifier extends StateNotifier<AsyncValue<NutritionPlan?>> {
       final ok = await _repository.addMeal(body);
 
       if (ok) {
+        if (_ref != null) {
+          try {
+            _ref.read(journeyControllerProvider.notifier).onActivityCompleted(
+                  type: JourneyTaskType.nutrition,
+                );
+          } catch (_) {}
+        }
         // Reload để lấy data chuẩn từ server (bao gồm ID của meal vừa tạo)
         // forceRefresh = true để cập nhật cache
         await loadDailyPlan(date, forceRefresh: true);

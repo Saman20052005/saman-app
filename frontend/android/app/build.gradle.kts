@@ -11,7 +11,7 @@ android {
     
     // [FIX]: Ghi cứng phiên bản SDK mới nhất (Android 14)
     compileSdk = 34
-    ndkVersion = "25.0.3"
+    ndkVersion = "27.0.12077973"
 
     // [FIX]: Ép buộc sử dụng Build Tools mới, bỏ qua bản 25.0.1 cũ
     buildToolsVersion = "34.0.0"

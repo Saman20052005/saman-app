@@ -6,18 +6,19 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:health_ai_app/presentation/screens/exercise_library_screen.dart';
 import 'package:health_ai_app/presentation/screens/exercise_detail_screen.dart';
 import 'package:health_ai_app/presentation/screens/workout_home_screen.dart';
+import 'package:health_ai_app/presentation/screens/workout_review_screen.dart';
 import 'package:health_ai_app/presentation/providers/exercise_providers.dart';
 import 'package:health_ai_app/presentation/providers/workout_history_providers.dart';
 
 import 'workout_exercise_catalog_test.dart'
-    show expectedCategoryIds, allNewExercises;
+    show expectedCategoryIds, allCatalogExercises;
 import 'workout_exercise_images_test.dart' show loadImages, loadTestFonts;
 
 void main() {
   setUpAll(loadTestFonts);
-  testWidgets('Actual Library filters return exact Upper 17 / Lower 11 / Core 7 IDs',
+  testWidgets('Actual Library filters return exact Upper 30 / Lower 12 / Core 7 IDs',
       (tester) async {
-    await tester.binding.setSurfaceSize(const Size(430, 2700));
+    await tester.binding.setSurfaceSize(const Size(430, 3200));
     addTearDown(() => tester.binding.setSurfaceSize(null));
     await tester.pumpWidget(const ProviderScope(
       child: MaterialApp(home: ExerciseLibraryScreen()),
@@ -48,14 +49,20 @@ void main() {
     ));
     await tester.pump();
     await loadImages(tester, curatedExerciseLibrary.map((e) => e.thumbnailUrl));
-    for (final entry in allNewExercises.entries) {
+    for (final entry in allCatalogExercises.entries) {
       for (final query in [entry.value.$1, entry.value.$2]) {
         await tester.enterText(find.byType(TextField), query);
         await tester.pumpAndSettle();
         expect(find.byKey(ValueKey('exercise_row_${entry.key}')), findsOneWidget,
             reason: query);
         final list = tester.widget<ListView>(find.byType(ListView));
-        expect((list.childrenDelegate as SliverChildBuilderDelegate).childCount, 1);
+        final expectedCount = (entry.key == 'barbell-bench-press' &&
+                query == entry.value.$1)
+            ? 3
+            : 1;
+        expect((list.childrenDelegate as SliverChildBuilderDelegate).childCount,
+            expectedCount,
+            reason: query);
       }
     }
     expect(tester.takeException(), isNull);
@@ -65,16 +72,76 @@ void main() {
   testWidgets('Library muscle filters retain exact membership including round two',
       (tester) async {
     const expected = <(String, String), List<String>>{
-      ('Upper Body', 'Chest'): ['db-bench-press', 'push-up', 'incline-dumbbell-flyes', 'incline-dumbbell-press', 'cable-chest-fly'],
-      ('Upper Body', 'Back'): ['lat-pulldown', 'seated-cable-row', 'one-arm-dumbbell-row', 'pull-up'],
-      ('Upper Body', 'Shoulders'): ['db-shoulder-press', 'face-pulls', 'dumbbell-lateral-raise', 'reverse-dumbbell-fly'],
-      ('Upper Body', 'Arms'): ['db-bicep-curl', 'triceps-rope-pushdown', 'overhead-triceps-extension', 'hammer-curl'],
-      ('Lower Body', 'Quads'): ['barbell-back-squat', 'leg-press', 'goblet-squat', 'reverse-lunge', 'bulgarian-split-squat', 'leg-extension'],
-      ('Lower Body', 'Glutes'): ['barbell-hip-thrust', 'bulgarian-split-squat'],
-      ('Lower Body', 'Hamstrings'): ['romanian-deadlift', 'lying-leg-curl'],
-      ('Lower Body', 'Calves'): ['standing-calf-raise', 'seated-calf-raise'],
-      ('Core', 'Abs'): ['plank', 'hanging-leg-raise', 'ab-wheel-rollout', 'dead-bug', 'reverse-crunch'],
-      ('Core', 'Obliques'): ['cable-woodchopper', 'side-plank'],
+      ('Upper Body', 'Chest'): [
+        'db-bench-press',
+        'push-up',
+        'incline-dumbbell-flyes',
+        'incline-dumbbell-press',
+        'cable-chest-fly',
+        'barbell-bench-press',
+        'incline-barbell-bench-press',
+        'machine-chest-press',
+        'pec-deck-fly',
+      ],
+      ('Upper Body', 'Back'): [
+        'lat-pulldown',
+        'seated-cable-row',
+        'one-arm-dumbbell-row',
+        'pull-up',
+        'bent-over-barbell-row',
+        'chest-supported-dumbbell-row',
+      ],
+      ('Upper Body', 'Shoulders'): [
+        'db-shoulder-press',
+        'face-pulls',
+        'dumbbell-lateral-raise',
+        'reverse-dumbbell-fly',
+        'barbell-overhead-press',
+        'cable-lateral-raise',
+        'reverse-pec-deck',
+      ],
+      ('Upper Body', 'Arms'): [
+        'db-bicep-curl',
+        'triceps-rope-pushdown',
+        'overhead-triceps-extension',
+        'hammer-curl',
+        'ez-bar-curl',
+        'lying-ez-bar-triceps-extension',
+        'preacher-curl',
+        'cable-biceps-curl',
+      ],
+      ('Lower Body', 'Quads'): [
+        'barbell-back-squat',
+        'leg-press',
+        'goblet-squat',
+        'reverse-lunge',
+        'bulgarian-split-squat',
+        'leg-extension',
+      ],
+      ('Lower Body', 'Glutes'): [
+        'barbell-hip-thrust',
+        'bulgarian-split-squat',
+        'glute-bridge',
+      ],
+      ('Lower Body', 'Hamstrings'): [
+        'romanian-deadlift',
+        'lying-leg-curl',
+      ],
+      ('Lower Body', 'Calves'): [
+        'standing-calf-raise',
+        'seated-calf-raise',
+      ],
+      ('Core', 'Abs'): [
+        'plank',
+        'hanging-leg-raise',
+        'ab-wheel-rollout',
+        'dead-bug',
+        'reverse-crunch',
+      ],
+      ('Core', 'Obliques'): [
+        'cable-woodchopper',
+        'side-plank',
+      ],
     };
     await tester.binding.setSurfaceSize(const Size(430, 1500));
     addTearDown(() => tester.binding.setSurfaceSize(null));
@@ -764,5 +831,166 @@ void main() {
     // 3. Must pop Library and land on Workout Home
     expect(find.byType(ExerciseLibraryScreen), findsNothing);
     expect(find.byType(WorkoutHomeScreen), findsOneWidget);
+  });
+
+  for (final exId in [
+    'chest-supported-dumbbell-row',
+    'lying-ez-bar-triceps-extension',
+    'preacher-curl',
+    'pec-deck-fly',
+    'reverse-pec-deck',
+    'cable-biceps-curl',
+  ]) {
+    testWidgets(
+        'Flow: $exId Detail -> Active -> Log Set -> Review displays correct identity, poster and volume',
+        (WidgetTester tester) async {
+      await tester.binding.setSurfaceSize(const Size(430, 1200));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+
+      final exercise = curatedExerciseLibrary.firstWhere((e) => e.id == exId);
+      final posterSource = exercisePosterSource(exercise.thumbnailUrl);
+
+      await tester.pumpWidget(
+        ProviderScope(
+          child: MaterialApp(
+            home: ExerciseDetailScreen(exercise: exercise),
+          ),
+        ),
+      );
+      await tester.pump();
+      await loadImages(tester, [exercise.thumbnailUrl, posterSource]);
+
+      // 1. Verify Detail Screen identity & poster
+      expect(find.byType(ExerciseDetailScreen), findsOneWidget);
+      expect(find.text(exercise.name), findsOneWidget);
+      expect(find.text(exercise.nameVi), findsOneWidget);
+      expect(find.byKey(ValueKey(posterSource)), findsOneWidget);
+
+      // 2. Tap Start Exercise -> Navigate to ActiveWorkoutScreen
+      final startBtn = find.byKey(const ValueKey('exercise_detail_start_button'));
+      await tester.ensureVisible(startBtn);
+      await tester.tap(startBtn);
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 400));
+
+      expect(find.byType(ActiveWorkoutScreen), findsOneWidget);
+      expect(find.text(exercise.name), findsWidgets);
+      expect(find.byKey(ValueKey(posterSource)), findsWidgets);
+
+      // 3. Verify draft weight starts at 20.0 kg fallback
+      final container = ProviderScope.containerOf(
+        tester.element(find.byType(ActiveWorkoutScreen)),
+      );
+      final session = container.read(activeWorkoutSessionProvider);
+      expect(session.currentExercise?.draftWeightKg, 20.0);
+
+      // 4. Log Set 1
+      final logBtn = find.byKey(const ValueKey('active_workout_log_set_button'));
+      await tester.ensureVisible(logBtn);
+      await tester.tap(logBtn);
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+
+      expect(container.read(activeWorkoutSessionProvider).completedSetsCount, 1);
+
+      // 5. Tap Finish -> Navigate to WorkoutReviewScreen
+      final finishBtn = find.byKey(const ValueKey('active_workout_finish_button'));
+      await tester.ensureVisible(finishBtn);
+      await tester.tap(finishBtn);
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 400));
+
+      expect(find.byType(WorkoutReviewScreen), findsOneWidget);
+
+      // 6. Verify single-exercise Review banner uses exercise's own poster,
+      // and Movement Breakdown shows exercise thumbnail
+      expect(find.byKey(ValueKey(posterSource)), findsOneWidget);
+      expect(find.byKey(ValueKey(exercise.thumbnailUrl)), findsOneWidget);
+      expect(find.text(exercise.name), findsWidgets);
+
+      await tester.pumpWidget(const SizedBox());
+    });
+  }
+
+  testWidgets(
+      'Mixed-session: CP07 exercise + another exercise in Review uses fallback/banner, not single-exercise poster',
+      (WidgetTester tester) async {
+    await tester.binding.setSurfaceSize(const Size(430, 1200));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    final ex1 = curatedExerciseLibrary.firstWhere((e) => e.id == 'pec-deck-fly');
+    final ex2 = curatedExerciseLibrary.firstWhere((e) => e.id == 'lat-pulldown');
+    final ex1Poster = exercisePosterSource(ex1.thumbnailUrl);
+    final ex2Poster = exercisePosterSource(ex2.thumbnailUrl);
+
+    await tester.pumpWidget(
+      ProviderScope(
+        child: MaterialApp(
+          home: ActiveWorkoutScreen.fromExercises(
+            exercises: [ex1, ex2],
+            title: 'Upper Body Mixed Workout',
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+    await loadImages(tester, [
+      ex1.thumbnailUrl,
+      ex1Poster,
+      ex2.thumbnailUrl,
+      ex2Poster,
+    ]);
+
+    final container = ProviderScope.containerOf(
+      tester.element(find.byType(ActiveWorkoutScreen)),
+    );
+
+    // 1. Log Set 1 for Exercise 1 (Machine Chest Press)
+    final logBtn = find.byKey(const ValueKey('active_workout_log_set_button'));
+    await tester.ensureVisible(logBtn);
+    await tester.tap(logBtn);
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(container.read(activeWorkoutSessionProvider).completedSetsCount, 1);
+
+    // 2. Advance to Exercise 2 (Lat Pulldown) and log Set 1
+    final nextBtn = find.text('Next exercise');
+    if (nextBtn.evaluate().isNotEmpty) {
+      await tester.ensureVisible(nextBtn);
+      await tester.tap(nextBtn);
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+    } else {
+      container.read(activeWorkoutSessionProvider.notifier).selectExercise(1);
+      await tester.pump();
+    }
+
+    await tester.ensureVisible(logBtn);
+    await tester.tap(logBtn);
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(container.read(activeWorkoutSessionProvider).completedSetsCount, 2);
+
+    // 3. Finish workout -> Navigate to WorkoutReviewScreen
+    final finishBtn = find.byKey(const ValueKey('active_workout_finish_button'));
+    await tester.ensureVisible(finishBtn);
+    await tester.tap(finishBtn);
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
+
+    expect(find.byType(WorkoutReviewScreen), findsOneWidget);
+
+    // 4. Verify Review banner does NOT use poster of exercise 1 nor exercise 2
+    expect(find.byKey(ValueKey(ex1Poster)), findsNothing,
+        reason: 'Mixed session must not take CP07 exercise poster as whole-session banner');
+    expect(find.byKey(ValueKey(ex2Poster)), findsNothing,
+        reason: 'Mixed session must not take second exercise poster as whole-session banner');
+
+    // 5. Verify both exercises appear in Movement Breakdown
+    expect(find.text(ex1.name), findsOneWidget);
+    expect(find.text(ex2.name), findsOneWidget);
+    expect(find.text('2 sets logged • 2 exercises'), findsOneWidget);
+
+    await tester.pumpWidget(const SizedBox());
   });
 }

@@ -1,0 +1,63 @@
+============================================================
+SAMAN JOURNEY LIVE HTTP E2E VERIFICATION ON PORT 8008
+Target DB: saman_journey_live_e2e_db on mongodb://127.0.0.1:27028
+Time: 2026-10-28T01:51:12.737906+00:00
+============================================================
+[DB SETUP] Cleaned and dropped test database: saman_journey_live_e2e_db
+
+--- STEP 1: Register User via HTTP API ---
+[PASS] #1 POST /api/auth/register -> Status 200 (Expected 200) [296.89ms]
+
+--- STEP 2: Login User via HTTP API ---
+[PASS] #2 POST /api/auth/login -> Status 200 (Expected 200) [262.91ms]
+
+--- STEP 3: Check Active Journey (Initial) ---
+[PASS] #3 GET /api/journey/active -> Status 200 (Expected 200) [84.57ms]
+
+--- STEP 4: Create Journey (14-day Hybrid) ---
+[PASS] #4 POST /api/journey/create -> Status 201 (Expected 201) [42.33ms]
+   Journey created ID: 6ae155111eaafe411da58d92, Day 1 Date: 2026-10-28
+
+--- STEP 5: Query Rewards Catalog ---
+[PASS] #5 GET /api/wallet/rewards -> Status 200 (Expected 200) [25.63ms]
+   Verified catalog version 2026.10.experimental_v1: all 3 items is_available=False
+
+--- STEP 6: Redeem Unavailable Package (Expect 400 Bad Request) ---
+[PASS] #6 POST /api/wallet/redeem -> Status 400 (Expected 400) [5.07ms]
+
+--- STEP 7: Check Balance After Rejected Redeem ---
+[PASS] #7 GET /api/wallet/balance -> Status 200 (Expected 200) [28.17ms]
+
+--- STEP 8A: Save Real Nutrition Meal via POST /api/nutrition/logs ---
+[PASS] #8 POST /api/nutrition/logs -> Status 200 (Expected 200) [20.69ms]
+   Real Meal Log Saved via API: ID = 6ae155111eaafe411da58d93
+
+--- STEP 8B: Save Real Workout Session via POST /api/workouts/sessions ---
+[PASS] #9 POST /api/workouts/sessions -> Status 201 (Expected 201) [41.28ms]
+   Real Workout Session Saved via API: ID = 6ae155111eaafe411da58d94
+
+--- STEP 9A: Complete Nutrition Task with Real Meal ID ---
+[PASS] #10 POST /api/journey/complete-task -> Status 200 (Expected 200) [21.44ms]
+
+--- STEP 9B: Complete Workout Task with Real Session ID ---
+[PASS] #11 POST /api/journey/complete-task -> Status 200 (Expected 200) [27.86ms]
+
+--- STEP 10: Check Balance (Assert 0 Auto-Credit Points) ---
+[PASS] #12 GET /api/wallet/balance -> Status 200 (Expected 200) [26.82ms]
+   Verified: Tasks completed but Balance = 0 SP (NO auto-credit)
+
+--- STEP 11: Claim Daily Reward via HTTP API ---
+[PASS] #13 POST /api/journey/claim-daily-reward -> Status 200 (Expected 200) [51.45ms]
+   Claimed successfully! New Balance: 20, Message: 'Nhận thành công 20 điểm thưởng!'
+
+--- STEP 12: Retry Claim Daily Reward (Idempotent Retry Test) ---
+[PASS] #14 POST /api/journey/claim-daily-reward -> Status 200 (Expected 200) [29.35ms]
+   Idempotent retry verified! Balance preserved: 20 SP, Message: 'Phần thưởng ngày hôm nay đã được nhận'
+
+--- STEP 13: Query Wallet Transaction History ---
+[PASS] #15 GET /api/wallet/history -> Status 200 (Expected 200) [29.26ms]
+   Ledger verified: 1 transaction found: +20 SP (daily_reward) at 2026-10-28T01:51:13.649811+00:00
+
+--- STEP 14: Query Final Active Journey State ---
+[PASS] #16 GET /api/journey/active -> Status 200 (Expected 200) [15.92ms]
+   Final journey verified: Streak = 1, Completed Days = 1, Reward Claimed = True

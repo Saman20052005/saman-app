@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html class="dark" lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" name="viewport">
+  <title>Saman - Workout History</title>
+  <link href="https://fonts.googleapis.com" rel="preconnect">
+  <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
+  <style>
+    @layer base {
+      html, body {
+        width: 100vw;
+        margin: 0;
+        padding: 0;
+        background-color: #0C0D0E;
+        color: #F9FAFB;
+      }
+      body {
+        overscroll-behavior: none;
+        -webkit-tap-highlight-color: transparent;
+      }
+      .pb-safe { padding-bottom: env(safe-area-inset-bottom, 16px); }
+      .pt-safe { padding-top: env(safe-area-inset-top, 0px); }
+    }
+    ::-webkit-scrollbar { display: none; }
+    .tabular-nums { font-variant-numeric: tabular-nums; }
+  </style>
+  <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+  <script>
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              bg: "#0C0D0E",
+              card: "#16171B",
+              cardHover: "#1F2126",
+              border: "#26282F",
+              iconBg: "#212328",
+              muted: "#94979E",
+              subtle: "#6B7280",
+              accent: "#10B981"
+            }
+          },
+          fontFamily: {
+            headline: ["Space Grotesk", "sans-serif"],
+            body: ["Inter", "sans-serif"],
+            mono: ["JetBrains Mono", "monospace"]
+          }
+        }
+      }
+    };
+  </script>
+</head>
+<body class="bg-[#0C0D0E] font-body text-sm text-[#F9FAFB] antialiased min-h-screen flex flex-col selection:bg-[#10B981]/30">
+
+  <!-- TOP STATUS BAR -->
+  <div class="w-full pt-safe bg-[#0C0D0E] z-40 sticky top-0">
+    <div class="h-11 px-6 flex items-center justify-between text-xs text-[#F9FAFB] font-medium tracking-tight">
+      <span class="font-mono text-[13px] font-semibold">9:41</span>
+      <div class="flex items-center gap-2 text-[14px]">
+        <span class="material-symbols-outlined text-[15px] leading-none">signal_cellular_alt</span>
+        <span class="material-symbols-outlined text-[15px] leading-none">wifi</span>
+        <span class="material-symbols-outlined text-[18px] leading-none">battery_full</span>
+      </div>
+    </div>
+
+    <!-- SECONDARY NAVIGATION HEADER -->
+    <header class="px-4 pb-3 pt-1 flex items-center justify-between border-b border-[#26282F]/60">
+      <div class="flex items-center gap-3">
+        <a href="#" class="w-10 h-10 rounded-xl bg-[#16171B] border border-[#26282F] flex items-center justify-center text-[#94979E] hover:text-[#F9FAFB] hover:border-[#383A42] transition-colors active:scale-95" aria-label="Back to Workout Home">
+          <span class="material-symbols-outlined text-[20px]">arrow_back</span>
+        </a>
+        <div>
+          <h1 class="font-headline text-[22px] font-semibold leading-tight text-[#F9FAFB] tracking-tight">Workout History</h1>
+          <p class="text-xs text-[#94979E] mt-0.5">Your training, recorded.</p>
+        </div>
+      </div>
+      <button class="w-10 h-10 rounded-xl bg-[#16171B] border border-[#26282F] flex items-center justify-center text-[#94979E] hover:text-[#F9FAFB] hover:border-[#383A42] transition-colors" title="Export Log">
+        <span class="material-symbols-outlined text-[18px]">ios_share</span>
+      </button>
+    </header>
+  </div>
+
+  <!-- MAIN SCROLLABLE JOURNAL -->
+  <main class="flex-1 w-full max-w-md mx-auto px-4 py-4 pb-20 flex flex-col space-y-4">
+
+    <!-- SEARCH & CONTROLS -->
+    <div class="flex flex-col space-y-2.5">
+      <!-- Search Input -->
+      <div class="relative flex items-center">
+        <span class="material-symbols-outlined absolute left-3.5 text-[#94979E] text-[18px] pointer-events-none">search</span>
+        <input type="text" placeholder="Search workouts" class="w-full bg-[#16171B] border border-[#26282F] rounded-xl pl-10 pr-10 py-2.5 text-xs text-[#F9FAFB] placeholder-[#94979E] focus:outline-none focus:border-[#10B981] transition-colors">
+        <!-- Clear icon appearing when typed (mocked subtle affordance) -->
+        <button class="absolute right-3 w-5 h-5 rounded-full bg-[#212328] text-[#94979E] hover:text-[#F9FAFB] flex items-center justify-center transition-colors">
+          <span class="material-symbols-outlined text-[13px]">close</span>
+        </button>
+      </div>
+
+      <!-- Compact Period Selector Bar (Expandable Accordion Trigger) -->
+      <div class="bg-[#16171B] border border-[#26282F] rounded-xl p-3 flex items-center justify-between hover:border-[#383A42] transition-colors cursor-pointer group">
+        <div class="flex items-center gap-2.5">
+          <div class="w-7 h-7 rounded-lg bg-[#212328] border border-[#26282F] flex items-center justify-center text-[#10B981]">
+            <span class="material-symbols-outlined text-[16px]">calendar_today</span>
+          </div>
+          <div>
+            <span class="font-headline font-semibold text-xs text-[#F9FAFB]">October 2026</span>
+            <span class="text-[11px] text-[#94979E] ml-1.5 font-mono">· All 31 days</span>
+          </div>
+        </div>
+        <div class="flex items-center gap-1 text-[11px] font-mono text-[#94979E] group-hover:text-[#F9FAFB] transition-colors">
+          <span>Calendar & overview</span>
+          <span class="material-symbols-outlined text-[16px]">expand_more</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- PERIOD SUMMARY STRIP -->
+    <section class="bg-[#16171B] border border-[#26282F] rounded-2xl p-3.5 grid grid-cols-3 divide-x divide-[#26282F]">
+      <div class="px-2 flex flex-col items-center text-center">
+        <span class="font-mono text-[10px] uppercase tracking-wider text-[#94979E]">Sessions</span>
+        <div class="flex items-baseline gap-1 mt-0.5">
+          <span class="font-headline font-semibold text-lg text-[#F9FAFB]">14</span>
+          <span class="font-mono text-[10px] text-[#10B981] font-medium">+3 vs Sep</span>
+        </div>
+      </div>
+      <div class="px-2 flex flex-col items-center text-center">
+        <span class="font-mono text-[10px] uppercase tracking-wider text-[#94979E]">Total Time</span>
+        <div class="flex items-baseline gap-1 mt-0.5">
+          <span class="font-headline font-semibold text-lg text-[#F9FAFB] tabular-nums">11<span class="text-xs font-normal text-[#94979E]">h</span> 42<span class="text-xs font-normal text-[#94979E]">m</span></span>
+        </div>
+      </div>
+      <div class="px-2 flex flex-col items-center text-center">
+        <span class="font-mono text-[10px] uppercase tracking-wider text-[#94979E]">Total Volume</span>
+        <div class="flex items-baseline gap-1 mt-0.5">
+          <span class="font-headline font-semibold text-lg text-[#F9FAFB] tabular-nums">34,180</span>
+          <span class="font-mono text-[10px] text-[#94979E]">kg</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- SAVED SESSIONS TIMELINE (MAIN FOCUS) -->
+
+    <!-- GROUP: OCTOBER 28, 2026 (Preserving exact screenshot requirements) -->
+    <section class="flex flex-col space-y-2.5 pt-1">
+      <div class="flex items-center justify-between px-1">
+        <div class="flex items-center gap-2">
+          <span class="w-1.5 h-1.5 rounded-full bg-[#10B981]"></span>
+          <h2 class="font-mono text-[11px] font-semibold uppercase tracking-wider text-[#94979E]">Wednesday, Oct 28, 2026</h2>
+        </div>
+        <span class="font-mono text-[11px] text-[#94979E]">1 session</span>
+      </div>
+
+      <!-- WORKOUT CARD 1: Exact preserved entry from user's current screenshot -->
+      <article class="bg-[#16171B] border border-[#26282F] hover:border-[#383A42] rounded-2xl overflow-hidden shadow-sm transition-all group cursor-pointer active:scale-[0.99]">
+        <!-- Cover Photo with Exercise & Subtle Dark Gradient Overlay -->
+        <div class="relative h-44 w-full overflow-hidden bg-[#212328]">
+          <img src="https://lh3.googleusercontent.com/aida-public/AB6AXuBgWvtzvWGeJfEEROJJeouakHsiO-tUOGhvcow8DiMS33mS03q7PVqlt6q-foe7bz7-Rp2AybLJM2ODNEeAajirmXdGgREKng-sy-3XrS0N78Cjd9dGR9qTQ2zusfsBEFLHiZFL3r0aMxrwNtyLdxbTf1QXbc7j_l-d4wDbA_MJ7J1q72jnieVdQg-blP8l-w6kDsaTCqxGhKCkFnfyyD1TXKUcxg3gyCmM-nouFckNoo2jDR-KOW6H" alt="Incline Dumbbell Bench Press" class="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-500">
+          <div class="absolute inset-0 bg-gradient-to-t from-[#16171B] via-[#16171B]/60 to-transparent"></div>
+          
+          <!-- Top Badges -->
+          <div class="absolute top-3 left-3 right-3 flex items-center justify-between z-10">
+            <span class="font-mono text-[10px] font-medium text-[#F9FAFB]/90 bg-[#0C0D0E]/70 backdrop-blur-md px-2.5 py-1 rounded-lg border border-[#26282F]">
+              Oct 28, 2026 · 13:14
+            </span>
+            <span class="font-mono text-[10px] font-semibold text-[#10B981] bg-[#10B981]/15 backdrop-blur-md px-2.5 py-1 rounded-lg border border-[#10B981]/30 flex items-center gap-1">
+              <span class="w-1.5 h-1.5 rounded-full bg-[#10B981]"></span>
+              Completed
+            </span>
+          </div>
+
+          <!-- Bottom Title Overlay -->
+          <div class="absolute bottom-2.5 left-4 right-4 z-10">
+            <h3 class="font-headline text-lg font-bold text-[#F9FAFB] tracking-tight">Upper Body Strength</h3>
+          </div>
+        </div>
+
+        <!-- Metrics Row (Exact preserved values: 1 Exercise, <1 min duration, 208kg volume) -->
+        <div class="p-4 pt-3 flex flex-col space-y-3">
+          <div class="grid grid-cols-3 gap-2 py-2 px-3 rounded-xl bg-[#212328]/60 border border-[#26282F]">
+            <div class="flex items-center gap-2">
+              <span class="material-symbols-outlined text-[18px] text-[#94979E]">fitness_center</span>
+              <div>
+                <div class="font-headline font-semibold text-sm text-[#F9FAFB]">1</div>
+                <div class="font-mono text-[10px] text-[#94979E] uppercase leading-none">Exercise</div>
+              </div>
+            </div>
+            <div class="flex items-center gap-2 border-l border-[#26282F] pl-2.5">
+              <span class="material-symbols-outlined text-[18px] text-[#94979E]">timer</span>
+              <div>
+                <div class="font-headline font-semibold text-sm text-[#F9FAFB]">&lt;1 min</div>
+                <div class="font-mono text-[10px] text-[#94979E] uppercase leading-none">Duration</div>
+              </div>
+            </div>
+            <div class="flex items-center gap-2 border-l border-[#26282F] pl-2.5">
+              <span class="material-symbols-outlined text-[18px] text-[#94979E]">scale</span>
+              <div>
+                <div class="font-headline font-semibold text-sm text-[#F9FAFB] tabular-nums">208 kg</div>
+                <div class="font-mono text-[10px] text-[#94979E] uppercase leading-none">Volume</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Exercise Thumbnails Preview -->
+          <div class="pt-0.5">
+            <div class="flex items-center justify-between mb-2">
+              <span class="font-mono text-[10px] uppercase tracking-wider text-[#94979E]">Exercises Performed</span>
+              <span class="text-xs font-medium text-[#10B981] group-hover:translate-x-0.5 transition-transform flex items-center gap-0.5">
+                View session <span class="material-symbols-outlined text-[14px]">arrow_forward</span>
+              </span>
+            </div>
+            <div class="flex items-center gap-2">
+              <div class="flex items-center gap-2 bg-[#212328] border border-[#26282F] rounded-xl p-1.5 pr-3">
+                <img src="https://lh3.googleusercontent.com/aida-public/AB6AXuBgWvtzvWGeJfEEROJJeouakHsiO-tUOGhvcow8DiMS33mS03q7PVqlt6q-foe7bz7-Rp2AybLJM2ODNEeAajirmXdGgREKng-sy-3XrS0N78Cjd9dGR9qTQ2zusfsBEFLHiZFL3r0aMxrwNtyLdxbTf1QXbc7j_l-d4wDbA_MJ7J1q72jnieVdQg-blP8l-w6kDsaTCqxGhKCkFnfyyD1TXKUcxg3gyCmM-nouFckNoo2jDR-KOW6H" alt="Dumbbell Incline Bench Press" class="w-8 h-8 rounded-lg object-cover">
+                <div class="flex flex-col">
+                  <span class="text-xs font-medium text-[#F9FAFB] leading-tight truncate">Incline DB Press</span>
+                  <span class="font-mono text-[10px] text-[#94979E]">2 sets · 208 kg</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </article>
+    </section>
+
+    <!-- GROUP: OCTOBER 26, 2026 -->
+    <section class="flex flex-col space-y-2.5 pt-2">
+      <div class="flex items-center justify-between px-1">
+        <div class="flex items-center gap-2">
+          <span class="w-1.5 h-1.5 rounded-full bg-[#26282F]"></span>
+          <h2 class="font-mono text-[11px] font-semibold uppercase tracking-wider text-[#94979E]">Monday, Oct 26, 2026</h2>
+        </div>
+        <span class="font-mono text-[11px] text-[#94979E]">1 session</span>
+      </div>
+
+      <!-- WORKOUT CARD 2: Multi-exercise Leg Day -->
+      <article class="bg-[#16171B] border border-[#26282F] hover:border-[#383A42] rounded-2xl overflow-hidden shadow-sm transition-all group cursor-pointer active:scale-[0.99]">
+        <div class="relative h-44 w-full overflow-hidden bg-[#212328]">
+          <img src="https://lh3.googleusercontent.com/aida-public/AB6AXuDrTlcWy4Im6QZihMwXHDm8qtDNHF9aIfXlkMfDMPbeSt3SEKpZcylKb8fHhO-FC5-uhmsT1lkJ5MspMUMssZKfj30ijhcVK7-Hg442bihGVzYUXiUotr-0XXGOUVx8VgQwldxSdTC3AminLzNQoU7ADaat_E3-9J15gY6qjXK6Pdui0DpighlW3JIihc7bFOOPWbs4T_LencKQ4KVQ_EBli7Xb9AEe0uh-ps9srVpebEFbeu-xJUFB" alt="Barbell Squat" class="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-500">
+          <div class="absolute inset-0 bg-gradient-to-t from-[#16171B] via-[#16171B]/60 to-transparent"></div>
+          
+          <div class="absolute top-3 left-3 right-3 flex items-center justify-between z-10">
+            <span class="font-mono text-[10px] font-medium text-[#F9FAFB]/90 bg-[#0C0D0E]/70 backdrop-blur-md px-2.5 py-1 rounded-lg border border-[#26282F]">
+              Oct 26, 2026 · 17:45
+            </span>
+            <span class="font-mono text-[10px] font-semibold text-[#10B981] bg-[#10B981]/15 backdrop-blur-md px-2.5 py-1 rounded-lg border border-[#10B981]/30 flex items-center gap-1">
+              <span class="w-1.5 h-1.5 rounded-full bg-[#10B981]"></span>
+              Completed
+            </span>
+          </div>
+
+          <div class="absolute bottom-2.5 left-4 right-4 z-10">
+            <h3 class="font-headline text-lg font-bold text-[#F9FAFB] tracking-tight">Lower Body & Posterior Chain</h3>
+          </div>
+        </div>
+
+        <div class="p-4 pt-3 flex flex-col space-y-3">
+          <div class="grid grid-cols-3 gap-2 py-2 px-3 rounded-xl bg-[#212328]/60 border border-[#26282F]">
+            <div class="flex items-center gap-2">
+              <span class="material-symbols-outlined text-[18px] text-[#94979E]">fitness_center</span>
+              <div>
+                <div class="font-headline font-semibold text-sm text-[#F9FAFB]">5</div>
+                <div class="font-mono text-[10px] text-[#94979E] uppercase leading-none">Exercises</div>
+              </div>
+            </div>
+            <div class="flex items-center gap-2 border-l border-[#26282F] pl-2.5">
+              <span class="material-symbols-outlined text-[18px] text-[#94979E]">timer</span>
+              <div>
+                <div class="font-headline font-semibold text-sm text-[#F9FAFB]">48 min</div>
+                <div class="font-mono text-[10px] text-[#94979E] uppercase leading-none">Duration</div>
+              </div>
+            </div>
+            <div class="flex items-center gap-2 border-l border-[#26282F] pl-2.5">
+              <span class="material-symbols-outlined text-[18px] text-[#94979E]">scale</span>
+              <div>
+                <div class="font-headline font-semibold text-sm text-[#F9FAFB] tabular-nums">6,840 kg</div>
+                <div class="font-mono text-[10px] text-[#94979E] uppercase leading-none">Volume</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Preview of 3 thumbnail exercises + count badge -->
+          <div class="pt-0.5">
+            <div class="flex items-center justify-between mb-2">
+              <span class="font-mono text-[10px] uppercase tracking-wider text-[#94979E]">Exercise Preview</span>
+              <span class="text-xs font-medium text-[#10B981] group-hover:translate-x-0.5 transition-transform flex items-center gap-0.5">
+                View session <span class="material-symbols-outlined text-[14px]">arrow_forward</span>
+              </span>
+            </div>
+            <div class="grid grid-cols-3 gap-2">
+              <div class="flex flex-col bg-[#212328] border border-[#26282F] rounded-xl p-2 min-w-0">
+                <span class="text-xs font-medium text-[#F9FAFB] truncate">Barbell Squat</span>
+                <span class="font-mono text-[10px] text-[#94979E] mt-0.5">4 sets</span>
+              </div>
+              <div class="flex flex-col bg-[#212328] border border-[#26282F] rounded-xl p-2 min-w-0">
+                <span class="text-xs font-medium text-[#F9FAFB] truncate">Romanian DL</span>
+                <span class="font-mono text-[10px] text-[#94979E] mt-0.5">3 sets</span>
+              </div>
+              <div class="flex items-center justify-center bg-[#212328]/80 border border-[#26282F] rounded-xl p-2 text-center">
+                <span class="font-mono text-xs font-medium text-[#94979E]">+3 more</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </article>
+    </section>
+
+    <!-- GROUP: OCTOBER 24, 2026 (Pull / Back) -->
+    <section class="flex flex-col space-y-2.5 pt-2">
+      <div class="flex items-center justify-between px-1">
+        <div class="flex items-center gap-2">
+          <span class="w-1.5 h-1.5 rounded-full bg-[#26282F]"></span>
+          <h2 class="font-mono text-[11px] font-semibold uppercase tracking-wider text-[#94979E]">Saturday, Oct 24, 2026</h2>
+        </div>
+        <span class="font-mono text-[11px] text-[#94979E]">1 session</span>
+      </div>
+
+      <!-- WORKOUT CARD 3: Upper Pull with Pullup Photo -->
+      <article class="bg-[#16171B] border border-[#26282F] hover:border-[#383A42] rounded-2xl overflow-hidden shadow-sm transition-all group cursor-pointer active:scale-[0.99]">
+        <div class="relative h-44 w-full overflow-hidden bg-[#212328]">
+          <img src="https://lh3.googleusercontent.com/aida-public/AB6AXuCcanzIWbwr1wbgiYXZhgMavpn31gfEXKJTTVhG3mquc-uBH5EnvXNlZEn2tvJa2509Y8AAV8q2yKYpkns0qwUEZVDus2qc9VFylQ516_Hq1Mjl3KEiDeoevmknk51V83Mnpg6vtV74d533hkcOjlve55QtOPZXnvoFLwuQHbrJ-ZrJ1yV7bhiMrP4NA4ZRiUfuZaL7PA4zC5YPbomD8A-Ex10M9ou1Vzeei3-VoXwV4ZfCgbyY7Cd1" alt="Pull-ups / Back hypertrophy" class="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-500">
+          <div class="absolute inset-0 bg-gradient-to-t from-[#16171B] via-[#16171B]/60 to-transparent"></div>
+          
+          <div class="absolute top-3 left-3 right-3 flex items-center justify-between z-10">
+            <span class="font-mono text-[10px] font-medium text-[#F9FAFB]/90 bg-[#0C0D0E]/70 backdrop-blur-md px-2.5 py-1 rounded-lg border border-[#26282F]">
+              Oct 24, 2026 · 08:30
+            </span>
+            <span class="font-mono text-[10px] font-semibold text-[#10B981] bg-[#10B981]/15 backdrop-blur-md px-2.5 py-1 rounded-lg border border-[#10B981]/30 flex items-center gap-1">
+              <span class="w-1.5 h-1.5 rounded-full bg-[#10B981]"></span>
+              Completed
+            </span>
+          </div>
+
+          <div class="absolute bottom-2.5 left-4 right-4 z-10">
+            <h3 class="font-headline text-lg font-bold text-[#F9FAFB] tracking-tight">Upper Pull & Posterior Delts</h3>
+          </div>
+        </div>
+
+        <div class="p-4 pt-3 flex flex-col space-y-3">
+          <div class="grid grid-cols-3 gap-2 py-2 px-3 rounded-xl bg-[#212328]/60 border border-[#26282F]">
+            <div class="flex items-center gap-2">
+              <span class="material-symbols-outlined text-[18px] text-[#94979E]">fitness_center</span>
+              <div>
+                <div class="font-headline font-semibold text-sm text-[#F9FAFB]">4</div>
+                <div class="font-mono text-[10px] text-[#94979E] uppercase leading-none">Exercises</div>
+              </div>
+            </div>
+            <div class="flex items-center gap-2 border-l border-[#26282F] pl-2.5">
+              <span class="material-symbols-outlined text-[18px] text-[#94979E]">timer</span>
+              <div>
+                <div class="font-headline font-semibold text-sm text-[#F9FAFB]">52 min</div>
+                <div class="font-mono text-[10px] text-[#94979E] uppercase leading-none">Duration</div>
+              </div>
+            </div>
+            <div class="flex items-center gap-2 border-l border-[#26282F] pl-2.5">
+              <span class="material-symbols-outlined text-[18px] text-[#94979E]">scale</span>
+              <div>
+                <div class="font-headline font-semibold text-sm text-[#F9FAFB] tabular-nums">4,920 kg</div>
+                <div class="font-mono text-[10px] text-[#94979E] uppercase leading-none">Volume</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="pt-0.5">
+            <div class="flex items-center justify-between mb-2">
+              <span class="font-mono text-[10px] uppercase tracking-wider text-[#94979E]">Exercise Preview</span>
+              <span class="text-xs font-medium text-[#10B981] group-hover:translate-x-0.5 transition-transform flex items-center gap-0.5">
+                View session <span class="material-symbols-outlined text-[14px]">arrow_forward</span>
+              </span>
+            </div>
+            <div class="grid grid-cols-3 gap-2">
+              <div class="flex flex-col bg-[#212328] border border-[#26282F] rounded-xl p-2 min-w-0">
+                <span class="text-xs font-medium text-[#F9FAFB] truncate">Weighted Pull-up</span>
+                <span class="font-mono text-[10px] text-[#94979E] mt-0.5">4 sets</span>
+              </div>
+              <div class="flex flex-col bg-[#212328] border border-[#26282F] rounded-xl p-2 min-w-0">
+                <span class="text-xs font-medium text-[#F9FAFB] truncate">Chest Supported Row</span>
+                <span class="font-mono text-[10px] text-[#94979E] mt-0.5">3 sets</span>
+              </div>
+              <div class="flex items-center justify-center bg-[#212328]/80 border border-[#26282F] rounded-xl p-2 text-center">
+                <span class="font-mono text-xs font-medium text-[#94979E]">+2 more</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </article>
+    </section>
+
+  </main>
+
+</body>
+</html>

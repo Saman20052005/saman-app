@@ -6,6 +6,7 @@ import '../tokens/membership_tokens.dart';
 import '../widgets/billing_period_selector.dart';
 import '../widgets/membership_app_bar.dart';
 import '../widgets/primary_membership_button.dart';
+import '../../data/models/account_membership_dto.dart';
 import 'compare_plans_screen.dart';
 import 'plan_detail_screen.dart';
 
@@ -100,6 +101,8 @@ class MembershipOverviewScreen extends ConsumerWidget {
     final plusPlan = plans.firstWhere((p) => p.tier == MembershipTier.plus);
     final proPlan = plans.firstWhere((p) => p.tier == MembershipTier.pro);
     final ultraPlan = plans.firstWhere((p) => p.tier == MembershipTier.ultra);
+    final accountMembership =
+        ref.watch(accountMembershipProvider);
 
     return Scaffold(
       backgroundColor: MembershipTokens.canvas,
@@ -122,7 +125,7 @@ class MembershipOverviewScreen extends ConsumerWidget {
               const SizedBox(height: 16),
 
               // 2. Account Current Status Card
-              _buildCurrentAccountCard(),
+              _buildCurrentAccountCard(accountMembership),
               const SizedBox(height: 20),
 
               // 3. Billing Selector
@@ -220,7 +223,151 @@ class MembershipOverviewScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildCurrentAccountCard() {
+  Widget _buildCurrentAccountCard([dynamic account]) {
+    if (account is AccountMembershipState && account.isUnknown) {
+      return Container(
+        padding: const EdgeInsets.all(14.0),
+        decoration: BoxDecoration(
+          color: MembershipTokens.card,
+          borderRadius: BorderRadius.circular(MembershipTokens.cardRadius),
+          border: Border.all(
+            color: const Color(0x33EF4444),
+            width: 1.0,
+          ),
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(
+                color: const Color(0x1AEF4444),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(
+                  color: const Color(0x33EF4444),
+                  width: 1.0,
+                ),
+              ),
+              child: const Icon(
+                Icons.cloud_off_outlined,
+                size: 20,
+                color: Color(0xFFEF4444),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'STATUS: SERVICE UNAVAILABLE',
+                    style: MembershipTokens.mono(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      color: const Color(0xFFEF4444),
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Could not verify membership status. Please check your network connection.',
+                    style: MembershipTokens.body(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w400,
+                      color: MembershipTokens.textMuted,
+                      height: 1.35,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    if (account is AccountMembershipState && account.isLoggedOut) {
+      return Container(
+        padding: const EdgeInsets.all(14.0),
+        decoration: BoxDecoration(
+          color: MembershipTokens.card,
+          borderRadius: BorderRadius.circular(MembershipTokens.cardRadius),
+          border: Border.all(
+            color: MembershipTokens.border,
+            width: 1.0,
+          ),
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(
+                color: MembershipTokens.surfaceHigh,
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(
+                  color: MembershipTokens.border,
+                  width: 1.0,
+                ),
+              ),
+              child: const Icon(
+                Icons.account_circle_outlined,
+                size: 20,
+                color: MembershipTokens.textMuted,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'ACCOUNT: NOT SIGNED IN',
+                    style: MembershipTokens.mono(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      color: MembershipTokens.textMuted,
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Sign in to view your membership benefits and quota limits.',
+                    style: MembershipTokens.body(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w400,
+                      color: MembershipTokens.textMuted,
+                      height: 1.35,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    final tier = (account is AccountMembershipState
+            ? account.tier
+            : (account is AccountMembershipDto ? account.tier : null)) ??
+        MembershipTier.free;
+    final isStale = account is AccountMembershipState && account.isStale;
+    final tierName = isStale
+        ? ' (OFFLINE)'
+        : tier.name.toUpperCase();
+    final usage = account is AccountMembershipState
+        ? account.nutritionGeminiUsage
+        : (account is AccountMembershipDto
+            ? account.nutritionGeminiUsage
+            : null);
+    final usageText = isStale
+        ? 'Offline — Showing cached status. Quota limits may update once connected.'
+        : (usage != null && usage.consumedUnits > 0
+            ? 'Your account stays on $tierName with core tracking. Scans used: ${usage.consumedUnits}/${usage.limitUnits}.'
+            : 'Your account stays on Free with core tracking. Paid plans are Coming Soon.');
     return Container(
       padding: const EdgeInsets.all(14.0),
       decoration: BoxDecoration(
@@ -261,7 +408,7 @@ class MembershipOverviewScreen extends ConsumerWidget {
                   children: [
                     Flexible(
                       child: Text(
-                        'CURRENT PLAN: FREE',
+                        'CURRENT PLAN: $tierName',
                         overflow: TextOverflow.ellipsis,
                         style: MembershipTokens.mono(
                           fontSize: 11,
@@ -284,7 +431,7 @@ class MembershipOverviewScreen extends ConsumerWidget {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  'Your account stays on Free with core tracking. Paid plans are Coming Soon.',
+                  usageText,
                   style: MembershipTokens.body(
                     fontSize: 12,
                     fontWeight: FontWeight.w400,

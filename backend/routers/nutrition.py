@@ -45,7 +45,8 @@ cloudinary.config(
 # HELPER
 # ─────────────────────────────────────────
 def _normalize_text(text: str) -> str:
-    """Strip diacritics cho fuzzy search tiếng Việt: phở → pho, bún → bun"""
+    """Strip diacritics cho fuzzy search tiếng Việt: phở → pho, bún → bun, đ → d"""
+    text = text.replace("đ", "d").replace("Đ", "d")
     return (
         unicodedata.normalize("NFD", text)
         .encode("ascii", "ignore")
@@ -103,6 +104,9 @@ async def _resolve_food_data(foods: list, user_email: str, db) -> list:
             except Exception as e:
                 print(f"Food lookup error: {e}")
         
+        # Ensure food_id string is normalized and present if provided
+        if food_id:
+            food["food_id"] = str(food_id)
         resolved.append(food)
     return resolved
 
@@ -206,9 +210,10 @@ async def search_foods(
             {"name_search": {"$regex": q_normalized, "$options": "i"}},
         ]}
         global_foods = list(
-            foods_collection.find(mongo_query, {"_id": 0}).limit(limit)
+            foods_collection.find(mongo_query).limit(limit)
         )
         for f in global_foods:
+            f["id"] = str(f.pop("_id", ""))
             f["source_type"] = "global"
 
         # 2. Search My Food của user
@@ -224,10 +229,11 @@ async def search_foods(
             my_foods = list(
                 user_foods_collection.find(
                     my_query,
-                    {"_id": 0, "user_email": 0},
+                    {"user_email": 0},
                 ).limit(10)
             )
             for f in my_foods:
+                f["id"] = str(f.pop("_id", ""))
                 f["source_type"] = "my_food"
 
         combined = my_foods + global_foods
@@ -255,9 +261,12 @@ async def get_my_foods(
         foods = list(
             user_foods_collection.find(
                 {"user_email": current_user["email"]},
-                {"_id": 0, "user_email": 0},
+                {"user_email": 0},
             ).sort("created_at", -1)
         )
+        for f in foods:
+            f["id"] = str(f.pop("_id", ""))
+            f["source_type"] = "my_food"
         return {"foods": foods, "total": len(foods)}
 
     except HTTPException:
@@ -298,10 +307,14 @@ async def create_food(
         result = user_foods_collection.insert_one(doc)
         logger.info("My Food created: user=%s food=%s", user["email"], food.name)
 
+        food_res = {k: v for k, v in doc.items() if k not in ("_id", "user_email", "created_at")}
+        food_res["id"] = str(result.inserted_id)
+        food_res["source_type"] = "my_food"
+
         return {
             "id":      str(result.inserted_id),
             "message": "Food saved to My Food",
-            "food":    {k: v for k, v in doc.items() if k not in ("_id", "user_email", "created_at")},
+            "food":    food_res,
             "status":  "saved",
         }
     except HTTPException:
@@ -309,6 +322,56 @@ async def create_food(
     except Exception as e:
         logger.exception("create_food error: %s", e)
         raise HTTPException(status_code=500, detail=str(e))
+
+
+# ─────────────────────────────────────────
+# ✅ STABLE IDENTITY — GET /foods/{food_id}
+# ─────────────────────────────────────────
+@router.get("/foods/{food_id}")
+async def get_food_by_id(
+    food_id: str,
+    current_user: dict = Depends(get_current_user),
+):
+    """
+    Lookup food detail by stable ID.
+    - Public catalog: readable by any authenticated user.
+    - My Food (user_foods_collection): readable ONLY if owned by current_user.
+    - Other user's custom food or missing food: 404 (no ownership leaked).
+    - Invalid ObjectId format: 400 Bad Request (never 500).
+    """
+    if foods_collection is None:
+        raise HTTPException(status_code=503, detail="Database not available")
+
+    from bson.errors import InvalidId
+    try:
+        obj_id = ObjectId(food_id)
+    except (InvalidId, TypeError, ValueError):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid food ID format",
+        )
+
+    # 1. Lookup in public catalog
+    global_food = foods_collection.find_one({"_id": obj_id})
+    if global_food:
+        global_food["id"] = str(global_food.pop("_id", ""))
+        global_food["source_type"] = "global"
+        return global_food
+
+    # 2. Lookup in user's custom foods (strictly isolated by current_user["email"])
+    if user_foods_collection is not None:
+        user_food = user_foods_collection.find_one({
+            "_id": obj_id,
+            "user_email": current_user["email"],
+        })
+        if user_food:
+            user_food["id"] = str(user_food.pop("_id", ""))
+            user_food.pop("user_email", None)
+            user_food["source_type"] = "my_food"
+            return user_food
+
+    # 3. Not found or belongs to another user -> 404
+    raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Food not found")
 
 
 # ===== LOGS ENDPOINTS =====
@@ -871,6 +934,7 @@ async def get_nutrition_by_date(
 
             entry_data = {
                 "food_name": primary_food.get("name", "Unknown Food"),
+                "food_id": str(primary_food.get("food_id", "") or ""),
                 "calories": meal_total_cal,
                 "protein": meal_total_pro,
                 "carbs": meal_total_carb,
@@ -879,6 +943,7 @@ async def get_nutrition_by_date(
                 "log_id": log_id,
                 "weight_g": primary_food.get("weight_grams", 100),
                 "foodsList": foods_list,  # Add full foods list for UI
+                "foods": foods_list,      # Add foods for backward compatibility and MealDto
                 "total_calories": meal_total_cal,  # Add meal-level total
                 "total_protein": meal_total_pro,
                 "total_carbs": meal_total_carb,

@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="vi"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Saman Shop — Premium Sport &amp; Lifestyle Boutique</title>
+<!-- Google Fonts: Manrope (Full Vietnamese Subset) -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS v3 -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script>
+  tailwind.config = {
+    darkMode: 'class',
+    theme: {
+      extend: {
+        colors: {
+          canvas: '#0C0D0E',
+          surface: {
+            card: '#16171B',
+            elevated: '#1C1D22',
+            subtle: 'rgba(255, 255, 255, 0.05)',
+            border: '#23252B'
+          },
+          saman: {
+            emerald: '#10B981',
+            textPrimary: '#F3F4F6',
+            textSecondary: '#94979E',
+            textMuted: '#6B7280'
+          }
+        },
+        fontFamily: {
+          sans: ['Manrope', 'sans-serif']
+        }
+      }
+    }
+  }
+</script>
+<style>
+  * {
+    font-family: 'Manrope', -apple-system, BlinkMacSystemFont, sans-serif;
+  }
+  body {
+    background-color: #090A0B;
+    color: #F3F4F6;
+    -webkit-font-smoothing: antialiased;
+  }
+  .no-scrollbar::-webkit-scrollbar { display: none; }
+  .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+  .phone-frame {
+    width: 390px;
+    height: 844px;
+    background-color: #0C0D0E;
+    border: 1px solid #1E2026;
+    border-radius: 46px;
+    box-shadow: 0 28px 70px -15px rgba(0, 0, 0, 0.85), 0 0 0 1px rgba(255, 255, 255, 0.04);
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+</style>
+</head>
+<body class="p-6 md:p-12 min-h-screen text-[#F3F4F6]">
+<!-- Top Boutique Header -->
+<header class="max-w-[1600px] mx-auto mb-12 pb-6 border-b border-white/[0.06] flex flex-wrap items-end justify-between gap-6">
+<div>
+<div class="flex items-center gap-2.5 text-xs text-[#94979E] tracking-wider uppercase font-medium">
+<span>Saman Ecosystem</span>
+<span class="text-neutral-600">/</span>
+<span class="text-neutral-300">Curated Boutique</span>
+</div>
+<h1 class="text-3xl md:text-4xl font-semibold tracking-tight text-white mt-2">SAMAN SHOP</h1>
+<p class="text-sm md:text-base text-[#94979E] mt-2 max-w-2xl leading-relaxed font-normal">
+        Không gian tuyển chọn dụng cụ thể thao, phục hồi cơ và chuẩn bị bữa ăn cao cấp. Thiết kế tối giản, tập trung vào chiều sâu hình ảnh và trải nghiệm liền mạch sang Shopee.
+      </p>
+</div>
+<div class="flex items-center gap-3 text-xs text-[#94979E]">
+<span class="w-1.5 h-1.5 rounded-full bg-[#10B981]"></span>
+<span>Mobile Viewport 390 × 844 px · Tỷ lệ 1:1 Native</span>
+</div>
+</header>
+<!-- 3 Screens Boutique Presentation -->
+<main class="max-w-[1600px] mx-auto space-y-20">
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-12 items-start justify-items-center">
+<!-- ========================================== -->
+<!-- SCREEN 01: SHOP LANDING                    -->
+<!-- ========================================== -->
+<div class="flex flex-col items-center w-full">
+<div class="w-full max-w-[390px] mb-3.5 flex items-baseline justify-between px-1">
+<span class="text-xs font-semibold uppercase tracking-wider text-neutral-400">01 — Saman Shop</span>
+<span class="text-[11px] text-neutral-500">Khám phá &amp; Catalog</span>
+</div>
+<!-- Phone Frame 1 -->
+<div class="phone-frame select-none" id="screen-01">
+<!-- iOS Status Bar -->
+<div class="w-full pt-3.5 px-7 pb-2 flex justify-between items-center text-xs text-neutral-400 shrink-0 z-20">
+<span class="font-semibold text-sm text-neutral-200">9:41</span>
+<div class="flex items-center space-x-2 text-neutral-300">
+<svg class="w-3.5 h-3.5 fill-current" viewbox="0 0 24 24"><path d="M2 20h2v-4H2v4zm4 0h2v-8H6v8zm4 0h2v-12h-2v12zm4 0h2v-16h-2v16zm4 0h2V0h-2v20z"></path></svg>
+<svg class="w-3.5 h-3.5 fill-current" viewbox="0 0 24 24"><path d="M12 4C7.31 4 3.07 5.9 0 8.98L12 21 24 8.98C20.93 5.9 16.69 4 12 4z"></path></svg>
+<div class="w-5 h-2.5 border border-neutral-400 rounded-sm p-0.5 flex items-center">
+<div class="h-full bg-neutral-200 rounded-[1px] w-3/4"></div>
+</div>
+</div>
+</div>
+<!-- Clean Header (20px, 600, no heavy box) -->
+<div class="px-5 py-2.5 flex items-center justify-between shrink-0">
+<button aria-label="Quay lại" class="w-9 h-9 flex items-center justify-center text-neutral-300 hover:text-white transition">
+<svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.8" viewbox="0 0 24 24"><path d="M15 19l-7-7 7-7" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+</button>
+<h2 class="text-[20px] font-semibold text-white tracking-tight">Saman Shop</h2>
+<button aria-label="Mục đã lưu" class="w-9 h-9 flex items-center justify-center text-neutral-300 hover:text-white transition">
+<svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.8" viewbox="0 0 24 24"><path d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+</button>
+</div>
+<!-- Scrollable Content -->
+<div class="flex-1 overflow-y-auto no-scrollbar px-5 space-y-5 pb-8 pt-1">
+<!-- Low-profile Charcoal Search Pill -->
+<div>
+<div class="flex items-center bg-[#16171B] rounded-full px-4 py-2.5 text-xs text-neutral-400">
+<svg class="w-4 h-4 text-neutral-400 shrink-0 mr-2.5" fill="none" stroke="currentColor" stroke-width="1.8" viewbox="0 0 24 24"><circle cx="11" cy="11" r="8"></circle><path d="M21 21l-4.35-4.35" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+<input class="w-full bg-transparent border-0 focus:ring-0 p-0 text-xs text-white placeholder-neutral-500 focus:outline-none font-normal" placeholder="Tìm sản phẩm" type="text"/>
+</div>
+</div>
+<!-- Asymmetrical Editorial Hero (~185px) -->
+<div class="relative w-full h-[185px] rounded-2xl overflow-hidden bg-[#16171B] flex items-stretch">
+<div class="w-[55%] p-4 flex flex-col justify-between z-10">
+<div>
+<p class="text-[17px] font-semibold text-white leading-snug">
+                    Đồ tốt cho<br/>nhịp tập của bạn.
+                  </p>
+<p class="text-[11px] text-neutral-400 mt-1.5 leading-relaxed font-normal">
+                    Tuyển chọn tinh giản từ dụng cụ đến dinh dưỡng.
+                  </p>
+</div>
+<div class="flex items-center text-xs text-neutral-300 hover:text-white transition font-medium group cursor-pointer">
+<span>Khám phá</span>
+<span class="ml-1 text-sm transition-transform group-hover:translate-x-0.5">→</span>
+</div>
+</div>
+<div class="w-[45%] relative h-full overflow-hidden">
+<img alt="Athletic gear boutique" class="w-full h-full object-cover object-center" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBJTrYccgHIi2-39kITzm3VJoMWbq9PJcaRz6SwGXpoQUEDDFtz1oaKEm1_1E0jCLuLtSOoo1XOCpGnGb2O8a_L57RMvp6oxvwm8hUYSic8JgFDz_PPJt_4L7zJxkxOUwhd_OsfuzEhYhtuDGq-I8MsDujedPbwQKWC8wbcYP2AkbnoKVVccvI-awqv3jYutV85xIUSEVHG-h39hG0CF7gYfEIO3qx72Axk-LXVGjdT"/>
+<div class="absolute inset-0 bg-gradient-to-r from-[#16171B] via-transparent to-transparent"></div>
+</div>
+</div>
+<!-- Clean Text Category Tabs (No boxes, no loud green) -->
+<div class="border-b border-white/[0.06] pb-2">
+<div class="flex items-center space-x-6 text-[13px] font-medium overflow-x-auto no-scrollbar">
+<button class="text-white relative pb-1 whitespace-nowrap">
+                  Tất cả
+                  <span class="absolute bottom-0 left-0 right-0 h-[1.5px] bg-white rounded-full"></span>
+</button>
+<button class="text-neutral-400 hover:text-white transition pb-1 whitespace-nowrap">Tập luyện</button>
+<button class="text-neutral-400 hover:text-white transition pb-1 whitespace-nowrap">Phục hồi</button>
+<button class="text-neutral-400 hover:text-white transition pb-1 whitespace-nowrap">Bữa ăn</button>
+</div>
+</div>
+<!-- Curated Catalog (Appears Early - 2 Columns) -->
+<div>
+<div class="flex items-center justify-between mb-3">
+<h3 class="text-xs font-semibold uppercase tracking-wider text-neutral-300">Tuyển chọn</h3>
+<span class="text-[11px] text-neutral-500 font-normal">4 sản phẩm nổi bật</span>
+</div>
+<div class="grid grid-cols-2 gap-3.5">
+<!-- Product 1: Bình Shaker Thép -->
+<div class="flex flex-col group cursor-pointer">
+<div class="w-full aspect-[4/5] rounded-xl bg-[#1C1D22] overflow-hidden relative mb-2">
+<img alt="Bình shaker thép 750 ml" class="w-full h-full object-cover object-center transition duration-300 group-hover:scale-105" src="https://lh3.googleusercontent.com/aida-public/AB6AXuB6ZvVGkBm-VRVeW5vOAk9W_ENPLpD3YdlOfgK9p-wufv7Et2xlYSdYWneX5vJ_WC5yW3QMPt7bi8R4eGzyrBgo_W2gmcv_BXfyYeoqIP3aFWeTV_G4oBD8EO22YZyCr8snnA32OvaojVEFWnmFWmtm9Fk4LB3DNu0hhYqCvJ8ncKhHswcCrxImHsj19Oi04ofi_OieWa03Goon8-sGWGsBBX2_gM0M9ckDQ6T9_fOu"/>
+<button aria-label="Lưu sản phẩm" class="absolute top-2 right-2 w-7 h-7 rounded-full bg-black/40 backdrop-blur-sm flex items-center justify-center text-white/80 hover:text-white transition">
+<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="1.8" viewbox="0 0 24 24"><path d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"></path></svg>
+</button>
+</div>
+<h4 class="text-[14px] font-medium text-white line-clamp-1 leading-snug">Bình shaker thép 750 ml</h4>
+<p class="text-[16px] font-semibold text-white mt-0.5 tracking-tight">~350.000 đ</p>
+</div>
+<!-- Product 2: Con lăn giãn cơ EVA -->
+<div class="flex flex-col group cursor-pointer">
+<div class="w-full aspect-[4/5] rounded-xl bg-[#1C1D22] overflow-hidden relative mb-2">
+<img alt="Con lăn giãn cơ EVA 45cm" class="w-full h-full object-cover object-center transition duration-300 group-hover:scale-105" src="https://lh3.googleusercontent.com/aida-public/AB6AXuD6-xa0DjDuHRaFyoGG9RwXeA7oGgW-_efaXUEeeXFrQAT7eQRPnPKMO-J93zLwfkGex2vH-nSxTj_lkxc6D-ZuBIclLGnSPc1NP8BIsTrBzTjhdlKTLMCVtExduLXKht-ppgmXYSUS8xgoGPpFz4eHGJMklm5E-Z5UgqKryzDdCpttqCUb4wfMYRrjjHR0dvpkoBGM7lduhb2735QVGXwcwwApLbd-_54VIMK-mPfJ"/>
+<button aria-label="Lưu sản phẩm" class="absolute top-2 right-2 w-7 h-7 rounded-full bg-black/40 backdrop-blur-sm flex items-center justify-center text-white/80 hover:text-white transition">
+<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="1.8" viewbox="0 0 24 24"><path d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"></path></svg>
+</button>
+</div>
+<h4 class="text-[14px] font-medium text-white line-clamp-1 leading-snug">Con lăn giãn cơ EVA 45cm</h4>
+<p class="text-[16px] font-semibold text-white mt-0.5 tracking-tight">~280.000 đ</p>
+</div>
+<!-- Product 3: Bộ dây kháng lực vải -->
+<div class="flex flex-col group cursor-pointer">
+<div class="w-full aspect-[4/5] rounded-xl bg-[#1C1D22] overflow-hidden relative mb-2">
+<img alt="Bộ dây kháng lực vải" class="w-full h-full object-cover object-center transition duration-300 group-hover:scale-105" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCi-za2kJWW0Fw4GKSme0Yx57AtIN-LRrOaB0q2_0SXfpEsFPC1nkUDMRIY9VGGZ5KyFmfeJ3_aiAivlXewn8wEr_HPR3Cuy_WXCPCHtwU_6HvzZUtHWWnkhBOQlC0joz9Co0csJUDgIfZzdxHjtjG5ydJljZ4eEO9T4Z8yMt_Xk4ZsBGvgEtoVWSy-wGYNlYCVRgXMrUOv9eN1jLucGenujTRE0NrcQXPmP-WM8i6_"/>
+<button aria-label="Lưu sản phẩm" class="absolute top-2 right-2 w-7 h-7 rounded-full bg-black/40 backdrop-blur-sm flex items-center justify-center text-white/80 hover:text-white transition">
+<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="1.8" viewbox="0 0 24 24"><path d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"></path></svg>
+</button>
+</div>
+<h4 class="text-[14px] font-medium text-white line-clamp-1 leading-snug">Bộ dây kháng lực vải</h4>
+<p class="text-[16px] font-semibold text-white mt-0.5 tracking-tight">~195.000 đ</p>
+</div>
+<!-- Product 4: Hộp thủy tinh chia 3 ngăn -->
+<div class="flex flex-col group cursor-pointer">
+<div class="w-full aspect-[4/5] rounded-xl bg-[#1C1D22] overflow-hidden relative mb-2">
+<img alt="Hộp thủy tinh chịu nhiệt chia 3 ngăn" class="w-full h-full object-cover object-center transition duration-300 group-hover:scale-105" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBoUHIeVGGd3bMm6AbxR3mw25Zr8PkCLOKePYN3TvSXLm4RdG1YmYxVEKxILKvgaPQahEfoBgzEQ5VcjCYjftwa8v5yCiMhBM79M51bb3CAlP7ZqyEODEswpyQbqild767o9EjGAnnXrybHQjUctHtqzSCDhHZHCOpWqX5D3Usix0xLyEgS6HhBTrRtLq_uSKyp56cY7MaNBpx5G2hso_-7Z4y5Xdour1wCssW-mzJ1"/>
+<button aria-label="Lưu sản phẩm" class="absolute top-2 right-2 w-7 h-7 rounded-full bg-black/40 backdrop-blur-sm flex items-center justify-center text-white/80 hover:text-white transition">
+<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="1.8" viewbox="0 0 24 24"><path d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"></path></svg>
+</button>
+</div>
+<h4 class="text-[14px] font-medium text-white line-clamp-1 leading-snug">Hộp thủy tinh chịu nhiệt 3 ngăn</h4>
+<p class="text-[16px] font-semibold text-white mt-0.5 tracking-tight">~160.000 đ</p>
+</div>
+</div>
+</div>
+<!-- Editorial Strip (Bộ sưu tập đặt sau sản phẩm) -->
+<div class="pt-2">
+<div class="bg-[#16171B] rounded-2xl p-4 flex items-center justify-between group cursor-pointer transition">
+<div>
+<span class="text-[10px] text-neutral-400 uppercase tracking-wider block font-medium">Bộ sưu tập</span>
+<h4 class="text-sm font-semibold text-white mt-0.5">Bắt đầu tập tại nhà</h4>
+<p class="text-xs text-neutral-400 mt-0.5">Dây kháng lực, thảm đệm, phụ kiện gọn nhẹ.</p>
+</div>
+<div class="text-xs font-semibold text-neutral-300 group-hover:text-white transition flex items-center shrink-0 ml-3">
+<span>Xem</span>
+<span class="ml-1 text-sm">→</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- ========================================== -->
+<!-- SCREEN 02: PRODUCT DETAIL                  -->
+<!-- ========================================== -->
+<div class="flex flex-col items-center w-full">
+<div class="w-full max-w-[390px] mb-3.5 flex items-baseline justify-between px-1">
+<span class="text-xs font-semibold uppercase tracking-wider text-neutral-400">02 — Chi Tiết Sản Phẩm</span>
+<span class="text-[11px] text-neutral-500">Đồng bộ sản phẩm</span>
+</div>
+<!-- Phone Frame 2 -->
+<div class="phone-frame select-none" id="screen-02">
+<!-- iOS Status Bar (Absolute) -->
+<div class="w-full pt-3.5 px-7 pb-2 flex justify-between items-center text-xs text-neutral-300 absolute top-0 left-0 right-0 z-30">
+<span class="font-semibold text-sm text-white drop-shadow-sm">9:41</span>
+<div class="flex items-center space-x-2 text-white">
+<svg class="w-3.5 h-3.5 fill-current" viewbox="0 0 24 24"><path d="M2 20h2v-4H2v4zm4 0h2v-8H6v8zm4 0h2v-12h-2v12zm4 0h2v-16h-2v16zm4 0h2V0h-2v20z"></path></svg>
+<svg class="w-3.5 h-3.5 fill-current" viewbox="0 0 24 24"><path d="M12 4C7.31 4 3.07 5.9 0 8.98L12 21 24 8.98C20.93 5.9 16.69 4 12 4z"></path></svg>
+<div class="w-5 h-2.5 border border-white rounded-sm p-0.5 flex items-center">
+<div class="h-full bg-white rounded-[1px] w-3/4"></div>
+</div>
+</div>
+</div>
+<!-- Hero Image Chiếm ~38% Viewport (~320px) Showcase Studio Light -->
+<div class="relative w-full h-[320px] bg-[#16171B] shrink-0 overflow-hidden">
+<img alt="Bình shaker thép 750 ml" class="w-full h-full object-cover object-center" src="https://lh3.googleusercontent.com/aida-public/AB6AXuB6ZvVGkBm-VRVeW5vOAk9W_ENPLpD3YdlOfgK9p-wufv7Et2xlYSdYWneX5vJ_WC5yW3QMPt7bi8R4eGzyrBgo_W2gmcv_BXfyYeoqIP3aFWeTV_G4oBD8EO22YZyCr8snnA32OvaojVEFWnmFWmtm9Fk4LB3DNu0hhYqCvJ8ncKhHswcCrxImHsj19Oi04ofi_OieWa03Goon8-sGWGsBBX2_gM0M9ckDQ6T9_fOu"/>
+<div class="absolute inset-0 bg-gradient-to-b from-black/50 via-transparent to-[#0C0D0E]/90"></div>
+<!-- Floating Back & Bookmark Actions with Translucent Backing -->
+<div class="absolute top-11 left-5 right-5 flex items-center justify-between z-20">
+<button aria-label="Quay lại" class="w-9 h-9 rounded-full bg-black/40 backdrop-blur-md flex items-center justify-center text-white active:scale-95 transition">
+<svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.8" viewbox="0 0 24 24"><path d="M15 19l-7-7 7-7" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+</button>
+<button aria-label="Lưu sản phẩm" class="w-9 h-9 rounded-full bg-black/40 backdrop-blur-md flex items-center justify-center text-white active:scale-95 transition">
+<svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.8" viewbox="0 0 24 24"><path d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+</button>
+</div>
+</div>
+<!-- Scrollable Body -->
+<div class="flex-1 overflow-y-auto no-scrollbar px-5 pt-1 space-y-5 pb-28">
+<!-- Title & Price Section -->
+<div>
+<div class="flex items-center gap-2 text-xs text-neutral-400 mb-1 font-medium">
+<span>Shopee Mall</span>
+<span>·</span>
+<span>Cập nhật hôm nay</span>
+</div>
+<h1 class="text-[24px] font-semibold text-white tracking-tight leading-snug">
+                Bình shaker thép 750 ml
+              </h1>
+<div class="flex items-baseline gap-2.5 mt-2">
+<span class="text-[20px] font-semibold text-white tracking-tight">350.000 đ</span>
+<span class="text-xs text-neutral-400 font-normal">Sản phẩm minh họa</span>
+</div>
+</div>
+<!-- Vì sao Saman chọn (Clean sentence case, no harsh badge) -->
+<div class="border-t border-white/[0.06] pt-4">
+<h3 class="text-sm font-semibold text-white mb-2">Vì sao Saman chọn</h3>
+<p class="text-xs text-neutral-300 leading-relaxed font-normal">
+                Thép không gỉ 304 hai lớp giữ lạnh nước suốt 24 giờ, triệt tiêu hoàn toàn mùi chua sau khi uống whey so với bình nhựa. Nắp ren khóa cao su chống tràn 100%, đi kèm quai xách tiện lợi cho buổi tập nặng.
+              </p>
+</div>
+<!-- Key-value Details with Clean Minimal Dividers -->
+<div class="border-t border-white/[0.06] pt-4">
+<h3 class="text-sm font-semibold text-white mb-3">Thông số sản phẩm</h3>
+<div class="divide-y divide-white/[0.06] text-xs">
+<div class="py-2.5 flex justify-between items-center">
+<span class="text-neutral-400">Dung tích</span>
+<span class="text-neutral-200 font-medium">750 ml</span>
+</div>
+<div class="py-2.5 flex justify-between items-center">
+<span class="text-neutral-400">Chất liệu</span>
+<span class="text-neutral-200 font-medium">Thép không gỉ 304</span>
+</div>
+<div class="py-2.5 flex justify-between items-center">
+<span class="text-neutral-400">Khóa nắp</span>
+<span class="text-neutral-200 font-medium">Chống rò rỉ 100%</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Sticky Bottom Action Bar (Off-white CTA, Height 52px, Radius 14px) -->
+<div class="absolute bottom-0 left-0 right-0 bg-[#0C0D0E]/95 backdrop-blur-md border-t border-white/[0.06] px-5 pt-3 pb-6 z-30">
+<button class="w-full h-[52px] rounded-[14px] bg-[#F3F4F6] text-[#0C0D0E] font-semibold text-sm flex items-center justify-center gap-1.5 active:scale-[0.99] transition shadow-md">
+<span>Mua trên Shopee</span>
+<span class="text-base font-normal">↗</span>
+</button>
+<p class="text-[11px] text-neutral-500 text-center mt-2 font-normal">
+              Tiếp tục mua hàng trên Shopee
+            </p>
+</div>
+</div>
+</div>
+<!-- ========================================== -->
+<!-- SCREEN 03: SAVED PRODUCTS                  -->
+<!-- ========================================== -->
+<div class="flex flex-col items-center w-full">
+<div class="w-full max-w-[390px] mb-3.5 flex items-baseline justify-between px-1">
+<span class="text-xs font-semibold uppercase tracking-wider text-neutral-400">03 — Đã Lưu</span>
+<span class="text-[11px] text-neutral-500">Danh sách cá nhân</span>
+</div>
+<!-- Phone Frame 3 -->
+<div class="phone-frame select-none" id="screen-03">
+<!-- iOS Status Bar -->
+<div class="w-full pt-3.5 px-7 pb-2 flex justify-between items-center text-xs text-neutral-400 shrink-0 z-20">
+<span class="font-semibold text-sm text-neutral-200">9:41</span>
+<div class="flex items-center space-x-2 text-neutral-300">
+<svg class="w-3.5 h-3.5 fill-current" viewbox="0 0 24 24"><path d="M2 20h2v-4H2v4zm4 0h2v-8H6v8zm4 0h2v-12h-2v12zm4 0h2v-16h-2v16zm4 0h2V0h-2v20z"></path></svg>
+<svg class="w-3.5 h-3.5 fill-current" viewbox="0 0 24 24"><path d="M12 4C7.31 4 3.07 5.9 0 8.98L12 21 24 8.98C20.93 5.9 16.69 4 12 4z"></path></svg>
+<div class="w-5 h-2.5 border border-neutral-400 rounded-sm p-0.5 flex items-center">
+<div class="h-full bg-neutral-200 rounded-[1px] w-3/4"></div>
+</div>
+</div>
+</div>
+<!-- Header (Back, Đã lưu, Count text quiet) -->
+<div class="px-5 py-2.5 flex items-center justify-between shrink-0">
+<button aria-label="Quay lại" class="w-9 h-9 flex items-center justify-center text-neutral-300 hover:text-white transition">
+<svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.8" viewbox="0 0 24 24"><path d="M15 19l-7-7 7-7" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+</button>
+<h2 class="text-[20px] font-semibold text-white tracking-tight">Đã lưu</h2>
+<span class="text-xs text-neutral-400 font-normal">3 sản phẩm</span>
+</div>
+<!-- Clean Horizontal List (Subtle dividers, generous whitespace, no heavy enclosed boxes) -->
+<div class="flex-1 overflow-y-auto no-scrollbar px-5 divide-y divide-white/[0.06] pt-1 pb-8">
+<!-- Item 1: Bình shaker thép -->
+<div class="py-3.5 flex items-center justify-between gap-3.5 group cursor-pointer">
+<div class="w-16 h-16 rounded-xl bg-[#1C1D22] overflow-hidden shrink-0">
+<img alt="Bình shaker thép 750 ml" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuB6ZvVGkBm-VRVeW5vOAk9W_ENPLpD3YdlOfgK9p-wufv7Et2xlYSdYWneX5vJ_WC5yW3QMPt7bi8R4eGzyrBgo_W2gmcv_BXfyYeoqIP3aFWeTV_G4oBD8EO22YZyCr8snnA32OvaojVEFWnmFWmtm9Fk4LB3DNu0hhYqCvJ8ncKhHswcCrxImHsj19Oi04ofi_OieWa03Goon8-sGWGsBBX2_gM0M9ckDQ6T9_fOu"/>
+</div>
+<div class="flex-1 min-w-0">
+<h4 class="text-sm font-medium text-white truncate leading-snug">Bình shaker thép 750 ml</h4>
+<p class="text-sm font-semibold text-white mt-1">350.000 đ</p>
+</div>
+<button aria-label="Bỏ lưu" class="w-8 h-8 flex items-center justify-center text-white/80 hover:text-white transition shrink-0">
+<svg class="w-4 h-4 fill-current text-white/90" viewbox="0 0 24 24"><path d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"></path></svg>
+</button>
+</div>
+<!-- Item 2: Con lăn giãn cơ EVA 45cm -->
+<div class="py-3.5 flex items-center justify-between gap-3.5 group cursor-pointer">
+<div class="w-16 h-16 rounded-xl bg-[#1C1D22] overflow-hidden shrink-0">
+<img alt="Con lăn giãn cơ EVA 45cm" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuD6-xa0DjDuHRaFyoGG9RwXeA7oGgW-_efaXUEeeXFrQAT7eQRPnPKMO-J93zLwfkGex2vH-nSxTj_lkxc6D-ZuBIclLGnSPc1NP8BIsTrBzTjhdlKTLMCVtExduLXKht-ppgmXYSUS8xgoGPpFz4eHGJMklm5E-Z5UgqKryzDdCpttqCUb4wfMYRrjjHR0dvpkoBGM7lduhb2735QVGXwcwwApLbd-_54VIMK-mPfJ"/>
+</div>
+<div class="flex-1 min-w-0">
+<h4 class="text-sm font-medium text-white truncate leading-snug">Con lăn giãn cơ EVA 45cm</h4>
+<p class="text-sm font-semibold text-white mt-1">280.000 đ</p>
+</div>
+<button aria-label="Bỏ lưu" class="w-8 h-8 flex items-center justify-center text-white/80 hover:text-white transition shrink-0">
+<svg class="w-4 h-4 fill-current text-white/90" viewbox="0 0 24 24"><path d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"></path></svg>
+</button>
+</div>
+<!-- Item 3: Bộ dây kháng lực vải -->
+<div class="py-3.5 flex items-center justify-between gap-3.5 group cursor-pointer">
+<div class="w-16 h-16 rounded-xl bg-[#1C1D22] overflow-hidden shrink-0">
+<img alt="Bộ dây kháng lực vải" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCi-za2kJWW0Fw4GKSme0Yx57AtIN-LRrOaB0q2_0SXfpEsFPC1nkUDMRIY9VGGZ5KyFmfeJ3_aiAivlXewn8wEr_HPR3Cuy_WXCPCHtwU_6HvzZUtHWWnkhBOQlC0joz9Co0csJUDgIfZzdxHjtjG5ydJljZ4eEO9T4Z8yMt_Xk4ZsBGvgEtoVWSy-wGYNlYCVRgXMrUOv9eN1jLucGenujTRE0NrcQXPmP-WM8i6_"/>
+</div>
+<div class="flex-1 min-w-0">
+<h4 class="text-sm font-medium text-white truncate leading-snug">Bộ dây kháng lực vải</h4>
+<p class="text-sm font-semibold text-white mt-1">195.000 đ</p>
+</div>
+<button aria-label="Bỏ lưu" class="w-8 h-8 flex items-center justify-center text-white/80 hover:text-white transition shrink-0">
+<svg class="w-4 h-4 fill-current text-white/90" viewbox="0 0 24 24"><path d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"></path></svg>
+</button>
+</div>
+<!-- Item 4 (Unavailable): Bóng massage gai -->
+<div class="py-3.5 flex items-center justify-between gap-3.5 opacity-60">
+<div class="w-16 h-16 rounded-xl bg-[#1C1D22] overflow-hidden shrink-0 relative flex items-center justify-center text-neutral-500">
+<svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="1.5" viewbox="0 0 24 24"><circle cx="12" cy="12" r="9"></circle><path d="M12 8v4m0 4h.01"></path></svg>
+</div>
+<div class="flex-1 min-w-0">
+<h4 class="text-sm font-medium text-neutral-400 truncate leading-snug">Bóng massage gai giải cơ</h4>
+<p class="text-xs text-amber-500/90 mt-1 font-medium">Tạm hết liên kết</p>
+</div>
+<button aria-label="Bỏ lưu" class="w-8 h-8 flex items-center justify-center text-neutral-500 hover:text-neutral-300 transition shrink-0">
+<svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.8" viewbox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12"></path></svg>
+</button>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- ============================================================== -->
+<!-- SECTION: COMPONENT & STATE BOARD                               -->
+<!-- ============================================================== -->
+<section class="mt-20 pt-12 border-t border-white/[0.06]">
+<div class="mb-8">
+<h2 class="text-xl font-semibold text-white tracking-tight">Hệ Thống Trạng Thái Linh Kiện UI</h2>
+<p class="text-sm text-neutral-400 mt-1">Các trạng thái tương tác chính được tinh giản cho hand-off ứng dụng.</p>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+<!-- 1. Search States -->
+<div class="bg-[#121316] rounded-2xl p-5 border border-white/[0.04] space-y-4">
+<h3 class="text-xs font-semibold text-neutral-300 uppercase tracking-wider">Tìm Kiếm (Search)</h3>
+<!-- Default -->
+<div>
+<span class="text-[11px] text-neutral-500 block mb-1">Mặc định</span>
+<div class="flex items-center bg-[#16171B] rounded-full px-3.5 py-2 text-xs text-neutral-400">
+<svg class="w-3.5 h-3.5 text-neutral-500 mr-2 shrink-0" fill="none" stroke="currentColor" stroke-width="1.8" viewbox="0 0 24 24"><circle cx="11" cy="11" r="8"></circle><path d="M21 21l-4.35-4.35"></path></svg>
+<span class="text-neutral-500">Tìm sản phẩm</span>
+</div>
+</div>
+<!-- Active / Typing -->
+<div>
+<span class="text-[11px] text-neutral-500 block mb-1">Đang nhập</span>
+<div class="flex items-center bg-[#16171B] rounded-full px-3.5 py-2 text-xs text-white border border-white/20">
+<svg class="w-3.5 h-3.5 text-neutral-400 mr-2 shrink-0" fill="none" stroke="currentColor" stroke-width="1.8" viewbox="0 0 24 24"><circle cx="11" cy="11" r="8"></circle><path d="M21 21l-4.35-4.35"></path></svg>
+<span>bình shaker</span>
+<span class="w-[1.5px] h-3.5 bg-white ml-0.5 animate-pulse"></span>
+</div>
+</div>
+</div>
+<!-- 2. CTA Button States -->
+<div class="bg-[#121316] rounded-2xl p-5 border border-white/[0.04] space-y-4">
+<h3 class="text-xs font-semibold text-neutral-300 uppercase tracking-wider">Nút Hành Động (CTA)</h3>
+<!-- Default Off-white -->
+<div>
+<span class="text-[11px] text-neutral-500 block mb-1">Mặc định (Off-white)</span>
+<button class="w-full h-10 rounded-xl bg-[#F3F4F6] text-[#0C0D0E] font-semibold text-xs flex items-center justify-center gap-1">
+<span>Mua trên Shopee</span>
+<span class="text-sm">↗</span>
+</button>
+</div>
+<!-- Loading -->
+<div>
+<span class="text-[11px] text-neutral-500 block mb-1">Đang mở liên kết</span>
+<button class="w-full h-10 rounded-xl bg-[#1C1D22] text-neutral-300 font-medium text-xs flex items-center justify-center gap-2">
+<svg class="w-3.5 h-3.5 animate-spin text-neutral-400" fill="none" viewbox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" d="M4 12a8 8 0 018-8v8H4z" fill="currentColor"></path></svg>
+<span>Đang mở Shopee…</span>
+</button>
+</div>
+<!-- Disabled -->
+<div>
+<span class="text-[11px] text-neutral-500 block mb-1">Không khả dụng</span>
+<button class="w-full h-10 rounded-xl bg-[#16171B] text-neutral-600 font-medium text-xs flex items-center justify-center cursor-not-allowed" disabled="">
+<span>Tạm hết liên kết</span>
+</button>
+</div>
+</div>
+<!-- 3. Demo Shopee Flow Modal Sheet -->
+<div class="bg-[#121316] rounded-2xl p-5 border border-white/[0.04] space-y-3">
+<h3 class="text-xs font-semibold text-neutral-300 uppercase tracking-wider">Thông Báo Minh Họa</h3>
+<div class="bg-[#0C0D0E] rounded-xl p-3.5 border border-white/[0.06] space-y-2">
+<div class="w-6 h-1 bg-neutral-700 rounded-full mx-auto mb-2"></div>
+<h4 class="text-xs font-semibold text-white">Sản phẩm minh họa</h4>
+<p class="text-[11px] text-neutral-400 leading-relaxed font-normal">
+              Sản phẩm này trong bản thử nghiệm chưa có liên kết mua thực tế. Bạn sẽ được chuyển hướng sang gian hàng chính thức trong bản phát hành.
+            </p>
+<button class="w-full mt-2 h-8 rounded-lg bg-[#1C1D22] hover:bg-[#23252B] text-white text-[11px] font-medium transition">
+              Đã hiểu
+            </button>
+</div>
+</div>
+<!-- 4. Empty Saved State -->
+<div class="bg-[#121316] rounded-2xl p-5 border border-white/[0.04] space-y-3">
+<h3 class="text-xs font-semibold text-neutral-300 uppercase tracking-wider">Trạng Thái Rỗng</h3>
+<div class="bg-[#0C0D0E] rounded-xl p-5 border border-white/[0.06] text-center space-y-2">
+<svg class="w-6 h-6 text-neutral-600 mx-auto" fill="none" stroke="currentColor" stroke-width="1.5" viewbox="0 0 24 24"><path d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"></path></svg>
+<h4 class="text-xs font-medium text-neutral-300">Chưa có sản phẩm đã lưu</h4>
+<p class="text-[11px] text-neutral-500 font-normal">Chạm biểu tượng lưu trên thẻ sản phẩm để xem lại sau.</p>
+</div>
+</div>
+</div>
+</section>
+</main>
+<!-- Technical Hand-off Footer -->
+<footer class="max-w-[1600px] mx-auto mt-16 pt-6 border-t border-white/[0.06] text-xs text-neutral-500 flex flex-wrap items-center justify-between gap-4">
+<div>
+      Saman Shop Architecture · Không giỏ hàng nội bộ, chuyển tiếp Shopee minh bạch.
+    </div>
+<div class="text-neutral-400">
+      Font Manrope · Canvas <code class="text-neutral-300">#0C0D0E</code> · CTA Off-white <code class="text-neutral-300">#F3F4F6</code>
+</div>
+</footer>
+</body></html>

@@ -43,11 +43,34 @@ abstract class INutritionRepository {
   });
   Future<List<Map<String, dynamic>>> getLogStories(String date);
   Future<bool> deleteLogStory(String logId);
-  Future<AIAnalysisResult?> analyzeFoodImage(XFile imageFile,
-      {String? mode, NutritionRequestContext? session});
+  Future<AIAnalysisResult?> analyzeFoodImage(
+    XFile imageFile, {
+    String? mode,
+    NutritionRequestContext? session,
+    String? idempotencyKey,
+    String? clientRequestId,
+  });
+  Future<AIAnalysisResult?> lookupAnalysisOperation({
+    required String idempotencyKey,
+    String benefitId = 'ai.nutrition_gemini',
+    NutritionRequestContext? session,
+  });
   Future<void> confirmStoryLog(MealLogData data);
   Future<Food?> createCustomFood(Map<String, dynamic> body);
   Future<Map<String, dynamic>> getWeeklyReport(String startDate);
+  Future<Food?> getFoodById(String foodId);
+}
+
+/// Raised when an operation lookup finds an in-progress or failed_unknown operation
+/// so the caller does NOT redispatch inference.
+class AnalysisOperationStateException implements Exception {
+  final String status;
+  final String message;
+
+  const AnalysisOperationStateException(this.status, this.message);
+
+  @override
+  String toString() => message;
 }
 
 /// An in-memory request lease. Never used as an authorization decision or cache key.

@@ -21,7 +21,7 @@ import 'package:health_ai_app/presentation/widgets/exercise_card.dart';
 import 'package:health_ai_app/presentation/widgets/exercise_thumbnail.dart';
 
 import 'workout_exercise_catalog_test.dart'
-    show originalExerciseIds, allNewExercises, expectedRoundTwoExercises;
+    show originalExerciseIds, allCatalogExercises, expectedRoundTwoExercises;
 
 const evidenceDirectory = String.fromEnvironment('WORKOUT_IMAGE_EVIDENCE');
 
@@ -149,11 +149,11 @@ void main() {
       ...curatedExerciseLibrary.map((e) => e.thumbnailUrl),
       ...createDefaultUpperBodySession().exercises.map((e) => e.imageUrl),
     };
-    expect(curatedExerciseLibrary, hasLength(35));
+    expect(curatedExerciseLibrary, hasLength(49));
     expect(curatedExerciseLibrary.map((e) => e.id),
-        [...originalExerciseIds, ...allNewExercises.keys]);
-    expect(thumbnails, hasLength(35));
-    expect(thumbnails, allNewExercises.keys.followedBy(
+        [...originalExerciseIds, ...allCatalogExercises.keys]);
+    expect(thumbnails, hasLength(49));
+    expect(thumbnails, allCatalogExercises.keys.followedBy(
         curatedExerciseLibrary.take(17).map((e) => e.slug))
         .map((slug) => 'assets/images/exercises/$slug-thumb.jpg').toSet());
     for (final thumbnail in thumbnails) {
@@ -184,10 +184,10 @@ void main() {
     expect(exercisePosterSource('assets/images/exercises/plank-thumb.jpg'),
         'assets/images/exercises/plank-poster.jpg');
     final variants = thumbnails.expand((source) => [source, exercisePosterSource(source)]).toSet();
-    expect(variants, hasLength(70));
+    expect(variants, hasLength(98));
     final files = Directory('assets/images/exercises').listSync()
         .whereType<File>().where((file) => file.path.endsWith('.jpg'));
-    expect(files, hasLength(70));
+    expect(files, hasLength(98));
   });
 
   test('All 54 prior image bytes retain their pre-task SHA-256', () {
@@ -332,7 +332,9 @@ void main() {
       await loadImages(tester, [exercise.thumbnailUrl, poster]);
       expect(sources(tester, find.byType(ExerciseLibraryScreen)),
           [exercise.thumbnailUrl,
-            if (id == 'plank') 'assets/images/exercises/side-plank-thumb.jpg']);
+            if (id == 'plank') 'assets/images/exercises/side-plank-thumb.jpg',
+            if (id == 'barbell-bench-press')
+              'assets/images/exercises/incline-barbell-bench-press-thumb.jpg']);
       await capture(tester, '$id-library');
 
       await tester.tap(find.byKey(ValueKey('exercise_row_$id')));
@@ -491,39 +493,43 @@ void main() {
     await tester.pumpWidget(const SizedBox());
   });
 
-  testWidgets('Review mixed session banner never substitutes another exercise',
-      (tester) async {
-    await tester.binding.setSurfaceSize(const Size(430, 932));
-    addTearDown(() => tester.binding.setSurfaceSize(null));
-    final container = ProviderContainer();
-    addTearDown(container.dispose);
-    final selected = curatedExerciseLibrary
-        .where((e) => e.id == 'db-bench-press' || e.id == 'plank').toList();
-    await tester.pumpWidget(UncontrolledProviderScope(
-      container: container,
-      child: MaterialApp(
-        home: ActiveWorkoutScreen(exercises: selected, autoTick: false),
-      ),
-    ));
-    final notifier = container.read(activeWorkoutSessionProvider.notifier);
-    notifier.logActiveSet();
-    notifier.nextExercise();
-    notifier.logActiveSet();
-    await tester.pumpWidget(UncontrolledProviderScope(
-      container: container,
-      child: const MaterialApp(home: WorkoutReviewScreen()),
-    ));
-    await loadImages(tester, selected.map((e) => e.thumbnailUrl));
-    expect(sources(tester, find.byType(WorkoutReviewScreen)),
-        ['', ...selected.map((e) => e.thumbnailUrl)]);
-    expect(find.text('Exercise image unavailable'), findsOneWidget);
-    expect(find.byIcon(Icons.fitness_center_outlined), findsOneWidget);
-    expect(exerciseReviewPosterSource(['']), isEmpty);
-    expect(exerciseReviewPosterSource(['unresolved-plan-image']), isEmpty);
-    expect(exerciseReviewPosterSource(const []), isEmpty);
-    expect(tester.takeException(), isNull);
-    await tester.pumpWidget(const SizedBox());
-  });
+  for (final pressId in ['db-bench-press', 'barbell-bench-press']) {
+    testWidgets(
+        'Review $pressId mixed session banner never substitutes another exercise',
+        (tester) async {
+      await tester.binding.setSurfaceSize(const Size(430, 932));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+      final selected = curatedExerciseLibrary
+          .where((e) => e.id == pressId || e.id == 'plank')
+          .toList();
+      await tester.pumpWidget(UncontrolledProviderScope(
+        container: container,
+        child: MaterialApp(
+          home: ActiveWorkoutScreen(exercises: selected, autoTick: false),
+        ),
+      ));
+      final notifier = container.read(activeWorkoutSessionProvider.notifier);
+      notifier.logActiveSet();
+      notifier.nextExercise();
+      notifier.logActiveSet();
+      await tester.pumpWidget(UncontrolledProviderScope(
+        container: container,
+        child: const MaterialApp(home: WorkoutReviewScreen()),
+      ));
+      await loadImages(tester, selected.map((e) => e.thumbnailUrl));
+      expect(sources(tester, find.byType(WorkoutReviewScreen)),
+          ['', ...selected.map((e) => e.thumbnailUrl)]);
+      expect(find.text('Exercise image unavailable'), findsOneWidget);
+      expect(find.byIcon(Icons.fitness_center_outlined), findsOneWidget);
+      expect(exerciseReviewPosterSource(['']), isEmpty);
+      expect(exerciseReviewPosterSource(['unresolved-plan-image']), isEmpty);
+      expect(exerciseReviewPosterSource(const []), isEmpty);
+      expect(tester.takeException(), isNull);
+      await tester.pumpWidget(const SizedBox());
+    });
+  }
 
   testWidgets('Round two contact sheet places eight pairs beside three approved reference pairs',
       (tester) async {

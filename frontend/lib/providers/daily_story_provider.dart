@@ -16,6 +16,8 @@ import '../screens/nutrition/widgets/meal_review_dialog.dart' show MealLogData;
 import '../presentation/providers/workout_history_providers.dart';
 import '../utils/auth_helper.dart';
 import 'nutrition_provider.dart';
+import '../features/journey/presentation/providers/journey_providers.dart';
+import '../features/journey/domain/models/journey_models.dart';
 export '../features/nutrition/domain/repositories/nutrition_repository.dart'
     show ConfirmLogException, ConfirmLogFailureStage;
 
@@ -83,18 +85,53 @@ class DailyStoryController
     }).toList();
   }
 
-  Future<AIAnalysisResult?> analyzeImage(XFile imageFile,
-      {String? mode, NutritionRequestContext? session}) async {
+  Future<AIAnalysisResult?> analyzeImage(
+    XFile imageFile, {
+    String? mode,
+    NutritionRequestContext? session,
+    String? idempotencyKey,
+    String? clientRequestId,
+  }) async {
     final epoch = _buildEpoch;
     final guard = ref.read(nutritionSessionProvider);
     final service = ref.read(nutritionServiceProvider);
     final owner = session ?? await guard.capture();
     await _validate(owner, epoch);
     try {
-      final result = await service.analyzeFoodImage(imageFile,
-          mode: mode, session: owner);
+      final result = await service.analyzeFoodImage(
+        imageFile,
+        mode: mode,
+        session: owner,
+        idempotencyKey: idempotencyKey,
+        clientRequestId: clientRequestId,
+      );
       await _validate(owner, epoch);
       if (result == null) throw StateError('Food analysis unavailable');
+      return result;
+    } on DioException catch (e) {
+      await _validate(owner, epoch);
+      if (e.response?.statusCode == 401) await guard.recoverAuthorization();
+      rethrow;
+    }
+  }
+
+  Future<AIAnalysisResult?> recoverAnalysisOperation({
+    required String idempotencyKey,
+    String benefitId = 'ai.nutrition_gemini',
+    NutritionRequestContext? session,
+  }) async {
+    final epoch = _buildEpoch;
+    final guard = ref.read(nutritionSessionProvider);
+    final service = ref.read(nutritionServiceProvider);
+    final owner = session ?? await guard.capture();
+    await _validate(owner, epoch);
+    try {
+      final result = await service.lookupAnalysisOperation(
+        idempotencyKey: idempotencyKey,
+        benefitId: benefitId,
+        session: owner,
+      );
+      await _validate(owner, epoch);
       return result;
     } on DioException catch (e) {
       await _validate(owner, epoch);
@@ -213,6 +250,11 @@ class DailyStoryController
       progress.uncertain = null;
       dispatched = false;
       await _validate(owner, epoch);
+      try {
+        ref.read(journeyControllerProvider.notifier).onActivityCompleted(
+              type: JourneyTaskType.nutrition,
+            );
+      } catch (_) {}
       ref.invalidate(nutritionProvider);
       ref.invalidateSelf();
     } on NutritionSessionChanged {

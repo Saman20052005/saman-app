@@ -3,8 +3,11 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from datetime import datetime, date, timedelta, timezone
 from zoneinfo import ZoneInfo
 from typing import Optional, List, Dict, Any
+import hashlib
+import re
 import pydantic as pd
 from bson import ObjectId
+from pymongo.errors import DuplicateKeyError
 
 # Import dependencies
 from backend.auth_utils import verify_token, get_current_user
@@ -188,6 +191,40 @@ def _format_utc_iso(dt_val) -> Optional[str]:
     return None
 
 
+# High-entropy client session identity generated once per workout by the app.
+# Legacy identities (e.g. "demo-session-N") were reused across distinct workouts
+# and therefore never participate in idempotent replay.
+_IDEMPOTENT_CLIENT_ID = re.compile(r"ws-[0-9a-f]{32}")
+
+
+def _idempotent_session_object_id(user_id: str, client_id: Optional[str]) -> Optional[ObjectId]:
+    """Deterministic _id per (owner, client identity) so the unique _id index makes retries atomic."""
+    if not client_id or not _IDEMPOTENT_CLIENT_ID.fullmatch(client_id):
+        return None
+    digest = hashlib.sha256(f"workout_session:v1|{user_id}|{client_id}".encode("utf-8")).digest()
+    return ObjectId(digest[:12])
+
+
+def _utc_ms(value: Optional[datetime]) -> Optional[datetime]:
+    """MongoDB stores millisecond precision and returns naive UTC datetimes."""
+    if value is None:
+        return None
+    value = value.replace(tzinfo=timezone.utc) if value.tzinfo is None else value.astimezone(timezone.utc)
+    return value.replace(microsecond=value.microsecond // 1000 * 1000)
+
+
+def _session_fingerprint(doc: dict) -> tuple:
+    return (
+        doc.get("plan_id"),
+        doc.get("plan_name"),
+        _utc_ms(doc.get("started_at")),
+        _utc_ms(doc.get("finished_at")),
+        doc.get("exercise_logs") or [],
+        doc.get("total_duration_minutes"),
+        doc.get("total_volume_kg"),
+    )
+
+
 def _serialize_workout_session(doc: dict) -> dict:
     if not doc:
         return {}
@@ -234,15 +271,21 @@ async def get_workout_plans(
             raise HTTPException(status_code=404, detail="User not found")
 
         user_id = str(user.get("_id")) if user.get("_id") is not None else None
-        plan_query: dict = {"$or": [{"email": email}]}
+        owner_query: dict = {"$or": [{"email": email}]}
         if user_id:
-            plan_query["$or"].append({"user_id": user_id})
+            owner_query["$or"].append({"user_id": user_id})
 
+        plan_query: dict = owner_query
         if difficulty:
             plan_query["difficulty"] = difficulty
         if target_muscle:
-            plan_query["$or"].append({"target_muscles": target_muscle})
-            plan_query["$or"].append({"muscle_groups": target_muscle})
+            muscle_query = {
+                "$or": [
+                    {"target_muscles": target_muscle},
+                    {"muscle_groups": target_muscle},
+                ]
+            }
+            plan_query = {"$and": [owner_query, muscle_query]}
 
         plans = _safe_find(custom_plans_collection, plan_query)
         plans = [_serialize_mongo(p) for p in plans]
@@ -483,15 +526,35 @@ async def log_workout_session(
             "created_at": now_utc,
         }
 
-        result = workout_history_collection.insert_one(doc)
-        doc["_id"] = result.inserted_id
+        idempotent_id = _idempotent_session_object_id(user_id, session.id)
+        logged_at = now_utc
+        if idempotent_id is None:
+            result = workout_history_collection.insert_one(doc)
+            doc["_id"] = result.inserted_id
+        else:
+            doc["_id"] = idempotent_id
+            try:
+                workout_history_collection.insert_one(doc)
+            except DuplicateKeyError:
+                existing = workout_history_collection.find_one({"_id": idempotent_id})
+                if (
+                    not existing
+                    or existing.get("user_id") != user_id
+                    or _session_fingerprint(existing) != _session_fingerprint(doc)
+                ):
+                    raise HTTPException(
+                        status_code=409,
+                        detail="Workout session identity already saved with different data",
+                    )
+                doc = existing
+                logged_at = _utc_ms(existing.get("created_at")) or now_utc
 
         serialized = _serialize_workout_session(doc)
         return {
             "message": "Workout session logged successfully",
-            "session_id": str(result.inserted_id),
+            "session_id": str(doc["_id"]),
             "session": serialized,
-            "logged_at": now_utc.isoformat(),
+            "logged_at": logged_at.isoformat(),
         }
     except HTTPException:
         raise

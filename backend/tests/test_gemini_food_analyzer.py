@@ -442,20 +442,11 @@ class GeminiFoodAnalyzerTests(unittest.TestCase):
             self.assertEqual(ctx.exception.status_code, 500)
             self.assertIn("GEMINI_API_KEY", str(ctx.exception.detail))
 
-    def test_missing_gemini_food_model_raises_500(self):
-        """AC6: When provider is gemini but GEMINI_FOOD_MODEL is missing, raise HTTP 500."""
-        dummy_file = StubUploadFile()
+    def test_missing_gemini_food_model_uses_safe_default(self):
+        """When model config is absent, use the approved Gemini Flash default."""
         with patch.dict(os.environ, {"GEMINI_FOOD_MODEL": ""}):
-            with self.assertRaises(HTTPException) as ctx:
-                asyncio.run(
-                    self.router_mod.analyze_food_image(
-                        image=dummy_file,
-                        grams=100.0,
-                        email="user@saman.test",
-                    )
-                )
-            self.assertEqual(ctx.exception.status_code, 500)
-            self.assertIn("GEMINI_FOOD_MODEL", str(ctx.exception.detail))
+            analyzer = GeminiFoodAnalyzer(api_key="test-key")
+            self.assertEqual(analyzer.model, "gemini-3.6-flash")
 
     # -------------------------------------------------------------------------
     # 3. SCHEMA PRESERVATION & SUCCESS RESPONSE

@@ -8,6 +8,10 @@ import logging
 # --- IMPORTS MỚI TỪ CẤU TRÚC REFACTOR ---
 from backend.app.models.user import UserProfileInput
 from backend.app.repositories.user_repository import UserRepository
+try:
+    from backend.app.database import users_collection
+except Exception:
+    users_collection = None
 
 # Import service logic
 from backend.services.health_engine import HealthEngine
@@ -50,7 +54,7 @@ async def update_profile(profile_input: UserProfileInput, current_user: dict = D
     """
     user_email = current_user["email"]
     CALCULATION_FIELDS = ("age", "gender", "height", "weight", "activity_level", "goal")
-    ALLOWED_PROFILE_FIELDS = ("full_name", "age", "gender", "height", "weight", "activity_level", "goal")
+    ALLOWED_PROFILE_FIELDS = ("full_name", "age", "gender", "height", "weight", "activity_level", "goal", "preferences")
 
     # 1. Kiểm tra explicit null trên 6 trường tính toán -> 422 (không silently bỏ null)
     for field_name in CALCULATION_FIELDS:
@@ -72,6 +76,7 @@ async def update_profile(profile_input: UserProfileInput, current_user: dict = D
         "activity_level": existing_profile.get("activity_level", current_user.get("activity_level")) if existing_profile is not None else current_user.get("activity_level"),
         "goal": existing_profile.get("goal", current_user.get("goal")) if existing_profile is not None else current_user.get("goal"),
         "full_name": existing_profile.get("full_name", current_user.get("full_name")) if existing_profile is not None else current_user.get("full_name"),
+        "preferences": existing_profile.get("preferences", current_user.get("preferences")) if existing_profile is not None else current_user.get("preferences"),
     }
 
     # Track calculation input provenance (input vs nested vs root fallback)
@@ -97,13 +102,30 @@ async def update_profile(profile_input: UserProfileInput, current_user: dict = D
                 merged[k] = val
 
     # 4. Kiểm tra sau merge: nếu chưa đủ 6 trường tính toán -> 422 trước khi ghi
-    for field_name in CALCULATION_FIELDS:
-        val = merged.get(field_name)
-        if val is None:
-            raise HTTPException(
-                status_code=422,
-                detail=f"Missing required profile field '{field_name}' after merge for stats calculation",
-            )
+    missing_calc_fields = [f for f in CALCULATION_FIELDS if merged.get(f) is None]
+    if missing_calc_fields:
+        if "preferences" in profile_input.model_fields_set and profile_input.preferences is not None:
+            if users_collection is not None:
+                users_collection.update_one(
+                    {"_id": current_user["_id"]},
+                    {"$set": {"preferences": profile_input.preferences, "profile.preferences": profile_input.preferences}}
+                )
+            resp_prof = dict(existing_profile) if existing_profile else {}
+            resp_prof["preferences"] = profile_input.preferences
+            return {
+                "user_id": str(current_user["_id"]) if current_user.get("_id") is not None else "",
+                "email": user_email,
+                "full_name": profile_input.full_name or current_user.get("full_name"),
+                "avatar": current_user.get("avatar"),
+                "avatar_source": current_user.get("avatar_source", "none"),
+                "can_use_google_avatar": current_user.get("can_use_google_avatar", False),
+                "profile": resp_prof,
+                "health_stats": current_user.get("health_stats"),
+            }
+        raise HTTPException(
+            status_code=422,
+            detail=f"Missing required profile field '{missing_calc_fields[0]}' after merge for stats calculation",
+        )
 
     # 5. Tính toán chỉ số sức khoẻ (HealthEngine)
     try:
@@ -146,10 +168,21 @@ async def update_profile(profile_input: UserProfileInput, current_user: dict = D
         if k in merged and merged[k] is not None:
             response_profile[k] = merged[k]
 
+    if "preferences" in profile_input.model_fields_set and profile_input.preferences is not None:
+        if users_collection is not None:
+            users_collection.update_one(
+                {"_id": current_user["_id"]},
+                {"$set": {"preferences": profile_input.preferences, "profile.preferences": profile_input.preferences}}
+            )
+        response_profile["preferences"] = profile_input.preferences
+
     return {
+        "user_id": str(current_user["_id"]) if current_user.get("_id") is not None else "",
         "email": user_email,
         "full_name": profile_input.full_name or current_user.get("full_name"),
         "avatar": current_user.get("avatar"),
+        "avatar_source": current_user.get("avatar_source", "none"),
+        "can_use_google_avatar": current_user.get("can_use_google_avatar", False),
         "profile": response_profile,
         "health_stats": health_stats.dict(),
     }
@@ -167,11 +200,18 @@ async def update_profile_put(profile_input: UserProfileInput, current_user: dict
 @router.get("/profile")
 async def get_profile(current_user: dict = Depends(get_current_user)):
     # Trả về full data để App hiển thị
+    user_prof = current_user.get("profile")
+    if isinstance(user_prof, dict):
+        user_prof = dict(user_prof)
+        if "preferences" not in user_prof and current_user.get("preferences"):
+            user_prof["preferences"] = current_user.get("preferences")
     return {
-        "user_id": str(current_user["_id"]),
+        "user_id": str(current_user["_id"]) if current_user.get("_id") is not None else "",
         "email": current_user["email"],
         "full_name": current_user.get("full_name"),
         "avatar": current_user.get("avatar"),
-        "profile": current_user.get("profile"),
+        "avatar_source": current_user.get("avatar_source", "none"),
+        "can_use_google_avatar": current_user.get("can_use_google_avatar", False),
+        "profile": user_prof,
         "health_stats": current_user.get("health_stats")
     }

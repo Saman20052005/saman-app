@@ -19,6 +19,7 @@ from jwt.algorithms import RSAAlgorithm # Cho Apple Sign In
 
 from backend.app.database import users_collection, db
 from backend.app.models.user import UserAuth
+from backend.services.avatar_service import resolve_avatar_state, sync_google_avatar
 
 logger = logging.getLogger(__name__)
 from backend.auth_utils import hash_password, verify_password, SECRET_KEY
@@ -211,21 +212,31 @@ def social_login(req: SocialLoginRequest):
 
     # 3. Find or Create User
     user = safe_find_one(users_collection, {"email": email})
+    picture = verified_data.get('picture')
     
     if not user:
         new_user = {
             "email": email,
             "full_name": full_name,
             "auth_provider": req.provider,
-            "avatar": verified_data.get('picture'),
+            "avatar": picture,
+            "avatar_source": "google" if (req.provider == 'google' and picture) else ("custom" if picture else "none"),
+            "google_avatar": picture if req.provider == 'google' else None,
+            "custom_avatar": None if req.provider == 'google' else picture,
+            "custom_avatar_public_id": None,
             "created_at": datetime.datetime.utcnow(),
             "password": None
         }
         result = safe_insert_one(users_collection, new_user)
         user = new_user 
     else:
-        # Update avatar nếu cần
-        pass
+        if req.provider == 'google' and picture:
+            if users_collection is not None:
+                user = sync_google_avatar(users_collection, user, picture)
+            else:
+                user.setdefault("google_avatar", picture)
+
+    resolved_avatar = resolve_avatar_state(user)
 
     # 4. Tạo JWT của hệ thống SAMAN
     token = jwt.encode({
@@ -239,7 +250,9 @@ def social_login(req: SocialLoginRequest):
         "user": {
             "email": email,
             "full_name": user.get("full_name"),
-            "avatar": user.get("avatar")
+            "avatar": resolved_avatar["avatar"],
+            "avatar_source": resolved_avatar["avatar_source"],
+            "can_use_google_avatar": resolved_avatar["can_use_google_avatar"],
         }
     }
 
@@ -280,7 +293,10 @@ def login(user: UserAuth):
         "token_type": "bearer", 
         "user_info": {
             "email": db_user["email"],
-            "full_name": db_user.get("full_name", "User")
+            "full_name": db_user.get("full_name", "User"),
+            "avatar": resolve_avatar_state(db_user)["avatar"],
+            "avatar_source": resolve_avatar_state(db_user)["avatar_source"],
+            "can_use_google_avatar": resolve_avatar_state(db_user)["can_use_google_avatar"],
         }
     }
 

@@ -1,0 +1,256 @@
+<!DOCTYPE html><html class="dark" lang="vi"><head><meta charset="utf-8"><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" name="viewport"><meta content="mobile_stack" name="shell-type"><link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&amp;display=swap" rel="stylesheet"><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"><style>@layer base{html,body{width:100vw;margin:0;padding:0;background-color:#121314;}body{overscroll-behavior:none;font-family:'Be Vietnam Pro',sans-serif;}.pb-safe{padding-bottom:env(safe-area-inset-bottom,0px);}.pt-safe{padding-top:env(safe-area-inset-top,0px);}main>:first-child{margin-top:0!important;}main>:last-child{margin-bottom:0!important;}}::-webkit-scrollbar{display:none;}</style><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config = { darkMode: "class", theme: { extend: { colors: { "tertiary-fixed-dim": "#ffb3af", "surface": "#121314", "on-secondary": "#2e3037", "surface-container-lowest": "#0d0e0f", "on-background": "#e3e2e3", "inverse-on-surface": "#303031", "tertiary-fixed": "#ffdad7", "surface-container-highest": "#343536", "on-primary": "#003824", "secondary-container": "#45464e", "error-container": "#93000a", "primary-container": "#10b981", "on-surface": "#e3e2e3", "inverse-primary": "#006c49", "primary-fixed-dim": "#4edea3", "error": "#ffb4ab", "primary": "#4edea3", "on-primary-container": "#00422b", "background": "#121314", "surface-container-low": "#1b1c1d", "on-primary-fixed": "#002113", "on-tertiary-fixed": "#410005", "on-tertiary": "#650911", "on-primary-fixed-variant": "#005236", "on-tertiary-fixed-variant": "#842225", "outline-variant": "#3c4a42", "surface-bright": "#39393a", "surface-dim": "#121314", "surface-container": "#1f2021", "on-error": "#690005", "on-error-container": "#ffdad6", "inverse-surface": "#e3e2e3", "on-surface-variant": "#bbcabf", "primary-fixed": "#6ffbbe", "secondary": "#c5c6cf", "surface-variant": "#343536", "on-tertiary-container": "#711419", "tertiary-container": "fc7c78", "on-secondary-fixed": "#191b22", "on-secondary-container": "#b4b4bd", "surface-container-high": "#292a2b", "surface-tint": "#4edea3", "secondary-fixed-dim": "#c5c6cf", "outline": "#86948a", "on-secondary-fixed-variant": "#45464e", "tertiary": "#ffb3af", "secondary-fixed": "#e1e2eb" }, borderRadius: { "DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px" }, spacing: { "space-xs": "0.25rem", "space-sm": "0.5rem", "margin": "1rem", "gutter": "1rem", "space-xl": "2rem", "space-md": "1rem", "space-lg": "1.5rem" }, fontFamily: { "headline-sm": ["Be Vietnam Pro"], "numeric-stat": ["Be Vietnam Pro"], "label-sm": ["Be Vietnam Pro"], "label-md": ["Be Vietnam Pro"], "body-sm": ["Be Vietnam Pro"], "headline-md": ["Be Vietnam Pro"], "headline-lg": ["Be Vietnam Pro"], "display-hero": ["Be Vietnam Pro"], "body-md": ["Be Vietnam Pro"], "body-lg": ["Be Vietnam Pro"] }, fontSize: { "headline-sm": ["18px", { "lineHeight": "24px", "fontWeight": "600" }], "numeric-stat": ["32px", { "lineHeight": "36px", "fontWeight": "700" }], "label-sm": ["11px", { "lineHeight": "14px", "fontWeight": "600" }], "label-md": ["12px", { "lineHeight": "16px", "fontWeight": "500" }], "body-sm": ["13px", { "lineHeight": "18px", "fontWeight": "400" }], "headline-md": ["22px", { "lineHeight": "28px", "fontWeight": "600" }], "headline-lg": ["28px", { "lineHeight": "34px", "fontWeight": "600" }], "display-hero": ["40px", { "lineHeight": "48px", "fontWeight": "700" }], "body-md": ["14px", { "lineHeight": "20px", "fontWeight": "400" }], "body-lg": ["16px", { "lineHeight": "24px", "fontWeight": "400" }] } } } }</script></head><body class="bg-surface font-body-md text-on-surface flex flex-col min-h-screen"><header class="fixed top-0 w-full z-50 bg-surface/80 backdrop-blur-xl shadow-[0_1px_8px_rgba(0,0,0,0.04)] pt-safe"><div class="h-16 px-space-xs flex items-center justify-between"><div class="flex items-center"><button aria-label="Quay lại" class="w-11 h-11 flex items-center justify-center text-on-surface hover:text-primary transition-colors" onclick="history.back()"><span class="material-symbols-outlined text-[24px]">arrow_back</span></button><h1 class="font-headline-sm text-headline-sm text-on-surface ml-space-xs tracking-tight">Thảo luận</h1></div><div class="flex items-center gap-space-sm pr-space-sm"><button aria-label="More actions" class="w-11 h-11 flex items-center justify-center text-on-surface-variant hover:text-on-surface transition-colors"><span class="material-symbols-outlined text-[22px]">more_vert</span></button></div></div></header><main class="flex flex-col relative w-full pt-16 pb-safe bg-surface min-h-screen"><div class="flex flex-col w-full pb-24">
+<!-- QUESTION CARD -->
+<article class="mx-margin mt-space-md p-space-md bg-surface-container rounded-xl flex flex-col gap-space-md shadow-sm"><!-- Question Author Header & Topic -->
+<div class="flex items-start justify-between gap-space-sm">
+  <div class="flex items-center gap-space-sm min-w-0">
+    <div class="relative w-11 h-11 rounded-full overflow-hidden shrink-0 bg-surface-container-high">
+      <img class="w-full h-full object-cover" data-alt="Close-up portrait of a cheerful young Vietnamese female culinary enthusiast with soft lighting, wearing an olive linen apron in a modern kitchen setting." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAYLL2boUfsRfHbXnDeTgIZS7fIqfREQMbjYMYwxmMe-JE1qDgLEjHS1-8n69zRbDdSYiBlJO2ArHORXQHcELa2EJHJe5WuZ1HhXYH2TmNoDasGT9KGsVqaeLaneqCaOhDiDkm4LhBHbccMXMjMNbsIURD-SU8bDayzH3MI56-_wIJT5geVL3jNWPUge6FP6xBqWIQ19dDFiNV8VJRCcjFGz_4q_GnMFrgOwsTtg6O6">
+    </div>
+    <div class="flex flex-col min-w-0">
+      <div class="flex items-center gap-1.5">
+        <span class="font-headline-sm text-headline-sm text-on-surface truncate">Thu Hà</span>
+        <span class="material-symbols-outlined text-primary text-[16px] shrink-0" style="font-variation-settings: 'FILL' 1;">verified</span>
+      </div>
+      <span class="font-body-sm text-[13px] text-on-surface-variant truncate">@thuha.mealprep • 3 giờ trước</span>
+    </div>
+  </div>
+  <span class="inline-flex items-center px-2.5 py-1 rounded-lg bg-surface-container-high text-on-surface-variant font-label-sm text-label-sm uppercase tracking-wider shrink-0">
+    MEAL PREP
+  </span>
+</div>
+
+<!-- Question Title & Description with enhanced spacing and typography -->
+<div class="flex flex-col gap-3 my-1">
+  <h2 class="text-[20px] font-semibold text-on-surface leading-[28px]">
+    Bạn thường chuẩn bị bữa ăn (meal prep) cho cả tuần như thế nào để giữ độ tươi ngon?
+  </h2>
+  <p class="text-[15px] text-[#e3e2e3] leading-[24px] font-normal">
+    Mình mới bắt đầu đi làm bận rộn nên muốn nấu sẵn đồ ăn cho 4–5 ngày vào Chủ Nhật. Nhưng mình lo rau củ và thịt cá để đến thứ Năm, thứ Sáu sẽ bị mất chất hoặc ra nhiều nước. Mọi người có kinh nghiệm dùng hộp thủy tinh hút chân không hay cấp đông từng phần không ạ?
+  </p>
+</div>
+
+<!-- Question Attached Visual -->
+<div class="relative w-full aspect-video rounded-xl overflow-hidden bg-surface-container-high my-1">
+  <img class="w-full h-full object-cover" data-alt="A clean, pristine refrigerator shelf organized with clear airtight glass meal prep food containers filled with fresh grilled chicken breast, quinoa, broccoli, and roasted sweet potatoes in a sleek minimalist athletic kitchen." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBlcn9ECQWeCQ2JZ1jHuYQenuxjAa3z65lWpgdLj2e56ZWIkwySk8_-Jn5DoAHlKRBiCUPKZqgpyyYRXPiEo0PfenTWUwEylGMqC1gYWpn-IbUNRvJWLSeltDI4vEUaMULYwuzofQ8XMWDi17k8ls7jafzgHYniXqm_x6rMlg4fNNeiNGZik0KB8DrzeJYYcAvtzSImjSGTZ2Zu21I_npcJD1dPYqBZpqNu4K8KPxqG">
+  <div class="absolute bottom-2.5 left-2.5 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-surface-container-lowest/80 backdrop-blur-md">
+    <span class="material-symbols-outlined text-primary text-[16px]" style="font-variation-settings: 'FILL' 1;">task_alt</span>
+    <span class="text-[12px] font-medium text-on-surface">Đã có câu trả lời hữu ích</span>
+  </div>
+</div>
+
+<!-- Question Actions Strip: neutral background #24272B, min touch height 44px (h-11) -->
+<div class="flex items-center justify-between pt-2">
+  <button class="h-11 px-4 rounded-xl bg-surface-container-high text-[#F2F4F5] text-[13px] font-medium inline-flex items-center gap-2 transition-colors active:scale-95" id="follow-question-btn" onclick="toggleFollowQuestion()">
+    <span class="material-symbols-outlined text-[18px] text-on-surface-variant" id="follow-icon">notifications</span>
+    <span id="follow-text" class="">Theo dõi câu hỏi</span>
+  </button>
+  <div class="flex items-center gap-2">
+    <button aria-label="Lưu câu hỏi" class="h-11 px-3.5 rounded-xl bg-surface-container-high text-[#F2F4F5] inline-flex items-center gap-2 text-[13px] font-medium transition-colors active:scale-95" id="bookmark-btn" onclick="toggleBookmark()">
+      <span class="material-symbols-outlined text-[18px] text-on-surface-variant" id="bookmark-icon">bookmark</span>
+      <span id="bookmark-text" class="">Đã lưu</span>
+    </button>
+    <button aria-label="Chia sẻ câu hỏi" class="w-11 h-11 rounded-xl bg-surface-container-high text-on-surface-variant flex items-center justify-center transition-colors active:scale-95">
+      <span class="material-symbols-outlined text-[20px]">share</span>
+    </button>
+  </div>
+</div></article>
+<!-- ANSWERS SECTION -->
+<section class="mt-space-lg flex flex-col gap-space-md px-margin"><!-- Header with Sort Filter -->
+<div class="flex items-center justify-between pb-1">
+  <div class="flex items-baseline gap-2">
+    <h3 class="font-headline-sm text-headline-sm text-on-surface">Câu trả lời</h3>
+    <span class="text-[13px] text-on-surface-variant">25 thảo luận</span>
+  </div>
+  <!-- Segmented Bar / Switcher: charcoal #24272B active button with white text -->
+  <div class="flex items-center p-1 rounded-xl bg-surface-container">
+    <button class="px-3 py-1.5 rounded-lg text-white bg-surface-container-high text-[12px] font-medium transition-all" id="sort-helpful" onclick="setSortMode('helpful')">
+      Hữu ích nhất
+    </button>
+    <button class="px-3 py-1.5 rounded-lg text-on-surface-variant text-[12px] font-medium transition-all" id="sort-recent" onclick="setSortMode('recent')">
+      Mới nhất
+    </button>
+  </div>
+</div>
+
+<!-- ANSWER CARD 1: BEST ANSWER (CHOSEN) -->
+<div class="p-space-md bg-surface-container rounded-xl flex flex-col gap-3.5">
+  <!-- Neutral Pick Badge: neutral #24272B background with subtle green/gray check -->
+  <div class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-surface-container-high text-on-surface text-[12px] font-medium self-start">
+    <span class="material-symbols-outlined text-[16px] text-primary" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+    <span class="text-[#F2F4F5]">Người hỏi lựa chọn là câu trả lời hữu ích</span>
+  </div>
+
+  <!-- Author Header: PRO COACH badge removed, clean name and handle -->
+  <div class="flex items-center justify-between mt-0.5">
+    <div class="flex items-center gap-space-sm min-w-0">
+      <div class="relative w-10 h-10 rounded-full overflow-hidden shrink-0 bg-surface-container-high">
+        <img class="w-full h-full object-cover" data-alt="Portrait of an experienced male athletic fitness and nutrition coach in a sleek black athletic shirt with disciplined expression in a state-of-the-art gym." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDJ7eotdJl9KyB8zp1u60EKA30Okzv025WJ86CAYSBW2NbFwlk5t2qGFED_Pvme9YcI3897o-YspMBiUob8ODWDS64vrpiG6U0SLnpboNysI83ZyBHQcC812xx3j3Zdrw83JJmm_SXf82n-mknUlDqi71TQsSlGsSB9MM15yRVHcomqLHTUHBVWyezQIBw-L2uYL_dCF2itL5ESDsmj7cb0T8tl9RY81c-ZUPcvp3bs">
+      </div>
+      <div class="flex flex-col min-w-0">
+        <span class="font-body-lg text-body-lg font-semibold text-on-surface truncate">HLV Hoàng Long</span>
+        <span class="text-[13px] text-on-surface-variant truncate">@hoanglong.coach • 2 giờ trước</span>
+      </div>
+    </div>
+    <button aria-label="Tùy chọn bình luận" class="w-8 h-8 rounded-full flex items-center justify-center text-on-surface-variant hover:text-on-surface">
+      <span class="material-symbols-outlined text-[18px]">more_horiz</span>
+    </button>
+  </div>
+
+  <!-- Answer Body: 15px, comfortable leading -->
+  <p class="text-[15px] text-[#F2F4F5] leading-[24px]">
+    Kinh nghiệm của mình là chia làm 2 đợt nấu (Chủ Nhật &amp; Thứ Tư) thay vì làm cả tuần. Nếu phải nấu 1 lần: thịt cá chế biến xong nên chia hộp cấp đông, tối hôm trước chuyển xuống ngăn mát. Rau củ nhiều nước chỉ nên sơ chế cắt sẵn, khi ăn mới xào/luộc trong 3 phút là ngon nhất.
+  </p>
+
+  <!-- Interaction Toolbar: neutral #24272B buttons -->
+  <div class="flex items-center gap-space-sm pt-1">
+    <button class="h-10 px-3.5 rounded-lg bg-surface-container-high text-[#F2F4F5] text-[13px] font-medium inline-flex items-center gap-1.5 active:scale-95 transition-all" id="helpful-btn-1" onclick="toggleHelpful(this, 48)">
+      <span class="material-symbols-outlined text-[18px] text-on-surface-variant">thumb_up</span>
+      <span class="count-label">Hữu ích (48)</span>
+    </button>
+    <button class="h-10 px-3.5 rounded-lg bg-surface-container-high text-[#F2F4F5] text-[13px] font-medium inline-flex items-center gap-1.5 active:scale-95 transition-all" onclick="focusReplyInput('@hoanglong.coach')">
+      <span class="material-symbols-outlined text-[18px] text-on-surface-variant">reply</span>
+      <span class="">Trả lời</span>
+    </button>
+  </div>
+
+  <!-- Nested Sub-Reply Thread -->
+  <div class="mt-1 pl-space-md flex flex-col gap-2 bg-surface-container-high/40 p-3 rounded-xl">
+    <div class="flex items-center gap-space-xs">
+      <div class="w-6 h-6 rounded-full overflow-hidden shrink-0 bg-surface-container">
+        <img class="w-full h-full object-cover" data-alt="Small thumbnail avatar of Thu Hà smiling warmly." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCM7zD2wzzjRm7nknWGzZ6_rf-f7x5Jh1I-z-kiMXAkvClWHJUAyvajdWdHeJ966LDhaNhKutfPcpXdgO1MJUHmvw9PDcxQwuVjApfcEz84VyWLMiZh6K0uWQ8Xe-pqJQLvKRZbyRtMh10bIQu087By-HrwKK51Y3WFLikZTH5B9GZ0hCxFYhR1B6AiXEwcsOeabb7R7Sp0oeNRAwgXaJdaEQw-JVOh7kU457GTEz4t">
+      </div>
+      <span class="text-[13px] text-on-surface font-semibold">Thu Hà</span>
+      <span class="px-1.5 py-0.2 bg-surface-container-highest text-on-surface-variant text-[10px] rounded font-medium">Tác giả</span>
+      <span class="text-[12px] text-on-surface-variant">• 1 giờ trước</span>
+    </div>
+    <p class="text-[14px] text-on-surface-variant leading-relaxed">
+      Cảm ơn anh Long rất nhiều, giải pháp chia 2 đợt nghe hợp lý hơn hẳn! Em sẽ áp dụng ngay tuần này.
+    </p>
+  </div>
+</div>
+
+<!-- ANSWER CARD 2: COMMUNITY RESPONSE -->
+<div class="p-space-md bg-surface-container rounded-xl flex flex-col gap-3.5">
+  <div class="flex items-center justify-between">
+    <div class="flex items-center gap-space-sm min-w-0">
+      <div class="relative w-10 h-10 rounded-full overflow-hidden shrink-0 bg-surface-container-high">
+        <img class="w-full h-full object-cover" data-alt="Portrait of an energetic young Vietnamese male gym-goer wearing modern sports headphones with neon lighting accents." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCSmabzVn3wDebApc-nbe6dfX_TEKJDSBNLKhr-Z_4wVJ64R7HO3mswX7QxY8ZRcwtTTNWKP-0f7ld7z0bGQmbNUpUy8qQc2t8xXZsqBtdRp0_V91_fDqmpmgCd_8CxhlXMOVelZVH6KMh0LN-dJYT00t5LvtVKNriMs_5cNlCT9a2udD4ZNKTG_0_mnOEVGQ-xtL5cCV1bmjOPrCD3ThkvWDOBiEzcpZyXuKchvjOF">
+      </div>
+      <div class="flex flex-col min-w-0">
+        <span class="font-body-lg text-body-lg font-semibold text-on-surface truncate">Minh Khang</span>
+        <span class="text-[13px] text-on-surface-variant truncate">@minhkhang.lift • 45 phút trước</span>
+      </div>
+    </div>
+    <button aria-label="Tùy chọn bình luận" class="w-8 h-8 rounded-full flex items-center justify-center text-on-surface-variant hover:text-on-surface">
+      <span class="material-symbols-outlined text-[18px]">more_horiz</span>
+    </button>
+  </div>
+  <p class="text-[15px] text-[#F2F4F5] leading-[24px]">
+    Mình dùng hộp thủy tinh chia ngăn có nắp ron cao su kín khí, giữ được 3-4 ngày rất ổn. Mẹo nhỏ là để nguội hoàn toàn thức ăn rồi mới đóng nắp bỏ tủ lạnh, tránh đọng hơi nước làm đồ ăn nhanh chua.
+  </p>
+  <div class="flex items-center gap-space-sm pt-1">
+    <button class="h-10 px-3.5 rounded-lg bg-surface-container-high text-[#F2F4F5] text-[13px] font-medium inline-flex items-center gap-1.5 active:scale-95 transition-all" id="helpful-btn-2" onclick="toggleHelpful(this, 14)">
+      <span class="material-symbols-outlined text-[18px] text-on-surface-variant">thumb_up</span>
+      <span class="count-label">Hữu ích (14)</span>
+    </button>
+    <button class="h-10 px-3.5 rounded-lg bg-surface-container-high text-[#F2F4F5] text-[13px] font-medium inline-flex items-center gap-1.5 active:scale-95 transition-all" onclick="focusReplyInput('@minhkhang.lift')">
+      <span class="material-symbols-outlined text-[18px] text-on-surface-variant">reply</span>
+      <span class="">Trả lời</span>
+    </button>
+  </div>
+</div></section>
+<!-- PINNED ANSWER COMPOSER -->
+<aside class="fixed bottom-0 left-0 right-0 z-40 bg-surface-container-lowest/95 backdrop-blur-xl px-margin py-3 pb-safe shadow-[0_-4px_16px_rgba(0,0,0,0.4)]"><div class="flex items-center gap-3 max-w-lg mx-auto">
+  <div class="relative flex-1 flex items-center bg-surface-container rounded-xl px-3.5 py-1.5">
+    <input autocomplete="off" class="w-full bg-transparent text-on-surface placeholder:text-on-surface-variant text-[15px] outline-none border-none py-2" id="answer-input" placeholder="Chia sẻ câu trả lời của bạn..." type="text">
+    <button aria-label="Đính kèm ảnh" class="w-9 h-9 rounded-lg flex items-center justify-center text-on-surface-variant hover:text-on-surface transition-colors shrink-0">
+      <span class="material-symbols-outlined text-[22px]">add_photo_alternate</span>
+    </button>
+  </div>
+  <button aria-label="Gửi câu trả lời" class="w-11 h-11 rounded-xl bg-[#08664F] text-white flex items-center justify-center shrink-0 active:scale-95 transition-all shadow-sm" id="send-answer-btn" onclick="submitAnswer()">
+    <span class="material-symbols-outlined text-[20px] text-white" style="font-variation-settings: 'FILL' 1;">send</span>
+  </button>
+</div></aside>
+</div>
+<script>
+  function toggleFollowQuestion() {
+    const btn = document.getElementById('follow-question-btn');
+    const icon = document.getElementById('follow-icon');
+    const text = document.getElementById('follow-text');
+    const isFollowing = text.innerText === 'Đang theo dõi';
+
+    if (isFollowing) {
+      text.innerText = 'Theo dõi';
+      btn.className = 'h-10 px-3.5 rounded-lg bg-surface-container-high text-on-surface-variant font-label-md text-label-md inline-flex items-center gap-1.5 transition-colors active:scale-95';
+      icon.style.fontVariationSettings = "'FILL' 0";
+    } else {
+      text.innerText = 'Đang theo dõi';
+      btn.className = 'h-10 px-3.5 rounded-lg bg-surface-container-high text-primary font-label-md text-label-md inline-flex items-center gap-1.5 transition-colors active:scale-95';
+      icon.style.fontVariationSettings = "'FILL' 1";
+    }
+  }
+
+  function toggleBookmark() {
+    const icon = document.getElementById('bookmark-icon');
+    const text = document.getElementById('bookmark-text');
+    const isSaved = text.innerText === 'Đã lưu';
+
+    if (isSaved) {
+      text.innerText = 'Lưu';
+      text.className = 'text-on-surface-variant';
+      icon.className = 'material-symbols-outlined text-[20px] text-on-surface-variant';
+      icon.style.fontVariationSettings = "'FILL' 0";
+    } else {
+      text.innerText = 'Đã lưu';
+      text.className = 'text-on-surface';
+      icon.className = 'material-symbols-outlined text-[20px] text-primary';
+      icon.style.fontVariationSettings = "'FILL' 1";
+    }
+  }
+
+  function toggleHelpful(button, baseCount) {
+    const label = button.querySelector('.count-label');
+    const icon = button.querySelector('.material-symbols-outlined');
+    const isActive = button.classList.contains('bg-primary/15');
+
+    if (isActive) {
+      button.className = 'h-9 px-3 rounded-lg bg-surface-container-high text-on-surface-variant font-label-md text-label-md inline-flex items-center gap-1.5 active:scale-95 transition-all';
+      icon.style.fontVariationSettings = "'FILL' 0";
+      label.innerText = `Hữu ích (${baseCount})`;
+    } else {
+      button.className = 'h-9 px-3 rounded-lg bg-primary/15 text-primary font-label-md text-label-md inline-flex items-center gap-1.5 active:scale-95 transition-all';
+      icon.style.fontVariationSettings = "'FILL' 1";
+      label.innerText = `Hữu ích (${baseCount + 1})`;
+    }
+  }
+
+  function setSortMode(mode) {
+    const helpfulBtn = document.getElementById('sort-helpful');
+    const recentBtn = document.getElementById('sort-recent');
+
+    if (mode === 'helpful') {
+      helpfulBtn.className = 'px-2.5 py-1 rounded-md text-primary bg-surface-container-high font-label-sm text-label-sm transition-all';
+      recentBtn.className = 'px-2.5 py-1 rounded-md text-on-surface-variant font-label-sm text-label-sm transition-all';
+    } else {
+      recentBtn.className = 'px-2.5 py-1 rounded-md text-primary bg-surface-container-high font-label-sm text-label-sm transition-all';
+      helpfulBtn.className = 'px-2.5 py-1 rounded-md text-on-surface-variant font-label-sm text-label-sm transition-all';
+    }
+  }
+
+  function focusReplyInput(handle) {
+    const input = document.getElementById('answer-input');
+    input.value = `Trả lời ${handle}: `;
+    input.focus();
+  }
+
+  function submitAnswer() {
+    const input = document.getElementById('answer-input');
+    if (input.value.trim().length > 0) {
+      input.value = '';
+      input.blur();
+    }
+  }
+</script></main>
+
+</body></html>

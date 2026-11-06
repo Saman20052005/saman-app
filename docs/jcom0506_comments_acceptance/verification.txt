@@ -1,0 +1,34 @@
+JCOM0506 verification summary (sanitized; actual tool outcomes)
+Baseline frontend two files: 19 PASS.
+Default Python baseline: import failure (bson missing). Existing CP7 Python selected; no installation.
+Existing backend read/interactions/follow: 26 PASS.
+Combined existing + new backend fresh-process unittest: 34 PASS.
+Final new real-Mongo integration suite: 8 PASS (fresh process, no skipped test).
+Community non-render frontend suite: 87 PASS (included first 9 new comment tests).
+Final targeted comment suite after late-4xx retention change: 10 PASS.
+Final scoped analyze: 0 errors, 0 warnings, 2 inherited const infos.
+App-wide analyze: 80 diagnostics at executed revision; unrelated warnings left untouched; four new const infos later resolved.
+Python compileall backend: PASS after final backend edits.
+Final web release verification build: PASS (97.1s); compiled latest frontend source. Earlier release builds also PASS.
+Browser main app: PARTIAL at reply canonical confirmation. First canonical comment/count=1 verified in UI, HTTP and Mongo.
+Browser reply/reload/controlled response-loss/B stages: NOT VERIFIED. Do not substitute widget tests for runtime.
+Two process-management commands rejected by automatic approval review: blocked by policy. Existing session services retained.
+Diff check: inherited blank EOF line in app_translations.dart, preserved.
+
+RESUME (fresh checks; old suites not rerun):
+New active-editing-connection regression: FAIL before key fix (old EditableTextState defunct), final 1/1 PASS.
+Affected account-switch/timeout widget checks only: 2/2 PASS.
+Analyze composer + comment test file: No issues found.
+Main-entrypoint web release rebuild: PASS (114.4s), frontend artifact fd573176c13d75affa56d6e151d50995f6cb274ffd662b4aa57d8f70eaf294e5.
+Browser real-keyboard clearing probe: root POST200 + reply POST200 + same-post Mongo count2/parent equality confirmed on pre-final backend.
+Final-backend acceptance NOT RUN; status PARTIAL; approval block unchanged, not retried.
+
+FINAL AUTHORIZED BACKEND RESUME (2026-11-02)
+- Fresh branch/HEAD/status/listener/Win32_Process/command/parent/native cwd and dedicated DB/dbpath verification before action. No process environment secrets read. psutil absent; no dependency installed.
+- Single guarded same-port backend stop/restart: ACCEPTED by tool. Final14152/launcher15192; old15840/11960 only. No alternate mechanism.
+- Final OpenAPI parent minLength1 and real canonical compact UTC; attributable source manifest backend_version.json; all hashes unchanged after acceptance.
+- Final runtime harness: PASS. Real UI canonical root/reply, reload/thread, Feed3, server persist200 + injected response abort, same-key retry/identical canonical ID/no duplicates, independent B projection/private exclusion, followers audience, revoked thread GET404/replay POST404/no payload/no UI leak/final DB4.
+- Earlier final-runtime PARTIAL attempts: text-only locator ignored Flutter merged aria-label; reload wheel started outside scroll content. Probe corrections, no production edits. Original screenshots01-05/runtime_blocker were accidentally overwritten once; guard then fixed. Current images are that later run, not original bytes.
+- Post-test DB audit:4 comments,3 roots,1 reply; correct same-post parent; recovery receipt ID matches replay. No deletions.
+- No passed suite or web build rerun. Harness syntax check recorded at final handoff. Branch unchanged, no commit/push/merge/deploy/release/next checkpoint.
+- Final ast.parse(run_comments_runtime.py): PASS; runtime JSON status PASS; screenshots06-12 existence/size checked; screenshot10 visually confirms target count3, screenshot12 confirms thread hidden. Scoped git diff --check: no output (these evidence paths are inherited untracked files); manual scope/source hash review completed. Repository-wide diff still contains inherited WIP; no reset/cleanup.

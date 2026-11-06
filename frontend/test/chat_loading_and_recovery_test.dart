@@ -5,6 +5,7 @@ import 'package:image_picker/image_picker.dart';
 
 import 'package:health_ai_app/config/app_theme.dart';
 import 'package:health_ai_app/controllers/chat_controller.dart';
+import 'package:health_ai_app/services/analytics_service.dart';
 import 'package:health_ai_app/screens/chat/tokens/saman_chat_tokens.dart';
 import 'package:health_ai_app/screens/chat/widgets/widgets.dart';
 import 'package:health_ai_app/screens/chat_screen.dart';
@@ -83,6 +84,11 @@ class _FakeLoadingRecoveryNotifier extends StateNotifier<ChatState>
   void clearChat() {
     clearChatCalled = true;
     state = ChatState(messages: []);
+  }
+
+  @override
+  Future<String> executeHistoryAnalytics(AnalyticsQuote quote) async {
+    return 'Báo cáo phân tích xu hướng thử nghiệm';
   }
 
   @override
@@ -259,6 +265,31 @@ void main() {
   });
 
   group('Phase 3 — State 07: Recoverable Error State Tests', () {
+    for (final viewport in <(double, double)>[(390, 844), (1440, 960)]) {
+      testWidgets('Retry preserves composer draft at ${viewport.$1}x${viewport.$2}',
+          (tester) async {
+        final fakeNotifier = _FakeLoadingRecoveryNotifier(
+          initialState: ChatState(
+            messages: [ChatMessage(role: 'user', content: 'Failed question')],
+            errorMessage: "I couldn't complete that response.",
+            failedUserMessage: 'Failed question',
+          ),
+        );
+        await tester.pumpWidget(_buildLoadingRecoveryTestWrapper(
+          notifier: fakeNotifier,
+          width: viewport.$1,
+          height: viewport.$2,
+        ));
+        final field = find.byType(TextField);
+        await tester.enterText(field, 'Draft for the next turn');
+        await tester.pump();
+        await tester.tap(find.text('Retry'));
+        await tester.pump();
+        expect(tester.widget<TextField>(field).controller?.text,
+            'Draft for the next turn');
+      });
+    }
+
     testWidgets('10-14. Failed request preserves user message and renders recoverable error without raw exceptions',
         (tester) async {
       final fakeNotifier = _FakeLoadingRecoveryNotifier(

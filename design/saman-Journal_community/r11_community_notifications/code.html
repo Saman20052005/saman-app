@@ -1,0 +1,237 @@
+<!DOCTYPE html><html class="dark" lang="vi"><head><meta charset="utf-8"><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" name="viewport"><meta content="mobile_tab" name="shell-type"><link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&amp;display=swap" rel="stylesheet"><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"><style>@layer base{html,body{width:100vw;margin:0;padding:0;background-color:#121314;}body{overscroll-behavior:none;font-family:'Be Vietnam Pro',sans-serif;}.pb-safe{padding-bottom:env(safe-area-inset-bottom,0px);}.pt-safe{padding-top:env(safe-area-inset-top,0px);}main>:first-child{margin-top:0!important;}main>:last-child{margin-bottom:0!important;}}::-webkit-scrollbar{display:none;}</style><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config = { darkMode: "class", theme: { extend: { colors: { "tertiary-fixed-dim": "#ffb3af", "surface": "#121314", "on-secondary": "#2e3037", "surface-container-lowest": "#0d0e0f", "on-background": "#e3e2e3", "inverse-on-surface": "#303031", "tertiary-fixed": "#ffdad7", "surface-container-highest": "#343536", "on-primary": "#003824", "secondary-container": "#45464e", "error-container": "#93000a", "primary-container": "#10b981", "on-surface": "#e3e2e3", "inverse-primary": "#006c49", "primary-fixed-dim": "#4edea3", "error": "#ffb4ab", "primary": "#4edea3", "on-primary-container": "#00422b", "background": "#121314", "surface-container-low": "#1b1c1d", "on-primary-fixed": "#002113", "on-tertiary-fixed": "#410005", "on-tertiary": "#650911", "on-primary-fixed-variant": "#005236", "on-tertiary-fixed-variant": "#842225", "outline-variant": "#3c4a42", "surface-bright": "#39393a", "surface-dim": "#121314", "surface-container": "#1f2021", "on-error": "#690005", "on-error-container": "#ffdad6", "inverse-surface": "#e3e2e3", "on-surface-variant": "#bbcabf", "primary-fixed": "#6ffbbe", "secondary": "#c5c6cf", "surface-variant": "#343536", "on-tertiary-container": "#711419", "tertiary-container": "#fc7c78", "on-secondary-fixed": "#191b22", "on-secondary-container": "#b4b4bd", "surface-container-high": "#292a2b", "surface-tint": "#4edea3", "secondary-fixed-dim": "#c5c6cf", "outline": "#86948a", "on-secondary-fixed-variant": "#45464e", "tertiary": "#ffb3af", "secondary-fixed": "#e1e2eb" }, borderRadius: { "DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px" }, spacing: { "space-xs": "0.25rem", "space-sm": "0.5rem", "margin": "1rem", "gutter": "1rem", "space-xl": "2rem", "space-md": "1rem", "space-lg": "1.5rem" }, fontFamily: { "headline-sm": ["Be Vietnam Pro"], "numeric-stat": ["Be Vietnam Pro"], "label-sm": ["Be Vietnam Pro"], "label-md": ["Be Vietnam Pro"], "body-sm": ["Be Vietnam Pro"], "headline-md": ["Be Vietnam Pro"], "headline-lg": ["Be Vietnam Pro"], "display-hero": ["Be Vietnam Pro"], "body-md": ["Be Vietnam Pro"], "body-lg": ["Be Vietnam Pro"] }, fontSize: { "headline-sm": ["18px", { "lineHeight": "24px", "fontWeight": "600" }], "numeric-stat": ["32px", { "lineHeight": "36px", "fontWeight": "700" }], "label-sm": ["11px", { "lineHeight": "14px", "fontWeight": "600" }], "label-md": ["12px", { "lineHeight": "16px", "fontWeight": "500" }], "body-sm": ["13px", { "lineHeight": "18px", "fontWeight": "400" }], "headline-md": ["22px", { "lineHeight": "28px", "fontWeight": "600" }], "headline-lg": ["28px", { "lineHeight": "34px", "fontWeight": "600" }], "display-hero": ["40px", { "lineHeight": "48px", "fontWeight": "700" }], "body-md": ["14px", { "lineHeight": "20px", "fontWeight": "400" }], "body-lg": ["16px", { "lineHeight": "24px", "fontWeight": "400" }] } } } }</script></head><body class="bg-surface font-body-md text-on-surface flex flex-col min-h-screen"><main class="flex flex-col relative w-full pb-24 bg-surface min-h-screen pt-safe"><div class="flex flex-col w-full px-margin space-y-space-md">
+<!-- Sub-header Bar (Context controls & filters) -->
+<div class="flex items-center justify-between pt-3 pb-2"><div class="flex items-center gap-3"><button aria-label="Quay lại" type="button" class="w-10 h-10 -ml-1 rounded-full flex items-center justify-center text-on-surface hover:bg-surface-container active:scale-95 transition-all"><span class="material-symbols-outlined text-[24px]">arrow_back</span></button><div class="flex items-center gap-2"><h1 class="font-headline-md text-headline-md text-on-surface tracking-tight">Thông báo</h1><span aria-label="Có thông báo mới" class="w-2 h-2 rounded-full bg-primary"></span></div></div><div class="flex items-center gap-1"><button aria-label="Đánh dấu đã đọc tất cả" class="h-10 px-2.5 flex items-center justify-center text-on-surface-variant hover:text-on-surface transition-colors text-label-md font-label-md rounded-lg active:bg-surface-container" id="markAllReadBtn" type="button"><span class="material-symbols-outlined text-[18px] mr-1 text-primary">done_all</span><span class="">Đã đọc</span></button><button aria-label="Cài đặt thông báo" class="w-10 h-10 flex items-center justify-center text-on-surface-variant hover:text-on-surface rounded-lg active:bg-surface-container transition-colors" id="openSettingsBtn" type="button"><span class="material-symbols-outlined text-[22px]">tune</span></button></div></div>
+<!-- Filter Pills Bar -->
+<div aria-label="Bộ lọc thông báo" class="flex items-center gap-space-sm overflow-x-auto pb-space-xs" role="tablist"><button class="filter-chip px-3.5 h-8 rounded-full flex items-center gap-1.5 font-label-md text-label-md transition-all bg-[#24272B] text-white shadow-sm active:scale-95 border border-[#3c4a42]/40" data-filter="all" id="filterAll" type="button"><span class="w-1.5 h-1.5 rounded-full bg-primary"></span><span class="">Tất cả</span></button><button class="filter-chip px-3.5 h-8 rounded-full flex items-center justify-center font-label-md text-label-md transition-all bg-transparent text-[#9399A1] hover:text-on-surface hover:bg-surface-container active:scale-95 border border-transparent" data-filter="comments" id="filterComments" type="button"><span class="">Bình luận</span></button><button class="filter-chip px-3.5 h-8 rounded-full flex items-center justify-center font-label-md text-label-md transition-all bg-transparent text-[#9399A1] hover:text-on-surface hover:bg-surface-container active:scale-95 border border-transparent" data-filter="follows" id="filterFollows" type="button"><span class="">Theo dõi</span></button></div>
+<!-- Notification Feed Content -->
+<div class="flex flex-col space-y-space-lg"><div class="flex flex-col" id="sectionToday"><div class="flex items-center justify-between py-2 px-1 mb-1"><span class="font-label-sm text-label-sm uppercase tracking-wider text-[#9399A1]">Hôm nay</span><span class="font-label-sm text-label-sm text-primary font-medium">3 mới</span></div><div class="flex flex-col divide-y divide-outline-variant/30"><div class="notif-item comment-item group relative flex items-start gap-3 py-3.5 px-2.5 rounded-xl hover:bg-surface-container/60 transition-colors cursor-pointer" data-id="1"><div class="relative shrink-0 mt-0.5"><img alt="Minh Khang" class="w-11 h-11 rounded-full object-cover bg-surface-container-highest" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBP95qV5lq1x9GThJbME8TN-dMJqYlDOFIxVLBn3GZIHRYdb57TEwOW06lYKTh1iVAdOoq1rotD_uvtbza4PxxujuF6-GeSe548VXbH3I5DfCpZZKFH7S7dbjRA4AQ83yLSgwpbAByC746b-HEz26rGcgZ-eoc8vKhcIFitWK3NfmUeSTYGv-_3lQf-YVqpibkYmQQ1IVxBohs84LV-u0a4F3eh0Y70KMw_hsfGnxTI"><div class="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-surface-container-lowest flex items-center justify-center text-primary shadow-sm border border-surface"><span class="material-symbols-outlined text-[13px]" style="font-variation-settings: 'FILL' 1;">chat_bubble</span></div></div><div class="flex-1 min-w-0 pr-1"><p class="font-body-md text-body-md text-[#F2F4F5] leading-snug"><span class="font-headline-sm text-body-md text-[#F2F4F5] font-semibold">Minh Khang</span><span class="text-[#9399A1]"> đã bình luận về bài viết của bạn: </span><span class="text-[#F2F4F5] italic">"Nồi chiên không dầu set bao nhiêu độ vậy bạn?"</span></p><div class="flex items-center gap-2 mt-1.5"><span class="font-label-sm text-label-sm text-[#9399A1]">15 phút trước</span><span aria-label="Chưa đọc" class="w-1.5 h-1.5 rounded-full bg-[#8AD8BD] unread-dot"></span></div></div><div class="shrink-0 self-center"><img alt="Hộp cơm meal prep" class="w-12 h-12 rounded-lg object-cover bg-surface-container-highest" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDGAAYgKJqrHZhWT6AgKx2O4ynyS9uWOytWMA0CNahkgXd-HW6A0dNdA6XWTMU7PSuOewVBKF1PEamCg6zSpLByB4UJSFUJcp5-rge3m11Wdm39oAiEkTMrj734aRs_SebivzmK3pMrmY6P1u4Imj8HGOCOhuTqqYbdhGhJP5PP7gyK1wPCK8gAIGT-DEPRfjKXlYjEvIE1vatgH4o4H9SiDQ86rTlg_GU0S8XSWLad"></div></div><div class="notif-item like-item group relative flex items-start gap-3 py-3.5 px-2.5 rounded-xl hover:bg-surface-container/60 transition-colors cursor-pointer" data-id="2"><div class="relative shrink-0 mt-0.5"><img alt="Thu Hà" class="w-11 h-11 rounded-full object-cover bg-surface-container-highest" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAnbsnZfnisSA-UWxCh0r9T-RP6IuF_8XpYegsGkyY30YPVpK7ZTMznfGxa_hcSD6vBHpus9KjV41XhdXDisjWpAi__wFB5XzV5D4dekDNRBDPxTrKL2lExGiEU9jm1oV0bB3ZbRTEpiQ3LYpcebD5mPFbffMFedSUxRMMy2q_s1PMZlwDDH8XU0LOu1NZJi20AgwMZr8TUshCI2HOkKbjav3yA0EF9tBJtVqTGnJKD"><div class="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-surface-container-lowest flex items-center justify-center text-tertiary-container shadow-sm border border-surface"><span class="material-symbols-outlined text-[13px]" style="font-variation-settings: 'FILL' 1;">favorite</span></div></div><div class="flex-1 min-w-0 pr-1"><p class="font-body-md text-body-md text-[#F2F4F5] leading-snug"><span class="font-headline-sm text-body-md text-[#F2F4F5] font-semibold">Thu Hà</span><span class="text-[#9399A1]"> đã thích bài chia sẻ bữa ăn lành mạnh của bạn.</span></p><div class="flex items-center gap-2 mt-1.5"><span class="font-label-sm text-label-sm text-[#9399A1]">45 phút trước</span><span aria-label="Chưa đọc" class="w-1.5 h-1.5 rounded-full bg-[#8AD8BD] unread-dot"></span></div></div><div class="shrink-0 self-center"><img alt="Bữa ăn dinh dưỡng" class="w-12 h-12 rounded-lg object-cover bg-surface-container-highest" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDQVgN9KTi9hCj_YrUYWDEjh_n2VG24gtSprAcfQ89peHgF5E54Y95mvS-XHRDbrwvU6gANNcUMcDhkb2wMTS5uyd0SJE-NMZoExw0S-GiwCel9lrU7inTKxoMSFHE2UylMjeMO2BGuRKRUI97iw8RBr8LYkHnSiCUSwJ9eeF1piZ_Yp9-vZie0FptLSHK2x-ABtd8XDBlbgBXPyiTwb_hpY0f9x7cHSjMeaWmy_fOw"></div></div><div class="notif-item comment-item group relative flex items-start gap-3 py-3.5 px-2.5 rounded-xl hover:bg-surface-container/60 transition-colors cursor-pointer" data-id="3"><div class="relative shrink-0 mt-0.5"><img alt="HLV Hoàng Long" class="w-11 h-11 rounded-full object-cover bg-surface-container-highest" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCMw3bxWjAWaMbi3bQCOlfPI-hW9dKL9cRxiNUuWm5uYvLnIj__umA2vA8FcCkLUNvT8qYqP1Bv-SzjdhGfHLqSKfxfaAFKLd0wc9u2wkEwe2rN0laxQBe4JkcqQMDpus-DMRN_QCRnqsnQzCOrUm-yP4dYGfDGTsvWT41rcnqd0NGu2ZHXTyq2miYEdDqA2cQLEgHBvwl-4zE6jRdFEjDrRlbGGXxwQ00uZhoOK6Ry"><div class="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-surface-container-lowest flex items-center justify-center text-primary shadow-sm border border-surface"><span class="material-symbols-outlined text-[13px]" style="font-variation-settings: 'FILL' 1;">help</span></div></div><div class="flex-1 min-w-0 pr-1"><p class="font-body-md text-body-md text-[#F2F4F5] leading-snug"><span class="font-headline-sm text-body-md text-[#F2F4F5] font-semibold">HLV Hoàng Long</span><span class="text-[#9399A1]"> đã trả lời câu hỏi: </span><span class="text-[#F2F4F5] italic">"Bạn thường chuẩn bị bữa ăn cho cả tuần như thế nào?"</span></p><div class="flex items-center gap-2 mt-1.5"><span class="font-label-sm text-label-sm text-[#9399A1]">2 giờ trước</span><span aria-label="Chưa đọc" class="w-1.5 h-1.5 rounded-full bg-[#8AD8BD] unread-dot"></span></div></div><div class="shrink-0 self-center"><div class="w-12 h-12 rounded-lg bg-surface-container-high flex items-center justify-center text-on-surface-variant group-hover:text-primary transition-colors"><span class="material-symbols-outlined text-[20px]">forum</span></div></div></div><div class="notif-item follow-item group relative flex items-center gap-3 py-3.5 px-2.5 rounded-xl hover:bg-surface-container/60 transition-colors" data-id="4"><div class="relative shrink-0"><img alt="Thảo Mai" class="w-11 h-11 rounded-full object-cover bg-surface-container-highest" src="https://lh3.googleusercontent.com/aida-public/AB6AXuD3HcU99gcPnDql8N3tk1AJ8fufZhARO8wC5PTpb7lLt-Ju60VJKZX1skmE7lFSGB5xm-IgYWmBbeAbdpSVm4raw4IZv7Whm94YceTQUVN7_C2kRaXhSZZ5AOMBWYSNwjsIEa7Vbxd4-CVkcwImlfVPifhYwN2Blyk71DLY04D6MHPmkXeia_f1ZZoDOB177zQQHTWGJDm3G0ZOwB0s06-IxGxYi3YW3uTQStQsqyhK"><div class="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-surface-container-lowest flex items-center justify-center text-primary shadow-sm border border-surface"><span class="material-symbols-outlined text-[13px]" style="font-variation-settings: 'FILL' 1;">person_add</span></div></div><div class="flex-1 min-w-0"><p class="font-body-md text-body-md text-[#F2F4F5] leading-snug"><span class="font-headline-sm text-body-md text-[#F2F4F5] font-semibold">Thảo Mai</span><span class="text-[#9399A1]"> đã bắt đầu theo dõi bạn.</span></p><div class="flex items-center gap-2 mt-1.5"><span class="font-label-sm text-label-sm text-[#9399A1]">3 giờ trước</span></div></div><div class="shrink-0"><button class="follow-toggle-btn min-h-[44px] px-3.5 rounded-lg bg-[#24272B] hover:bg-[#2C3036] text-[#F2F4F5] font-label-md text-label-md flex items-center justify-center active:scale-95 transition-all border border-[#3c4a42]/50 shadow-sm" data-following="false" type="button"><span class="">Theo dõi lại</span></button></div></div></div></div><div class="flex flex-col mt-4" id="sectionEarlier"><div class="flex items-center justify-between py-2 px-1 mb-1"><span class="font-label-sm text-label-sm uppercase tracking-wider text-[#9399A1]">Trước đó</span></div><div class="flex flex-col divide-y divide-outline-variant/30"><div class="notif-item comment-item group relative flex items-start gap-3 py-3.5 px-2.5 rounded-xl hover:bg-surface-container/60 transition-colors cursor-pointer opacity-90" data-id="5"><div class="relative shrink-0 mt-0.5"><img alt="Quốc Bảo" class="w-11 h-11 rounded-full object-cover bg-surface-container-highest" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBEJ73Pz_XYjp9kvXt_PElPBj6dPxNTa-9dstvjBeqHDob7JBU7BfGI6O1ifjgZuaHdojhiBxCJxX7EKJnMitp0TGa3dXrVVKo5SkTyNa4lxcawzzOgWQB9Dc6b62BzDyXq0iawQaCrqenPG5NnZQcGQpsYARlz1aRml5sF4K6m7BUngxssUamwI_HbZD38BtOyEdSiDtyX6lP0PxFr72Ald79BGLSbQlFgLoflX9lB"><div class="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-surface-container-lowest flex items-center justify-center text-on-surface-variant shadow-sm border border-surface"><span class="material-symbols-outlined text-[13px]">alternate_email</span></div></div><div class="flex-1 min-w-0 pr-1"><p class="font-body-md text-body-md text-[#F2F4F5] leading-snug"><span class="font-headline-sm text-body-md text-[#F2F4F5] font-semibold">Quốc Bảo</span><span class="text-[#9399A1]"> đã nhắc đến bạn: </span><span class="text-[#9399A1] italic">"@linhnguyen.fit cảm ơn mẹo nướng khoai thơm bùi..."</span></p><div class="flex items-center gap-2 mt-1.5"><span class="font-label-sm text-label-sm text-[#9399A1]">Hôm qua</span></div></div><div class="shrink-0 self-center"><img alt="Ảnh thảo luận" class="w-12 h-12 rounded-lg object-cover bg-surface-container-highest opacity-80" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAGE1mwTYEzojS5gSHz4yX_0idXpfggiOLCLB3zJQADn6cJygeeNe6lTbR219SCIcZEN6k-sN0cZe-JQmy4aQz-GbICE0Aj1tyPGo-IcYDOSYVqEWGT2vlhIgxKg8PYvFzwKgCS3louF3MkrK49Wh3D4p1byQBaxsByfgiILRWsEFPq3cf8v4bo9WL3gwbv4kC9Y4ACI2KAlo-AkOhJuDQQR_1XYjBObVCbJAC1s8Vv"></div></div><div class="notif-item like-item group relative flex items-start gap-3 py-3.5 px-2.5 rounded-xl hover:bg-surface-container/60 transition-colors cursor-pointer opacity-90" data-id="6"><div class="relative shrink-0 mt-0.5"><img alt="Lan Phương" class="w-11 h-11 rounded-full object-cover bg-surface-container-highest" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCxXsKa-kZVn4km2UpSSn2CAw1ZXN2wPwudRHq_07gyu5BchqkL6UkO91Pcl3VbzmJUoCkttOXTaDID3u4Nxj2PKiTs6L4nd8a99C_a8P0Q7hqicPJ9QyHl-TpAAyrwlHnntqzWvuSAgBP8P-AVMmG9YPBIeyP1_Sx7xw5RfC9dmULIvfMXz7-iEn8piQbANdyk_kPNO6MgA-Busrst_1_pkMPO-RDmmfOh4qQJsWeY"><div class="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-surface-container-lowest flex items-center justify-center text-on-surface-variant shadow-sm border border-surface"><span class="material-symbols-outlined text-[13px]" style="font-variation-settings: 'FILL' 1;">fitness_center</span></div></div><div class="flex-1 min-w-0 pr-1"><p class="font-body-md text-body-md text-[#F2F4F5] leading-snug"><span class="font-headline-sm text-body-md text-[#F2F4F5] font-semibold">Lan Phương</span><span class="text-[#9399A1]"> đã thích lịch tập </span><span class="text-[#F2F4F5]">"Upper Body Hypertrophy"</span><span class="text-[#9399A1]"> của bạn.</span></p><div class="flex items-center gap-2 mt-1.5"><span class="font-label-sm text-label-sm text-[#9399A1]">2 ngày trước</span></div></div><div class="shrink-0 self-center"><img alt="Buổi tập" class="w-12 h-12 rounded-lg object-cover bg-surface-container-highest opacity-80" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBkzG7eE542y_ikXNurICd8XdM6XL6L8SLSz0sFUwJMQ5yJh58Fmzl0WH-MpxlupscXPNDwCzQm3K8nqCgGx9p9wNDBDywSoRNO9zK45j4IwyieRG6oPa2EZpyktxJOzFqa6I4Z4EAyhT6CaLdsf9m6iLkuu3mrjIiG6xM3xpW3mfMIYpxqBh9Ta894eeEh2A_pgoQv0eEZVTerc3T_HbV2H5JYiIckFvTEaAOQT7Fe"></div></div></div></div><div class="hidden flex flex-col items-center justify-center py-12 px-6 text-center rounded-2xl bg-surface-container-low" id="emptyFilterState"><div class="w-14 h-14 rounded-full bg-surface-container-high flex items-center justify-center text-on-surface-variant mb-3"><span class="material-symbols-outlined text-[28px]">notifications_paused</span></div><p class="font-headline-sm text-headline-sm text-[#F2F4F5] mb-1">Chưa có thông báo nào</p><p class="font-body-sm text-body-sm text-[#9399A1] max-w-xs">Các tương tác cộng đồng trong nhóm lọc này sẽ xuất hiện tại đây ngay khi có cập nhật.</p></div></div>
+<!-- Notification Settings Bottom Sheet Backdrop & Modal -->
+<div aria-hidden="true" class="fixed inset-0 z-50 bg-surface-container-lowest/80 backdrop-blur-sm opacity-0 pointer-events-none transition-opacity duration-300" id="settingsBackdrop">
+<div class="absolute bottom-0 inset-x-0 w-full rounded-t-3xl bg-surface-container-low p-6 transition-transform duration-300 transform translate-y-full max-h-[85vh] overflow-y-auto pb-safe shadow-2xl" id="settingsSheet">
+<!-- Drag Handle -->
+<div class="w-12 h-1.5 rounded-full bg-surface-container-highest mx-auto mb-5"></div>
+<!-- Sheet Header -->
+<div class="flex items-center justify-between mb-5">
+<div>
+<h2 class="font-headline-md text-headline-md text-on-surface">Cài đặt thông báo</h2>
+<p class="font-body-sm text-body-sm text-on-surface-variant mt-0.5">Tùy chọn nhận thông báo bên trong ứng dụng Saman Community.</p>
+</div>
+<button aria-label="Đóng cài đặt" class="w-10 h-10 rounded-full bg-surface-container flex items-center justify-center text-on-surface-variant hover:text-on-surface active:bg-surface-container-high transition-colors" id="closeSettingsBtn" type="button">
+<span class="material-symbols-outlined text-[20px]">close</span>
+</button>
+</div>
+<!-- Notification Toggles Group -->
+<div class="space-y-3">
+<!-- Toggle 1: Lượt thích -->
+<div class="flex items-center justify-between p-4 rounded-xl bg-surface-container">
+<div class="flex items-center gap-3">
+<div class="w-9 h-9 rounded-lg bg-surface-container-high flex items-center justify-center text-primary">
+<span class="material-symbols-outlined text-[18px]">favorite</span>
+</div>
+<div>
+<span class="block font-headline-sm text-body-md text-on-surface">Lượt thích</span>
+<span class="block font-body-sm text-label-sm text-on-surface-variant">Khi người khác thích bài tập hoặc thực đơn</span>
+</div>
+</div>
+<button aria-checked="true" class="toggle-switch relative w-12 h-7 rounded-full bg-primary transition-colors flex items-center px-0.5 cursor-pointer" role="switch" type="button">
+<span class="toggle-knob w-6 h-6 rounded-full bg-on-primary transform translate-x-5 transition-transform"></span>
+</button>
+</div>
+<!-- Toggle 2: Bình luận & trả lời -->
+<div class="flex items-center justify-between p-4 rounded-xl bg-surface-container">
+<div class="flex items-center gap-3">
+<div class="w-9 h-9 rounded-lg bg-surface-container-high flex items-center justify-center text-primary">
+<span class="material-symbols-outlined text-[18px]">mode_comment</span>
+</div>
+<div>
+<span class="block font-headline-sm text-body-md text-on-surface">Bình luận &amp; trả lời</span>
+<span class="block font-body-sm text-label-sm text-on-surface-variant">Thảo luận trên các chủ đề bạn quan tâm</span>
+</div>
+</div>
+<button aria-checked="true" class="toggle-switch relative w-12 h-7 rounded-full bg-primary transition-colors flex items-center px-0.5 cursor-pointer" role="switch" type="button">
+<span class="toggle-knob w-6 h-6 rounded-full bg-on-primary transform translate-x-5 transition-transform"></span>
+</button>
+</div>
+<!-- Toggle 3: Người theo dõi mới -->
+<div class="flex items-center justify-between p-4 rounded-xl bg-surface-container">
+<div class="flex items-center gap-3">
+<div class="w-9 h-9 rounded-lg bg-surface-container-high flex items-center justify-center text-primary">
+<span class="material-symbols-outlined text-[18px]">group_add</span>
+</div>
+<div>
+<span class="block font-headline-sm text-body-md text-on-surface">Người theo dõi mới</span>
+<span class="block font-body-sm text-label-sm text-on-surface-variant">Khi có thành viên bắt đầu kết nối</span>
+</div>
+</div>
+<button aria-checked="true" class="toggle-switch relative w-12 h-7 rounded-full bg-primary transition-colors flex items-center px-0.5 cursor-pointer" role="switch" type="button">
+<span class="toggle-knob w-6 h-6 rounded-full bg-on-primary transform translate-x-5 transition-transform"></span>
+</button>
+</div>
+<!-- Toggle 4: Câu hỏi đang theo dõi -->
+<div class="flex items-center justify-between p-4 rounded-xl bg-surface-container">
+<div class="flex items-center gap-3">
+<div class="w-9 h-9 rounded-lg bg-surface-container-high flex items-center justify-center text-primary">
+<span class="material-symbols-outlined text-[18px]">quiz</span>
+</div>
+<div>
+<span class="block font-headline-sm text-body-md text-on-surface">Câu hỏi đang theo dõi</span>
+<span class="block font-body-sm text-label-sm text-on-surface-variant">Giải đáp từ chuyên gia và huấn luyện viên</span>
+</div>
+</div>
+<button aria-checked="true" class="toggle-switch relative w-12 h-7 rounded-full bg-primary transition-colors flex items-center px-0.5 cursor-pointer" role="switch" type="button">
+<span class="toggle-knob w-6 h-6 rounded-full bg-on-primary transform translate-x-5 transition-transform"></span>
+</button>
+</div>
+</div>
+<!-- Action Button inside Sheet -->
+<div class="mt-6 pt-2">
+<button class="w-full h-12 rounded-xl bg-primary text-on-primary font-headline-sm text-body-lg flex items-center justify-center active:scale-[0.98] transition-transform shadow-md" id="saveSettingsBtn" type="button">
+          Lưu tùy chọn
+        </button>
+</div>
+</div>
+</div>
+</div>
+<script>
+  (function () {
+    // Tab Filter Logic
+    const filterButtons = document.querySelectorAll('.filter-chip');
+    const items = document.querySelectorAll('.notif-item');
+    const emptyState = document.getElementById('emptyFilterState');
+    const sectionToday = document.getElementById('sectionToday');
+    const sectionEarlier = document.getElementById('sectionEarlier');
+
+    filterButtons.forEach(btn => {
+      btn.addEventListener('click', () => {
+        filterButtons.forEach(b => {
+          b.classList.remove('bg-surface-container-high', 'text-primary');
+          b.classList.add('bg-surface-container', 'text-on-surface-variant');
+        });
+        btn.classList.add('bg-surface-container-high', 'text-primary');
+        btn.classList.remove('bg-surface-container', 'text-on-surface-variant');
+
+        const filter = btn.getAttribute('data-filter');
+        let visibleCount = 0;
+
+        items.forEach(item => {
+          if (filter === 'all') {
+            item.classList.remove('hidden');
+            visibleCount++;
+          } else if (filter === 'comments') {
+            if (item.classList.contains('comment-item')) {
+              item.classList.remove('hidden');
+              visibleCount++;
+            } else {
+              item.classList.add('hidden');
+            }
+          } else if (filter === 'follows') {
+            if (item.classList.contains('follow-item')) {
+              item.classList.remove('hidden');
+              visibleCount++;
+            } else {
+              item.classList.add('hidden');
+            }
+          }
+        });
+
+        // Hide headers if no items visible in section
+        const todayVisible = sectionToday.querySelectorAll('.notif-item:not(.hidden)').length;
+        const earlierVisible = sectionEarlier.querySelectorAll('.notif-item:not(.hidden)').length;
+
+        sectionToday.style.display = todayVisible > 0 ? 'flex' : 'none';
+        sectionEarlier.style.display = earlierVisible > 0 ? 'flex' : 'none';
+
+        if (visibleCount === 0) {
+          emptyState.classList.remove('hidden');
+        } else {
+          emptyState.classList.add('hidden');
+        }
+      });
+    });
+
+    // Mark All As Read micro-interaction
+    const markAllReadBtn = document.getElementById('markAllReadBtn');
+    markAllReadBtn.addEventListener('click', () => {
+      const dots = document.querySelectorAll('.unread-dot');
+      dots.forEach(dot => {
+        dot.classList.add('transition-opacity', 'opacity-0');
+        setTimeout(() => dot.remove(), 250);
+      });
+      const badge = document.querySelector('span[aria-label="Có thông báo mới"]');
+      if (badge) badge.remove();
+      const countHeader = sectionToday.querySelector('span.text-primary');
+      if (countHeader) countHeader.textContent = 'Đã cập nhật';
+    });
+
+    // Follow / Following toggle micro-interaction
+    const followButtons = document.querySelectorAll('.follow-toggle-btn');
+    followButtons.forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const isFollowing = btn.getAttribute('data-following') === 'true';
+        if (isFollowing) {
+          btn.setAttribute('data-following', 'false');
+          btn.classList.remove('bg-surface-container-high', 'text-on-surface-variant');
+          btn.classList.add('bg-primary-container', 'text-on-primary-container');
+          btn.innerHTML = '<span>Theo dõi lại</span>';
+        } else {
+          btn.setAttribute('data-following', 'true');
+          btn.classList.remove('bg-primary-container', 'text-on-primary-container');
+          btn.classList.add('bg-surface-container-high', 'text-on-surface-variant');
+          btn.innerHTML = '<span>Đang theo dõi</span>';
+        }
+      });
+    });
+
+    // Bottom Sheet Control
+    const openSettingsBtn = document.getElementById('openSettingsBtn');
+    const closeSettingsBtn = document.getElementById('closeSettingsBtn');
+    const saveSettingsBtn = document.getElementById('saveSettingsBtn');
+    const settingsBackdrop = document.getElementById('settingsBackdrop');
+    const settingsSheet = document.getElementById('settingsSheet');
+
+    function openSheet() {
+      settingsBackdrop.classList.remove('pointer-events-none');
+      settingsBackdrop.classList.add('opacity-100');
+      settingsSheet.classList.remove('translate-y-full');
+    }
+
+    function closeSheet() {
+      settingsSheet.classList.add('translate-y-full');
+      settingsBackdrop.classList.remove('opacity-100');
+      settingsBackdrop.classList.add('pointer-events-none');
+    }
+
+    openSettingsBtn.addEventListener('click', openSheet);
+    closeSettingsBtn.addEventListener('click', closeSheet);
+    saveSettingsBtn.addEventListener('click', closeSheet);
+    settingsBackdrop.addEventListener('click', (e) => {
+      if (e.target === settingsBackdrop) closeSheet();
+    });
+
+    // Toggle switch micro-interactions inside bottom sheet
+    const switches = document.querySelectorAll('.toggle-switch');
+    switches.forEach(sw => {
+      sw.addEventListener('click', () => {
+        const checked = sw.getAttribute('aria-checked') === 'true';
+        const knob = sw.querySelector('.toggle-knob');
+        if (checked) {
+          sw.setAttribute('aria-checked', 'false');
+          sw.classList.remove('bg-primary');
+          sw.classList.add('bg-surface-container-highest');
+          knob.classList.remove('translate-x-5', 'bg-on-primary');
+          knob.classList.add('translate-x-0', 'bg-on-surface-variant');
+        } else {
+          sw.setAttribute('aria-checked', 'true');
+          sw.classList.remove('bg-surface-container-highest');
+          sw.classList.add('bg-primary');
+          knob.classList.remove('translate-x-0', 'bg-on-surface-variant');
+          knob.classList.add('translate-x-5', 'bg-on-primary');
+        }
+      });
+    });
+  })();
+</script></main><nav class="fixed bottom-0 w-full z-50 pb-safe bg-surface/85 backdrop-blur-xl shadow-[0_1px_8px_rgba(0,0,0,0.04)]" data-active-classes="text-primary"><div class="flex justify-around items-center h-16 px-space-xs"><a class="flex flex-col items-center justify-center min-w-[56px] h-12 text-on-surface-variant hover:text-on-surface transition-colors" data-path="bang-tin" href="#"><span class="material-symbols-outlined text-[24px]">dynamic_feed</span><span class="font-label-sm text-label-sm mt-space-xs">Bảng tin</span></a><a class="flex flex-col items-center justify-center min-w-[56px] h-12 text-on-surface-variant hover:text-on-surface transition-colors" data-path="kham-pha" href="#"><span class="material-symbols-outlined text-[24px]">explore</span><span class="font-label-sm text-label-sm mt-space-xs">Khám phá</span></a><a class="flex flex-col items-center justify-center min-w-[56px] h-12 text-on-surface-variant hover:text-on-surface transition-colors" data-path="tao-bai" href="#"><div class="w-10 h-10 rounded-full bg-[#08664F] flex items-center justify-center shadow-md active:scale-95 transition-transform"><span class="material-symbols-outlined text-white text-[24px]">add</span></div></a><a aria-current="page" class="flex flex-col items-center justify-center min-w-[56px] h-12 transition-colors text-primary" data-path="thong-bao" href="#"><div class="relative flex flex-col items-center justify-center"><span class="material-symbols-outlined text-[24px]">notifications</span><span class="font-label-sm text-label-sm mt-space-xs">Thông báo</span></div></a><a class="flex flex-col items-center justify-center min-w-[56px] h-12 text-on-surface-variant hover:text-on-surface transition-colors" data-path="ca-nhan" href="#"><span class="material-symbols-outlined text-[24px]">person</span><span class="font-label-sm text-label-sm mt-space-xs">Cá nhân</span></a></div></nav>
+
+</body></html>

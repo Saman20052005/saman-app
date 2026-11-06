@@ -4,8 +4,11 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
+import '../features/nutrition/data/food_image_attribution.dart';
+import '../features/nutrition/data/food_image_manifest.dart';
 import '../features/nutrition/domain/entities/food.dart';
 import '../models/food_model.dart';
+import '../features/nutrition/presentation/providers/nutrition_usual_foods_provider.dart';
 import '../providers/nutrition_provider.dart';
 import '../providers/profile_provider.dart';
 import '../services/nutrition_service.dart';
@@ -21,6 +24,7 @@ class FoodLogScreen extends ConsumerStatefulWidget {
   final DateTime? selectedDate;
   final String? initialMealType;
   final NutritionService? apiService;
+  final FoodModel? initialFood;
 
   const FoodLogScreen({
     super.key,
@@ -28,6 +32,7 @@ class FoodLogScreen extends ConsumerStatefulWidget {
     this.selectedDate,
     this.initialMealType,
     this.apiService,
+    this.initialFood,
   });
 
   @override
@@ -55,37 +60,13 @@ class FoodLogScreenState extends ConsumerState<FoodLogScreen> {
     });
   }
 
-  static String? getFoodImageUrl(String foodName) {
-    final lower = foodName.toLowerCase();
-    if (lower.contains('grilled chicken') || lower.contains('nướng')) {
-      return 'https://lh3.googleusercontent.com/aida/AEtjO1Xq89t9QzC5eB7w4Z9M0vKp9Yv1c2X8=s800';
-    } else if (lower.contains('boiled chicken') || lower.contains('luộc')) {
-      return 'https://lh3.googleusercontent.com/aida/AEtjO1VLKz78bV82w9C8f0M1vN8L09Y7=s800';
-    } else if (lower.contains('thigh') || lower.contains('đùi')) {
-      return 'https://lh3.googleusercontent.com/aida/AEtjO1Xk2QZ79cM4w8N7Y0P1=s800';
-    } else if (lower.contains('shredded') || lower.contains('xé')) {
-      return 'https://lh3.googleusercontent.com/aida/AEtjO1X7V8cM91_Z2QZ8=s800';
-    } else if (lower.contains('chicken') || lower.contains('gà')) {
-      return 'https://lh3.googleusercontent.com/aida/AEtjO1Xq89t9QzC5eB7w4Z9M0vKp9Yv1c2X8=s800';
-    } else if (lower.contains('rice') || lower.contains('cơm')) {
-      return 'https://images.unsplash.com/photo-1516684732162-798a0062be99?w=400';
-    } else if (lower.contains('oat') || lower.contains('yến mạch')) {
-      return 'https://images.unsplash.com/photo-1586444248902-2f64eddc13df?w=400';
-    } else if (lower.contains('yogurt') || lower.contains('sữa chua')) {
-      return 'https://images.unsplash.com/photo-1488477181946-6428a0291777?w=400';
-    } else if (lower.contains('beef') || lower.contains('bò')) {
-      return 'https://images.unsplash.com/photo-1544025162-d76694265947?w=400';
-    } else if (lower.contains('egg') || lower.contains('trứng')) {
-      return 'https://images.unsplash.com/photo-1506976785307-8732e854ad03?w=400';
-    } else if (lower.contains('salmon') || lower.contains('fish') || lower.contains('cá')) {
-      return 'https://images.unsplash.com/photo-1467003909585-2f8a72700288?w=400';
-    }
-    return null;
-  }
+  /// Exact-name lookup into the curated food image manifest (no keyword matching).
+  static String? getFoodImageAsset(String foodName) => foodImageAssetFor(foodName);
 
   Widget _buildFoodThumbnail(String foodName, {double size = 56, double borderRadius = 12}) {
-    final imageUrl = getFoodImageUrl(foodName);
+    final imageAsset = getFoodImageAsset(foodName);
     return Container(
+      key: ValueKey('food_thumb_$foodName'),
       width: size,
       height: size,
       decoration: BoxDecoration(
@@ -94,25 +75,34 @@ class FoodLogScreenState extends ConsumerState<FoodLogScreen> {
         border: Border.all(color: const Color(0xFF26282F)),
       ),
       clipBehavior: Clip.antiAlias,
-      child: imageUrl != null
-          ? Image.network(
-              imageUrl,
+      child: imageAsset != null
+          ? Image.asset(
+              imageAsset,
               width: size,
               height: size,
               fit: BoxFit.cover,
+              semanticLabel: foodName,
               errorBuilder: (_, __, ___) => const Center(
-                child: Icon(
-                  Icons.restaurant_outlined,
-                  size: 22,
-                  color: Color(0xFF10B981),
+                child: Tooltip(
+                  message: 'Không tải được ảnh món',
+                  child: Icon(
+                    Icons.broken_image_outlined,
+                    key: Key('food_thumb_error'),
+                    size: 22,
+                    color: Color(0xFFF87171),
+                  ),
                 ),
               ),
             )
           : const Center(
-              child: Icon(
-                Icons.restaurant_outlined,
-                size: 22,
-                color: Color(0xFF10B981),
+              child: Tooltip(
+                message: 'Món chưa có ảnh',
+                child: Icon(
+                  Icons.restaurant_outlined,
+                  key: Key('food_thumb_missing'),
+                  size: 22,
+                  color: Color(0xFF6B7280),
+                ),
               ),
             ),
     );
@@ -132,6 +122,8 @@ class FoodLogScreenState extends ConsumerState<FoodLogScreen> {
 
   late String _selectedMealType;
   FoodModel? _selectedFood;
+  bool _isCatalogVerified = false;
+  String? _reselectNotice;
   int _grams = 100;
   bool _isSaving = false;
   String? _saveError;
@@ -149,6 +141,17 @@ class FoodLogScreenState extends ConsumerState<FoodLogScreen> {
   void initState() {
     super.initState();
     _selectedMealType = widget.initialMealType ?? _resolveDefaultMealType();
+    if (widget.initialFood != null) {
+      if (widget.initialFood!.id.trim().isNotEmpty &&
+          widget.initialFood!.name.trim().isNotEmpty) {
+        _selectedFood = widget.initialFood;
+        _grams = 100;
+        _currentStep = FoodLogStep.portionReview;
+      } else {
+        _errorMessage = 'Thông tin món ăn không hợp lệ.';
+        _currentStep = FoodLogStep.initial;
+      }
+    }
   }
 
   @override
@@ -194,6 +197,7 @@ class FoodLogScreenState extends ConsumerState<FoodLogScreen> {
         _results = [];
         _isLoading = false;
         _errorMessage = null;
+        _reselectNotice = null;
       });
       return;
     }
@@ -202,6 +206,7 @@ class FoodLogScreenState extends ConsumerState<FoodLogScreen> {
       _currentStep = FoodLogStep.searchResults;
       _isLoading = true;
       _errorMessage = null;
+      _reselectNotice = null;
     });
 
     _debounceTimer = Timer(const Duration(milliseconds: 350), () async {
@@ -258,6 +263,7 @@ class FoodLogScreenState extends ConsumerState<FoodLogScreen> {
       _results = [];
       _isLoading = false;
       _errorMessage = null;
+      _reselectNotice = null;
     });
   }
 
@@ -274,8 +280,11 @@ class FoodLogScreenState extends ConsumerState<FoodLogScreen> {
   void _onSelectFood(FoodModel food) {
     setState(() {
       _selectedFood = food;
+      _isCatalogVerified = true;
       _grams = 100;
       _saveError = null;
+      _errorMessage = null;
+      _reselectNotice = null;
       _currentStep = FoodLogStep.portionReview;
     });
   }
@@ -311,19 +320,126 @@ class FoodLogScreenState extends ConsumerState<FoodLogScreen> {
     return (_selectedFood!.fat * _grams) / 100.0;
   }
 
+  bool _hasMacroOrNameChanges(FoodModel a, FoodModel b) {
+    return a.name.trim() != b.name.trim() ||
+        (a.calories - b.calories).abs() > 0.01 ||
+        (a.protein - b.protein).abs() > 0.01 ||
+        (a.carbs - b.carbs).abs() > 0.01 ||
+        (a.fat - b.fat).abs() > 0.01;
+  }
+
   // ─── Commit / Save Action ────────────────────────────────────────
 
   Future<void> _handleConfirmLog() async {
     if (_isSaving || _selectedFood == null) return;
+    if (_selectedFood!.name.trim().isEmpty ||
+        (widget.initialFood != null &&
+            !_isCatalogVerified &&
+            _selectedFood!.id.trim().isEmpty)) {
+      setState(() {
+        _errorMessage = 'Thông tin món ăn không hợp lệ.';
+        _currentStep = FoodLogStep.initial;
+      });
+      return;
+    }
     if (_grams <= 0) {
       setState(() => _saveError = 'Khẩu phần phải lớn hơn 0g');
       return;
     }
 
+    final profile = ref.read(profileProvider);
+    final currentUserId = profile.confirmedUserId ??
+        profile.snapshot?.userId ??
+        profile.snapshot?.email ??
+        'guest';
+
     setState(() {
       _isSaving = true;
       _saveError = null;
     });
+
+    if (widget.initialFood != null && !_isCatalogVerified) {
+      final targetId = _selectedFood!.id.trim();
+      final isSyntheticClientKey =
+          targetId.isEmpty ||
+          targetId.startsWith('catalog_') ||
+          targetId.startsWith('entry_');
+
+      Food? verifiedFood;
+
+      if (!isSyntheticClientKey) {
+        // Direct stable-ID lookup from backend
+        try {
+          verifiedFood = await _apiService.getFoodById(targetId);
+        } catch (_) {
+          if (!mounted) return;
+          setState(() {
+            _isSaving = false;
+            _saveError =
+                'Lỗi kết nối mạng, không thể kiểm tra món ăn. Vui lòng thử lại.';
+          });
+          return;
+        }
+      }
+
+      if (verifiedFood == null) {
+        // Stable ID cannot be verified (e.g. 404 from getFoodById, missing ID,
+        // or synthetic client key like catalog_... / entry_...).
+        // Redirect to catalog search with old name so user explicitly picks -> reviews -> confirms.
+        List<Food> catalogResults = [];
+        try {
+          catalogResults = await _apiService.searchFoods(_selectedFood!.name);
+          if (catalogResults.isEmpty) {
+            const enToVi = {
+              'chicken breast': 'uc ga',
+              'chicken': 'ga',
+              'rice': 'com',
+              'jasmine rice': 'com',
+              'oats': 'yen mach',
+              'rolled oats': 'yen mach',
+              'beef': 'bo',
+              'egg': 'trung',
+            };
+            final mapped = enToVi[_selectedFood!.name.toLowerCase().trim()];
+            if (mapped != null) {
+              catalogResults = await _apiService.searchFoods(mapped);
+            }
+          }
+        } catch (_) {}
+
+        if (!mounted) return;
+        final oldName = _selectedFood!.name.trim();
+        _searchCtrl.text = oldName;
+        _searchCtrl.selection = TextSelection.fromPosition(
+          TextPosition(offset: oldName.length),
+        );
+        setState(() {
+          _isSaving = false;
+          _selectedFood = null;
+          _saveError = null;
+          _errorMessage = null;
+          _reselectNotice =
+              'Vui lòng chọn lại món từ danh mục hiện hành để kiểm tra khẩu phần trước khi lưu.';
+          _results = catalogResults.map(_toFoodModel).toList();
+          _currentStep = FoodLogStep.searchResults;
+        });
+        return;
+      }
+
+      final latestFood = _toFoodModel(verifiedFood);
+      final macrosChanged = _hasMacroOrNameChanges(_selectedFood!, latestFood);
+      _selectedFood = latestFood;
+      _isCatalogVerified = true;
+
+      if (macrosChanged) {
+        setState(() {
+          _isSaving = false;
+          _saveError =
+              'Số liệu dinh dưỡng đã cập nhật theo danh mục mới. Vui lòng kiểm tra lại khẩu phần và bấm Log meal để xác nhận.';
+        });
+        return;
+      }
+    }
 
     try {
       final success = await ref.read(nutritionProvider.notifier).addMeal(
@@ -341,6 +457,27 @@ class FoodLogScreenState extends ConsumerState<FoodLogScreen> {
       if (!mounted) return;
 
       if (success) {
+        final postProfile = ref.read(profileProvider);
+        final postUserId = postProfile.confirmedUserId ??
+            postProfile.snapshot?.userId ??
+            postProfile.snapshot?.email ??
+            'guest';
+        // Only record into user recents if account remained identical throughout the save operation
+        if (postUserId == currentUserId) {
+          if (widget.initialFood != null &&
+              widget.initialFood!.id != _selectedFood!.id) {
+            ref.read(usualFoodsProvider.notifier).upgradeLegacyReference(
+                  legacyId: widget.initialFood!.id,
+                  newFood: _selectedFood!,
+                );
+          }
+          await UsualFoodsNotifier.recordConfirmedFoodGlobally(
+            widgetRef: ref,
+            food: _selectedFood!,
+            userId: currentUserId,
+          );
+        }
+        if (!mounted) return;
         Navigator.of(context).pop(true);
       } else {
         setState(() {
@@ -877,6 +1014,28 @@ class FoodLogScreenState extends ConsumerState<FoodLogScreen> {
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
       children: [
+        if (_errorMessage != null)
+          Container(
+            padding: const EdgeInsets.all(12),
+            margin: const EdgeInsets.only(bottom: 12),
+            decoration: BoxDecoration(
+              color: const Color(0xFFEF4444).withOpacity(0.12),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: const Color(0xFFEF4444).withOpacity(0.3)),
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.error_outline, color: Color(0xFFEF4444), size: 18),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    _errorMessage!,
+                    style: const TextStyle(color: Color(0xFFEF4444), fontSize: 13),
+                  ),
+                ),
+              ],
+            ),
+          ),
         // Title & subtitle
         const Text(
           'Log meal',
@@ -1103,6 +1262,41 @@ class FoodLogScreenState extends ConsumerState<FoodLogScreen> {
               _buildSearchInput(),
               const SizedBox(height: 10),
               _buildMealSegmentedSelector(),
+              if (_reselectNotice != null) ...[
+                const SizedBox(height: 10),
+                Container(
+                  key: const Key('catalog_reselect_notice'),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF10B981).withOpacity(0.12),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: const Color(0xFF10B981).withOpacity(0.35),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(
+                        Icons.info_outline,
+                        size: 16,
+                        color: Color(0xFF10B981),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          _reselectNotice!,
+                          style: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
+                            color: Color(0xFFF3F4F6),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
               const SizedBox(height: 12),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -1543,7 +1737,10 @@ class FoodLogScreenState extends ConsumerState<FoodLogScreen> {
       ),
       child: Row(
         children: [
-          _buildFoodThumbnail(_selectedFood!.name, size: 56, borderRadius: 12),
+          GestureDetector(
+            onTap: () => _showImageAttributionSheet(context, _selectedFood!.name),
+            child: _buildFoodThumbnail(_selectedFood!.name, size: 56, borderRadius: 12),
+          ),
           const SizedBox(width: 14),
           Expanded(
             child: Column(
@@ -1585,11 +1782,194 @@ class FoodLogScreenState extends ConsumerState<FoodLogScreen> {
                     color: Color(0xFF9CA3AF),
                   ),
                 ),
+                const SizedBox(height: 6),
+                GestureDetector(
+                  key: const Key('food_attribution_button'),
+                  onTap: () => _showImageAttributionSheet(context, _selectedFood!.name),
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.info_outline, size: 13, color: Color(0xFF10B981)),
+                      SizedBox(width: 4),
+                      Flexible(
+                        child: Text(
+                          'Nguồn & Ghi công ảnh',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: Color(0xFF10B981),
+                            fontWeight: FontWeight.w600,
+                            decoration: TextDecoration.underline,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               ],
             ),
           ),
         ],
       ),
+    );
+  }
+
+  void _showImageAttributionSheet(BuildContext context, String foodName) async {
+    final attr = await FoodAttributionService.getByName(foodName);
+    if (!mounted) return;
+
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: const Color(0xFF16171B),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        side: BorderSide(color: Color(0xFF26282F)),
+      ),
+      builder: (ctx) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Center(
+                    child: Container(
+                      width: 40,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF374151),
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Row(
+                    children: [
+                      _buildFoodThumbnail(foodName, size: 48, borderRadius: 10),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              foodName,
+                              style: const TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w700,
+                                color: Color(0xFFF9FAFB),
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              attr == null
+                                  ? 'Trạng thái: Chưa có ảnh (Pending)'
+                                  : (attr.isAi
+                                      ? 'Ảnh minh họa tạo bằng AI'
+                                      : 'Ảnh thật (Wikimedia Commons)'),
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                                color: attr == null
+                                    ? const Color(0xFFF59E0B)
+                                    : (attr.isAi
+                                        ? const Color(0xFFA78BFA)
+                                        : const Color(0xFF38BDF8)),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  const Divider(color: Color(0xFF26282F), height: 1),
+                  const SizedBox(height: 14),
+                  if (attr != null) ...[
+                    if (attr.isCommons) ...[
+                      _buildAttributionRow('Tác giả:', attr.author),
+                      const SizedBox(height: 8),
+                      _buildAttributionRow('Giấy phép:', attr.license,
+                          url: attr.licenseUrl),
+                      const SizedBox(height: 8),
+                      _buildAttributionRow('Nguồn ảnh:', attr.sourceUrl,
+                          url: attr.sourceUrl, isLink: true),
+                      const SizedBox(height: 8),
+                      _buildAttributionRow('Xử lý ảnh:', attr.modificationNote),
+                    ] else ...[
+                      _buildAttributionRow('Phân loại:', 'Ảnh minh họa tạo bằng AI'),
+                      const SizedBox(height: 8),
+                      _buildAttributionRow('Nguồn tạo:', attr.author),
+                      if (attr.model.isNotEmpty) ...[
+                        const SizedBox(height: 8),
+                        _buildAttributionRow('Mô hình AI:', attr.model),
+                      ],
+                      const SizedBox(height: 8),
+                      _buildAttributionRow('Xử lý ảnh:', attr.modificationNote),
+                    ],
+                  ] else ...[
+                    const Text(
+                      'Món ăn này chưa có ảnh chính thức và đang ở trạng thái Pending. Ảnh sẽ được cập nhật trong phiên bản kế tiếp khi có nguồn mở chuẩn xác hoặc quota AI miễn phí mở lại.',
+                      style: TextStyle(
+                          fontSize: 13, color: Color(0xFF9CA3AF), height: 1.4),
+                    ),
+                  ],
+                  const SizedBox(height: 20),
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton(
+                      onPressed: () => Navigator.of(ctx).pop(),
+                      style: OutlinedButton.styleFrom(
+                        side: const BorderSide(color: Color(0xFF374151)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                      ),
+                      child: const Text('Đóng',
+                          style: TextStyle(color: Color(0xFFD1D5DB))),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildAttributionRow(String label, String value,
+      {String? url, bool isLink = false}) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SizedBox(
+          width: 76,
+          child: Text(
+            label,
+            style: const TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: Color(0xFF9CA3AF),
+            ),
+          ),
+        ),
+        Expanded(
+          child: Text(
+            value,
+            style: TextStyle(
+              fontSize: 12,
+              color: (url != null || isLink)
+                  ? const Color(0xFF38BDF8)
+                  : const Color(0xFFE5E7EB),
+              decoration:
+                  (url != null || isLink) ? TextDecoration.underline : null,
+            ),
+          ),
+        ),
+      ],
     );
   }
 

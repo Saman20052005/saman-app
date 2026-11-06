@@ -1,0 +1,1835 @@
+{
+  "schema_version": 1,
+  "generated": true,
+  "generator": "frontend/tool/export_ai_exercise_catalog.dart",
+  "source": "frontend/lib/presentation/providers/exercise_providers.dart:curatedExerciseLibrary",
+  "source_sha256": "7298842f560edb74de741b1091832d824a1daf32619c8c8bdc9dfd87381ff470",
+  "exercises": [
+    {
+      "id": "db-bench-press",
+      "slug": "dumbbell-bench-press",
+      "name": "Dumbbell Bench Press",
+      "nameVi": "Đẩy ngực với tạ đơn",
+      "muscleGroup": "Chest",
+      "targetMuscles": [
+        "Chest",
+        "Pectoralis Major"
+      ],
+      "secondaryMuscles": [
+        "Triceps",
+        "Shoulders",
+        "Anterior Deltoid"
+      ],
+      "equipment": [
+        "Dumbbells",
+        "Flat bench"
+      ],
+      "difficulty": "intermediate",
+      "thumbnailUrl": "assets/images/exercises/dumbbell-bench-press-thumb.jpg",
+      "youtubeVideoId": null,
+      "cues": [
+        "Keep your feet firmly planted on the floor",
+        "Maintain a slight natural arch in lower back",
+        "Lower dumbbells with control to mid-chest level",
+        "Press vertically until arms are fully extended"
+      ],
+      "commonMistakes": [
+        "Flaring elbows out at 90 degrees",
+        "Bouncing dumbbells off chest",
+        "Lifting feet off the floor during press"
+      ],
+      "defaultSets": 4,
+      "defaultReps": "8-10",
+      "restSeconds": 90,
+      "repType": "reps",
+      "cvSupported": false,
+      "cvModuleId": null
+    },
+    {
+      "id": "lat-pulldown",
+      "slug": "lat-pulldown",
+      "name": "Lat Pulldown",
+      "nameVi": "Kéo xô máy",
+      "muscleGroup": "Back",
+      "targetMuscles": [
+        "Back",
+        "Latissimus Dorsi"
+      ],
+      "secondaryMuscles": [
+        "Biceps",
+        "Rear Deltoid"
+      ],
+      "equipment": [
+        "Cable Machine",
+        "Lat Bar"
+      ],
+      "difficulty": "beginner",
+      "thumbnailUrl": "assets/images/exercises/lat-pulldown-thumb.jpg",
+      "youtubeVideoId": null,
+      "cues": [
+        "Grip slightly wider than shoulder width",
+        "Pull down towards upper chest with elbows leading",
+        "Squeeze lats at the bottom"
+      ],
+      "commonMistakes": [
+        "Leaning back excessively",
+        "Pulling behind the neck"
+      ],
+      "defaultSets": 3,
+      "defaultReps": "10-12",
+      "restSeconds": 60,
+      "repType": "reps",
+      "cvSupported": false,
+      "cvModuleId": null
+    },
+    {
+      "id": "seated-cable-row",
+      "slug": "seated-cable-row",
+      "name": "Seated Cable Row",
+      "nameVi": "Kéo cáp ngồi",
+      "muscleGroup": "Back",
+      "targetMuscles": [
+        "Back",
+        "Rhomboids",
+        "Mid Traps"
+      ],
+      "secondaryMuscles": [
+        "Biceps",
+        "Forearms"
+      ],
+      "equipment": [
+        "Cable Machine",
+        "V-Bar"
+      ],
+      "difficulty": "intermediate",
+      "thumbnailUrl": "assets/images/exercises/seated-cable-row-thumb.jpg",
+      "youtubeVideoId": null,
+      "cues": [
+        "Keep spine upright with neutral curvature",
+        "Initiate pull by retracting shoulder blades",
+        "Pause and squeeze at the torso"
+      ],
+      "commonMistakes": [
+        "Rounding the lower back",
+        "Using excessive body swing momentum"
+      ],
+      "defaultSets": 3,
+      "defaultReps": "10-12",
+      "restSeconds": 60,
+      "repType": "reps",
+      "cvSupported": false,
+      "cvModuleId": null
+    },
+    {
+      "id": "db-shoulder-press",
+      "slug": "dumbbell-shoulder-press",
+      "name": "Dumbbell Shoulder Press",
+      "nameVi": "Đẩy vai với tạ đơn",
+      "muscleGroup": "Shoulders",
+      "targetMuscles": [
+        "Shoulders",
+        "Anterior Deltoid"
+      ],
+      "secondaryMuscles": [
+        "Triceps",
+        "Upper Chest"
+      ],
+      "equipment": [
+        "Dumbbells",
+        "Incline/Vertical Bench"
+      ],
+      "difficulty": "intermediate",
+      "thumbnailUrl": "assets/images/exercises/dumbbell-shoulder-press-thumb.jpg",
+      "youtubeVideoId": null,
+      "cues": [
+        "Keep core tight and ribs down",
+        "Press weights directly overhead",
+        "Control descent to ear level"
+      ],
+      "commonMistakes": [
+        "Hyperextending the lower back",
+        "Locking out elbows aggressively at the top"
+      ],
+      "defaultSets": 4,
+      "defaultReps": "8-10",
+      "restSeconds": 90,
+      "repType": "reps",
+      "cvSupported": false,
+      "cvModuleId": null
+    },
+    {
+      "id": "push-up",
+      "slug": "push-up",
+      "name": "Push-Up",
+      "nameVi": "Hít đất",
+      "muscleGroup": "Chest",
+      "targetMuscles": [
+        "Chest",
+        "Triceps"
+      ],
+      "secondaryMuscles": [
+        "Core",
+        "Anterior Deltoid"
+      ],
+      "equipment": [
+        "Bodyweight"
+      ],
+      "difficulty": "beginner",
+      "thumbnailUrl": "assets/images/exercises/push-up-thumb.jpg",
+      "youtubeVideoId": null,
+      "cues": [
+        "Keep body in a rigid plank line",
+        "Elbows tracking at 45 degrees",
+        "Lower chest until nearly touching floor"
+      ],
+      "commonMistakes": [
+        "Sagging hips",
+        "Flaring elbows out 90 degrees"
+      ],
+      "defaultSets": 3,
+      "defaultReps": "12-15",
+      "restSeconds": 60,
+      "repType": "reps",
+      "cvSupported": false,
+      "cvModuleId": null
+    },
+    {
+      "id": "db-bicep-curl",
+      "slug": "dumbbell-bicep-curl",
+      "name": "Dumbbell Bicep Curl",
+      "nameVi": "Cuốn tạ đơn tập cơ tay trước",
+      "muscleGroup": "Arms",
+      "targetMuscles": [
+        "Arms",
+        "Biceps"
+      ],
+      "secondaryMuscles": [
+        "Forearms",
+        "Brachialis"
+      ],
+      "equipment": [
+        "Dumbbells"
+      ],
+      "difficulty": "beginner",
+      "thumbnailUrl": "assets/images/exercises/dumbbell-bicep-curl-thumb.jpg",
+      "youtubeVideoId": null,
+      "cues": [
+        "Keep elbows pinned close to your torso",
+        "Curl dumbbells upward while rotating wrists into supination",
+        "Squeeze biceps at the peak, then lower under full control"
+      ],
+      "commonMistakes": [
+        "Swinging torso or using momentum to lift",
+        "Allowing elbows to drift excessively forward"
+      ],
+      "defaultSets": 3,
+      "defaultReps": "10-12",
+      "restSeconds": 60,
+      "repType": "reps",
+      "cvSupported": false,
+      "cvModuleId": null
+    },
+    {
+      "id": "triceps-rope-pushdown",
+      "slug": "triceps-rope-pushdown",
+      "name": "Triceps Rope Pushdown",
+      "nameVi": "Kéo cáp dây thừng tập tay sau",
+      "muscleGroup": "Arms",
+      "targetMuscles": [
+        "Arms",
+        "Triceps"
+      ],
+      "secondaryMuscles": [
+        "Forearms"
+      ],
+      "equipment": [
+        "Cable Machine",
+        "Rope Attachment"
+      ],
+      "difficulty": "beginner",
+      "thumbnailUrl": "assets/images/exercises/triceps-rope-pushdown-thumb.jpg",
+      "youtubeVideoId": null,
+      "cues": [
+        "Pin elbows firmly at your sides throughout the movement",
+        "Extend arms downward, spreading rope ends slightly at the bottom",
+        "Control the return until forearms reach parallel to the floor"
+      ],
+      "commonMistakes": [
+        "Flaring elbows outward during extension",
+        "Leaning too far over the cable stack"
+      ],
+      "defaultSets": 3,
+      "defaultReps": "12-15",
+      "restSeconds": 60,
+      "repType": "reps",
+      "cvSupported": false,
+      "cvModuleId": null
+    },
+    {
+      "id": "barbell-back-squat",
+      "slug": "barbell-back-squat",
+      "name": "Barbell Back Squat",
+      "nameVi": "Gánh tạ đòn ngang lưng",
+      "muscleGroup": "Quads",
+      "targetMuscles": [
+        "Quads",
+        "Quadriceps"
+      ],
+      "secondaryMuscles": [
+        "Glutes",
+        "Hamstrings",
+        "Core"
+      ],
+      "equipment": [
+        "Barbell",
+        "Squat Rack"
+      ],
+      "difficulty": "intermediate",
+      "thumbnailUrl": "assets/images/exercises/barbell-back-squat-thumb.jpg",
+      "youtubeVideoId": null,
+      "cues": [
+        "Rest barbell securely across upper traps with chest proud",
+        "Hinge hips back and bend knees tracking in line with toes",
+        "Descend until thighs are at least parallel to the floor",
+        "Drive through midfoot and heels to return upright"
+      ],
+      "commonMistakes": [
+        "Knees caving inward during ascent",
+        "Heels lifting off the floor",
+        "Rounding the lower back in the hole"
+      ],
+      "defaultSets": 4,
+      "defaultReps": "6-8",
+      "restSeconds": 120,
+      "repType": "reps",
+      "cvSupported": false,
+      "cvModuleId": null
+    },
+    {
+      "id": "romanian-deadlift",
+      "slug": "romanian-deadlift",
+      "name": "Romanian Deadlift",
+      "nameVi": "Kéo tạ đùi sau kiểu Rumani",
+      "muscleGroup": "Hamstrings",
+      "targetMuscles": [
+        "Hamstrings"
+      ],
+      "secondaryMuscles": [
+        "Glutes",
+        "Lower Back",
+        "Forearms"
+      ],
+      "equipment": [
+        "Barbell"
+      ],
+      "difficulty": "intermediate",
+      "thumbnailUrl": "assets/images/exercises/romanian-deadlift-thumb.jpg",
+      "youtubeVideoId": null,
+      "cues": [
+        "Hinge at hips with a soft, fixed bend in knees",
+        "Keep barbell close to shins with a flat neutral back",
+        "Lower until feeling deep hamstring stretch, then drive hips forward"
+      ],
+      "commonMistakes": [
+        "Rounding the lumbar spine during descent",
+        "Squatting downward instead of hinging hips back"
+      ],
+      "defaultSets": 3,
+      "defaultReps": "8-10",
+      "restSeconds": 90,
+      "repType": "reps",
+      "cvSupported": false,
+      "cvModuleId": null
+    },
+    {
+      "id": "barbell-hip-thrust",
+      "slug": "barbell-hip-thrust",
+      "name": "Barbell Hip Thrust",
+      "nameVi": "Đẩy hông tạ đòn tập cơ mông",
+      "muscleGroup": "Glutes",
+      "targetMuscles": [
+        "Glutes"
+      ],
+      "secondaryMuscles": [
+        "Hamstrings",
+        "Adductors"
+      ],
+      "equipment": [
+        "Barbell",
+        "Flat bench"
+      ],
+      "difficulty": "intermediate",
+      "thumbnailUrl": "assets/images/exercises/barbell-hip-thrust-thumb.jpg",
+      "youtubeVideoId": null,
+      "cues": [
+        "Rest upper back against bench with barbell padded across hip crease",
+        "Set feet shoulder-width apart so shins are vertical at top lockout",
+        "Drive hips upward, tuck chin slightly, and achieve full glute lockout"
+      ],
+      "commonMistakes": [
+        "Hyperextending lumbar spine at top",
+        "Feet placed too far forward or too close to hips"
+      ],
+      "defaultSets": 4,
+      "defaultReps": "10-12",
+      "restSeconds": 90,
+      "repType": "reps",
+      "cvSupported": false,
+      "cvModuleId": null
+    },
+    {
+      "id": "leg-press",
+      "slug": "leg-press",
+      "name": "Leg Press",
+      "nameVi": "Đạp đùi trên máy nghiêng",
+      "muscleGroup": "Quads",
+      "targetMuscles": [
+        "Quads",
+        "Quadriceps"
+      ],
+      "secondaryMuscles": [
+        "Glutes",
+        "Calves"
+      ],
+      "equipment": [
+        "Leg Press Machine"
+      ],
+      "difficulty": "beginner",
+      "thumbnailUrl": "assets/images/exercises/leg-press-thumb.jpg",
+      "youtubeVideoId": null,
+      "cues": [
+        "Plant back and hips flat against padded backrest",
+        "Position feet hip-width on platform center",
+        "Lower sled smoothly until knees reach 90-degree angle",
+        "Press through full foot without locking knees abruptly"
+      ],
+      "commonMistakes": [
+        "Allowing lower back to curl off the backrest",
+        "Violently snapping knees into full hyperextension"
+      ],
+      "defaultSets": 3,
+      "defaultReps": "10-12",
+      "restSeconds": 90,
+      "repType": "reps",
+      "cvSupported": false,
+      "cvModuleId": null
+    },
+    {
+      "id": "lying-leg-curl",
+      "slug": "lying-leg-curl",
+      "name": "Lying Leg Curl",
+      "nameVi": "Móc đùi sau nằm trên máy",
+      "muscleGroup": "Hamstrings",
+      "targetMuscles": [
+        "Hamstrings"
+      ],
+      "secondaryMuscles": [
+        "Calves"
+      ],
+      "equipment": [
+        "Leg Curl Machine"
+      ],
+      "difficulty": "beginner",
+      "thumbnailUrl": "assets/images/exercises/lying-leg-curl-thumb.jpg",
+      "youtubeVideoId": null,
+      "cues": [
+        "Lie face down with roller pad positioned just below calves",
+        "Keep hips pressed flat against bench throughout curl",
+        "Curl heels toward glutes smoothly and pause at top contraction"
+      ],
+      "commonMistakes": [
+        "Lifting hips off bench to yank the weight",
+        "Letting the weight plates crash down between reps"
+      ],
+      "defaultSets": 3,
+      "defaultReps": "12-15",
+      "restSeconds": 60,
+      "repType": "reps",
+      "cvSupported": false,
+      "cvModuleId": null
+    },
+    {
+      "id": "standing-calf-raise",
+      "slug": "standing-calf-raise",
+      "name": "Standing Calf Raise",
+      "nameVi": "Nhón bắp chân đứng",
+      "muscleGroup": "Calves",
+      "targetMuscles": [
+        "Calves"
+      ],
+      "secondaryMuscles": [
+        "Foot stabilizers"
+      ],
+      "equipment": [
+        "Calf Raise Machine"
+      ],
+      "difficulty": "beginner",
+      "thumbnailUrl": "assets/images/exercises/standing-calf-raise-thumb.jpg",
+      "youtubeVideoId": null,
+      "cues": [
+        "Balls of feet on edge of platform with heels hanging free",
+        "Lower heels into a full stretch with knees straight",
+        "Press through balls of feet to peak height and pause for 1 second"
+      ],
+      "commonMistakes": [
+        "Bouncing rapidly without pausing in stretch or contraction",
+        "Bending knees to generate momentum"
+      ],
+      "defaultSets": 4,
+      "defaultReps": "12-15",
+      "restSeconds": 60,
+      "repType": "reps",
+      "cvSupported": false,
+      "cvModuleId": null
+    },
+    {
+      "id": "plank",
+      "slug": "plank",
+      "name": "Plank",
+      "nameVi": "Giữ tư thế plank chống khuỷu",
+      "muscleGroup": "Abs",
+      "targetMuscles": [
+        "Abs",
+        "Core"
+      ],
+      "secondaryMuscles": [
+        "Shoulders",
+        "Glutes"
+      ],
+      "equipment": [
+        "Bodyweight"
+      ],
+      "difficulty": "beginner",
+      "thumbnailUrl": "assets/images/exercises/plank-thumb.jpg",
+      "youtubeVideoId": null,
+      "cues": [
+        "Place forearms on floor with elbows directly under shoulders",
+        "Maintain rigid straight line from head to heels",
+        "Brace abdominal wall and squeeze glutes firmly"
+      ],
+      "commonMistakes": [
+        "Sagging hips towards floor",
+        "Piking hips upward to relieve abdominal tension",
+        "Holding breath instead of breathing rhythmically"
+      ],
+      "defaultSets": 3,
+      "defaultReps": "45-60",
+      "restSeconds": 60,
+      "repType": "seconds",
+      "cvSupported": false,
+      "cvModuleId": null
+    },
+    {
+      "id": "hanging-leg-raise",
+      "slug": "hanging-leg-raise",
+      "name": "Hanging Leg Raise",
+      "nameVi": "Treo xà đơn nâng chân gập bụng",
+      "muscleGroup": "Abs",
+      "targetMuscles": [
+        "Abs",
+        "Hip Flexors"
+      ],
+      "secondaryMuscles": [
+        "Forearms",
+        "Lats"
+      ],
+      "equipment": [
+        "Pull-up Bar"
+      ],
+      "difficulty": "advanced",
+      "thumbnailUrl": "assets/images/exercises/hanging-leg-raise-thumb.jpg",
+      "youtubeVideoId": null,
+      "cues": [
+        "Hang from bar with active engaged shoulders",
+        "Raise legs by curling pelvis upward toward ribs",
+        "Lower legs under strict eccentric control without swinging"
+      ],
+      "commonMistakes": [
+        "Swinging torso to kick legs upward with momentum",
+        "Allowing shoulders to disengage and shrug into neck"
+      ],
+      "defaultSets": 3,
+      "defaultReps": "10-12",
+      "restSeconds": 75,
+      "repType": "reps",
+      "cvSupported": false,
+      "cvModuleId": null
+    },
+    {
+      "id": "cable-woodchopper",
+      "slug": "cable-woodchopper",
+      "name": "Cable Woodchopper",
+      "nameVi": "Kéo cáp vặn sườn tập cơ liên sườn",
+      "muscleGroup": "Obliques",
+      "targetMuscles": [
+        "Obliques",
+        "Core"
+      ],
+      "secondaryMuscles": [
+        "Shoulders"
+      ],
+      "equipment": [
+        "Cable Machine"
+      ],
+      "difficulty": "intermediate",
+      "thumbnailUrl": "assets/images/exercises/cable-woodchopper-thumb.jpg",
+      "youtubeVideoId": null,
+      "cues": [
+        "Set cable high, grip handle with both hands and arms straight",
+        "Rotate torso downward diagonally across body by pivoting rear foot",
+        "Control return slowly along diagonal track while keeping core braced"
+      ],
+      "commonMistakes": [
+        "Pulling with arms rather than rotating core",
+        "Rounding the spine during the twist"
+      ],
+      "defaultSets": 3,
+      "defaultReps": "10-12",
+      "restSeconds": 60,
+      "repType": "reps",
+      "cvSupported": false,
+      "cvModuleId": null
+    },
+    {
+      "id": "ab-wheel-rollout",
+      "slug": "ab-wheel-rollout",
+      "name": "Ab Wheel Rollout",
+      "nameVi": "Lăn bánh xe tập cơ bụng",
+      "muscleGroup": "Abs",
+      "targetMuscles": [
+        "Abs",
+        "Core"
+      ],
+      "secondaryMuscles": [
+        "Lats",
+        "Shoulders"
+      ],
+      "equipment": [
+        "Ab Wheel"
+      ],
+      "difficulty": "intermediate",
+      "thumbnailUrl": "assets/images/exercises/ab-wheel-rollout-thumb.jpg",
+      "youtubeVideoId": null,
+      "cues": [
+        "Kneel on floor holding wheel with arms straight beneath shoulders",
+        "Roll forward smoothly while bracing core in posterior pelvic tilt",
+        "Pull back using abdominal contraction without sagging lower back"
+      ],
+      "commonMistakes": [
+        "Letting lower back sag into hyperextension",
+        "Initiating return with hips instead of contracting abs"
+      ],
+      "defaultSets": 3,
+      "defaultReps": "8-10",
+      "restSeconds": 75,
+      "repType": "reps",
+      "cvSupported": false,
+      "cvModuleId": null
+    },
+    {
+      "id": "incline-dumbbell-flyes",
+      "slug": "incline-dumbbell-flyes",
+      "name": "Incline Dumbbell Flyes",
+      "nameVi": "Ép ngực tạ đơn trên ghế nghiêng",
+      "muscleGroup": "Chest",
+      "targetMuscles": [
+        "Chest",
+        "Upper Chest",
+        "Pectoralis Major"
+      ],
+      "secondaryMuscles": [
+        "Shoulders",
+        "Anterior Deltoid"
+      ],
+      "equipment": [
+        "Dumbbells",
+        "Incline Bench"
+      ],
+      "difficulty": "intermediate",
+      "thumbnailUrl": "assets/images/exercises/incline-dumbbell-flyes-thumb.jpg",
+      "youtubeVideoId": null,
+      "cues": [
+        "Set the bench to a low incline and plant both feet",
+        "Open arms in an arc while keeping a slight, fixed elbow bend",
+        "Bring dumbbells together above the upper chest without pressing"
+      ],
+      "commonMistakes": [
+        "Bending elbows further to turn the fly into a press",
+        "Lowering weights beyond a comfortable chest stretch"
+      ],
+      "defaultSets": 3,
+      "defaultReps": "10-12",
+      "restSeconds": 60,
+      "repType": "reps",
+      "cvSupported": false,
+      "cvModuleId": null
+    },
+    {
+      "id": "overhead-triceps-extension",
+      "slug": "overhead-triceps-extension",
+      "name": "Overhead Dumbbell Triceps Extension",
+      "nameVi": "Duỗi tay sau qua đầu với tạ đơn",
+      "muscleGroup": "Arms",
+      "targetMuscles": [
+        "Arms",
+        "Triceps"
+      ],
+      "secondaryMuscles": [
+        "Shoulders",
+        "Core"
+      ],
+      "equipment": [
+        "Dumbbells"
+      ],
+      "difficulty": "beginner",
+      "thumbnailUrl": "assets/images/exercises/overhead-triceps-extension-thumb.jpg",
+      "youtubeVideoId": null,
+      "cues": [
+        "Sit upright and support one dumbbell beneath its upper head with both hands",
+        "Keep upper arms beside your head as the dumbbell lowers behind it",
+        "Extend elbows to lift the dumbbell overhead while keeping ribs down"
+      ],
+      "commonMistakes": [
+        "Letting elbows spread wide as the weight lowers",
+        "Arching the back to push the dumbbell upward"
+      ],
+      "defaultSets": 3,
+      "defaultReps": "10-12",
+      "restSeconds": 60,
+      "repType": "reps",
+      "cvSupported": false,
+      "cvModuleId": null
+    },
+    {
+      "id": "face-pulls",
+      "slug": "face-pulls",
+      "name": "Face Pull",
+      "nameVi": "Kéo cáp dây thừng về mặt",
+      "muscleGroup": "Shoulders",
+      "targetMuscles": [
+        "Shoulders",
+        "Rear Deltoid"
+      ],
+      "secondaryMuscles": [
+        "Back",
+        "Rhomboids",
+        "Mid Traps"
+      ],
+      "equipment": [
+        "Cable Machine",
+        "Rope Attachment"
+      ],
+      "difficulty": "intermediate",
+      "thumbnailUrl": "assets/images/exercises/face-pulls-thumb.jpg",
+      "youtubeVideoId": null,
+      "cues": [
+        "Set the rope pulley near head height and stand facing the cable",
+        "Pull rope ends toward your temples with elbows raised and wide",
+        "Separate the rope ends, then return slowly with an upright torso"
+      ],
+      "commonMistakes": [
+        "Pulling the rope down toward the chest instead of the face",
+        "Leaning backward to move an excessively heavy cable"
+      ],
+      "defaultSets": 3,
+      "defaultReps": "12-15",
+      "restSeconds": 60,
+      "repType": "reps",
+      "cvSupported": false,
+      "cvModuleId": null
+    },
+    {
+      "id": "incline-dumbbell-press",
+      "slug": "incline-dumbbell-press",
+      "name": "Incline Dumbbell Press",
+      "nameVi": "Đẩy ngực tạ đơn trên ghế nghiêng",
+      "muscleGroup": "Chest",
+      "targetMuscles": [
+        "Chest",
+        "Upper Chest",
+        "Pectoralis Major"
+      ],
+      "secondaryMuscles": [
+        "Triceps",
+        "Shoulders",
+        "Anterior Deltoid"
+      ],
+      "equipment": [
+        "Dumbbells",
+        "Incline Bench"
+      ],
+      "difficulty": "intermediate",
+      "thumbnailUrl": "assets/images/exercises/incline-dumbbell-press-thumb.jpg",
+      "youtubeVideoId": null,
+      "cues": [
+        "Lie on a low incline bench with feet planted and shoulder blades set",
+        "Lower dumbbells beside the upper chest with wrists above elbows",
+        "Press upward over the upper chest while keeping back supported"
+      ],
+      "commonMistakes": [
+        "Setting the bench nearly vertical and turning it into a shoulder press",
+        "Letting wrists fold backward beneath the dumbbells"
+      ],
+      "defaultSets": 3,
+      "defaultReps": "8-10",
+      "restSeconds": 90,
+      "repType": "reps",
+      "cvSupported": false,
+      "cvModuleId": null
+    },
+    {
+      "id": "one-arm-dumbbell-row",
+      "slug": "one-arm-dumbbell-row",
+      "name": "One-Arm Dumbbell Row",
+      "nameVi": "Kéo tạ đơn một tay có ghế hỗ trợ",
+      "muscleGroup": "Back",
+      "targetMuscles": [
+        "Back",
+        "Latissimus Dorsi"
+      ],
+      "secondaryMuscles": [
+        "Biceps",
+        "Rear Deltoid",
+        "Forearms"
+      ],
+      "equipment": [
+        "Dumbbells",
+        "Flat bench"
+      ],
+      "difficulty": "intermediate",
+      "thumbnailUrl": "assets/images/exercises/one-arm-dumbbell-row-thumb.jpg",
+      "youtubeVideoId": null,
+      "cues": [
+        "Support one hand and knee on a flat bench; keep your back neutral",
+        "Row the dumbbell toward your hip with the elbow close to your ribs",
+        "Complete both sides before Log Set; enter total reps: 10 left + 10 right = 20",
+        "Weight is the single dumbbell in use; do not double its weight"
+      ],
+      "commonMistakes": [
+        "Twisting the torso to lift the dumbbell higher",
+        "Logging one side before completing the other"
+      ],
+      "defaultSets": 3,
+      "defaultReps": "20-24",
+      "restSeconds": 75,
+      "repType": "reps",
+      "cvSupported": false,
+      "cvModuleId": null
+    },
+    {
+      "id": "dumbbell-lateral-raise",
+      "slug": "dumbbell-lateral-raise",
+      "name": "Dumbbell Lateral Raise",
+      "nameVi": "Nâng tạ đơn sang ngang",
+      "muscleGroup": "Shoulders",
+      "targetMuscles": [
+        "Shoulders",
+        "Lateral Deltoid"
+      ],
+      "secondaryMuscles": [
+        "Traps"
+      ],
+      "equipment": [
+        "Dumbbells"
+      ],
+      "difficulty": "beginner",
+      "thumbnailUrl": "assets/images/exercises/dumbbell-lateral-raise-thumb.jpg",
+      "youtubeVideoId": null,
+      "cues": [
+        "Stand tall with dumbbells at your sides and a soft elbow bend",
+        "Lift arms out to the sides until they reach shoulder height",
+        "Lower slowly with relaxed shoulders and neutral wrists"
+      ],
+      "commonMistakes": [
+        "Shrugging shoulders toward your ears during the raise",
+        "Swinging legs and torso to throw the weights upward"
+      ],
+      "defaultSets": 3,
+      "defaultReps": "12-15",
+      "restSeconds": 60,
+      "repType": "reps",
+      "cvSupported": false,
+      "cvModuleId": null
+    },
+    {
+      "id": "hammer-curl",
+      "slug": "hammer-curl",
+      "name": "Hammer Curl",
+      "nameVi": "Cuốn tạ đơn kiểu búa",
+      "muscleGroup": "Arms",
+      "targetMuscles": [
+        "Arms",
+        "Biceps",
+        "Brachialis"
+      ],
+      "secondaryMuscles": [
+        "Forearms",
+        "Brachioradialis"
+      ],
+      "equipment": [
+        "Dumbbells"
+      ],
+      "difficulty": "beginner",
+      "thumbnailUrl": "assets/images/exercises/hammer-curl-thumb.jpg",
+      "youtubeVideoId": null,
+      "cues": [
+        "Hold dumbbells with palms facing inward and thumbs pointing up",
+        "Curl both weights without rotating your wrists or moving upper arms",
+        "Lower to your sides with elbows kept beside your torso"
+      ],
+      "commonMistakes": [
+        "Rotating palms upward into a supinated curl",
+        "Driving elbows forward to shorten the curl"
+      ],
+      "defaultSets": 3,
+      "defaultReps": "10-12",
+      "restSeconds": 60,
+      "repType": "reps",
+      "cvSupported": false,
+      "cvModuleId": null
+    },
+    {
+      "id": "goblet-squat",
+      "slug": "goblet-squat",
+      "name": "Goblet Squat",
+      "nameVi": "Squat ôm một tạ đơn trước ngực",
+      "muscleGroup": "Quads",
+      "targetMuscles": [
+        "Quads",
+        "Quadriceps"
+      ],
+      "secondaryMuscles": [
+        "Glutes",
+        "Core",
+        "Adductors"
+      ],
+      "equipment": [
+        "Dumbbells"
+      ],
+      "difficulty": "beginner",
+      "thumbnailUrl": "assets/images/exercises/goblet-squat-thumb.jpg",
+      "youtubeVideoId": null,
+      "cues": [
+        "Cup one dumbbell beneath its upper head and hold it close to your chest",
+        "Sit down between your hips with knees tracking over toes",
+        "Keep heels planted and chest tall as you stand back up"
+      ],
+      "commonMistakes": [
+        "Letting the dumbbell drift away from the chest",
+        "Rising onto toes at the bottom of the squat"
+      ],
+      "defaultSets": 3,
+      "defaultReps": "10-12",
+      "restSeconds": 90,
+      "repType": "reps",
+      "cvSupported": false,
+      "cvModuleId": null
+    },
+    {
+      "id": "reverse-lunge",
+      "slug": "reverse-lunge",
+      "name": "Reverse Lunge",
+      "nameVi": "Chùng chân bước lùi luân phiên",
+      "muscleGroup": "Quads",
+      "targetMuscles": [
+        "Quads",
+        "Quadriceps"
+      ],
+      "secondaryMuscles": [
+        "Glutes",
+        "Hamstrings",
+        "Core"
+      ],
+      "equipment": [
+        "Bodyweight"
+      ],
+      "difficulty": "beginner",
+      "thumbnailUrl": "assets/images/exercises/reverse-lunge-thumb.jpg",
+      "youtubeVideoId": null,
+      "cues": [
+        "Step one foot backward, lower the rear knee, and keep the front heel planted",
+        "Return to standing and alternate legs; one backward step and return = one rep",
+        "Enter total reps: 10 left + 10 right = 20",
+        "Use bodyweight only; manually set external weight to 0 kg before each Log Set"
+      ],
+      "commonMistakes": [
+        "Stepping back on a tightrope line and losing balance",
+        "Letting the front knee collapse inward as you stand"
+      ],
+      "defaultSets": 3,
+      "defaultReps": "20",
+      "restSeconds": 60,
+      "repType": "reps",
+      "cvSupported": false,
+      "cvModuleId": null
+    },
+    {
+      "id": "dead-bug",
+      "slug": "dead-bug",
+      "name": "Dead Bug",
+      "nameVi": "Duỗi tay chân đối bên khi nằm ngửa",
+      "muscleGroup": "Abs",
+      "targetMuscles": [
+        "Abs",
+        "Core"
+      ],
+      "secondaryMuscles": [
+        "Obliques",
+        "Hip Flexors"
+      ],
+      "equipment": [
+        "Bodyweight"
+      ],
+      "difficulty": "beginner",
+      "thumbnailUrl": "assets/images/exercises/dead-bug-thumb.jpg",
+      "youtubeVideoId": null,
+      "cues": [
+        "Lie face up with arms above your chest, hips and knees bent to 90 degrees",
+        "Keep your lower back against the floor; extend the opposite arm and leg, then return = one rep",
+        "Alternate sides and enter total reps: 10 left + 10 right = 20",
+        "Use bodyweight only; manually set external weight to 0 kg before each Log Set"
+      ],
+      "commonMistakes": [
+        "Arching the lower back as the leg extends",
+        "Extending the same-side arm and leg instead of opposite limbs"
+      ],
+      "defaultSets": 3,
+      "defaultReps": "20",
+      "restSeconds": 60,
+      "repType": "reps",
+      "cvSupported": false,
+      "cvModuleId": null
+    },
+    {
+      "id": "cable-chest-fly",
+      "slug": "cable-chest-fly",
+      "name": "Cable Chest Fly",
+      "nameVi": "Ép ngực với cáp",
+      "muscleGroup": "Chest",
+      "targetMuscles": [
+        "Chest"
+      ],
+      "secondaryMuscles": [
+        "Anterior Deltoid"
+      ],
+      "equipment": [
+        "Cable Machine"
+      ],
+      "difficulty": "beginner",
+      "thumbnailUrl": "assets/images/exercises/cable-chest-fly-thumb.jpg",
+      "youtubeVideoId": null,
+      "cues": [
+        "Stand between two pulleys set at chest height with elbows slightly bent",
+        "Bring both hands together in front of your chest",
+        "Return the cables under control while keeping the elbow bend"
+      ],
+      "commonMistakes": [
+        "Shrugging the shoulders",
+        "Using momentum to close the handles",
+        "Locking the elbows straight"
+      ],
+      "defaultSets": 3,
+      "defaultReps": "10-15",
+      "restSeconds": 60,
+      "repType": "reps",
+      "cvSupported": false,
+      "cvModuleId": null
+    },
+    {
+      "id": "pull-up",
+      "slug": "pull-up",
+      "name": "Pull-Up",
+      "nameVi": "Hít xà",
+      "muscleGroup": "Back",
+      "targetMuscles": [
+        "Back",
+        "Latissimus Dorsi"
+      ],
+      "secondaryMuscles": [
+        "Upper Back",
+        "Biceps"
+      ],
+      "equipment": [
+        "Pull-Up Bar"
+      ],
+      "difficulty": "intermediate",
+      "thumbnailUrl": "assets/images/exercises/pull-up-thumb.jpg",
+      "youtubeVideoId": null,
+      "cues": [
+        "Begin in a stable hang with an overhand, shoulder-width grip",
+        "Pull your elbows downward and lower your body under control",
+        "Use bodyweight only; manually set external weight to 0 kg before each Log Set"
+      ],
+      "commonMistakes": [
+        "Swinging the body",
+        "Craning the neck to reach the bar",
+        "Dropping without control"
+      ],
+      "defaultSets": 3,
+      "defaultReps": "6-10",
+      "restSeconds": 90,
+      "repType": "reps",
+      "cvSupported": false,
+      "cvModuleId": null
+    },
+    {
+      "id": "reverse-dumbbell-fly",
+      "slug": "reverse-dumbbell-fly",
+      "name": "Reverse Dumbbell Fly",
+      "nameVi": "Dang tạ đơn ngược",
+      "muscleGroup": "Shoulders",
+      "targetMuscles": [
+        "Shoulders",
+        "Rear Deltoid"
+      ],
+      "secondaryMuscles": [
+        "Upper Back"
+      ],
+      "equipment": [
+        "Dumbbells"
+      ],
+      "difficulty": "beginner",
+      "thumbnailUrl": "assets/images/exercises/reverse-dumbbell-fly-thumb.jpg",
+      "youtubeVideoId": null,
+      "cues": [
+        "Hinge at the hips while standing and keep your back stable",
+        "Keep elbows slightly bent and open both arms to the sides",
+        "Enter the total load of both dumbbells: 10 kg per hand = 20 kg"
+      ],
+      "commonMistakes": [
+        "Swinging the dumbbells",
+        "Shrugging the shoulders",
+        "Repeatedly changing the torso angle"
+      ],
+      "defaultSets": 3,
+      "defaultReps": "12-15",
+      "restSeconds": 60,
+      "repType": "reps",
+      "cvSupported": false,
+      "cvModuleId": null
+    },
+    {
+      "id": "bulgarian-split-squat",
+      "slug": "bulgarian-split-squat",
+      "name": "Bulgarian Split Squat",
+      "nameVi": "Squat một chân kê chân sau",
+      "muscleGroup": "Quads",
+      "targetMuscles": [
+        "Quads",
+        "Glutes"
+      ],
+      "secondaryMuscles": [
+        "Hamstrings"
+      ],
+      "equipment": [
+        "Dumbbells",
+        "Flat bench"
+      ],
+      "difficulty": "intermediate",
+      "thumbnailUrl": "assets/images/exercises/bulgarian-split-squat-thumb.jpg",
+      "youtubeVideoId": null,
+      "cues": [
+        "Plant the front foot firmly with the rear foot resting on a bench",
+        "Lower under control and complete both sides before Log Set",
+        "Enter total reps: 10 left + 10 right = 20",
+        "Enter the total load of both dumbbells: 10 kg per hand = 20 kg"
+      ],
+      "commonMistakes": [
+        "Letting the front knee collapse inward",
+        "Pushing off the rear leg",
+        "Using a stance that is too short"
+      ],
+      "defaultSets": 3,
+      "defaultReps": "16-24",
+      "restSeconds": 90,
+      "repType": "reps",
+      "cvSupported": false,
+      "cvModuleId": null
+    },
+    {
+      "id": "leg-extension",
+      "slug": "leg-extension",
+      "name": "Leg Extension",
+      "nameVi": "Duỗi chân máy",
+      "muscleGroup": "Quads",
+      "targetMuscles": [
+        "Quads",
+        "Quadriceps"
+      ],
+      "secondaryMuscles": [],
+      "equipment": [
+        "Leg Extension Machine"
+      ],
+      "difficulty": "beginner",
+      "thumbnailUrl": "assets/images/exercises/leg-extension-thumb.jpg",
+      "youtubeVideoId": null,
+      "cues": [
+        "Align the machine pivot with your knees and extend both legs",
+        "Keep your hips on the seat",
+        "Lower the load slowly"
+      ],
+      "commonMistakes": [
+        "Bouncing the load",
+        "Lifting the hips off the seat",
+        "Positioning the roller pad incorrectly"
+      ],
+      "defaultSets": 3,
+      "defaultReps": "10-15",
+      "restSeconds": 60,
+      "repType": "reps",
+      "cvSupported": false,
+      "cvModuleId": null
+    },
+    {
+      "id": "seated-calf-raise",
+      "slug": "seated-calf-raise",
+      "name": "Seated Calf Raise",
+      "nameVi": "Nhón bắp chân ngồi",
+      "muscleGroup": "Calves",
+      "targetMuscles": [
+        "Calves",
+        "Soleus"
+      ],
+      "secondaryMuscles": [
+        "Gastrocnemius"
+      ],
+      "equipment": [
+        "Seated Calf Raise Machine"
+      ],
+      "difficulty": "beginner",
+      "thumbnailUrl": "assets/images/exercises/seated-calf-raise-thumb.jpg",
+      "youtubeVideoId": null,
+      "cues": [
+        "Sit with the machine pads over your thighs and forefeet on the platform",
+        "Raise your heels",
+        "Lower your heels under control"
+      ],
+      "commonMistakes": [
+        "Bouncing the load",
+        "Using a range of motion that is too short",
+        "Letting the feet slide off the platform"
+      ],
+      "defaultSets": 3,
+      "defaultReps": "12-20",
+      "restSeconds": 60,
+      "repType": "reps",
+      "cvSupported": false,
+      "cvModuleId": null
+    },
+    {
+      "id": "side-plank",
+      "slug": "side-plank",
+      "name": "Side Plank",
+      "nameVi": "Plank nghiêng",
+      "muscleGroup": "Obliques",
+      "targetMuscles": [
+        "Obliques"
+      ],
+      "secondaryMuscles": [
+        "Deep Core",
+        "Glutes",
+        "Shoulders"
+      ],
+      "equipment": [
+        "Bodyweight",
+        "Mat"
+      ],
+      "difficulty": "beginner",
+      "thumbnailUrl": "assets/images/exercises/side-plank-thumb.jpg",
+      "youtubeVideoId": null,
+      "cues": [
+        "Place your forearm on the mat with the elbow under your shoulder",
+        "Keep hips lifted, legs straight and feet stacked",
+        "Complete both sides before Log Set; enter total time: 30 seconds left + 30 seconds right = 60 seconds"
+      ],
+      "commonMistakes": [
+        "Letting the hips sag",
+        "Rotating the torso",
+        "Recording only one side instead of the total time"
+      ],
+      "defaultSets": 3,
+      "defaultReps": "40-60",
+      "restSeconds": 60,
+      "repType": "seconds",
+      "cvSupported": false,
+      "cvModuleId": null
+    },
+    {
+      "id": "reverse-crunch",
+      "slug": "reverse-crunch",
+      "name": "Reverse Crunch",
+      "nameVi": "Gập bụng ngược",
+      "muscleGroup": "Abs",
+      "targetMuscles": [
+        "Abs"
+      ],
+      "secondaryMuscles": [
+        "Obliques"
+      ],
+      "equipment": [
+        "Bodyweight",
+        "Mat"
+      ],
+      "difficulty": "beginner",
+      "thumbnailUrl": "assets/images/exercises/reverse-crunch-thumb.jpg",
+      "youtubeVideoId": null,
+      "cues": [
+        "Lie on a mat with knees bent and curl your pelvis off the mat",
+        "Keep the movement slow and lower under control",
+        "Use bodyweight only; manually set external weight to 0 kg before each Log Set"
+      ],
+      "commonMistakes": [
+        "Swinging the legs",
+        "Using momentum",
+        "Rolling too far onto the neck"
+      ],
+      "defaultSets": 3,
+      "defaultReps": "10-15",
+      "restSeconds": 60,
+      "repType": "reps",
+      "cvSupported": false,
+      "cvModuleId": null
+    },
+    {
+      "id": "barbell-bench-press",
+      "slug": "barbell-bench-press",
+      "name": "Barbell Bench Press",
+      "nameVi": "Đẩy ngực với tạ đòn",
+      "muscleGroup": "Chest",
+      "targetMuscles": [
+        "Chest",
+        "Pectoralis Major"
+      ],
+      "secondaryMuscles": [
+        "Triceps",
+        "Anterior Deltoid"
+      ],
+      "equipment": [
+        "Barbell",
+        "Flat bench"
+      ],
+      "difficulty": "intermediate",
+      "thumbnailUrl": "assets/images/exercises/barbell-bench-press-thumb.jpg",
+      "youtubeVideoId": null,
+      "cues": [
+        "Plant both feet and keep your upper back against the flat bench",
+        "Lower the bar under control to mid-chest, then press up without bouncing",
+        "Keep your wrists stacked over your forearms and use a secure grip",
+        "Log weightKg as the total mass of the barbell and all weight plates"
+      ],
+      "commonMistakes": [
+        "Bouncing the bar off the chest",
+        "Flaring elbows out at 90 degrees",
+        "Lifting the hips or feet during the press"
+      ],
+      "defaultSets": 4,
+      "defaultReps": "8-10",
+      "restSeconds": 90,
+      "repType": "reps",
+      "cvSupported": false,
+      "cvModuleId": null
+    },
+    {
+      "id": "incline-barbell-bench-press",
+      "slug": "incline-barbell-bench-press",
+      "name": "Incline Barbell Bench Press",
+      "nameVi": "Đẩy ngực trên với tạ đòn",
+      "muscleGroup": "Chest",
+      "targetMuscles": [
+        "Chest",
+        "Upper Chest",
+        "Pectoralis Major"
+      ],
+      "secondaryMuscles": [
+        "Anterior Deltoid",
+        "Triceps"
+      ],
+      "equipment": [
+        "Barbell",
+        "Incline Bench"
+      ],
+      "difficulty": "intermediate",
+      "thumbnailUrl": "assets/images/exercises/incline-barbell-bench-press-thumb.jpg",
+      "youtubeVideoId": null,
+      "cues": [
+        "Set the bench to a 30 to 45 degree incline and plant both feet firmly",
+        "Grip the bar slightly wider than shoulder width and lower under control to upper chest",
+        "Press up smoothly without locking out your elbows aggressively",
+        "Log weightKg as the total mass of the barbell and all weight plates"
+      ],
+      "commonMistakes": [
+        "Setting the bench incline too steep, shifting load to shoulders",
+        "Bouncing the bar off the upper chest",
+        "Lifting hips or lower back excessively off the bench"
+      ],
+      "defaultSets": 4,
+      "defaultReps": "8-10",
+      "restSeconds": 90,
+      "repType": "reps",
+      "cvSupported": false,
+      "cvModuleId": null
+    },
+    {
+      "id": "bent-over-barbell-row",
+      "slug": "bent-over-barbell-row",
+      "name": "Bent-Over Barbell Row",
+      "nameVi": "Kéo tạ đòn gập người",
+      "muscleGroup": "Back",
+      "targetMuscles": [
+        "Back",
+        "Latissimus Dorsi",
+        "Rhomboids"
+      ],
+      "secondaryMuscles": [
+        "Biceps",
+        "Rear Deltoid",
+        "Lower Back"
+      ],
+      "equipment": [
+        "Barbell"
+      ],
+      "difficulty": "intermediate",
+      "thumbnailUrl": "assets/images/exercises/bent-over-barbell-row-thumb.jpg",
+      "youtubeVideoId": null,
+      "cues": [
+        "Hinge at hips with knees slightly bent and keep back neutral and flat",
+        "Grip the bar with an overhand grip slightly wider than shoulder width",
+        "Pull the barbell toward your lower ribcage, driving elbows back",
+        "Log weightKg as the total mass of the barbell and all weight plates"
+      ],
+      "commonMistakes": [
+        "Rounding the lower or upper back during the pull",
+        "Using excessive body momentum or standing too upright",
+        "Flaring elbows outward instead of pulling back close to torso"
+      ],
+      "defaultSets": 4,
+      "defaultReps": "8-10",
+      "restSeconds": 90,
+      "repType": "reps",
+      "cvSupported": false,
+      "cvModuleId": null
+    },
+    {
+      "id": "barbell-overhead-press",
+      "slug": "barbell-overhead-press",
+      "name": "Barbell Overhead Press",
+      "nameVi": "Đẩy tạ đòn qua đầu",
+      "muscleGroup": "Shoulders",
+      "targetMuscles": [
+        "Shoulders",
+        "Anterior Deltoid"
+      ],
+      "secondaryMuscles": [
+        "Triceps",
+        "Upper Chest",
+        "Core"
+      ],
+      "equipment": [
+        "Barbell"
+      ],
+      "difficulty": "intermediate",
+      "thumbnailUrl": "assets/images/exercises/barbell-overhead-press-thumb.jpg",
+      "youtubeVideoId": null,
+      "cues": [
+        "Stand tall with feet shoulder-width apart and core braced",
+        "Start with the barbell at collarbone height and press vertically overhead",
+        "Lock out overhead with bar aligned over midfoot and ears visible in front of arms",
+        "Log weightKg as the total mass of the barbell and all weight plates"
+      ],
+      "commonMistakes": [
+        "Overarching the lower back to compensate for shoulder mobility",
+        "Pressing the barbell forward in a curve instead of a vertical path",
+        "Bending the knees or using leg drive during strict press"
+      ],
+      "defaultSets": 4,
+      "defaultReps": "8-10",
+      "restSeconds": 90,
+      "repType": "reps",
+      "cvSupported": false,
+      "cvModuleId": null
+    },
+    {
+      "id": "ez-bar-curl",
+      "slug": "ez-bar-curl",
+      "name": "EZ-Bar Curl",
+      "nameVi": "Cuốn tay trước với thanh đòn EZ",
+      "muscleGroup": "Arms",
+      "targetMuscles": [
+        "Arms",
+        "Biceps"
+      ],
+      "secondaryMuscles": [
+        "Brachialis",
+        "Forearms"
+      ],
+      "equipment": [
+        "EZ Bar"
+      ],
+      "difficulty": "beginner",
+      "thumbnailUrl": "assets/images/exercises/ez-bar-curl-thumb.jpg",
+      "youtubeVideoId": null,
+      "cues": [
+        "Grip the angled ridges of the EZ bar with an underhand grip",
+        "Keep elbows pinned near your ribs and curl the bar toward your chest",
+        "Squeeze biceps at the top and lower slowly under control",
+        "Log weightKg as the total mass of the EZ-bar and all attached plates"
+      ],
+      "commonMistakes": [
+        "Swinging torso or using hip momentum to lift the bar",
+        "Drifting elbows forward or outward during the curl",
+        "Dropping the weight rapidly without resisting on the descent"
+      ],
+      "defaultSets": 3,
+      "defaultReps": "10-12",
+      "restSeconds": 60,
+      "repType": "reps",
+      "cvSupported": false,
+      "cvModuleId": null
+    },
+    {
+      "id": "glute-bridge",
+      "slug": "glute-bridge",
+      "name": "Glute Bridge",
+      "nameVi": "Cầu mông nâng hông trên thảm",
+      "muscleGroup": "Glutes",
+      "targetMuscles": [
+        "Glutes"
+      ],
+      "secondaryMuscles": [
+        "Hamstrings",
+        "Core"
+      ],
+      "equipment": [
+        "Mat",
+        "Bodyweight"
+      ],
+      "difficulty": "beginner",
+      "thumbnailUrl": "assets/images/exercises/glute-bridge-thumb.jpg",
+      "youtubeVideoId": null,
+      "cues": [
+        "Lie supine with knees bent, feet flat on the floor hip-width apart",
+        "Press through your heels to raise hips until thighs and torso align",
+        "Squeeze your glutes firmly at the top for one second before lowering",
+        "Log weightKg as 0 for bodyweight or enter additional load if used"
+      ],
+      "commonMistakes": [
+        "Hyperextending the lower back at the top",
+        "Pushing through the toes rather than heels",
+        "Letting knees collapse inward during hip extension"
+      ],
+      "defaultSets": 3,
+      "defaultReps": "12-15",
+      "restSeconds": 60,
+      "repType": "reps",
+      "cvSupported": false,
+      "cvModuleId": null
+    },
+    {
+      "id": "machine-chest-press",
+      "slug": "machine-chest-press",
+      "name": "Machine Chest Press",
+      "nameVi": "Đẩy ngực trên máy",
+      "muscleGroup": "Chest",
+      "targetMuscles": [
+        "Chest",
+        "Pectoralis Major"
+      ],
+      "secondaryMuscles": [
+        "Anterior Deltoid",
+        "Triceps"
+      ],
+      "equipment": [
+        "Machine"
+      ],
+      "difficulty": "beginner",
+      "thumbnailUrl": "assets/images/exercises/machine-chest-press-thumb.jpg",
+      "youtubeVideoId": null,
+      "cues": [
+        "Adjust seat height so handles align with mid-chest",
+        "Keep feet flat on floor and press handles forward until arms are extended without locking elbows",
+        "Control the return until handles are level with your chest, feeling a stretch in pectorals",
+        "Log weightKg as the selected machine stack weight"
+      ],
+      "commonMistakes": [
+        "Letting shoulders roll forward away from the backrest at full extension",
+        "Setting seat too high or too low, stressing the shoulder joints",
+        "Bouncing weight off the stack at the bottom of the movement"
+      ],
+      "defaultSets": 3,
+      "defaultReps": "10-12",
+      "restSeconds": 60,
+      "repType": "reps",
+      "cvSupported": false,
+      "cvModuleId": null
+    },
+    {
+      "id": "chest-supported-dumbbell-row",
+      "slug": "chest-supported-dumbbell-row",
+      "name": "Chest-Supported Dumbbell Row",
+      "nameVi": "Kéo tạ đơn tựa ngực trên ghế dốc",
+      "muscleGroup": "Back",
+      "targetMuscles": [
+        "Back",
+        "Latissimus Dorsi",
+        "Rhomboids"
+      ],
+      "secondaryMuscles": [
+        "Rear Deltoid",
+        "Biceps",
+        "Trapezius"
+      ],
+      "equipment": [
+        "Dumbbells",
+        "Incline Bench"
+      ],
+      "difficulty": "intermediate",
+      "thumbnailUrl": "assets/images/exercises/chest-supported-dumbbell-row-thumb.jpg",
+      "youtubeVideoId": null,
+      "cues": [
+        "Lie prone on an incline bench set to 30-45 degrees with chest supported",
+        "Hold a dumbbell in each hand, retract shoulder blades and pull elbows up toward your hips",
+        "Squeeze upper back at the peak and lower dumbbells slowly under control",
+        "Enter the total load of both dumbbells: 10 kg per hand = 20 kg"
+      ],
+      "commonMistakes": [
+        "Flaring elbows excessively wide rather than driving them back",
+        "Lifting chest off the pad using lower back extension",
+        "Using momentum or swinging dumbbells at the start of each rep"
+      ],
+      "defaultSets": 3,
+      "defaultReps": "8-10",
+      "restSeconds": 90,
+      "repType": "reps",
+      "cvSupported": false,
+      "cvModuleId": null
+    },
+    {
+      "id": "cable-lateral-raise",
+      "slug": "cable-lateral-raise",
+      "name": "Cable Lateral Raise",
+      "nameVi": "Dang vai với dây cáp",
+      "muscleGroup": "Shoulders",
+      "targetMuscles": [
+        "Shoulders",
+        "Lateral Deltoid"
+      ],
+      "secondaryMuscles": [
+        "Anterior Deltoid",
+        "Trapezius"
+      ],
+      "equipment": [
+        "Cable"
+      ],
+      "difficulty": "beginner",
+      "thumbnailUrl": "assets/images/exercises/cable-lateral-raise-thumb.jpg",
+      "youtubeVideoId": null,
+      "cues": [
+        "Stand sideways to the low pulley and grip handle with arm across body",
+        "Raise arm laterally to shoulder height with a slight bend in the elbow",
+        "Complete both sides before Log Set; enter total reps: 12-15 left + 12-15 right = 24-30",
+        "Weight is the single cable load in use; do not double its weight"
+      ],
+      "commonMistakes": [
+        "Leaning or swinging the torso to generate momentum",
+        "Raising the hand higher than shoulder level, engaging the traps",
+        "Letting the weight stack drop suddenly on the eccentric phase"
+      ],
+      "defaultSets": 3,
+      "defaultReps": "24-30",
+      "restSeconds": 60,
+      "repType": "reps",
+      "cvSupported": false,
+      "cvModuleId": null
+    },
+    {
+      "id": "lying-ez-bar-triceps-extension",
+      "slug": "lying-ez-bar-triceps-extension",
+      "name": "Lying EZ-Bar Triceps Extension",
+      "nameVi": "Duỗi tay sau nằm với thanh đòn EZ",
+      "muscleGroup": "Arms",
+      "targetMuscles": [
+        "Arms",
+        "Triceps"
+      ],
+      "secondaryMuscles": [
+        "Forearms"
+      ],
+      "equipment": [
+        "EZ Bar",
+        "Flat Bench"
+      ],
+      "difficulty": "intermediate",
+      "thumbnailUrl": "assets/images/exercises/lying-ez-bar-triceps-extension-thumb.jpg",
+      "youtubeVideoId": null,
+      "cues": [
+        "Lie supine on a flat bench holding an EZ bar with a narrow overhand grip",
+        "Keep upper arms stationary angled slightly back, and lower bar towards forehead by bending elbows",
+        "Contract triceps to extend arms back to the starting position without flaring elbows",
+        "Log weightKg as the total mass of the EZ-bar and all attached plates"
+      ],
+      "commonMistakes": [
+        "Flaring elbows out to the sides during extension",
+        "Moving upper arms back and forth instead of isolating the elbow hinge",
+        "Dropping the bar too quickly toward the forehead"
+      ],
+      "defaultSets": 3,
+      "defaultReps": "10-12",
+      "restSeconds": 60,
+      "repType": "reps",
+      "cvSupported": false,
+      "cvModuleId": null
+    },
+    {
+      "id": "preacher-curl",
+      "slug": "preacher-curl",
+      "name": "Preacher Curl",
+      "nameVi": "Cuốn tay trước trên ghế dốc Preacher",
+      "muscleGroup": "Arms",
+      "targetMuscles": [
+        "Arms",
+        "Biceps"
+      ],
+      "secondaryMuscles": [
+        "Brachialis",
+        "Forearms"
+      ],
+      "equipment": [
+        "EZ Bar",
+        "Preacher Bench"
+      ],
+      "difficulty": "beginner",
+      "thumbnailUrl": "assets/images/exercises/preacher-curl-thumb.jpg",
+      "youtubeVideoId": null,
+      "cues": [
+        "Sit at preacher bench with upper arms resting flush against the angled pad",
+        "Grip the inner curves of the EZ bar with an underhand grip",
+        "Curl bar toward shoulders and lower slowly under control until arms extend",
+        "Log weightKg as the total mass of the EZ-bar and all attached plates"
+      ],
+      "commonMistakes": [
+        "Lifting elbows off the preacher pad during the curl",
+        "Hyperextending or bouncing at the bottom of the movement",
+        "Leaning back to cheat the weight up"
+      ],
+      "defaultSets": 3,
+      "defaultReps": "10-12",
+      "restSeconds": 60,
+      "repType": "reps",
+      "cvSupported": false,
+      "cvModuleId": null
+    },
+    {
+      "id": "pec-deck-fly",
+      "slug": "pec-deck-fly",
+      "name": "Pec Deck Fly",
+      "nameVi": "Ép ngực trên máy",
+      "muscleGroup": "Chest",
+      "targetMuscles": [
+        "Chest",
+        "Pectoralis Major"
+      ],
+      "secondaryMuscles": [
+        "Anterior Deltoid"
+      ],
+      "equipment": [
+        "Machine"
+      ],
+      "difficulty": "beginner",
+      "thumbnailUrl": "assets/images/exercises/pec-deck-fly-thumb.jpg",
+      "youtubeVideoId": null,
+      "cues": [
+        "Sit upright with back flat against pad and grip vertical machine handles",
+        "Bring arms together in an arc toward center while contracting chest muscles",
+        "Return slowly under control feeling a stretch in pectorals without hyperextending shoulders",
+        "Log weightKg as the machine pin stack load; do not double weight for two hands"
+      ],
+      "commonMistakes": [
+        "Pressing forward with triceps instead of performing a hugging fly motion",
+        "Letting elbows drop below chest level during the movement",
+        "Allowing the weight stack to slam down at the end of the range"
+      ],
+      "defaultSets": 3,
+      "defaultReps": "10-12",
+      "restSeconds": 60,
+      "repType": "reps",
+      "cvSupported": false,
+      "cvModuleId": null
+    },
+    {
+      "id": "reverse-pec-deck",
+      "slug": "reverse-pec-deck",
+      "name": "Reverse Pec Deck",
+      "nameVi": "Dang vai sau trên máy",
+      "muscleGroup": "Shoulders",
+      "targetMuscles": [
+        "Shoulders",
+        "Rear Deltoid"
+      ],
+      "secondaryMuscles": [
+        "Rhomboids",
+        "Trapezius"
+      ],
+      "equipment": [
+        "Machine"
+      ],
+      "difficulty": "beginner",
+      "thumbnailUrl": "assets/images/exercises/reverse-pec-deck-thumb.jpg",
+      "youtubeVideoId": null,
+      "cues": [
+        "Sit facing machine with chest firmly against support pad and grip handles at shoulder level",
+        "Pull arms outward and backward horizontally squeezing rear deltoids and upper back",
+        "Control the forward return slowly without letting the weight plates touch",
+        "Log weightKg as the machine pin stack load; do not double weight for two hands"
+      ],
+      "commonMistakes": [
+        "Shrugging shoulders up toward ears using upper traps",
+        "Leaning torso backward away from chest pad to generate momentum",
+        "Bending elbows excessively rather than maintaining a slight soft bend"
+      ],
+      "defaultSets": 3,
+      "defaultReps": "12-15",
+      "restSeconds": 60,
+      "repType": "reps",
+      "cvSupported": false,
+      "cvModuleId": null
+    },
+    {
+      "id": "cable-biceps-curl",
+      "slug": "cable-biceps-curl",
+      "name": "Cable Biceps Curl",
+      "nameVi": "Cuốn tay trước bằng cáp",
+      "muscleGroup": "Arms",
+      "targetMuscles": [
+        "Arms",
+        "Biceps"
+      ],
+      "secondaryMuscles": [
+        "Forearms",
+        "Brachialis"
+      ],
+      "equipment": [
+        "Cable"
+      ],
+      "difficulty": "beginner",
+      "thumbnailUrl": "assets/images/exercises/cable-biceps-curl-thumb.jpg",
+      "youtubeVideoId": null,
+      "cues": [
+        "Stand facing low cable pulley gripping bar with both hands in supinated underhand grip",
+        "Keep elbows pinned at sides and curl bar up toward chest contracting biceps",
+        "Lower bar slowly under tension until arms are fully extended",
+        "Log weightKg as the selected cable stack load; do not double for two hands"
+      ],
+      "commonMistakes": [
+        "Swinging hips or leaning back to swing the cable bar up",
+        "Allowing elbows to drift forward during the curl phase",
+        "Letting the cable snap back quickly on the eccentric phase"
+      ],
+      "defaultSets": 3,
+      "defaultReps": "10-12",
+      "restSeconds": 60,
+      "repType": "reps",
+      "cvSupported": false,
+      "cvModuleId": null
+    }
+  ]
+}

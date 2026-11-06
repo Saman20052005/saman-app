@@ -3,7 +3,7 @@ import '../tokens/saman_chat_tokens.dart';
 import 'saman_monogram.dart';
 
 /// The approved Saman Chat header:
-/// - Left: Minimal menu/drawer icon
+/// - Left: Minimal menu/drawer icon (visible on mobile, hidden on desktop when sidebar/rail is shown)
 /// - Center: Small 20x20 S monogram + "Saman Coach" title
 /// - Right: New conversation action + default inactive bell icon
 ///
@@ -15,6 +15,7 @@ class SamanChatHeader extends StatelessWidget implements PreferredSizeWidget {
   final VoidCallback onNewChat;
   final VoidCallback? onNotificationsTap;
   final bool hasActiveReminders;
+  final bool showLeadingMenu;
 
   const SamanChatHeader({
     super.key,
@@ -22,6 +23,7 @@ class SamanChatHeader extends StatelessWidget implements PreferredSizeWidget {
     required this.onNewChat,
     this.onNotificationsTap,
     this.hasActiveReminders = false,
+    this.showLeadingMenu = true,
   });
 
   @override
@@ -36,26 +38,29 @@ class SamanChatHeader extends StatelessWidget implements PreferredSizeWidget {
       centerTitle: true,
       titleSpacing: 0,
       leadingWidth: 48,
+      automaticallyImplyLeading: showLeadingMenu,
       shape: const Border(
         bottom: BorderSide(
           color: SamanChatTokens.borderSubtle,
           width: 1.0,
         ),
       ),
-      leading: Semantics(
-        button: true,
-        label: 'Open Coach Menu',
-        child: IconButton(
-          visualDensity: VisualDensity.compact,
-          icon: const Icon(
-            Icons.notes_rounded,
-            color: SamanChatTokens.textSecondary,
-            size: 22,
-          ),
-          tooltip: 'Coach Menu',
-          onPressed: onMenuTap,
-        ),
-      ),
+      leading: showLeadingMenu
+          ? Semantics(
+              button: true,
+              label: 'Open Coach Menu',
+              child: IconButton(
+                visualDensity: VisualDensity.compact,
+                icon: const Icon(
+                  Icons.notes_rounded,
+                  color: SamanChatTokens.textSecondary,
+                  size: 22,
+                ),
+                tooltip: 'Coach Menu',
+                onPressed: onMenuTap,
+              ),
+            )
+          : null,
       title: const Row(
         mainAxisSize: MainAxisSize.min,
         children: [

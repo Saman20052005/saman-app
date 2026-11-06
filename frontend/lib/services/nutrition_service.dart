@@ -12,7 +12,10 @@ import '../providers/profile_provider.dart';
 import '../utils/auth_helper.dart';
 
 export '../features/nutrition/domain/repositories/nutrition_repository.dart'
-    show NutritionRequestContext, NutritionSessionChanged;
+    show
+        NutritionRequestContext,
+        NutritionSessionChanged,
+        AnalysisOperationStateException;
 
 /// Food requests reuse the existing logout scope; no credentials are persisted here.
 final nutritionSessionProvider = Provider<NutritionSession>((ref) {
@@ -100,21 +103,119 @@ class NutritionSession {
       _ref.read(profileProvider.notifier).loadProfile();
 }
 
+class EntitlementRequiredException implements Exception {
+  final String message;
+  final String? benefitId;
+  const EntitlementRequiredException([
+    this.message = 'Advanced nutrition analysis requires Plus membership or higher.',
+    this.benefitId,
+  ]);
+  @override
+  String toString() => message;
+}
+
+class QuotaExhaustedException implements Exception {
+  final String message;
+  final String? benefitId;
+  const QuotaExhaustedException([
+    this.message = 'Monthly quota exhausted for advanced nutrition analysis.',
+    this.benefitId,
+  ]);
+  @override
+  String toString() => message;
+}
+
+class OperationConflictException implements Exception {
+  final String message;
+  const OperationConflictException([
+    this.message = 'An analysis is already in progress. Please wait a moment.',
+  ]);
+  @override
+  String toString() => message;
+}
+
+class ProviderTimeoutException implements Exception {
+  final String message;
+  const ProviderTimeoutException([
+    this.message = 'AI service timed out. Please try again.',
+  ]);
+  @override
+  String toString() => message;
+}
+
+class StorageUnavailableException implements Exception {
+  final String message;
+  const StorageUnavailableException([
+    this.message = 'Revenue database temporarily unavailable. Please try again later.',
+  ]);
+  @override
+  String toString() => message;
+}
+
 String foodAnalysisErrorMessage(Object error) {
   if (error is NutritionSessionChanged ||
       (error is DioException && error.error is NutritionSessionChanged)) {
     return const NutritionSessionChanged().toString();
   }
+  if (error is EntitlementRequiredException) {
+    return error.message;
+  }
+  if (error is QuotaExhaustedException) {
+    return error.message;
+  }
+  if (error is OperationConflictException) {
+    return error.message;
+  }
+  if (error is ProviderTimeoutException) {
+    return error.message;
+  }
+  if (error is StorageUnavailableException) {
+    return error.message;
+  }
+  if (error is AnalysisOperationStateException) {
+    return error.message;
+  }
   if (error is DioException) {
-    switch (error.response?.statusCode) {
+    final res = error.response;
+    final statusCode = res?.statusCode;
+    final data = res?.data;
+    String? detail;
+    String? errorCode;
+    if (data is Map) {
+      detail = data['detail']?.toString();
+      errorCode = data['error_code']?.toString();
+    } else if (data is String) {
+      detail = data;
+    }
+
+    switch (statusCode) {
       case 401:
         return 'Session expired. Please sign in again.';
       case 403:
+        if (errorCode == 'entitlement_required' ||
+            (detail != null && detail.toLowerCase().contains('plus'))) {
+          return 'Advanced nutrition analysis requires Plus membership or higher.';
+        }
         return 'Advanced analysis is not enabled for this account. Try Standard.';
+      case 409:
+        return detail ??
+            'An analysis is already in progress. Please wait a moment.';
       case 422:
         return 'Please check the photo and analysis mode, then try again.';
+      case 500:
+        return 'A server error occurred. Please try again later.';
+      case 429:
+        return detail ??
+            'Monthly AI quota reached. Upgrade or wait until next month.';
+      case 503:
+        return detail ??
+            'Storage service temporarily unavailable. Please try again.';
+      case 504:
+        return detail ??
+            'AI food analysis timed out. Please try again.';
     }
-    return 'Food analysis is unavailable. Check your connection and try again.';
+    return detail ??
+        'Food analysis is unavailable. Check your connection and try again.';
   }
   return "I couldn't estimate this meal confidently from the photo.";
 }
@@ -130,6 +231,10 @@ class NutritionService {
   // ================================================================
   Future<List<Food>> searchFoods(String query, {int limit = 20}) async {
     return await _repository.searchFoods(query, limit: limit);
+  }
+
+  Future<Food?> getFoodById(String foodId) async {
+    return await _repository.getFoodById(foodId);
   }
 
   // ================================================================
@@ -254,9 +359,32 @@ class NutritionService {
   // ================================================================
   // 8. AI – ANALYZE FOOD IMAGE
   // ================================================================
-  Future<AIAnalysisResult?> analyzeFoodImage(XFile imageFile,
-      {String? mode, NutritionRequestContext? session}) async {
-    return _repository.analyzeFoodImage(imageFile, mode: mode, session: session);
+  Future<AIAnalysisResult?> analyzeFoodImage(
+    XFile imageFile, {
+    String? mode,
+    NutritionRequestContext? session,
+    String? idempotencyKey,
+    String? clientRequestId,
+  }) async {
+    return _repository.analyzeFoodImage(
+      imageFile,
+      mode: mode,
+      session: session,
+      idempotencyKey: idempotencyKey,
+      clientRequestId: clientRequestId,
+    );
+  }
+
+  Future<AIAnalysisResult?> lookupAnalysisOperation({
+    required String idempotencyKey,
+    String benefitId = 'ai.nutrition_gemini',
+    NutritionRequestContext? session,
+  }) async {
+    return _repository.lookupAnalysisOperation(
+      idempotencyKey: idempotencyKey,
+      benefitId: benefitId,
+      session: session,
+    );
   }
 
   // ================================================================

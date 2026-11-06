@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../data/models/exercise.dart';
-import '../../core/constants/app_dimens.dart';
+import '../tokens/saman_workout_tokens.dart';
 
 class ExerciseSetLogCard extends StatelessWidget {
   final ExerciseSetLog log;
@@ -12,30 +12,74 @@ class ExerciseSetLogCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
-        color: Colors.grey[100],
-        borderRadius: BorderRadius.circular(AppDimens.radiusM),
+        color: SamanWorkoutTokens.surfaceElevated,
+        borderRadius: BorderRadius.circular(SamanWorkoutTokens.radiusMd),
+        border: Border.all(color: SamanWorkoutTokens.border),
       ),
       child: Row(
         children: [
-          SizedBox(
-            width: 40,
+          Expanded(
+            flex: 2,
             child: Text(
               'Set ${index + 1}',
-              style: const TextStyle(fontWeight: FontWeight.w600),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                fontFamily: 'monospace',
+                fontWeight: FontWeight.w600,
+                color: SamanWorkoutTokens.textPrimary,
+                fontSize: 13,
+              ),
             ),
           ),
+          const SizedBox(width: 8),
           Expanded(
-            child: Text(log.effectiveUnit == SetUnit.seconds
-                ? '${log.secondsCompleted} s' : '${log.repsCompleted} reps'),
-          ),
-          if (log.effectiveUnit == SetUnit.reps)
-            Expanded(
-              child: Text('${log.weightKg.toStringAsFixed(0)} kg'),
+            flex: 3,
+            child: Text(
+              log.effectiveUnit == SetUnit.seconds
+                  ? '${log.secondsCompleted} s'
+                  : '${log.repsCompleted} reps',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                color: SamanWorkoutTokens.textSecondary,
+                fontSize: 13,
+              ),
             ),
+          ),
+          if (log.effectiveUnit == SetUnit.reps) ...[
+            const SizedBox(width: 8),
+            Expanded(
+              flex: 3,
+              child: Text(
+                '${log.weightKg.toStringAsFixed(0)} kg',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  fontFamily: 'monospace',
+                  fontWeight: FontWeight.w600,
+                  color: SamanWorkoutTokens.textPrimary,
+                  fontSize: 13,
+                ),
+              ),
+            ),
+          ],
           if (log.cvDetected)
-            const Icon(Icons.visibility, size: 16, color: Colors.blue),
+            const Padding(
+              padding: EdgeInsets.only(left: 4, right: 4),
+              child: Icon(Icons.visibility, size: 16, color: Colors.blue),
+            ),
+          if (log.isCompleted)
+            const Padding(
+              padding: EdgeInsets.only(left: 4),
+              child: Icon(
+                Icons.check_circle,
+                size: 16,
+                color: SamanWorkoutTokens.emeraldAccent,
+              ),
+            ),
         ],
       ),
     );

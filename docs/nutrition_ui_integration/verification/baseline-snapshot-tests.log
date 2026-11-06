@@ -1,0 +1,1756 @@
+00:00 +0: loading D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/auth_profile_gate_entry_test.dart
+00:00 +0: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/auth_profile_gate_entry_test.dart: Auth entry points reach the ProfileGate email authenticated success -> /main -> gate; previous confirmed profile is NOT reused and token was saved before the outcome
+00:02 +0: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/features/nutrition/daily_story_controller_test.dart: analysis performs no persistence; confirmation preserves file contract
+[DIO] Request: GET /api/user/profile
+[DIO] Response: 200 GET /api/user/profile
+[DIO] Request: GET /api/nutrition/log-story/2026-10-23
+[DIO] Response: 200 GET /api/nutrition/log-story/2026-10-23
+[DIO] Request: POST /api/food/analyze
+[DIO] Response: 200 POST /api/food/analyze
+[DIO] Request: POST /api/nutrition/log-story
+[DIO] Response: 200 POST /api/nutrition/log-story
+[DIO] Request: POST /api/nutrition/logs
+[DIO] Response: 200 POST /api/nutrition/logs
+00:04 +1: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/auth_profile_gate_entry_test.dart: Auth entry points reach the ProfileGate email authenticated success -> /main -> gate; previous confirmed profile is NOT reused and token was saved before the outcome
+00:05 +1: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/features/nutrition/daily_story_controller_test.dart: analysis performs no persistence; confirmation preserves file contract
+[DIO] Request: GET /api/journey/active
+[DIO] Error: badResponse status=400 GET /api/journey/active
+00:05 +0 -1: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/auth_profile_gate_entry_test.dart: Auth entry points reach the ProfileGate email authenticated success -> /main -> gate; previous confirmed profile is NOT reused and token was saved before the outcome
+00:05 +0 -1: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/features/nutrition/daily_story_controller_test.dart: analysis performs no persistence; confirmation preserves file contract [E]
+  Bad state: Tried to use JourneyController after `dispose` was called.
+  
+  Consider checking `mounted`.
+  
+  package:state_notifier/state_notifier.dart 175:9                                             StateNotifier._debugIsMounted.<fn>
+  package:state_notifier/state_notifier.dart 182:6                                             StateNotifier._debugIsMounted
+  package:state_notifier/state_notifier.dart 197:12                                            StateNotifier.state
+  package:health_ai_app/features/journey/presentation/providers/journey_providers.dart 62:15   JourneyController.loadActiveJourney
+  ===== asynchronous gap ===========================
+  dart:async                                                                                   _CustomZone.registerBinaryCallback
+  package:health_ai_app/features/journey/presentation/providers/journey_providers.dart 59:17   JourneyController.loadActiveJourney
+  package:health_ai_app/features/journey/presentation/providers/journey_providers.dart 53:5    new JourneyController
+  package:health_ai_app/features/journey/presentation/providers/journey_providers.dart 152:10  journeyControllerProvider.<fn>
+  package:riverpod/src/state_notifier_provider/base.dart 119:21                                StateNotifierProvider._create
+  package:riverpod/src/state_notifier_provider/base.dart 172:64                                StateNotifierProviderElement.create.<fn>
+  package:riverpod/src/result.dart 21:28                                                       Result.guard
+  package:riverpod/src/state_notifier_provider/base.dart 172:43                                StateNotifierProviderElement.create
+  package:riverpod/src/framework/element.dart 426:7                                            ProviderElementBase.buildState
+  package:riverpod/src/framework/element.dart 228:5                                            ProviderElementBase.mount
+  package:riverpod/src/framework/container.dart 47:11                                          _StateReader._create
+  package:riverpod/src/framework/container.dart 35:52                                          _StateReader.getElement
+  package:riverpod/src/framework/container.dart 440:40                                         ProviderContainer.readProviderElement.<fn>
+  package:riverpod/src/framework/container.dart 475:8                                          ProviderContainer.readProviderElement
+  package:riverpod/src/framework/proxy_provider_listenable.dart 134:26                         ProviderElementProxy.read
+  package:riverpod/src/framework/container.dart 241:21                                         ProviderContainer.read
+  package:riverpod/src/framework/element.dart 692:23                                           ProviderElementBase.read
+  package:health_ai_app/providers/daily_story_provider.dart 219:13                             DailyStoryController.confirmLog
+  ===== asynchronous gap ===========================
+  dart:async                                                                                   _CustomZone.registerUnaryCallback
+  package:health_ai_app/providers/daily_story_provider.dart 118:30                             DailyStoryController.confirmLog
+  test\features\nutrition\daily_story_controller_test.dart 151:24                              main.<fn>
+  ===== asynchronous gap ===========================
+  dart:async                                                                                   _CustomZone.registerUnaryCallback
+  test\features\nutrition\daily_story_controller_test.dart 145:5                               main.<fn>
+  
+Warning: At least one test in this suite creates an HttpClient. When running a test suite that uses
+TestWidgetsFlutterBinding, all HTTP requests will return status code 400, and no network request
+will actually be made. Any test expecting a real network connection and status code will fail.
+To test code that needs an HttpClient, provide your own HttpClient implementation to the code under
+test, so that your test can consistently provide a testable response to the code under test.
+  This test failed after it had already completed.
+  Make sure to use a matching library which informs the test runner
+  of pending async work.
+  package:state_notifier/state_notifier.dart 175:9                                             StateNotifier._debugIsMounted.<fn>
+  package:state_notifier/state_notifier.dart 182:6                                             StateNotifier._debugIsMounted
+  package:state_notifier/state_notifier.dart 197:12                                            StateNotifier.state
+  package:health_ai_app/features/journey/presentation/providers/journey_providers.dart 62:15   JourneyController.loadActiveJourney
+  ===== asynchronous gap ===========================
+  dart:async                                                                                   _CustomZone.registerBinaryCallback
+  package:health_ai_app/features/journey/presentation/providers/journey_providers.dart 59:17   JourneyController.loadActiveJourney
+  package:health_ai_app/features/journey/presentation/providers/journey_providers.dart 53:5    new JourneyController
+  package:health_ai_app/features/journey/presentation/providers/journey_providers.dart 152:10  journeyControllerProvider.<fn>
+  package:riverpod/src/state_notifier_provider/base.dart 119:21                                StateNotifierProvider._create
+  package:riverpod/src/state_notifier_provider/base.dart 172:64                                StateNotifierProviderElement.create.<fn>
+  package:riverpod/src/result.dart 21:28                                                       Result.guard
+  package:riverpod/src/state_notifier_provider/base.dart 172:43                                StateNotifierProviderElement.create
+  package:riverpod/src/framework/element.dart 426:7                                            ProviderElementBase.buildState
+  package:riverpod/src/framework/element.dart 228:5                                            ProviderElementBase.mount
+  package:riverpod/src/framework/container.dart 47:11                                          _StateReader._create
+  package:riverpod/src/framework/container.dart 35:52                                          _StateReader.getElement
+  package:riverpod/src/framework/container.dart 440:40                                         ProviderContainer.readProviderElement.<fn>
+  package:riverpod/src/framework/container.dart 475:8                                          ProviderContainer.readProviderElement
+  package:riverpod/src/framework/proxy_provider_listenable.dart 134:26                         ProviderElementProxy.read
+  package:riverpod/src/framework/container.dart 241:21                                         ProviderContainer.read
+  package:riverpod/src/framework/element.dart 692:23                                           ProviderElementBase.read
+  package:health_ai_app/providers/daily_story_provider.dart 219:13                             DailyStoryController.confirmLog
+  ===== asynchronous gap ===========================
+  dart:async                                                                                   _CustomZone.registerUnaryCallback
+  package:health_ai_app/providers/daily_story_provider.dart 118:30                             DailyStoryController.confirmLog
+  test\features\nutrition\daily_story_controller_test.dart 151:24                              main.<fn>
+  ===== asynchronous gap ===========================
+  dart:async                                                                                   _CustomZone.registerUnaryCallback
+  test\features\nutrition\daily_story_controller_test.dart 145:5                               main.<fn>
+  
+00:05 +0 -1: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/features/nutrition/daily_story_controller_test.dart: concurrent confirmation is rejected before a second write
+[DIO] Request: GET /api/user/profile
+[DIO] Response: 200 GET /api/user/profile
+00:05 +0 -1: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/auth_profile_gate_entry_test.dart: Auth entry points reach the ProfileGate email authenticated success -> /main -> gate; previous confirmed profile is NOT reused and token was saved before the outcome
+[DIO] Request: POST /api/auth/login
+00:05 +0 -1: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/features/nutrition/daily_story_controller_test.dart: concurrent confirmation is rejected before a second write
+[DIO] Request: GET /api/nutrition/log-story/2026-10-23
+[DIO] Response: 200 GET /api/nutrition/log-story/2026-10-23
+00:05 +0 -1: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/auth_profile_gate_entry_test.dart: Auth entry points reach the ProfileGate email authenticated success -> /main -> gate; previous confirmed profile is NOT reused and token was saved before the outcome
+[DIO] Response: 200 POST /api/auth/login
+00:06 +0 -1: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/features/nutrition/daily_story_controller_test.dart: concurrent confirmation is rejected before a second write
+[DIO] Request: POST /api/nutrition/log-story
+00:06 +1 -1: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/features/nutrition/daily_story_controller_test.dart: concurrent confirmation is rejected before a second write
+[DIO] Response: 200 POST /api/nutrition/log-story
+[DIO] Request: POST /api/nutrition/logs
+[DIO] Response: 200 POST /api/nutrition/logs
+00:06 +2 -1: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/auth_profile_gate_entry_test.dart: Auth entry points reach the ProfileGate social authenticated success while UI is in register mode -> gate
+00:06 +2 -1: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/features/nutrition/daily_story_controller_test.dart: concurrent confirmation is rejected before a second write
+[DIO] Request: GET /api/journey/active
+[DIO] Error: badResponse status=400 GET /api/journey/active
+00:06 +1 -2: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/auth_profile_gate_entry_test.dart: Auth entry points reach the ProfileGate social authenticated success while UI is in register mode -> gate
+00:06 +1 -2: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/features/nutrition/daily_story_controller_test.dart: concurrent confirmation is rejected before a second write [E]
+  Bad state: Tried to use JourneyController after `dispose` was called.
+  
+  Consider checking `mounted`.
+  
+  package:state_notifier/state_notifier.dart 175:9                                             StateNotifier._debugIsMounted.<fn>
+  package:state_notifier/state_notifier.dart 182:6                                             StateNotifier._debugIsMounted
+  package:state_notifier/state_notifier.dart 197:12                                            StateNotifier.state
+  package:health_ai_app/features/journey/presentation/providers/journey_providers.dart 62:15   JourneyController.loadActiveJourney
+  ===== asynchronous gap ===========================
+  dart:async                                                                                   _CustomZone.registerBinaryCallback
+  package:health_ai_app/features/journey/presentation/providers/journey_providers.dart 59:17   JourneyController.loadActiveJourney
+  package:health_ai_app/features/journey/presentation/providers/journey_providers.dart 53:5    new JourneyController
+  package:health_ai_app/features/journey/presentation/providers/journey_providers.dart 152:10  journeyControllerProvider.<fn>
+  package:riverpod/src/state_notifier_provider/base.dart 119:21                                StateNotifierProvider._create
+  package:riverpod/src/state_notifier_provider/base.dart 172:64                                StateNotifierProviderElement.create.<fn>
+  package:riverpod/src/result.dart 21:28                                                       Result.guard
+  package:riverpod/src/state_notifier_provider/base.dart 172:43                                StateNotifierProviderElement.create
+  package:riverpod/src/framework/element.dart 426:7                                            ProviderElementBase.buildState
+  package:riverpod/src/framework/element.dart 228:5                                            ProviderElementBase.mount
+  package:riverpod/src/framework/container.dart 47:11                                          _StateReader._create
+  package:riverpod/src/framework/container.dart 35:52                                          _StateReader.getElement
+  package:riverpod/src/framework/container.dart 440:40                                         ProviderContainer.readProviderElement.<fn>
+  package:riverpod/src/framework/container.dart 475:8                                          ProviderContainer.readProviderElement
+  package:riverpod/src/framework/proxy_provider_listenable.dart 134:26                         ProviderElementProxy.read
+  package:riverpod/src/framework/container.dart 241:21                                         ProviderContainer.read
+  package:riverpod/src/framework/element.dart 692:23                                           ProviderElementBase.read
+  package:health_ai_app/providers/daily_story_provider.dart 219:13                             DailyStoryController.confirmLog
+  ===== asynchronous gap ===========================
+  dart:async                                                                                   _CustomZone.registerUnaryCallback
+  package:health_ai_app/providers/daily_story_provider.dart 118:30                             DailyStoryController.confirmLog
+  test\features\nutrition\daily_story_controller_test.dart 175:32                              main.<fn>
+  ===== asynchronous gap ===========================
+  dart:async                                                                                   _CustomZone.registerUnaryCallback
+  test\features\nutrition\daily_story_controller_test.dart 172:5                               main.<fn>
+  
+  This test failed after it had already completed.
+  Make sure to use a matching library which informs the test runner
+  of pending async work.
+  package:state_notifier/state_notifier.dart 175:9                                             StateNotifier._debugIsMounted.<fn>
+  package:state_notifier/state_notifier.dart 182:6                                             StateNotifier._debugIsMounted
+  package:state_notifier/state_notifier.dart 197:12                                            StateNotifier.state
+  package:health_ai_app/features/journey/presentation/providers/journey_providers.dart 62:15   JourneyController.loadActiveJourney
+  ===== asynchronous gap ===========================
+  dart:async                                                                                   _CustomZone.registerBinaryCallback
+  package:health_ai_app/features/journey/presentation/providers/journey_providers.dart 59:17   JourneyController.loadActiveJourney
+  package:health_ai_app/features/journey/presentation/providers/journey_providers.dart 53:5    new JourneyController
+  package:health_ai_app/features/journey/presentation/providers/journey_providers.dart 152:10  journeyControllerProvider.<fn>
+  package:riverpod/src/state_notifier_provider/base.dart 119:21                                StateNotifierProvider._create
+  package:riverpod/src/state_notifier_provider/base.dart 172:64                                StateNotifierProviderElement.create.<fn>
+  package:riverpod/src/result.dart 21:28                                                       Result.guard
+  package:riverpod/src/state_notifier_provider/base.dart 172:43                                StateNotifierProviderElement.create
+  package:riverpod/src/framework/element.dart 426:7                                            ProviderElementBase.buildState
+  package:riverpod/src/framework/element.dart 228:5                                            ProviderElementBase.mount
+  package:riverpod/src/framework/container.dart 47:11                                          _StateReader._create
+  package:riverpod/src/framework/container.dart 35:52                                          _StateReader.getElement
+  package:riverpod/src/framework/container.dart 440:40                                         ProviderContainer.readProviderElement.<fn>
+  package:riverpod/src/framework/container.dart 475:8                                          ProviderContainer.readProviderElement
+  package:riverpod/src/framework/proxy_provider_listenable.dart 134:26                         ProviderElementProxy.read
+  package:riverpod/src/framework/container.dart 241:21                                         ProviderContainer.read
+  package:riverpod/src/framework/element.dart 692:23                                           ProviderElementBase.read
+  package:health_ai_app/providers/daily_story_provider.dart 219:13                             DailyStoryController.confirmLog
+  ===== asynchronous gap ===========================
+  dart:async                                                                                   _CustomZone.registerUnaryCallback
+  package:health_ai_app/providers/daily_story_provider.dart 118:30                             DailyStoryController.confirmLog
+  test\features\nutrition\daily_story_controller_test.dart 175:32                              main.<fn>
+  ===== asynchronous gap ===========================
+  dart:async                                                                                   _CustomZone.registerUnaryCallback
+  test\features\nutrition\daily_story_controller_test.dart 172:5                               main.<fn>
+  
+00:07 +1 -2: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/features/nutrition/daily_story_controller_test.dart: partial failure throws; retry reuses confirmed Story and original input
+[DIO] Request: GET /api/user/profile
+[DIO] Response: 200 GET /api/user/profile
+[DIO] Request: GET /api/nutrition/log-story/2026-10-23
+[DIO] Response: 200 GET /api/nutrition/log-story/2026-10-23
+[DIO] Request: POST /api/nutrition/log-story
+[DIO] Response: 200 POST /api/nutrition/log-story
+[DIO] Request: POST /api/nutrition/logs
+[DIO] Error: badResponse status=422 POST /api/nutrition/logs
+[DIO] Request: POST /api/nutrition/logs
+[DIO] Response: 200 POST /api/nutrition/logs
+[DIO] Request: GET /api/journey/active
+[DIO] Request: GET /api/nutrition/log-story/2026-10-23
+[DIO] Response: 200 GET /api/journey/active
+[DIO] Response: 200 GET /api/nutrition/log-story/2026-10-23
+00:10 +2 -2: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/auth_profile_gate_entry_test.dart: Auth entry points reach the ProfileGate social authenticated success while UI is in register mode -> gate
+00:10 +2 -2: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/features/nutrition/food_analysis_modes_test.dart: active service forwards image and optional mode: null
+[DIO] Request: GET /api/user/profile
+00:11 +2 -2: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/features/nutrition/daily_story_controller_test.dart: story receive timeout blocks blind retry
+[DIO] Request: GET /api/user/profile
+[DIO] Response: 200 GET /api/user/profile
+[DIO] Request: GET /api/nutrition/log-story/2026-10-23
+[DIO] Response: 200 GET /api/nutrition/log-story/2026-10-23
+00:11 +2 -2: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/features/nutrition/food_analysis_modes_test.dart: active service forwards image and optional mode: null
+[DIO] Response: 200 GET /api/user/profile
+00:11 +2 -2: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/features/nutrition/daily_story_controller_test.dart: story receive timeout blocks blind retry
+[DIO] Request: POST /api/nutrition/log-story
+[DIO] Error: receiveTimeout status=none POST /api/nutrition/log-story
+00:11 +3 -2: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/auth_profile_gate_entry_test.dart: Auth entry points reach the ProfileGate social authenticated success while UI is in register mode -> gate
+00:11 +3 -2: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/features/nutrition/daily_story_controller_test.dart: meal receive timeout blocks blind retry
+[DIO] Request: GET /api/user/profile
+[DIO] Response: 200 GET /api/user/profile
+00:12 +3 -2: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/features/nutrition/food_analysis_modes_test.dart: active service forwards image and optional mode: null
+[DIO] Request: GET /api/nutrition/log-story/2026-10-23
+00:12 +3 -2: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/features/nutrition/daily_story_controller_test.dart: meal receive timeout blocks blind retry
+[DIO] Request: GET /api/nutrition/log-story/2026-10-23
+[DIO] Response: 200 GET /api/nutrition/log-story/2026-10-23
+[DIO] Request: POST /api/nutrition/log-story
+[DIO] Response: 200 POST /api/nutrition/log-story
+00:12 +3 -2: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/features/nutrition/food_analysis_modes_test.dart: active service forwards image and optional mode: null
+[DIO] Response: 200 GET /api/nutrition/log-story/2026-10-23
+00:12 +3 -2: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/features/nutrition/daily_story_controller_test.dart: meal receive timeout blocks blind retry
+[DIO] Request: POST /api/nutrition/logs
+[DIO] Error: receiveTimeout status=none POST /api/nutrition/logs
+00:14 +4 -2: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/auth_profile_gate_entry_test.dart: Auth entry points reach the ProfileGate social authenticated success while UI is in register mode -> gate
+00:14 +4 -2: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/features/nutrition/daily_story_controller_test.dart: photo-only is blocked without any write request
+[DIO] Request: GET /api/user/profile
+[DIO] Response: 200 GET /api/user/profile
+[DIO] Request: GET /api/nutrition/log-story/2026-10-23
+[DIO] Response: 200 GET /api/nutrition/log-story/2026-10-23
+00:14 +5 -2: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/auth_profile_gate_entry_test.dart: Auth entry points reach the ProfileGate social authenticated success while UI is in register mode -> gate
+00:14 +5 -2: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/features/nutrition/food_analysis_modes_test.dart: active service forwards image and optional mode: null
+[DIO] Request: POST /api/food/analyze
+[DIO] Response: 200 POST /api/food/analyze
+00:18 +6 -2: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/auth_profile_gate_entry_test.dart: Auth entry points reach the ProfileGate social authenticated success while UI is in register mode -> gate
+[DIO] Request: GET /api/journey/active
+00:18 +7 -2: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/auth_profile_gate_entry_test.dart: Auth entry points reach the ProfileGate social authenticated success while UI is in register mode -> gate
+[DIO] Request: GET /api/workouts/history
+[DIO] Request: GET /api/chat/conversations
+[DIO] Error: badResponse status=400 GET /api/journey/active
+00:18 +7 -2: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/features/nutrition/food_analysis_modes_test.dart: active service forwards image and optional mode: 
+[DIO] Request: GET /api/user/profile
+00:18 +7 -2: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/auth_profile_gate_entry_test.dart: Auth entry points reach the ProfileGate social authenticated success while UI is in register mode -> gate
+[DIO] Error: badResponse status=400 GET /api/workouts/history
+[DIO] Error: badResponse status=400 GET /api/chat/conversations
+00:18 +7 -2: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/features/nutrition/food_analysis_modes_test.dart: active service forwards image and optional mode: 
+[DIO] Response: 200 GET /api/user/profile
+00:18 +7 -2: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/auth_profile_gate_entry_test.dart: Auth entry points reach the ProfileGate social authenticated success while UI is in register mode -> gate
+Failed to load conversations: DioException [bad response]: This exception was thrown because the response has a status code of 400 and RequestOptions.validateStatus was configured to throw for this status code.
+The status code of 400 has the following meaning: "Client error - the request contains bad syntax or cannot be fulfilled"
+Read more about status codes at https://developer.mozilla.org/en-US/docs/Web/HTTP/Status
+In order to resolve this exception you typically have either to verify and fix your request code or you have to fix the server code.
+
+00:18 +7 -2: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/features/nutrition/food_analysis_modes_test.dart: active service forwards image and optional mode: 
+[DIO] Request: GET /api/nutrition/log-story/2026-10-23
+00:18 +7 -2: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/auth_profile_gate_entry_test.dart: Auth entry points reach the ProfileGate social authenticated success while UI is in register mode -> gate
+[DIO] Request: GET /api/chat/conversations
+00:18 +7 -2: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/features/nutrition/food_analysis_modes_test.dart: active service forwards image and optional mode: 
+[DIO] Response: 200 GET /api/nutrition/log-story/2026-10-23
+00:18 +7 -2: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/auth_profile_gate_entry_test.dart: Auth entry points reach the ProfileGate social authenticated success while UI is in register mode -> gate
+[DIO] Error: badResponse status=400 GET /api/chat/conversations
+Failed to load conversations: DioException [bad response]: This exception was thrown because the response has a status code of 400 and RequestOptions.validateStatus was configured to throw for this status code.
+The status code of 400 has the following meaning: "Client error - the request contains bad syntax or cannot be fulfilled"
+Read more about status codes at https://developer.mozilla.org/en-US/docs/Web/HTTP/Status
+In order to resolve this exception you typically have either to verify and fix your request code or you have to fix the server code.
+
+00:19 +7 -2: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/features/nutrition/food_analysis_modes_test.dart: active service forwards image and optional mode: 
+[DIO] Request: POST /api/food/analyze
+[DIO] Response: 200 POST /api/food/analyze
+00:19 +8 -2: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/auth_profile_gate_entry_test.dart: Auth entry points reach the ProfileGate social authenticated success while UI is in register mode -> gate
+══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
+The following assertion was thrown running a test:
+pumpAndSettle timed out
+
+When the exception was thrown, this was the stack:
+#0      WidgetTester.pumpAndSettle.<anonymous closure> (package:flutter_test/src/widget_tester.dart:718:11)
+<asynchronous suspension>
+#1      TestAsyncUtils.guard.<anonymous closure> (package:flutter_test/src/test_async_utils.dart:117:7)
+<asynchronous suspension>
+#2      main.<anonymous closure>.<anonymous closure> (file:///D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/auth_profile_gate_entry_test.dart:353:7)
+<asynchronous suspension>
+#3      testWidgets.<anonymous closure>.<anonymous closure> (package:flutter_test/src/widget_tester.dart:183:15)
+<asynchronous suspension>
+#4      TestWidgetsFlutterBinding._runTestBody (package:flutter_test/src/binding.dart:1017:5)
+<asynchronous suspension>
+<asynchronous suspension>
+(elided one frame from package:stack_trace)
+
+The test description was:
+  social authenticated success while UI is in register mode -> gate
+════════════════════════════════════════════════════════════════════════════════════════════════════
+00:19 +8 -2: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/features/nutrition/food_analysis_modes_test.dart: active service forwards image and optional mode: standard
+[DIO] Request: GET /api/user/profile
+[DIO] Response: 200 GET /api/user/profile
+[DIO] Request: GET /api/nutrition/log-story/2026-10-23
+00:19 +8 -3: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/features/nutrition/food_log_flow_test.dart: CP3: FoodLogScreen & Log Meal Experience Meal segment switching updates selected meal type across flows
+00:19 +9 -3: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/features/nutrition/food_analysis_modes_test.dart: active service forwards image and optional mode: standard
+[DIO] Response: 200 GET /api/nutrition/log-story/2026-10-23
+00:19 +9 -3: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/auth_profile_gate_entry_test.dart: Auth entry points reach the ProfileGate social authenticated success while UI is in register mode -> gate [E]
+  Test failed. See exception logs above.
+  The test description was: social authenticated success while UI is in register mode -> gate
+  
+00:19 +9 -3: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/features/nutrition/food_analysis_modes_test.dart: active service forwards image and optional mode: standard
+[DIO] Request: POST /api/food/analyze
+00:19 +9 -3: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/auth_profile_gate_entry_test.dart: Auth entry points reach the ProfileGate social authenticated success while UI is in register mode -> gate
+Warning: At least one test in this suite creates an HttpClient. When running a test suite that uses
+TestWidgetsFlutterBinding, all HTTP requests will return status code 400, and no network request
+will actually be made. Any test expecting a real network connection and status code will fail.
+To test code that needs an HttpClient, provide your own HttpClient implementation to the code under
+test, so that your test can consistently provide a testable response to the code under test.
+00:20 +10 -3: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/features/nutrition/food_analysis_modes_test.dart: active service forwards image and optional mode: standard
+00:20 +11 -3: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/features/nutrition/food_analysis_modes_test.dart: active service forwards image and optional mode: standard
+00:21 +11 -3: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/auth_profile_gate_entry_test.dart: Auth entry points reach the ProfileGate registration success with a stale token in storage -> login mode, no Gate and no Main
+[DIO] Request: POST /api/auth/register
+[DIO] Response: 201 POST /api/auth/register
+00:21 +12 -3: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/features/nutrition/food_analysis_modes_test.dart: active service forwards image and optional mode: standard
+[DIO] Response: 200 POST /api/food/analyze
+00:21 +12 -3: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/auth_profile_gate_entry_test.dart: Auth entry points reach the ProfileGate password-reset success never enters Main, even with a stored token
+[DIO] Request: POST /api/auth/reset-password
+[DIO] Response: 200 POST /api/auth/reset-password
+00:21 +13 -3: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/features/nutrition/food_analysis_modes_test.dart: active service forwards image and optional mode: standard
+00:22 +13 -3: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/auth_profile_gate_entry_test.dart: Auth entry points reach the ProfileGate restore session from Splash -> gate
+[DIO] Request: GET /api/journey/active
+[DIO] Request: GET /api/workouts/history
+[DIO] Request: GET /api/chat/conversations
+[DIO] Error: badResponse status=400 GET /api/journey/active
+00:22 +14 -3: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/features/nutrition/food_analysis_modes_test.dart: active service forwards image and optional mode: standard
+00:22 +14 -3: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/auth_profile_gate_entry_test.dart: Auth entry points reach the ProfileGate restore session from Splash -> gate
+[DIO] Error: badResponse status=400 GET /api/workouts/history
+[DIO] Error: badResponse status=400 GET /api/chat/conversations
+Failed to load conversations: DioException [bad response]: This exception was thrown because the response has a status code of 400 and RequestOptions.validateStatus was configured to throw for this status code.
+The status code of 400 has the following meaning: "Client error - the request contains bad syntax or cannot be fulfilled"
+Read more about status codes at https://developer.mozilla.org/en-US/docs/Web/HTTP/Status
+In order to resolve this exception you typically have either to verify and fix your request code or you have to fix the server code.
+
+00:22 +15 -3: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/features/nutrition/food_analysis_modes_test.dart: active service forwards image and optional mode: standard
+00:22 +15 -3: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/features/nutrition/nutrition_account_isolation_test.dart: story uncertainty survives real logout/login A-B-A
+[DIO] Request: GET /api/user/profile
+00:22 +16 -3: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/features/nutrition/food_analysis_modes_test.dart: active service forwards image and optional mode: standard
+00:22 +16 -3: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/features/nutrition/nutrition_account_isolation_test.dart: story uncertainty survives real logout/login A-B-A
+[DIO] Response: 200 GET /api/user/profile
+[DIO] Request: GET /api/nutrition/log-story/2026-10-23
+00:22 +17 -3: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/features/nutrition/food_analysis_modes_test.dart: active service forwards image and optional mode: standard
+00:23 +17 -3: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/features/nutrition/nutrition_account_isolation_test.dart: story uncertainty survives real logout/login A-B-A
+[DIO] Response: 200 GET /api/nutrition/log-story/2026-10-23
+[DIO] Request: POST /api/nutrition/log-story
+[DIO] Error: receiveTimeout status=none POST /api/nutrition/log-story
+[DIO] Request: POST /api/auth/login
+00:23 +18 -3: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/features/nutrition/nutrition_account_isolation_test.dart: story uncertainty survives real logout/login A-B-A
+[DIO] Response: 200 POST /api/auth/login
+[DIO] Request: GET /api/user/profile
+[DIO] Response: 200 GET /api/user/profile
+00:23 +19 -3: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/features/nutrition/nutrition_account_isolation_test.dart: story uncertainty survives real logout/login A-B-A
+[DIO] Request: POST /api/nutrition/log-story
+[DIO] Response: 200 POST /api/nutrition/log-story
+[DIO] Request: POST /api/nutrition/logs
+00:23 +20 -3: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/features/nutrition/nutrition_account_isolation_test.dart: story uncertainty survives real logout/login A-B-A
+00:23 +20 -3: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/features/nutrition/food_analysis_modes_test.dart: active service forwards image and optional mode:  Advanced 
+[DIO] Request: GET /api/user/profile
+[DIO] Response: 200 GET /api/user/profile
+[DIO] Request: GET /api/nutrition/log-story/2026-10-23
+00:24 +20 -3: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/features/nutrition/nutrition_account_isolation_test.dart: story uncertainty survives real logout/login A-B-A
+[DIO] Response: 200 POST /api/nutrition/logs
+00:24 +21 -3: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/features/nutrition/nutrition_account_isolation_test.dart: story uncertainty survives real logout/login A-B-A
+[DIO] Request: GET /api/journey/active
+[DIO] Request: GET /api/nutrition/log-story/2026-10-23
+[DIO] Response: 200 GET /api/journey/active
+00:25 +22 -3: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/features/nutrition/nutrition_account_isolation_test.dart: story uncertainty survives real logout/login A-B-A
+[DIO] Response: 200 GET /api/nutrition/log-story/2026-10-23
+[DIO] Request: POST /api/auth/login
+[DIO] Response: 200 POST /api/auth/login
+[DIO] Request: GET /api/user/profile
+[DIO] Response: 200 GET /api/user/profile
+00:25 +23 -3: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/auth_profile_gate_entry_test.dart: Auth entry points reach the ProfileGate direct /main route goes through the gate
+00:25 +23 -3: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/features/nutrition/food_analysis_modes_test.dart: active service forwards image and optional mode:  Advanced 
+[DIO] Response: 200 GET /api/nutrition/log-story/2026-10-23
+[DIO] Request: POST /api/food/analyze
+00:26 +23 -3: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/features/nutrition/nutrition_account_isolation_test.dart: story pending at logout cannot continue or unlock returning A
+[DIO] Request: GET /api/user/profile
+[DIO] Response: 200 GET /api/user/profile
+[DIO] Request: GET /api/nutrition/log-story/2026-10-23
+00:26 +24 -3: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/auth_profile_gate_entry_test.dart: Auth entry points reach the ProfileGate direct /main route goes through the gate
+00:27 +25 -3: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/auth_profile_gate_entry_test.dart: Auth entry points reach the ProfileGate direct /main route goes through the gate
+00:27 +25 -3: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/features/nutrition/nutrition_account_isolation_test.dart: story pending at logout cannot continue or unlock returning A
+[DIO] Response: 200 GET /api/nutrition/log-story/2026-10-23
+[DIO] Request: POST /api/nutrition/log-story
+00:27 +25 -3: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/features/nutrition/food_analysis_modes_test.dart: active service forwards image and optional mode:  Advanced 
+[DIO] Response: 200 POST /api/food/analyze
+00:27 +26 -3: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/auth_profile_gate_entry_test.dart: Auth entry points reach the ProfileGate direct /main route goes through the gate
+00:27 +26 -3: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/features/nutrition/nutrition_account_isolation_test.dart: story pending at logout cannot continue or unlock returning A
+[DIO] Request: POST /api/auth/login
+00:28 +27 -3: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/auth_profile_gate_entry_test.dart: Auth entry points reach the ProfileGate direct /main route goes through the gate
+00:28 +27 -3: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/features/nutrition/nutrition_account_isolation_test.dart: story pending at logout cannot continue or unlock returning A
+[DIO] Response: 200 POST /api/auth/login
+[DIO] Request: GET /api/user/profile
+[DIO] Response: 200 GET /api/user/profile
+[DIO] Response: 200 POST /api/nutrition/log-story
+[DIO] Request: POST /api/nutrition/log-story
+[DIO] Response: 200 POST /api/nutrition/log-story
+[DIO] Request: POST /api/nutrition/logs
+[DIO] Response: 200 POST /api/nutrition/logs
+[DIO] Request: GET /api/journey/active
+00:28 +27 -3: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/features/nutrition/food_analysis_modes_test.dart: service preserves typed HTTP 401 error without raw payload feedback
+[DIO] Request: GET /api/user/profile
+00:28 +27 -3: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/auth_profile_gate_entry_test.dart: Auth entry points reach the ProfileGate direct /main route goes through the gate
+[DIO] Request: GET /api/journey/active
+[DIO] Request: GET /api/workouts/history
+00:28 +27 -3: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/features/nutrition/food_analysis_modes_test.dart: service preserves typed HTTP 401 error without raw payload feedback
+[DIO] Response: 200 GET /api/user/profile
+00:28 +27 -3: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/auth_profile_gate_entry_test.dart: Auth entry points reach the ProfileGate direct /main route goes through the gate
+[DIO] Request: GET /api/chat/conversations
+00:28 +27 -3: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/features/nutrition/food_analysis_modes_test.dart: service preserves typed HTTP 401 error without raw payload feedback
+[DIO] Request: GET /api/nutrition/log-story/2026-10-23
+00:28 +27 -3: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/auth_profile_gate_entry_test.dart: Auth entry points reach the ProfileGate direct /main route goes through the gate
+[DIO] Error: badResponse status=400 GET /api/journey/active
+00:28 +27 -3: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/features/nutrition/nutrition_account_isolation_test.dart: story pending at logout cannot continue or unlock returning A
+[DIO] Request: GET /api/nutrition/log-story/2026-10-23
+00:28 +27 -3: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/auth_profile_gate_entry_test.dart: Auth entry points reach the ProfileGate direct /main route goes through the gate
+[DIO] Error: badResponse status=400 GET /api/workouts/history
+00:28 +27 -3: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/features/nutrition/food_analysis_modes_test.dart: service preserves typed HTTP 401 error without raw payload feedback
+[DIO] Response: 200 GET /api/nutrition/log-story/2026-10-23
+[DIO] Request: POST /api/food/analyze
+00:28 +27 -3: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/features/nutrition/nutrition_account_isolation_test.dart: story pending at logout cannot continue or unlock returning A
+[DIO] Response: 200 GET /api/journey/active
+00:28 +27 -3: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/features/nutrition/food_analysis_modes_test.dart: service preserves typed HTTP 401 error without raw payload feedback
+[DIO] Error: badResponse status=401 POST /api/food/analyze
+00:28 +28 -3: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/auth_profile_gate_entry_test.dart: Auth entry points reach the ProfileGate direct /main route goes through the gate
+[DIO] Error: badResponse status=400 GET /api/chat/conversations
+00:28 +28 -3: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/features/nutrition/nutrition_account_isolation_test.dart: story pending at logout cannot continue or unlock returning A
+[DIO] Response: 200 GET /api/nutrition/log-story/2026-10-23
+00:28 +28 -3: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/features/nutrition/food_analysis_modes_test.dart: Chat and Nutrition surface 401 safely; only 401 enters auth recovery
+[DIO] Request: GET /api/user/profile
+[DIO] Response: 200 GET /api/user/profile
+[DIO] Request: GET /api/nutrition/log-story/2026-10-23
+[DIO] Response: 200 GET /api/nutrition/log-story/2026-10-23
+[DIO] Request: POST /api/food/analyze
+00:29 +28 -3: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/auth_profile_gate_entry_test.dart: Auth entry points reach the ProfileGate direct /main route goes through the gate
+Failed to load conversations: DioException [bad response]: This exception was thrown because the response has a status code of 400 and RequestOptions.validateStatus was configured to throw for this status code.
+The status code of 400 has the following meaning: "Client error - the request contains bad syntax or cannot be fulfilled"
+Read more about status codes at https://developer.mozilla.org/en-US/docs/Web/HTTP/Status
+In order to resolve this exception you typically have either to verify and fix your request code or you have to fix the server code.
+
+00:29 +28 -3: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/features/nutrition/nutrition_account_isolation_test.dart: story pending at logout cannot continue or unlock returning A
+[DIO] Request: POST /api/auth/login
+00:29 +28 -3: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/features/nutrition/food_analysis_modes_test.dart: Chat and Nutrition surface 401 safely; only 401 enters auth recovery
+[DIO] Error: badResponse status=401 POST /api/food/analyze
+00:29 +28 -3: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/auth_profile_gate_entry_test.dart: Auth entry points reach the ProfileGate direct /main route goes through the gate
+[DIO] Request: GET /api/chat/conversations
+00:29 +28 -3: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/features/nutrition/nutrition_account_isolation_test.dart: story pending at logout cannot continue or unlock returning A
+[DIO] Response: 200 POST /api/auth/login
+00:29 +28 -3: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/auth_profile_gate_entry_test.dart: Auth entry points reach the ProfileGate direct /main route goes through the gate
+[DIO] Error: badResponse status=400 GET /api/chat/conversations
+Failed to load conversations: DioException [bad response]: This exception was thrown because the response has a status code of 400 and RequestOptions.validateStatus was configured to throw for this status code.
+The status code of 400 has the following meaning: "Client error - the request contains bad syntax or cannot be fulfilled"
+Read more about status codes at https://developer.mozilla.org/en-US/docs/Web/HTTP/Status
+In order to resolve this exception you typically have either to verify and fix your request code or you have to fix the server code.
+
+00:29 +28 -3: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/features/nutrition/food_analysis_modes_test.dart: Chat and Nutrition surface 401 safely; only 401 enters auth recovery
+[DIO] Request: GET /api/user/profile
+00:29 +28 -3: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/features/nutrition/food_log_flow_test.dart: CP3: FoodLogScreen & Log Meal Experience LogMealSheet: Quick meal log renders Calm Athleticism design with date anchor and screenshot before focus
+══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
+The following TestFailure was thrown running a test:
+Expected: exactly one matching candidate
+  Actual: _TextWidgetFinder:<Found 0 widgets with text "Log Bữa Ăn Nhanh": []>
+   Which: means none were found but one was expected
+
+When the exception was thrown, this was the stack:
+#4      main.<anonymous closure>.<anonymous closure> (file:///D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/features/nutrition/food_log_flow_test.dart:769:7)
+<asynchronous suspension>
+#5      testWidgets.<anonymous closure>.<anonymous closure> (package:flutter_test/src/widget_tester.dart:183:15)
+<asynchronous suspension>
+#6      TestWidgetsFlutterBinding._runTestBody (package:flutter_test/src/binding.dart:1017:5)
+<asynchronous suspension>
+<asynchronous suspension>
+(elided one frame from package:stack_trace)
+
+This was caught by the test expectation on the following line:
+  file:///D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/features/nutrition/food_log_flow_test.dart line 769
+The test description was:
+  LogMealSheet: Quick meal log renders Calm Athleticism design with date anchor and screenshot
+  before focus
+════════════════════════════════════════════════════════════════════════════════════════════════════
+00:29 +28 -4: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/auth_profile_gate_entry_test.dart: Auth entry points reach the ProfileGate direct /main route goes through the gate
+00:29 +28 -4: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/features/nutrition/food_log_flow_test.dart: CP3: FoodLogScreen & Log Meal Experience LogMealSheet: Quick meal log renders Calm Athleticism design with date anchor and screenshot before focus [E]
+  Test failed. See exception logs above.
+  The test description was: LogMealSheet: Quick meal log renders Calm Athleticism design with date anchor and screenshot before focus
+  
+00:29 +28 -4: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/features/nutrition/food_analysis_modes_test.dart: Chat and Nutrition surface 401 safely; only 401 enters auth recovery
+[DIO] Response: 200 GET /api/user/profile
+00:29 +28 -4: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/auth_profile_gate_entry_test.dart: Auth entry points reach the ProfileGate direct /main route goes through the gate
+══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
+The following assertion was thrown running a test:
+pumpAndSettle timed out
+
+When the exception was thrown, this was the stack:
+#0      WidgetTester.pumpAndSettle.<anonymous closure> (package:flutter_test/src/widget_tester.dart:718:11)
+<asynchronous suspension>
+#1      TestAsyncUtils.guard.<anonymous closure> (package:flutter_test/src/test_async_utils.dart:117:7)
+<asynchronous suspension>
+#2      main.<anonymous closure>.<anonymous closure> (file:///D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/auth_profile_gate_entry_test.dart:462:7)
+<asynchronous suspension>
+#3      testWidgets.<anonymous closure>.<anonymous closure> (package:flutter_test/src/widget_tester.dart:183:15)
+<asynchronous suspension>
+#4      TestWidgetsFlutterBinding._runTestBody (package:flutter_test/src/binding.dart:1017:5)
+<asynchronous suspension>
+<asynchronous suspension>
+(elided one frame from package:stack_trace)
+
+The test description was:
+  direct /main route goes through the gate
+════════════════════════════════════════════════════════════════════════════════════════════════════
+00:29 +28 -5: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/features/nutrition/nutrition_account_isolation_test.dart: story pending at logout cannot continue or unlock returning A
+00:29 +28 -5: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/auth_profile_gate_entry_test.dart: Auth entry points reach the ProfileGate direct /main route goes through the gate [E]
+  Test failed. See exception logs above.
+  The test description was: direct /main route goes through the gate
+  
+00:29 +28 -5: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/features/nutrition/food_analysis_modes_test.dart: Chat and Nutrition surface 401 safely; only 401 enters auth recovery
+[DIO] Request: POST /api/food/analyze
+00:29 +28 -5: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/features/nutrition/nutrition_account_isolation_test.dart: story pending at logout cannot continue or unlock returning A
+[DIO] Request: GET /api/user/profile
+00:29 +28 -5: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/features/nutrition/food_analysis_modes_test.dart: Chat and Nutrition surface 401 safely; only 401 enters auth recovery
+[DIO] Error: badResponse status=401 POST /api/food/analyze
+[DIO] Request: GET /api/user/profile
+00:29 +28 -5: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/features/nutrition/nutrition_account_isolation_test.dart: story pending at logout cannot continue or unlock returning A
+[DIO] Response: 200 GET /api/user/profile
+00:30 +29 -5: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/features/nutrition/food_analysis_modes_test.dart: Chat and Nutrition surface 401 safely; only 401 enters auth recovery
+[DIO] Response: 200 GET /api/user/profile
+00:30 +29 -6: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/features/nutrition/food_log_flow_test.dart: CP3: FoodLogScreen & Log Meal Experience LogMealSheet: Typing notes persists across UI interactions and screenshot with note
+00:30 +29 -6: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/features/nutrition/nutrition_account_isolation_test.dart: meal uncertainty survives real logout/login A-B-A
+[DIO] Request: GET /api/user/profile
+00:30 +30 -6: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/auth_profile_gate_entry_test.dart: Auth entry points reach the ProfileGate A complete session -> logout to Login -> email login as B (incomplete): B reaches the gate and Main is never mounted for B
+00:30 +30 -6: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/features/nutrition/nutrition_account_isolation_test.dart: meal uncertainty survives real logout/login A-B-A
+[DIO] Response: 200 GET /api/user/profile
+00:30 +30 -6: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/features/nutrition/food_analysis_modes_test.dart: Chat and Nutrition surface 401 safely; only 401 enters auth recovery [E]
+  Expected: ProfileStatus:<ProfileStatus.unauthorized>
+    Actual: ProfileStatus:<ProfileStatus.incomplete>
+  
+  package:matcher                                             expect
+  package:flutter_test/src/widget_tester.dart 474:18          expect
+  test\features\nutrition\food_analysis_modes_test.dart 75:7  main.<fn>
+  
+00:30 +30 -6: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/features/nutrition/nutrition_account_isolation_test.dart: meal uncertainty survives real logout/login A-B-A
+[DIO] Request: GET /api/nutrition/log-story/2026-10-23
+[DIO] Response: 200 GET /api/nutrition/log-story/2026-10-23
+[DIO] Request: POST /api/nutrition/log-story
+00:30 +31 -6: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/auth_profile_gate_entry_test.dart: Auth entry points reach the ProfileGate A complete session -> logout to Login -> email login as B (incomplete): B reaches the gate and Main is never mounted for B
+00:30 +31 -6: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/features/nutrition/nutrition_account_isolation_test.dart: meal uncertainty survives real logout/login A-B-A
+[DIO] Response: 200 POST /api/nutrition/log-story
+00:30 +32 -6: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/auth_profile_gate_entry_test.dart: Auth entry points reach the ProfileGate A complete session -> logout to Login -> email login as B (incomplete): B reaches the gate and Main is never mounted for B
+00:30 +32 -6: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/features/nutrition/nutrition_account_isolation_test.dart: meal uncertainty survives real logout/login A-B-A
+[DIO] Request: POST /api/nutrition/logs
+[DIO] Error: receiveTimeout status=none POST /api/nutrition/logs
+[DIO] Request: POST /api/auth/login
+00:31 +33 -6: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/auth_profile_gate_entry_test.dart: Auth entry points reach the ProfileGate A complete session -> logout to Login -> email login as B (incomplete): B reaches the gate and Main is never mounted for B
+00:31 +33 -6: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/features/nutrition/nutrition_account_isolation_test.dart: meal uncertainty survives real logout/login A-B-A
+[DIO] Response: 200 POST /api/auth/login
+[DIO] Request: GET /api/user/profile
+[DIO] Response: 200 GET /api/user/profile
+[DIO] Request: POST /api/nutrition/log-story
+00:31 +33 -6: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/features/nutrition/food_analysis_modes_test.dart: service preserves typed HTTP 403 error without raw payload feedback
+[DIO] Request: GET /api/user/profile
+00:31 +33 -6: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/features/nutrition/nutrition_account_isolation_test.dart: meal uncertainty survives real logout/login A-B-A
+[DIO] Response: 200 POST /api/nutrition/log-story
+00:31 +33 -6: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/features/nutrition/food_analysis_modes_test.dart: service preserves typed HTTP 403 error without raw payload feedback
+[DIO] Response: 200 GET /api/user/profile
+[DIO] Request: GET /api/nutrition/log-story/2026-10-23
+00:31 +33 -6: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/features/nutrition/nutrition_account_isolation_test.dart: meal uncertainty survives real logout/login A-B-A
+[DIO] Request: POST /api/nutrition/logs
+00:31 +33 -6: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/features/nutrition/food_analysis_modes_test.dart: service preserves typed HTTP 403 error without raw payload feedback
+[DIO] Response: 200 GET /api/nutrition/log-story/2026-10-23
+[DIO] Request: POST /api/food/analyze
+00:31 +33 -6: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/features/nutrition/nutrition_account_isolation_test.dart: meal uncertainty survives real logout/login A-B-A
+[DIO] Response: 200 POST /api/nutrition/logs
+00:31 +33 -6: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/features/nutrition/food_analysis_modes_test.dart: service preserves typed HTTP 403 error without raw payload feedback
+[DIO] Error: badResponse status=403 POST /api/food/analyze
+00:31 +34 -6: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/auth_profile_gate_entry_test.dart: Auth entry points reach the ProfileGate A complete session -> logout to Login -> email login as B (incomplete): B reaches the gate and Main is never mounted for B
+00:31 +34 -6: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/features/nutrition/nutrition_account_isolation_test.dart: meal uncertainty survives real logout/login A-B-A
+[DIO] Request: GET /api/journey/active
+[DIO] Request: GET /api/nutrition/log-story/2026-10-23
+[DIO] Response: 200 GET /api/journey/active
+00:31 +34 -6: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/features/nutrition/food_analysis_modes_test.dart: Chat and Nutrition surface 403 safely; only 401 enters auth recovery
+[DIO] Request: GET /api/user/profile
+00:31 +34 -6: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/features/nutrition/nutrition_account_isolation_test.dart: meal uncertainty survives real logout/login A-B-A
+[DIO] Response: 200 GET /api/nutrition/log-story/2026-10-23
+00:31 +34 -6: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/features/nutrition/food_analysis_modes_test.dart: Chat and Nutrition surface 403 safely; only 401 enters auth recovery
+[DIO] Response: 200 GET /api/user/profile
+00:31 +34 -6: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/features/nutrition/nutrition_account_isolation_test.dart: meal uncertainty survives real logout/login A-B-A
+[DIO] Request: POST /api/auth/login
+00:31 +34 -6: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/features/nutrition/food_analysis_modes_test.dart: Chat and Nutrition surface 403 safely; only 401 enters auth recovery
+[DIO] Request: GET /api/nutrition/log-story/2026-10-23
+[DIO] Response: 200 GET /api/nutrition/log-story/2026-10-23
+00:31 +34 -6: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/features/nutrition/nutrition_account_isolation_test.dart: meal uncertainty survives real logout/login A-B-A
+[DIO] Response: 200 POST /api/auth/login
+00:31 +34 -6: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/features/nutrition/food_analysis_modes_test.dart: Chat and Nutrition surface 403 safely; only 401 enters auth recovery
+[DIO] Request: POST /api/food/analyze
+[DIO] Error: badResponse status=403 POST /api/food/analyze
+[DIO] Request: POST /api/food/analyze
+[DIO] Error: badResponse status=403 POST /api/food/analyze
+00:31 +34 -7: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/auth_profile_gate_entry_test.dart: Auth entry points reach the ProfileGate A complete session -> logout to Login -> email login as B (incomplete): B reaches the gate and Main is never mounted for B
+00:31 +34 -7: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/features/nutrition/food_analysis_modes_test.dart: Chat and Nutrition surface 403 safely; only 401 enters auth recovery [E]
+  Expected: ProfileStatus:<ProfileStatus.initial>
+    Actual: ProfileStatus:<ProfileStatus.incomplete>
+  
+  package:matcher                                             expect
+  package:flutter_test/src/widget_tester.dart 474:18          expect
+  test\features\nutrition\food_analysis_modes_test.dart 75:7  main.<fn>
+  
+00:31 +34 -7: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/features/nutrition/food_analysis_modes_test.dart: service preserves typed HTTP 422 error without raw payload feedback
+[DIO] Request: GET /api/user/profile
+[DIO] Response: 200 GET /api/user/profile
+[DIO] Request: GET /api/nutrition/log-story/2026-10-23
+[DIO] Response: 200 GET /api/nutrition/log-story/2026-10-23
+[DIO] Request: POST /api/food/analyze
+[DIO] Error: badResponse status=422 POST /api/food/analyze
+00:31 +35 -7: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/auth_profile_gate_entry_test.dart: Auth entry points reach the ProfileGate A complete session -> logout to Login -> email login as B (incomplete): B reaches the gate and Main is never mounted for B
+00:31 +35 -7: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/features/nutrition/food_analysis_modes_test.dart: Chat and Nutrition surface 422 safely; only 401 enters auth recovery
+[DIO] Request: GET /api/user/profile
+[DIO] Response: 200 GET /api/user/profile
+[DIO] Request: GET /api/nutrition/log-story/2026-10-23
+[DIO] Response: 200 GET /api/nutrition/log-story/2026-10-23
+[DIO] Request: POST /api/food/analyze
+[DIO] Error: badResponse status=422 POST /api/food/analyze
+[DIO] Request: POST /api/food/analyze
+[DIO] Error: badResponse status=422 POST /api/food/analyze
+00:31 +35 -8: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/auth_profile_gate_entry_test.dart: Auth entry points reach the ProfileGate A complete session -> logout to Login -> email login as B (incomplete): B reaches the gate and Main is never mounted for B
+00:31 +35 -8: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/features/nutrition/food_analysis_modes_test.dart: Chat and Nutrition surface 422 safely; only 401 enters auth recovery [E]
+  Expected: ProfileStatus:<ProfileStatus.initial>
+    Actual: ProfileStatus:<ProfileStatus.incomplete>
+  
+  package:matcher                                             expect
+  package:flutter_test/src/widget_tester.dart 474:18          expect
+  test\features\nutrition\food_analysis_modes_test.dart 75:7  main.<fn>
+  
+00:31 +35 -8: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/features/nutrition/food_analysis_modes_test.dart: service preserves typed HTTP 500 error without raw payload feedback
+[DIO] Request: GET /api/user/profile
+[DIO] Response: 200 GET /api/user/profile
+[DIO] Request: GET /api/nutrition/log-story/2026-10-23
+[DIO] Response: 200 GET /api/nutrition/log-story/2026-10-23
+[DIO] Request: POST /api/food/analyze
+[DIO] Error: badResponse status=500 POST /api/food/analyze
+00:31 +36 -8: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/auth_profile_gate_entry_test.dart: Auth entry points reach the ProfileGate A complete session -> logout to Login -> email login as B (incomplete): B reaches the gate and Main is never mounted for B
+00:31 +36 -8: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/features/nutrition/food_analysis_modes_test.dart: Chat and Nutrition surface 500 safely; only 401 enters auth recovery
+[DIO] Request: GET /api/user/profile
+[DIO] Response: 200 GET /api/user/profile
+[DIO] Request: GET /api/nutrition/log-story/2026-10-23
+[DIO] Response: 200 GET /api/nutrition/log-story/2026-10-23
+[DIO] Request: POST /api/food/analyze
+[DIO] Error: badResponse status=500 POST /api/food/analyze
+[DIO] Request: POST /api/food/analyze
+[DIO] Error: badResponse status=500 POST /api/food/analyze
+00:32 +36 -9: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/auth_profile_gate_entry_test.dart: Auth entry points reach the ProfileGate A complete session -> logout to Login -> email login as B (incomplete): B reaches the gate and Main is never mounted for B
+00:32 +36 -9: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/features/nutrition/food_analysis_modes_test.dart: Chat and Nutrition surface 500 safely; only 401 enters auth recovery [E]
+  Expected: ProfileStatus:<ProfileStatus.initial>
+    Actual: ProfileStatus:<ProfileStatus.incomplete>
+  
+  package:matcher                                             expect
+  package:flutter_test/src/widget_tester.dart 474:18          expect
+  test\features\nutrition\food_analysis_modes_test.dart 75:7  main.<fn>
+  
+00:32 +36 -9: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/features/nutrition/food_analysis_modes_test.dart: incomplete successful response cannot become a zero-calorie estimate
+[DIO] Request: GET /api/user/profile
+[DIO] Response: 200 GET /api/user/profile
+00:32 +36 -9: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/features/nutrition/nutrition_account_isolation_test.dart: meal uncertainty survives real logout/login A-B-A
+[DIO] Request: GET /api/user/profile
+00:32 +36 -9: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/features/nutrition/food_analysis_modes_test.dart: incomplete successful response cannot become a zero-calorie estimate
+[DIO] Request: GET /api/nutrition/log-story/2026-10-23
+[DIO] Response: 200 GET /api/nutrition/log-story/2026-10-23
+[DIO] Request: POST /api/food/analyze
+[DIO] Response: 200 POST /api/food/analyze
+[DIO] Request: POST /api/food/analyze
+[DIO] Response: 200 POST /api/food/analyze
+00:32 +37 -9: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/auth_profile_gate_entry_test.dart: Auth entry points reach the ProfileGate A complete session -> logout to Login -> email login as B (incomplete): B reaches the gate and Main is never mounted for B
+00:32 +38 -9: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/auth_profile_gate_entry_test.dart: Auth entry points reach the ProfileGate A complete session -> logout to Login -> email login as B (incomplete): B reaches the gate and Main is never mounted for B
+00:32 +38 -9: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/features/nutrition/nutrition_account_isolation_test.dart: meal uncertainty survives real logout/login A-B-A
+[DIO] Response: 200 GET /api/user/profile
+00:32 +38 -9: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/auth_profile_gate_entry_test.dart: Auth entry points reach the ProfileGate A complete session -> logout to Login -> email login as B (incomplete): B reaches the gate and Main is never mounted for B
+00:32 +39 -9: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/auth_profile_gate_entry_test.dart: Auth entry points reach the ProfileGate A complete session -> logout to Login -> email login as B (incomplete): B reaches the gate and Main is never mounted for B
+00:32 +39 -9: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/features/nutrition/nutrition_account_isolation_test.dart: meal pending at logout cannot continue or unlock returning A
+[DIO] Request: GET /api/user/profile
+[DIO] Response: 200 GET /api/user/profile
+[DIO] Request: GET /api/nutrition/log-story/2026-10-23
+[DIO] Response: 200 GET /api/nutrition/log-story/2026-10-23
+[DIO] Request: POST /api/nutrition/log-story
+[DIO] Response: 200 POST /api/nutrition/log-story
+[DIO] Request: POST /api/nutrition/logs
+[DIO] Request: POST /api/auth/login
+[DIO] Response: 200 POST /api/auth/login
+[DIO] Request: GET /api/user/profile
+[DIO] Response: 200 GET /api/user/profile
+[DIO] Response: 200 POST /api/nutrition/logs
+[DIO] Request: POST /api/nutrition/log-story
+[DIO] Response: 200 POST /api/nutrition/log-story
+[DIO] Request: POST /api/nutrition/logs
+[DIO] Response: 200 POST /api/nutrition/logs
+[DIO] Request: GET /api/journey/active
+[DIO] Request: GET /api/nutrition/log-story/2026-10-23
+[DIO] Response: 200 GET /api/journey/active
+[DIO] Response: 200 GET /api/nutrition/log-story/2026-10-23
+[DIO] Request: POST /api/auth/login
+[DIO] Response: 200 POST /api/auth/login
+[DIO] Request: GET /api/user/profile
+[DIO] Response: 200 GET /api/user/profile
+00:33 +40 -9: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/auth_profile_gate_entry_test.dart: Auth entry points reach the ProfileGate A complete session -> logout to Login -> email login as B (incomplete): B reaches the gate and Main is never mounted for B
+00:33 +40 -9: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/features/nutrition/nutrition_account_isolation_test.dart: missing identity blocks confirmation and photo-only writes
+[DIO] Request: GET /api/user/profile
+[DIO] Response: 200 GET /api/user/profile
+[DIO] Request: GET /api/nutrition/log-story/2026-10-23
+[DIO] Response: 200 GET /api/nutrition/log-story/2026-10-23
+00:33 +41 -9: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/auth_profile_gate_entry_test.dart: Auth entry points reach the ProfileGate A complete session -> logout to Login -> email login as B (incomplete): B reaches the gate and Main is never mounted for B
+00:33 +41 -9: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/features/nutrition/nutrition_account_isolation_test.dart: token refresh keeps the stable account uncertain lock
+[DIO] Request: GET /api/user/profile
+[DIO] Response: 200 GET /api/user/profile
+[DIO] Request: GET /api/nutrition/log-story/2026-10-23
+[DIO] Response: 200 GET /api/nutrition/log-story/2026-10-23
+[DIO] Request: POST /api/nutrition/log-story
+[DIO] Error: receiveTimeout status=none POST /api/nutrition/log-story
+00:33 +42 -9: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/auth_profile_gate_entry_test.dart: Auth entry points reach the ProfileGate A complete session -> logout to Login -> email login as B (incomplete): B reaches the gate and Main is never mounted for B
+00:33 +42 -9: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/features/nutrition/nutrition_account_isolation_test.dart: late Chat analysis discarded after logout
+[DIO] Request: GET /api/user/profile
+[DIO] Response: 200 GET /api/user/profile
+[DIO] Request: GET /api/nutrition/log-story/2026-10-23
+[DIO] Response: 200 GET /api/nutrition/log-story/2026-10-23
+[DIO] Request: POST /api/food/analyze
+[DIO] Response: 200 POST /api/food/analyze
+00:33 +43 -9: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/auth_profile_gate_entry_test.dart: Auth entry points reach the ProfileGate A complete session -> logout to Login -> email login as B (incomplete): B reaches the gate and Main is never mounted for B
+00:33 +43 -9: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/features/nutrition/nutrition_account_isolation_test.dart: late Chat analysis discarded after A-B
+[DIO] Request: GET /api/user/profile
+[DIO] Response: 200 GET /api/user/profile
+[DIO] Request: GET /api/nutrition/log-story/2026-10-23
+[DIO] Response: 200 GET /api/nutrition/log-story/2026-10-23
+[DIO] Request: POST /api/food/analyze
+[DIO] Request: POST /api/auth/login
+[DIO] Response: 200 POST /api/auth/login
+[DIO] Request: GET /api/user/profile
+[DIO] Response: 200 GET /api/user/profile
+[DIO] Response: 200 POST /api/food/analyze
+00:33 +44 -9: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/auth_profile_gate_entry_test.dart: Auth entry points reach the ProfileGate A complete session -> logout to Login -> email login as B (incomplete): B reaches the gate and Main is never mounted for B
+00:33 +44 -9: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/features/nutrition/nutrition_account_isolation_test.dart: late Chat analysis discarded after A-B-A
+[DIO] Request: GET /api/user/profile
+[DIO] Response: 200 GET /api/user/profile
+[DIO] Request: GET /api/nutrition/log-story/2026-10-23
+[DIO] Response: 200 GET /api/nutrition/log-story/2026-10-23
+[DIO] Request: POST /api/food/analyze
+[DIO] Request: POST /api/auth/login
+[DIO] Response: 200 POST /api/auth/login
+[DIO] Request: GET /api/user/profile
+[DIO] Response: 200 GET /api/user/profile
+[DIO] Request: POST /api/auth/login
+[DIO] Response: 200 POST /api/auth/login
+[DIO] Request: GET /api/user/profile
+[DIO] Response: 200 GET /api/user/profile
+[DIO] Response: 200 POST /api/food/analyze
+00:33 +45 -9: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/auth_profile_gate_entry_test.dart: Auth entry points reach the ProfileGate A complete session -> logout to Login -> email login as B (incomplete): B reaches the gate and Main is never mounted for B
+00:33 +45 -9: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/features/nutrition/nutrition_account_isolation_test.dart: late Chat analysis discarded after dispose
+[DIO] Request: GET /api/user/profile
+[DIO] Response: 200 GET /api/user/profile
+[DIO] Request: GET /api/nutrition/log-story/2026-10-23
+[DIO] Response: 200 GET /api/nutrition/log-story/2026-10-23
+[DIO] Request: POST /api/food/analyze
+[DIO] Response: 200 POST /api/food/analyze
+00:33 +46 -9: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/auth_profile_gate_entry_test.dart: Auth entry points reach the ProfileGate A complete session -> logout to Login -> email login as B (incomplete): B reaches the gate and Main is never mounted for B
+00:33 +46 -9: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/features/nutrition/nutrition_account_isolation_test.dart: late Nutrition analysis rejected after A-B
+[DIO] Request: GET /api/user/profile
+[DIO] Response: 200 GET /api/user/profile
+[DIO] Request: GET /api/nutrition/log-story/2026-10-23
+[DIO] Response: 200 GET /api/nutrition/log-story/2026-10-23
+[DIO] Request: POST /api/food/analyze
+[DIO] Request: POST /api/auth/login
+[DIO] Response: 200 POST /api/auth/login
+[DIO] Request: GET /api/user/profile
+[DIO] Response: 200 GET /api/user/profile
+[DIO] Response: 200 POST /api/food/analyze
+00:33 +47 -9: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/auth_profile_gate_entry_test.dart: Auth entry points reach the ProfileGate A complete session -> logout to Login -> email login as B (incomplete): B reaches the gate and Main is never mounted for B
+00:33 +47 -9: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/features/nutrition/nutrition_account_isolation_test.dart: late Nutrition analysis rejected after A-B-A
+[DIO] Request: GET /api/user/profile
+[DIO] Response: 200 GET /api/user/profile
+[DIO] Request: GET /api/nutrition/log-story/2026-10-23
+[DIO] Response: 200 GET /api/nutrition/log-story/2026-10-23
+[DIO] Request: POST /api/food/analyze
+[DIO] Request: POST /api/auth/login
+[DIO] Response: 200 POST /api/auth/login
+[DIO] Request: GET /api/user/profile
+[DIO] Response: 200 GET /api/user/profile
+[DIO] Request: POST /api/auth/login
+[DIO] Response: 200 POST /api/auth/login
+[DIO] Request: GET /api/user/profile
+[DIO] Response: 200 GET /api/user/profile
+[DIO] Response: 200 POST /api/food/analyze
+00:33 +48 -9: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/auth_profile_gate_entry_test.dart: Auth entry points reach the ProfileGate A complete session -> logout to Login -> email login as B (incomplete): B reaches the gate and Main is never mounted for B
+00:33 +48 -9: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/features/nutrition/nutrition_account_isolation_test.dart: late Nutrition analysis rejected after dispose
+[DIO] Request: GET /api/user/profile
+[DIO] Response: 200 GET /api/user/profile
+[DIO] Request: GET /api/nutrition/log-story/2026-10-23
+[DIO] Response: 200 GET /api/nutrition/log-story/2026-10-23
+[DIO] Request: POST /api/food/analyze
+[DIO] Request: GET /api/nutrition/log-story/2026-10-23
+[DIO] Response: 200 GET /api/nutrition/log-story/2026-10-23
+[DIO] Response: 200 POST /api/food/analyze
+00:33 +49 -9: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/auth_profile_gate_entry_test.dart: Auth entry points reach the ProfileGate A complete session -> logout to Login -> email login as B (incomplete): B reaches the gate and Main is never mounted for B
+00:33 +49 -9: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/features/nutrition/nutrition_account_isolation_test.dart: account change during story persistence never continues/applies to B
+[DIO] Request: GET /api/user/profile
+[DIO] Response: 200 GET /api/user/profile
+[DIO] Request: GET /api/nutrition/log-story/2026-10-23
+[DIO] Response: 200 GET /api/nutrition/log-story/2026-10-23
+[DIO] Request: POST /api/nutrition/log-story
+[DIO] Request: POST /api/auth/login
+[DIO] Response: 200 POST /api/auth/login
+[DIO] Request: GET /api/user/profile
+[DIO] Response: 200 GET /api/user/profile
+[DIO] Response: 200 POST /api/nutrition/log-story
+00:33 +50 -9: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/auth_profile_gate_entry_test.dart: Auth entry points reach the ProfileGate A complete session -> logout to Login -> email login as B (incomplete): B reaches the gate and Main is never mounted for B
+00:33 +50 -9: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/features/nutrition/nutrition_account_isolation_test.dart: account change during meal persistence never continues/applies to B
+[DIO] Request: GET /api/user/profile
+[DIO] Response: 200 GET /api/user/profile
+[DIO] Request: GET /api/nutrition/log-story/2026-10-23
+[DIO] Response: 200 GET /api/nutrition/log-story/2026-10-23
+[DIO] Request: POST /api/nutrition/log-story
+[DIO] Response: 200 POST /api/nutrition/log-story
+[DIO] Request: POST /api/nutrition/logs
+[DIO] Request: POST /api/auth/login
+[DIO] Response: 200 POST /api/auth/login
+[DIO] Request: GET /api/user/profile
+[DIO] Response: 200 GET /api/user/profile
+[DIO] Response: 200 POST /api/nutrition/logs
+00:34 +51 -9: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/auth_profile_gate_entry_test.dart: Auth entry points reach the ProfileGate A complete session -> logout to Login -> email login as B (incomplete): B reaches the gate and Main is never mounted for B
+00:34 +51 -9: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/features/nutrition/nutrition_account_isolation_test.dart: provider recreation reuses a confirmed Story after in-flight disposal
+[DIO] Request: GET /api/user/profile
+[DIO] Response: 200 GET /api/user/profile
+[DIO] Request: GET /api/nutrition/log-story/2026-10-23
+[DIO] Response: 200 GET /api/nutrition/log-story/2026-10-23
+[DIO] Request: POST /api/nutrition/log-story
+[DIO] Request: GET /api/nutrition/log-story/2026-10-23
+[DIO] Response: 200 GET /api/nutrition/log-story/2026-10-23
+[DIO] Response: 200 POST /api/nutrition/log-story
+[DIO] Request: POST /api/nutrition/logs
+[DIO] Response: 200 POST /api/nutrition/logs
+00:34 +52 -9: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/auth_profile_gate_entry_test.dart: Auth entry points reach the ProfileGate A complete session -> logout to Login -> email login as B (incomplete): B reaches the gate and Main is never mounted for B
+00:34 +52 -9: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/features/nutrition/nutrition_account_isolation_test.dart: provider recreation reuses a confirmed Story after in-flight disposal
+[DIO] Request: GET /api/journey/active
+[DIO] Error: badResponse status=400 GET /api/journey/active
+00:34 +51 -10: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/auth_profile_gate_entry_test.dart: Auth entry points reach the ProfileGate A complete session -> logout to Login -> email login as B (incomplete): B reaches the gate and Main is never mounted for B
+00:34 +51 -10: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/features/nutrition/nutrition_account_isolation_test.dart: provider recreation reuses a confirmed Story after in-flight disposal [E]
+  Bad state: Tried to use JourneyController after `dispose` was called.
+  
+  Consider checking `mounted`.
+  
+  package:state_notifier/state_notifier.dart 175:9                                             StateNotifier._debugIsMounted.<fn>
+  package:state_notifier/state_notifier.dart 182:6                                             StateNotifier._debugIsMounted
+  package:state_notifier/state_notifier.dart 197:12                                            StateNotifier.state
+  package:health_ai_app/features/journey/presentation/providers/journey_providers.dart 62:15   JourneyController.loadActiveJourney
+  ===== asynchronous gap ===========================
+  dart:async                                                                                   _CustomZone.registerBinaryCallback
+  package:health_ai_app/features/journey/presentation/providers/journey_providers.dart 59:17   JourneyController.loadActiveJourney
+  package:health_ai_app/features/journey/presentation/providers/journey_providers.dart 53:5    new JourneyController
+  package:health_ai_app/features/journey/presentation/providers/journey_providers.dart 152:10  journeyControllerProvider.<fn>
+  package:riverpod/src/state_notifier_provider/base.dart 119:21                                StateNotifierProvider._create
+  package:riverpod/src/state_notifier_provider/base.dart 172:64                                StateNotifierProviderElement.create.<fn>
+  package:riverpod/src/result.dart 21:28                                                       Result.guard
+  package:riverpod/src/state_notifier_provider/base.dart 172:43                                StateNotifierProviderElement.create
+  package:riverpod/src/framework/element.dart 426:7                                            ProviderElementBase.buildState
+  package:riverpod/src/framework/element.dart 228:5                                            ProviderElementBase.mount
+  package:riverpod/src/framework/container.dart 47:11                                          _StateReader._create
+  package:riverpod/src/framework/container.dart 35:52                                          _StateReader.getElement
+  package:riverpod/src/framework/container.dart 440:40                                         ProviderContainer.readProviderElement.<fn>
+  package:riverpod/src/framework/container.dart 475:8                                          ProviderContainer.readProviderElement
+  package:riverpod/src/framework/proxy_provider_listenable.dart 134:26                         ProviderElementProxy.read
+  package:riverpod/src/framework/container.dart 241:21                                         ProviderContainer.read
+  package:riverpod/src/framework/element.dart 692:23                                           ProviderElementBase.read
+  package:health_ai_app/providers/daily_story_provider.dart 219:13                             DailyStoryController.confirmLog
+  ===== asynchronous gap ===========================
+  dart:async                                                                                   _CustomZone.registerUnaryCallback
+  package:health_ai_app/providers/daily_story_provider.dart 118:30                             DailyStoryController.confirmLog
+  test\features\nutrition\nutrition_account_isolation_test.dart 144:24                         main.<fn>
+  ===== asynchronous gap ===========================
+  dart:async                                                                                   _CustomZone.registerUnaryCallback
+  test\features\nutrition\nutrition_account_isolation_test.dart 129:5                          main.<fn>
+  
+Warning: At least one test in this suite creates an HttpClient. When running a test suite that uses
+TestWidgetsFlutterBinding, all HTTP requests will return status code 400, and no network request
+will actually be made. Any test expecting a real network connection and status code will fail.
+To test code that needs an HttpClient, provide your own HttpClient implementation to the code under
+test, so that your test can consistently provide a testable response to the code under test.
+  This test failed after it had already completed.
+  Make sure to use a matching library which informs the test runner
+  of pending async work.
+  package:state_notifier/state_notifier.dart 175:9                                             StateNotifier._debugIsMounted.<fn>
+  package:state_notifier/state_notifier.dart 182:6                                             StateNotifier._debugIsMounted
+  package:state_notifier/state_notifier.dart 197:12                                            StateNotifier.state
+  package:health_ai_app/features/journey/presentation/providers/journey_providers.dart 62:15   JourneyController.loadActiveJourney
+  ===== asynchronous gap ===========================
+  dart:async                                                                                   _CustomZone.registerBinaryCallback
+  package:health_ai_app/features/journey/presentation/providers/journey_providers.dart 59:17   JourneyController.loadActiveJourney
+  package:health_ai_app/features/journey/presentation/providers/journey_providers.dart 53:5    new JourneyController
+  package:health_ai_app/features/journey/presentation/providers/journey_providers.dart 152:10  journeyControllerProvider.<fn>
+  package:riverpod/src/state_notifier_provider/base.dart 119:21                                StateNotifierProvider._create
+  package:riverpod/src/state_notifier_provider/base.dart 172:64                                StateNotifierProviderElement.create.<fn>
+  package:riverpod/src/result.dart 21:28                                                       Result.guard
+  package:riverpod/src/state_notifier_provider/base.dart 172:43                                StateNotifierProviderElement.create
+  package:riverpod/src/framework/element.dart 426:7                                            ProviderElementBase.buildState
+  package:riverpod/src/framework/element.dart 228:5                                            ProviderElementBase.mount
+  package:riverpod/src/framework/container.dart 47:11                                          _StateReader._create
+  package:riverpod/src/framework/container.dart 35:52                                          _StateReader.getElement
+  package:riverpod/src/framework/container.dart 440:40                                         ProviderContainer.readProviderElement.<fn>
+  package:riverpod/src/framework/container.dart 475:8                                          ProviderContainer.readProviderElement
+  package:riverpod/src/framework/proxy_provider_listenable.dart 134:26                         ProviderElementProxy.read
+  package:riverpod/src/framework/container.dart 241:21                                         ProviderContainer.read
+  package:riverpod/src/framework/element.dart 692:23                                           ProviderElementBase.read
+  package:health_ai_app/providers/daily_story_provider.dart 219:13                             DailyStoryController.confirmLog
+  ===== asynchronous gap ===========================
+  dart:async                                                                                   _CustomZone.registerUnaryCallback
+  package:health_ai_app/providers/daily_story_provider.dart 118:30                             DailyStoryController.confirmLog
+  test\features\nutrition\nutrition_account_isolation_test.dart 144:24                         main.<fn>
+  ===== asynchronous gap ===========================
+  dart:async                                                                                   _CustomZone.registerUnaryCallback
+  test\features\nutrition\nutrition_account_isolation_test.dart 129:5                          main.<fn>
+  
+00:34 +51 -10: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/features/nutrition/nutrition_account_isolation_test.dart: new account request uses new auth header without prior progress
+[DIO] Request: GET /api/user/profile
+[DIO] Response: 200 GET /api/user/profile
+[DIO] Request: GET /api/nutrition/log-story/2026-10-23
+[DIO] Response: 200 GET /api/nutrition/log-story/2026-10-23
+[DIO] Request: POST /api/nutrition/log-story
+[DIO] Response: 200 POST /api/nutrition/log-story
+[DIO] Request: POST /api/nutrition/logs
+[DIO] Response: 200 POST /api/nutrition/logs
+[DIO] Request: GET /api/journey/active
+00:36 +51 -10: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/auth_profile_gate_entry_test.dart: Auth entry points reach the ProfileGate A complete session -> logout to Login -> email login as B (incomplete): B reaches the gate and Main is never mounted for B
+[DIO] Request: GET /api/journey/active
+[DIO] Request: GET /api/workouts/history
+[DIO] Request: GET /api/chat/conversations
+[DIO] Error: badResponse status=400 GET /api/journey/active
+00:36 +51 -10: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/features/nutrition/nutrition_account_isolation_test.dart: new account request uses new auth header without prior progress
+[DIO] Request: POST /api/auth/login
+[DIO] Response: 200 GET /api/journey/active
+[DIO] Response: 200 POST /api/auth/login
+00:37 +51 -11: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/auth_profile_gate_entry_test.dart: Auth entry points reach the ProfileGate A complete session -> logout to Login -> email login as B (incomplete): B reaches the gate and Main is never mounted for B
+00:37 +51 -11: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/features/nutrition/nutrition_account_isolation_test.dart: new account request uses new auth header without prior progress [E]
+  Bad state: Tried to use JourneyController after `dispose` was called.
+  
+  Consider checking `mounted`.
+  
+  package:state_notifier/state_notifier.dart 175:9                                             StateNotifier._debugIsMounted.<fn>
+  package:state_notifier/state_notifier.dart 182:6                                             StateNotifier._debugIsMounted
+  package:state_notifier/state_notifier.dart 197:12                                            StateNotifier.state
+  package:health_ai_app/features/journey/presentation/providers/journey_providers.dart 62:15   JourneyController.loadActiveJourney
+  ===== asynchronous gap ===========================
+  dart:async                                                                                   _CustomZone.registerUnaryCallback
+  package:health_ai_app/features/journey/presentation/providers/journey_providers.dart 59:17   JourneyController.loadActiveJourney
+  package:health_ai_app/features/journey/presentation/providers/journey_providers.dart 53:5    new JourneyController
+  package:health_ai_app/features/journey/presentation/providers/journey_providers.dart 152:10  journeyControllerProvider.<fn>
+  package:riverpod/src/state_notifier_provider/base.dart 119:21                                StateNotifierProvider._create
+  package:riverpod/src/state_notifier_provider/base.dart 172:64                                StateNotifierProviderElement.create.<fn>
+  package:riverpod/src/result.dart 21:28                                                       Result.guard
+  package:riverpod/src/state_notifier_provider/base.dart 172:43                                StateNotifierProviderElement.create
+  package:riverpod/src/framework/element.dart 426:7                                            ProviderElementBase.buildState
+  package:riverpod/src/framework/element.dart 228:5                                            ProviderElementBase.mount
+  package:riverpod/src/framework/container.dart 47:11                                          _StateReader._create
+  package:riverpod/src/framework/container.dart 35:52                                          _StateReader.getElement
+  package:riverpod/src/framework/container.dart 440:40                                         ProviderContainer.readProviderElement.<fn>
+  package:riverpod/src/framework/container.dart 475:8                                          ProviderContainer.readProviderElement
+  package:riverpod/src/framework/proxy_provider_listenable.dart 134:26                         ProviderElementProxy.read
+  package:riverpod/src/framework/container.dart 241:21                                         ProviderContainer.read
+  package:riverpod/src/framework/element.dart 692:23                                           ProviderElementBase.read
+  package:health_ai_app/providers/daily_story_provider.dart 219:13                             DailyStoryController.confirmLog
+  ===== asynchronous gap ===========================
+  dart:async                                                                                   _CustomZone.registerUnaryCallback
+  package:health_ai_app/providers/daily_story_provider.dart 118:30                             DailyStoryController.confirmLog
+  test\features\nutrition\nutrition_account_isolation_test.dart 156:24                         main.<fn>
+  ===== asynchronous gap ===========================
+  dart:async                                                                                   _CustomZone.registerUnaryCallback
+  test\features\nutrition\nutrition_account_isolation_test.dart 152:5                          main.<fn>
+  
+00:37 +51 -11: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/auth_profile_gate_entry_test.dart: Auth entry points reach the ProfileGate A complete session -> logout to Login -> email login as B (incomplete): B reaches the gate and Main is never mounted for B
+[DIO] Error: badResponse status=400 GET /api/workouts/history
+00:37 +51 -11: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/features/nutrition/nutrition_account_isolation_test.dart: new account request uses new auth header without prior progress
+[DIO] Request: GET /api/user/profile
+[DIO] Response: 200 GET /api/user/profile
+00:37 +51 -11: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/auth_profile_gate_entry_test.dart: Auth entry points reach the ProfileGate A complete session -> logout to Login -> email login as B (incomplete): B reaches the gate and Main is never mounted for B
+[DIO] Error: badResponse status=400 GET /api/chat/conversations
+Failed to load conversations: DioException [bad response]: This exception was thrown because the response has a status code of 400 and RequestOptions.validateStatus was configured to throw for this status code.
+The status code of 400 has the following meaning: "Client error - the request contains bad syntax or cannot be fulfilled"
+Read more about status codes at https://developer.mozilla.org/en-US/docs/Web/HTTP/Status
+In order to resolve this exception you typically have either to verify and fix your request code or you have to fix the server code.
+
+00:37 +51 -11: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/features/nutrition/nutrition_account_isolation_test.dart: new account request uses new auth header without prior progress
+[DIO] Request: POST /api/food/analyze
+00:38 +51 -11: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/auth_profile_gate_entry_test.dart: Auth entry points reach the ProfileGate A complete session -> logout to Login -> email login as B (incomplete): B reaches the gate and Main is never mounted for B
+[DIO] Request: GET /api/chat/conversations
+00:38 +51 -11: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/features/nutrition/nutrition_account_isolation_test.dart: new account request uses new auth header without prior progress
+[DIO] Response: 200 POST /api/food/analyze
+00:38 +51 -11: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/auth_profile_gate_entry_test.dart: Auth entry points reach the ProfileGate A complete session -> logout to Login -> email login as B (incomplete): B reaches the gate and Main is never mounted for B
+[DIO] Error: badResponse status=400 GET /api/chat/conversations
+00:38 +51 -11: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/features/nutrition/nutrition_account_isolation_test.dart: new account request uses new auth header without prior progress
+[DIO] Request: POST /api/nutrition/log-story
+[DIO] Response: 200 POST /api/nutrition/log-story
+[DIO] Request: POST /api/nutrition/logs
+[DIO] Response: 200 POST /api/nutrition/logs
+00:39 +51 -11: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/auth_profile_gate_entry_test.dart: Auth entry points reach the ProfileGate A complete session -> logout to Login -> email login as B (incomplete): B reaches the gate and Main is never mounted for B
+Failed to load conversations: DioException [bad response]: This exception was thrown because the response has a status code of 400 and RequestOptions.validateStatus was configured to throw for this status code.
+The status code of 400 has the following meaning: "Client error - the request contains bad syntax or cannot be fulfilled"
+Read more about status codes at https://developer.mozilla.org/en-US/docs/Web/HTTP/Status
+In order to resolve this exception you typically have either to verify and fix your request code or you have to fix the server code.
+
+══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
+The following assertion was thrown running a test:
+pumpAndSettle timed out
+
+When the exception was thrown, this was the stack:
+#0      WidgetTester.pumpAndSettle.<anonymous closure> (package:flutter_test/src/widget_tester.dart:718:11)
+<asynchronous suspension>
+#1      TestAsyncUtils.guard.<anonymous closure> (package:flutter_test/src/test_async_utils.dart:117:7)
+<asynchronous suspension>
+#2      main.<anonymous closure>.<anonymous closure> (file:///D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/auth_profile_gate_entry_test.dart:481:7)
+<asynchronous suspension>
+#3      testWidgets.<anonymous closure>.<anonymous closure> (package:flutter_test/src/widget_tester.dart:183:15)
+<asynchronous suspension>
+#4      TestWidgetsFlutterBinding._runTestBody (package:flutter_test/src/binding.dart:1017:5)
+<asynchronous suspension>
+<asynchronous suspension>
+(elided one frame from package:stack_trace)
+
+The test description was:
+  A complete session -> logout to Login -> email login as B (incomplete): B reaches the gate and
+  Main is never mounted for B
+════════════════════════════════════════════════════════════════════════════════════════════════════
+00:39 +51 -12: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/features/nutrition/nutrition_account_isolation_test.dart: account switch between auth interceptor and dispatch blocks old request
+00:39 +51 -12: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/auth_profile_gate_entry_test.dart: Auth entry points reach the ProfileGate A complete session -> logout to Login -> email login as B (incomplete): B reaches the gate and Main is never mounted for B [E]
+  Test failed. See exception logs above.
+  The test description was: A complete session -> logout to Login -> email login as B (incomplete): B reaches the gate and Main is never mounted for B
+  
+00:39 +51 -12: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/features/nutrition/nutrition_account_isolation_test.dart: new account request uses new auth header without prior progress
+[DIO] Request: GET /api/journey/active
+[DIO] Error: badResponse status=400 GET /api/journey/active
+00:39 +51 -12: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/features/nutrition/nutrition_account_isolation_test.dart: new account request uses new auth header without prior progress [E]
+  Bad state: Tried to use JourneyController after `dispose` was called.
+  
+  Consider checking `mounted`.
+  
+  package:state_notifier/state_notifier.dart 175:9                                             StateNotifier._debugIsMounted.<fn>
+  package:state_notifier/state_notifier.dart 182:6                                             StateNotifier._debugIsMounted
+  package:state_notifier/state_notifier.dart 197:12                                            StateNotifier.state
+  package:health_ai_app/features/journey/presentation/providers/journey_providers.dart 62:15   JourneyController.loadActiveJourney
+  ===== asynchronous gap ===========================
+  dart:async                                                                                   _CustomZone.registerBinaryCallback
+  package:health_ai_app/features/journey/presentation/providers/journey_providers.dart 59:17   JourneyController.loadActiveJourney
+  package:health_ai_app/features/journey/presentation/providers/journey_providers.dart 53:5    new JourneyController
+  package:health_ai_app/features/journey/presentation/providers/journey_providers.dart 152:10  journeyControllerProvider.<fn>
+  package:riverpod/src/state_notifier_provider/base.dart 119:21                                StateNotifierProvider._create
+  package:riverpod/src/state_notifier_provider/base.dart 172:64                                StateNotifierProviderElement.create.<fn>
+  package:riverpod/src/result.dart 21:28                                                       Result.guard
+  package:riverpod/src/state_notifier_provider/base.dart 172:43                                StateNotifierProviderElement.create
+  package:riverpod/src/framework/element.dart 426:7                                            ProviderElementBase.buildState
+  package:riverpod/src/framework/element.dart 363:5                                            ProviderElementBase._performBuild
+  package:riverpod/src/framework/element.dart 324:7                                            ProviderElementBase.flush
+  package:riverpod/src/framework/proxy_provider_listenable.dart 135:13                         ProviderElementProxy.read
+  package:riverpod/src/framework/container.dart 241:21                                         ProviderContainer.read
+  package:riverpod/src/framework/element.dart 692:23                                           ProviderElementBase.read
+  package:health_ai_app/providers/daily_story_provider.dart 219:13                             DailyStoryController.confirmLog
+  ===== asynchronous gap ===========================
+  dart:async                                                                                   _CustomZone.registerUnaryCallback
+  package:health_ai_app/providers/daily_story_provider.dart 118:30                             DailyStoryController.confirmLog
+  test\features\nutrition\nutrition_account_isolation_test.dart 159:24                         main.<fn>
+  ===== asynchronous gap ===========================
+  dart:async                                                                                   _CustomZone.registerUnaryCallback
+  test\features\nutrition\nutrition_account_isolation_test.dart 152:5                          main.<fn>
+  
+00:40 +51 -12: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/features/nutrition/nutrition_account_isolation_test.dart: account switch between auth interceptor and dispatch blocks old request
+[DIO] Request: GET /api/user/profile
+[DIO] Response: 200 GET /api/user/profile
+[DIO] Request: GET /api/nutrition/log-story/2026-10-23
+[DIO] Response: 200 GET /api/nutrition/log-story/2026-10-23
+[DIO] Request: POST /api/auth/login
+[DIO] Response: 200 POST /api/auth/login
+[DIO] Request: GET /api/user/profile
+[DIO] Response: 200 GET /api/user/profile
+[DIO] Request: POST /api/food/analyze
+[DIO] Error: cancel status=none POST /api/food/analyze
+00:41 +52 -12: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/home_screen_test.dart: HomeScreen renders all 7 modular sections with wired data
+[DIO] Request: GET /api/journey/active
+[DIO] Error: badResponse status=400 GET /api/journey/active
+══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
+The following TestFailure was thrown running a test:
+Expected: exactly one matching candidate
+  Actual: _TypeWidgetFinder:<Found 0 widgets with type "WeeklyConsistencyCard": []>
+   Which: means none were found but one was expected
+
+When the exception was thrown, this was the stack:
+#4      main.<anonymous closure> (file:///D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/home_screen_test.dart:98:5)
+<asynchronous suspension>
+#5      testWidgets.<anonymous closure>.<anonymous closure> (package:flutter_test/src/widget_tester.dart:183:15)
+<asynchronous suspension>
+#6      TestWidgetsFlutterBinding._runTestBody (package:flutter_test/src/binding.dart:1017:5)
+<asynchronous suspension>
+<asynchronous suspension>
+(elided one frame from package:stack_trace)
+
+This was caught by the test expectation on the following line:
+  file:///D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/home_screen_test.dart line 98
+The test description was:
+  HomeScreen renders all 7 modular sections with wired data
+════════════════════════════════════════════════════════════════════════════════════════════════════
+00:43 +52 -13: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/onboarding_gate_test.dart: ProfileGate - Central Routing Gate Contract Tests shows neutral loading screen while request in flight
+00:43 +52 -13: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/home_screen_test.dart: HomeScreen renders all 7 modular sections with wired data [E]
+  Test failed. See exception logs above.
+  The test description was: HomeScreen renders all 7 modular sections with wired data
+  
+Warning: At least one test in this suite creates an HttpClient. When running a test suite that uses
+TestWidgetsFlutterBinding, all HTTP requests will return status code 400, and no network request
+will actually be made. Any test expecting a real network connection and status code will fail.
+To test code that needs an HttpClient, provide your own HttpClient implementation to the code under
+test, so that your test can consistently provide a testable response to the code under test.
+00:46 +53 -13: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/onboarding_gate_test.dart: ProfileGate - Central Routing Gate Contract Tests complete and network-confirmed profile renders MainScreen
+00:53 +53 -13: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/profile_edit_verified_save_test.dart: CP5 - Profile & Edit Profile Verified Save Contract Tests 1. Summary dung data that, khong sample/fallback so lieu
+══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
+The following TestFailure was thrown running a test:
+Expected: exactly one matching candidate
+  Actual: _TextWidgetFinder:<Found 0 widgets with text "John Athlete": []>
+   Which: means none were found but one was expected
+
+When the exception was thrown, this was the stack:
+#4      main.<anonymous closure>.<anonymous closure> (file:///D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/profile_edit_verified_save_test.dart:218:7)
+<asynchronous suspension>
+#5      testWidgets.<anonymous closure>.<anonymous closure> (package:flutter_test/src/widget_tester.dart:183:15)
+<asynchronous suspension>
+#6      TestWidgetsFlutterBinding._runTestBody (package:flutter_test/src/binding.dart:1017:5)
+<asynchronous suspension>
+<asynchronous suspension>
+(elided one frame from package:stack_trace)
+
+This was caught by the test expectation on the following line:
+  file:///D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/profile_edit_verified_save_test.dart line 218
+The test description was:
+  1. Summary dung data that, khong sample/fallback so lieu
+════════════════════════════════════════════════════════════════════════════════════════════════════
+00:54 +53 -14: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/onboarding_gate_test.dart: ProfileGate - Central Routing Gate Contract Tests complete and network-confirmed profile renders MainScreen
+00:54 +53 -14: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/profile_edit_verified_save_test.dart: CP5 - Profile & Edit Profile Verified Save Contract Tests 1. Summary dung data that, khong sample/fallback so lieu [E]
+  Test failed. See exception logs above.
+  The test description was: 1. Summary dung data that, khong sample/fallback so lieu
+  
+00:56 +53 -14: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/onboarding_gate_test.dart: ProfileGate - Central Routing Gate Contract Tests complete and network-confirmed profile renders MainScreen
+[DIO] Request: GET /api/journey/active
+[DIO] Request: GET /api/workouts/history
+[DIO] Request: GET /api/chat/conversations
+[DIO] Error: badResponse status=400 GET /api/journey/active
+[DIO] Error: badResponse status=400 GET /api/workouts/history
+[DIO] Error: badResponse status=400 GET /api/chat/conversations
+Failed to load conversations: DioException [bad response]: This exception was thrown because the response has a status code of 400 and RequestOptions.validateStatus was configured to throw for this status code.
+The status code of 400 has the following meaning: "Client error - the request contains bad syntax or cannot be fulfilled"
+Read more about status codes at https://developer.mozilla.org/en-US/docs/Web/HTTP/Status
+In order to resolve this exception you typically have either to verify and fix your request code or you have to fix the server code.
+
+[DIO] Request: GET /api/chat/conversations
+[DIO] Error: badResponse status=400 GET /api/chat/conversations
+Failed to load conversations: DioException [bad response]: This exception was thrown because the response has a status code of 400 and RequestOptions.validateStatus was configured to throw for this status code.
+The status code of 400 has the following meaning: "Client error - the request contains bad syntax or cannot be fulfilled"
+Read more about status codes at https://developer.mozilla.org/en-US/docs/Web/HTTP/Status
+In order to resolve this exception you typically have either to verify and fix your request code or you have to fix the server code.
+
+══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
+The following assertion was thrown running a test:
+pumpAndSettle timed out
+
+When the exception was thrown, this was the stack:
+#0      WidgetTester.pumpAndSettle.<anonymous closure> (package:flutter_test/src/widget_tester.dart:718:11)
+<asynchronous suspension>
+#1      TestAsyncUtils.guard.<anonymous closure> (package:flutter_test/src/test_async_utils.dart:117:7)
+<asynchronous suspension>
+#2      main.<anonymous closure>.<anonymous closure> (file:///D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/onboarding_gate_test.dart:199:7)
+<asynchronous suspension>
+#3      testWidgets.<anonymous closure>.<anonymous closure> (package:flutter_test/src/widget_tester.dart:183:15)
+<asynchronous suspension>
+#4      TestWidgetsFlutterBinding._runTestBody (package:flutter_test/src/binding.dart:1017:5)
+<asynchronous suspension>
+<asynchronous suspension>
+(elided one frame from package:stack_trace)
+
+The test description was:
+  complete and network-confirmed profile renders MainScreen
+════════════════════════════════════════════════════════════════════════════════════════════════════
+00:58 +53 -15: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/onboarding_save_readback_test.dart: CP4 - Onboarding Save, Preservation & Verified Readback Contract Tests 1. Confirm full flow: single save POST -> fresh readback GET -> MainScreen
+00:58 +53 -15: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/onboarding_gate_test.dart: ProfileGate - Central Routing Gate Contract Tests complete and network-confirmed profile renders MainScreen [E]
+  Test failed. See exception logs above.
+  The test description was: complete and network-confirmed profile renders MainScreen
+  
+Warning: At least one test in this suite creates an HttpClient. When running a test suite that uses
+TestWidgetsFlutterBinding, all HTTP requests will return status code 400, and no network request
+will actually be made. Any test expecting a real network connection and status code will fail.
+To test code that needs an HttpClient, provide your own HttpClient implementation to the code under
+test, so that your test can consistently provide a testable response to the code under test.
+00:58 +54 -15: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/onboarding_save_readback_test.dart: CP4 - Onboarding Save, Preservation & Verified Readback Contract Tests 1. Confirm full flow: single save POST -> fresh readback GET -> MainScreen
+00:59 +54 -15: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/profile_edit_verified_save_test.dart: CP5 - Profile & Edit Profile Verified Save Contract Tests 2. Mot Edit CTA, mot bottom nav
+⏳ Profile not ready yet, skipping loadDailyPlan
+[DIO] Request: GET /api/journey/active
+[DIO] Request: GET /api/chat/conversations
+[DIO] Error: badResponse status=400 GET /api/journey/active
+00:59 +54 -15: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/onboarding_save_readback_test.dart: CP4 - Onboarding Save, Preservation & Verified Readback Contract Tests 1. Confirm full flow: single save POST -> fresh readback GET -> MainScreen
+[DIO] Request: GET /api/journey/active
+[DIO] Request: GET /api/chat/conversations
+00:59 +54 -15: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/profile_edit_verified_save_test.dart: CP5 - Profile & Edit Profile Verified Save Contract Tests 2. Mot Edit CTA, mot bottom nav
+[DIO] Error: badResponse status=400 GET /api/chat/conversations
+00:59 +54 -15: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/onboarding_save_readback_test.dart: CP4 - Onboarding Save, Preservation & Verified Readback Contract Tests 1. Confirm full flow: single save POST -> fresh readback GET -> MainScreen
+[DIO] Error: badResponse status=400 GET /api/journey/active
+00:59 +54 -15: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/profile_edit_verified_save_test.dart: CP5 - Profile & Edit Profile Verified Save Contract Tests 2. Mot Edit CTA, mot bottom nav
+Failed to load conversations: DioException [bad response]: This exception was thrown because the response has a status code of 400 and RequestOptions.validateStatus was configured to throw for this status code.
+The status code of 400 has the following meaning: "Client error - the request contains bad syntax or cannot be fulfilled"
+Read more about status codes at https://developer.mozilla.org/en-US/docs/Web/HTTP/Status
+In order to resolve this exception you typically have either to verify and fix your request code or you have to fix the server code.
+
+00:59 +55 -15: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/onboarding_save_readback_test.dart: CP4 - Onboarding Save, Preservation & Verified Readback Contract Tests 1. Confirm full flow: single save POST -> fresh readback GET -> MainScreen
+00:59 +55 -15: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/onboarding_gate_test.dart: ProfileGate - Central Routing Gate Contract Tests GET network error without cache renders load_error, not onboarding
+[PROFILE] Load Profile Error: Exception: Network connection timed out
+00:59 +55 -15: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/onboarding_save_readback_test.dart: CP4 - Onboarding Save, Preservation & Verified Readback Contract Tests 1. Confirm full flow: single save POST -> fresh readback GET -> MainScreen
+[DIO] Error: badResponse status=400 GET /api/chat/conversations
+Failed to load conversations: DioException [bad response]: This exception was thrown because the response has a status code of 400 and RequestOptions.validateStatus was configured to throw for this status code.
+The status code of 400 has the following meaning: "Client error - the request contains bad syntax or cannot be fulfilled"
+Read more about status codes at https://developer.mozilla.org/en-US/docs/Web/HTTP/Status
+In order to resolve this exception you typically have either to verify and fix your request code or you have to fix the server code.
+
+00:59 +56 -15: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/onboarding_save_readback_test.dart: CP4 - Onboarding Save, Preservation & Verified Readback Contract Tests 1. Confirm full flow: single save POST -> fresh readback GET -> MainScreen
+00:59 +57 -15: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/profile_edit_verified_save_test.dart: CP5 - Profile & Edit Profile Verified Save Contract Tests 3. Prefill dung sau fields va decimals
+01:00 +58 -15: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/profile_edit_verified_save_test.dart: CP5 - Profile & Edit Profile Verified Save Contract Tests 3. Prefill dung sau fields va decimals
+01:00 +59 -15: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/onboarding_save_readback_test.dart: CP4 - Onboarding Save, Preservation & Verified Readback Contract Tests 2. Double-tap protection: locks mutation in-flight, renders loading indicator
+01:00 +60 -15: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/onboarding_gate_test.dart: ProfileGate - Central Routing Gate Contract Tests retry button in error view calls GET loadProfile and NOT update API
+01:02 +61 -15: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/onboarding_gate_test.dart: ProfileGate - Central Routing Gate Contract Tests retry button in error view calls GET loadProfile and NOT update API
+01:02 +61 -15: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/onboarding_save_readback_test.dart: CP4 - Onboarding Save, Preservation & Verified Readback Contract Tests 3. Save OK + Readback error: stays on Review, locks conflicting edits, Check again triggers GET only
+[DIO] Request: GET /api/journey/active
+[DIO] Request: GET /api/chat/conversations
+[DIO] Error: badResponse status=400 GET /api/journey/active
+[DIO] Error: badResponse status=400 GET /api/chat/conversations
+Failed to load conversations: DioException [bad response]: This exception was thrown because the response has a status code of 400 and RequestOptions.validateStatus was configured to throw for this status code.
+The status code of 400 has the following meaning: "Client error - the request contains bad syntax or cannot be fulfilled"
+Read more about status codes at https://developer.mozilla.org/en-US/docs/Web/HTTP/Status
+In order to resolve this exception you typically have either to verify and fix your request code or you have to fix the server code.
+
+01:02 +62 -15: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/onboarding_gate_test.dart: ProfileGate - Central Routing Gate Contract Tests retry button in error view calls GET loadProfile and NOT update API
+01:04 +62 -15: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/onboarding_save_readback_test.dart: CP4 - Onboarding Save, Preservation & Verified Readback Contract Tests 4. Save timeout unknown: does NOT auto-retry POST, provides Check status GET only
+[DIO] Request: GET /api/journey/active
+[DIO] Request: GET /api/chat/conversations
+[DIO] Error: badResponse status=400 GET /api/journey/active
+[DIO] Error: badResponse status=400 GET /api/chat/conversations
+Failed to load conversations: DioException [bad response]: This exception was thrown because the response has a status code of 400 and RequestOptions.validateStatus was configured to throw for this status code.
+The status code of 400 has the following meaning: "Client error - the request contains bad syntax or cannot be fulfilled"
+Read more about status codes at https://developer.mozilla.org/en-US/docs/Web/HTTP/Status
+In order to resolve this exception you typically have either to verify and fix your request code or you have to fix the server code.
+
+01:05 +63 -15: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/onboarding_gate_test.dart: ProfileGate - Central Routing Gate Contract Tests retry button in error view calls GET loadProfile and NOT update API
+01:06 +64 -15: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/onboarding_gate_test.dart: ProfileGate - Central Routing Gate Contract Tests retry button in error view calls GET loadProfile and NOT update API
+01:06 +65 -15: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/onboarding_gate_test.dart: ProfileGate - Central Routing Gate Contract Tests retry button in error view calls GET loadProfile and NOT update API
+01:06 +66 -15: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/onboarding_gate_test.dart: ProfileGate - Central Routing Gate Contract Tests retry button in error view calls GET loadProfile and NOT update API
+01:06 +67 -15: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/onboarding_gate_test.dart: ProfileGate - Central Routing Gate Contract Tests retry button in error view calls GET loadProfile and NOT update API
+01:08 +68 -15: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/onboarding_gate_test.dart: ProfileGate - Central Routing Gate Contract Tests retry button in error view calls GET loadProfile and NOT update API
+01:08 +69 -15: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/onboarding_gate_test.dart: ProfileGate - Central Routing Gate Contract Tests retry button in error view calls GET loadProfile and NOT update API
+[PROFILE] Load Profile Error: Exception: Initial connection failure
+[DIO] Request: GET /api/journey/active
+[DIO] Request: GET /api/workouts/history
+[DIO] Request: GET /api/chat/conversations
+[DIO] Error: badResponse status=400 GET /api/journey/active
+01:09 +70 -15: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/onboarding_gate_test.dart: ProfileGate - Central Routing Gate Contract Tests retry button in error view calls GET loadProfile and NOT update API
+[DIO] Error: badResponse status=400 GET /api/workouts/history
+[DIO] Error: badResponse status=400 GET /api/chat/conversations
+Failed to load conversations: DioException [bad response]: This exception was thrown because the response has a status code of 400 and RequestOptions.validateStatus was configured to throw for this status code.
+The status code of 400 has the following meaning: "Client error - the request contains bad syntax or cannot be fulfilled"
+Read more about status codes at https://developer.mozilla.org/en-US/docs/Web/HTTP/Status
+In order to resolve this exception you typically have either to verify and fix your request code or you have to fix the server code.
+
+[DIO] Request: GET /api/chat/conversations
+[DIO] Error: badResponse status=400 GET /api/chat/conversations
+Failed to load conversations: DioException [bad response]: This exception was thrown because the response has a status code of 400 and RequestOptions.validateStatus was configured to throw for this status code.
+The status code of 400 has the following meaning: "Client error - the request contains bad syntax or cannot be fulfilled"
+Read more about status codes at https://developer.mozilla.org/en-US/docs/Web/HTTP/Status
+In order to resolve this exception you typically have either to verify and fix your request code or you have to fix the server code.
+
+══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
+The following assertion was thrown running a test:
+pumpAndSettle timed out
+
+When the exception was thrown, this was the stack:
+#0      WidgetTester.pumpAndSettle.<anonymous closure> (package:flutter_test/src/widget_tester.dart:718:11)
+<asynchronous suspension>
+#1      TestAsyncUtils.guard.<anonymous closure> (package:flutter_test/src/test_async_utils.dart:117:7)
+<asynchronous suspension>
+#2      main.<anonymous closure>.<anonymous closure> (file:///D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/onboarding_gate_test.dart:352:7)
+<asynchronous suspension>
+#3      testWidgets.<anonymous closure>.<anonymous closure> (package:flutter_test/src/widget_tester.dart:183:15)
+<asynchronous suspension>
+#4      TestWidgetsFlutterBinding._runTestBody (package:flutter_test/src/binding.dart:1017:5)
+<asynchronous suspension>
+<asynchronous suspension>
+(elided one frame from package:stack_trace)
+
+The test description was:
+  retry button in error view calls GET loadProfile and NOT update API
+════════════════════════════════════════════════════════════════════════════════════════════════════
+01:09 +70 -16: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/onboarding_save_readback_test.dart: CP4 - Onboarding Save, Preservation & Verified Readback Contract Tests 8. All 5 activity choices round-trip with exact fidelity
+01:09 +70 -16: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/onboarding_gate_test.dart: ProfileGate - Central Routing Gate Contract Tests retry button in error view calls GET loadProfile and NOT update API [E]
+  Test failed. See exception logs above.
+  The test description was: retry button in error view calls GET loadProfile and NOT update API
+  
+01:10 +71 -16: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/onboarding_save_readback_test.dart: CP4 - Onboarding Save, Preservation & Verified Readback Contract Tests 8. All 5 activity choices round-trip with exact fidelity
+01:10 +71 -16: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/onboarding_gate_test.dart: ProfileGate - Central Routing Gate Contract Tests 401 unauthorized in ProfileGate navigates to Login once
+[PROFILE] Session unauthorized (401)
+01:10 +72 -16: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/onboarding_save_readback_test.dart: CP4 - Onboarding Save, Preservation & Verified Readback Contract Tests 8. All 5 activity choices round-trip with exact fidelity
+01:11 +73 -16: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/onboarding_save_readback_test.dart: CP4 - Onboarding Save, Preservation & Verified Readback Contract Tests 8. All 5 activity choices round-trip with exact fidelity
+[DIO] Request: GET /api/journey/active
+[DIO] Request: GET /api/chat/conversations
+[DIO] Error: badResponse status=400 GET /api/journey/active
+[DIO] Error: badResponse status=400 GET /api/chat/conversations
+Failed to load conversations: DioException [bad response]: This exception was thrown because the response has a status code of 400 and RequestOptions.validateStatus was configured to throw for this status code.
+The status code of 400 has the following meaning: "Client error - the request contains bad syntax or cannot be fulfilled"
+Read more about status codes at https://developer.mozilla.org/en-US/docs/Web/HTTP/Status
+In order to resolve this exception you typically have either to verify and fix your request code or you have to fix the server code.
+
+
+Warning: A call to tap() with finder "Found 1 widget with key [<'onboarding_confirm_button'>]: [
+  InkWell-[<'onboarding_confirm_button'>],
+]" derived an Offset (Offset(400.0, 553.0)) that would not hit test on the specified widget.
+Maybe the widget is actually off-screen, or another widget is obscuring it, or the widget cannot receive pointer events.
+The finder corresponds to this RenderBox: RenderSemanticsAnnotations#cc7f3
+The hit test result at that offset is: HitTestResult(RenderPointerListener#230de@Offset(300.0, 46.0), RenderSemanticsAnnotations#03507@Offset(300.0, 46.0), RenderMouseRegion#72bde@Offset(300.0, 46.0), RenderSemanticsAnnotations#4dd11@Offset(300.0, 46.0), _RenderInkFeatures#e4c32@Offset(300.0, 46.0), RenderCustomPaint#035ad@Offset(300.0, 46.0), RenderPhysicalShape#ad58c@Offset(300.0, 46.0), RenderConstrainedBox#84419@Offset(300.0, 46.0), _RenderInputPadding#0ebd9@Offset(300.0, 46.0), RenderSemanticsAnnotations#2643a@Offset(300.0, 46.0), RenderConstrainedBox#f5f93@Offset(300.0, 46.0), RenderFlex#43143@Offset(300.0, 46.0), RenderPadding#601e7@Offset(320.0, 59.0), RenderDecoratedBox#29da6@Offset(320.0, 59.0), RenderFlex#d158b@Offset(320.0, 553.0), RenderPadding#4f66b@Offset(320.0, 553.0), RenderCustomMultiChildLayoutBox#511fd@Offset(320.0, 553.0), _RenderInkFeatures#d4388@Offset(320.0, 553.0), RenderPhysicalModel#569a3@Offset(320.0, 553.0), _RenderInkFeatures#bfeef@Offset(320.0, 553.0), RenderCustomPaint#969cf@Offset(320.0, 553.0), RenderPhysicalShape#94d2e@Offset(320.0, 553.0), RenderConstrainedBox#84160@Offset(320.0, 553.0), RenderPositionedBox#5ce66@Offset(400.0, 553.0), RenderPointerListener#84002@Offset(400.0, 553.0), _RenderBottomSheetLayoutWithSizeListener#5a7f5@Offset(400.0, 553.0), RenderClipRect#e77d9@Offset(400.0, 553.0), RenderSemanticsAnnotations#1603f@Offset(400.0, 553.0), RenderPadding#6ca26@Offset(400.0, 553.0), RenderRepaintBoundary#f64da@Offset(400.0, 553.0), RenderIgnorePointer#38426@Offset(400.0, 553.0), RenderRepaintBoundary#6c556@Offset(400.0, 553.0), RenderSemanticsAnnotations#96b16@Offset(400.0, 553.0), RenderOffstage#2fb25@Offset(400.0, 553.0), RenderSemanticsAnnotations#30713@Offset(400.0, 553.0), _RenderTheater#bc31e@Offset(400.0, 553.0), RenderAbsorbPointer#173f5@Offset(400.0, 553.0), RenderPointerListener#24781@Offset(400.0, 553.0), RenderSemanticsAnnotations#14d57@Offset(400.0, 553.0), RenderCustomPaint#d336e@Offset(400.0, 553.0), RenderSemanticsAnnotations#5a4c8@Offset(400.0, 553.0), RenderSemanticsAnnotations#ef830@Offset(400.0, 553.0), RenderTapRegionSurface#a827c@Offset(400.0, 553.0), RenderSemanticsAnnotations#bf66f@Offset(400.0, 553.0), RenderSemanticsAnnotations#e4abe@Offset(400.0, 553.0), RenderSemanticsAnnotations#dda4f@Offset(400.0, 553.0), HitTestEntry<HitTestTarget>#e1203(_ReusableRenderView#c3866), HitTestEntry<HitTestTarget>#686ae(<AutomatedTestWidgetsFlutterBinding>))
+#0      WidgetController._getElementPoint (package:flutter_test/src/controller.dart:1933:25)
+#1      WidgetController.getCenter (package:flutter_test/src/controller.dart:1784:12)
+#2      WidgetController.tap (package:flutter_test/src/controller.dart:1032:18)
+#3      main.<anonymous closure>.<anonymous closure> (file:///D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/onboarding_save_readback_test.dart:696:22)
+<asynchronous suspension>
+#4      testWidgets.<anonymous closure>.<anonymous closure> (package:flutter_test/src/widget_tester.dart:183:15)
+<asynchronous suspension>
+#5      TestWidgetsFlutterBinding._runTestBody (package:flutter_test/src/binding.dart:1017:5)
+<asynchronous suspension>
+#6      StackZoneSpecification._registerCallback.<anonymous closure> (package:stack_trace/src/stack_zone_specification.dart:114:42)
+<asynchronous suspension>
+To silence this warning, pass "warnIfMissed: false" to "tap()".
+To make this warning fatal, set WidgetController.hitTestWarningShouldBeFatal to true.
+
+[DIO] Request: GET /api/journey/active
+[DIO] Request: POST /api/journey/create
+[DIO] Error: badResponse status=400 GET /api/journey/active
+[DIO] Error: badResponse status=400 POST /api/journey/create
+══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
+The following TestFailure was thrown running a test:
+Expected: 'light'
+  Actual: <null>
+   Which: not an <Instance of 'String'>
+
+When the exception was thrown, this was the stack:
+#4      main.<anonymous closure>.<anonymous closure> (file:///D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/onboarding_save_readback_test.dart:699:9)
+<asynchronous suspension>
+#5      testWidgets.<anonymous closure>.<anonymous closure> (package:flutter_test/src/widget_tester.dart:183:15)
+<asynchronous suspension>
+#6      TestWidgetsFlutterBinding._runTestBody (package:flutter_test/src/binding.dart:1017:5)
+<asynchronous suspension>
+<asynchronous suspension>
+(elided one frame from package:stack_trace)
+
+This was caught by the test expectation on the following line:
+  file:///D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/onboarding_save_readback_test.dart line 699
+The test description was:
+  8. All 5 activity choices round-trip with exact fidelity
+════════════════════════════════════════════════════════════════════════════════════════════════════
+01:12 +73 -17: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/onboarding_gate_test.dart: ProfileGate - Central Routing Gate Contract Tests once MainScreen is entered, background edit loading does NOT unmount MainScreen
+01:12 +73 -17: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/onboarding_save_readback_test.dart: CP4 - Onboarding Save, Preservation & Verified Readback Contract Tests 8. All 5 activity choices round-trip with exact fidelity [E]
+  Test failed. See exception logs above.
+  The test description was: 8. All 5 activity choices round-trip with exact fidelity
+  
+01:12 +74 -17: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/onboarding_gate_test.dart: ProfileGate - Central Routing Gate Contract Tests once MainScreen is entered, background edit loading does NOT unmount MainScreen
+01:12 +75 -17: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/onboarding_gate_test.dart: ProfileGate - Central Routing Gate Contract Tests once MainScreen is entered, background edit loading does NOT unmount MainScreen
+01:13 +76 -17: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/onboarding_gate_test.dart: ProfileGate - Central Routing Gate Contract Tests once MainScreen is entered, background edit loading does NOT unmount MainScreen
+01:13 +77 -17: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/onboarding_gate_test.dart: ProfileGate - Central Routing Gate Contract Tests once MainScreen is entered, background edit loading does NOT unmount MainScreen
+01:13 +78 -17: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/onboarding_gate_test.dart: ProfileGate - Central Routing Gate Contract Tests once MainScreen is entered, background edit loading does NOT unmount MainScreen
+01:14 +78 -17: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/onboarding_save_readback_test.dart: CP4 - Onboarding Save, Preservation & Verified Readback Contract Tests 11. Completion succeeds and enters MainScreen when 6 fields match even if targetCalories is 0 or negative
+[DIO] Request: GET /api/journey/active
+[DIO] Request: GET /api/chat/conversations
+[DIO] Error: badResponse status=400 GET /api/journey/active
+[DIO] Error: badResponse status=400 GET /api/chat/conversations
+Failed to load conversations: DioException [bad response]: This exception was thrown because the response has a status code of 400 and RequestOptions.validateStatus was configured to throw for this status code.
+The status code of 400 has the following meaning: "Client error - the request contains bad syntax or cannot be fulfilled"
+Read more about status codes at https://developer.mozilla.org/en-US/docs/Web/HTTP/Status
+In order to resolve this exception you typically have either to verify and fix your request code or you have to fix the server code.
+
+01:14 +79 -17: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/onboarding_gate_test.dart: ProfileGate - Central Routing Gate Contract Tests once MainScreen is entered, background edit loading does NOT unmount MainScreen
+01:15 +80 -17: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/onboarding_gate_test.dart: ProfileGate - Central Routing Gate Contract Tests once MainScreen is entered, background edit loading does NOT unmount MainScreen
+01:15 +80 -17: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/onboarding_save_readback_test.dart: CP4 - Onboarding Save, Preservation & Verified Readback Contract Tests 12. Readback mismatch shows Check Again button which issues GET only without retry POST
+[DIO] Request: GET /api/journey/active
+[DIO] Request: GET /api/chat/conversations
+[DIO] Error: badResponse status=400 GET /api/journey/active
+[DIO] Error: badResponse status=400 GET /api/chat/conversations
+Failed to load conversations: DioException [bad response]: This exception was thrown because the response has a status code of 400 and RequestOptions.validateStatus was configured to throw for this status code.
+The status code of 400 has the following meaning: "Client error - the request contains bad syntax or cannot be fulfilled"
+Read more about status codes at https://developer.mozilla.org/en-US/docs/Web/HTTP/Status
+In order to resolve this exception you typically have either to verify and fix your request code or you have to fix the server code.
+
+01:15 +81 -17: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/onboarding_gate_test.dart: ProfileGate - Central Routing Gate Contract Tests once MainScreen is entered, background edit loading does NOT unmount MainScreen
+01:16 +82 -17: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/onboarding_gate_test.dart: ProfileGate - Central Routing Gate Contract Tests once MainScreen is entered, background edit loading does NOT unmount MainScreen
+01:16 +83 -17: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/onboarding_gate_test.dart: ProfileGate - Central Routing Gate Contract Tests once MainScreen is entered, background edit loading does NOT unmount MainScreen
+01:16 +84 -17: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/onboarding_gate_test.dart: ProfileGate - Central Routing Gate Contract Tests once MainScreen is entered, background edit loading does NOT unmount MainScreen
+01:16 +85 -17: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/onboarding_gate_test.dart: ProfileGate - Central Routing Gate Contract Tests once MainScreen is entered, background edit loading does NOT unmount MainScreen
+[DIO] Request: GET /api/journey/active
+[DIO] Request: GET /api/workouts/history
+01:16 +86 -17: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/onboarding_gate_test.dart: ProfileGate - Central Routing Gate Contract Tests once MainScreen is entered, background edit loading does NOT unmount MainScreen
+01:17 +87 -17: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/onboarding_gate_test.dart: ProfileGate - Central Routing Gate Contract Tests once MainScreen is entered, background edit loading does NOT unmount MainScreen
+01:17 +88 -17: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/onboarding_gate_test.dart: ProfileGate - Central Routing Gate Contract Tests once MainScreen is entered, background edit loading does NOT unmount MainScreen
+[DIO] Request: GET /api/chat/conversations
+01:17 +89 -17: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/onboarding_gate_test.dart: ProfileGate - Central Routing Gate Contract Tests once MainScreen is entered, background edit loading does NOT unmount MainScreen
+01:17 +90 -17: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/onboarding_gate_test.dart: ProfileGate - Central Routing Gate Contract Tests once MainScreen is entered, background edit loading does NOT unmount MainScreen
+01:17 +91 -17: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/onboarding_gate_test.dart: ProfileGate - Central Routing Gate Contract Tests once MainScreen is entered, background edit loading does NOT unmount MainScreen
+01:17 +92 -17: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/onboarding_gate_test.dart: ProfileGate - Central Routing Gate Contract Tests once MainScreen is entered, background edit loading does NOT unmount MainScreen
+01:17 +93 -17: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/onboarding_gate_test.dart: ProfileGate - Central Routing Gate Contract Tests once MainScreen is entered, background edit loading does NOT unmount MainScreen
+01:17 +94 -17: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/onboarding_gate_test.dart: ProfileGate - Central Routing Gate Contract Tests once MainScreen is entered, background edit loading does NOT unmount MainScreen
+01:17 +95 -17: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/onboarding_gate_test.dart: ProfileGate - Central Routing Gate Contract Tests once MainScreen is entered, background edit loading does NOT unmount MainScreen
+01:17 +96 -17: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/onboarding_gate_test.dart: ProfileGate - Central Routing Gate Contract Tests once MainScreen is entered, background edit loading does NOT unmount MainScreen
+[DIO] Error: badResponse status=400 GET /api/journey/active
+[DIO] Error: badResponse status=400 GET /api/workouts/history
+01:17 +97 -17: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/onboarding_gate_test.dart: ProfileGate - Central Routing Gate Contract Tests once MainScreen is entered, background edit loading does NOT unmount MainScreen
+01:17 +98 -17: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/onboarding_gate_test.dart: ProfileGate - Central Routing Gate Contract Tests once MainScreen is entered, background edit loading does NOT unmount MainScreen
+01:17 +99 -17: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/onboarding_gate_test.dart: ProfileGate - Central Routing Gate Contract Tests once MainScreen is entered, background edit loading does NOT unmount MainScreen
+01:17 +100 -17: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/onboarding_gate_test.dart: ProfileGate - Central Routing Gate Contract Tests once MainScreen is entered, background edit loading does NOT unmount MainScreen
+01:17 +101 -17: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/onboarding_gate_test.dart: ProfileGate - Central Routing Gate Contract Tests once MainScreen is entered, background edit loading does NOT unmount MainScreen
+01:17 +102 -17: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/onboarding_gate_test.dart: ProfileGate - Central Routing Gate Contract Tests once MainScreen is entered, background edit loading does NOT unmount MainScreen
+[DIO] Error: badResponse status=400 GET /api/chat/conversations
+01:17 +103 -17: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/onboarding_gate_test.dart: ProfileGate - Central Routing Gate Contract Tests once MainScreen is entered, background edit loading does NOT unmount MainScreen
+01:17 +104 -17: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/onboarding_gate_test.dart: ProfileGate - Central Routing Gate Contract Tests once MainScreen is entered, background edit loading does NOT unmount MainScreen
+01:17 +105 -17: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/onboarding_gate_test.dart: ProfileGate - Central Routing Gate Contract Tests once MainScreen is entered, background edit loading does NOT unmount MainScreen
+Failed to load conversations: DioException [bad response]: This exception was thrown because the response has a status code of 400 and RequestOptions.validateStatus was configured to throw for this status code.
+The status code of 400 has the following meaning: "Client error - the request contains bad syntax or cannot be fulfilled"
+Read more about status codes at https://developer.mozilla.org/en-US/docs/Web/HTTP/Status
+In order to resolve this exception you typically have either to verify and fix your request code or you have to fix the server code.
+
+[DIO] Request: GET /api/chat/conversations
+[DIO] Error: badResponse status=400 GET /api/chat/conversations
+01:17 +106 -17: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/onboarding_gate_test.dart: ProfileGate - Central Routing Gate Contract Tests once MainScreen is entered, background edit loading does NOT unmount MainScreen
+Failed to load conversations: DioException [bad response]: This exception was thrown because the response has a status code of 400 and RequestOptions.validateStatus was configured to throw for this status code.
+The status code of 400 has the following meaning: "Client error - the request contains bad syntax or cannot be fulfilled"
+Read more about status codes at https://developer.mozilla.org/en-US/docs/Web/HTTP/Status
+In order to resolve this exception you typically have either to verify and fix your request code or you have to fix the server code.
+
+══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
+The following assertion was thrown running a test:
+pumpAndSettle timed out
+
+When the exception was thrown, this was the stack:
+#0      WidgetTester.pumpAndSettle.<anonymous closure> (package:flutter_test/src/widget_tester.dart:718:11)
+<asynchronous suspension>
+#1      TestAsyncUtils.guard.<anonymous closure> (package:flutter_test/src/test_async_utils.dart:117:7)
+<asynchronous suspension>
+#2      main.<anonymous closure>.<anonymous closure> (file:///D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/onboarding_gate_test.dart:418:7)
+<asynchronous suspension>
+#3      testWidgets.<anonymous closure>.<anonymous closure> (package:flutter_test/src/widget_tester.dart:183:15)
+<asynchronous suspension>
+#4      TestWidgetsFlutterBinding._runTestBody (package:flutter_test/src/binding.dart:1017:5)
+<asynchronous suspension>
+<asynchronous suspension>
+(elided one frame from package:stack_trace)
+
+The test description was:
+  once MainScreen is entered, background edit loading does NOT unmount MainScreen
+════════════════════════════════════════════════════════════════════════════════════════════════════
+01:17 +106 -18: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/profile_edit_verified_save_test.dart: CP5 - Profile & Edit Profile Verified Save Contract Tests 17. CP5-FIX: Hai cach bieu dien cung gia tri khong tao dirty gia
+01:17 +106 -18: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/onboarding_gate_test.dart: ProfileGate - Central Routing Gate Contract Tests once MainScreen is entered, background edit loading does NOT unmount MainScreen [E]
+  Test failed. See exception logs above.
+  The test description was: once MainScreen is entered, background edit loading does NOT unmount MainScreen
+  
+01:17 +107 -18: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/onboarding_gate_test.dart: ProfileGate - Owner and Session Lifecycle A complete -> logout/reset -> B incomplete never mounts Main
+01:18 +108 -18: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/onboarding_gate_test.dart: ProfileGate - Owner and Session Lifecycle A complete -> logout/reset -> B incomplete never mounts Main
+01:19 +109 -18: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/onboarding_gate_test.dart: ProfileGate - Owner and Session Lifecycle A complete -> logout/reset -> B incomplete never mounts Main
+01:19 +110 -18: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/onboarding_gate_test.dart: ProfileGate - Owner and Session Lifecycle A complete -> logout/reset -> B incomplete never mounts Main
+01:19 +111 -18: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/onboarding_gate_test.dart: ProfileGate - Owner and Session Lifecycle A complete -> logout/reset -> B incomplete never mounts Main
+01:19 +112 -18: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/onboarding_gate_test.dart: ProfileGate - Owner and Session Lifecycle A complete -> logout/reset -> B incomplete never mounts Main
+01:19 +113 -18: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/onboarding_gate_test.dart: ProfileGate - Owner and Session Lifecycle A complete -> logout/reset -> B incomplete never mounts Main
+01:19 +114 -18: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/onboarding_gate_test.dart: ProfileGate - Owner and Session Lifecycle A complete -> logout/reset -> B incomplete never mounts Main
+01:19 +115 -18: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/onboarding_gate_test.dart: ProfileGate - Owner and Session Lifecycle A complete -> logout/reset -> B incomplete never mounts Main
+01:19 +116 -18: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/onboarding_gate_test.dart: ProfileGate - Owner and Session Lifecycle A complete -> logout/reset -> B incomplete never mounts Main
+01:19 +117 -18: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/onboarding_gate_test.dart: ProfileGate - Owner and Session Lifecycle A complete -> logout/reset -> B incomplete never mounts Main
+01:19 +118 -18: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/onboarding_gate_test.dart: ProfileGate - Owner and Session Lifecycle A complete -> logout/reset -> B incomplete never mounts Main
+01:19 +119 -18: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/onboarding_gate_test.dart: ProfileGate - Owner and Session Lifecycle A complete -> logout/reset -> B incomplete never mounts Main
+01:19 +120 -18: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/onboarding_gate_test.dart: ProfileGate - Owner and Session Lifecycle A complete -> logout/reset -> B incomplete never mounts Main
+01:19 +121 -18: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/onboarding_gate_test.dart: ProfileGate - Owner and Session Lifecycle A complete -> logout/reset -> B incomplete never mounts Main
+01:19 +122 -18: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/onboarding_gate_test.dart: ProfileGate - Owner and Session Lifecycle A complete -> logout/reset -> B incomplete never mounts Main
+[DIO] Request: GET /api/journey/active
+[DIO] Request: GET /api/workouts/history
+[DIO] Request: GET /api/chat/conversations
+[DIO] Error: badResponse status=400 GET /api/journey/active
+[DIO] Error: badResponse status=400 GET /api/workouts/history
+[DIO] Error: badResponse status=400 GET /api/chat/conversations
+Failed to load conversations: DioException [bad response]: This exception was thrown because the response has a status code of 400 and RequestOptions.validateStatus was configured to throw for this status code.
+The status code of 400 has the following meaning: "Client error - the request contains bad syntax or cannot be fulfilled"
+Read more about status codes at https://developer.mozilla.org/en-US/docs/Web/HTTP/Status
+In order to resolve this exception you typically have either to verify and fix your request code or you have to fix the server code.
+
+[DIO] Request: GET /api/chat/conversations
+[DIO] Error: badResponse status=400 GET /api/chat/conversations
+Failed to load conversations: DioException [bad response]: This exception was thrown because the response has a status code of 400 and RequestOptions.validateStatus was configured to throw for this status code.
+The status code of 400 has the following meaning: "Client error - the request contains bad syntax or cannot be fulfilled"
+Read more about status codes at https://developer.mozilla.org/en-US/docs/Web/HTTP/Status
+In order to resolve this exception you typically have either to verify and fix your request code or you have to fix the server code.
+
+══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
+The following assertion was thrown running a test:
+pumpAndSettle timed out
+
+When the exception was thrown, this was the stack:
+#0      WidgetTester.pumpAndSettle.<anonymous closure> (package:flutter_test/src/widget_tester.dart:718:11)
+<asynchronous suspension>
+#1      TestAsyncUtils.guard.<anonymous closure> (package:flutter_test/src/test_async_utils.dart:117:7)
+<asynchronous suspension>
+#2      main.<anonymous closure>.pumpGate (file:///D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/onboarding_gate_test.dart:479:7)
+<asynchronous suspension>
+#3      main.<anonymous closure>.<anonymous closure> (file:///D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/onboarding_gate_test.dart:490:25)
+<asynchronous suspension>
+#4      testWidgets.<anonymous closure>.<anonymous closure> (package:flutter_test/src/widget_tester.dart:183:15)
+<asynchronous suspension>
+#5      TestWidgetsFlutterBinding._runTestBody (package:flutter_test/src/binding.dart:1017:5)
+<asynchronous suspension>
+<asynchronous suspension>
+(elided one frame from package:stack_trace)
+
+The test description was:
+  A complete -> logout/reset -> B incomplete never mounts Main
+════════════════════════════════════════════════════════════════════════════════════════════════════
+01:24 +122 -19: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/onboarding_gate_test.dart: ProfileGate - Owner and Session Lifecycle A complete -> logout/reset -> B incomplete never mounts Main [E]
+  Test failed. See exception logs above.
+  The test description was: A complete -> logout/reset -> B incomplete never mounts Main
+  
+01:24 +122 -19: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/onboarding_gate_test.dart: ProfileGate - Owner and Session Lifecycle owner change in the same Gate lifecycle does not keep Main A
+[DIO] Request: GET /api/journey/active
+[DIO] Request: GET /api/workouts/history
+[DIO] Request: GET /api/chat/conversations
+[DIO] Error: badResponse status=400 GET /api/journey/active
+[DIO] Error: badResponse status=400 GET /api/workouts/history
+[DIO] Error: badResponse status=400 GET /api/chat/conversations
+Failed to load conversations: DioException [bad response]: This exception was thrown because the response has a status code of 400 and RequestOptions.validateStatus was configured to throw for this status code.
+The status code of 400 has the following meaning: "Client error - the request contains bad syntax or cannot be fulfilled"
+Read more about status codes at https://developer.mozilla.org/en-US/docs/Web/HTTP/Status
+In order to resolve this exception you typically have either to verify and fix your request code or you have to fix the server code.
+
+[DIO] Request: GET /api/chat/conversations
+[DIO] Error: badResponse status=400 GET /api/chat/conversations
+Failed to load conversations: DioException [bad response]: This exception was thrown because the response has a status code of 400 and RequestOptions.validateStatus was configured to throw for this status code.
+The status code of 400 has the following meaning: "Client error - the request contains bad syntax or cannot be fulfilled"
+Read more about status codes at https://developer.mozilla.org/en-US/docs/Web/HTTP/Status
+In order to resolve this exception you typically have either to verify and fix your request code or you have to fix the server code.
+
+══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
+The following assertion was thrown running a test:
+pumpAndSettle timed out
+
+When the exception was thrown, this was the stack:
+#0      WidgetTester.pumpAndSettle.<anonymous closure> (package:flutter_test/src/widget_tester.dart:718:11)
+<asynchronous suspension>
+#1      TestAsyncUtils.guard.<anonymous closure> (package:flutter_test/src/test_async_utils.dart:117:7)
+<asynchronous suspension>
+#2      main.<anonymous closure>.pumpGate (file:///D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/onboarding_gate_test.dart:479:7)
+<asynchronous suspension>
+#3      main.<anonymous closure>.<anonymous closure> (file:///D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/onboarding_gate_test.dart:514:25)
+<asynchronous suspension>
+#4      testWidgets.<anonymous closure>.<anonymous closure> (package:flutter_test/src/widget_tester.dart:183:15)
+<asynchronous suspension>
+#5      TestWidgetsFlutterBinding._runTestBody (package:flutter_test/src/binding.dart:1017:5)
+<asynchronous suspension>
+<asynchronous suspension>
+(elided one frame from package:stack_trace)
+
+The test description was:
+  owner change in the same Gate lifecycle does not keep Main A
+════════════════════════════════════════════════════════════════════════════════════════════════════
+01:29 +122 -20: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/onboarding_gate_test.dart: ProfileGate - Owner and Session Lifecycle owner change in the same Gate lifecycle does not keep Main A [E]
+  Test failed. See exception logs above.
+  The test description was: owner change in the same Gate lifecycle does not keep Main A
+  
+01:29 +122 -20: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/onboarding_gate_test.dart: ProfileGate - Owner and Session Lifecycle owner change to a complete B remounts Main with fresh state and key
+[DIO] Request: GET /api/journey/active
+[DIO] Request: GET /api/workouts/history
+[DIO] Request: GET /api/chat/conversations
+[DIO] Error: badResponse status=400 GET /api/journey/active
+[DIO] Error: badResponse status=400 GET /api/workouts/history
+[DIO] Error: badResponse status=400 GET /api/chat/conversations
+Failed to load conversations: DioException [bad response]: This exception was thrown because the response has a status code of 400 and RequestOptions.validateStatus was configured to throw for this status code.
+The status code of 400 has the following meaning: "Client error - the request contains bad syntax or cannot be fulfilled"
+Read more about status codes at https://developer.mozilla.org/en-US/docs/Web/HTTP/Status
+In order to resolve this exception you typically have either to verify and fix your request code or you have to fix the server code.
+
+[DIO] Request: GET /api/chat/conversations
+[DIO] Error: badResponse status=400 GET /api/chat/conversations
+Failed to load conversations: DioException [bad response]: This exception was thrown because the response has a status code of 400 and RequestOptions.validateStatus was configured to throw for this status code.
+The status code of 400 has the following meaning: "Client error - the request contains bad syntax or cannot be fulfilled"
+Read more about status codes at https://developer.mozilla.org/en-US/docs/Web/HTTP/Status
+In order to resolve this exception you typically have either to verify and fix your request code or you have to fix the server code.
+
+══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
+The following assertion was thrown running a test:
+pumpAndSettle timed out
+
+When the exception was thrown, this was the stack:
+#0      WidgetTester.pumpAndSettle.<anonymous closure> (package:flutter_test/src/widget_tester.dart:718:11)
+<asynchronous suspension>
+#1      TestAsyncUtils.guard.<anonymous closure> (package:flutter_test/src/test_async_utils.dart:117:7)
+<asynchronous suspension>
+#2      main.<anonymous closure>.pumpGate (file:///D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/onboarding_gate_test.dart:479:7)
+<asynchronous suspension>
+#3      main.<anonymous closure>.<anonymous closure> (file:///D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/onboarding_gate_test.dart:530:25)
+<asynchronous suspension>
+#4      testWidgets.<anonymous closure>.<anonymous closure> (package:flutter_test/src/widget_tester.dart:183:15)
+<asynchronous suspension>
+#5      TestWidgetsFlutterBinding._runTestBody (package:flutter_test/src/binding.dart:1017:5)
+<asynchronous suspension>
+<asynchronous suspension>
+(elided one frame from package:stack_trace)
+
+The test description was:
+  owner change to a complete B remounts Main with fresh state and key
+════════════════════════════════════════════════════════════════════════════════════════════════════
+01:44 +122 -21: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/onboarding_gate_test.dart: ProfileGate - Owner and Session Lifecycle owner change to a complete B remounts Main with fresh state and key [E]
+  Test failed. See exception logs above.
+  The test description was: owner change to a complete B remounts Main with fresh state and key
+  
+01:44 +122 -21: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/onboarding_gate_test.dart: ProfileGate - Owner and Session Lifecycle epoch change with the SAME owner requires re-confirmation
+[DIO] Request: GET /api/journey/active
+[DIO] Request: GET /api/workouts/history
+[DIO] Request: GET /api/chat/conversations
+[DIO] Error: badResponse status=400 GET /api/journey/active
+[DIO] Error: badResponse status=400 GET /api/workouts/history
+[DIO] Error: badResponse status=400 GET /api/chat/conversations
+Failed to load conversations: DioException [bad response]: This exception was thrown because the response has a status code of 400 and RequestOptions.validateStatus was configured to throw for this status code.
+The status code of 400 has the following meaning: "Client error - the request contains bad syntax or cannot be fulfilled"
+Read more about status codes at https://developer.mozilla.org/en-US/docs/Web/HTTP/Status
+In order to resolve this exception you typically have either to verify and fix your request code or you have to fix the server code.
+
+[DIO] Request: GET /api/chat/conversations
+[DIO] Error: badResponse status=400 GET /api/chat/conversations
+Failed to load conversations: DioException [bad response]: This exception was thrown because the response has a status code of 400 and RequestOptions.validateStatus was configured to throw for this status code.
+The status code of 400 has the following meaning: "Client error - the request contains bad syntax or cannot be fulfilled"
+Read more about status codes at https://developer.mozilla.org/en-US/docs/Web/HTTP/Status
+In order to resolve this exception you typically have either to verify and fix your request code or you have to fix the server code.
+
+══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
+The following assertion was thrown running a test:
+pumpAndSettle timed out
+
+When the exception was thrown, this was the stack:
+#0      WidgetTester.pumpAndSettle.<anonymous closure> (package:flutter_test/src/widget_tester.dart:718:11)
+<asynchronous suspension>
+#1      TestAsyncUtils.guard.<anonymous closure> (package:flutter_test/src/test_async_utils.dart:117:7)
+<asynchronous suspension>
+#2      main.<anonymous closure>.pumpGate (file:///D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/onboarding_gate_test.dart:479:7)
+<asynchronous suspension>
+#3      main.<anonymous closure>.<anonymous closure> (file:///D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/onboarding_gate_test.dart:547:25)
+<asynchronous suspension>
+#4      testWidgets.<anonymous closure>.<anonymous closure> (package:flutter_test/src/widget_tester.dart:183:15)
+<asynchronous suspension>
+#5      TestWidgetsFlutterBinding._runTestBody (package:flutter_test/src/binding.dart:1017:5)
+<asynchronous suspension>
+<asynchronous suspension>
+(elided one frame from package:stack_trace)
+
+The test description was:
+  epoch change with the SAME owner requires re-confirmation
+════════════════════════════════════════════════════════════════════════════════════════════════════
+01:56 +122 -22: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/onboarding_gate_test.dart: ProfileGate - Owner and Session Lifecycle epoch change with the SAME owner requires re-confirmation [E]
+  Test failed. See exception logs above.
+  The test description was: epoch change with the SAME owner requires re-confirmation
+  
+01:56 +122 -22: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/onboarding_gate_test.dart: ProfileGate - Owner and Session Lifecycle loading or failing in the same owner/epoch keeps the same Main instance
+[DIO] Request: GET /api/journey/active
+[DIO] Request: GET /api/workouts/history
+[DIO] Request: GET /api/chat/conversations
+[DIO] Error: badResponse status=400 GET /api/journey/active
+[DIO] Error: badResponse status=400 GET /api/workouts/history
+[DIO] Error: badResponse status=400 GET /api/chat/conversations
+Failed to load conversations: DioException [bad response]: This exception was thrown because the response has a status code of 400 and RequestOptions.validateStatus was configured to throw for this status code.
+The status code of 400 has the following meaning: "Client error - the request contains bad syntax or cannot be fulfilled"
+Read more about status codes at https://developer.mozilla.org/en-US/docs/Web/HTTP/Status
+In order to resolve this exception you typically have either to verify and fix your request code or you have to fix the server code.
+
+[DIO] Request: GET /api/chat/conversations
+[DIO] Error: badResponse status=400 GET /api/chat/conversations
+Failed to load conversations: DioException [bad response]: This exception was thrown because the response has a status code of 400 and RequestOptions.validateStatus was configured to throw for this status code.
+The status code of 400 has the following meaning: "Client error - the request contains bad syntax or cannot be fulfilled"
+Read more about status codes at https://developer.mozilla.org/en-US/docs/Web/HTTP/Status
+In order to resolve this exception you typically have either to verify and fix your request code or you have to fix the server code.
+
+══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
+The following assertion was thrown running a test:
+pumpAndSettle timed out
+
+When the exception was thrown, this was the stack:
+#0      WidgetTester.pumpAndSettle.<anonymous closure> (package:flutter_test/src/widget_tester.dart:718:11)
+<asynchronous suspension>
+#1      TestAsyncUtils.guard.<anonymous closure> (package:flutter_test/src/test_async_utils.dart:117:7)
+<asynchronous suspension>
+#2      main.<anonymous closure>.pumpGate (file:///D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/onboarding_gate_test.dart:479:7)
+<asynchronous suspension>
+#3      main.<anonymous closure>.<anonymous closure> (file:///D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/onboarding_gate_test.dart:578:25)
+<asynchronous suspension>
+#4      testWidgets.<anonymous closure>.<anonymous closure> (package:flutter_test/src/widget_tester.dart:183:15)
+<asynchronous suspension>
+#5      TestWidgetsFlutterBinding._runTestBody (package:flutter_test/src/binding.dart:1017:5)
+<asynchronous suspension>
+<asynchronous suspension>
+(elided one frame from package:stack_trace)
+
+The test description was:
+  loading or failing in the same owner/epoch keeps the same Main instance
+════════════════════════════════════════════════════════════════════════════════════════════════════
+02:03 +122 -23: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/onboarding_gate_test.dart: ProfileGate - Owner and Session Lifecycle loading or failing in the same owner/epoch keeps the same Main instance [E]
+  Test failed. See exception logs above.
+  The test description was: loading or failing in the same owner/epoch keeps the same Main instance
+  
+02:03 +122 -23: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/onboarding_gate_test.dart: ProfileGate - Owner and Session Lifecycle 401 after Main was entered logs out and navigates exactly once
+[DIO] Request: GET /api/journey/active
+[DIO] Request: GET /api/workouts/history
+[DIO] Request: GET /api/chat/conversations
+[DIO] Error: badResponse status=400 GET /api/journey/active
+[DIO] Error: badResponse status=400 GET /api/workouts/history
+[DIO] Error: badResponse status=400 GET /api/chat/conversations
+Failed to load conversations: DioException [bad response]: This exception was thrown because the response has a status code of 400 and RequestOptions.validateStatus was configured to throw for this status code.
+The status code of 400 has the following meaning: "Client error - the request contains bad syntax or cannot be fulfilled"
+Read more about status codes at https://developer.mozilla.org/en-US/docs/Web/HTTP/Status
+In order to resolve this exception you typically have either to verify and fix your request code or you have to fix the server code.
+
+[DIO] Request: GET /api/chat/conversations
+[DIO] Error: badResponse status=400 GET /api/chat/conversations
+Failed to load conversations: DioException [bad response]: This exception was thrown because the response has a status code of 400 and RequestOptions.validateStatus was configured to throw for this status code.
+The status code of 400 has the following meaning: "Client error - the request contains bad syntax or cannot be fulfilled"
+Read more about status codes at https://developer.mozilla.org/en-US/docs/Web/HTTP/Status
+In order to resolve this exception you typically have either to verify and fix your request code or you have to fix the server code.
+
+══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
+The following assertion was thrown running a test:
+pumpAndSettle timed out
+
+When the exception was thrown, this was the stack:
+#0      WidgetTester.pumpAndSettle.<anonymous closure> (package:flutter_test/src/widget_tester.dart:718:11)
+<asynchronous suspension>
+#1      TestAsyncUtils.guard.<anonymous closure> (package:flutter_test/src/test_async_utils.dart:117:7)
+<asynchronous suspension>
+#2      main.<anonymous closure>.pumpGate (file:///D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/onboarding_gate_test.dart:479:7)
+<asynchronous suspension>
+#3      main.<anonymous closure>.<anonymous closure> (file:///D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/onboarding_gate_test.dart:618:25)
+<asynchronous suspension>
+#4      testWidgets.<anonymous closure>.<anonymous closure> (package:flutter_test/src/widget_tester.dart:183:15)
+<asynchronous suspension>
+#5      TestWidgetsFlutterBinding._runTestBody (package:flutter_test/src/binding.dart:1017:5)
+<asynchronous suspension>
+<asynchronous suspension>
+(elided one frame from package:stack_trace)
+
+The test description was:
+  401 after Main was entered logs out and navigates exactly once
+════════════════════════════════════════════════════════════════════════════════════════════════════
+02:09 +122 -24: D:/SamanDev/runtime_evidence/nutrition_ui_integration/20261028_084726/baseline-verification/frontend/test/onboarding_gate_test.dart: ProfileGate - Owner and Session Lifecycle 401 after Main was entered logs out and navigates exactly once [E]
+  Test failed. See exception logs above.
+  The test description was: 401 after Main was entered logs out and navigates exactly once
+  
+02:09 +122 -24: Some tests failed.

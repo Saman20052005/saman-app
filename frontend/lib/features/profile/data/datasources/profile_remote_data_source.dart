@@ -1,4 +1,6 @@
 import 'package:dio/dio.dart';
+import 'package:http_parser/http_parser.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:health_ai_app/config/api_config.dart';
 import 'package:health_ai_app/features/profile/data/models/profile_model.dart';
 import 'package:health_ai_app/features/profile/data/models/profile_snapshot_model.dart';
@@ -35,17 +37,32 @@ abstract class ProfileRemoteDataSource {
   Future<bool> updateProfile(ProfileModel profile);
   Future<ProfileSnapshotModel?> getProfileSnapshot();
   Future<ProfileModel?> getProfile();
+  Future<Map<String, dynamic>> uploadAvatar(XFile file, {bool Function()? isSessionCurrent});
+  Future<Map<String, dynamic>> useGoogleAvatar({bool Function()? isSessionCurrent});
 }
 
 class ProfileRemoteDataSourceImpl implements ProfileRemoteDataSource {
   final Dio dio;
 
   ProfileRemoteDataSourceImpl({required this.dio}) {
+    if (!dio.interceptors.contains(_avatarSessionGuard)) {
+      dio.interceptors.add(_avatarSessionGuard);
+    }
     dio.options.connectTimeout = const Duration(seconds: 60);
     dio.options.receiveTimeout = const Duration(seconds: 60);
     dio.options.sendTimeout = const Duration(seconds: 60);
     dio.options.contentType = Headers.jsonContentType;
   }
+
+  // Runs after ApiClient has awaited secure storage, immediately before dispatch.
+  static final _avatarSessionGuard = InterceptorsWrapper(onRequest: (options, handler) {
+    final isCurrent = options.extra['avatarSessionCurrent'] as bool Function()?;
+    if (isCurrent != null && !isCurrent()) {
+      handler.reject(DioException(requestOptions: options, type: DioExceptionType.cancel));
+      return;
+    }
+    handler.next(options);
+  });
 
   @override
   Future<bool> updateProfile(ProfileModel profile) async {
@@ -122,5 +139,61 @@ class ProfileRemoteDataSourceImpl implements ProfileRemoteDataSource {
       return ProfileModel.fromEntity(snapshot.profile);
     }
     return null;
+  }
+
+  @override
+  Future<Map<String, dynamic>> uploadAvatar(XFile file, {bool Function()? isSessionCurrent}) async {
+    try {
+      if (isSessionCurrent != null && !isSessionCurrent()) throw StateError('Session changed');
+      if (await file.length() > 5 * 1024 * 1024) throw StateError('Ảnh vượt quá 5 MB');
+      final bytes = await file.readAsBytes();
+      if (isSessionCurrent != null && !isSessionCurrent()) throw StateError('Session changed');
+      final formData = FormData.fromMap({
+        'file': MultipartFile.fromBytes(
+          bytes,
+          filename: file.name.isNotEmpty ? file.name : 'avatar.jpg',
+          contentType: MediaType('image', 'jpeg'),
+        ),
+      });
+
+      final response = await dio.post(
+        '${ApiConfig.baseUrl}/api/user/avatar/upload',
+        data: formData,
+        options: Options(contentType: 'multipart/form-data', extra: {'avatarSessionCurrent': isSessionCurrent}),
+      );
+
+      if (response.statusCode == 200 && response.data is Map<String, dynamic>) {
+        return response.data as Map<String, dynamic>;
+      }
+      throw Exception('Lỗi máy chủ khi tải ảnh: ${response.statusCode}');
+    } on DioException catch (e) {
+      if (e.response?.statusCode == 401) {
+        throw const UnauthorizedException('Phiên đăng nhập đã hết hạn');
+      }
+      final detail = e.response?.data is Map ? e.response!.data['detail'] : null;
+      throw Exception(detail?.toString() ?? 'Tải ảnh đại diện thất bại');
+    }
+  }
+
+  @override
+  Future<Map<String, dynamic>> useGoogleAvatar({bool Function()? isSessionCurrent}) async {
+    try {
+      final response = await dio.post(
+        '${ApiConfig.baseUrl}/api/user/avatar/use-google',
+        data: {},
+        options: Options(contentType: Headers.jsonContentType, extra: {'avatarSessionCurrent': isSessionCurrent}),
+      );
+
+      if (response.statusCode == 200 && response.data is Map<String, dynamic>) {
+        return response.data as Map<String, dynamic>;
+      }
+      throw Exception('Lỗi máy chủ: ${response.statusCode}');
+    } on DioException catch (e) {
+      if (e.response?.statusCode == 401) {
+        throw const UnauthorizedException('Phiên đăng nhập đã hết hạn');
+      }
+      final detail = e.response?.data is Map ? e.response!.data['detail'] : null;
+      throw Exception(detail?.toString() ?? 'Chuyển về ảnh Google thất bại');
+    }
   }
 }

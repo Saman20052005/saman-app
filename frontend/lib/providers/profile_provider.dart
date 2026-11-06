@@ -1,3 +1,6 @@
+import '../utils/auth_helper.dart';
+import 'package:health_ai_app/features/profile/data/repositories/avatar_repository_impl.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
@@ -27,6 +30,13 @@ final profileRepositoryProvider = Provider<ProfileRepository>((ref) {
   return ProfileRepositoryImpl(
     remoteDataSource: ProfileRemoteDataSourceImpl(dio: dio),
     localDataSource: ProfileLocalDataSourceImpl(sharedPreferences: prefs),
+  );
+});
+
+final avatarRepositoryProvider = Provider<AvatarRepository>((ref) {
+  final dio = ref.watch(dioProvider);
+  return AvatarRepositoryImpl(
+    remoteDataSource: ProfileRemoteDataSourceImpl(dio: dio),
   );
 });
 
@@ -117,6 +127,9 @@ class ProfileState {
 
   // Stable Identity & Provenance getters
   String? get userId => confirmedUserId ?? snapshot?.userId ?? profile.userId;
+  String? get avatar => snapshot?.avatar;
+  String? get avatarSource => snapshot?.avatarSource;
+  bool get canUseGoogleAvatar => snapshot?.canUseGoogleAvatar ?? false;
   bool get isComplete => profile.isComplete;
   bool get isCompleteAndConfirmed =>
       isNetworkConfirmed &&
@@ -172,7 +185,9 @@ class ProfileState {
 final profileProvider =
     StateNotifierProvider<ProfileNotifier, ProfileState>((ref) {
   final repository = ref.watch(profileRepositoryProvider);
-  return ProfileNotifier(repository);
+  final avatarRepo = ref.watch(avatarRepositoryProvider);
+  return ProfileNotifier(repository, avatarRepository: avatarRepo,
+      isAvatarSessionActive: () => !ref.read(authLoggingOutProvider));
 });
 
 // ─────────────────────────────────────────
@@ -180,8 +195,16 @@ final profileProvider =
 // ─────────────────────────────────────────
 class ProfileNotifier extends StateNotifier<ProfileState> {
   final ProfileRepository _repository;
+  final AvatarRepository? _avatarRepository;
+  final bool Function()? _isAvatarSessionActive;
 
-  ProfileNotifier(this._repository) : super(ProfileState.initial());
+  ProfileNotifier(
+    this._repository, {
+    AvatarRepository? avatarRepository,
+    bool Function()? isAvatarSessionActive,
+  })  : _isAvatarSessionActive = isAvatarSessionActive,
+        _avatarRepository = avatarRepository,
+        super(ProfileState.initial());
 
   // In-flight deduplication guard
   Future<void>? _ongoingLoad;
@@ -195,6 +218,7 @@ class ProfileNotifier extends StateNotifier<ProfileState> {
   /// Resets profile state and increments epoch to ignore any pending network requests.
   void resetSession() {
     _sessionEpoch++;
+    _avatarBusy = false;
     _ongoingLoad = null;
     state = ProfileState.initial();
   }
@@ -926,5 +950,59 @@ class ProfileNotifier extends StateNotifier<ProfileState> {
         : profile.activityLevel == ActivityLevel.medium
             ? 500
             : 250;
+  }
+
+  bool _avatarBusy = false;
+
+  bool _isAvatarSessionCurrent(int epoch, String? owner) =>
+      mounted && (_isAvatarSessionActive?.call() ?? true) && epoch == _sessionEpoch && owner != null &&
+      owner.isNotEmpty && state.confirmedUserId == owner;
+
+  Future<bool> uploadAvatar(XFile file) => _changeAvatar(
+      (repo, isCurrent) => repo.uploadAvatar(file, isSessionCurrent: isCurrent));
+
+  Future<bool> useGoogleAvatar() => _changeAvatar(
+      (repo, isCurrent) => repo.useGoogleAvatar(isSessionCurrent: isCurrent));
+
+  Future<bool> _changeAvatar(
+    Future<Map<String, dynamic>> Function(AvatarRepository, bool Function()) request,
+  ) async {
+    final epoch = _sessionEpoch;
+    final owner = state.confirmedUserId;
+    bool isCurrent() => _isAvatarSessionCurrent(epoch, owner);
+    if (_avatarBusy || !isCurrent()) return false;
+    _avatarBusy = true;
+    try {
+      final repo = _avatarRepository;
+      if (repo == null) throw StateError('Avatar repository not initialized');
+      final result = await request(repo, isCurrent);
+      if (!isCurrent()) return false;
+      final avatar = result['avatar'];
+      final source = result['avatar_source'];
+      if (result['success'] == false || avatar is! String || avatar.isEmpty ||
+          (source != 'custom' && source != 'google') || state.snapshot == null) {
+        throw const FormatException('Invalid avatar response');
+      }
+      final updated = state.snapshot!.copyWith(
+        avatar: avatar,
+        avatarSource: source as String,
+        canUseGoogleAvatar: result['can_use_google_avatar'] as bool? ?? false,
+      );
+      // Existing local data source serializes writes and logout deletions FIFO.
+      await _repository.cacheSnapshot(updated);
+      if (!isCurrent()) return false;
+      state = state.copyWith(snapshot: updated);
+      return true;
+    } on UnauthorizedException catch (e) {
+      if (!isCurrent()) return false;
+      state = ProfileState(status: ProfileStatus.unauthorized,
+          profile: ProfileEntity.empty(), errorMessage: e.message);
+      return false;
+    } catch (_) {
+      if (!isCurrent()) return false;
+      rethrow;
+    } finally {
+      if (mounted && epoch == _sessionEpoch) _avatarBusy = false;
+    }
   }
 }

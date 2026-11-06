@@ -20,6 +20,8 @@ from backend.app.database import foods_collection, user_foods_collection
 
 
 def normalize(text: str) -> str:
+    """Strip diacritics cho fuzzy search tiếng Việt: phở → pho, bún → bun, đ → d"""
+    text = text.replace("đ", "d").replace("Đ", "d")
     return (
         unicodedata.normalize("NFD", text)
         .encode("ascii", "ignore")
@@ -41,19 +43,20 @@ def migrate_foods():
     print(f"📦 Total foods: {total}")
 
     for food in foods_collection.find({}):
-        if "name_search" in food and food["name_search"]:
+        name = food.get("name", "")
+        expected_ns = normalize(name)
+        if food.get("name_search") == expected_ns:
             skipped += 1
             continue
 
-        name = food.get("name", "")
         foods_collection.update_one(
             {"_id": food["_id"]},
-            {"$set": {"name_search": normalize(name)}},
+            {"$set": {"name_search": expected_ns}},
         )
         updated += 1
 
     print(f"✅ Updated: {updated} foods")
-    print(f"⏭️  Skipped (already has name_search): {skipped}")
+    print(f"⏭️  Skipped (already has correct name_search): {skipped}")
 
 
 def verify():
@@ -69,4 +72,3 @@ if __name__ == "__main__":
     migrate_foods()
     verify()
     print("\n✅ Migration done. You can now search 'pho' and find 'Phở bò'.")
-

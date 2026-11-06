@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" name="viewport"/>
+<title>SAMAN - My Journey</title>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=JetBrains+Mono:wght@400;500;600&amp;family=Space+Grotesk:wght@500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<style>
+  @layer base {
+    html, body {
+      width: 100vw;
+      margin: 0;
+      padding: 0;
+      background-color: #0C0D0E;
+      color: #F3F4F6;
+      font-family: 'Inter', sans-serif;
+    }
+    body {
+      overscroll-behavior: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .pb-safe {
+      padding-bottom: env(safe-area-inset-bottom, 24px);
+    }
+    .pt-safe {
+      padding-top: env(safe-area-inset-top, 0px);
+    }
+  }
+  ::-webkit-scrollbar {
+    display: none;
+  }
+  .tabular-nums {
+    font-variant-numeric: tabular-nums;
+  }
+</style>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script>
+  tailwind.config = {
+    darkMode: "class",
+    theme: {
+      extend: {
+        colors: {
+          brand: {
+            bg: "#0C0D0E",
+            card: "#16171B",
+            cardHover: "#1F2126",
+            border: "#26282F",
+            iconBg: "#212328",
+            muted: "#94979E",
+            accent: "#10B981"
+          }
+        },
+        fontFamily: {
+          headline: ["Space Grotesk", "sans-serif"],
+          body: ["Inter", "sans-serif"],
+          mono: ["JetBrains Mono", "monospace"]
+        }
+      }
+    }
+  };
+</script>
+</head>
+<body class="bg-[#0C0D0E] font-body text-sm text-[#F3F4F6] antialiased min-h-screen flex flex-col selection:bg-[#10B981]/30">
+<!-- TOP STATUS BAR -->
+<div class="w-full pt-safe bg-[#0C0D0E] z-40 sticky top-0">
+<div class="h-11 px-6 flex items-center justify-between text-xs text-[#F3F4F6] font-medium tracking-tight">
+<span class="font-mono text-[13px] font-semibold">9:41</span>
+<div class="flex items-center gap-2 text-[14px]">
+<span class="material-symbols-outlined text-[15px] leading-none">signal_cellular_alt</span>
+<span class="material-symbols-outlined text-[15px] leading-none">wifi</span>
+<span class="material-symbols-outlined text-[18px] leading-none">battery_full</span>
+</div>
+</div>
+</div>
+<!-- MAIN SCROLLABLE CONTENT -->
+<main class="flex-1 w-full max-w-md mx-auto px-4 pb-12 flex flex-col space-y-5"><!-- 1. HEADER WITH BACK & DISCREET SETTINGS ICON -->
+<header class="flex items-center justify-between pt-2 pb-1">
+<div class="flex items-center gap-3">
+<button aria-label="Go back" class="w-9 h-9 -ml-2 rounded-full flex items-center justify-center text-[#94979E] hover:text-[#F3F4F6] transition-colors active:scale-95" type="button">
+<span class="material-symbols-outlined text-[24px]">arrow_back</span>
+</button>
+<div>
+<h1 class="font-headline text-[28px] font-bold leading-tight text-[#F3F4F6] tracking-tight">My Journey</h1>
+<p class="text-xs text-[#94979E] mt-0.5 font-body">Personal progress &amp; daily discipline</p>
+</div>
+</div>
+<button aria-label="Journey settings" class="w-9 h-9 rounded-full flex items-center justify-center text-[#94979E] hover:text-[#F3F4F6] transition-colors active:scale-95" type="button">
+<span class="material-symbols-outlined text-[22px]">tune</span>
+</button>
+</header>
+<!-- 2. OPEN, SPACIOUS MAIN JOURNEY CARD (UNCLUTTERED, NO NESTED BOXES) -->
+<section class="bg-[#16171B] border border-[#26282F] rounded-2xl p-5 space-y-5">
+<!-- Journey Header & Prominent Streak -->
+<div class="flex items-start justify-between">
+<div>
+<span class="text-xs text-[#10B981] font-medium font-body">21-Day Journey</span>
+<h2 class="font-headline text-[22px] font-bold text-[#F3F4F6] tracking-tight mt-1">Better Every Day</h2>
+<p class="text-xs text-[#94979E] mt-0.5">Workout &amp; Nutrition</p>
+</div>
+<div class="flex items-center gap-2 bg-[#212328]/70 px-3.5 py-2 rounded-xl border border-[#26282F]">
+<span class="material-symbols-outlined text-[#ffb95f] text-[22px]">local_fire_department</span>
+<div class="leading-none">
+<span class="font-headline text-lg font-bold text-[#F3F4F6]">4</span>
+<span class="text-[11px] text-[#94979E] ml-1 font-body">streak</span>
+</div>
+</div>
+</div>
+<!-- Sleek Progress Bar & Two Clear Supporting Labels -->
+<div class="space-y-2 pt-1">
+<div class="w-full h-2 rounded-full bg-[#212328] overflow-hidden">
+<div class="h-full bg-[#10B981] rounded-full transition-all" style="width: 28.6%;"></div>
+</div>
+<div class="flex items-center justify-between text-xs font-body text-[#94979E]">
+<span class="font-medium text-[#F3F4F6]">6 of 21 days completed</span>
+<span class="">Today · Day 7</span>
+</div>
+</div>
+</section>
+<!-- 3. TODAY'S TASKS (CLEAN ROWS, TAPPABLE, SUBTLE DIVIDER, NO TINY PILL BUTTON) -->
+<section class="space-y-3">
+<div class="flex items-center justify-between px-1">
+<h3 class="font-headline text-base font-semibold text-[#F3F4F6]">Today</h3>
+<span class="text-xs text-[#94979E] font-body">1 of 2 tasks</span>
+</div>
+<div class="bg-[#16171B] border border-[#26282F] rounded-2xl divide-y divide-[#26282F] overflow-hidden">
+<!-- Task 1: Nutrition (Completed, read-only status) -->
+<div class="p-4 flex items-center justify-between gap-3">
+<div class="flex items-center gap-3.5 min-w-0">
+<div class="w-9 h-9 rounded-full bg-[#10B981]/15 border border-[#10B981]/30 flex items-center justify-center text-[#10B981] shrink-0">
+<span class="material-symbols-outlined text-[18px]">check</span>
+</div>
+<div class="min-w-0">
+<div class="text-sm font-medium text-[#F3F4F6] truncate font-body">Log meal</div>
+<div class="text-xs text-[#94979E] mt-0.5 font-body">1,850 kcal logged</div>
+</div>
+</div>
+<span class="text-xs text-[#10B981] font-medium font-body shrink-0">Completed</span>
+</div>
+<!-- Task 2: Workout (Pending, fully tappable row with discreet chevron) -->
+<a class="p-4 flex items-center justify-between gap-3 hover:bg-[#1F2126] transition-colors active:scale-[0.99] group" href="#">
+<div class="flex items-center gap-3.5 min-w-0">
+<div class="w-9 h-9 rounded-full bg-[#212328] border border-[#26282F] flex items-center justify-center text-[#94979E] shrink-0 group-hover:text-[#F3F4F6] transition-colors">
+<span class="material-symbols-outlined text-[18px]">fitness_center</span>
+</div>
+<div class="min-w-0">
+<div class="text-sm font-medium text-[#F3F4F6] truncate font-body">Complete workout</div>
+<div class="text-xs text-[#94979E] mt-0.5 font-body">Upper Body Strength · 50 min</div>
+</div>
+</div>
+<div class="flex items-center gap-1.5 text-xs font-medium text-[#94979E] group-hover:text-[#F3F4F6] transition-colors shrink-0">
+<span>Start</span>
+<span class="material-symbols-outlined text-[20px]">chevron_right</span>
+</div>
+</a>
+</div>
+<!-- 4. DAILY REWARD NOTE (Quiet, elegant inline helper note) -->
+<div class="flex items-center justify-between px-1 text-xs text-[#94979E] font-body">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-[16px] text-[#10B981]">stars</span>
+<span>Complete today's tasks to earn 20 pts.</span>
+</div>
+<span class="text-xs font-medium text-[#ffb95f]">20 pts</span>
+</div>
+</section>
+<!-- 5. CALENDAR (LỊCH HÀNH TRÌNH - CLEAN 21-DAY GRID) -->
+<section class="bg-[#16171B] border border-[#26282F] rounded-2xl p-5 space-y-4">
+<div class="flex items-center justify-between">
+<div>
+<h3 class="font-headline text-base font-semibold text-[#F3F4F6]">Journey Calendar</h3>
+<p class="text-xs text-[#94979E] mt-0.5 font-body">3 weeks of habit building</p>
+</div>
+<span class="text-xs text-[#10B981] font-medium font-body">Week 1</span>
+</div>
+<!-- 21 Days Grid: 3 rows of 7 days -->
+<div class="grid grid-cols-7 gap-2 text-center">
+<!-- Week 1 -->
+<!-- Day 1: Completed -->
+<div class="h-10 rounded-xl bg-[#10B981]/15 border border-[#10B981]/30 flex flex-col items-center justify-center">
+<span class="text-xs font-semibold text-[#10B981] leading-none">1</span>
+<span class="material-symbols-outlined text-[11px] text-[#10B981] mt-0.5">check</span>
+</div>
+<!-- Day 2: Completed -->
+<div class="h-10 rounded-xl bg-[#10B981]/15 border border-[#10B981]/30 flex flex-col items-center justify-center">
+<span class="text-xs font-semibold text-[#10B981] leading-none">2</span>
+<span class="material-symbols-outlined text-[11px] text-[#10B981] mt-0.5">check</span>
+</div>
+<!-- Day 3: Missed day -->
+<div class="h-10 rounded-xl bg-[#212328] border border-[#26282F] flex flex-col items-center justify-center text-[#94979E]">
+<span class="text-xs font-medium leading-none">3</span>
+<span class="w-1.5 h-0.5 bg-[#94979E] rounded-full mt-1"></span>
+</div>
+<!-- Day 4: Completed -->
+<div class="h-10 rounded-xl bg-[#10B981]/15 border border-[#10B981]/30 flex flex-col items-center justify-center">
+<span class="text-xs font-semibold text-[#10B981] leading-none">4</span>
+<span class="material-symbols-outlined text-[11px] text-[#10B981] mt-0.5">check</span>
+</div>
+<!-- Day 5: Completed -->
+<div class="h-10 rounded-xl bg-[#10B981]/15 border border-[#10B981]/30 flex flex-col items-center justify-center">
+<span class="text-xs font-semibold text-[#10B981] leading-none">5</span>
+<span class="material-symbols-outlined text-[11px] text-[#10B981] mt-0.5">check</span>
+</div>
+<!-- Day 6: Rest day completed -->
+<div class="h-10 rounded-xl bg-[#10B981]/15 border border-[#10B981]/30 flex flex-col items-center justify-center">
+<span class="text-xs font-semibold text-[#10B981] leading-none">6</span>
+<span class="material-symbols-outlined text-[11px] text-[#10B981] mt-0.5">spa</span>
+</div>
+<!-- Day 7: TODAY (Clear outline ring) -->
+<div class="h-10 rounded-xl bg-[#212328] border-2 border-[#10B981] flex flex-col items-center justify-center relative shadow-sm">
+<span class="text-xs font-bold text-[#F3F4F6] leading-none">7</span>
+<span class="w-1.5 h-1.5 rounded-full bg-[#10B981] mt-1"></span>
+</div>
+<!-- Week 2: Days 8-14 -->
+<div class="h-10 rounded-xl bg-[#212328]/40 border border-[#26282F] flex flex-col items-center justify-center opacity-60 text-xs text-[#94979E]">8</div>
+<div class="h-10 rounded-xl bg-[#212328]/40 border border-[#26282F] flex flex-col items-center justify-center opacity-60 text-xs text-[#94979E]">9</div>
+<div class="h-10 rounded-xl bg-[#212328]/40 border border-[#26282F] flex flex-col items-center justify-center opacity-60 text-xs text-[#94979E]">10</div>
+<div class="h-10 rounded-xl bg-[#212328]/40 border border-[#26282F] flex flex-col items-center justify-center opacity-60 text-xs text-[#94979E]">11</div>
+<div class="h-10 rounded-xl bg-[#212328]/40 border border-[#26282F] flex flex-col items-center justify-center opacity-60 text-xs text-[#94979E]">12</div>
+<div class="h-10 rounded-xl bg-[#212328]/40 border border-[#26282F] flex flex-col items-center justify-center opacity-70 text-[#94979E]">
+<span class="text-xs leading-none">13</span>
+<span class="material-symbols-outlined text-[10px] text-[#94979E] mt-0.5">spa</span>
+</div>
+<div class="h-10 rounded-xl bg-[#212328]/40 border border-[#26282F] flex flex-col items-center justify-center opacity-60 text-xs text-[#94979E]">14</div>
+<!-- Week 3: Days 15-21 -->
+<div class="h-10 rounded-xl bg-[#212328]/30 border border-[#26282F] flex flex-col items-center justify-center opacity-40 text-xs text-[#94979E]">15</div>
+<div class="h-10 rounded-xl bg-[#212328]/30 border border-[#26282F] flex flex-col items-center justify-center opacity-40 text-xs text-[#94979E]">16</div>
+<div class="h-10 rounded-xl bg-[#212328]/30 border border-[#26282F] flex flex-col items-center justify-center opacity-40 text-xs text-[#94979E]">17</div>
+<div class="h-10 rounded-xl bg-[#212328]/30 border border-[#26282F] flex flex-col items-center justify-center opacity-40 text-xs text-[#94979E]">18</div>
+<div class="h-10 rounded-xl bg-[#212328]/30 border border-[#26282F] flex flex-col items-center justify-center opacity-40 text-xs text-[#94979E]">19</div>
+<div class="h-10 rounded-xl bg-[#212328]/30 border border-[#26282F] flex flex-col items-center justify-center opacity-50 text-[#94979E]">
+<span class="text-xs leading-none">20</span>
+<span class="material-symbols-outlined text-[10px] text-[#94979E] mt-0.5">spa</span>
+</div>
+<div class="h-10 rounded-xl bg-[#212328]/30 border border-[#26282F] flex flex-col items-center justify-center opacity-40 text-xs text-[#94979E]">21</div>
+</div>
+<!-- Calendar Legend (Clean, sentence case) -->
+<div class="flex items-center justify-between text-xs text-[#94979E] pt-3 border-t border-[#26282F] flex-wrap gap-2">
+<div class="flex items-center gap-1.5">
+<span class="w-2 h-2 rounded-full bg-[#10B981]"></span>
+<span class="">Completed</span>
+</div>
+<div class="flex items-center gap-1.5">
+<span class="w-2 h-2 rounded-full border border-[#10B981] bg-[#212328]"></span>
+<span class="">Today</span>
+</div>
+<div class="flex items-center gap-1.5">
+<span class="material-symbols-outlined text-[13px] text-[#94979E]">spa</span>
+<span class="">Rest</span>
+</div>
+<div class="flex items-center gap-1.5">
+<span class="w-2 h-2 rounded-full bg-[#26282F]"></span>
+<span class="">Upcoming</span>
+</div>
+</div>
+</section>
+<!-- 6. WALLET ROW (CLEAN NAVIGATION ROW, SINGLE CHEVRON) -->
+<a class="bg-[#16171B] border border-[#26282F] hover:border-[#383A42] rounded-2xl p-4 flex items-center justify-between transition-colors active:scale-[0.99] group" href="#">
+<div class="flex items-center gap-3.5">
+<div class="w-9 h-9 rounded-full bg-[#212328] border border-[#26282F] flex items-center justify-center text-[#10B981] group-hover:scale-105 transition-transform">
+<span class="material-symbols-outlined text-[19px]">account_balance_wallet</span>
+</div>
+<span class="text-sm font-medium text-[#F3F4F6] font-body">Point Wallet</span>
+</div>
+<div class="flex items-center gap-2 text-xs text-[#94979E] group-hover:text-[#F3F4F6] transition-colors">
+<span class="font-medium text-[#F3F4F6]">240 pts</span>
+<span class="">· 3 AI credits</span>
+<span class="material-symbols-outlined text-[18px] text-[#94979E]">chevron_right</span>
+</div>
+</a></main>
+</body></html>

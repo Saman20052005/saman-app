@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../../models/nutrition_model.dart';
+import '../../../../theme/nutrition_home_theme.dart';
 
 /// Card displaying a logged meal matching Calm Athleticism:
 /// 56x56 thumbnail with resilient fallback | MealType & genuine time (if available) | Calories | Macros subtitle
@@ -48,137 +49,80 @@ class NutritionLoggedMealCard extends StatelessWidget {
     final headerLabel = _formatMealHeader();
     final timeStr = _findTime();
 
+    return NutritionHomeTheme(
+        child: _LoggedMealPresentation(
+      entry: entry,
+      imageUrl: imageUrl,
+      headerLabel: headerLabel,
+      timeStr: timeStr,
+      onTap: onTap,
+    ));
+  }
+}
+
+class _LoggedMealPresentation extends StatelessWidget {
+  const _LoggedMealPresentation(
+      {required this.entry,
+      required this.imageUrl,
+      required this.headerLabel,
+      required this.timeStr,
+      required this.onTap});
+  final NutritionLogEntry entry;
+  final String? imageUrl, timeStr;
+  final String headerLabel;
+  final VoidCallback? onTap;
+  @override
+  Widget build(BuildContext context) {
+    final s = NutritionHomeStyle.of(context);
     return Material(
-      color: Colors.transparent,
+      color: s.surface,
+      shape: RoundedRectangleBorder(
+          borderRadius: s.cardRadius, side: BorderSide(color: s.border)),
+      clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
-        child: Container(
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: const Color(0xFF16171B),
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: const Color(0xFF26282F)),
-          ),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              // 56x56 Thumbnail with resilient fallback
-              Container(
-                width: 56,
-                height: 56,
-                decoration: BoxDecoration(
-                  color: const Color(0xFF212328),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: const Color(0xFF26282F)),
-                ),
-                clipBehavior: Clip.antiAlias,
-                child: imageUrl != null && imageUrl.isNotEmpty
-                    ? Image.network(
-                        imageUrl,
-                        width: 56,
-                        height: 56,
-                        fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) => const Center(
-                          child: Icon(
-                            Icons.restaurant_outlined,
-                            size: 22,
-                            color: Color(0xFF9CA3AF),
-                          ),
-                        ),
-                      )
-                    : const Center(
-                        child: Icon(
-                          Icons.restaurant_outlined,
-                          size: 22,
-                          color: Color(0xFF9CA3AF),
-                        ),
-                      ),
-              ),
-              const SizedBox(width: 12),
-
-              // Content Column
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Top Row: Meal type & Calories
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Expanded(
-                          child: Text(
-                            timeStr != null
-                                ? '${headerLabel.toUpperCase()} · $timeStr'
-                                : headerLabel.toUpperCase(),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              fontSize: 10,
-                              fontWeight: FontWeight.w600,
-                              color: Color(0xFF10B981),
-                              letterSpacing: 0.6,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        RichText(
-                          text: TextSpan(
-                            children: [
-                              TextSpan(
-                                text: '${entry.totalCalories} ',
-                                style: const TextStyle(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w700,
-                                  color: Color(0xFFF3F4F6),
-                                ),
-                              ),
-                              const TextSpan(
-                                text: 'kcal',
-                                style: TextStyle(
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w400,
-                                  color: Color(0xFF9CA3AF),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 3),
-
-                    // Food Title
-                    Text(
-                      entry.foodName,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                        color: Color(0xFFF3F4F6),
-                        letterSpacing: -0.2,
-                      ),
-                    ),
-                    const SizedBox(height: 3),
-
-                    // Macro Breakdown
-                    Text(
-                      '${entry.protein.toInt()}g pro · ${entry.carbs.toInt()}g carb · ${entry.fat.toInt()}g fat',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        fontSize: 11,
-                        color: Color(0xFF9CA3AF),
-                        letterSpacing: -0.1,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
+        child: Padding(
+            padding: const EdgeInsets.all(12),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                ClipRRect(
+                    borderRadius: s.imageRadius,
+                    child: SizedBox(
+                      width: 56,
+                      height: 56,
+                      child: imageUrl != null && imageUrl!.isNotEmpty
+                          ? Image.network(imageUrl!,
+                              fit: BoxFit.cover,
+                              excludeFromSemantics: true,
+                              errorBuilder: (_, __, ___) => Icon(
+                                  Icons.restaurant_outlined,
+                                  color: s.muted))
+                          : ColoredBox(
+                              color: s.track,
+                              child: Icon(Icons.restaurant_outlined,
+                                  color: s.muted)),
+                    )),
+                const SizedBox(width: 12),
+                Expanded(
+                    child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                      Text(
+                          timeStr != null
+                              ? '${headerLabel.toUpperCase()} · $timeStr'
+                              : headerLabel.toUpperCase(),
+                          style: s.caption),
+                      const SizedBox(height: 3),
+                      Text(entry.foodName, style: s.strong),
+                      const SizedBox(height: 6),
+                      Text('${entry.totalCalories} kcal', style: s.body),
+                      Text(
+                          '${entry.protein.toInt()}g pro · ${entry.carbs.toInt()}g carb · ${entry.fat.toInt()}g fat',
+                          style: s.caption),
+                    ])),
+              ],
+            )),
       ),
     );
   }

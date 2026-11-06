@@ -1,16 +1,22 @@
 import 'dart:convert';
+import 'dart:math';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import '../config/api_config.dart';
 import '../models/ai_analysis_result.dart';
 import '../services/api_client.dart';
+import '../services/analytics_service.dart';
 import '../services/nutrition_service.dart';
 import 'package:dio/dio.dart';
 import '../presentation/providers/workout_history_providers.dart';
 import '../utils/auth_helper.dart';
+
+String generateChatOperationId() {
+  final bytes = List<int>.generate(16, (_) => Random.secure().nextInt(256));
+  return bytes.map((byte) => byte.toRadixString(16).padLeft(2, '0')).join();
+}
 
 // --- 1. MODEL TIN NHẮN ---
 class ChatMessage {
@@ -105,8 +111,13 @@ class ChatFoodAnalysisState {
   }
 }
 
+enum AIMode { swift3, core3, pro3 }
+
 // --- 3. STATE ---
 class ChatState {
+  // Only the verified Core 3 contract is selectable during the pilot.
+  AIMode get selectedAIMode => AIMode.core3;
+
   final List<ChatMessage> messages;
   final bool isLoading;
   final String? errorMessage;
@@ -171,12 +182,18 @@ class ChatState {
 class ChatController extends StateNotifier<ChatState> {
   final Ref ref;
   final NutritionService _nutritionService;
+  final AnalyticsService _analyticsService;
   int _requestEpoch = 0;
   int _foodAnalysisEpoch = 0;
   String? _currentAccountToken;
+  String? _failedOperationId;
+  Map<String, dynamic>? _failedPayload;
+  final Map<String, String> _analyticsOperationIds = {};
 
-  ChatController(this.ref, {NutritionService? nutritionService})
+  ChatController(this.ref,
+      {NutritionService? nutritionService, AnalyticsService? analyticsService})
       : _nutritionService = nutritionService ?? NutritionService(),
+        _analyticsService = analyticsService ?? AnalyticsService(),
         super(ChatState(messages: [])) {
     ref.listen(workoutAuthScopeProvider, (_, __) => _onAuthScopeChanged());
     ref.listen(authLoggingOutProvider, (_, next) {
@@ -188,6 +205,9 @@ class ChatController extends StateNotifier<ChatState> {
     _requestEpoch++;
     _foodAnalysisEpoch++;
     _currentAccountToken = null;
+    _failedOperationId = null;
+    _failedPayload = null;
+    _analyticsOperationIds.clear();
     if (mounted) {
       state = ChatState(messages: [], recentConversations: []);
     }
@@ -221,7 +241,10 @@ class ChatController extends StateNotifier<ChatState> {
       clearPendingAction: true,
     );
 
-    await _sendRequest(trimmed);
+    final opId = _newOperationId();
+    _failedOperationId = opId;
+    _failedPayload = null;
+    await _sendRequest(trimmed, operationId: opId);
   }
 
   /// Retries sending the failed user message without duplicating it in messages list
@@ -231,6 +254,8 @@ class ChatController extends StateNotifier<ChatState> {
             ? state.messages.last.content
             : null);
     if (textToRetry == null) return;
+    final operationId = _failedOperationId;
+    if (operationId == null) return;
 
     state = state.copyWith(
       isLoading: true,
@@ -239,7 +264,8 @@ class ChatController extends StateNotifier<ChatState> {
       clearPendingAction: true,
     );
 
-    await _sendRequest(textToRetry);
+    await _sendRequest(textToRetry,
+        operationId: operationId, existingPayload: _failedPayload);
   }
 
   /// Clears the visible recoverable error state
@@ -250,24 +276,29 @@ class ChatController extends StateNotifier<ChatState> {
     );
   }
 
-  Future<void> _sendRequest(String text) async {
+  Future<void> _sendRequest(String text,
+      {required String operationId,
+      Map<String, dynamic>? existingPayload}) async {
     final epoch = ++_requestEpoch;
     try {
-      final prefs = await SharedPreferences.getInstance();
+      // Core 3 context is server-authoritative and allowlisted.
 
       // 2. LOGIC: Xây dựng Context an toàn
-      final userContext = await _buildUserContext(prefs);
 
       // 3. API: Gửi Payload
-      final payload = <String, dynamic>{
-        "message": text,
-        "context": userContext,
-        "history": _getLastMessages(5),
-      };
-      if (state.activeConversationId != null &&
+      final payload = existingPayload ??
+          <String, dynamic>{
+            "message": text,
+            "history": _getLastMessages(5, excludeLatestUser: true),
+            "contract_version": "core3-local-v1",
+            "operation_id": operationId,
+          };
+      if (existingPayload == null &&
+          state.activeConversationId != null &&
           state.activeConversationId!.isNotEmpty) {
         payload["conversation_id"] = state.activeConversationId;
       }
+      _failedPayload = Map<String, dynamic>.from(payload);
 
       final response = await ApiClient.dio.post(
         "${ApiConfig.baseUrl}/api/chat",
@@ -305,6 +336,8 @@ class ChatController extends StateNotifier<ChatState> {
           clearError: true,
           clearFailedUserMessage: true,
         );
+        _failedOperationId = null;
+        _failedPayload = null;
 
         // Cập nhật danh sách conversations gần đây để hiển thị title mới
         if (mounted) {
@@ -322,6 +355,38 @@ class ChatController extends StateNotifier<ChatState> {
         failedUserMessage: text,
       );
     }
+  }
+
+  String _newOperationId() {
+    return generateChatOperationId();
+  }
+
+  Future<String> executeHistoryAnalytics(AnalyticsQuote quote) async {
+    final scopeAtStart = ref.read(workoutAuthScopeProvider);
+    final operationId = _analyticsOperationIds.putIfAbsent(
+      quote.quoteId,
+      _newOperationId,
+    );
+    final response = await _analyticsService.executeAnalytics(
+      quoteId: quote.quoteId,
+      rangeDays: quote.rangeDays,
+      confirm: true,
+      operationId: operationId,
+    );
+    if (!mounted ||
+        ref.read(authLoggingOutProvider) ||
+        ref.read(workoutAuthScopeProvider) != scopeAtStart) {
+      throw StateError('Account changed during analytics request.');
+    }
+    final report = response['report']?.toString() ?? '';
+    state = state.copyWith(
+      messages: [
+        ...state.messages,
+        ChatMessage(role: 'assistant', content: report)
+      ],
+    );
+    _analyticsOperationIds.remove(quote.quoteId);
+    return report;
   }
 
   /// Checkpoint 4a: Xác nhận pending action (thêm 250 ml nước)
@@ -476,6 +541,9 @@ class ChatController extends StateNotifier<ChatState> {
 
       // Chống rò rỉ state khi đổi tài khoản: nếu token đổi, xóa sạch state cũ
       if (_currentAccountToken != token) {
+        _failedOperationId = null;
+        _failedPayload = null;
+        _analyticsOperationIds.clear();
         if (_currentAccountToken != null || state.messages.isNotEmpty) {
           if (!mounted) return;
           state = ChatState(messages: [], recentConversations: []);
@@ -524,6 +592,8 @@ class ChatController extends StateNotifier<ChatState> {
   /// Tải lịch sử tin nhắn của một conversation cụ thể
   Future<void> loadConversation(String conversationId) async {
     final epoch = ++_requestEpoch;
+    _failedOperationId = null;
+    _failedPayload = null;
     if (!mounted) return;
     state = state.copyWith(
       activeConversationId: conversationId,
@@ -584,6 +654,8 @@ class ChatController extends StateNotifier<ChatState> {
   void newConversation() {
     _requestEpoch++;
     _foodAnalysisEpoch++;
+    _failedOperationId = null;
+    _failedPayload = null;
     state = state.copyWith(
       messages: [],
       clearActiveConversation: true,
@@ -677,106 +749,12 @@ class ChatController extends StateNotifier<ChatState> {
     newConversation();
   }
 
-  // --- HELPER: XÂY DỰNG NGỮ CẢNH (ĐÃ FIX LỖI PARSE TYPE) ---
-  Future<Map<String, dynamic>> _buildUserContext(
-      SharedPreferences prefs) async {
-    // 🔥 FIX: Dùng hàm helper _safeParseInt/Double để tránh lỗi "String is not subtype of Int"
-
-    // 1. Thông tin cơ bản
-    String name = prefs.getString('user_name') ?? "Bạn";
-
-    // Lỗi xảy ra ở đây do 'prefs.getInt' chết khi gặp String "170"
-    // Ta sửa bằng cách lấy 'get' (dynamic) rồi parse thủ công
-    int height = _safeParseInt(prefs.get('user_height'), 170);
-    double weight = _safeParseDouble(prefs.get('user_weight'), 65.0);
-    int age = _safeParseInt(prefs.get('user_age'), 25);
-    String gender = prefs.getString('user_gender') ?? "Nam";
-
-    // 2. Chỉ số quan trọng (TDEE/BMI)
-    double tdee = _safeParseDouble(prefs.get('user_tdee'), 2200.0);
-    String goal = prefs.getString('user_goal') ?? "Duy trì cân nặng";
-
-    // 3. Tracking hôm nay
-    double caloriesConsumed =
-        _safeParseDouble(prefs.get('daily_calories_in'), 0.0);
-
-    return {
-      "profile": {
-        "name": name,
-        "biometrics": "$height cm, $weight kg, $age tuổi, $gender",
-        "tdee": tdee,
-        "goal": goal,
-      },
-      "daily_stats": {
-        "eaten": caloriesConsumed,
-        "remaining": tdee - caloriesConsumed,
-      },
-      "system_instruction": """
-        YOU ARE:
-You are **Saman AI Coach**, a personal trainer and nutrition expert dedicated exclusively to helping **$name** achieve their fitness goal efficiently and safely.
-
-FIXED USER DATA (DO NOT OVERRIDE OR ASSUME):
-- Height: $height cm
-- Weight: $weight kg
-- Age: $age
-- Gender: $gender
-- Daily TDEE: $tdee kcal
-- Goal: $goal
-- Calories consumed today: $caloriesConsumed kcal
-- Remaining calories today: ${tdee - caloriesConsumed} kcal
-
-CORE RULES (MANDATORY):
-1. All advice MUST be strictly based on TDEE, remaining calories, and the stated goal.
-2. Do NOT give generic, motivational, or vague advice.
-3. Do NOT contradict or reinterpret provided data.
-4. If information is missing, make a reasonable estimation and clearly state it as an estimate.
-
-QUERY HANDLING LOGIC:
-- Food-related questions:
-  - Estimate calories and macronutrients (protein, carbs, fats).
-  - State clearly whether the food fits the current goal and remaining calories.
-- Training-related questions:
-  - Recommend exercises aligned with the goal and current calorie status.
-- If a choice would exceed TDEE:
-  - Give a short warning.
-  - Propose a better alternative.
-- If remaining calories are high:
-  - Suggest optimal food or meal options to use them effectively.
-
-RESPONSE STYLE:
-- Concise and direct.
-- Professional and precise.
-- No emojis, no storytelling, no unnecessary explanations.
-
-OUTPUT PRIORITY ORDER:
-1. Numbers and calculations
-2. Clear judgment (good / acceptable / not recommended)
-3. Actionable next step
-
-      """
-    };
-  }
-
-  // 🔥 Helper: Parse Int an toàn (Chấp nhận cả String lẫn Int)
-  int _safeParseInt(dynamic value, int defaultValue) {
-    if (value == null) return defaultValue;
-    if (value is int) return value;
-    if (value is String) return int.tryParse(value) ?? defaultValue;
-    if (value is double) return value.toInt();
-    return defaultValue;
-  }
-
-  // 🔥 Helper: Parse Double an toàn
-  double _safeParseDouble(dynamic value, double defaultValue) {
-    if (value == null) return defaultValue;
-    if (value is double) return value;
-    if (value is int) return value.toDouble();
-    if (value is String) return double.tryParse(value) ?? defaultValue;
-    return defaultValue;
-  }
-
-  List<Map<String, String>> _getLastMessages(int count) {
-    final msgs = state.messages;
+  List<Map<String, String>> _getLastMessages(int count,
+      {bool excludeLatestUser = false}) {
+    final msgs = List<ChatMessage>.from(state.messages);
+    if (excludeLatestUser && msgs.isNotEmpty && msgs.last.role == 'user') {
+      msgs.removeLast();
+    }
     final startIndex = msgs.length > count ? msgs.length - count : 0;
     return msgs
         .sublist(startIndex)

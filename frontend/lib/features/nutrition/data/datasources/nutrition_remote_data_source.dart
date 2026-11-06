@@ -49,12 +49,23 @@ abstract class INutritionRemoteDataSource {
   });
   Future<List<Map<String, dynamic>>> getLogStories(String date);
   Future<bool> deleteLogStory(String logId);
-  Future<Map<String, dynamic>> analyzeFoodImage(XFile imageFile,
-      {String? mode, NutritionRequestContext? session});
+  Future<Map<String, dynamic>> analyzeFoodImage(
+    XFile imageFile, {
+    String? mode,
+    NutritionRequestContext? session,
+    String? idempotencyKey,
+    String? clientRequestId,
+  });
+  Future<Map<String, dynamic>?> lookupOperation({
+    required String idempotencyKey,
+    String benefitId = 'ai.nutrition_gemini',
+    NutritionRequestContext? session,
+  });
   Future<void> confirmStoryLog(MealLogData data);
   Future<Map<String, dynamic>> createCustomFood(Map<String, dynamic> body);
   Future<Map<String, dynamic>> getWeeklyReport(String startDate);
   Future<List<dynamic>> searchFoods(String query, int limit);
+  Future<Map<String, dynamic>?> getFoodById(String foodId);
 }
 
 class NutritionRemoteDataSourceImpl implements INutritionRemoteDataSource {
@@ -280,8 +291,13 @@ class NutritionRemoteDataSourceImpl implements INutritionRemoteDataSource {
   }
 
   @override
-  Future<Map<String, dynamic>> analyzeFoodImage(XFile imageFile,
-      {String? mode, NutritionRequestContext? session}) async {
+  Future<Map<String, dynamic>> analyzeFoodImage(
+    XFile imageFile, {
+    String? mode,
+    NutritionRequestContext? session,
+    String? idempotencyKey,
+    String? clientRequestId,
+  }) async {
     final formData = FormData();
     final bytes = await imageFile.readAsBytes();
     await session?.validate();
@@ -294,12 +310,26 @@ class NutritionRemoteDataSourceImpl implements INutritionRemoteDataSource {
           filename: imageFile.name, contentType: MediaType('image', 'jpeg')),
     ));
 
+    final normalizedMode =
+        (mode != null && mode.trim().isNotEmpty) ? mode.trim().toLowerCase() : 'standard';
+    final effectiveRequestId = clientRequestId ??
+        'req_' + normalizedMode + '_' + bytes.length.toString();
+    final effectiveIdempotencyKey = idempotencyKey ??
+        'nutri_' + normalizedMode + '_' + imageFile.name.hashCode.abs().toString();
+
     final response = await _dio.post(
       ApiConfig.analyzeFoodImageEndpoint,
       data: formData,
-      options: Options(contentType: 'multipart/form-data', extra: {
-        if (session != null) 'nutritionSession': session,
-      }),
+      options: Options(
+        contentType: 'multipart/form-data',
+        headers: {
+          'X-Client-Request-Id': effectiveRequestId,
+          'X-Idempotency-Key': effectiveIdempotencyKey,
+        },
+        extra: {
+          if (session != null) 'nutritionSession': session,
+        },
+      ),
     );
 
     if (response.statusCode == 200 && response.data != null) {
@@ -308,6 +338,42 @@ class NutritionRemoteDataSourceImpl implements INutritionRemoteDataSource {
           : response.data;
     }
     throw Exception('Failed to analyze image');
+  }
+
+  @override
+  Future<Map<String, dynamic>?> lookupOperation({
+    required String idempotencyKey,
+    String benefitId = 'ai.nutrition_gemini',
+    NutritionRequestContext? session,
+  }) async {
+    await session?.validate();
+    try {
+      final response = await _dio.get(
+        '/api/revenue/operations/lookup',
+        queryParameters: {
+          'idempotency_key': idempotencyKey,
+          'benefit_id': benefitId,
+        },
+        options: Options(
+          extra: {
+            if (session != null) 'nutritionSession': session,
+          },
+        ),
+      );
+      await session?.validate();
+      if (response.statusCode == 200 && response.data != null) {
+        return response.data is String
+            ? jsonDecode(response.data as String)
+            : Map<String, dynamic>.from(response.data as Map);
+      }
+      return null;
+    } on DioException catch (e) {
+      await session?.validate();
+      if (e.response?.statusCode == 404) {
+        return null;
+      }
+      rethrow;
+    }
   }
 
   @override
@@ -373,6 +439,33 @@ class NutritionRemoteDataSourceImpl implements INutritionRemoteDataSource {
           : response.data;
     }
     throw Exception('Failed to swap meal');
+  }
+
+  @override
+  Future<Map<String, dynamic>?> getFoodById(String foodId) async {
+    try {
+      final response = await _dio.get(
+        '${ApiConfig.baseUrl}/api/nutrition/foods/$foodId',
+      );
+      if (response.statusCode == 200 &&
+          response.data != null &&
+          response.data != "null") {
+        final data = response.data is String
+            ? jsonDecode(response.data as String)
+            : response.data;
+        if (data is Map<String, dynamic>) {
+          return data;
+        } else if (data is Map) {
+          return Map<String, dynamic>.from(data);
+        }
+      }
+      return null;
+    } on DioException catch (e) {
+      if (e.response?.statusCode == 404) {
+        return null;
+      }
+      rethrow;
+    }
   }
 
   @override

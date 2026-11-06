@@ -1,0 +1,57 @@
+{
+  "entrypoint": "lib/main.dart",
+  "base_url": "http://localhost:3000",
+  "data_source": "browser-intercepted HTTP test responses; no real account/data writes",
+  "today": "2026-10-28",
+  "calls": [
+    {
+      "method": "POST",
+      "path": "/api/auth/login"
+    },
+    {
+      "method": "GET",
+      "path": "/api/user/profile"
+    },
+    {
+      "method": "GET",
+      "path": "/api/journey/active"
+    },
+    {
+      "method": "GET",
+      "path": "/api/workouts/history"
+    },
+    {
+      "method": "GET",
+      "path": "/api/chat/conversations"
+    },
+    {
+      "method": "GET",
+      "path": "/api/nutrition/2026-10-28"
+    },
+    {
+      "method": "GET",
+      "path": "/api/nutrition/2026-10-28"
+    },
+    {
+      "method": "GET",
+      "path": "/api/nutrition/2026-10-27"
+    },
+    {
+      "method": "POST",
+      "path": "/api/nutrition/generate-plan"
+    },
+    {
+      "method": "GET",
+      "path": "/api/nutrition/2026-10-27"
+    },
+    {
+      "method": "GET",
+      "path": "/api/nutrition/log-story/2026-10-28"
+    },
+    {
+      "method": "GET",
+      "path": "/api/nutrition/report/weekly"
+    }
+  ],
+  "page_errors": []
+}

@@ -767,3 +767,154 @@ Actual `referenced_image_paths`:
 - `C:\Users\GL\Desktop\SamanDev\artifacts\library-round2-20261009\reference-three-pairs.png`
 
 </details>
+
+
+## WORKOUT-LIBRARY-PILOT-03 - Barbell Bench Press (2026-10-28)
+
+User-provided provenance: exported from Stitch. The image-generation model and license have not been independently verified; no stock-photo license is asserted.
+
+Verified source root: `D:\stitch_exercise_illustration_asset_generator\stitch_exercise_illustration_asset_generator`.
+
+Source relative path: `a_realistic_high_definition_gym_photograph_of_the_exact_same_athletic_man_from_1/screen.png`. Detected format: PNG, 1264 x 848; visually inspected barbell bench press with flat bench, barbell, plates, and both hands visible. Resolved from the prior source inventory, not inferred from file ordering.
+
+Source SHA-256: `36b075df8a1feedb0df91a9c5e32984c301d29dfe5b17098f00434b8cdb50c59`.
+
+Exports: RGB JPEG, quality 87, progressive, optimized; Lanczos resampling; no enlargement of source content. Padding RGB(18,20,23). Crop coordinates below are half-open source pixel bounds (left, top, right, bottom).
+
+- `barbell-bench-press-thumb.jpg`: 512 x 512; crop [224, 184, 1120, 808]; resized content [512, 357]; top-left content offset [0, 77]; SHA-256 `7f2354474a0af20b83a6866ba3ad8aa7c0ddfb73cf991bb9779ce58a24baf363`.
+- `barbell-bench-press-poster.jpg`: 1280 x 720; crop [0, 0, 1264, 848]; resized content [1073, 720]; top-left content offset [103, 0]; SHA-256 `d757417bb79af94734d9a2682211a5e8143bfbb526460fc69fadeeeecd987b4d`.
+
+Thumb crop removes empty surroundings; contain padding preserves the barbell ends, plates, hands, bench and feet. Poster contains the complete source with side padding. Both exports were visually reviewed, including thumb rendering at 68 and 80 px.
+
+
+## WORKOUT-LIBRARY-EXPANSION-05 - Five Verified Exercises (2026-10-30)
+
+User-provided provenance: exported from Stitch asset generator (`D:\stitch_exercise_illustration_asset_generator\stitch_exercise_illustration_asset_generator`).
+Character and setting consistency: exact same athletic man in fitted gray tee, dark shorts, black trainers, dark gym background and soft studio lighting.
+No stock-photo license is asserted; AI-generated exercise identification illustrations, not certified exercise-form instruction.
+
+Exports: RGB JPEG, quality 87, progressive, optimized; Lanczos resampling; no enlargement of source content. Padding RGB(18,20,23). Half-open pixel coordinates [left, top, right, bottom].
+
+### incline-barbell-bench-press
+
+- Source relative path: `a_realistic_high_definition_gym_photograph_of_the_exact_same_athletic_man_from_3\screen.png` (PNG, 1264 x 848).
+- Source SHA-256: `a080e0be8883a475ae0786ffa50870d6e41eca0c741f90d6735b75c5eff47ae4`.
+- Visual review: Incline bench at ~35 degrees, barbell held at upper chest, full bench, feet planted on floor.
+- `incline-barbell-bench-press-thumb.jpg`: 512 x 512; crop [190, 180, 1100, 810]; resized content [512, 354]; top-left content offset [0, 79]; 36405 bytes; SHA-256 `194c8a1cd760cded73b4abc3ac8f23053bc69c3b5ab47608d0e684f92fa0f153`.
+- `incline-barbell-bench-press-poster.jpg`: 1280 x 720; crop [0, 0, 1264, 848]; resized content [1073, 720]; top-left content offset [103, 0]; 112157 bytes; SHA-256 `30ed37d774c72998b55708d7e4f59e25cb64c1988431c099cc14ed5dd669eac7`.
+
+### bent-over-barbell-row
+
+- Source relative path: `a_realistic_high_definition_gym_photograph_of_the_exact_same_athletic_man_from_4\screen.png` (PNG, 1264 x 848).
+- Source SHA-256: `8c57b0cee3d27c9f3060c59d862d0ad01e6585ade70bd3e1ac6fd27c017e302f`.
+- Visual review: Standing bent-over hip-hinge stance, flat back, both hands gripping barbell with overhand grip near abdomen, knees soft.
+- `bent-over-barbell-row-thumb.jpg`: 512 x 512; crop [200, 50, 960, 800]; resized content [512, 505]; top-left content offset [0, 3]; 42702 bytes; SHA-256 `ba70026de38d5479a81182af5135a897e625aaeae7beac184c3c9dbc9c6c6d0c`.
+- `bent-over-barbell-row-poster.jpg`: 1280 x 720; crop [0, 0, 1264, 848]; resized content [1073, 720]; top-left content offset [103, 0]; 106956 bytes; SHA-256 `b745adcc3a4d1e6b3107734361ea1e60119b165e4796bdd3df2de29852f9bf60`.
+
+### barbell-overhead-press
+
+- Source relative path: `a_realistic_high_definition_gym_photograph_of_the_exact_same_athletic_man_from_5\screen.png` (PNG, 1264 x 848).
+- Source SHA-256: `c9718c4f6aec7c8c9a5dddedb833eaf56210cb50de692b06a68fb9f07f24faf4`.
+- Visual review: Standing upright with barbell pressed directly overhead, locked arms, feet planted.
+- `barbell-overhead-press-thumb.jpg`: 512 x 512; crop [240, 0, 960, 800]; resized content [461, 512]; top-left content offset [25, 0]; 34244 bytes; SHA-256 `c4d3d948feb58dad0deb0bc19bf3aa789e7781b0840627c09ff3896d7229b932`.
+- `barbell-overhead-press-poster.jpg`: 1280 x 720; crop [0, 0, 1264, 848]; resized content [1073, 720]; top-left content offset [103, 0]; 100734 bytes; SHA-256 `abca568c573dd8f235a7eb9a24031dde2c0499b869d8edc7d5f16dacf029a2f2`.
+
+### ez-bar-curl
+
+- Source relative path: `a_realistic_high_definition_gym_photograph_of_the_exact_same_athletic_man_from_9\screen.png` (PNG, 1264 x 848).
+- Source SHA-256: `3515e4cb064130bb3153a869554c0023982ca7e62c08f2832505325b5bbf8461`.
+- Visual review: Standing bicep curl holding undulating EZ-curl barbell with underhand semi-supinated grip at waist level, elbows at sides.
+- `ez-bar-curl-thumb.jpg`: 512 x 512; crop [360, 20, 940, 560]; resized content [512, 477]; top-left content offset [0, 17]; 30245 bytes; SHA-256 `fa60478d5b6c436a63c94d5cf2c54c9924a987631b26330c0f572aff867a534a`.
+- `ez-bar-curl-poster.jpg`: 1280 x 720; crop [0, 0, 1264, 848]; resized content [1073, 720]; top-left content offset [103, 0]; 97872 bytes; SHA-256 `e136b8b25ef6e68e6bb8afb81b0328a0f6cebb4ee4c21bfc509fd9ce119e6d02`.
+
+### glute-bridge
+
+- Source relative path: `a_realistic_high_definition_gym_photograph_of_the_exact_same_athletic_man_from_2\screen.png` (PNG, 1264 x 848).
+- Source SHA-256: `a4110312d0c12d9ac6ba06f3fc66d552240a683ce4d4bfa445316bd68a2dd392`.
+- Visual review: Supine bridge posture on floor, head and upper back rested, knees bent, hips raised high, arms resting flat at sides.
+- `glute-bridge-thumb.jpg`: 512 x 512; crop [180, 380, 1100, 780]; resized content [512, 223]; top-left content offset [0, 144]; 25968 bytes; SHA-256 `45058082fbe3b2f52848cfc7a6722afe26f52db14309391a568c5c8724fd2e7c`.
+- `glute-bridge-poster.jpg`: 1280 x 720; crop [0, 0, 1264, 848]; resized content [1073, 720]; top-left content offset [103, 0]; 103000 bytes; SHA-256 `9404ec7c7d1cd704af5429af2d70cb9291776f688e3a5e399193e1930ba28a13`.
+
+
+## WORKOUT-LIBRARY-EXPANSION-06 - Five Verified Exercises (2026-10-31)
+
+User-provided provenance: exported from Stitch asset generator (`D:\stitch_exercise_illustration_asset_generator\stitch_exercise_illustration_asset_generator`).
+Character and setting consistency: exact same athletic man in fitted gray tee, dark shorts, black trainers, dark gym background and soft studio lighting.
+No stock-photo license is asserted; AI-generated exercise identification illustrations, not certified exercise-form instruction.
+
+Exports: RGB JPEG, quality 87, progressive, optimized; Lanczos resampling; no enlargement of source content. Padding RGB(18,20,23). Half-open pixel coordinates [left, top, right, bottom].
+
+### machine-chest-press
+
+- Source relative path: `a_realistic_high_definition_gym_photograph_of_the_exact_same_athletic_man_from_11\screen.png` (PNG, 1264 x 848).
+- Source SHA-256: `d5f13c8ddd3873f5194f580b758ff3b62c1343b7431d69ff29d4fcca5927f8f5`.
+- Visual review: Seated upright on chest press machine, back against backrest, pushing dual machine handles horizontally forward; weight stack and guide rods visible.
+- `machine-chest-press-thumb.jpg`: 512 x 512; crop [200, 60, 1000, 840]; resized content [512, 499]; top-left content offset [0, 6]; 50522 bytes; SHA-256 `326ec31cae5f44cc3e95dfbdea73a9247781754aaf42653705133895b75a6ec2`.
+- `machine-chest-press-poster.jpg`: 1280 x 720; crop [0, 0, 1264, 848]; resized content [1073, 720]; top-left content offset [103, 0]; 120998 bytes; SHA-256 `745cb15bbc1b462db9c75ddec6aa8a4563905b2674bfd366cb661a1afc48d728`.
+
+### chest-supported-dumbbell-row
+
+- Source relative path: `a_realistic_high_definition_gym_photograph_of_the_exact_same_athletic_man_from_15\screen.png` (PNG, 1264 x 848).
+- Source SHA-256: `662dd8e87ba7fc494cd8d4252244ce7b953b2741d2ed3fc8b881037ac581b21e`.
+- Visual review: Prone torso supported on 30-45 degree incline bench, gripping two black hex dumbbells, pulling elbows back toward hips with back muscles contracted.
+- `chest-supported-dumbbell-row-thumb.jpg`: 512 x 512; crop [200, 100, 1100, 820]; resized content [512, 410]; top-left content offset [0, 51]; 37642 bytes; SHA-256 `7de9809c62bd12887ba4703f6526b548f3d85777f23f369535432a72e3292bcd`.
+- `chest-supported-dumbbell-row-poster.jpg`: 1280 x 720; crop [0, 0, 1264, 848]; resized content [1073, 720]; top-left content offset [103, 0]; 109929 bytes; SHA-256 `207e53ff124430a79cac968549c2642ba7ad9351f9f5aa3d3320bedc8306e274`.
+
+### cable-lateral-raise
+
+- Source relative path: `a_realistic_high_definition_gym_photograph_of_the_exact_same_athletic_man_from_6\screen.png` (PNG, 1264 x 848).
+- Source SHA-256: `e255b4cfba4d6a2eeb58ec266c63e93faec69dfeff3c34d0a0676d89943beb3b`.
+- Visual review: Standing sideways by cable station, right arm abducting cable handle laterally to shoulder height with low-pulley taut cable.
+- `cable-lateral-raise-thumb.jpg`: 512 x 512; crop [150, 30, 950, 830]; resized content [512, 512]; top-left content offset [0, 0]; 41341 bytes; SHA-256 `51c943ebf1e84586baeb661e48e87c45c5016c21f009b604ce95a8b2b566fd4d`.
+- `cable-lateral-raise-poster.jpg`: 1280 x 720; crop [0, 0, 1264, 848]; resized content [1073, 720]; top-left content offset [103, 0]; 104941 bytes; SHA-256 `58baa2e65f73a12b5c0904945504e59fdd5a877a621efd3b77916a0020f213b9`.
+
+### lying-ez-bar-triceps-extension
+
+- Source relative path: `a_realistic_high_definition_gym_photograph_of_the_exact_same_athletic_man_from_10\screen.png` (PNG, 1264 x 848).
+- Source SHA-256: `0e16d5f2ac57da787a5cd286ec3f56cd74a95da33c1dcca8e3a2adfc680c2acd`.
+- Visual review: Lying supine on flat bench, holding EZ curl bar overhead with narrow overhand grip, elbows angled for triceps extension.
+- `lying-ez-bar-triceps-extension-thumb.jpg`: 512 x 512; crop [240, 140, 1120, 810]; resized content [512, 390]; top-left content offset [0, 61]; 33770 bytes; SHA-256 `4bd548e3cab842eeb44a9801f2fccce5cf4cc92540cb10b64cd412fb86bec4c4`.
+- `lying-ez-bar-triceps-extension-poster.jpg`: 1280 x 720; crop [0, 0, 1264, 848]; resized content [1073, 720]; top-left content offset [103, 0]; 99781 bytes; SHA-256 `4e03fab712da559c986f00245ff8e62ca39f3dd4ffd28da8cf46154ea7d21e78`.
+
+### preacher-curl
+
+- Source relative path: `a_realistic_high_definition_gym_photograph_of_the_exact_same_athletic_man_from_14\screen.png` (PNG, 1264 x 848).
+- Source SHA-256: `fc85e229d399fa1c2a94aad662d4f89c47b7bb5705b73378317d546e257caa68`.
+- Visual review: Seated at preacher bench with upper arms resting flush on angled preacher pad, curling an undulating EZ curl bar with both hands.
+- `preacher-curl-thumb.jpg`: 512 x 512; crop [300, 30, 980, 830]; resized content [435, 512]; top-left content offset [38, 0]; 39559 bytes; SHA-256 `be4014790390e09d6a6773e2f48991817cb4d65cc37721ac5facf2559811393d`.
+- `preacher-curl-poster.jpg`: 1280 x 720; crop [0, 0, 1264, 848]; resized content [1073, 720]; top-left content offset [103, 0]; 104210 bytes; SHA-256 `1201fe93ecccea0416e9dd2021cb39276e895800003663e56f9611242690c4a8`.
+
+
+## WORKOUT-LIBRARY-EXPANSION-07 - Three Verified Exercises (2026-10-31)
+
+User-provided provenance: exported from Stitch asset generator (`D:\stitch_exercise_illustration_asset_generator\stitch_exercise_illustration_asset_generator`).
+Character and setting consistency: exact same athletic man in fitted gray tee / tank, dark shorts, black trainers, dark gym background and soft studio lighting.
+No stock-photo license is asserted; AI-generated exercise identification illustrations, not certified exercise-form instruction.
+
+Exports: RGB JPEG, quality 87, progressive, optimized; Lanczos resampling; no enlargement of source content. Padding RGB(18,20,23). Half-open pixel coordinates [left, top, right, bottom].
+
+### pec-deck-fly
+
+- Source relative path: `a_realistic_high_definition_gym_photograph_of_the_exact_same_athletic_man_from_13\screen.png` (PNG, 1264 x 848).
+- Source SHA-256: `967bae0040e16557f31a44a9b4c9cb4f2f8a9153fcb60841dc475ed2b7d22ef8`.
+- Visual review: Seated upright on pec deck machine with back flat against backrest pad, gripping vertical machine handles with arms outstretched, bringing handles together in a fly motion; weight stack and guide rods visible on left.
+- `pec-deck-fly-thumb.jpg`: 512 x 512; crop [215, 10, 1045, 840]; resized content [512, 512]; top-left content offset [0, 0]; 44402 bytes; SHA-256 `e7f254d877369585bb2966434f8709e8a80070565f4dedacb43bc95799591721`.
+- `pec-deck-fly-poster.jpg`: 1280 x 720; crop [0, 0, 1264, 848]; resized content [1073, 720]; top-left content offset [103, 0]; 111993 bytes; SHA-256 `d396aff6cc2c8fd4d92671ddf3958bb56a275ae4935ac8b04d7ddeb4f1db9dd0`.
+
+### reverse-pec-deck
+
+- Source relative path: `a_realistic_high_definition_gym_photograph_of_the_exact_same_athletic_man_from_8\screen.png` (PNG, 1264 x 848).
+- Source SHA-256: `2800605a8cb0227406822141bd4bd81318578b7e8d4eff03a0d14677b0ef9f18`.
+- Visual review: Seated facing pec deck machine with chest against support pad, gripping machine handles at shoulder level and abducting arms horizontally backward with rear deltoids and upper back contracted; machine frame and seat visible.
+- `reverse-pec-deck-thumb.jpg`: 512 x 512; crop [180, 20, 1050, 820]; resized content [512, 471]; top-left content offset [0, 20]; 36074 bytes; SHA-256 `5143b4204d1fa4a53b71a76c839b3489945c3a0ae00c37174ea0297e4ca3050f`.
+- `reverse-pec-deck-poster.jpg`: 1280 x 720; crop [0, 0, 1264, 848]; resized content [1073, 720]; top-left content offset [103, 0]; 81788 bytes; SHA-256 `27a853c3d908c26b524ed82a2fced550aa53db1e399b6584bb141bbcf495c068`.
+
+### cable-biceps-curl
+
+- Source relative path: `a_realistic_high_definition_gym_photograph_of_the_exact_same_athletic_man_from_12\screen.png` (PNG, 1264 x 848).
+- Source SHA-256: `ebf203f9a5ec2834d0c3721416d18e5319f309f24c469ff602baafaeee088fb7`.
+- Visual review: Standing upright facing low-pulley cable machine, gripping straight curl bar attachment with supinated underhand grip with both hands, curling upward with elbows kept at ribs; weight stack tower and cable clearly visible.
+- `cable-biceps-curl-thumb.jpg`: 512 x 512; crop [90, 20, 910, 840]; resized content [512, 512]; top-left content offset [0, 0]; 34557 bytes; SHA-256 `7fcc488fce0aa1a12c71cfaea9d10d2bb8d9491e110d72efcce8ddef39522517`.
+- `cable-biceps-curl-poster.jpg`: 1280 x 720; crop [0, 0, 1264, 848]; resized content [1073, 720]; top-left content offset [103, 0]; 83005 bytes; SHA-256 `b82a465b4bd89b4deca08605d3775e8a34e6a076ceaf7e7d01335e392060cddf`.
+
+

@@ -1,6 +1,7 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:health_ai_app/features/profile/domain/entities/onboarding_activity_choice.dart';
 import 'package:health_ai_app/features/profile/domain/entities/onboarding_draft.dart';
 import 'package:health_ai_app/features/profile/domain/entities/profile_entity.dart';
@@ -300,6 +301,7 @@ class _OnboardingFlowScreenState extends ConsumerState<OnboardingFlowScreen> {
       ref
           .read(profileProvider.notifier)
           .saveAndVerifyOnboarding(validatedDraft);
+      SharedPreferences.getInstance().then((prefs) => prefs.setBool('just_finished_onboarding_${snapshot.userId}', true)).catchError((_) => false);
     }
   }
 

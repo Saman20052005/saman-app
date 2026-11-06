@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="vi"><head><meta charset="utf-8"/><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" name="viewport"/><meta content="mobile_stack" name="shell-type"/><link href="https://fonts.googleapis.com" rel="preconnect"/><link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/><link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config = { darkMode: "class", theme: { extend: { colors: { "surface-dim": "#121314", "surface-container-high": "#292a2b", "primary-container": "#10b981", "on-primary-container": "#00422b", "surface": "#121314", "tertiary-container": "#fc7c78", "primary-fixed-dim": "#4edea3", "on-surface": "#e3e2e3", "on-secondary-fixed": "#191b22", "secondary": "#c5c6cf", "on-error-container": "#ffdad6", "primary-fixed": "#6ffbbe", "on-secondary-fixed-variant": "#45464e", "on-error": "#690005", "secondary-fixed-dim": "#c5c6cf", "surface-variant": "#343536", "inverse-on-surface": "#303031", "tertiary-fixed": "#ffdad7", "surface-tint": "#4edea3", "surface-bright": "#39393a", "outline": "#86948a", "tertiary": "#ffb3af", "on-tertiary": "#650911", "tertiary-fixed-dim": "#ffb3af", "surface-container-lowest": "#0d0e0f", "on-tertiary-container": "#711419", "on-background": "#e3e2e3", "error-container": "#93000a", "on-primary": "#003824", "error": "#ffb4ab", "secondary-fixed": "#e1e2eb", "on-primary-fixed-variant": "#005236", "on-tertiary-fixed-variant": "#842225", "on-primary-fixed": "#002113", "surface-container-highest": "#343536", "on-surface-variant": "#bbcabf", "on-tertiary-fixed": "#410005", "inverse-surface": "#e3e2e3", "on-secondary-container": "#b4b4bd", "secondary-container": "#45464e", "inverse-primary": "#006c49", "on-secondary": "#2e3037", "outline-variant": "#3c4a42", "background": "#121314", "primary": "#4edea3", "surface-container": "#1f2021", "surface-container-low": "#1b1c1d" }, borderRadius: { "DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px" }, spacing: { "space-xs": "0.25rem", "margin": "1rem", "space-xl": "2rem", "gutter": "1rem", "space-md": "1rem", "space-lg": "1.5rem", "space-sm": "0.5rem" }, fontFamily: { "headline-md": ["Be Vietnam Pro"], "numeric-stat": ["Be Vietnam Pro"], "headline-sm": ["Be Vietnam Pro"], "label-md": ["Be Vietnam Pro"], "body-md": ["Be Vietnam Pro"], "headline-lg": ["Be Vietnam Pro"], "body-sm": ["Be Vietnam Pro"], "display-hero": ["Be Vietnam Pro"], "label-sm": ["Be Vietnam Pro"], "body-lg": ["Be Vietnam Pro"] }, fontSize: { "headline-md": ["22px", { lineHeight: "28px", fontWeight: "600" }], "numeric-stat": ["32px", { lineHeight: "36px", fontWeight: "700" }], "headline-sm": ["18px", { lineHeight: "24px", fontWeight: "600" }], "label-md": ["12px", { lineHeight: "16px", fontWeight: "500" }], "body-md": ["14px", { lineHeight: "20px", fontWeight: "400" }], "headline-lg": ["28px", { lineHeight: "34px", fontWeight: "600" }], "body-sm": ["13px", { lineHeight: "18px", fontWeight: "400" }], "display-hero": ["40px", { lineHeight: "48px", fontWeight: "700" }], "label-sm": ["11px", { lineHeight: "14px", fontWeight: "600" }], "body-lg": ["16px", { lineHeight: "24px", fontWeight: "400" }] } } } };</script><style>@layer base{html,body{width:100vw;margin:0;padding:0;background-color:#121314;color:#e3e2e3;}body{overscroll-behavior:none;font-family:'Be Vietnam Pro',sans-serif;}.pb-safe{padding-bottom:env(safe-area-inset-bottom,0px);}.pt-safe{padding-top:env(safe-area-inset-top,0px);}main>:first-child{margin-top:0!important;}main>:last-child{margin-bottom:0!important;}}::-webkit-scrollbar{display:none;}</style><style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head><body class="bg-surface font-body-md text-body-md text-on-surface flex flex-col min-h-screen selection:bg-primary-container selection:text-on-primary-container"><header class="fixed top-0 inset-x-0 z-50 bg-surface/80 backdrop-blur-xl pt-safe shadow-[0_1px_8px_rgba(0,0,0,0.04)]"><div class="h-14 px-margin flex items-center justify-between"><div class="flex items-center gap-space-xs min-w-0"><button aria-label="Quay lại" class="w-11 h-11 -ml-space-xs flex items-center justify-center rounded-full text-on-surface hover:text-primary transition-colors" onclick="history.back()" type="button"><span class="material-symbols-outlined text-[24px]">arrow_back</span></button><h1 class="text-headline-sm font-headline-sm text-on-surface truncate tracking-tight">R09 Community Profile</h1></div><div class="flex items-center gap-space-xs"><button aria-label="Tùy chọn bổ sung" class="w-11 h-11 flex items-center justify-center rounded-full text-on-surface-variant hover:text-on-surface transition-colors" type="button"><span class="material-symbols-outlined text-[22px]">more_vert</span></button><div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center ml-space-xs"><span class="material-symbols-outlined text-on-primary text-[18px]">person</span></div></div></div></header><main class="flex-1 flex flex-col relative w-full pt-14 pb-safe bg-surface"><div class="flex flex-col w-full pb-10">
+<!-- Top Switcher: Chuyển đổi Biến thể xem -->
+<div class="px-margin pt-space-xs pb-space-sm flex items-center justify-between">
+<span class="text-label-sm font-label-sm text-on-surface-variant uppercase tracking-wider">Chế độ xem</span>
+<div class="inline-flex items-center gap-1.5 p-1 bg-surface-container rounded-lg">
+<button class="px-2.5 py-1 text-label-sm font-label-sm rounded-md bg-surface-bright text-primary transition-all" id="view-other-btn" onclick="toggleProfileView('other')">
+        Khách xem
+      </button>
+<button class="px-2.5 py-1 text-label-sm font-label-sm rounded-md text-on-surface-variant hover:text-on-surface transition-all" id="view-self-btn" onclick="toggleProfileView('self')">
+        Chính mình
+      </button>
+</div>
+</div>
+<!-- Profile Header Card -->
+<section class="px-margin flex flex-col gap-space-md">
+<div class="flex items-center gap-space-md">
+<!-- Avatar with subtle kinetic active ring -->
+<div class="relative w-20 h-20 rounded-full overflow-hidden bg-surface-container-high p-0.5 flex-shrink-0">
+<img class="w-full h-full rounded-full object-cover" data-alt="Close up athletic portrait of a Vietnamese female fitness enthusiast with sleek tied back hair, wearing minimalist charcoal gym wear, natural soft gym lighting, cinematic studio contrast, dark warm undertones, professional sports photography" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCKvP8qShWnFbSBh0jixazeEtZbpvX62-foYycN_NdKNmqoV2f_cZ1wBwylue50eA2fFVjeFDsT7qHL4pnhtGEpouvwpWG4K0vwquqRlT7a5Ik_8W_F3p3DmtxIL3jm0kpRQdMXdpDCDAKpMNTSKLTWajJI_7GdlwfAszN-fmLrrum5xZhPuCCK92nMrfWNvdus6Hc1h6_ZfW11hc799t0ZglE8cceGOx0hvk35-ZPr"/>
+<span class="absolute bottom-1 right-1 w-3.5 h-3.5 bg-primary rounded-full"></span>
+</div>
+<!-- User Stats Trio -->
+<div class="flex-1 grid grid-cols-3 gap-1 bg-surface-container-low p-space-sm rounded-xl text-center">
+<div class="flex flex-col items-center">
+<span class="text-headline-sm font-headline-sm text-on-surface tracking-tight" id="stat-posts-count">38</span>
+<span class="text-label-sm font-label-sm text-on-surface-variant">Bài viết</span>
+</div>
+<button class="flex flex-col items-center group transition-transform active:scale-95" type="button">
+<span class="text-headline-sm font-headline-sm text-on-surface group-hover:text-primary tracking-tight">2.4k</span>
+<span class="text-label-sm font-label-sm text-on-surface-variant">Người theo</span>
+</button>
+<button class="flex flex-col items-center group transition-transform active:scale-95" type="button">
+<span class="text-headline-sm font-headline-sm text-on-surface group-hover:text-primary tracking-tight">186</span>
+<span class="text-label-sm font-label-sm text-on-surface-variant">Đang theo</span>
+</button>
+</div>
+</div>
+<!-- Identity & Bio Details -->
+<div class="flex flex-col gap-1">
+<div class="flex items-center gap-1.5">
+<h2 class="text-headline-sm font-headline-sm text-on-surface tracking-tight" id="profile-display-name">Linh Nguyễn</h2>
+<span class="px-2 py-0.5 text-label-sm font-label-sm bg-surface-container-highest text-primary rounded-full">Kinetic 360</span>
+</div>
+<p class="text-label-md font-label-md text-on-surface-variant font-mono">@linhnguyen.fit</p>
+<p class="text-body-sm font-body-sm text-on-surface mt-1 leading-relaxed">
+        Đam mê nấu ăn lành mạnh &amp; rèn luyện sức bền 🌿 Chia sẻ meal prep mỗi tuần và hành trình tập luyện kiên trì cùng Saman Kinetic.
+      </p>
+</div>
+<!-- Action Buttons Row -->
+<div class="grid grid-cols-12 gap-2" id="action-buttons-container">
+<!-- Variant 1: Viewing Other Profile (Default) -->
+<div class="col-span-12 flex gap-2 w-full" id="guest-actions">
+<button class="flex-1 h-11 bg-primary text-on-primary font-headline-sm text-label-md rounded-xl flex items-center justify-center gap-1.5 active:opacity-90 transition-all" id="follow-toggle-btn" onclick="toggleFollowState()">
+<span class="material-symbols-outlined text-[18px]" id="follow-icon">person_add</span>
+<span id="follow-label">Theo dõi</span>
+</button>
+<button class="h-11 px-4 bg-surface-container-high text-on-surface text-label-md font-label-md rounded-xl flex items-center justify-center gap-1 active:bg-surface-bright transition-colors" onclick="openShareSheet()" type="button">
+<span class="material-symbols-outlined text-[18px]">share</span>
+<span>Chia sẻ</span>
+</button>
+</div>
+<!-- Variant 2: Self Profile (Hidden by default) -->
+<div class="col-span-12 hidden gap-2 w-full" id="self-actions">
+<button class="flex-1 h-11 bg-surface-container-high text-on-surface text-label-md font-headline-sm rounded-xl flex items-center justify-center gap-1.5 active:bg-surface-bright transition-colors" type="button">
+<span class="material-symbols-outlined text-[18px]">edit_note</span>
+<span>Chỉnh sửa hồ sơ</span>
+</button>
+<button class="h-11 px-4 bg-surface-container-high text-on-surface text-label-md font-label-md rounded-xl flex items-center justify-center gap-1 active:bg-surface-bright transition-colors" onclick="openShareSheet()" type="button">
+<span class="material-symbols-outlined text-[18px]">qr_code_2</span>
+</button>
+</div>
+</div>
+</section>
+<!-- Feed Category Tabs & View Layout Switcher -->
+<section class="mt-space-lg px-margin flex items-center justify-between bg-surface-container-lowest py-2 sticky top-14 z-20 backdrop-blur-md bg-opacity-95">
+<div class="flex items-center gap-space-sm" id="tab-nav-container">
+<button class="pb-1 text-label-md font-headline-sm text-primary flex items-center gap-1.5 transition-colors" id="tab-posts" onclick="selectTab('posts')">
+<span>Bài viết</span>
+<span class="px-1.5 py-0.2 bg-primary-container text-on-primary-container rounded-full text-label-sm font-label-sm">32</span>
+</button>
+<button class="pb-1 text-label-md font-label-md text-on-surface-variant hover:text-on-surface flex items-center gap-1.5 transition-colors" id="tab-qa" onclick="selectTab('qa')">
+<span>Hỏi đáp</span>
+<span class="px-1.5 py-0.2 bg-surface-container text-on-surface-variant rounded-full text-label-sm font-label-sm">6</span>
+</button>
+<button class="pb-1 text-label-md font-label-md text-on-surface-variant hover:text-on-surface hidden items-center gap-1.5 transition-colors" id="tab-saved" onclick="selectTab('saved')">
+<span class="material-symbols-outlined text-[16px]">bookmark</span>
+<span>Đã lưu</span>
+</button>
+</div>
+<!-- Grid / List Switcher -->
+<div class="flex items-center gap-1 bg-surface-container p-1 rounded-lg">
+<button class="w-7 h-7 flex items-center justify-center rounded bg-surface-bright text-primary transition-all" id="grid-view-btn" onclick="setViewMode('grid')">
+<span class="material-symbols-outlined text-[18px]">grid_view</span>
+</button>
+<button class="w-7 h-7 flex items-center justify-center rounded text-on-surface-variant hover:text-on-surface transition-all" id="list-view-btn" onclick="setViewMode('list')">
+<span class="material-symbols-outlined text-[18px]">view_agenda</span>
+</button>
+</div>
+</section>
+<!-- Post Feeds Container -->
+<section class="px-margin mt-space-sm">
+<!-- Grid Mode (Default 3-Columns) -->
+<div class="grid grid-cols-3 gap-1.5" id="posts-grid">
+<!-- Item 1: Meal Prep Box (Multiple photos indicator) -->
+<div class="relative aspect-square rounded-lg overflow-hidden bg-surface-container group cursor-pointer active:scale-95 transition-transform" onclick="openPostDetail('post_01')">
+<img class="w-full h-full object-cover" data-alt="High angle shot of a clean obsidian black glass meal prep container filled with sliced grilled chicken breast, roasted broccoli, quinoa, and vibrant cherry tomatoes, shot in low ambient lighting with studio edge highlights, health fitness aesthetics" src="https://lh3.googleusercontent.com/aida-public/AB6AXuC-otaVHlpVxG0hNZ4vLN1cC7b3K0oGxExjc1qb0qL5r7tH75kCtfJHnu56EsDEPWxyfuEds2RoCU8bBDX4yG3-jKtfWSXVo1Eo3O5GoRt5EkmSI_lUv5Zdb7fewhh73cwu17MlOOJB_6UiND0hzfMrCr2Hs77lco_pkoZLuKCI4828cax75rCHuYj4x6VYcAd04lrcWmjrKIippX2S3i-mMnM4qKcSd32mqLXsyMvq"/>
+<div class="absolute top-1.5 right-1.5 w-5 h-5 rounded-md bg-surface-dim/80 backdrop-blur-sm flex items-center justify-center text-on-surface">
+<span class="material-symbols-outlined text-[14px]">photo_library</span>
+</div>
+<div class="absolute inset-x-0 bottom-0 p-1.5 bg-gradient-to-t from-surface-dim/90 to-transparent flex items-center justify-between text-on-surface text-label-sm font-label-sm">
+<span class="flex items-center gap-0.5"><span class="material-symbols-outlined text-[12px] text-tertiary">favorite</span> 342</span>
+</div>
+</div>
+<!-- Item 2: Workout tile Upper Body -->
+<div class="relative aspect-square rounded-lg overflow-hidden bg-surface-container group cursor-pointer active:scale-95 transition-transform" onclick="openPostDetail('post_02')">
+<img class="w-full h-full object-cover" data-alt="Focused moody fitness photograph of black urethane dumbbells on a steel rack in a dark luxury athletic center, neon teal ambient edge lighting, fine dust particles, dramatic contrast, high resolution" src="https://lh3.googleusercontent.com/aida-public/AB6AXuChvL3vO1VNVDpBrs0BxqDS_6rWNHPl-l8cE9z0WsplzEGfsIGbMZJoJf_e5dV0SSyrfDDrS9UBSiw1B9Q2kPxHAJtr8FWS5cUOcsIey_02MXVralTyfghKcw7BVMGwRkTSM6UXN1TFQN1zNDIaKsZmS0qu_yKzaFCWoCIK5dbuD__q-M1YC1xywC1gNLC1bfNXEKghYarkiCtgw3SVEiUirQg9ichFCRxzRzEYE4HH"/>
+<div class="absolute top-1.5 right-1.5 px-1.5 py-0.5 rounded bg-primary-container/90 text-on-primary-container text-label-sm font-label-sm flex items-center gap-0.5">
+<span class="material-symbols-outlined text-[12px]">fitness_center</span>
+</div>
+<div class="absolute inset-x-0 bottom-0 p-1.5 bg-gradient-to-t from-surface-dim/90 to-transparent flex items-center justify-between text-on-surface text-label-sm font-label-sm">
+<span class="flex items-center gap-0.5"><span class="material-symbols-outlined text-[12px] text-tertiary">favorite</span> 518</span>
+</div>
+</div>
+<!-- Item 3: Banana Oatmeal Smoothie -->
+<div class="relative aspect-square rounded-lg overflow-hidden bg-surface-container group cursor-pointer active:scale-95 transition-transform" onclick="openPostDetail('post_03')">
+<img class="w-full h-full object-cover" data-alt="Artisanal glass cup containing thick creamy banana oatmeal protein smoothie, topped with chia seeds, set on a dark slate slate table with warm rim light and clean fitness aesthetic" src="https://lh3.googleusercontent.com/aida-public/AB6AXuARSMp7ZLTBvmO1AtRU3xoOCq9GYw2wOppNwlAnQQac7DYSprNQVKReWt6330vR1QvkQvouVaUgBTztTjSHSoc8w7r-tunGGYqNUOerNGxtIEtwG8t9iNmO6KtojIvSVKMLoXq2PFdlT3mYl47GoB0zh3lCnGy5-93vAAeVRkVSIgi63IRgyGHhKMTvB6hGsJDNiAhWVxT6sJqcJ7D6UYSQVJh7eJPBeVanXmno7Udw"/>
+<div class="absolute inset-x-0 bottom-0 p-1.5 bg-gradient-to-t from-surface-dim/90 to-transparent flex items-center justify-between text-on-surface text-label-sm font-label-sm">
+<span class="flex items-center gap-0.5"><span class="material-symbols-outlined text-[12px] text-tertiary">favorite</span> 189</span>
+</div>
+</div>
+<!-- Item 4: Calisthenics & Mobility -->
+<div class="relative aspect-square rounded-lg overflow-hidden bg-surface-container group cursor-pointer active:scale-95 transition-transform" onclick="openPostDetail('post_04')">
+<img class="w-full h-full object-cover" data-alt="Athletic silhouette practicing gymnastic mobility and handstand holds on parallel bars against a minimalist dark concrete background with directional cyan key light, powerful athletic posture" src="https://lh3.googleusercontent.com/aida-public/AB6AXuC7ZTeiy_rUttntOrosXnC9RBuku0RecYTjbF2RVVmkJx-q4bj8zgm2mI4D-sL0XkR9WQmFAVFHEJCH6_L4t2m1mUpVxN3z3wtDrhhdsEbfGqwD8S2_gXWVHBXZayHaORQgAD3kjmhi1gccYLFkzOTZ-FIrondvbLOAIE9B1Fs9N-taX2R4QNoQ6eid1KbwkiIOUZSI3YNSblvGkawesyQS9S4Kgv1MBdw1ms5Ge6zm"/>
+<div class="absolute top-1.5 right-1.5 w-5 h-5 rounded-md bg-surface-dim/80 backdrop-blur-sm flex items-center justify-center text-on-surface">
+<span class="material-symbols-outlined text-[14px]">videocam</span>
+</div>
+<div class="absolute inset-x-0 bottom-0 p-1.5 bg-gradient-to-t from-surface-dim/90 to-transparent flex items-center justify-between text-on-surface text-label-sm font-label-sm">
+<span class="flex items-center gap-0.5"><span class="material-symbols-outlined text-[12px] text-tertiary">favorite</span> 420</span>
+</div>
+</div>
+<!-- Item 5: 3-Day Meal Prep Overview -->
+<div class="relative aspect-square rounded-lg overflow-hidden bg-surface-container group cursor-pointer active:scale-95 transition-transform" onclick="openPostDetail('post_05')">
+<img class="w-full h-full object-cover" data-alt="Neat arrangement of 6 uniform nutrition glass meal prep containers filled with macro balanced foods, salmon fillet, sweet potatoes, and asparagus, shot overhead with clinical athletic clarity and matte dark finishes" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAyqSNe_ieLMU_Z_feTzOzbIxP6GFcL0NvdfoJiHmTrBUuWmqCdhtCGnKYyjewc2L_uleEOPCZDQKFOWeKfoI6ZUzsT9ObWCJ8T6i36dVoua25cPp50-x4mxxZGpwzmHf_8xo09MYrViEAwrBsuyaA2-b8zBMzl34ETMa5wd7WE1jb9tNaf_8_huHyvfwUmNd92mLXKQ-eMSBgwqIcOf_dnkEhXtIbeunidkUbxg-Vr"/>
+<div class="absolute top-1.5 right-1.5 w-5 h-5 rounded-md bg-surface-dim/80 backdrop-blur-sm flex items-center justify-center text-on-surface">
+<span class="material-symbols-outlined text-[14px]">photo_library</span>
+</div>
+<div class="absolute inset-x-0 bottom-0 p-1.5 bg-gradient-to-t from-surface-dim/90 to-transparent flex items-center justify-between text-on-surface text-label-sm font-label-sm">
+<span class="flex items-center gap-0.5"><span class="material-symbols-outlined text-[12px] text-tertiary">favorite</span> 612</span>
+</div>
+</div>
+<!-- Item 6: Shaker & Lifting Belt Gear -->
+<div class="relative aspect-square rounded-lg overflow-hidden bg-surface-container group cursor-pointer active:scale-95 transition-transform" onclick="openPostDetail('post_06')">
+<img class="w-full h-full object-cover" data-alt="Still life photograph of a matte black stainless steel protein shaker cup placed beside a genuine black leather weightlifting lever belt with engraved steel buckle on dark rubber gym flooring" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCCfhoLNaC6eJx3W_Gf8aetDP_rAQP0TD9esFV4s1nlFsGp1G-osYklRMXzDd8tbzw3LgcDSlLpVbRAlog4-XkTY7bswJp1Eq7EBwiuIm1bgiDt_tgVEWJOArTZ9LjnKFKccMZH0Xs-8owQ3KG6_VaPR3jSgJfsZpI7CMA_7wH9pOjHLyHie5kD3FC2oqyffKuH8pT0vVXm9zql4yrx0NdmISVgYgJyXRV3UQ2WWyhY"/>
+<div class="absolute inset-x-0 bottom-0 p-1.5 bg-gradient-to-t from-surface-dim/90 to-transparent flex items-center justify-between text-on-surface text-label-sm font-label-sm">
+<span class="flex items-center gap-0.5"><span class="material-symbols-outlined text-[12px] text-tertiary">favorite</span> 278</span>
+</div>
+</div>
+</div>
+<!-- List Mode (Hidden by default) -->
+<div class="hidden flex-col gap-3" id="posts-list">
+<!-- List Card 1 -->
+<div class="bg-surface-container-low rounded-xl p-space-sm flex flex-col gap-2.5 active:bg-surface-container transition-colors" onclick="openPostDetail('post_01')">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2">
+<span class="text-label-sm font-label-sm text-primary">Dinh dưỡng chuẩn</span>
+<span class="text-label-sm font-label-sm text-on-surface-variant">• 2 ngày trước</span>
+</div>
+<span class="material-symbols-outlined text-[16px] text-on-surface-variant">more_horiz</span>
+</div>
+<p class="text-body-sm font-body-sm text-on-surface line-clamp-2">
+          Gợi ý meal prep 3 ngày đầu tuần: 150g ức gà áp chảo sốt chanh leo + 120g khoai lang tím nướng + bông cải xanh hấp. Tổng năng lượng 480 kcal, 46g Protein.
+        </p>
+<div class="w-full h-44 rounded-lg overflow-hidden relative">
+<img class="w-full h-full object-cover" data-alt="Close-up high key culinary shot of neatly sliced grilled chicken breast with roasted broccoli and purple sweet potatoes inside an eco meal prep box on charcoal background" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBn0pj_l5NMM5ISafrtWqGPGY4jNK6EEooqtLh_md1C5LAVjPTrSLdR3tgxgZ_7eb5tT_UPI1orjW9QNEGzsAltv3r6wT-cg3mw-Ffiozr0bsu97ZwzO-3TMWG435ObwdU-CcLJAQCs_VpDctbLdl51IXGjgD3hYzI07vyA7dJ_xkc7uhe8_bDVlWUpcml8iyGPGdNfqU6nwM26sL0djdBLFaJcm85YpQHkHtuh8LLu"/>
+</div>
+<div class="flex items-center justify-between pt-1 text-on-surface-variant text-label-sm font-label-sm">
+<div class="flex items-center gap-3">
+<span class="flex items-center gap-1 text-tertiary"><span class="material-symbols-outlined text-[16px]">favorite</span> 342</span>
+<span class="flex items-center gap-1"><span class="material-symbols-outlined text-[16px]">chat_bubble</span> 28</span>
+</div>
+<span class="material-symbols-outlined text-[18px]">bookmark_border</span>
+</div>
+</div>
+<!-- List Card 2 -->
+<div class="bg-surface-container-low rounded-xl p-space-sm flex flex-col gap-2.5 active:bg-surface-container transition-colors" onclick="openPostDetail('post_02')">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2">
+<span class="text-label-sm font-label-sm text-primary">Tập luyện</span>
+<span class="text-label-sm font-label-sm text-on-surface-variant">• 4 ngày trước</span>
+</div>
+<span class="material-symbols-outlined text-[16px] text-on-surface-variant">more_horiz</span>
+</div>
+<p class="text-body-sm font-body-sm text-on-surface line-clamp-2">
+          Giáo án Upper Body Hypertrophy tuần thứ 4. Duy trì RPE 8-9 ở các set Dumbbell Incline Press. Cảm nhận cơ ngực căng tối đa!
+        </p>
+<div class="w-full h-44 rounded-lg overflow-hidden relative">
+<img class="w-full h-full object-cover" data-alt="Athlete preparing heavy dumbbells for incline chest press on a workout bench, athletic grip with chalk in low light gym setting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDXzqCtfgXHTfcaOFbfMfphuwrxw9NAF4Qh0IxIhsWKq84PHQ3ot6Kyrvfkw-Pmb9vzKjCvbdNvA6_Iydmj9DNCRgL7GZD-CxMxcpKFLVf-2VdH-Wg9hRYYPwcLsKotgdR2KeT8hKveYFUKodzZVBylErNhq4TR7bl0Xx_BzuKf-3SB4Pg3A0q3ALjhbgrnK4C74Rvf4-SHbBYXf-joptzyB-MiOPACeAGd6_JFcl4s"/>
+</div>
+<div class="flex items-center justify-between pt-1 text-on-surface-variant text-label-sm font-label-sm">
+<div class="flex items-center gap-3">
+<span class="flex items-center gap-1 text-tertiary"><span class="material-symbols-outlined text-[16px]">favorite</span> 518</span>
+<span class="flex items-center gap-1"><span class="material-symbols-outlined text-[16px]">chat_bubble</span> 42</span>
+</div>
+<span class="material-symbols-outlined text-[18px]">bookmark_border</span>
+</div>
+</div>
+</div>
+<!-- Empty / Q&A Mock State for QA Tab -->
+<div class="hidden flex-col items-center justify-center py-10 px-margin text-center" id="qa-container">
+<div class="w-14 h-14 rounded-2xl bg-surface-container flex items-center justify-center text-primary mb-space-sm">
+<span class="material-symbols-outlined text-[28px]">question_answer</span>
+</div>
+<h3 class="text-headline-sm font-headline-sm text-on-surface">Chuyên mục Hỏi &amp; Đáp</h3>
+<p class="text-body-sm font-body-sm text-on-surface-variant max-w-xs mt-1">
+        Linh Nguyễn đã giải đáp 6 thắc mắc về cách bảo quản meal prep và tính toán TDEE chuẩn cho nữ giới.
+      </p>
+<button class="mt-4 px-4 py-2 bg-surface-container-high hover:bg-surface-bright rounded-xl text-label-md font-headline-sm text-primary transition-colors">
+        Đặt câu hỏi mới
+      </button>
+</div>
+</section>
+<!-- Share & Options Bottom Sheet Modal -->
+<div class="fixed inset-0 z-50 bg-surface-dim/80 backdrop-blur-sm hidden flex-col justify-end transition-opacity" id="options-sheet">
+<div class="bg-surface-container-low rounded-t-2xl p-margin flex flex-col gap-2 shadow-2xl max-w-md mx-auto w-full">
+<div class="w-10 h-1 bg-surface-variant rounded-full mx-auto mb-2"></div>
+<div class="flex items-center justify-between pb-2">
+<h4 class="text-headline-sm font-headline-sm text-on-surface">Tùy chọn tương tác</h4>
+<button class="p-1 text-on-surface-variant hover:text-on-surface" onclick="closeShareSheet()">
+<span class="material-symbols-outlined text-[20px]">close</span>
+</button>
+</div>
+<button class="w-full h-12 bg-surface-container px-space-md rounded-xl flex items-center gap-3 text-on-surface hover:bg-surface-container-high transition-colors" type="button">
+<span class="material-symbols-outlined text-primary text-[20px]">share</span>
+<span class="text-body-md font-body-md">Chia sẻ liên kết hồ sơ</span>
+</button>
+<button class="w-full h-12 bg-surface-container px-space-md rounded-xl flex items-center gap-3 text-on-surface hover:bg-surface-container-high transition-colors" type="button">
+<span class="material-symbols-outlined text-on-surface-variant text-[20px]">qr_code_scanner</span>
+<span class="text-body-md font-body-md">Mã QR cá nhân</span>
+</button>
+<button class="w-full h-12 bg-surface-container px-space-md rounded-xl flex items-center gap-3 text-error hover:bg-surface-container-high transition-colors" type="button">
+<span class="material-symbols-outlined text-[20px]">flag</span>
+<span class="text-body-md font-body-md">Báo cáo người dùng</span>
+</button>
+<button class="w-full h-12 bg-surface-container px-space-md rounded-xl flex items-center gap-3 text-error hover:bg-surface-container-high transition-colors" type="button">
+<span class="material-symbols-outlined text-[20px]">block</span>
+<span class="text-body-md font-body-md">Chặn @linhnguyen.fit</span>
+</button>
+</div>
+</div>
+<!-- Toast Notification -->
+<div class="fixed bottom-6 inset-x-6 z-50 flex items-center justify-center pointer-events-none opacity-0 transition-opacity duration-300" id="app-toast">
+<div class="bg-surface-bright text-on-surface px-4 py-2.5 rounded-xl shadow-lg flex items-center gap-2 text-label-md font-label-md">
+<span class="material-symbols-outlined text-primary text-[18px]" id="toast-icon">check_circle</span>
+<span id="toast-message">Đã sao chép liên kết hồ sơ</span>
+</div>
+</div>
+</div>
+<script>
+  let isFollowing = false;
+  let currentViewVariant = 'other'; // 'other' | 'self'
+  let currentDisplayMode = 'grid'; // 'grid' | 'list'
+  let currentActiveTab = 'posts'; // 'posts' | 'qa' | 'saved'
+
+  function showToast(message, icon = 'check_circle') {
+    const toast = document.getElementById('app-toast');
+    const msgEl = document.getElementById('toast-message');
+    const iconEl = document.getElementById('toast-icon');
+    if (!toast || !msgEl) return;
+    
+    msgEl.textContent = message;
+    if (iconEl) iconEl.textContent = icon;
+    toast.classList.remove('opacity-0');
+    toast.classList.add('opacity-100');
+    
+    setTimeout(() => {
+      toast.classList.remove('opacity-100');
+      toast.classList.add('opacity-0');
+    }, 2400);
+  }
+
+  function toggleFollowState() {
+    isFollowing = !isFollowing;
+    const btn = document.getElementById('follow-toggle-btn');
+    const icon = document.getElementById('follow-icon');
+    const label = document.getElementById('follow-label');
+
+    if (isFollowing) {
+      btn.classList.remove('bg-primary', 'text-on-primary');
+      btn.classList.add('bg-surface-container-high', 'text-primary');
+      icon.textContent = 'check';
+      label.textContent = 'Đang theo dõi';
+      showToast('Đã bắt đầu theo dõi Linh Nguyễn');
+    } else {
+      btn.classList.add('bg-primary', 'text-on-primary');
+      btn.classList.remove('bg-surface-container-high', 'text-primary');
+      icon.textContent = 'person_add';
+      label.textContent = 'Theo dõi';
+      showToast('Đã hủy theo dõi Linh Nguyễn', 'person_remove');
+    }
+  }
+
+  function toggleProfileView(mode) {
+    currentViewVariant = mode;
+    const otherBtn = document.getElementById('view-other-btn');
+    const selfBtn = document.getElementById('view-self-btn');
+    const guestActions = document.getElementById('guest-actions');
+    const selfActions = document.getElementById('self-actions');
+    const tabSaved = document.getElementById('tab-saved');
+
+    if (mode === 'self') {
+      selfBtn.classList.add('bg-surface-bright', 'text-primary');
+      selfBtn.classList.remove('text-on-surface-variant');
+      otherBtn.classList.remove('bg-surface-bright', 'text-primary');
+      otherBtn.classList.add('text-on-surface-variant');
+
+      guestActions.classList.add('hidden');
+      guestActions.classList.remove('flex');
+      selfActions.classList.remove('hidden');
+      selfActions.classList.add('flex');
+
+      tabSaved.classList.remove('hidden');
+      tabSaved.classList.add('flex');
+      showToast('Đang ở chế độ xem Hồ sơ của chính mình');
+    } else {
+      otherBtn.classList.add('bg-surface-bright', 'text-primary');
+      otherBtn.classList.remove('text-on-surface-variant');
+      selfBtn.classList.remove('bg-surface-bright', 'text-primary');
+      selfBtn.classList.add('text-on-surface-variant');
+
+      selfActions.classList.add('hidden');
+      selfActions.classList.remove('flex');
+      guestActions.classList.remove('hidden');
+      guestActions.classList.add('flex');
+
+      tabSaved.classList.add('hidden');
+      tabSaved.classList.remove('flex');
+      if (currentActiveTab === 'saved') {
+        selectTab('posts');
+      }
+      showToast('Đang ở chế độ Khách xem hồ sơ');
+    }
+  }
+
+  function selectTab(tabKey) {
+    currentActiveTab = tabKey;
+    const tabPosts = document.getElementById('tab-posts');
+    const tabQa = document.getElementById('tab-qa');
+    const tabSaved = document.getElementById('tab-saved');
+    const postsGrid = document.getElementById('posts-grid');
+    const postsList = document.getElementById('posts-list');
+    const qaContainer = document.getElementById('qa-container');
+
+    // Reset tab active styles
+    [tabPosts, tabQa, tabSaved].forEach(btn => {
+      if (!btn) return;
+      btn.classList.remove('text-primary');
+      btn.classList.add('text-on-surface-variant');
+      btn.classList.replace('font-headline-sm', 'font-label-md');
+    });
+
+    const activeBtn = document.getElementById('tab-' + tabKey);
+    if (activeBtn) {
+      activeBtn.classList.remove('text-on-surface-variant');
+      activeBtn.classList.add('text-primary');
+      activeBtn.classList.replace('font-label-md', 'font-headline-sm');
+    }
+
+    if (tabKey === 'qa') {
+      postsGrid.classList.add('hidden');
+      postsList.classList.add('hidden');
+      qaContainer.classList.remove('hidden');
+      qaContainer.classList.add('flex');
+    } else {
+      qaContainer.classList.add('hidden');
+      qaContainer.classList.remove('flex');
+      setViewMode(currentDisplayMode);
+    }
+  }
+
+  function setViewMode(mode) {
+    currentDisplayMode = mode;
+    const gridBtn = document.getElementById('grid-view-btn');
+    const listBtn = document.getElementById('list-view-btn');
+    const gridContainer = document.getElementById('posts-grid');
+    const listContainer = document.getElementById('posts-list');
+    const qaContainer = document.getElementById('qa-container');
+
+    if (currentActiveTab === 'qa') {
+      return;
+    }
+
+    if (mode === 'grid') {
+      gridBtn.classList.add('bg-surface-bright', 'text-primary');
+      gridBtn.classList.remove('text-on-surface-variant');
+      listBtn.classList.remove('bg-surface-bright', 'text-primary');
+      listBtn.classList.add('text-on-surface-variant');
+
+      gridContainer.classList.remove('hidden');
+      listContainer.classList.add('hidden');
+      listContainer.classList.remove('flex');
+    } else {
+      listBtn.classList.add('bg-surface-bright', 'text-primary');
+      listBtn.classList.remove('text-on-surface-variant');
+      gridBtn.classList.remove('bg-surface-bright', 'text-primary');
+      gridBtn.classList.add('text-on-surface-variant');
+
+      gridContainer.classList.add('hidden');
+      listContainer.classList.remove('hidden');
+      listContainer.classList.add('flex');
+    }
+  }
+
+  function openPostDetail(postId) {
+    showToast('Mở chi tiết bài viết: ' + postId, 'open_in_new');
+  }
+
+  function openShareSheet() {
+    const sheet = document.getElementById('options-sheet');
+    if (sheet) {
+      sheet.classList.remove('hidden');
+      sheet.classList.add('flex');
+    }
+  }
+
+  function closeShareSheet() {
+    const sheet = document.getElementById('options-sheet');
+    if (sheet) {
+      sheet.classList.add('hidden');
+      sheet.classList.remove('flex');
+    }
+  }
+</script></main></body></html>

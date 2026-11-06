@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" name="viewport"/>
+<title>SAMAN - Points &amp; AI Credits</title>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=JetBrains+Mono:wght@400;500;600&amp;family=Space+Grotesk:wght@500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<style>
+  @layer base {
+    html, body {
+      width: 100vw;
+      margin: 0;
+      padding: 0;
+      background-color: #0C0D0E;
+      color: #F3F4F6;
+      font-family: 'Inter', sans-serif;
+    }
+    body {
+      overscroll-behavior: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .pb-safe {
+      padding-bottom: env(safe-area-inset-bottom, 24px);
+    }
+    .pt-safe {
+      padding-top: env(safe-area-inset-top, 0px);
+    }
+  }
+  ::-webkit-scrollbar {
+    display: none;
+  }
+  .tabular-nums {
+    font-variant-numeric: tabular-nums;
+  }
+</style>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script>
+  tailwind.config = {
+    darkMode: "class",
+    theme: {
+      extend: {
+        colors: {
+          brand: {
+            bg: "#0C0D0E",
+            card: "#16171B",
+            cardHover: "#1F2126",
+            border: "#26282F",
+            iconBg: "#212328",
+            muted: "#94979E",
+            accent: "#10B981"
+          }
+        },
+        fontFamily: {
+          headline: ["Space Grotesk", "sans-serif"],
+          body: ["Inter", "sans-serif"],
+          mono: ["JetBrains Mono", "monospace"]
+        }
+      }
+    }
+  };
+</script>
+</head>
+<body class="bg-[#0C0D0E] font-body text-sm text-[#F3F4F6] antialiased min-h-screen flex flex-col relative selection:bg-[#10B981]/30">
+<!-- TOP STATUS BAR -->
+<div class="w-full pt-safe bg-[#0C0D0E] z-40 sticky top-0">
+<div class="h-11 px-6 flex items-center justify-between text-xs text-[#F3F4F6] font-medium tracking-tight">
+<span class="font-mono text-[13px] font-semibold">9:41</span>
+<div class="flex items-center gap-2 text-[14px]">
+<span class="material-symbols-outlined text-[15px] leading-none">signal_cellular_alt</span>
+<span class="material-symbols-outlined text-[15px] leading-none">wifi</span>
+<span class="material-symbols-outlined text-[18px] leading-none">battery_full</span>
+</div>
+</div>
+</div>
+<!-- MAIN SCROLLABLE CONTENT -->
+<main class="flex-1 w-full max-w-md mx-auto px-4 pb-28 flex flex-col space-y-6">
+<!-- HEADER -->
+<header class="flex items-center justify-between pt-1">
+<div class="flex items-center gap-3">
+<button aria-label="Back" class="w-9 h-9 -ml-1 rounded-full flex items-center justify-center text-[#94979E] hover:text-[#F3F4F6] transition-colors active:scale-95" type="button">
+<span class="material-symbols-outlined text-[24px]">arrow_back</span>
+</button>
+<h1 class="font-headline text-[22px] font-semibold leading-tight text-[#F3F4F6] tracking-tight">Points &amp; AI Credits</h1>
+</div>
+<button aria-label="Exchange information" class="w-9 h-9 rounded-full flex items-center justify-center text-[#94979E] hover:text-[#F3F4F6] transition-colors active:scale-95" type="button">
+<span class="material-symbols-outlined text-[20px]">info</span>
+</button>
+</header>
+<!-- 1. DUAL BALANCE CARD (Clearly distinct thin icons and independent currencies) -->
+<section class="pt-2 pb-1 text-center flex flex-col items-center justify-center space-y-1">
+<div class="text-xs text-[#94979E] font-medium tracking-wide">Accumulated points</div>
+<div class="font-headline text-5xl font-bold text-[#F3F4F6] tracking-tight tabular-nums py-1">240</div>
+<div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#16171B] border border-[#26282F] text-xs text-[#94979E]">
+<span class="material-symbols-outlined text-[15px] text-[#38bdf8]">smart_toy</span>
+<span class="text-[#F3F4F6] font-medium">3 AI credits</span>
+<span>available</span>
+</div>
+</section>
+<!-- 2. EXCHANGE OFFERS SECTION -->
+<section class="space-y-3 pt-2">
+<div class="flex flex-col gap-0.5 px-1">
+<h2 class="text-sm font-semibold text-[#F3F4F6]">Redeem AI credits</h2>
+<p class="text-xs text-[#94979E]">Use points to redeem AI analysis credits.</p>
+</div>
+<div class="bg-[#16171B] border border-[#26282F] rounded-2xl divide-y divide-[#26282F] overflow-hidden">
+<!-- Row 1: Selected (1 AI credit - 100 points) -->
+<div class="p-4 flex items-center justify-between cursor-pointer hover:bg-[#1F2126]/50 transition-colors bg-[#10B981]/[0.02]">
+<div class="flex items-center gap-3.5">
+<div class="w-5 h-5 rounded-full border-2 border-[#10B981] flex items-center justify-center">
+<div class="w-2.5 h-2.5 rounded-full bg-[#10B981]"></div>
+</div>
+<div>
+<div class="text-sm font-medium text-[#F3F4F6]">1 AI credit</div>
+<div class="text-xs text-[#94979E] mt-0.5">Meal photo analysis or coach breakdown</div>
+</div>
+</div>
+<div class="text-right">
+<span class="text-sm font-semibold text-[#F3F4F6]">100 points</span>
+</div>
+</div>
+<!-- Row 2: 3 AI credits - 280 points (insufficient) -->
+<div class="p-4 flex items-center justify-between opacity-60 cursor-not-allowed">
+<div class="flex items-center gap-3.5">
+<div class="w-5 h-5 rounded-full border border-[#94979E]/40 flex items-center justify-center"></div>
+<div>
+<div class="text-sm font-medium text-[#F3F4F6]">3 AI credits</div>
+<div class="text-xs text-[#94979E] mt-0.5">40 points short to redeem this pack</div>
+</div>
+</div>
+<div class="text-right">
+<span class="text-sm font-medium text-[#94979E]">280 points</span>
+</div>
+</div>
+</div>
+<p class="text-[11px] text-[#94979E] px-1 leading-relaxed">
+      AI credits apply to meal photo logging and in-depth Saman Coach questions. Saman+ subscribers receive unlimited AI analysis.
+    </p>
+</section>
+<!-- 3. TRANSACTION HISTORY SECTION -->
+<section class="space-y-3 pt-2 pb-6">
+<div class="px-1 flex items-center justify-between">
+<h2 class="text-sm font-semibold text-[#F3F4F6]">Recent Activity</h2>
+</div>
+<div class="bg-[#16171B] border border-[#26282F] rounded-2xl divide-y divide-[#26282F] overflow-hidden">
+<!-- Item 1: Daily completion reward -->
+<div class="p-4 flex items-center justify-between">
+<div>
+<div class="text-sm font-medium text-[#F3F4F6]">Daily completion reward</div>
+<div class="text-xs text-[#94979E] mt-0.5">Yesterday · 20:30</div>
+</div>
+<div class="text-right">
+<span class="text-sm font-semibold text-[#10B981]">+20 pts</span>
+</div>
+</div>
+<!-- Item 2: Redeemed 1 AI credit -->
+<div class="p-4 flex items-center justify-between">
+<div>
+<div class="text-sm font-medium text-[#F3F4F6]">Redeemed 1 AI credit</div>
+<div class="text-xs text-[#94979E] mt-0.5">Oct 22 · 09:15 · +1 AI credit</div>
+</div>
+<div class="text-right">
+<span class="text-sm font-medium text-[#F3F4F6]">−100 pts</span>
+</div>
+</div>
+<!-- Item 3: Meal AI analysis -->
+<div class="p-4 flex items-center justify-between">
+<div>
+<div class="text-sm font-medium text-[#F3F4F6]">Meal AI analysis (Lunch)</div>
+<div class="text-xs text-[#94979E] mt-0.5">Oct 22 · 12:45</div>
+</div>
+<div class="text-right">
+<span class="text-sm font-medium text-[#94979E]">−1 AI credit</span>
+</div>
+</div>
+</div>
+</section>
+</main>
+<!-- 4. CONFIRMATION BOTTOM SHEET (Overlay representation in-context) -->
+<!-- STICKY BOTTOM PRIMARY ACTION BAR -->
+<div class="fixed inset-x-0 bottom-0 z-40 max-w-md mx-auto p-4 bg-gradient-to-t from-[#0C0D0E] via-[#0C0D0E]/95 to-transparent pb-safe">
+<button class="w-full h-[52px] rounded-2xl bg-[#F9FAFB] hover:bg-white text-[#0C0D0E] font-semibold text-sm flex items-center justify-center shadow-lg active:scale-[0.98] transition-all" onclick="document.getElementById('confirm-modal').classList.toggle('hidden')" type="button">
+    Redeem 1 AI credit for 100 pts
+  </button>
+</div>
+<!-- CONFIRMATION SHEET OVERLAY (Clean dialog variant, toggleable) -->
+<div class="hidden fixed inset-0 z-50 flex items-end justify-center bg-black/60 backdrop-blur-sm transition-all" id="confirm-modal">
+<div class="w-full max-w-md bg-[#16171B] border-t border-[#26282F] rounded-t-3xl shadow-2xl p-5 pb-8 space-y-5 animate-in slide-in-from-bottom duration-200">
+<div class="w-10 h-1 bg-[#26282F] rounded-full mx-auto -mt-1"></div>
+<div class="text-center space-y-1 pt-1">
+<h3 class="font-headline text-lg font-bold text-[#F3F4F6]">Redeem 1 AI credit?</h3>
+<p class="text-xs text-[#94979E]">Use 100 points</p>
+</div>
+<div class="bg-[#0C0D0E] border border-[#26282F] rounded-xl p-3.5 text-center text-xs text-[#94979E]">
+      After redeem: <span class="text-[#F3F4F6] font-medium">140 pts</span> · <span class="text-[#38bdf8] font-medium">4 AI credits</span>
+</div>
+<div class="flex flex-col gap-2.5 pt-1">
+<button class="w-full h-12 rounded-xl bg-[#F9FAFB] hover:bg-white text-[#0C0D0E] font-medium text-sm flex items-center justify-center transition-all active:scale-[0.98]" onclick="document.getElementById('confirm-modal').classList.add('hidden')" type="button">
+        Confirm Redeem
+      </button>
+<button class="w-full py-2.5 text-xs text-[#94979E] hover:text-[#F3F4F6] transition-colors text-center font-medium" onclick="document.getElementById('confirm-modal').classList.add('hidden')" type="button">
+        Maybe later
+      </button>
+</div>
+</div>
+</div>
+</body></html>

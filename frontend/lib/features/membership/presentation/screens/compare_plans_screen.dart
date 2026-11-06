@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../../config/app_translations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../domain/models/membership_plan.dart';
 import '../providers/membership_providers.dart';
@@ -49,7 +50,7 @@ class ComparePlansScreen extends ConsumerWidget {
     return Scaffold(
       backgroundColor: MembershipTokens.canvas,
       appBar: MembershipAppBar(
-        title: 'Compare plans',
+        title: context.tr('membership_compare_title'),
         onBack: onBack,
       ),
       body: SafeArea(
@@ -63,7 +64,7 @@ class ComparePlansScreen extends ConsumerWidget {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               // 1. Introduction
-              _buildIntroSection(),
+              _buildIntroSection(context),
               const SizedBox(height: 24),
 
               // 2. Billing Selector
@@ -75,6 +76,7 @@ class ComparePlansScreen extends ConsumerWidget {
 
               // 3. Compact Price Summary
               _buildCompactPriceSummary(
+                context,
                 billingPeriod,
                 plusPlan,
                 proPlan,
@@ -83,7 +85,7 @@ class ComparePlansScreen extends ConsumerWidget {
               const SizedBox(height: 24),
 
               // 4. Comparison Legend
-              _buildLegendSection(),
+              _buildLegendSection(context),
               const SizedBox(height: 24),
 
               // 5. Mobile Comparison Matrix
@@ -95,7 +97,7 @@ class ComparePlansScreen extends ConsumerWidget {
               const SizedBox(height: 24),
 
               // 7. Footer
-              _buildFooter(),
+              _buildFooter(context),
               const SizedBox(height: 16),
             ],
           ),
@@ -104,7 +106,7 @@ class ComparePlansScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildIntroSection() {
+  Widget _buildIntroSection(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -119,7 +121,7 @@ class ComparePlansScreen extends ConsumerWidget {
             ),
           ),
           child: Text(
-            'MEMBERSHIP PREVIEW',
+            context.tr('membership_preview_badge'),
             style: MembershipTokens.mono(
               fontSize: 11,
               fontWeight: FontWeight.w600,
@@ -130,7 +132,7 @@ class ComparePlansScreen extends ConsumerWidget {
         ),
         const SizedBox(height: 12),
         Text(
-          'Find your fit.',
+          context.tr('membership_find_your_fit'),
           style: MembershipTokens.headline(
             fontSize: 24,
             fontWeight: FontWeight.w700,
@@ -140,7 +142,7 @@ class ComparePlansScreen extends ConsumerWidget {
         ),
         const SizedBox(height: 4),
         Text(
-          'Compare the essentials and the intelligence planned for each tier.',
+          context.tr('membership_find_your_fit_desc'),
           style: MembershipTokens.body(
             fontSize: 14,
             fontWeight: FontWeight.w400,
@@ -153,6 +155,7 @@ class ComparePlansScreen extends ConsumerWidget {
   }
 
   Widget _buildCompactPriceSummary(
+    BuildContext context,
     BillingPeriod period,
     MembershipPlan plus,
     MembershipPlan pro,
@@ -175,8 +178,8 @@ class ComparePlansScreen extends ConsumerWidget {
               // Free Row
               _buildSummaryRow(
                 title: 'Free',
-                subtitle: 'Core essentials',
-                badgeText: 'CURRENT',
+                subtitle: context.tr('summary_free_sub'),
+                badgeText: context.tr('current_badge'),
                 badgeBg: MembershipTokens.surfaceHigh,
                 badgeBorder: MembershipTokens.border,
                 badgeColor: MembershipTokens.textMuted,
@@ -194,8 +197,9 @@ class ComparePlansScreen extends ConsumerWidget {
               // Plus Row
               _buildSummaryRow(
                 title: 'Plus',
-                subtitle: 'Nutrition AI',
+                subtitle: context.tr('summary_plus_sub'),
                 priceContent: _buildPriceCell(
+                  context: context,
                   period: period,
                   plan: plus,
                   isPro: false,
@@ -205,12 +209,13 @@ class ComparePlansScreen extends ConsumerWidget {
               // Pro Row (Recommended)
               _buildSummaryRow(
                 title: 'Pro',
-                subtitle: 'Workout Intelligence',
-                badgeText: 'RECOMMENDED',
+                subtitle: context.tr('summary_pro_sub'),
+                badgeText: context.tr('recommended_badge'),
                 badgeBg: MembershipTokens.accentBg,
                 badgeBorder: MembershipTokens.accentBorder,
                 badgeColor: MembershipTokens.accent,
                 priceContent: _buildPriceCell(
+                  context: context,
                   period: period,
                   plan: pro,
                   isPro: true,
@@ -220,8 +225,9 @@ class ComparePlansScreen extends ConsumerWidget {
               // Ultra Row
               _buildSummaryRow(
                 title: 'Ultra',
-                subtitle: 'Personalized Intelligence',
+                subtitle: context.tr('summary_ultra_sub'),
                 priceContent: _buildPriceCell(
+                  context: context,
                   period: period,
                   plan: ultra,
                   isPro: false,
@@ -235,7 +241,7 @@ class ComparePlansScreen extends ConsumerWidget {
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 4.0),
           child: Text(
-            'Plus, Pro, and Ultra are Coming Soon.',
+            context.tr('paid_coming_soon_note'),
             style: MembershipTokens.body(
               fontSize: 12,
               fontWeight: FontWeight.w400,
@@ -336,6 +342,7 @@ class ComparePlansScreen extends ConsumerWidget {
   }
 
   Widget _buildPriceCell({
+    required BuildContext context,
     required BillingPeriod period,
     required MembershipPlan plan,
     required bool isPro,
@@ -356,7 +363,7 @@ class ComparePlansScreen extends ConsumerWidget {
             ),
           ),
           Text(
-            '/ month',
+            context.tr('per_month'),
             style: MembershipTokens.body(
               fontSize: 12,
               fontWeight: FontWeight.w400,
@@ -384,7 +391,7 @@ class ComparePlansScreen extends ConsumerWidget {
               ),
               const SizedBox(width: 4),
               Text(
-                '/ year',
+                context.tr('per_year'),
                 style: MembershipTokens.body(
                   fontSize: 12,
                   fontWeight: FontWeight.w400,
@@ -395,7 +402,7 @@ class ComparePlansScreen extends ConsumerWidget {
           ),
           const SizedBox(height: 2),
           Text(
-            'Equivalent to \$${plan.yearlyEquivalentMonthlyPrice} / month',
+            '${context.tr('equiv_to')} \$${plan.yearlyEquivalentMonthlyPrice} ${context.tr('per_month')}',
             style: MembershipTokens.body(
               fontSize: 11,
               fontWeight: FontWeight.w400,
@@ -409,7 +416,7 @@ class ComparePlansScreen extends ConsumerWidget {
     }
   }
 
-  Widget _buildLegendSection() {
+  Widget _buildLegendSection(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(14.0),
       decoration: BoxDecoration(
@@ -424,7 +431,7 @@ class ComparePlansScreen extends ConsumerWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'STATUS LEGEND',
+            context.tr('status_legend_title'),
             style: MembershipTokens.mono(
               fontSize: 10,
               fontWeight: FontWeight.w600,
@@ -439,7 +446,7 @@ class ComparePlansScreen extends ConsumerWidget {
               size: 15,
               color: MembershipTokens.textPrimary,
             ),
-            label: 'Included in Free',
+            label: context.tr('legend_included_free'),
           ),
           const SizedBox(height: 8),
           _buildLegendItem(
@@ -448,7 +455,7 @@ class ComparePlansScreen extends ConsumerWidget {
               size: 15,
               color: MembershipTokens.accent,
             ),
-            label: 'Planned inclusion',
+            label: context.tr('legend_planned_inclusion'),
           ),
           const SizedBox(height: 8),
           _buildLegendItem(
@@ -460,7 +467,7 @@ class ComparePlansScreen extends ConsumerWidget {
                 color: MembershipTokens.textMuted,
               ),
             ),
-            label: 'Not in this tier',
+            label: context.tr('legend_not_in_tier'),
             labelColor: MembershipTokens.textMuted,
           ),
         ],
@@ -509,7 +516,7 @@ class ComparePlansScreen extends ConsumerWidget {
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 4.0),
           child: Text(
-            'EXPLORE PLAN DETAILS',
+            context.tr('explore_plan_details_title'),
             style: MembershipTokens.mono(
               fontSize: 11,
               fontWeight: FontWeight.w600,
@@ -534,25 +541,25 @@ class ComparePlansScreen extends ConsumerWidget {
               // Explore Plus
               _buildExploreRowItem(
                 icon: Icons.restaurant,
-                title: 'Explore Plus',
-                subtitle: 'Nutrition AI details & allowances',
+                title: context.tr('explore_plus'),
+                subtitle: context.tr('explore_plus_sub'),
                 onTap: () => _navigateToDetail(context, MembershipTier.plus),
                 isFirst: true,
               ),
               // Explore Pro (Recommended Accent)
               _buildExploreRowItem(
                 icon: Icons.fitness_center,
-                title: 'Explore Pro',
-                subtitle: 'Workout CV & rep analysis roadmap',
-                badgeText: 'Recommended',
+                title: context.tr('explore_pro'),
+                subtitle: context.tr('explore_pro_sub'),
+                badgeText: context.tr('recommended_badge_mixed'),
                 isPro: true,
                 onTap: () => _navigateToDetail(context, MembershipTier.pro),
               ),
               // Explore Ultra
               _buildExploreRowItem(
                 icon: Icons.psychology_outlined,
-                title: 'Explore Ultra',
-                subtitle: 'Advanced Thinking & 5× allowance',
+                title: context.tr('explore_ultra'),
+                subtitle: context.tr('explore_ultra_sub'),
                 onTap: () => _navigateToDetail(context, MembershipTier.ultra),
                 isLast: true,
               ),
@@ -684,12 +691,12 @@ class ComparePlansScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildFooter() {
+  Widget _buildFooter(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 8.0),
       child: Center(
         child: Text(
-          'Paid memberships are not available yet. Features, limits, and prices may change before launch.',
+          context.tr('paid_notice_footer'),
           style: MembershipTokens.body(
             fontSize: 12,
             fontWeight: FontWeight.w400,

@@ -1,0 +1,21 @@
+JCOM0508 actual verification (2026-11-03; no whole-suite repetition)
+
+Baseline: branch agent/nutrition-active-localhost-f02, HEAD10be1ab1971214acd2487ef893df3fcc80212fc9; existing WIP preserved. No inherited checkpoint acceptance rerun.
+Frontend cwd=frontend, existing Flutter3.22/Dart3.4; all test/analyze/build commands use --no-pub.
+Python=D:/SamanDev/runtime/saman-cp7-python/Scripts/python.exe -X utf8. Dedicated real Mongo127.0.0.1:27048, only saman_jcom0508_test_* databases.
+
+1. flutter test --no-pub test/features/community/community_compose_flow_test.dart: baseline15 PASS, after integration15 PASS.
+2. python -X utf8 -m unittest backend.tests.test_community_publish_mongo -q:7 PASS, no skipped test, real standalone Mongo. Actual captured output:backend_tests.log. Includes durable unique-index/concurrent same-key/fresh-connection/audience/replay/security tests. Existing Pydantic/JWT/shop import warnings and an import-time global MongoClient ResourceWarning are recorded, not suppressed.
+3. Initial combined new publish+compose+remote-read run:28 PASS/1 test-harness failure (TextFormField cast to TextField). Finder corrected to descendant TextField, affected widget1 PASS. Existing Unsupported media boundary1 PASS separately.
+4. New stale failed-refetch regression:FAIL before production fix (Feed error hid canonical confirmed publication), PASS after publication-revision guard in failure path.
+5. Remote R08 negative blocker test:PASS after correcting test's button label to existing Dang/Đăng. No Q&A request or success is claimed.
+6. Final flutter test --no-pub test/features/community/community_publish_test.dart:10 PASS after removing unused question publisher scaffolding. Then the new unsupported-attachment feedback case:1 PASS separately using --plain-name 'unsupported attachment action closes sheet and shows feedback'. These are separate executed results, not an invented combined11-test run.
+7. flutter analyze --no-pub lib/features/community test/features/community --no-fatal-infos --no-fatal-warnings:0 errors,0 warnings,2 inherited const-constructor infos in community_remote_read_test.dart. No unrelated lint repair.
+8. python -X utf8 -m compileall -q backend:PASS. Updated runtime harness executes successfully; no dependency/config/auth/CORS changes.
+9. Main-entrypoint flutter build web --release --no-pub --dart-define=BACKEND_URL=http://127.0.0.1:18098 --dart-define=USE_REMOTE_JOURNAL=true --dart-define=USE_REMOTE_COMMUNITY=true --output=<unique run>/web: initial103.3s PASS; revision94.9s PASS; final96.4s PASS. Final output:runtime_evidence/jcom0508_publish/runs/final_20261103T015247Z_72e65d/web. Prior checkpoint/build/web artifacts untouched.
+10. python -X utf8 -m runtime_evidence.jcom0508_publish.run_publish_runtime --server-dir runtime_evidence/jcom0508_publish/runs/final_20261103T015247Z_72e65d:see report for final immutable clearing run, canonical IDs, actual HTTP vs explicit response-abort injection and exact fingerprints. Text acceptance only; checkpoint remains PARTIAL because Q&A product policy is unresolved.
+11. Source/build/harness hash, actual isolated DB content/count, fresh listener/parent/command identity and branch/HEAD audits:source_review.json. git diff --check for inherited translations flags its existing extra EOF blank line; left intact. No commit/push/merge/deploy/release.
+
+Earlier UI runs remain immutable diagnostics:topic semantics/native geometry, empty-Share-before-focus and incorrect detail hit targets were automation defects. A later full-run native mismatch exposed a dropped first character in followers text; it was not accepted as full exact-input evidence. Harness now waits for active TEXTAREA before typing, asserts exact native input and compares canonical stored caption for every operation. No JS controller assignment or API publication replaced UI input.
+
+Final clearing after strict focus/input/canonical checks: runtime_evidence/jcom0508_publish/runs/ui_20261103T020143Z_c0188a; text_runtime PASS/checkpoint PARTIAL; five native_matches/canonical_matches true, zero page errors, five actor posts/four published/one draft/zero duplicate keys. Immutable harness SHA256 97480b711ca3df36ca8ca59acbc6e66e379ac5c334adece2078edf643f0001d8. Backend/frontend source unchanged.

@@ -1,0 +1,119 @@
+{
+  "status": "PASS",
+  "time_utc": "2026-11-03T13:57:16.719507+00:00",
+  "branch": "agent/nutrition-active-localhost-f02",
+  "head": "10be1ab1971214acd2487ef893df3fcc80212fc9",
+  "source_manifest": "runtime_evidence/jcom0509_attachments/runs/clearing_20261103T135056Z_599c43/server.json",
+  "clearing_run": "runtime_evidence/jcom0509_attachments/runs/ui_20261103T135359Z_988e52",
+  "fingerprint": "a15981b97ea8c157f65814bf10e7e934a9cc1da4d23084af4506ce514d03be3e",
+  "source_hashes_match": true,
+  "web_hash_matches": true,
+  "harness_snapshot_current_match": true,
+  "db_checks": [
+    {
+      "id": "6ae9e79178752d0357e5f960",
+      "kind": "workout",
+      "snapshot_matches_canonical_response": true,
+      "source_changed_but_snapshot_frozen": true,
+      "disabled_fields_absent_from_post_document": true
+    },
+    {
+      "id": "6ae9e7a578752d0357e5f961",
+      "kind": "meal",
+      "snapshot_matches_canonical_response": true,
+      "source_changed_but_snapshot_frozen": true,
+      "disabled_fields_absent_from_post_document": true
+    }
+  ],
+  "unique_index": {
+    "v": 2,
+    "key": [
+      [
+        "user_id",
+        1
+      ],
+      [
+        "request_key",
+        1
+      ]
+    ],
+    "unique": true,
+    "partialFilterExpression": {
+      "request_key": {
+        "$type": "string"
+      }
+    }
+  },
+  "page_errors": [],
+  "changed_hashed_inputs": [
+    "backend/app/models/community.py",
+    "backend/routers/community.py",
+    "frontend/lib/features/community/domain/models/post_attachment_snapshot.dart",
+    "frontend/lib/features/community/domain/models/community_post.dart",
+    "frontend/lib/features/community/domain/repositories/community_repository.dart",
+    "frontend/lib/features/community/data/datasources/community_remote_datasource.dart",
+    "frontend/lib/features/community/data/repositories/community_repository_impl.dart",
+    "frontend/lib/features/community/presentation/providers/community_composer_provider.dart",
+    "frontend/lib/features/community/presentation/providers/community_providers.dart",
+    "frontend/lib/features/community/presentation/screens/compose/community_select_attachment_screen.dart",
+    "frontend/lib/features/community/presentation/screens/compose/post_compose_publish_screen.dart",
+    "frontend/lib/features/community/presentation/widgets/create_content_bottom_sheet.dart",
+    "frontend/lib/features/community/presentation/widgets/post_card_view.dart",
+    "frontend/lib/features/community/presentation/screens/community_post_detail_screen.dart",
+    "frontend/lib/config/app_translations.dart",
+    "frontend/test/features/community/community_publish_test.dart",
+    "frontend/test/features/community/community_remote_read_test.dart",
+    "frontend/test/features/community/community_follow_test.dart",
+    "frontend/test/features/community/community_interactions_test.dart",
+    "frontend/test/features/community/community_timeout_reconciliation_test.dart",
+    "docs/CONTINUOUS_RUN_STATUS.md",
+    "docs/jcom0509_attachments_acceptance/JCOM0509_SCOPE.md"
+  ],
+  "allowed_new_source_and_tests": {
+    "backend/app/services/community_attachment_service.py": "0821c82bb03ef17fe089bf9bf8c1cc4f38bc2e34498fdda2b7ca4aba81e519c2",
+    "backend/scripts/setup_community_attachment_indexes.py": "57fe73824427a3f77a522e5bbeff363096b9d0e8c8823f7bf7271bfa0ecea6d4",
+    "backend/tests/test_community_attachment_snapshots_mongo.py": "6723dc11eb7823de7ecaaff840acaddd4026c0b40e0e7d0d8d03dc04a120cee0",
+    "frontend/lib/features/community/presentation/widgets/community_activity_snapshot_card.dart": "9d9cc2ad6157ecf52c9ab7342041076167c8d24bab60f3ebc65c4227cfba5c56",
+    "frontend/test/features/community/community_attachment_snapshots_test.dart": "2d34561a84074604eae7ccfcb159ad722a6c0cf8f947d9e9111e6f7c3ce85f6b"
+  },
+  "scope_confirmed": true,
+  "old_evidence": "No JCOM0508 evidence/build files were edited; helpers read-only. New Mongo uses a separate0509 data path after prior listeners verified absent.",
+  "process_handoff": "runtime_evidence/jcom0509_attachments/runs/clearing_20261103T135056Z_599c43/process_handoff.json",
+  "services_left_running": [
+    "Mongo16980:27048",
+    "backend15280/17272:18099"
+  ],
+  "unrelated_runtime_untouched": "IPv6 localhost3000 Flutter1348 backend8000",
+  "temporary_ipv4_3000": "closed",
+  "approval_blocker": null,
+  "commit_push_merge_deploy_release": false,
+  "final_source_and_test_hashes": {
+    "backend/app/models/community.py": "f777c8ef6d44485e3db6f5c6c42bf6bd9965b15a49fa8914d70feb898d33437d",
+    "backend/routers/community.py": "cdb399d3680643f3a714b0cce6a18d8d1e4710f2f50a6c2c20e299fbaec20c44",
+    "backend/app/services/community_attachment_service.py": "0821c82bb03ef17fe089bf9bf8c1cc4f38bc2e34498fdda2b7ca4aba81e519c2",
+    "backend/scripts/setup_community_attachment_indexes.py": "57fe73824427a3f77a522e5bbeff363096b9d0e8c8823f7bf7271bfa0ecea6d4",
+    "backend/tests/test_community_attachment_snapshots_mongo.py": "6723dc11eb7823de7ecaaff840acaddd4026c0b40e0e7d0d8d03dc04a120cee0",
+    "frontend/lib/features/community/domain/models/post_attachment_snapshot.dart": "196e7a1d60d9dd817a8ddaafc1ef682fa100d68801683838bb69f5cbd4a8eee6",
+    "frontend/lib/features/community/domain/models/community_post.dart": "ce0a1f0d18de7c6f3805a700828c0500bf998f778ca446bedb126dd756b3e67c",
+    "frontend/lib/features/community/domain/repositories/community_repository.dart": "0bd4e724a00d2b163977d6c93c3280b5a7d947365a89eabf8851f203959ec98f",
+    "frontend/lib/features/community/data/datasources/community_remote_datasource.dart": "eaf70bccd989ce12a80426a6d841c20896f6afbbdf63d08100a1de20c88df965",
+    "frontend/lib/features/community/data/repositories/community_repository_impl.dart": "bd3a3623b6e69eb67d6afbed1308ad908473dfd0dbc891c3b767251ad8325aeb",
+    "frontend/lib/features/community/presentation/providers/community_composer_provider.dart": "3e5b1c6cd7fe84490ac81ad17ade3df12d965d528e9a6eae8d8fab7efdf5dd58",
+    "frontend/lib/features/community/presentation/providers/community_providers.dart": "a7df30a5e942e583cbe58806b8cc8d1f6c7c0eedfc3d9a07185ba9402b15602a",
+    "frontend/lib/features/community/presentation/screens/compose/community_select_attachment_screen.dart": "8924afffe39750741586ba202f80eeea8efd67a59d3fe61fb4064e8470787ef2",
+    "frontend/lib/features/community/presentation/screens/compose/post_compose_publish_screen.dart": "f2b2dd909ebf46d6a2b761a7104537761a2acc6be1450519ad922eead8de2476",
+    "frontend/lib/features/community/presentation/widgets/create_content_bottom_sheet.dart": "0f024cb1a62099e21f2a96f2d953ddab05334a363f3501c51ac05d9dac815523",
+    "frontend/lib/features/community/presentation/widgets/community_activity_snapshot_card.dart": "9d9cc2ad6157ecf52c9ab7342041076167c8d24bab60f3ebc65c4227cfba5c56",
+    "frontend/lib/features/community/presentation/widgets/post_card_view.dart": "856926b289f7695c367d1067b7e4fa366209e60de7e72b0711d6b57dcc876fd0",
+    "frontend/lib/features/community/presentation/screens/community_post_detail_screen.dart": "7aadc1862943ca9a1ffe4b28d160cb62756fe5a14988f53c9feeaebae1913e11",
+    "frontend/lib/config/app_translations.dart": "3a5a180f8c0c813c2979dfcc60d74ac67a217e1b6e2c1d2cb102e10c322673e8",
+    "frontend/test/features/community/community_attachment_snapshots_test.dart": "2d34561a84074604eae7ccfcb159ad722a6c0cf8f947d9e9111e6f7c3ce85f6b",
+    "frontend/test/features/community/community_publish_test.dart": "b869c0f378f5ea1ef88aab94e5982794c35c97205fed029a84545d8e0a20e35b",
+    "frontend/test/features/community/community_remote_read_test.dart": "0dc44dc85b8ad1813552210a4ece55ad9042d11858eec2e029b1d91fb99cceb3",
+    "frontend/test/features/community/community_follow_test.dart": "5611192958a435449655f011f25e1076ec9e2cdb1312ffd93fc6cceca8c22d33",
+    "frontend/test/features/community/community_interactions_test.dart": "90bbf8f54dc37a8b41be8e06082750a5dcf0eb9de91f4b99d72f5466c66f53c2",
+    "frontend/test/features/community/community_timeout_reconciliation_test.dart": "87d0a42cbf5e48138874e16daef0bbedbdea455fe3cb09826cd16961090f9571"
+  },
+  "documentation_finalized": true,
+  "diff_review": "Focused final source review + tracked translation diff; inherited untracked WIP/input hashes supplement git diff. Inherited EOF blank line retained; no debug logging in new production service/widget. No duplicate runtime/service/repository implementation."
+}

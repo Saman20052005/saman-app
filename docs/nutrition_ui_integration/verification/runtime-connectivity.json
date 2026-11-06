@@ -1,0 +1,6 @@
+{
+  "origin": "http://localhost:3000",
+  "preflight_status": 204,
+  "allowed_origin": "http://localhost:3000",
+  "debug_app_http_status": 200
+}

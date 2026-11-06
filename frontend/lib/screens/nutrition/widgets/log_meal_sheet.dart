@@ -7,6 +7,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 
 import '../../../models/meal_log.dart';
+import '../../../models/ai_analysis_result.dart';
 import '../../../providers/daily_story_provider.dart';
 import '../../../services/nutrition_service.dart';
 import 'meal_review_dialog.dart' hide MealType;
@@ -42,6 +43,13 @@ class _LogMealSheetState extends ConsumerState<LogMealSheet> {
 
   XFile? _pickedFile;
   final _picker = ImagePicker();
+  String? _photoOperationSeed;
+  final Set<String> _dispatchedOperationKeys = <String>{};
+
+  String _buildAnalysisOperationKey(String seed, String mode) {
+    final normalizedMode = mode.trim().isEmpty ? 'standard' : mode.trim().toLowerCase();
+    return '${seed}_m_${normalizedMode}_g_100';
+  }
 
   Future<void> _pickImage(ImageSource source) async {
     try {
@@ -60,6 +68,9 @@ class _LogMealSheetState extends ConsumerState<LogMealSheet> {
         setState(() {
           _pickedFile = picked;
           _photoOwner = owner;
+          _photoOperationSeed =
+              'fa_${DateTime.now().millisecondsSinceEpoch}_${picked.name.hashCode.abs()}';
+          _dispatchedOperationKeys.clear();
         });
       }
     } catch (e) {
@@ -78,7 +89,11 @@ class _LogMealSheetState extends ConsumerState<LogMealSheet> {
   }
 
   void _clearImage() {
-    setState(() => _pickedFile = null);
+    setState(() {
+      _pickedFile = null;
+      _photoOperationSeed = null;
+      _dispatchedOperationKeys.clear();
+    });
   }
 
   Future<void> _handleLogStory() async {
@@ -90,11 +105,32 @@ class _LogMealSheetState extends ConsumerState<LogMealSheet> {
       final owner =
           _photoOwner ?? await ref.read(nutritionSessionProvider).capture();
       await owner.validate();
-      final result = await controller.analyzeImage(
-        _pickedFile!,
-        mode: _mode,
-        session: owner,
-      );
+      _photoOperationSeed ??=
+          'fa_${DateTime.now().millisecondsSinceEpoch}_${_pickedFile!.name.hashCode.abs()}';
+      final opKey = _buildAnalysisOperationKey(_photoOperationSeed!, _mode);
+
+      // Check if this operation was already dispatched during a previous attempt/timeout.
+      // If lookup finds reserved/executing/failed_unknown or fails with network/503,
+      // do NOT swallow the error and do NOT redispatch inference.
+      AIAnalysisResult? result;
+      if (_dispatchedOperationKeys.contains(opKey)) {
+        result = await controller.recoverAnalysisOperation(
+          idempotencyKey: opKey,
+          session: owner,
+        );
+      }
+
+      // If not yet dispatched (or previous operation was cleanly released/404), dispatch analysis
+      if (result == null) {
+        _dispatchedOperationKeys.add(opKey);
+        result = await controller.analyzeImage(
+          _pickedFile!,
+          mode: _mode,
+          session: owner,
+          idempotencyKey: opKey,
+          clientRequestId: 'req_$opKey',
+        );
+      }
       if (!mounted) return;
       await owner.validate();
       if (!mounted) return;

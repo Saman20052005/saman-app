@@ -2,6 +2,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'dart:io';
+import 'package:image_picker/image_picker.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import '../widgets/saman_avatar.dart';
 import '../config/routes.dart';
 import '../features/profile/domain/entities/onboarding_activity_choice.dart';
 import '../features/profile/domain/entities/profile_entity.dart';
@@ -37,31 +41,351 @@ class ProfileScreen extends ConsumerStatefulWidget {
 }
 
 class _ProfileScreenState extends ConsumerState<ProfileScreen> {
-  String _userName = "User";
+  bool _avatarBusy = false;
+  bool _checkingRecovery = false;
+  DialogRoute<void>? _avatarPreviewRoute;
+  _AvatarSession? _previewSession;
+
+  _AvatarSession? _avatarSession() {
+    if (!mounted || ref.read(authLoggingOutProvider)) return null;
+    final state = ref.read(profileProvider);
+    final owner = state.confirmedUserId;
+    if (owner == null || owner.isEmpty || state.isUnauthorized) return null;
+    return _AvatarSession(ref.read(profileProvider.notifier), owner);
+  }
+
+  bool _sameAvatarSession(_AvatarSession session) {
+    if (!mounted || ref.read(authLoggingOutProvider)) return false;
+    final notifier = ref.read(profileProvider.notifier);
+    return identical(session.notifier, notifier) && notifier.mounted &&
+        session.epoch == notifier.sessionEpoch &&
+        ref.read(profileProvider).confirmedUserId == session.owner;
+  }
+
+  void _onAvatarSessionChanged() {
+    final session = _previewSession;
+    if (session != null && !_sameAvatarSession(session)) {
+      final route = _avatarPreviewRoute;
+      if (route != null && route.isActive) route.navigator?.removeRoute(route);
+      _avatarPreviewRoute = null;
+      _previewSession = null;
+    }
+    if (_avatarSession() != null) _checkLostAvatarData();
+  }
+
+  @override
+  void dispose() {
+    // Preserve the recovery marker; another Profile instance can reopen preview.
+    final route = _avatarPreviewRoute;
+    if (route != null && route.isActive) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (route.isActive) route.navigator?.removeRoute(route);
+      });
+    }
+    super.dispose();
+  }
 
   @override
   void initState() {
     super.initState();
-    _loadUserInfo();
+    ref.listenManual(profileProvider, (_, __) => _onAvatarSessionChanged());
+    ref.listenManual(authLoggingOutProvider, (_, __) => _onAvatarSessionChanged());
+    WidgetsBinding.instance.addPostFrameCallback((_) => _checkLostAvatarData());
   }
 
-  Future<void> _loadUserInfo() async {
-    final name = await AuthHelper.getUserName();
-    if (!mounted) return;
-    setState(() {
-      _userName =
-          (name != null && name.trim().isNotEmpty) ? name.trim() : "Athlete";
-    });
+  Future<void> _clearAvatarMarker(SharedPreferences prefs, int operation) async {
+    if (prefs.getInt('pending_avatar_picker_timestamp') != operation) return;
+    await prefs.remove('pending_avatar_picker_user');
+    await prefs.remove('pending_avatar_picker_timestamp');
+    await prefs.remove('pending_avatar_picker_path');
   }
 
-  String _getInitials(String name) {
-    final clean = name.trim();
-    if (clean.isEmpty) return 'SA';
-    final parts = clean.split(RegExp(r'\s+'));
-    if (parts.length == 1) {
-      return parts[0].substring(0, parts[0].length.clamp(1, 2)).toUpperCase();
+  Future<void> _checkLostAvatarData() async {
+    final session = _avatarSession();
+    // An initial/loading profile is still restoring identity, not logged out.
+    if (session == null || _checkingRecovery || _avatarBusy) return;
+    _checkingRecovery = true;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      if (!mounted || !_sameAvatarSession(session)) return;
+      final pending = prefs.getString('pending_avatar_picker_user');
+      final operation = prefs.getInt('pending_avatar_picker_timestamp');
+      if (pending == null || operation == null) return;
+      final age = DateTime.now().millisecondsSinceEpoch - operation;
+      if (pending != session.owner || age < 0 || age > 30 * 60 * 1000) {
+        await _clearAvatarMarker(prefs, operation);
+        return;
+      }
+      final path = prefs.getString('pending_avatar_picker_path');
+      XFile? file = path == null ? null : XFile(path);
+      if (file == null) {
+        final response = await ImagePicker().retrieveLostData();
+        file = response.file;
+        if (file == null) {
+          await _clearAvatarMarker(prefs, operation);
+          return;
+        }
+        // Save a consumed platform response before checking widget lifetime.
+        if (prefs.getInt('pending_avatar_picker_timestamp') == operation) {
+          await prefs.setString('pending_avatar_picker_path', file.path);
+        }
+      }
+      if (!mounted || !_sameAvatarSession(session)) return;
+      _avatarBusy = true;
+      await _showAvatarPreviewDialog(file, session);
+      if (mounted) await _clearAvatarMarker(prefs, operation);
+    } catch (e) {
+      debugPrint('[PROFILE] Error retrieving lost picker data: $e');
+    } finally {
+      _checkingRecovery = false;
+      _avatarBusy = false;
     }
-    return '${parts.first[0]}${parts.last[0]}'.toUpperCase();
+  }
+
+  void _showAvatarOptionsSheet(BuildContext context, ProfileState profileState) {
+    final session = _avatarSession();
+    if (session == null || _avatarBusy) return;
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: const Color(0xFF16171B),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (sheetContext) {
+        final canUseGoogle = profileState.canUseGoogleAvatar;
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const Padding(
+                  padding: EdgeInsets.only(bottom: 16, left: 4),
+                  child: Text(
+                    'Ảnh đại diện',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+                ListTile(
+                  key: const Key('avatar_option_gallery'),
+                  leading: const Icon(Icons.photo_library_outlined, color: Colors.white),
+                  title: const Text('Chọn từ thư viện', style: TextStyle(color: Colors.white)),
+                  onTap: () {
+                    Navigator.pop(sheetContext);
+                    if (_sameAvatarSession(session)) _pickAndPreviewAvatar();
+                  },
+                ),
+                if (canUseGoogle)
+                  ListTile(
+                    key: const Key('avatar_option_google'),
+                    leading: const Icon(Icons.account_circle_outlined, color: Colors.white),
+                    title: const Text('Dùng ảnh Google', style: TextStyle(color: Colors.white)),
+                    onTap: () {
+                      Navigator.pop(sheetContext);
+                      if (_sameAvatarSession(session)) _handleUseGoogleAvatar();
+                    },
+                  ),
+                ListTile(
+                  key: const Key('avatar_option_cancel'),
+                  leading: const Icon(Icons.close, color: Color(0xFF9CA3AF)),
+                  title: const Text('Hủy', style: TextStyle(color: Color(0xFF9CA3AF))),
+                  onTap: () => Navigator.pop(sheetContext),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> _pickAndPreviewAvatar() async {
+    final session = _avatarSession();
+    if (session == null || _avatarBusy) return;
+    _avatarBusy = true;
+    SharedPreferences? prefs;
+    final operation = DateTime.now().millisecondsSinceEpoch;
+    try {
+      prefs = await SharedPreferences.getInstance();
+      if (!mounted || !_sameAvatarSession(session)) return;
+      await prefs.setString('pending_avatar_picker_user', session.owner);
+      await prefs.setInt('pending_avatar_picker_timestamp', operation);
+      await prefs.remove('pending_avatar_picker_path');
+      if (!mounted || !_sameAvatarSession(session)) return;
+      final file = await ImagePicker().pickImage(
+        source: ImageSource.gallery, maxWidth: 1024, maxHeight: 1024, imageQuality: 85,
+      );
+      if (file == null) {
+        await _clearAvatarMarker(prefs, operation);
+        return;
+      }
+      if (prefs.getInt('pending_avatar_picker_timestamp') == operation) {
+        await prefs.setString('pending_avatar_picker_path', file.path);
+      }
+      if (!mounted || !_sameAvatarSession(session)) return;
+      await _showAvatarPreviewDialog(file, session);
+      if (mounted) await _clearAvatarMarker(prefs, operation);
+    } catch (e) {
+      if (prefs != null) await _clearAvatarMarker(prefs, operation);
+      if (!mounted || !_sameAvatarSession(session)) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Không thể truy cập thư viện ảnh: $e')),
+      );
+    } finally {
+      _avatarBusy = false;
+    }
+  }
+
+  Future<void> _showAvatarPreviewDialog(XFile file, _AvatarSession session) async {
+    if (!mounted || !_sameAvatarSession(session)) return;
+    bool isUploading = false;
+    _previewSession = session;
+    final route = DialogRoute<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return AlertDialog(
+              backgroundColor: const Color(0xFF16171B),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+                side: const BorderSide(color: Color(0xFF26282F), width: 1),
+              ),
+              title: const Text(
+                'Xem trước ảnh đại diện',
+                style: TextStyle(
+                  fontSize: 17,
+                  fontWeight: FontWeight.w700,
+                  color: Colors.white,
+                ),
+              ),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text(
+                    'Ảnh sẽ được căn giữa và cắt theo khung tròn',
+                    style: TextStyle(fontSize: 12, color: Color(0xFF9CA3AF)),
+                  ),
+                  const SizedBox(height: 18),
+                  Container(
+                    width: 140,
+                    height: 140,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(color: const Color(0xFF26282F), width: 2),
+                    ),
+                    child: ClipOval(
+                      child: Image.file(
+                        File(file.path),
+                        width: 140,
+                        height: 140,
+                        fit: BoxFit.cover,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: isUploading ? null : () => Navigator.pop(dialogContext),
+                  child: const Text('Hủy', style: TextStyle(color: Color(0xFF9CA3AF))),
+                ),
+                ElevatedButton(
+                  key: const Key('confirm_save_avatar_button'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.white,
+                    foregroundColor: Colors.black,
+                    disabledBackgroundColor: Colors.grey.shade700,
+                  ),
+                  onPressed: isUploading
+                      ? null
+                      : () async {
+                          if (!_sameAvatarSession(session) || isUploading) return;
+                          setDialogState(() => isUploading = true);
+                          try {
+                            final success = await ref
+                                .read(profileProvider.notifier)
+                                .uploadAvatar(file);
+                            if (!mounted || !_sameAvatarSession(session)) return;
+                            if (dialogContext.mounted) {
+                              Navigator.pop(dialogContext);
+                            }
+                            if (success) {
+                              ScaffoldMessenger.of(this.context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('Cập nhật ảnh đại diện thành công'),
+                                  backgroundColor: Color(0xFF10B981),
+                                ),
+                              );
+                            }
+                          } catch (e) {
+                            if (!mounted || !_sameAvatarSession(session) || !dialogContext.mounted) return;
+                            setDialogState(() => isUploading = false);
+                            ScaffoldMessenger.of(this.context).showSnackBar(
+                              SnackBar(
+                                content: Text('Tải ảnh thất bại: $e'),
+                                backgroundColor: const Color(0xFFEF4444),
+                              ),
+                            );
+                          }
+                        },
+                  child: isUploading
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.black,
+                          ),
+                        )
+                      : const Text('Lưu ảnh đại diện'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+    _avatarPreviewRoute = route;
+    await Navigator.of(context, rootNavigator: true).push(route);
+    if (identical(_avatarPreviewRoute, route)) {
+      _avatarPreviewRoute = null;
+      _previewSession = null;
+    }
+  }
+
+  Future<void> _handleUseGoogleAvatar() async {
+    final session = _avatarSession();
+    if (session == null || _avatarBusy) return;
+    _avatarBusy = true;
+    try {
+      final success = await ref.read(profileProvider.notifier).useGoogleAvatar();
+      if (!mounted || !_sameAvatarSession(session)) return;
+      if (success) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Đã chuyển sang ảnh đại diện Google'),
+            backgroundColor: Color(0xFF10B981),
+          ),
+        );
+      }
+    } catch (e) {
+      if (!mounted || !_sameAvatarSession(session)) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Không thể dùng ảnh Google: $e'),
+          backgroundColor: const Color(0xFFEF4444),
+        ),
+      );
+    } finally {
+      _avatarBusy = false;
+    }
   }
 
   String _formatGoalTitle(Goal? goal) {
@@ -279,8 +603,6 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     final isIncomplete =
         !profile.isValid || profileState.status == ProfileStatus.incomplete;
 
-    final initials = _getInitials(_userName);
-
     return Scaffold(
       backgroundColor: const Color(0xFF0C0D0E),
       body: Stack(
@@ -366,23 +688,47 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     ),
                     child: Row(
                       children: [
-                        Container(
-                          width: 52,
-                          height: 52,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: const Color(0xFF212328),
-                            border: Border.all(
-                                color: const Color(0xFF26282F), width: 1),
-                          ),
-                          child: Center(
-                            child: Text(
-                              initials,
-                              style: const TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.w700,
-                                color: Colors.white,
-                                letterSpacing: 0.5,
+                        Semantics(
+                          label: 'Đổi ảnh đại diện',
+                          button: true,
+                          child: Material(
+                            color: Colors.transparent,
+                            child: InkWell(
+                              key: const Key('profile_avatar_tap_target'),
+                              onTap: () => _showAvatarOptionsSheet(context, profileState),
+                              borderRadius: BorderRadius.circular(26),
+                              child: Stack(
+                                clipBehavior: Clip.none,
+                                children: [
+                                  SamanAvatar(
+                                    name: profileState.snapshot?.fullName ?? 'Athlete',
+                                    avatarUrl: profileState.avatar,
+                                    size: 52,
+                                  ),
+                                  Positioned(
+                                    right: -2,
+                                    bottom: -2,
+                                    child: Container(
+                                      width: 20,
+                                      height: 20,
+                                      decoration: BoxDecoration(
+                                        color: const Color(0xFF212328),
+                                        shape: BoxShape.circle,
+                                        border: Border.all(
+                                          color: const Color(0xFF0C0D0E),
+                                          width: 1.5,
+                                        ),
+                                      ),
+                                      child: const Center(
+                                        child: Icon(
+                                          Icons.camera_alt,
+                                          size: 11,
+                                          color: Colors.white,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ],
                               ),
                             ),
                           ),
@@ -393,7 +739,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                _userName,
+                                profileState.snapshot?.fullName ?? 'Athlete',
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                                 style: const TextStyle(
@@ -523,6 +869,58 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                                   letterSpacing: 0.2,
                                 ),
                               ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+
+                    // Gamification & Journey Section
+                    const Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+                      child: Text(
+                        'HÀNH TRÌNH & ĐIỂM THƯỞNG',
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                          color: Color(0xFF9CA3AF),
+                          letterSpacing: 1.0,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Container(
+                      width: double.infinity,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF16171B),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: const Color(0xFF26282F),
+                          width: 1,
+                        ),
+                      ),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(12),
+                        child: Column(
+                          children: [
+                            ProfileNavRow(
+                              key: const Key('my_journey_nav_row'),
+                              title: 'Hành trình Saman',
+                              icon: Icons.flag_outlined,
+                              showDivider: true,
+                              onTap: () {
+                                Navigator.of(context).pushNamed(AppRoutes.myJourney);
+                              },
+                            ),
+                            ProfileNavRow(
+                              key: const Key('wallet_rewards_nav_row'),
+                              title: 'Điểm thưởng & Đổi lượt AI',
+                              icon: Icons.stars_rounded,
+                              showDivider: false,
+                              onTap: () {
+                                Navigator.of(context).pushNamed(AppRoutes.walletRewards);
+                              },
                             ),
                           ],
                         ),
@@ -960,4 +1358,11 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       ),
     );
   }
+}
+
+class _AvatarSession {
+  _AvatarSession(this.notifier, this.owner) : epoch = notifier.sessionEpoch;
+  final ProfileNotifier notifier;
+  final String owner;
+  final int epoch;
 }

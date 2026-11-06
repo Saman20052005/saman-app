@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'history_analytics_sheet.dart';
 import '../tokens/saman_chat_tokens.dart';
 
 /// Represents one of the 3 approved suggested actions for the Empty State.
@@ -7,12 +8,14 @@ class SamanChatActionItem {
   final Color? iconColor;
   final String title;
   final String prompt;
+  final bool opensAnalytics;
 
   const SamanChatActionItem({
     required this.icon,
     this.iconColor,
     required this.title,
     required this.prompt,
+    this.opensAnalytics = false,
   });
 
   /// The 3 approved Empty State actions with consistent outline iconography
@@ -32,6 +35,12 @@ class SamanChatActionItem {
       title: "Check recovery",
       prompt: "Check my recovery today and suggest how hard I should train.",
     ),
+    SamanChatActionItem(
+      icon: Icons.insights,
+      title: 'Phân tích xu hướng',
+      prompt: '',
+      opensAnalytics: true,
+    ),
   ];
 }
 
@@ -49,11 +58,13 @@ class SamanChatActionItem {
 class SamanChatActionRow extends StatelessWidget {
   final SamanChatActionItem item;
   final ValueChanged<String> onTap;
+  final WidgetBuilder? analyticsSheetBuilder;
 
   const SamanChatActionRow({
     super.key,
     required this.item,
     required this.onTap,
+    this.analyticsSheetBuilder,
   });
 
   @override
@@ -62,7 +73,12 @@ class SamanChatActionRow extends StatelessWidget {
       color: Colors.transparent,
       child: InkWell(
         borderRadius: BorderRadius.circular(12.0),
-        onTap: () => onTap(item.prompt),
+        onTap: item.opensAnalytics
+            ? () => HistoryAnalyticsSheet.show(
+                  context,
+                  builder: analyticsSheetBuilder,
+                )
+            : () => onTap(item.prompt),
         hoverColor: SamanChatTokens.actionRowHoverBg,
         focusColor: SamanChatTokens.actionRowFocusBg,
         splashColor: SamanChatTokens.actionRowPressedBg,

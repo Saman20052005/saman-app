@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../config/routes.dart';
 import '../tokens/saman_home_tokens.dart';
 
 /// Data class representing a curated pick card (Journal guide or Shop essential).
@@ -31,16 +32,62 @@ class SamanPickItem {
 /// - Section header ("SAMAN PICKS", "Useful for your training today", "Explore →")
 /// - Horizontally swipeable snap carousel:
 ///   1. SAMAN JOURNAL (athletic recovery guide with thumbnail)
-///   2. SAMAN SHOP (recovery essentials without prices or checkout clutter)
+///   2. SAMAN SHOP (recovery essentials pointing to Saman Shop Landing)
 class SamanPicksCarousel extends StatelessWidget {
   const SamanPicksCarousel({
     super.key,
     this.picks,
     this.onExploreTap,
+    this.onJournalTap,
+    this.onShopTap,
   });
 
   final List<SamanPickItem>? picks;
   final VoidCallback? onExploreTap;
+  final VoidCallback? onJournalTap;
+  final VoidCallback? onShopTap;
+
+  static bool _isNavigating = false;
+  static DateTime _lastNavTime = DateTime.fromMillisecondsSinceEpoch(0);
+
+  /// Resets the navigation throttle state (used in unit/widget tests).
+  @visibleForTesting
+  static void resetLastNavTime() {
+    _lastNavTime = DateTime.fromMillisecondsSinceEpoch(0);
+    _isNavigating = false;
+  }
+
+  /// Safe navigation helper to Saman Journal that prevents duplicate pushes while route is
+  /// transitioning or active, and auto-recovers after pop or error.
+  static Future<void> navigateToJournal(BuildContext context) async {
+    final now = DateTime.now();
+    if (_isNavigating || now.difference(_lastNavTime).inMilliseconds < 400) {
+      return;
+    }
+    _isNavigating = true;
+    _lastNavTime = now;
+    try {
+      await Navigator.of(context).pushNamed(AppRoutes.journal);
+    } finally {
+      _isNavigating = false;
+    }
+  }
+
+  /// Safe navigation helper that prevents duplicate pushes while route is transitioning
+  /// or active, and auto-recovers after pop or error.
+  static Future<void> navigateToShop(BuildContext context) async {
+    final now = DateTime.now();
+    if (_isNavigating || now.difference(_lastNavTime).inMilliseconds < 400) {
+      return;
+    }
+    _isNavigating = true;
+    _lastNavTime = now;
+    try {
+      await Navigator.of(context).pushNamed(AppRoutes.shop);
+    } finally {
+      _isNavigating = false;
+    }
+  }
 
   static const List<SamanPickItem> _defaultPicks = [
     SamanPickItem(
@@ -144,7 +191,11 @@ class SamanPicksCarousel extends StatelessWidget {
             separatorBuilder: (_, __) => const SizedBox(width: 12),
             itemBuilder: (context, index) {
               final item = items[index];
-              return _SamanPickCard(item: item);
+              return _SamanPickCard(
+                item: item,
+                onJournalTap: onJournalTap,
+                onShopTap: onShopTap,
+              );
             },
           ),
         ),
@@ -154,9 +205,15 @@ class SamanPicksCarousel extends StatelessWidget {
 }
 
 class _SamanPickCard extends StatelessWidget {
-  const _SamanPickCard({required this.item});
+  const _SamanPickCard({
+    required this.item,
+    this.onJournalTap,
+    this.onShopTap,
+  });
 
   final SamanPickItem item;
+  final VoidCallback? onJournalTap;
+  final VoidCallback? onShopTap;
 
   @override
   Widget build(BuildContext context) {
@@ -164,119 +221,133 @@ class _SamanPickCard extends StatelessWidget {
     // Responsive width: ~84% on phone, constrained on wider devices
     final cardWidth = (screenWidth * 0.84).clamp(280.0, 360.0);
 
-    return Container(
-      width: cardWidth,
-      padding: const EdgeInsets.all(SamanHomeTokens.spacingLg),
-      decoration: BoxDecoration(
-        color: SamanHomeTokens.cardSurface,
+    final effectiveTap = item.onTap ??
+        (item.id == 'journal_recovery'
+            ? (onJournalTap ?? () => SamanPicksCarousel.navigateToJournal(context))
+            : item.id == 'shop_recovery'
+                ? (onShopTap ?? () => SamanPicksCarousel.navigateToShop(context))
+                : null);
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: effectiveTap,
         borderRadius: BorderRadius.circular(SamanHomeTokens.radiusXl),
-        border: Border.all(
-          color: SamanHomeTokens.borderSubtle,
-          width: 1,
-        ),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          // Left text details
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(
-                  item.categoryTag,
-                  style: TextStyle(
-                    fontSize: 10,
-                    fontWeight: FontWeight.w600,
-                    letterSpacing: 0.9,
-                    color: item.tagColor,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  item.title,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    fontSize: 13.5,
-                    fontWeight: FontWeight.w600,
-                    color: SamanHomeTokens.textWhite,
-                    height: 1.2,
-                  ),
-                ),
-                const SizedBox(height: 3),
-                Text(
-                  item.description,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    fontSize: 11.5,
-                    fontWeight: FontWeight.w400,
-                    color: SamanHomeTokens.textSecondary,
-                    height: 1.25,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Material(
-                  color: Colors.transparent,
-                  child: InkWell(
-                    onTap: item.onTap,
-                    borderRadius:
-                        BorderRadius.circular(SamanHomeTokens.radiusSm),
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 2),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            item.actionLabel,
-                            style: const TextStyle(
-                              fontSize: 11.5,
-                              fontWeight: FontWeight.w500,
-                              color: SamanHomeTokens.textWhite,
-                            ),
-                          ),
-                          const SizedBox(width: 3),
-                          const Icon(
-                            Icons.arrow_forward_rounded,
-                            size: 12,
-                            color: SamanHomeTokens.textWhite,
-                          ),
-                        ],
+        child: Container(
+          width: cardWidth,
+          padding: const EdgeInsets.all(SamanHomeTokens.spacingLg),
+          decoration: BoxDecoration(
+            color: SamanHomeTokens.cardSurface,
+            borderRadius: BorderRadius.circular(SamanHomeTokens.radiusXl),
+            border: Border.all(
+              color: SamanHomeTokens.borderSubtle,
+              width: 1,
+            ),
+          ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              // Left text details
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      item.categoryTag,
+                      style: TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w600,
+                        letterSpacing: 0.9,
+                        color: item.tagColor,
                       ),
                     ),
+                    const SizedBox(height: 4),
+                    Text(
+                      item.title,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 13.5,
+                        fontWeight: FontWeight.w600,
+                        color: SamanHomeTokens.textWhite,
+                        height: 1.2,
+                      ),
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      item.description,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 11.5,
+                        fontWeight: FontWeight.w400,
+                        color: SamanHomeTokens.textSecondary,
+                        height: 1.25,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Material(
+                      color: Colors.transparent,
+                      child: InkWell(
+                        onTap: effectiveTap,
+                        borderRadius:
+                            BorderRadius.circular(SamanHomeTokens.radiusSm),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 2),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                item.actionLabel,
+                                style: const TextStyle(
+                                  fontSize: 11.5,
+                                  fontWeight: FontWeight.w500,
+                                  color: SamanHomeTokens.textWhite,
+                                ),
+                              ),
+                              const SizedBox(width: 3),
+                              const Icon(
+                                Icons.arrow_forward_rounded,
+                                size: 12,
+                                color: SamanHomeTokens.textWhite,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 12),
+
+              // Right thumbnail image
+              Container(
+                width: 76,
+                height: 76,
+                decoration: BoxDecoration(
+                  color: SamanHomeTokens.iconContainerBg,
+                  borderRadius: BorderRadius.circular(SamanHomeTokens.radiusMd),
+                  border: Border.all(
+                    color: SamanHomeTokens.border,
+                    width: 1,
                   ),
                 ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 12),
-
-          // Right thumbnail image
-          Container(
-            width: 76,
-            height: 76,
-            decoration: BoxDecoration(
-              color: SamanHomeTokens.iconContainerBg,
-              borderRadius: BorderRadius.circular(SamanHomeTokens.radiusMd),
-              border: Border.all(
-                color: SamanHomeTokens.border,
-                width: 1,
+                clipBehavior: Clip.antiAlias,
+                child: Image.asset(
+                  item.imageAssetPath,
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, __, ___) => const Icon(
+                    Icons.image_outlined,
+                    size: 24,
+                    color: SamanHomeTokens.textSecondary,
+                  ),
+                ),
               ),
-            ),
-            clipBehavior: Clip.antiAlias,
-            child: Image.asset(
-              item.imageAssetPath,
-              fit: BoxFit.cover,
-              errorBuilder: (_, __, ___) => const Icon(
-                Icons.image_outlined,
-                size: 24,
-                color: SamanHomeTokens.textSecondary,
-              ),
-            ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }

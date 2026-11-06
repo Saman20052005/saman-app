@@ -15,6 +15,8 @@ class ProfileSnapshotModel extends ProfileSnapshot {
     super.email,
     super.fullName,
     super.avatar,
+    super.avatarSource = 'none',
+    super.canUseGoogleAvatar = false,
     super.isFromCache = false,
     super.hasConfirmedServerHealthStats = false,
   });
@@ -33,6 +35,8 @@ class ProfileSnapshotModel extends ProfileSnapshot {
       email: snapshot.email,
       fullName: snapshot.fullName,
       avatar: snapshot.avatar,
+      avatarSource: snapshot.avatarSource,
+      canUseGoogleAvatar: snapshot.canUseGoogleAvatar,
       isFromCache: snapshot.isFromCache,
       hasConfirmedServerHealthStats: snapshot.hasConfirmedServerHealthStats,
     );
@@ -111,6 +115,13 @@ class ProfileSnapshotModel extends ProfileSnapshot {
         _toInt(healthStats['water_target_ml'] ?? json['waterTargetMl']);
     final burned = _toInt(healthStats['target_burned'] ?? json['targetBurned']);
 
+    final avatarSource = json['avatar_source'] as String? ??
+        json['avatarSource'] as String? ??
+        'none';
+    final canUseGoogle = (json['can_use_google_avatar'] ??
+            json['canUseGoogleAvatar']) as bool? ??
+        false;
+
     return ProfileSnapshotModel(
       userId: userId,
       profile: profileEntity,
@@ -123,6 +134,8 @@ class ProfileSnapshotModel extends ProfileSnapshot {
       email: json['email'] as String?,
       fullName: json['full_name'] as String? ?? json['fullName'] as String?,
       avatar: json['avatar'] as String?,
+      avatarSource: avatarSource,
+      canUseGoogleAvatar: canUseGoogle,
       isFromCache: isFromCache,
       hasConfirmedServerHealthStats: hasServerStats && !isFromCache,
     );
@@ -145,6 +158,8 @@ class ProfileSnapshotModel extends ProfileSnapshot {
       'email': email,
       'full_name': fullName,
       'avatar': avatar,
+      'avatar_source': avatarSource,
+      'can_use_google_avatar': canUseGoogleAvatar,
     };
   }
 
