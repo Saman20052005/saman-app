@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../config/app_translations.dart';
 import '../tokens/saman_home_tokens.dart';
 
 /// Unified Daily Targets (Nutrition & Hydration) module for Saman Home.
@@ -22,7 +23,7 @@ class DailyTargetsCard extends StatelessWidget {
     this.fatTarget = 70.0,
     this.waterConsumedLiters = 1.8,
     this.waterTargetLiters = 2.5,
-    this.onTrackBadgeText = '2 on track',
+    this.onTrackBadgeText,
     this.onNutritionDetailsTap,
   });
 
@@ -36,11 +37,12 @@ class DailyTargetsCard extends StatelessWidget {
   final double fatTarget;
   final double waterConsumedLiters;
   final double waterTargetLiters;
-  final String onTrackBadgeText;
+  final String? onTrackBadgeText;
   final VoidCallback? onNutritionDetailsTap;
 
   @override
   Widget build(BuildContext context) {
+    final badgeText = onTrackBadgeText ?? '2 ${context.tr('on_track')}';
     final caloriePercent = caloriesTarget > 0
         ? (caloriesConsumed / caloriesTarget).clamp(0.0, 1.0)
         : 0.0;
@@ -77,8 +79,8 @@ class DailyTargetsCard extends StatelessWidget {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text(
-                  'DAILY TARGETS',
+                Text(
+                  context.tr('daily_targets_title'),
                   style: SamanHomeTokens.sectionHeader,
                 ),
                 const SizedBox(width: 8),
@@ -105,7 +107,7 @@ class DailyTargetsCard extends StatelessWidget {
                             ),
                           ),
                           child: Text(
-                            onTrackBadgeText,
+                            badgeText,
                             style: const TextStyle(
                               fontSize: 11,
                               fontWeight: FontWeight.w500,
@@ -120,8 +122,8 @@ class DailyTargetsCard extends StatelessWidget {
                             onTap: onNutritionDetailsTap,
                             borderRadius:
                                 BorderRadius.circular(SamanHomeTokens.radiusSm),
-                            child: const Padding(
-                              padding: EdgeInsets.symmetric(
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(
                                 horizontal: 2,
                                 vertical: 2,
                               ),
@@ -129,11 +131,11 @@ class DailyTargetsCard extends StatelessWidget {
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
                                   Text(
-                                    'Nutrition details',
+                                    context.tr('nutrition_details'),
                                     style: SamanHomeTokens.linkText,
                                   ),
-                                  SizedBox(width: 2),
-                                  Icon(
+                                  const SizedBox(width: 2),
+                                  const Icon(
                                     Icons.arrow_forward_rounded,
                                     size: 13,
                                     color: SamanHomeTokens.textSecondary,
@@ -153,7 +155,7 @@ class DailyTargetsCard extends StatelessWidget {
 
             // ─── Calories Row ────────────────────────────────────────
             _MetricHeaderValueRow(
-              title: 'Calories',
+              title: context.tr('macro_calories'),
               currentText: caloriesConsumed.toString().replaceAllMapped(
                     RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
                     (Match m) => '${m[1]},',
@@ -167,7 +169,8 @@ class DailyTargetsCard extends StatelessWidget {
             const SizedBox(height: 6),
             _SlimProgressBar(
               value: caloriePercent,
-              fillColor: SamanHomeTokens.calorieFill,
+              fillColor: SamanHomeTokens.greenAccent,
+              height: 6.0,
             ),
             const SizedBox(height: SamanHomeTokens.spacingMd),
 
@@ -183,7 +186,7 @@ class DailyTargetsCard extends StatelessWidget {
               children: [
                 Expanded(
                   child: _MacroColumn(
-                    name: 'PROTEIN',
+                    name: context.tr('macro_protein_upper'),
                     percentage: '${(proteinPercent * 100).round()}%',
                     percentColor: SamanHomeTokens.greenAccent,
                     currentAmount: '${proteinConsumed.round()}g',
@@ -195,7 +198,7 @@ class DailyTargetsCard extends StatelessWidget {
                 const SizedBox(width: SamanHomeTokens.spacingMd),
                 Expanded(
                   child: _MacroColumn(
-                    name: 'CARBS',
+                    name: context.tr('macro_carbs_upper'),
                     percentage: '${(carbsPercent * 100).round()}%',
                     percentColor: SamanHomeTokens.carbsAmber,
                     currentAmount: '${carbsConsumed.round()}g',
@@ -207,13 +210,13 @@ class DailyTargetsCard extends StatelessWidget {
                 const SizedBox(width: SamanHomeTokens.spacingMd),
                 Expanded(
                   child: _MacroColumn(
-                    name: 'FAT',
+                    name: context.tr('macro_fat_upper'),
                     percentage: '${(fatPercent * 100).round()}%',
-                    percentColor: SamanHomeTokens.fatViolet,
+                    percentColor: SamanHomeTokens.fatRose,
                     currentAmount: '${fatConsumed.round()}g',
                     targetAmount: ' / ${fatTarget.round()}g',
                     progressValue: fatPercent,
-                    progressColor: SamanHomeTokens.fatViolet,
+                    progressColor: SamanHomeTokens.fatRose,
                   ),
                 ),
               ],
@@ -229,7 +232,7 @@ class DailyTargetsCard extends StatelessWidget {
 
             // ─── Water Row ───────────────────────────────────────────
             _MetricHeaderValueRow(
-              title: 'Water',
+              title: context.tr('water'),
               currentText: '${waterConsumedLiters.toStringAsFixed(1)}L',
               targetUnitText: ' / ${waterTargetLiters.toStringAsFixed(1)}L',
               percentageText: '${(waterPercent * 100).round()}%',
@@ -237,7 +240,8 @@ class DailyTargetsCard extends StatelessWidget {
             const SizedBox(height: 6),
             _SlimProgressBar(
               value: waterPercent,
-              fillColor: SamanHomeTokens.waterFill,
+              fillColor: SamanHomeTokens.waterCyan,
+              height: 6.0,
             ),
           ],
         ),
@@ -410,35 +414,40 @@ class _SlimProgressBar extends StatelessWidget {
   const _SlimProgressBar({
     required this.value,
     required this.fillColor,
+    this.height = 4.0,
   });
 
   final double value;
   final Color fillColor;
-  static const double _barHeight = 4.0;
+  final double height;
 
   @override
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
         final totalWidth = constraints.maxWidth;
-        final fillWidth = (totalWidth * value).clamp(0.0, totalWidth);
+        final clampedVal = value.clamp(0.0, 1.0);
+        final fillWidth = totalWidth * clampedVal;
 
         return Container(
           width: totalWidth,
-          height: _barHeight,
+          height: height,
           decoration: BoxDecoration(
             color: SamanHomeTokens.progressTrack,
             borderRadius: BorderRadius.circular(SamanHomeTokens.radiusPill),
           ),
           alignment: Alignment.centerLeft,
-          child: Container(
-            width: fillWidth,
-            height: _barHeight,
-            decoration: BoxDecoration(
-              color: fillColor,
-              borderRadius: BorderRadius.circular(SamanHomeTokens.radiusPill),
-            ),
-          ),
+          child: clampedVal > 0.001
+              ? Container(
+                  width: fillWidth,
+                  height: height,
+                  decoration: BoxDecoration(
+                    color: fillColor,
+                    borderRadius:
+                        BorderRadius.circular(SamanHomeTokens.radiusPill),
+                  ),
+                )
+              : const SizedBox.shrink(),
         );
       },
     );

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import '../../config/app_translations.dart';
 import '../providers/workout_history_providers.dart';
 import '../providers/exercise_providers.dart';
 import '../tokens/saman_workout_tokens.dart';
@@ -84,12 +85,12 @@ class _WorkoutHistoryScreenState extends ConsumerState<WorkoutHistoryScreen> {
                 ),
               )
             : null,
-        title: const Text(
-          'Workout History',
+        title: Text(
+          context.tr('workout_history_title'),
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
-          style: TextStyle(
-            fontFamily: 'Space Grotesk',
+          style: const TextStyle(
+            fontFamily: 'Manrope',
             fontSize: 22,
             fontWeight: FontWeight.w600,
             color: SamanWorkoutTokens.textPrimary,
@@ -148,8 +149,8 @@ class _WorkoutHistoryScreenState extends ConsumerState<WorkoutHistoryScreen> {
                       size: 18,
                       color: SamanWorkoutTokens.textSecondary,
                     ),
-                    hintText: 'Search workouts',
-                    labelText: 'Search workouts',
+                    hintText: context.tr('search_workouts_hint'),
+                    labelText: context.tr('search_workouts_hint'),
                     labelStyle: const TextStyle(
                       color: SamanWorkoutTokens.textSecondary,
                       fontSize: 13,
@@ -164,7 +165,7 @@ class _WorkoutHistoryScreenState extends ConsumerState<WorkoutHistoryScreen> {
                       vertical: 12,
                     ),
                     suffixIcon: IconButton(
-                      tooltip: 'Clear filters',
+                      tooltip: context.tr('clear_filters'),
                       onPressed: _clear,
                       icon: const Icon(
                         Icons.close,
@@ -209,13 +210,13 @@ class _WorkoutHistoryScreenState extends ConsumerState<WorkoutHistoryScreen> {
                           ),
                         ),
                         const SizedBox(width: 8),
-                        const Expanded(
+                        Expanded(
                           child: Text(
-                            'Calendar and period overview',
+                            context.tr('calendar_period_overview'),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                              fontFamily: 'Space Grotesk',
+                            style: const TextStyle(
+                              fontFamily: 'Manrope',
                               fontSize: 13,
                               fontWeight: FontWeight.w600,
                               color: SamanWorkoutTokens.textPrimary,
@@ -249,9 +250,12 @@ class _WorkoutHistoryScreenState extends ConsumerState<WorkoutHistoryScreen> {
                             ChoiceChip(
                               label: Text(
                                 switch (period) {
-                                  HistoryPeriod.thisWeek => 'This week',
-                                  HistoryPeriod.thisMonth => 'Calendar month',
-                                  HistoryPeriod.allTime => 'All loaded',
+                                  HistoryPeriod.thisWeek =>
+                                    context.tr('period_this_week'),
+                                  HistoryPeriod.thisMonth =>
+                                    context.tr('period_calendar_month'),
+                                  HistoryPeriod.allTime =>
+                                    context.tr('period_all_loaded'),
                                 },
                                 style: TextStyle(
                                   fontSize: 12,
@@ -337,7 +341,7 @@ class _WorkoutHistoryScreenState extends ConsumerState<WorkoutHistoryScreen> {
                             foregroundColor: SamanWorkoutTokens.emeraldAccent,
                             padding: const EdgeInsets.symmetric(horizontal: 4),
                           ),
-                          child: const Text('Clear filters'),
+                          child: Text(context.tr('clear_filters')),
                         ),
                       ),
                     ],
@@ -360,11 +364,11 @@ class _WorkoutHistoryScreenState extends ConsumerState<WorkoutHistoryScreen> {
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          const Text(
-                            'SESSIONS',
+                          Text(
+                            context.tr('sessions_label'),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
+                            style: const TextStyle(
                               fontFamily: 'monospace',
                               fontSize: 9,
                               letterSpacing: 0.8,
@@ -378,7 +382,7 @@ class _WorkoutHistoryScreenState extends ConsumerState<WorkoutHistoryScreen> {
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: const TextStyle(
-                              fontFamily: 'Space Grotesk',
+                              fontFamily: 'Manrope',
                               fontSize: 16,
                               fontWeight: FontWeight.w700,
                               color: SamanWorkoutTokens.textPrimary,
@@ -392,11 +396,11 @@ class _WorkoutHistoryScreenState extends ConsumerState<WorkoutHistoryScreen> {
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          const Text(
-                            'TOTAL TIME',
+                          Text(
+                            context.tr('total_time_label'),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
+                            style: const TextStyle(
                               fontFamily: 'monospace',
                               fontSize: 9,
                               letterSpacing: 0.8,
@@ -410,7 +414,7 @@ class _WorkoutHistoryScreenState extends ConsumerState<WorkoutHistoryScreen> {
                             overflow: TextOverflow.ellipsis,
                             text: TextSpan(
                               style: const TextStyle(
-                                fontFamily: 'Space Grotesk',
+                                fontFamily: 'Manrope',
                                 fontSize: 16,
                                 fontWeight: FontWeight.w700,
                                 color: SamanWorkoutTokens.textPrimary,
@@ -451,11 +455,11 @@ class _WorkoutHistoryScreenState extends ConsumerState<WorkoutHistoryScreen> {
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          const Text(
-                            'TOTAL VOLUME',
+                          Text(
+                            context.tr('total_volume_label'),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
+                            style: const TextStyle(
                               fontFamily: 'monospace',
                               fontSize: 9,
                               letterSpacing: 0.8,
@@ -469,7 +473,7 @@ class _WorkoutHistoryScreenState extends ConsumerState<WorkoutHistoryScreen> {
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: const TextStyle(
-                              fontFamily: 'Space Grotesk',
+                              fontFamily: 'Manrope',
                               fontSize: 16,
                               fontWeight: FontWeight.w700,
                               color: SamanWorkoutTokens.textPrimary,
@@ -510,9 +514,9 @@ class _WorkoutHistoryScreenState extends ConsumerState<WorkoutHistoryScreen> {
                         ),
                       ),
                       const SizedBox(height: 12),
-                      const Text(
-                        'No workouts match your filters',
-                        style: TextStyle(
+                      Text(
+                        context.tr('no_workouts_match_filters'),
+                        style: const TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w600,
                           color: SamanWorkoutTokens.textPrimary,
@@ -536,9 +540,9 @@ class _WorkoutHistoryScreenState extends ConsumerState<WorkoutHistoryScreen> {
                             borderRadius: BorderRadius.circular(SamanWorkoutTokens.radiusMd),
                           ),
                         ),
-                        child: const Text(
-                          'Reset filters',
-                          style: TextStyle(color: SamanWorkoutTokens.emeraldAccent),
+                        child: Text(
+                          context.tr('reset_filters'),
+                          style: const TextStyle(color: SamanWorkoutTokens.emeraldAccent),
                         ),
                       ),
                     ],
@@ -606,9 +610,9 @@ class _WorkoutHistoryScreenState extends ConsumerState<WorkoutHistoryScreen> {
               children: [
                 const Icon(Icons.error_outline, size: 40, color: SamanWorkoutTokens.crimsonAccent),
                 const SizedBox(height: 12),
-                const Text(
-                  'Unable to load workout history',
-                  style: TextStyle(
+                Text(
+                  context.tr('unable_to_load_workout_history'),
+                  style: const TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
                     color: SamanWorkoutTokens.textPrimary,
@@ -620,7 +624,7 @@ class _WorkoutHistoryScreenState extends ConsumerState<WorkoutHistoryScreen> {
                   style: TextButton.styleFrom(
                     foregroundColor: SamanWorkoutTokens.emeraldAccent,
                   ),
-                  child: const Text('Retry'),
+                  child: Text(context.tr('retry')),
                 ),
               ],
             ),
@@ -652,10 +656,10 @@ class _WorkoutHistoryScreenState extends ConsumerState<WorkoutHistoryScreen> {
               ),
             ),
             const SizedBox(height: 16),
-            const Text(
-              'No workout history yet',
-              style: TextStyle(
-                fontFamily: 'Space Grotesk',
+            Text(
+              context.tr('no_workout_history_yet'),
+              style: const TextStyle(
+                fontFamily: 'Manrope',
                 fontSize: 20,
                 fontWeight: FontWeight.w600,
                 color: SamanWorkoutTokens.textPrimary,
@@ -839,9 +843,9 @@ class _WorkoutSessionCard extends StatelessWidget {
                                 ),
                               ),
                               const SizedBox(width: 5),
-                              const Text(
-                                'Completed',
-                                style: TextStyle(
+                              Text(
+                                context.tr('completed_status'),
+                                style: const TextStyle(
                                   fontFamily: 'monospace',
                                   fontSize: 10,
                                   fontWeight: FontWeight.w600,
@@ -864,7 +868,7 @@ class _WorkoutSessionCard extends StatelessWidget {
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
-                        fontFamily: 'Space Grotesk',
+                        fontFamily: 'Manrope',
                         fontSize: 18,
                         fontWeight: FontWeight.w700,
                         color: SamanWorkoutTokens.textPrimary,
@@ -903,14 +907,16 @@ class _WorkoutSessionCard extends StatelessWidget {
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                                 style: const TextStyle(
-                                  fontFamily: 'Space Grotesk',
+                                  fontFamily: 'Manrope',
                                   fontSize: 13,
                                   fontWeight: FontWeight.w600,
                                   color: SamanWorkoutTokens.textPrimary,
                                 ),
                               ),
                               Text(
-                                exerciseCount == 1 ? 'EXERCISE' : 'EXERCISES',
+                                exerciseCount == 1
+                                    ? context.tr('exercise_unit_singular')
+                                    : context.tr('exercise_unit_plural'),
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                                 style: const TextStyle(
@@ -934,17 +940,17 @@ class _WorkoutSessionCard extends StatelessWidget {
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                                 style: const TextStyle(
-                                  fontFamily: 'Space Grotesk',
+                                  fontFamily: 'Manrope',
                                   fontSize: 13,
                                   fontWeight: FontWeight.w600,
                                   color: SamanWorkoutTokens.textPrimary,
                                 ),
                               ),
-                              const Text(
-                                'DURATION',
+                              Text(
+                                context.tr('duration_label'),
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
-                                style: TextStyle(
+                                style: const TextStyle(
                                   fontFamily: 'monospace',
                                   fontSize: 8,
                                   color: SamanWorkoutTokens.textSecondary,
@@ -965,17 +971,17 @@ class _WorkoutSessionCard extends StatelessWidget {
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                                 style: const TextStyle(
-                                  fontFamily: 'Space Grotesk',
+                                  fontFamily: 'Manrope',
                                   fontSize: 13,
                                   fontWeight: FontWeight.w600,
                                   color: SamanWorkoutTokens.textPrimary,
                                 ),
                               ),
-                              const Text(
-                                'VOLUME',
+                              Text(
+                                context.tr('volume_label'),
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
-                                style: TextStyle(
+                                style: const TextStyle(
                                   fontFamily: 'monospace',
                                   fontSize: 8,
                                   color: SamanWorkoutTokens.textSecondary,
@@ -990,14 +996,14 @@ class _WorkoutSessionCard extends StatelessWidget {
                   const SizedBox(height: 12),
 
                   // Exercises Performed / Preview Header
-                  const Row(
+                  Row(
                     children: [
                       Expanded(
                         child: Text(
-                          'EXERCISES PERFORMED',
+                          context.tr('exercises_performed_label'),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
+                          style: const TextStyle(
                             fontFamily: 'monospace',
                             fontSize: 10,
                             fontWeight: FontWeight.w600,
@@ -1006,20 +1012,20 @@ class _WorkoutSessionCard extends StatelessWidget {
                           ),
                         ),
                       ),
-                      SizedBox(width: 8),
+                      const SizedBox(width: 8),
                       Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Text(
-                            'View session',
-                            style: TextStyle(
+                            context.tr('view_session'),
+                            style: const TextStyle(
                               fontSize: 11,
                               fontWeight: FontWeight.w500,
                               color: SamanWorkoutTokens.emeraldAccent,
                             ),
                           ),
-                          SizedBox(width: 2),
-                          Icon(
+                          const SizedBox(width: 2),
+                          const Icon(
                             Icons.arrow_forward,
                             size: 12,
                             color: SamanWorkoutTokens.emeraldAccent,

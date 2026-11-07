@@ -458,8 +458,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     if (fatTarget > 0 && (fatConsumed / fatTarget) >= 0.7) {
       onTrackCount++;
     }
-    final onTrackBadgeText =
-        onTrackCount > 0 ? '$onTrackCount on track' : '2 on track';
+    final onTrackBadgeText = onTrackCount > 0
+        ? '$onTrackCount ${context.tr('on_track')}'
+        : '2 ${context.tr('on_track')}';
 
     // 3. Weekly Consistency Metrics
     final completedSessions = weeklyGoal.where((d) => d).length;

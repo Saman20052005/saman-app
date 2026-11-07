@@ -10,6 +10,8 @@ import '../../../models/meal_log.dart';
 import '../../../models/ai_analysis_result.dart';
 import '../../../providers/daily_story_provider.dart';
 import '../../../services/nutrition_service.dart';
+import '../../../config/app_translations.dart';
+import '../../../widgets/saman_feedback_snackbar.dart';
 import 'meal_review_dialog.dart' hide MealType;
 
 class LogMealSheet extends ConsumerStatefulWidget {
@@ -28,7 +30,7 @@ class _LogMealSheetState extends ConsumerState<LogMealSheet> {
   static const Color _borderStrong = Color(0xFF3D3D3D);
 
   static const Color _brandPrimary = Color(0xFF0E8F5E);
-  static const Color _aiAccent = Color(0xFFFF8A3D);
+  static const Color _aiAccent = Color(0xFFB95219);
 
   static const Color _textPrimary = Color(0xFFF0F0F0);
   static const Color _textSecondary = Color(0xFFAAAAAA);
@@ -80,7 +82,7 @@ class _LogMealSheetState extends ConsumerState<LogMealSheet> {
             content: Text(
               e is NutritionSessionChanged
                   ? e.toString()
-                  : 'Không thể mở ảnh. Vui lòng thử lại.',
+                  : context.tr('cannot_open_image'),
             ),
           ),
         );
@@ -148,8 +150,10 @@ class _LogMealSheetState extends ConsumerState<LogMealSheet> {
       if (!mounted || confirmed == null) return;
       await owner.validate();
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Đã thêm bữa ăn thành công!')),
+      SamanFeedbackSnackBar.show(
+        context,
+        message: context.tr('meal_added_success'),
+        type: FeedbackType.success,
       );
       Navigator.of(context).pop(true);
     } catch (error) {
@@ -164,9 +168,9 @@ class _LogMealSheetState extends ConsumerState<LogMealSheet> {
             borderRadius: BorderRadius.circular(16),
             side: const BorderSide(color: _borderStrong),
           ),
-          title: const Text(
-            'Không thể phân tích ảnh',
-            style: TextStyle(
+          title: Text(
+            context.tr('cannot_analyze_image'),
+            style: const TextStyle(
               color: _textPrimary,
               fontSize: 16,
               fontWeight: FontWeight.w600,
@@ -185,9 +189,9 @@ class _LogMealSheetState extends ConsumerState<LogMealSheet> {
                 ),
               ),
               const SizedBox(height: 10),
-              const Text(
-                'Lưu chỉ ảnh hiện chưa khả dụng. Ảnh và nội dung của bạn được giữ lại để thử phân tích lại hoặc hủy.',
-                style: TextStyle(
+              Text(
+                context.tr('save_photo_only_unavailable'),
+                style: const TextStyle(
                   color: _textSecondary,
                   fontSize: 12,
                   height: 1.45,
@@ -202,9 +206,9 @@ class _LogMealSheetState extends ConsumerState<LogMealSheet> {
                     borderRadius: BorderRadius.circular(8),
                     border: Border.all(color: _borderSubtle),
                   ),
-                  child: const Text(
-                    '💡 Gợi ý: Bạn có thể chuyển sang chế độ Tiêu chuẩn và thử phân tích lại.',
-                    style: TextStyle(
+                  child: Text(
+                    context.tr('nutrition_mode_suggest_core'),
+                    style: const TextStyle(
                       color: _brandPrimary,
                       fontSize: 11,
                       height: 1.35,
@@ -221,16 +225,16 @@ class _LogMealSheetState extends ConsumerState<LogMealSheet> {
                   setState(() => _mode = 'standard');
                   Navigator.pop(context);
                 },
-                child: const Text(
-                  'Đổi sang Tiêu chuẩn',
-                  style: TextStyle(color: _brandPrimary, fontSize: 13),
+                child: Text(
+                  context.tr('nutrition_mode_switch_to_core'),
+                  style: const TextStyle(color: _brandPrimary, fontSize: 13),
                 ),
               ),
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: const Text(
-                'Đóng',
-                style: TextStyle(color: _textSecondary, fontSize: 13),
+              child: Text(
+                context.tr('dialog_close'),
+                style: const TextStyle(color: _textSecondary, fontSize: 13),
               ),
             ),
           ],
@@ -256,11 +260,10 @@ class _LogMealSheetState extends ConsumerState<LogMealSheet> {
 
     ref.listen<AsyncValue>(dailyStoryControllerProvider(dateStr), (_, state) {
       if (!state.isLoading && state.hasError) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(foodAnalysisErrorMessage(state.error!)),
-            backgroundColor: _errorColor,
-          ),
+        SamanFeedbackSnackBar.show(
+          context,
+          message: foodAnalysisErrorMessage(state.error!),
+          type: FeedbackType.error,
         );
       }
     });
@@ -383,7 +386,7 @@ class _LogMealSheetState extends ConsumerState<LogMealSheet> {
                 _buildMealTypeSegmentedSelector(),
                 const SizedBox(height: 14),
 
-                // Mode Selector Pill (HTML Scenario 2 Spec)
+                // Mode Selector Pill (Core 3 / Pro 3)
                 Container(
                   padding: const EdgeInsets.all(4),
                   decoration: BoxDecoration(
@@ -394,92 +397,118 @@ class _LogMealSheetState extends ConsumerState<LogMealSheet> {
                   child: Row(
                     children: [
                       Expanded(
-                        child: InkWell(
-                          borderRadius: BorderRadius.circular(20),
-                          onTap: _isAnalyzing
-                              ? null
-                              : () => setState(() => _mode = 'standard'),
-                          child: AnimatedContainer(
-                            duration: const Duration(milliseconds: 180),
-                            padding: const EdgeInsets.symmetric(vertical: 8),
-                            decoration: BoxDecoration(
-                              color: !isAdvanced ? _brandPrimary : Colors.transparent,
-                              borderRadius: BorderRadius.circular(20),
-                              boxShadow: !isAdvanced
-                                  ? [
-                                      BoxShadow(
-                                        color: _brandPrimary.withOpacity(0.4),
-                                        blurRadius: 8,
-                                        offset: const Offset(0, 2),
-                                      ),
-                                    ]
-                                  : null,
-                            ),
-                            alignment: Alignment.center,
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(
-                                  Icons.balance_rounded,
-                                  size: 13,
-                                  color: !isAdvanced ? Colors.white : _textSecondary,
-                                ),
-                                const SizedBox(width: 6),
-                                Text(
-                                  'Tiêu chuẩn',
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    fontWeight: !isAdvanced
-                                        ? FontWeight.w600
-                                        : FontWeight.w500,
-                                    color:
-                                        !isAdvanced ? Colors.white : _textSecondary,
+                        child: Semantics(
+                          button: true,
+                          selected: !isAdvanced,
+                          label: context.tr('model_core_3_accessibility'),
+                          child: InkWell(
+                            borderRadius: BorderRadius.circular(20),
+                            onTap: _isAnalyzing
+                                ? null
+                                : () => setState(() => _mode = 'standard'),
+                            child: AnimatedContainer(
+                              duration: const Duration(milliseconds: 180),
+                              padding: const EdgeInsets.symmetric(vertical: 9),
+                              decoration: BoxDecoration(
+                                color: !isAdvanced ? _brandPrimary : Colors.transparent,
+                                borderRadius: BorderRadius.circular(20),
+                                boxShadow: !isAdvanced
+                                    ? [
+                                        BoxShadow(
+                                          color: _brandPrimary.withOpacity(0.20),
+                                          blurRadius: 4,
+                                          offset: const Offset(0, 1),
+                                        ),
+                                      ]
+                                    : null,
+                              ),
+                              alignment: Alignment.center,
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(
+                                    Icons.balance_outlined,
+                                    size: 16,
+                                    color: !isAdvanced ? Colors.white : _textSecondary,
                                   ),
-                                ),
-                              ],
+                                  const SizedBox(width: 7),
+                                  Flexible(
+                                    child: Text(
+                                      context.tr('model_core_3'),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: TextStyle(
+                                        fontSize: 14,
+                                        fontWeight: !isAdvanced
+                                            ? FontWeight.w600
+                                            : FontWeight.w500,
+                                        letterSpacing: -0.2,
+                                        color: !isAdvanced ? Colors.white : _textSecondary,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
                           ),
                         ),
                       ),
                       const SizedBox(width: 4),
                       Expanded(
-                        child: InkWell(
-                          borderRadius: BorderRadius.circular(20),
-                          onTap: _isAnalyzing
-                              ? null
-                              : () => setState(() => _mode = 'advanced'),
-                          child: AnimatedContainer(
-                            duration: const Duration(milliseconds: 180),
-                            padding: const EdgeInsets.symmetric(vertical: 8),
-                            decoration: BoxDecoration(
-                              color: isAdvanced ? _aiAccent : Colors.transparent,
-                              borderRadius: BorderRadius.circular(20),
-                              boxShadow: isAdvanced
-                                  ? [
-                                      BoxShadow(
-                                        color: _aiAccent.withOpacity(0.4),
-                                        blurRadius: 8,
-                                        offset: const Offset(0, 2),
-                                      ),
-                                    ]
-                                  : null,
-                            ),
-                            alignment: Alignment.center,
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Text(
-                                  '✨ AI nâng cao',
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    fontWeight: isAdvanced
-                                        ? FontWeight.w600
-                                        : FontWeight.w500,
-                                    color:
-                                        isAdvanced ? Colors.white : _textSecondary,
+                        child: Semantics(
+                          button: true,
+                          selected: isAdvanced,
+                          label: context.tr('model_pro_3_accessibility'),
+                          child: InkWell(
+                            borderRadius: BorderRadius.circular(20),
+                            onTap: _isAnalyzing
+                                ? null
+                                : () => setState(() => _mode = 'advanced'),
+                            child: AnimatedContainer(
+                              duration: const Duration(milliseconds: 180),
+                              padding: const EdgeInsets.symmetric(vertical: 9),
+                              decoration: BoxDecoration(
+                                color: isAdvanced ? _aiAccent : Colors.transparent,
+                                borderRadius: BorderRadius.circular(20),
+                                boxShadow: isAdvanced
+                                    ? [
+                                        BoxShadow(
+                                          color: _aiAccent.withOpacity(0.18),
+                                          blurRadius: 4,
+                                          offset: const Offset(0, 1),
+                                        ),
+                                      ]
+                                    : null,
+                              ),
+                              alignment: Alignment.center,
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(
+                                    Icons.auto_awesome_outlined,
+                                    size: 16,
+                                    color: isAdvanced ? Colors.white : _textSecondary,
                                   ),
-                                ),
-                              ],
+                                  const SizedBox(width: 7),
+                                  Flexible(
+                                    child: Text(
+                                      context.tr('model_pro_3'),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: TextStyle(
+                                        fontSize: 14,
+                                        fontWeight: isAdvanced
+                                            ? FontWeight.w600
+                                            : FontWeight.w500,
+                                        letterSpacing: -0.2,
+                                        color: isAdvanced ? Colors.white : _textSecondary,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
                           ),
                         ),
@@ -497,8 +526,8 @@ class _LogMealSheetState extends ConsumerState<LogMealSheet> {
                       Expanded(
                         child: Text(
                           isAdvanced
-                              ? 'Nhận diện đa món • Hỗ trợ món ăn Việt'
-                              : 'Tra cứu nhanh • Cơ sở dữ liệu tham chiếu',
+                              ? context.tr('model_pro_3_desc')
+                              : context.tr('model_core_3_desc'),
                           style: const TextStyle(
                             fontSize: 11,
                             color: _textSecondary,
@@ -530,19 +559,19 @@ class _LogMealSheetState extends ConsumerState<LogMealSheet> {
                           ),
                         ),
                         const SizedBox(height: 12),
-                        const Text(
-                          'Đang phân tích món ăn...',
-                          style: TextStyle(
+                        Text(
+                          context.tr('analyzing_food'),
+                          style: const TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.w600,
                             color: _textPrimary,
                           ),
                         ),
                         const SizedBox(height: 4),
-                        const Text(
-                          'Vui lòng đợi giây lát trong khi hệ thống nhận diện thành phần dinh dưỡng.',
+                        Text(
+                          context.tr('analyzing_food_desc'),
                           textAlign: TextAlign.center,
-                          style: TextStyle(
+                          style: const TextStyle(
                             fontSize: 11,
                             color: _textSecondary,
                             height: 1.4,
@@ -557,9 +586,9 @@ class _LogMealSheetState extends ConsumerState<LogMealSheet> {
                             borderRadius: BorderRadius.circular(12),
                             border: Border.all(color: _borderSubtle),
                           ),
-                          child: const Text(
-                            'Chống gửi đúp: Toàn bộ nút thao tác đã tạm khóa',
-                            style: TextStyle(fontSize: 10, color: _textMuted),
+                          child: Text(
+                            context.tr('anti_double_submit_locked'),
+                            style: const TextStyle(fontSize: 10, color: _textMuted),
                           ),
                         ),
                       ],
@@ -593,9 +622,9 @@ class _LogMealSheetState extends ConsumerState<LogMealSheet> {
                       fontSize: 13,
                       height: 1.4,
                     ),
-                    decoration: const InputDecoration(
-                      hintText: 'Ghi chú (Tên món, cảm nhận...)',
-                      hintStyle: TextStyle(
+                    decoration: InputDecoration(
+                      hintText: context.tr('meal_note_hint'),
+                      hintStyle: const TextStyle(
                         color: _textMuted,
                         fontSize: 13,
                         height: 1.4,
@@ -623,15 +652,15 @@ class _LogMealSheetState extends ConsumerState<LogMealSheet> {
                     borderRadius: BorderRadius.circular(10),
                     border: Border.all(color: _borderSubtle),
                   ),
-                  child: const Row(
+                  child: Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Icon(Icons.info_outline, size: 14, color: _textMuted),
-                      SizedBox(width: 8),
+                      const Icon(Icons.info_outline, size: 14, color: _textMuted),
+                      const SizedBox(width: 8),
                       Expanded(
                         child: Text(
-                          'Phân tích ảnh và xác nhận trước khi lưu bữa ăn. Lưu chỉ ảnh hiện chưa khả dụng.',
-                          style: TextStyle(
+                          context.tr('analyze_and_confirm_notice'),
+                          style: const TextStyle(
                             fontSize: 11,
                             color: _textMuted,
                             height: 1.35,
@@ -652,8 +681,8 @@ class _LogMealSheetState extends ConsumerState<LogMealSheet> {
                         : () async {
                             if (_pickedFile == null) {
                               ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                    content: Text('Vui lòng chọn ảnh trước khi lưu')),
+                                SnackBar(
+                                    content: Text(context.tr('please_select_image_first'))),
                               );
                               return;
                             }
@@ -677,14 +706,14 @@ class _LogMealSheetState extends ConsumerState<LogMealSheet> {
                               color: Colors.white,
                             ),
                           )
-                        : const Row(
+                        : Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              Icon(Icons.check_circle_outline, size: 18),
-                              SizedBox(width: 8),
+                              const Icon(Icons.check_circle_outline, size: 18),
+                              const SizedBox(width: 8),
                               Text(
-                                'Lưu Nhật Ký Ảnh',
-                                style: TextStyle(
+                                context.tr('save_photo_journal'),
+                                style: const TextStyle(
                                   fontSize: 14,
                                   fontWeight: FontWeight.w700,
                                 ),
@@ -701,9 +730,9 @@ class _LogMealSheetState extends ConsumerState<LogMealSheet> {
                     onPressed: _isAnalyzing
                         ? null
                         : () => Navigator.of(context).pop(false),
-                    child: const Text(
-                      'Hủy',
-                      style: TextStyle(
+                    child: Text(
+                      context.tr('cancel'),
+                      style: const TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.w500,
                         color: _textSecondary,
@@ -717,6 +746,19 @@ class _LogMealSheetState extends ConsumerState<LogMealSheet> {
         ),
       ),
     );
+  }
+
+  String _getMealTypeLabel(BuildContext context, MealType type) {
+    switch (type) {
+      case MealType.breakfast:
+        return context.tr('meal_breakfast');
+      case MealType.lunch:
+        return context.tr('meal_lunch');
+      case MealType.dinner:
+        return context.tr('meal_dinner');
+      case MealType.snack:
+        return context.tr('meal_snack');
+    }
   }
 
   Widget _buildMealTypeSegmentedSelector() {
@@ -769,7 +811,7 @@ class _LogMealSheetState extends ConsumerState<LogMealSheet> {
                     ],
                     Flexible(
                       child: Text(
-                        type.displayName,
+                        _getMealTypeLabel(context, type),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
@@ -832,18 +874,18 @@ class _LogMealSheetState extends ConsumerState<LogMealSheet> {
                       ? null
                       : () => _pickImage(ImageSource.camera),
                   icon: const Icon(Icons.refresh, size: 16, color: _brandPrimary),
-                  label: const Text(
-                    'Đổi ảnh',
-                    style: TextStyle(fontSize: 12, color: _brandPrimary),
+                  label: Text(
+                    context.tr('change_photo'),
+                    style: const TextStyle(fontSize: 12, color: _brandPrimary),
                   ),
                 ),
                 TextButton.icon(
                   onPressed: _isAnalyzing ? null : _clearImage,
                   icon: const Icon(Icons.delete_outline,
                       size: 16, color: _errorColor),
-                  label: const Text(
-                    'Xóa ảnh',
-                    style: TextStyle(fontSize: 12, color: _errorColor),
+                  label: Text(
+                    context.tr('delete_photo'),
+                    style: const TextStyle(fontSize: 12, color: _errorColor),
                   ),
                 ),
               ],
@@ -877,18 +919,18 @@ class _LogMealSheetState extends ConsumerState<LogMealSheet> {
             ),
           ),
           const SizedBox(height: 10),
-          const Text(
-            'Thêm ảnh bữa ăn',
-            style: TextStyle(
+          Text(
+            context.tr('add_meal_photo'),
+            style: const TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.w600,
               color: _textPrimary,
             ),
           ),
           const SizedBox(height: 2),
-          const Text(
-            'Chụp món ăn hoặc chọn từ thư viện ảnh',
-            style: TextStyle(
+          Text(
+            context.tr('take_or_pick_photo'),
+            style: const TextStyle(
               fontSize: 11,
               color: _textSecondary,
             ),
@@ -902,7 +944,7 @@ class _LogMealSheetState extends ConsumerState<LogMealSheet> {
                       ? null
                       : () => _pickImage(ImageSource.camera),
                   icon: const Icon(Icons.camera_alt, size: 16),
-                  label: const Text('Chụp ảnh'),
+                  label: Text(context.tr('camera_action')),
                   style: OutlinedButton.styleFrom(
                     backgroundColor: _bgCard,
                     foregroundColor: _textPrimary,
@@ -921,7 +963,7 @@ class _LogMealSheetState extends ConsumerState<LogMealSheet> {
                       ? null
                       : () => _pickImage(ImageSource.gallery),
                   icon: const Icon(Icons.photo_library, size: 16),
-                  label: const Text('Thư viện'),
+                  label: Text(context.tr('gallery_action')),
                   style: OutlinedButton.styleFrom(
                     backgroundColor: _bgCard,
                     foregroundColor: _textPrimary,

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../config/app_translations.dart';
 import '../tokens/saman_home_tokens.dart';
 
 /// Contextual AI coaching line for the Saman Home screen.
@@ -11,15 +12,18 @@ import '../tokens/saman_home_tokens.dart';
 class SamanCompanionBar extends StatelessWidget {
   const SamanCompanionBar({
     super.key,
-    this.message = 'Leg Day ready. Aim for 40g protein before 2 PM.',
+    this.message,
     this.onAskSamanTap,
   });
 
-  final String message;
+  final String? message;
   final VoidCallback? onAskSamanTap;
 
   @override
   Widget build(BuildContext context) {
+    final displayMessage =
+        message ?? context.tr('saman_companion_default_message');
+
     return Padding(
       padding: const EdgeInsets.symmetric(
         horizontal: SamanHomeTokens.spacingLg,
@@ -42,7 +46,7 @@ class SamanCompanionBar extends StatelessWidget {
             const Icon(
               Icons.bolt_rounded,
               size: 16,
-              color: SamanHomeTokens.textSecondary,
+              color: SamanHomeTokens.carbsAmber,
             ),
             const SizedBox(width: SamanHomeTokens.spacingSm),
             Expanded(
@@ -60,10 +64,10 @@ class SamanCompanionBar extends StatelessWidget {
                       text: 'Saman: ',
                       style: TextStyle(
                         fontWeight: FontWeight.w600,
-                        color: SamanHomeTokens.textWhite,
+                        color: SamanHomeTokens.textPrimary,
                       ),
                     ),
-                    TextSpan(text: message),
+                    TextSpan(text: displayMessage),
                   ],
                 ),
               ),
@@ -74,21 +78,32 @@ class SamanCompanionBar extends StatelessWidget {
               child: InkWell(
                 onTap: onAskSamanTap,
                 borderRadius: BorderRadius.circular(SamanHomeTokens.radiusSm),
-                child: const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 4, horizontal: 2),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 5,
+                  ),
+                  decoration: BoxDecoration(
+                    color: SamanHomeTokens.secondarySurface,
+                    borderRadius: BorderRadius.circular(SamanHomeTokens.radiusSm),
+                    border: Border.all(
+                      color: SamanHomeTokens.border,
+                      width: 1,
+                    ),
+                  ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(
-                        'Ask Saman',
-                        style: TextStyle(
+                        context.tr('ask_saman'),
+                        style: const TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w500,
                           color: SamanHomeTokens.textSecondary,
                         ),
                       ),
-                      SizedBox(width: 2),
-                      Icon(
+                      const SizedBox(width: 4),
+                      const Icon(
                         Icons.arrow_forward_rounded,
                         size: 13,
                         color: SamanHomeTokens.textSecondary,

@@ -2,12 +2,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../config/app_translations.dart';
 import '../../features/profile/domain/entities/onboarding_activity_choice.dart';
 import '../../features/profile/domain/entities/profile_entity.dart';
 import '../../providers/profile_provider.dart';
 import '../../utils/auth_helper.dart';
 import '../login/login_screen.dart';
 import '../../services/unit_converter.dart';
+import '../../widgets/saman_feedback_snackbar.dart';
 
 /// Screen 07 — Edit Profile under Dark Calm Athleticism.
 ///
@@ -475,9 +477,9 @@ class _EditHealthProfileScreenState
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const Text(
-                          'Choose your goal',
-                          style: TextStyle(
+                        Text(
+                          ctx.tr('choose_your_goal'),
+                          style: const TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.w700,
                             color: Colors.white,
@@ -493,8 +495,8 @@ class _EditHealthProfileScreenState
                     _buildGoalOptionCard(
                       ctx,
                       goal: Goal.lose_weight,
-                      title: 'Lose weight',
-                      subtitle: 'Work toward a lower body weight.',
+                      title: ctx.tr('lose_weight'),
+                      subtitle: ctx.tr('goal_lose_weight_desc'),
                       asset: 'assets/profile/goal_lose_weight.jpg',
                       keyName: 'enum_lose_weight',
                       isSelected: tempSelection == Goal.lose_weight,
@@ -504,8 +506,8 @@ class _EditHealthProfileScreenState
                     _buildGoalOptionCard(
                       ctx,
                       goal: Goal.maintain_weight,
-                      title: 'Maintain weight',
-                      subtitle: 'Keep your weight steady.',
+                      title: ctx.tr('maintain_weight'),
+                      subtitle: ctx.tr('goal_maintain_weight_desc'),
                       asset: 'assets/profile/goal_maintain_weight.jpg',
                       keyName: 'enum_maintain_weight',
                       isSelected: tempSelection == Goal.maintain_weight,
@@ -515,8 +517,8 @@ class _EditHealthProfileScreenState
                     _buildGoalOptionCard(
                       ctx,
                       goal: Goal.gain_muscle,
-                      title: 'Build muscle',
-                      subtitle: 'Focus on building muscle.',
+                      title: ctx.tr('gain_muscle'),
+                      subtitle: ctx.tr('goal_build_muscle_desc'),
                       asset: 'assets/profile/goal_build_muscle.jpg',
                       keyName: 'enum_gain_muscle',
                       isSelected: tempSelection == Goal.gain_muscle,
@@ -538,7 +540,7 @@ class _EditHealthProfileScreenState
                           ),
                           elevation: 0,
                         ),
-                        child: const Text('Apply', style: TextStyle(fontWeight: FontWeight.w600)),
+                        child: Text(ctx.tr('apply_btn'), style: const TextStyle(fontWeight: FontWeight.w600)),
                       ),
                     ),
                   ],
@@ -712,9 +714,9 @@ class _EditHealthProfileScreenState
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const Text(
-                          'Activity level',
-                          style: TextStyle(
+                        Text(
+                          ctx.tr('activity_level_dialog_title'),
+                          style: const TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.w700,
                             color: Colors.white,
@@ -827,7 +829,7 @@ class _EditHealthProfileScreenState
                           ),
                           elevation: 0,
                         ),
-                        child: const Text('Apply', style: TextStyle(fontWeight: FontWeight.w600)),
+                        child: Text(ctx.tr('apply_btn'), style: const TextStyle(fontWeight: FontWeight.w600)),
                       ),
                     ),
                   ],
@@ -894,36 +896,30 @@ class _EditHealthProfileScreenState
       if (!mounted) return;
 
       if (success) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Profile updated'),
-            backgroundColor: Color(0xFF10B981),
-            behavior: SnackBarBehavior.floating,
-          ),
+        SamanFeedbackSnackBar.show(
+          context,
+          message: 'Profile updated',
+          type: FeedbackType.success,
         );
         Navigator.pop(context, true);
       } else {
         setState(() => _isSaving = false);
         final errorMsg = ref.read(profileProvider).errorMessage;
         if (errorMsg != null && errorMsg.isNotEmpty) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(errorMsg),
-              backgroundColor: const Color(0xFFEF4444),
-              behavior: SnackBarBehavior.floating,
-            ),
+          SamanFeedbackSnackBar.show(
+            context,
+            message: errorMsg,
+            type: FeedbackType.error,
           );
         }
       }
     } catch (e) {
       if (!mounted) return;
       setState(() => _isSaving = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Lỗi cập nhật: ${e.toString()}'),
-          backgroundColor: const Color(0xFFEF4444),
-          behavior: SnackBarBehavior.floating,
-        ),
+      SamanFeedbackSnackBar.show(
+        context,
+        message: 'Lỗi cập nhật: ${e.toString()}',
+        type: FeedbackType.error,
       );
     }
   }
@@ -952,12 +948,10 @@ class _EditHealthProfileScreenState
 
       if (!mounted) return;
       if (success) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Profile updated'),
-            backgroundColor: Color(0xFF10B981),
-            behavior: SnackBarBehavior.floating,
-          ),
+        SamanFeedbackSnackBar.show(
+          context,
+          message: 'Profile updated',
+          type: FeedbackType.success,
         );
         Navigator.pop(context, true);
       } else {
@@ -1160,7 +1154,7 @@ class _EditHealthProfileScreenState
                               foregroundColor: Colors.white,
                               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                             ),
-                            child: const Text('Check again ↺', style: TextStyle(fontSize: 12)),
+                            child: Text(context.tr('check_again'), style: const TextStyle(fontSize: 12)),
                           ),
                         ],
                       ),
@@ -1212,9 +1206,9 @@ class _EditHealthProfileScreenState
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             // 1. YOUR GOAL
-                            const Text(
-                              'YOUR GOAL',
-                              style: TextStyle(
+                            Text(
+                              context.tr('your_goal'),
+                              style: const TextStyle(
                                 fontSize: 11,
                                 fontWeight: FontWeight.w600,
                                 color: Color(0xFF9CA3AF),
@@ -1264,12 +1258,12 @@ class _EditHealthProfileScreenState
                                           Text(
                                             _selectedGoal != null
                                                 ? (_selectedGoal == Goal.lose_weight
-                                                    ? 'Lose weight'
+                                                    ? context.tr('lose_weight')
                                                     : _selectedGoal ==
                                                             Goal.maintain_weight
-                                                        ? 'Maintain weight'
-                                                        : 'Build muscle')
-                                                : 'Choose your goal',
+                                                        ? context.tr('maintain_weight')
+                                                        : context.tr('gain_muscle'))
+                                                : context.tr('choose_your_goal'),
                                             style: const TextStyle(
                                               fontSize: 15,
                                               fontWeight: FontWeight.w600,
@@ -1280,11 +1274,11 @@ class _EditHealthProfileScreenState
                                           Text(
                                             _selectedGoal != null
                                                 ? (_selectedGoal == Goal.lose_weight
-                                                    ? 'Work toward a lower body weight.'
+                                                    ? context.tr('goal_lose_weight_desc')
                                                     : _selectedGoal ==
                                                             Goal.maintain_weight
-                                                        ? 'Keep your weight steady.'
-                                                        : 'Focus on building muscle.')
+                                                        ? context.tr('goal_maintain_weight_desc')
+                                                        : context.tr('goal_build_muscle_desc'))
                                                 : '',
                                             style: const TextStyle(
                                               fontSize: 12,
@@ -1306,9 +1300,9 @@ class _EditHealthProfileScreenState
                             const SizedBox(height: 24),
 
                             // 2. ABOUT YOU
-                            const Text(
-                              'ABOUT YOU',
-                              style: TextStyle(
+                            Text(
+                              context.tr('section_about_you'),
+                              style: const TextStyle(
                                 fontSize: 11,
                                 fontWeight: FontWeight.w600,
                                 color: Color(0xFF9CA3AF),
@@ -1319,8 +1313,8 @@ class _EditHealthProfileScreenState
 
                             // Age Input Card
                             _buildNumericCard(
-                              label: 'Age',
-                              suffix: 'years',
+                              label: context.tr('age_label'),
+                              suffix: context.tr('unit_years'),
                               controller: _ageController,
                               fieldKey: const Key('edit_profile_age_input'),
                               keyboardType: TextInputType.number,
@@ -1329,9 +1323,9 @@ class _EditHealthProfileScreenState
                             const SizedBox(height: 12),
 
                             // Gender Selection Matrix
-                            const Text(
-                              'Gender',
-                              style: TextStyle(
+                            Text(
+                              context.tr('gender'),
+                              style: const TextStyle(
                                 fontSize: 12,
                                 fontWeight: FontWeight.w500,
                                 color: Color(0xFF9CA3AF),
@@ -1343,7 +1337,7 @@ class _EditHealthProfileScreenState
                                 Expanded(
                                   child: _buildGenderCard(
                                     gender: Gender.male,
-                                    label: 'Male',
+                                    label: context.tr('male'),
                                     icon: Icons.male,
                                     keyName: 'enum_male',
                                     isSelected: _selectedGender == Gender.male,
@@ -1353,7 +1347,7 @@ class _EditHealthProfileScreenState
                                 Expanded(
                                   child: _buildGenderCard(
                                     gender: Gender.female,
-                                    label: 'Female',
+                                    label: context.tr('female'),
                                     icon: Icons.female,
                                     keyName: 'enum_female',
                                     isSelected: _selectedGender == Gender.female,
@@ -1364,9 +1358,9 @@ class _EditHealthProfileScreenState
                             const SizedBox(height: 24),
 
                             // 3. BODY MEASUREMENTS
-                            const Text(
-                              'BODY MEASUREMENTS',
-                              style: TextStyle(
+                            Text(
+                              context.tr('section_body_measurements'),
+                              style: const TextStyle(
                                 fontSize: 11,
                                 fontWeight: FontWeight.w600,
                                 color: Color(0xFF9CA3AF),
@@ -1377,7 +1371,7 @@ class _EditHealthProfileScreenState
 
                             // Height Input Card
                             _buildNumericCard(
-                              label: 'Height',
+                              label: context.tr('height_label'),
                               suffix: ref.watch(unitProvider) == UnitSystem.imperial ? 'in' : 'cm',
                               controller: _heightController,
                               fieldKey: const Key('edit_profile_height_input'),
@@ -1389,7 +1383,7 @@ class _EditHealthProfileScreenState
 
                             // Weight Input Card
                             _buildNumericCard(
-                              label: 'Weight',
+                              label: context.tr('weight_label'),
                               suffix: ref.watch(unitProvider) == UnitSystem.imperial ? 'lb' : 'kg',
                               controller: _weightController,
                               fieldKey: const Key('edit_profile_weight_input'),
@@ -1400,9 +1394,9 @@ class _EditHealthProfileScreenState
                             const SizedBox(height: 24),
 
                             // 4. ACTIVITY LEVEL
-                            const Text(
-                              'ACTIVITY LEVEL',
-                              style: TextStyle(
+                            Text(
+                              context.tr('activity_level_heading'),
+                              style: const TextStyle(
                                 fontSize: 11,
                                 fontWeight: FontWeight.w600,
                                 color: Color(0xFF9CA3AF),
@@ -1452,7 +1446,7 @@ class _EditHealthProfileScreenState
                                         children: [
                                           Text(
                                             _selectedActivityChoice?.title ??
-                                                'Select activity level',
+                                                context.tr('select_activity_level'),
                                             style: const TextStyle(
                                               fontSize: 15,
                                               fontWeight: FontWeight.w600,
@@ -1566,9 +1560,9 @@ class _EditHealthProfileScreenState
                                   ),
                                 ],
                               )
-                            : const Text(
-                                'Save changes',
-                                style: TextStyle(
+                            : Text(
+                                context.tr('save_changes'),
+                                style: const TextStyle(
                                   fontSize: 14,
                                   fontWeight: FontWeight.w600,
                                   letterSpacing: 0.2,

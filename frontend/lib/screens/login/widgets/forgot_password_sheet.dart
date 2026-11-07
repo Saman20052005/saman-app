@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fluttertoast/fluttertoast.dart';
+import '../../../config/app_translations.dart';
 import '../login_controller.dart';
 
 class ForgotPasswordSheet extends ConsumerStatefulWidget {
@@ -32,10 +33,18 @@ class _ForgotPasswordSheetState extends ConsumerState<ForgotPasswordSheet> {
   }
 
   // --- LOGIC GỌI QUA CONTROLLER ---
+  void _showNeutralToast(String msg) {
+    Fluttertoast.showToast(
+      msg: msg,
+      backgroundColor: const Color(0xFF26282D),
+      textColor: const Color(0xFFF3F4F6),
+    );
+  }
+
   Future<void> _handleSendOtp() async {
     final email = _emailCtrl.text.trim();
     if (email.isEmpty || !email.contains('@')) {
-      Fluttertoast.showToast(msg: "Please enter a valid email");
+      _showNeutralToast(context.tr('enter_valid_email'));
       return;
     }
 
@@ -48,13 +57,13 @@ class _ForgotPasswordSheetState extends ConsumerState<ForgotPasswordSheet> {
     if (mounted) {
       setState(() => _isLoading = false);
       if (success) {
-        Fluttertoast.showToast(msg: "OTP sent! Check your email.");
+        _showNeutralToast(context.tr('otp_sent_check_email'));
         setState(() => _step = 2);
       } else {
         // Lỗi đã được handle trong controller hoặc hiển thị qua state listener ở màn hình cha
         // Tuy nhiên ở Sheet này ta check trực tiếp kết quả trả về
         final error = ref.read(loginControllerProvider).errorMessage;
-        if (error != null) Fluttertoast.showToast(msg: error);
+        if (error != null) _showNeutralToast(error);
       }
     }
   }
@@ -64,15 +73,15 @@ class _ForgotPasswordSheetState extends ConsumerState<ForgotPasswordSheet> {
     final newPass = _newPassCtrl.text;
 
     if (otp.length != 6) {
-      Fluttertoast.showToast(msg: "Invalid OTP (6 digits)");
+      _showNeutralToast(context.tr('invalid_otp'));
       return;
     }
     if (newPass.length < 6) {
-      Fluttertoast.showToast(msg: "Password min 6 chars");
+      _showNeutralToast(context.tr('password_min_chars'));
       return;
     }
     if (newPass != _confirmPassCtrl.text) {
-      Fluttertoast.showToast(msg: "Passwords mismatch");
+      _showNeutralToast(context.tr('passwords_mismatch'));
       return;
     }
 
@@ -90,7 +99,7 @@ class _ForgotPasswordSheetState extends ConsumerState<ForgotPasswordSheet> {
         // Toast thành công sẽ được kích hoạt bởi Listener bên LoginScreen
       } else {
         final error = ref.read(loginControllerProvider).errorMessage;
-        if (error != null) Fluttertoast.showToast(msg: error);
+        if (error != null) _showNeutralToast(error);
       }
     }
   }
@@ -121,7 +130,9 @@ class _ForgotPasswordSheetState extends ConsumerState<ForgotPasswordSheet> {
                           borderRadius: BorderRadius.circular(2)))),
               const SizedBox(height: 20),
               Text(
-                _step == 1 ? "Password Recovery" : "Reset Password",
+                _step == 1
+                    ? context.tr('password_recovery_title')
+                    : context.tr('reset_password_title'),
                 style: const TextStyle(
                     fontSize: 22,
                     fontWeight: FontWeight.bold,
@@ -130,33 +141,33 @@ class _ForgotPasswordSheetState extends ConsumerState<ForgotPasswordSheet> {
               const SizedBox(height: 8),
               Text(
                 _step == 1
-                    ? "Enter your email to receive a verification code."
-                    : "Enter the OTP sent to your email and set a new password.",
+                    ? context.tr('enter_email_verification_code')
+                    : context.tr('enter_otp_and_new_password'),
                 style: TextStyle(color: Colors.grey.shade600, fontSize: 14),
               ),
               const SizedBox(height: 24),
               if (_step == 1) ...[
                 _buildTextField(
-                    _emailCtrl, "Email Address", Icons.email_outlined),
+                    _emailCtrl, context.tr('email_address_hint'), Icons.email_outlined),
                 const SizedBox(height: 24),
-                _buildButton("Send OTP", _handleSendOtp),
+                _buildButton(context.tr('send_otp_btn'), _handleSendOtp),
               ] else ...[
                 _buildTextField(
-                    _otpCtrl, "OTP Code (6 digits)", Icons.vpn_key_outlined,
+                    _otpCtrl, context.tr('otp_code_hint'), Icons.vpn_key_outlined,
                     keyboard: TextInputType.number),
                 const SizedBox(height: 16),
                 _buildTextField(
-                    _newPassCtrl, "New Password", Icons.lock_outline,
+                    _newPassCtrl, context.tr('new_pass'), Icons.lock_outline,
                     obscure: _obscureNew,
                     onToggle: () => setState(() => _obscureNew = !_obscureNew)),
                 const SizedBox(height: 16),
-                _buildTextField(_confirmPassCtrl, "Confirm New Password",
+                _buildTextField(_confirmPassCtrl, context.tr('confirm_pass'),
                     Icons.check_circle_outline,
                     obscure: _obscureConfirm,
                     onToggle: () =>
                         setState(() => _obscureConfirm = !_obscureConfirm)),
                 const SizedBox(height: 24),
-                _buildButton("Reset Password", _handleResetPassword),
+                _buildButton(context.tr('reset_password_btn'), _handleResetPassword),
               ],
               const SizedBox(height: 20),
             ],

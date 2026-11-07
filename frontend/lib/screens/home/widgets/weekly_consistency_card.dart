@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../config/app_translations.dart';
 import '../tokens/saman_home_tokens.dart';
 
 /// Weekly Consistency (Performance Chart Panel) for Saman Home.
@@ -59,19 +60,19 @@ class WeeklyConsistencyCard extends StatelessWidget {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Flexible(
+                Flexible(
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(
+                      const Icon(
                         Icons.trending_up_rounded,
                         size: 16,
                         color: SamanHomeTokens.greenAccent,
                       ),
-                      SizedBox(width: 6),
+                      const SizedBox(width: 6),
                       Flexible(
                         child: Text(
-                          'WEEKLY CONSISTENCY',
+                          context.tr('weekly_consistency_title'),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: SamanHomeTokens.sectionHeader,
@@ -82,7 +83,7 @@ class WeeklyConsistencyCard extends StatelessWidget {
                 ),
                 const SizedBox(width: 8),
                 Text(
-                  '$completedSessions / $targetSessions sessions',
+                  '$completedSessions / $targetSessions ${context.tr('sessions_unit')}',
                   style: const TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w600,
@@ -108,7 +109,7 @@ class WeeklyConsistencyCard extends StatelessWidget {
                 children: [
                   Expanded(
                     child: _SummaryMetricColumn(
-                      label: 'SESSIONS',
+                      label: context.tr('sessions_label'),
                       value: '$completedSessions / $targetSessions',
                       valueColor: SamanHomeTokens.textWhite,
                       showRightBorder: true,
@@ -116,7 +117,7 @@ class WeeklyConsistencyCard extends StatelessWidget {
                   ),
                   Expanded(
                     child: _SummaryMetricColumn(
-                      label: 'COMPLETION',
+                      label: context.tr('completion_label'),
                       value: '$completionPercentage%',
                       valueColor: SamanHomeTokens.greenAccent,
                       showRightBorder: true,
@@ -124,8 +125,8 @@ class WeeklyConsistencyCard extends StatelessWidget {
                   ),
                   Expanded(
                     child: _SummaryMetricColumn(
-                      label: 'STREAK',
-                      value: '$streakDays days',
+                      label: context.tr('streak_label'),
+                      value: '$streakDays ${context.tr('days_unit')}',
                       valueColor: SamanHomeTokens.textWhite,
                       showRightBorder: false,
                     ),
@@ -169,13 +170,13 @@ class WeeklyConsistencyCard extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Text(
-                        'NEXT SESSION',
-                        style: TextStyle(
+                      Text(
+                        context.tr('next_session_label'),
+                        style: const TextStyle(
                           fontSize: 10,
                           fontWeight: FontWeight.w600,
                           letterSpacing: 0.8,
-                          color: SamanHomeTokens.textMuted,
+                          color: SamanHomeTokens.textSecondary,
                         ),
                       ),
                       const SizedBox(height: 2),
@@ -186,7 +187,7 @@ class WeeklyConsistencyCard extends StatelessWidget {
                         style: const TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w500,
-                          color: SamanHomeTokens.textWhite,
+                          color: SamanHomeTokens.textPrimary,
                         ),
                       ),
                     ],
@@ -199,8 +200,8 @@ class WeeklyConsistencyCard extends StatelessWidget {
                     onTap: onViewProgressTap,
                     borderRadius:
                         BorderRadius.circular(SamanHomeTokens.radiusSm),
-                    child: const Padding(
-                      padding: EdgeInsets.symmetric(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
                         horizontal: 4,
                         vertical: 2,
                       ),
@@ -208,11 +209,11 @@ class WeeklyConsistencyCard extends StatelessWidget {
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Text(
-                            'View progress',
+                            context.tr('view_progress'),
                             style: SamanHomeTokens.linkText,
                           ),
-                          SizedBox(width: 2),
-                          Icon(
+                          const SizedBox(width: 2),
+                          const Icon(
                             Icons.arrow_forward_rounded,
                             size: 13,
                             color: SamanHomeTokens.textSecondary,
@@ -295,33 +296,34 @@ class _XAxisDayLabels extends StatelessWidget {
 
   final int activeDayIndex;
 
-  static const List<String> _days = [
-    'Mon',
-    'Tue',
-    'Wed',
-    'Thu',
-    'Fri',
-    'Sat',
-    'Sun'
-  ];
+  List<String> _days(BuildContext context) => [
+        context.tr('day_mon_short'),
+        context.tr('day_tue_short'),
+        context.tr('day_wed_short'),
+        context.tr('day_thu_short'),
+        context.tr('day_fri_short'),
+        context.tr('day_sat_short'),
+        context.tr('day_sun_short'),
+      ];
 
   @override
   Widget build(BuildContext context) {
+    final days = _days(context);
     return LayoutBuilder(
       builder: (context, constraints) {
         final totalWidth = constraints.maxWidth;
-        final cellWidth = totalWidth / _days.length;
+        final cellWidth = totalWidth / days.length;
 
         return SizedBox(
           width: totalWidth,
           child: Row(
-            children: List.generate(_days.length, (index) {
+            children: List.generate(days.length, (index) {
               final isToday = index == activeDayIndex;
               return SizedBox(
                 width: cellWidth,
                 child: Center(
                   child: Text(
-                    _days[index],
+                    days[index],
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       fontSize: 11,

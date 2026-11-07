@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../config/app_translations.dart';
 import '../../../config/routes.dart';
 import '../tokens/saman_home_tokens.dart';
 
@@ -89,30 +90,29 @@ class SamanPicksCarousel extends StatelessWidget {
     }
   }
 
-  static const List<SamanPickItem> _defaultPicks = [
-    SamanPickItem(
-      id: 'journal_recovery',
-      categoryTag: 'SAMAN JOURNAL',
-      tagColor: SamanHomeTokens.greenAccent,
-      title: 'Recover better after Leg Day',
-      description: 'Three simple habits to support tomorrow’s session.',
-      actionLabel: 'Read guide',
-      imageAssetPath: 'assets/images/home_journal_recovery.jpg',
-    ),
-    SamanPickItem(
-      id: 'shop_recovery',
-      categoryTag: 'SAMAN SHOP',
-      tagColor: SamanHomeTokens.textSecondary,
-      title: 'Recovery essentials, picked for your plan',
-      description: 'Curated to support your current training week.',
-      actionLabel: 'Explore picks',
-      imageAssetPath: 'assets/images/home_shop_essentials.jpg',
-    ),
-  ];
-
   @override
   Widget build(BuildContext context) {
-    final items = (picks != null && picks!.isNotEmpty) ? picks! : _defaultPicks;
+    final defaultPicks = [
+      SamanPickItem(
+        id: 'journal_recovery',
+        categoryTag: context.tr('saman_journal_tag'),
+        tagColor: SamanHomeTokens.greenAccent,
+        title: context.tr('saman_pick_journal_title'),
+        description: context.tr('saman_pick_journal_desc'),
+        actionLabel: context.tr('saman_pick_journal_action'),
+        imageAssetPath: 'assets/images/home_journal_recovery.jpg',
+      ),
+      SamanPickItem(
+        id: 'shop_recovery',
+        categoryTag: context.tr('saman_shop_tag'),
+        tagColor: SamanHomeTokens.textSecondary,
+        title: context.tr('saman_pick_shop_title'),
+        description: context.tr('saman_pick_shop_desc'),
+        actionLabel: context.tr('saman_pick_shop_action'),
+        imageAssetPath: 'assets/images/home_shop_essentials.jpg',
+      ),
+    ];
+    final items = (picks != null && picks!.isNotEmpty) ? picks! : defaultPicks;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -126,20 +126,20 @@ class SamanPicksCarousel extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Expanded(
+              Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'SAMAN PICKS',
+                      context.tr('saman_picks_title'),
                       style: SamanHomeTokens.sectionHeader,
                     ),
-                    SizedBox(height: 2),
+                    const SizedBox(height: 2),
                     Text(
-                      'Useful for your training today',
+                      context.tr('saman_picks_subtitle'),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
+                      style: const TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w400,
                         color: SamanHomeTokens.textSecondary,
@@ -154,17 +154,17 @@ class SamanPicksCarousel extends StatelessWidget {
                 child: InkWell(
                   onTap: onExploreTap,
                   borderRadius: BorderRadius.circular(SamanHomeTokens.radiusSm),
-                  child: const Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Text(
-                          'Explore',
+                          context.tr('explore'),
                           style: SamanHomeTokens.linkText,
                         ),
-                        SizedBox(width: 2),
-                        Icon(
+                        const SizedBox(width: 2),
+                        const Icon(
                           Icons.arrow_forward_rounded,
                           size: 13,
                           color: SamanHomeTokens.textSecondary,
@@ -270,7 +270,7 @@ class _SamanPickCard extends StatelessWidget {
                       style: const TextStyle(
                         fontSize: 13.5,
                         fontWeight: FontWeight.w600,
-                        color: SamanHomeTokens.textWhite,
+                        color: SamanHomeTokens.textPrimary,
                         height: 1.2,
                       ),
                     ),
@@ -303,14 +303,14 @@ class _SamanPickCard extends StatelessWidget {
                                 style: const TextStyle(
                                   fontSize: 11.5,
                                   fontWeight: FontWeight.w500,
-                                  color: SamanHomeTokens.textWhite,
+                                  color: SamanHomeTokens.textSecondary,
                                 ),
                               ),
                               const SizedBox(width: 3),
                               const Icon(
                                 Icons.arrow_forward_rounded,
                                 size: 12,
-                                color: SamanHomeTokens.textWhite,
+                                color: SamanHomeTokens.textSecondary,
                               ),
                             ],
                           ),

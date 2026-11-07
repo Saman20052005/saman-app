@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 
+import '../../config/app_translations.dart';
 import '../../widgets/app_logo.dart';
 import 'login_controller.dart';
 import 'widgets/login_form.dart';
@@ -29,12 +30,19 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     ref.listen<LoginState>(loginControllerProvider, (previous, next) {
       if (next.errorMessage != null) {
         Fluttertoast.showToast(
-            msg: next.errorMessage!, backgroundColor: Colors.red);
+          msg: next.errorMessage!,
+          backgroundColor: const Color(0xFF26282D),
+          textColor: const Color(0xFFF3F4F6),
+        );
       }
       final outcome = next.outcome;
       if (outcome == null) return;
       if (next.successMessage != null) {
-        Fluttertoast.showToast(msg: next.successMessage!);
+        Fluttertoast.showToast(
+          msg: next.successMessage!,
+          backgroundColor: const Color(0xFF26282D),
+          textColor: const Color(0xFFF3F4F6),
+        );
       }
       switch (outcome) {
         case AuthOutcome.authenticated:
@@ -130,7 +138,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         ).animate().fadeIn().slideY(begin: 0.2, end: 0),
         const SizedBox(height: 8),
         Text(
-          'Solid Body. Balanced Mind.',
+          context.tr('login_tagline'),
           style: TextStyle(
               fontSize: 14,
               color: Colors.grey.shade600,
@@ -138,7 +146,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         ).animate().fadeIn(delay: 200.ms),
         const SizedBox(height: 32),
         Text(
-          _isLoginMode ? 'Welcome Back!' : 'Create Account',
+          _isLoginMode
+              ? context.tr('welcome_back')
+              : context.tr('create_account'),
           style: const TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.bold,
@@ -154,12 +164,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       child: RichText(
         text: TextSpan(
           text: _isLoginMode
-              ? "Don't have an account? "
-              : "Already have an account? ",
+              ? context.tr('dont_have_account')
+              : context.tr('already_have_account'),
           style: TextStyle(color: Colors.grey.shade600, fontSize: 14),
           children: [
             TextSpan(
-                text: _isLoginMode ? "Sign Up" : "Log In",
+                text: _isLoginMode
+                    ? context.tr('sign_up')
+                    : context.tr('log_in'),
                 style: TextStyle(
                     color: primaryColor, fontWeight: FontWeight.bold)),
           ],
@@ -173,7 +185,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       Expanded(child: Divider(color: Colors.grey.shade300)),
       Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: Text("OR CONTINUE WITH",
+          child: Text(context.tr('or_continue_with'),
               style: TextStyle(
                   fontSize: 11,
                   fontWeight: FontWeight.w600,

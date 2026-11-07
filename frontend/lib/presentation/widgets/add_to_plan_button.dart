@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../config/app_translations.dart';
 import '../../data/models/exercise.dart';
 import '../../core/constants/app_dimens.dart';
 import '../providers/create_plan_providers.dart';
 import '../screens/create_plan_screen.dart';
+import '../../widgets/saman_feedback_snackbar.dart';
 
 class AddToPlanButton extends ConsumerWidget {
   final Exercise exercise;
@@ -36,12 +38,16 @@ class AddToPlanButton extends ConsumerWidget {
           }
           // Thêm exercise vào provider
           ref.read(createPlanNotifierProvider.notifier).addExercise(exercise);
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Đã thêm "${exercise.name}" vào Plan'),
-              action: SnackBarAction(
-                label: 'Xem Plan',
-                onPressed: () {
+          SamanFeedbackSnackBar.show(
+            context,
+            message: context
+                .tr('added_to_plan_format')
+                .replaceAll('{name}', exercise.name),
+            type: FeedbackType.success,
+            action: SnackBarAction(
+              label: context.tr('view_plan'),
+              textColor: const Color(0xFF10B981),
+              onPressed: () {
                   // Nếu chưa mở CreatePlanScreen thì mở
                   if (!isInCreatePlan) {
                     Navigator.push(
@@ -54,9 +60,8 @@ class AddToPlanButton extends ConsumerWidget {
                   }
                 },
               ),
-            ),
-          );
-        },
+            );
+          },
         style: ElevatedButton.styleFrom(
           backgroundColor: Colors.black,
           foregroundColor: Colors.white,
@@ -64,9 +69,9 @@ class AddToPlanButton extends ConsumerWidget {
             borderRadius: BorderRadius.circular(AppDimens.radiusL),
           ),
         ),
-        child: const Text(
-          'Thêm vào Plan',
-          style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+        child: Text(
+          context.tr('add_to_plan'),
+          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
         ),
       ),
     );

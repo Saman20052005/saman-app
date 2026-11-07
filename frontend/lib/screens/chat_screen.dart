@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import '../config/app_theme.dart';
+import '../config/app_translations.dart';
 import '../controllers/chat_controller.dart';
 import '../providers/daily_story_provider.dart';
 import '../services/nutrition_service.dart';
@@ -19,6 +20,7 @@ import '../presentation/providers/active_workout_providers.dart';
 import '../features/workout/domain/entities/workout_plan.dart';
 import '../features/workout/data/repositories/workout_repository_impl.dart';
 import '../services/api_client.dart';
+import '../widgets/saman_feedback_snackbar.dart';
 
 class ChatScreen extends ConsumerStatefulWidget {
   final String? initialMessage;
@@ -231,7 +233,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                           ? Semantics(
                               key: const ValueKey('scroll_to_newest_button'),
                               button: true,
-                              label: 'Cuộn xuống tin nhắn mới nhất',
+                              label: context.tr('scroll_to_newest'),
                               child: Material(
                                 color: Colors.transparent,
                                 child: InkWell(
@@ -257,18 +259,18 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                                         ),
                                       ],
                                     ),
-                                    child: const Row(
+                                    child: Row(
                                       mainAxisSize: MainAxisSize.min,
                                       children: [
-                                        Icon(
+                                        const Icon(
                                           Icons.arrow_downward_rounded,
                                           size: 14.0,
                                           color: SamanChatTokens.textWhite,
                                         ),
-                                        SizedBox(width: 4.0),
+                                        const SizedBox(width: 4.0),
                                         Text(
-                                          'Mới nhất',
-                                          style: TextStyle(
+                                          context.tr('newest_label'),
+                                          style: const TextStyle(
                                             fontSize: 12.0,
                                             fontWeight: FontWeight.w600,
                                             color: SamanChatTokens.textWhite,
@@ -335,7 +337,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
         if (aType == 'preview_workout') {
           buttons.add(
             SamanAssistantAction(
-              label: aLabel ?? 'Xem trước buổi tập',
+              label: aLabel ?? context.tr('preview_workout'),
               icon: Icons.fitness_center_rounded,
               isPrimary: true,
               onTap: () {
@@ -346,7 +348,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
         } else if (aType == 'save_plan') {
           buttons.add(
             SamanAssistantAction(
-              label: aLabel ?? 'Lưu thành Giáo án',
+              label: aLabel ?? context.tr('save_as_plan'),
               icon: Icons.save,
               isPrimary: false,
               onTap: () {
@@ -363,7 +365,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
           }
           buttons.add(
             SamanAssistantAction(
-              label: aLabel ?? 'Lưu điều kiện này làm mặc định',
+              label: aLabel ?? context.tr('save_preference_default'),
               icon: Icons.bookmark,
               isPrimary: false,
               onTap: () {
@@ -379,7 +381,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     }
 
     if (type == 'preview_workout') {
-      final label = action['label']?.toString() ?? 'Xem trước buổi tập';
+      final label = action['label']?.toString() ?? context.tr('preview_workout');
       List<String> exerciseIds = [];
       if (action['payload'] is Map && action['payload']['exercise_ids'] is List) {
         exerciseIds = (action['payload']['exercise_ids'] as List)
@@ -404,7 +406,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     }
 
     if (type == 'save_plan') {
-      final label = action['label']?.toString() ?? 'Lưu thành Giáo án';
+      final label = action['label']?.toString() ?? context.tr('save_as_plan');
       List<String> exerciseIds = [];
       if (action['payload'] is Map && action['payload']['exercise_ids'] is List) {
         exerciseIds = (action['payload']['exercise_ids'] as List)
@@ -429,7 +431,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     }
 
     if (type == 'save_preference') {
-      final label = action['label']?.toString() ?? 'Lưu điều kiện này làm mặc định';
+      final label = action['label']?.toString() ?? context.tr('save_preference_default');
       Map<String, dynamic> prefs = {};
       if (action['payload'] is Map && action['payload']['preferences'] is Map) {
         prefs = Map<String, dynamic>.from(action['payload']['preferences'] as Map);
@@ -452,7 +454,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     String confirmLabel;
     if (type == 'log_water') {
       final amount = action['amount_ml'] ?? 250;
-      confirmLabel = 'Xác nhận (+$amount ml nước)';
+      confirmLabel = context.tr('confirm_log_water_format').replaceAll('{amount}', '$amount');
     } else if (type == 'log_meal') {
       final cals = action['total_calories'];
       final foods = action['foods'];
@@ -461,30 +463,30 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
         foodName = foods.first['name']?.toString() ?? '';
       }
       if (foodName.isNotEmpty && cals != null) {
-        confirmLabel = 'Xác nhận ($foodName: $cals kcal)';
+        confirmLabel = context.tr('confirm_log_meal_format').replaceAll('{food}', foodName).replaceAll('{cals}', '$cals');
       } else if (cals != null) {
-        confirmLabel = 'Xác nhận ($cals kcal)';
+        confirmLabel = context.tr('confirm_log_meal_cals_format').replaceAll('{cals}', '$cals');
       } else {
-        confirmLabel = 'Xác nhận ghi nhận bữa ăn';
+        confirmLabel = context.tr('confirm_log_meal_generic');
       }
     } else if (type == 'adjust_workout') {
-      final planName = action['plan_name']?.toString() ?? 'kế hoạch tập';
+      final planName = action['plan_name']?.toString() ?? context.tr('workout_plan');
       final changes = action['changes'] is Map
           ? action['changes'] as Map
           : (action['after'] is Map ? action['after'] as Map : null);
       String detail = '';
       if (changes != null && changes.containsKey('duration_minutes')) {
-        detail = '${changes['duration_minutes']} phút';
+        detail = '${changes['duration_minutes']} min';
       } else if (changes != null && changes.containsKey('difficulty')) {
         detail = '${changes['difficulty']}';
       }
       if (detail.isNotEmpty) {
-        confirmLabel = 'Xác nhận (Điều chỉnh $planName: $detail)';
+        confirmLabel = context.tr('confirm_adjust_workout_format').replaceAll('{plan}', planName).replaceAll('{detail}', detail);
       } else {
-        confirmLabel = 'Xác nhận (Điều chỉnh $planName)';
+        confirmLabel = context.tr('confirm_adjust_workout_generic').replaceAll('{plan}', planName);
       }
     } else {
-      confirmLabel = 'Xác nhận';
+      confirmLabel = context.tr('confirm_action');
     }
 
     return [
@@ -497,7 +499,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
         },
       ),
       SamanAssistantAction(
-        label: 'Hủy',
+        label: context.tr('cancel_action'),
         icon: Icons.close,
         isPrimary: false,
         onTap: () {
@@ -547,8 +549,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     if (!mounted) return;
     if (targetExercises.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Không tìm thấy thông tin chi tiết bài tập trong danh mục.'),
+        SnackBar(
+          content: Text(context.tr('no_exercise_details_found')),
         ),
       );
       return;
@@ -597,8 +599,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     if (!mounted) return;
     if (targetExercises.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Không tìm thấy thông tin bài tập để lưu giáo án.'),
+        SnackBar(
+          content: Text(context.tr('no_exercises_to_save_plan')),
         ),
       );
       return;
@@ -638,19 +640,17 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       await repo.createWorkoutPlan(plan);
 
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Đã lưu giáo án thành công!'),
-          backgroundColor: Colors.green,
-        ),
+      SamanFeedbackSnackBar.show(
+        context,
+        message: context.tr('save_plan_success'),
+        type: FeedbackType.success,
       );
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Lỗi khi lưu giáo án: $e'),
-          backgroundColor: Colors.red,
-        ),
+      SamanFeedbackSnackBar.show(
+        context,
+        message: context.tr('save_plan_error').replaceAll('{error}', '$e'),
+        type: FeedbackType.error,
       );
     }
   }
@@ -665,19 +665,17 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       );
 
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Đã lưu điều kiện tập luyện làm mặc định!'),
-          backgroundColor: Colors.green,
-        ),
+      SamanFeedbackSnackBar.show(
+        context,
+        message: context.tr('save_preference_success'),
+        type: FeedbackType.success,
       );
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Lỗi khi lưu điều kiện tập luyện: $e'),
-          backgroundColor: Colors.red,
-        ),
+      SamanFeedbackSnackBar.show(
+        context,
+        message: context.tr('save_preference_error').replaceAll('{error}', '$e'),
+        type: FeedbackType.error,
       );
     }
   }
@@ -709,17 +707,17 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
             borderRadius: BorderRadius.circular(16),
             side: const BorderSide(color: SamanChatTokens.borderSubtle),
           ),
-          title: const Text(
-            'Buổi tập đang diễn ra',
-            style: TextStyle(
+          title: Text(
+            context.tr('ongoing_workout_title'),
+            style: const TextStyle(
               color: SamanChatTokens.textWhite,
               fontSize: 18,
               fontWeight: FontWeight.bold,
             ),
           ),
-          content: const Text(
-            'Bạn đang có một buổi tập dang dở. Bắt đầu buổi tập mới sẽ kết thúc buổi tập hiện tại. Bạn có chắc chắn muốn tiếp tục?',
-            style: TextStyle(
+          content: Text(
+            context.tr('ongoing_workout_content'),
+            style: const TextStyle(
               color: SamanChatTokens.textSecondary,
               fontSize: 14,
             ),
@@ -727,9 +725,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
           actions: [
             TextButton(
               onPressed: () => Navigator.of(dialogCtx).pop(false),
-              child: const Text(
-                'Hủy',
-                style: TextStyle(color: SamanChatTokens.textSecondary),
+              child: Text(
+                context.tr('cancel_action'),
+                style: const TextStyle(color: SamanChatTokens.textSecondary),
               ),
             ),
             ElevatedButton(
@@ -741,9 +739,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                 ),
               ),
               onPressed: () => Navigator.of(dialogCtx).pop(true),
-              child: const Text(
-                'Đồng ý',
-                style: TextStyle(fontWeight: FontWeight.bold),
+              child: Text(
+                context.tr('agree_btn'),
+                style: const TextStyle(fontWeight: FontWeight.bold),
               ),
             ),
           ],
@@ -806,7 +804,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                     const SizedBox(width: 10),
                     Expanded(
                       child: Text(
-                        'Xem trước buổi tập (${exercises.length} bài)',
+                        context.tr('preview_workout_title_format').replaceAll('{count}', '${exercises.length}'),
                         style: const TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
@@ -817,9 +815,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                   ],
                 ),
                 const SizedBox(height: 8),
-                const Text(
-                  'Buổi tập được cá nhân hóa bởi Saman AI Coach dựa trên mục tiêu và thể trạng của bạn.',
-                  style: TextStyle(
+                Text(
+                  context.tr('preview_workout_description'),
+                  style: const TextStyle(
                     fontSize: 13,
                     color: SamanChatTokens.textSecondary,
                   ),
@@ -860,7 +858,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                           ),
                         ),
                         subtitle: Text(
-                          '${ex.muscleGroup} • ${ex.defaultSets} hiệp × ${ex.defaultReps}',
+                          '${ex.muscleGroup} • ${ex.defaultSets} ${context.tr('unit_sets')} × ${ex.defaultReps}',
                           style: const TextStyle(
                             color: SamanChatTokens.textSecondary,
                             fontSize: 12,
@@ -885,9 +883,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                     onPressed: () {
                       _startWorkoutSession(modalContext, exercises);
                     },
-                    child: const Text(
-                      'Bắt đầu tập ngay',
-                      style: TextStyle(
+                    child: Text(
+                      context.tr('start_workout_now'),
+                      style: const TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.bold,
                       ),
@@ -909,7 +907,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
         chatState.foodAnalysisState?.status == FoodAnalysisStatus.analyzing;
     if (isBusy) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Saman đang phản hồi, vui lòng đợi một chút.')),
+        SnackBar(content: Text(context.tr('saman_responding_wait'))),
       );
       return;
     }
@@ -972,8 +970,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                 onSend: _handleSend,
                 isLoading: isBusy,
                 loadingHintText: isAnalyzingFood
-                    ? 'Saman is looking at your meal...'
-                    : 'Saman is responding...',
+                    ? context.tr('saman_looking_at_meal')
+                    : context.tr('saman_responding_hint'),
                 onAttachFoodPhoto: _handleAttachmentFlow,
                 onOpenAnalytics: _handleOpenAnalytics,
               ),
@@ -1017,22 +1015,22 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
         builder: (dialogCtx) => AlertDialog(
           backgroundColor: SamanChatTokens.surface,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16.0)),
-          title: const Text(
-            'Thay thế bản nháp?',
-            style: TextStyle(color: SamanChatTokens.textWhite, fontSize: 16.0, fontWeight: FontWeight.w600),
+          title: Text(
+            context.tr('replace_draft_title'),
+            style: const TextStyle(color: SamanChatTokens.textWhite, fontSize: 16.0, fontWeight: FontWeight.w600),
           ),
-          content: const Text(
-            'Bạn đang có câu hỏi đang soạn dở. Bạn có muốn ghi đè bằng câu hỏi bị lỗi để sửa không?',
-            style: TextStyle(color: SamanChatTokens.textSecondary, fontSize: 14.0),
+          content: Text(
+            context.tr('replace_draft_content'),
+            style: const TextStyle(color: SamanChatTokens.textSecondary, fontSize: 14.0),
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(dialogCtx).pop(false),
-              child: const Text('Giữ bản nháp', style: TextStyle(color: SamanChatTokens.textMuted)),
+              child: Text(context.tr('keep_draft_btn'), style: const TextStyle(color: SamanChatTokens.textMuted)),
             ),
             TextButton(
               onPressed: () => Navigator.of(dialogCtx).pop(true),
-              child: const Text('Thay thế', style: TextStyle(color: SamanChatTokens.greenAccent)),
+              child: Text(context.tr('replace_btn'), style: const TextStyle(color: SamanChatTokens.greenAccent)),
             ),
           ],
         ),
@@ -1054,7 +1052,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
         chatState.foodAnalysisState?.status == FoodAnalysisStatus.analyzing;
     if (isBusy) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Saman đang phản hồi, vui lòng đợi một chút.')),
+        SnackBar(content: Text(context.tr('saman_responding_wait'))),
       );
       return;
     }
@@ -1114,11 +1112,11 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       if (identical(ref.read(chatControllerProvider).foodAnalysisState, foodState)) {
         ref.read(chatControllerProvider.notifier).markMealLogged();
       }
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-        content: Text('Meal logged successfully!'),
-        backgroundColor: SamanChatTokens.surfaceElevated,
-        behavior: SnackBarBehavior.floating,
-      ));
+      SamanFeedbackSnackBar.show(
+        context,
+        message: context.tr('meal_added_success'),
+        type: FeedbackType.success,
+      );
     } on NutritionSessionChanged {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
@@ -1164,121 +1162,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   }
 
   void _showPersonaDialog() {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: SamanChatTokens.canvas,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(AppRadius.lg)),
-      ),
-      isScrollControlled: true,
-      useSafeArea: true,
-      builder: (context) {
-        return SingleChildScrollView(
-          child: Padding(
-            padding: const EdgeInsets.all(AppSpacing.xl),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'Saman Preferences',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w700,
-                    color: SamanChatTokens.textWhite,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                const Text(
-                  'Coaching tone & response style',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: SamanChatTokens.textMuted,
-                  ),
-                ),
-                const SizedBox(height: AppSpacing.xl),
-                _buildPersonaOption("🏋️‍♂️", "Strict PT",
-                    "Disciplined, performance-focused, no excuses.", """
-From now on, act as a STRICT Personal Trainer.
-Be disciplined, direct, and performance-oriented.
-Use firm and commanding language.
-Do not accept excuses, laziness, or shortcuts.
-Focus only on actions, consistency, and measurable results.
-Avoid emotional encouragement; enforce accountability.
-"""),
-                _buildPersonaOption("👩‍⚕️", "Nutrition Doctor",
-                    "Scientific, calm, and explanatory.", """
-From now on, act as a Nutrition Specialist.
-Base all advice strictly on scientific and evidence-based principles.
-Use a calm, gentle, and professional tone.
-Explain concepts clearly and logically when needed.
-Prioritize health, safety, and long-term sustainability.
-Avoid harsh or pressuring language.
-"""),
-                _buildPersonaOption("🤝", "Supportive Coach",
-                    "Friendly, supportive, and motivating.", """
-From now on, act as a supportive personal coach.
-Use a friendly, casual, and positive tone.
-Be empathetic and encouraging.
-Keep the conversation light and engaging.
-Motivate through emotional support rather than strict discipline.
-"""),
-              ],
-            ),
-          ),
-        );
-      },
-    );
+    // Preferences/Persona selection is anchored and handled directly via showCoachPersonaMenu in SamanChatDrawer
   }
 
-  Widget _buildPersonaOption(
-      String emoji, String name, String desc, String prompt) {
-    return InkWell(
-      borderRadius: BorderRadius.circular(AppRadius.md),
-      onTap: () {
-        Navigator.pop(context);
-        ref.read(chatControllerProvider.notifier).sendMessage(prompt);
-      },
-      child: Container(
-        margin: const EdgeInsets.only(bottom: AppSpacing.md),
-        padding: const EdgeInsets.all(AppSpacing.lg),
-        decoration: BoxDecoration(
-          color: SamanChatTokens.surface,
-          borderRadius: BorderRadius.circular(AppRadius.md),
-          border: Border.all(color: SamanChatTokens.borderSubtle),
-        ),
-        child: Row(
-          children: [
-            Text(emoji, style: const TextStyle(fontSize: 24)),
-            const SizedBox(width: AppSpacing.lg),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    name,
-                    style: const TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      color: SamanChatTokens.textWhite,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    desc,
-                    style: const TextStyle(
-                      fontSize: 12,
-                      color: SamanChatTokens.textMuted,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const Icon(Icons.arrow_forward_ios,
-                color: SamanChatTokens.textMuted, size: 14),
-          ],
-        ),
-      ),
-    );
-  }
+
 }

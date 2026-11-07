@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../config/app_translations.dart';
 import '../../../../models/nutrition_model.dart';
 
 /// Card displaying the next suggested planned meal matching Calm Athleticism spec:
@@ -48,10 +49,10 @@ class PlannedMealCard extends StatelessWidget {
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(color: const Color(0xFF26282F)),
                 ),
-                child: const Center(
+                child: Center(
                   child: Text(
-                    'Review & log',
-                    style: TextStyle(
+                    context.tr('review_and_log'),
+                    style: const TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w600,
                       color: Color(0xFFF3F4F6),
@@ -76,9 +77,9 @@ class PlannedMealCard extends StatelessWidget {
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          const Text(
-                            'MEAL PLAN',
-                            style: TextStyle(
+                          Text(
+                            context.tr('meal_plan_heading'),
+                            style: const TextStyle(
                               fontSize: 12,
                               fontWeight: FontWeight.w700,
                               color: Color(0xFF9CA3AF),
@@ -95,9 +96,9 @@ class PlannedMealCard extends StatelessWidget {
                                 color: const Color(0xFF10B981).withOpacity(0.3),
                               ),
                             ),
-                            child: const Text(
-                              'PLANNED',
-                              style: TextStyle(
+                            child: Text(
+                              context.tr('planned_badge'),
+                              style: const TextStyle(
                                 fontSize: 10,
                                 fontWeight: FontWeight.w600,
                                 color: Color(0xFF10B981),
@@ -131,9 +132,9 @@ class PlannedMealCard extends StatelessWidget {
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      'Suggested meal',
-                      style: TextStyle(
+                    Text(
+                      context.tr('suggested_meal'),
+                      style: const TextStyle(
                         fontSize: 12,
                         color: Color(0xFF9CA3AF),
                       ),
@@ -176,9 +177,9 @@ class PlannedMealCard extends StatelessWidget {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text(
-                            'Suggested meal',
-                            style: TextStyle(
+                          Text(
+                            context.tr('suggested_meal'),
+                            style: const TextStyle(
                               fontSize: 12,
                               color: Color(0xFF9CA3AF),
                             ),
