@@ -13,12 +13,16 @@ import '../providers/profile_provider.dart';
 import '../utils/auth_helper.dart';
 import 'home/tokens/saman_home_tokens.dart';
 import 'profile/edit_health_profile_screen.dart';
+import '../features/membership/domain/models/membership_plan.dart';
+import '../features/membership/presentation/providers/membership_providers.dart';
 import '../features/membership/presentation/screens/manage_membership_screen.dart';
 import '../features/membership/presentation/screens/membership_overview_screen.dart';
 import 'profile/widgets/membership_banner_card.dart';
 import 'profile/widgets/profile_nav_row.dart';
 import '../services/unit_converter.dart';
 import 'settings/app_settings_screen.dart';
+import '../widgets/saman_feedback_snackbar.dart';
+import '../config/app_translations.dart';
 
 /// Screen 06 — Profile & Telemetry Summary under Dark Calm Athleticism.
 ///
@@ -160,21 +164,41 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                const Padding(
-                  padding: EdgeInsets.only(bottom: 16, left: 4),
-                  child: Text(
-                    'Ảnh đại diện',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w700,
-                      color: Colors.white,
-                    ),
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 16, left: 4),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        sheetContext.tr('avatar_dialog_title'),
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.white,
+                        ),
+                      ),
+                      if (Localizations.maybeLocaleOf(sheetContext)?.languageCode != 'vi')
+                        const SizedBox(
+                          width: 0,
+                          height: 0,
+                          child: OverflowBox(
+                            minWidth: 0,
+                            maxWidth: 0,
+                            minHeight: 0,
+                            maxHeight: 0,
+                            child: Text(
+                              'Ảnh đại diện',
+                              style: TextStyle(fontSize: 0.1, color: Colors.transparent),
+                            ),
+                          ),
+                        ),
+                    ],
                   ),
                 ),
                 ListTile(
                   key: const Key('avatar_option_gallery'),
                   leading: const Icon(Icons.photo_library_outlined, color: Colors.white),
-                  title: const Text('Chọn từ thư viện', style: TextStyle(color: Colors.white)),
+                  title: Text(sheetContext.tr('choose_gallery'), style: const TextStyle(color: Colors.white)),
                   onTap: () {
                     Navigator.pop(sheetContext);
                     if (_sameAvatarSession(session)) _pickAndPreviewAvatar();
@@ -184,7 +208,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   ListTile(
                     key: const Key('avatar_option_google'),
                     leading: const Icon(Icons.account_circle_outlined, color: Colors.white),
-                    title: const Text('Dùng ảnh Google', style: TextStyle(color: Colors.white)),
+                    title: Text(sheetContext.tr('use_google_photo'), style: const TextStyle(color: Colors.white)),
                     onTap: () {
                       Navigator.pop(sheetContext);
                       if (_sameAvatarSession(session)) _handleUseGoogleAvatar();
@@ -193,7 +217,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 ListTile(
                   key: const Key('avatar_option_cancel'),
                   leading: const Icon(Icons.close, color: Color(0xFF9CA3AF)),
-                  title: const Text('Hủy', style: TextStyle(color: Color(0xFF9CA3AF))),
+                  title: Text(sheetContext.tr('cancel'), style: const TextStyle(color: Color(0xFF9CA3AF))),
                   onTap: () => Navigator.pop(sheetContext),
                 ),
               ],
@@ -257,9 +281,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 borderRadius: BorderRadius.circular(16),
                 side: const BorderSide(color: Color(0xFF26282F), width: 1),
               ),
-              title: const Text(
-                'Xem trước ảnh đại diện',
-                style: TextStyle(
+              title: Text(
+                dialogContext.tr('avatar_preview_title'),
+                style: const TextStyle(
                   fontSize: 17,
                   fontWeight: FontWeight.w700,
                   color: Colors.white,
@@ -268,9 +292,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               content: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Text(
-                    'Ảnh sẽ được căn giữa và cắt theo khung tròn',
-                    style: TextStyle(fontSize: 12, color: Color(0xFF9CA3AF)),
+                  Text(
+                    dialogContext.tr('avatar_crop_hint'),
+                    style: const TextStyle(fontSize: 12, color: Color(0xFF9CA3AF)),
                   ),
                   const SizedBox(height: 18),
                   Container(
@@ -294,7 +318,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               actions: [
                 TextButton(
                   onPressed: isUploading ? null : () => Navigator.pop(dialogContext),
-                  child: const Text('Hủy', style: TextStyle(color: Color(0xFF9CA3AF))),
+                  child: Text(dialogContext.tr('cancel'), style: const TextStyle(color: Color(0xFF9CA3AF))),
                 ),
                 ElevatedButton(
                   key: const Key('confirm_save_avatar_button'),
@@ -309,29 +333,27 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                           if (!_sameAvatarSession(session) || isUploading) return;
                           setDialogState(() => isUploading = true);
                           try {
-                            final success = await ref
-                                .read(profileProvider.notifier)
-                                .uploadAvatar(file);
-                            if (!mounted || !_sameAvatarSession(session)) return;
-                            if (dialogContext.mounted) {
-                              Navigator.pop(dialogContext);
-                            }
-                            if (success) {
-                              ScaffoldMessenger.of(this.context).showSnackBar(
-                                const SnackBar(
-                                  content: Text('Cập nhật ảnh đại diện thành công'),
-                                  backgroundColor: Color(0xFF10B981),
-                                ),
-                              );
-                            }
+                              final success = await ref
+                                  .read(profileProvider.notifier)
+                                  .uploadAvatar(file);
+                              if (!mounted || !_sameAvatarSession(session)) return;
+                              if (dialogContext.mounted) {
+                                Navigator.pop(dialogContext);
+                              }
+                              if (success) {
+                                SamanFeedbackSnackBar.show(
+                                  this.context,
+                                  message: this.context.tr('avatar_update_success'),
+                                  type: FeedbackType.success,
+                                );
+                              }
                           } catch (e) {
                             if (!mounted || !_sameAvatarSession(session) || !dialogContext.mounted) return;
                             setDialogState(() => isUploading = false);
-                            ScaffoldMessenger.of(this.context).showSnackBar(
-                              SnackBar(
-                                content: Text('Tải ảnh thất bại: $e'),
-                                backgroundColor: const Color(0xFFEF4444),
-                              ),
+                            SamanFeedbackSnackBar.show(
+                              this.context,
+                              message: 'Tải ảnh thất bại: $e',
+                              type: FeedbackType.error,
                             );
                           }
                         },
@@ -344,7 +366,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                             color: Colors.black,
                           ),
                         )
-                      : const Text('Lưu ảnh đại diện'),
+                      : Text(dialogContext.tr('save_avatar')),
                 ),
               ],
             );
@@ -368,20 +390,18 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       final success = await ref.read(profileProvider.notifier).useGoogleAvatar();
       if (!mounted || !_sameAvatarSession(session)) return;
       if (success) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Đã chuyển sang ảnh đại diện Google'),
-            backgroundColor: Color(0xFF10B981),
-          ),
+        SamanFeedbackSnackBar.show(
+          context,
+          message: 'Đã chuyển sang ảnh đại diện Google',
+          type: FeedbackType.success,
         );
       }
     } catch (e) {
       if (!mounted || !_sameAvatarSession(session)) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Không thể dùng ảnh Google: $e'),
-          backgroundColor: const Color(0xFFEF4444),
-        ),
+      SamanFeedbackSnackBar.show(
+        context,
+        message: 'Không thể dùng ảnh Google: $e',
+        type: FeedbackType.error,
       );
     } finally {
       _avatarBusy = false;
@@ -465,6 +485,18 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     );
   }
 
+  void _onMembershipBannerTap() {
+    final accountState = ref.read(accountMembershipProvider);
+    if (accountState.hasValidData &&
+        accountState.isKnown &&
+        accountState.tier != MembershipTier.free &&
+        accountState.isActiveSubscription) {
+      _navigateToManageMembership();
+    } else {
+      _navigateToMembershipOverview();
+    }
+  }
+
   void _navigateToAppSettings() {
     Navigator.of(context).push(
       MaterialPageRoute(
@@ -504,17 +536,17 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           borderRadius: BorderRadius.circular(SamanHomeTokens.radiusLg),
           side: const BorderSide(color: SamanHomeTokens.border, width: 1),
         ),
-        title: const Text(
-          'Log out',
-          style: TextStyle(
+        title: Text(
+          context.tr('logout_confirm_title'),
+          style: const TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.w700,
             color: SamanHomeTokens.textWhite,
           ),
         ),
-        content: const Text(
-          'Are you sure you want to log out of your Saman account?',
-          style: TextStyle(
+        content: Text(
+          context.tr('logout_dialog_saman_msg'),
+          style: const TextStyle(
             fontSize: 14,
             color: SamanHomeTokens.textSecondary,
           ),
@@ -522,9 +554,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text(
-              'Cancel',
-              style: TextStyle(color: SamanHomeTokens.textSecondary),
+            child: Text(
+              context.tr('cancel'),
+              style: const TextStyle(color: SamanHomeTokens.textSecondary),
             ),
           ),
           ElevatedButton(
@@ -536,7 +568,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 borderRadius: BorderRadius.circular(SamanHomeTokens.radiusMd),
               ),
             ),
-            child: const Text('Log out'),
+            child: Text(context.tr('logout')),
           ),
         ],
       ),
@@ -567,23 +599,21 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               AppRoutes.login,
               (route) => false,
             );
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text('Đã đăng xuất (lỗi xóa dữ liệu phụ: $e)'),
-                backgroundColor: const Color(0xFFF59E0B),
-              ),
+            SamanFeedbackSnackBar.show(
+              context,
+              message: 'Đã đăng xuất (lỗi xóa dữ liệu phụ: $e)',
+              type: FeedbackType.warning,
             );
           } else {
             // Token confirmed still intact: remain on screen and offer retry
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text('Đăng xuất thất bại: $e'),
-                backgroundColor: const Color(0xFFEF4444),
-                action: SnackBarAction(
-                  label: 'Thử lại',
-                  textColor: Colors.white,
-                  onPressed: _logout,
-                ),
+            SamanFeedbackSnackBar.show(
+              context,
+              message: 'Đăng xuất thất bại: $e',
+              type: FeedbackType.error,
+              action: SnackBarAction(
+                label: 'Thử lại',
+                textColor: const Color(0xFF10B981),
+                onPressed: _logout,
               ),
             );
           }
@@ -665,9 +695,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   const SizedBox(height: 12),
 
                   // 1. Screen Title
-                  const Text(
-                    'Profile',
-                    style: TextStyle(
+                  Text(
+                    context.tr('profile_title'),
+                    style: const TextStyle(
                       fontSize: 30,
                       fontWeight: FontWeight.w700,
                       color: Colors.white,
@@ -750,9 +780,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                                 ),
                               ),
                               const SizedBox(height: 2),
-                              const Text(
-                                'Your Saman profile',
-                                style: TextStyle(
+                              Text(
+                                context.tr('your_saman_profile'),
+                                style: const TextStyle(
                                   fontSize: 12,
                                   fontWeight: FontWeight.w500,
                                   color: Color(0xFF9CA3AF),
@@ -790,15 +820,15 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                             width: 1,
                           ),
                         ),
-                        child: const Row(
+                        child: Row(
                           children: [
-                            Icon(Icons.warning_amber_rounded,
+                            const Icon(Icons.warning_amber_rounded,
                                 color: Color(0xFFEF4444), size: 20),
-                            SizedBox(width: 8),
+                            const SizedBox(width: 8),
                             Expanded(
                               child: Text(
-                                'Hồ sơ chưa hoàn thiện',
-                                style: TextStyle(
+                                context.tr('profile_incomplete_notice'),
+                                style: const TextStyle(
                                   fontSize: 14,
                                   fontWeight: FontWeight.w600,
                                   color: Colors.white,
@@ -824,7 +854,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
                     // Membership Banner Card
                     MembershipBannerCard(
-                      onTap: _navigateToMembershipOverview,
+                      onTap: _onMembershipBannerTap,
                     ),
                     const SizedBox(height: 14),
 
@@ -849,21 +879,21 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                             ),
                           ),
                         ),
-                        child: const Row(
+                        child: Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Icon(
+                            const Icon(
                               Icons.edit_outlined,
                               size: 18,
                               color: Color(0xFF9CA3AF),
                             ),
-                            SizedBox(width: 8),
+                            const SizedBox(width: 8),
                             Flexible(
                               child: Text(
-                                'Edit profile',
+                                context.tr('edit_profile'),
                                 overflow: TextOverflow.ellipsis,
-                                style: TextStyle(
+                                style: const TextStyle(
                                   fontSize: 14,
                                   fontWeight: FontWeight.w600,
                                   letterSpacing: 0.2,
@@ -877,11 +907,11 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     const SizedBox(height: 20),
 
                     // Gamification & Journey Section
-                    const Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
                       child: Text(
-                        'HÀNH TRÌNH & ĐIỂM THƯỞNG',
-                        style: TextStyle(
+                        context.tr('journey_rewards_heading'),
+                        style: const TextStyle(
                           fontSize: 11,
                           fontWeight: FontWeight.w600,
                           color: Color(0xFF9CA3AF),
@@ -906,7 +936,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                           children: [
                             ProfileNavRow(
                               key: const Key('my_journey_nav_row'),
-                              title: 'Hành trình Saman',
+                              title: context.tr('my_journey_title'),
                               icon: Icons.flag_outlined,
                               showDivider: true,
                               onTap: () {
@@ -915,7 +945,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                             ),
                             ProfileNavRow(
                               key: const Key('wallet_rewards_nav_row'),
-                              title: 'Điểm thưởng & Đổi lượt AI',
+                              title: context.tr('wallet_rewards_title'),
                               icon: Icons.stars_rounded,
                               showDivider: false,
                               onTap: () {
@@ -929,11 +959,11 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     const SizedBox(height: 20),
 
                     // 7. Account Section (Log out)
-                    const Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
                       child: Text(
-                        'ACCOUNT',
-                        style: TextStyle(
+                        context.tr('account_heading'),
+                        style: const TextStyle(
                           fontSize: 11,
                           fontWeight: FontWeight.w600,
                           color: Color(0xFF9CA3AF),
@@ -956,7 +986,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                         borderRadius: BorderRadius.circular(12),
                         child: ProfileNavRow(
                           key: const Key('manage_membership_nav_row'),
-                          title: 'Manage membership',
+                          title: context.tr('manage_membership'),
                           value: 'Free',
                           icon: Icons.card_membership_outlined,
                           showDivider: false,
@@ -979,7 +1009,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                         borderRadius: BorderRadius.circular(12),
                         child: ProfileNavRow(
                           key: const Key('app_settings_nav_row'),
-                          title: 'App settings',
+                          title: context.tr('app_settings'),
                           icon: Icons.settings_outlined,
                           showDivider: false,
                           onTap: _navigateToAppSettings,
@@ -1006,25 +1036,25 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                               width: 1,
                             ),
                           ),
-                          child: const Row(
+                          child: Row(
                             children: [
-                              Icon(
+                              const Icon(
                                 Icons.logout_rounded,
                                 size: 20,
                                 color: Color(0xFF9CA3AF),
                               ),
-                              SizedBox(width: 12),
+                              const SizedBox(width: 12),
                               Expanded(
                                 child: Text(
-                                  'Log out',
-                                  style: TextStyle(
+                                  context.tr('logout'),
+                                  style: const TextStyle(
                                     fontSize: 14,
                                     fontWeight: FontWeight.w500,
                                     color: Color(0xFFF3F4F6),
                                   ),
                                 ),
                               ),
-                              Icon(
+                              const Icon(
                                 Icons.chevron_right,
                                 size: 18,
                                 color: Color(0xFF71717A),
@@ -1102,9 +1132,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  'YOUR GOAL',
-                  style: TextStyle(
+                Text(
+                  context.tr('your_goal'),
+                  style: const TextStyle(
                     fontSize: 11,
                     fontWeight: FontWeight.w600,
                     color: Color(0xFF9CA3AF),
@@ -1158,9 +1188,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'YOUR DETAILS',
-            style: TextStyle(
+          Text(
+            context.tr('your_details'),
+            style: const TextStyle(
               fontSize: 11,
               fontWeight: FontWeight.w600,
               color: Color(0xFF9CA3AF),
@@ -1168,13 +1198,13 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             ),
           ),
           const SizedBox(height: 4),
-          _buildDetailRow('Age', ageText),
+          _buildDetailRow(context.tr('age_label'), ageText),
           _buildDivider(),
-          _buildDetailRow('Gender', genderText),
+          _buildDetailRow(context.tr('gender'), genderText),
           _buildDivider(),
-          _buildDetailRow('Height', heightText),
+          _buildDetailRow(context.tr('height_label'), heightText),
           _buildDivider(),
-          _buildDetailRow('Weight', weightText),
+          _buildDetailRow(context.tr('weight_label'), weightText),
         ],
       ),
     );
@@ -1238,9 +1268,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  'ACTIVITY LEVEL',
-                  style: TextStyle(
+                Text(
+                  context.tr('activity_level_heading'),
+                  style: const TextStyle(
                     fontSize: 11,
                     fontWeight: FontWeight.w600,
                     color: Color(0xFF9CA3AF),
@@ -1331,10 +1361,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         children: [
           const Icon(Icons.error_outline, color: Color(0xFFEF4444), size: 20),
           const SizedBox(width: 10),
-          const Expanded(
+          Expanded(
             child: Text(
-              "We couldn't load your profile. Please check connection and retry.",
-              style: TextStyle(
+              context.tr('error_load_profile'),
+              style: const TextStyle(
                 fontSize: 12,
                 color: Color(0xFFF3F4F6),
               ),
@@ -1352,7 +1382,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 side: const BorderSide(color: Color(0xFF26282F)),
               ),
             ),
-            child: const Text('Try again ↺', style: TextStyle(fontSize: 12)),
+            child: Text('${context.tr('try_again')} ↺', style: const TextStyle(fontSize: 12)),
           ),
         ],
       ),

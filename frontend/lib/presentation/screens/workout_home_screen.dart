@@ -12,6 +12,7 @@ import '../providers/active_workout_providers.dart';
 import '../../features/membership/domain/models/membership_plan.dart';
 import '../../features/membership/presentation/screens/plan_detail_screen.dart';
 import '../../features/membership/presentation/widgets/upgrade_bottom_sheet.dart';
+import '../../config/app_translations.dart';
 
 class WorkoutHomeScreen extends ConsumerStatefulWidget {
   const WorkoutHomeScreen({super.key});
@@ -142,23 +143,23 @@ class _WorkoutHomeScreenState extends ConsumerState<WorkoutHomeScreen> {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            const Expanded(
+            Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Workout',
-                    style: TextStyle(
+                    context.tr('workout_title'),
+                    style: const TextStyle(
                       color: SamanWorkoutTokens.textPrimary,
                       fontSize: 28,
                       fontWeight: FontWeight.w700,
                       letterSpacing: -0.5,
                     ),
                   ),
-                  SizedBox(height: 2),
+                  const SizedBox(height: 2),
                   Text(
-                    'Train, log & explore movements',
-                    style: TextStyle(
+                    context.tr('workout_home_subtitle'),
+                    style: const TextStyle(
                       color: SamanWorkoutTokens.textSecondary,
                       fontSize: 12,
                     ),
@@ -178,18 +179,18 @@ class _WorkoutHomeScreenState extends ConsumerState<WorkoutHomeScreen> {
                       BorderRadius.circular(SamanWorkoutTokens.radiusMd),
                   border: Border.all(color: SamanWorkoutTokens.border),
                 ),
-                child: const Row(
+                child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(
+                    const Icon(
                       Icons.bookmark_border,
                       size: 16,
                       color: SamanWorkoutTokens.emeraldAccent,
                     ),
-                    SizedBox(width: 6),
+                    const SizedBox(width: 6),
                     Text(
-                      'My Plans',
-                      style: TextStyle(
+                      context.tr('my_plans'),
+                      style: const TextStyle(
                         color: SamanWorkoutTokens.textSecondary,
                         fontSize: 12,
                         fontWeight: FontWeight.w500,
@@ -278,10 +279,10 @@ class _WorkoutHomeScreenState extends ConsumerState<WorkoutHomeScreen> {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            const Expanded(
+            Expanded(
                 child: Text(
-              'TODAY’S SCHEDULED SESSION',
-              style: TextStyle(
+              context.tr('today_scheduled_session'),
+              style: const TextStyle(
                 fontFamily: 'monospace',
                 fontSize: 11,
                 fontWeight: FontWeight.w600,
@@ -458,9 +459,9 @@ class _WorkoutHomeScreenState extends ConsumerState<WorkoutHomeScreen> {
                               icon: const Icon(Icons.play_arrow,
                                   size: 18,
                                   color: SamanWorkoutTokens.buttonPrimaryText),
-                              label: const Text(
-                                'Start workout',
-                                style: TextStyle(
+                              label: Text(
+                                context.tr('start_workout'),
+                                style: const TextStyle(
                                   color: SamanWorkoutTokens.buttonPrimaryText,
                                   fontWeight: FontWeight.w600,
                                   fontSize: 14,
@@ -492,18 +493,18 @@ class _WorkoutHomeScreenState extends ConsumerState<WorkoutHomeScreen> {
                                     SamanWorkoutTokens.radiusMd),
                               ),
                             ),
-                            child: const Row(
+                            child: Row(
                               children: [
                                 Text(
-                                  'View plan',
-                                  style: TextStyle(
+                                  context.tr('view_plan'),
+                                  style: const TextStyle(
                                     color: SamanWorkoutTokens.textPrimary,
                                     fontSize: 13,
                                     fontWeight: FontWeight.w500,
                                   ),
                                 ),
-                                SizedBox(width: 4),
-                                Icon(Icons.arrow_forward,
+                                const SizedBox(width: 4),
+                                const Icon(Icons.arrow_forward,
                                     size: 14,
                                     color: SamanWorkoutTokens.textSecondary),
                               ],
@@ -561,18 +562,18 @@ class _WorkoutHomeScreenState extends ConsumerState<WorkoutHomeScreen> {
                     ],
                   ),
                   const SizedBox(height: 12),
-                  const Text(
-                    'Quick start',
-                    style: TextStyle(
+                  Text(
+                    context.tr('quick_start'),
+                    style: const TextStyle(
                       color: SamanWorkoutTokens.textPrimary,
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
                   const SizedBox(height: 2),
-                  const Text(
-                    'Train without a plan',
-                    style: TextStyle(
+                  Text(
+                    context.tr('quick_start_desc'),
+                    style: const TextStyle(
                       color: SamanWorkoutTokens.textSub,
                       fontSize: 12,
                     ),
@@ -620,18 +621,18 @@ class _WorkoutHomeScreenState extends ConsumerState<WorkoutHomeScreen> {
                     ],
                   ),
                   const SizedBox(height: 12),
-                  const Text(
-                    'Browse library',
-                    style: TextStyle(
+                  Text(
+                    context.tr('browse_library'),
+                    style: const TextStyle(
                       color: SamanWorkoutTokens.textPrimary,
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
                   const SizedBox(height: 2),
-                  const Text(
-                    'Explore exercises',
-                    style: TextStyle(
+                  Text(
+                    context.tr('explore_exercises'),
+                    style: const TextStyle(
                       color: SamanWorkoutTokens.textSub,
                       fontSize: 12,
                     ),
@@ -652,31 +653,35 @@ class _WorkoutHomeScreenState extends ConsumerState<WorkoutHomeScreen> {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            const Text(
-              'TRAIN BY FOCUS',
-              style: TextStyle(
-                fontFamily: 'monospace',
-                fontSize: 11,
-                fontWeight: FontWeight.w600,
-                letterSpacing: 1.1,
-                color: SamanWorkoutTokens.textMuted,
+            Expanded(
+              child: Text(
+                context.tr('train_by_focus'),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  fontFamily: 'monospace',
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: 1.1,
+                  color: SamanWorkoutTokens.textMuted,
+                ),
               ),
             ),
             InkWell(
               onTap: () => _navigateToLibrary('All'),
-              child: const Row(
+              child: Row(
                 children: [
                   Text(
-                    'All categories',
-                    style: TextStyle(
+                    context.tr('all_categories'),
+                    style: const TextStyle(
                       fontFamily: 'monospace',
                       fontSize: 11,
                       color: SamanWorkoutTokens.emeraldAccent,
                       fontWeight: FontWeight.w500,
                     ),
                   ),
-                  SizedBox(width: 2),
-                  Icon(Icons.arrow_forward,
+                  const SizedBox(width: 2),
+                  const Icon(Icons.arrow_forward,
                       size: 14, color: SamanWorkoutTokens.emeraldAccent),
                 ],
               ),
@@ -721,30 +726,34 @@ class _WorkoutHomeScreenState extends ConsumerState<WorkoutHomeScreen> {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            const Text(
-              'YOUR PLAN',
-              style: TextStyle(
-                fontFamily: 'monospace',
-                fontSize: 11,
-                fontWeight: FontWeight.w600,
-                letterSpacing: 1.1,
-                color: SamanWorkoutTokens.textMuted,
+            Expanded(
+              child: Text(
+                context.tr('your_plan'),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  fontFamily: 'monospace',
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: 1.1,
+                  color: SamanWorkoutTokens.textMuted,
+                ),
               ),
             ),
             InkWell(
               onTap: _navigateToMyPlans,
-              child: const Row(
+              child: Row(
                 children: [
                   Text(
-                    'View full plan',
-                    style: TextStyle(
+                    context.tr('view_full_plan'),
+                    style: const TextStyle(
                       fontFamily: 'monospace',
                       fontSize: 11,
                       color: SamanWorkoutTokens.textSecondary,
                     ),
                   ),
-                  SizedBox(width: 2),
-                  Icon(Icons.chevron_right,
+                  const SizedBox(width: 2),
+                  const Icon(Icons.chevron_right,
                       size: 14, color: SamanWorkoutTokens.textSecondary),
                 ],
               ),
@@ -889,30 +898,34 @@ class _WorkoutHomeScreenState extends ConsumerState<WorkoutHomeScreen> {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            const Text(
-              'LAST WORKOUT',
-              style: TextStyle(
-                fontFamily: 'monospace',
-                fontSize: 11,
-                fontWeight: FontWeight.w600,
-                letterSpacing: 1.1,
-                color: SamanWorkoutTokens.textMuted,
+            Expanded(
+              child: Text(
+                context.tr('last_workout'),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  fontFamily: 'monospace',
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: 1.1,
+                  color: SamanWorkoutTokens.textMuted,
+                ),
               ),
             ),
             InkWell(
               onTap: _navigateToHistory,
-              child: const Row(
+              child: Row(
                 children: [
                   Text(
-                    'View history',
-                    style: TextStyle(
+                    context.tr('view_history'),
+                    style: const TextStyle(
                       fontFamily: 'monospace',
                       fontSize: 11,
                       color: SamanWorkoutTokens.textSecondary,
                     ),
                   ),
-                  SizedBox(width: 2),
-                  Icon(Icons.chevron_right,
+                  const SizedBox(width: 2),
+                  const Icon(Icons.chevron_right,
                       size: 14, color: SamanWorkoutTokens.textSecondary),
                 ],
               ),
@@ -1007,18 +1020,18 @@ class _WorkoutHomeScreenState extends ConsumerState<WorkoutHomeScreen> {
                     BorderRadius.circular(SamanWorkoutTokens.radiusLg),
                 border: Border.all(color: SamanWorkoutTokens.border),
               ),
-              child: const Row(
+              child: Row(
                 children: [
-                  Icon(
+                  const Icon(
                     Icons.history,
                     size: 20,
                     color: SamanWorkoutTokens.textMuted,
                   ),
-                  SizedBox(width: 12),
+                  const SizedBox(width: 12),
                   Expanded(
                     child: Text(
-                      'No saved workouts yet',
-                      style: TextStyle(
+                      context.tr('no_saved_workouts'),
+                      style: const TextStyle(
                         color: SamanWorkoutTokens.textSecondary,
                         fontSize: 14,
                       ),

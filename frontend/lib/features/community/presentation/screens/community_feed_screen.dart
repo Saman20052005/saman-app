@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../../config/app_translations.dart';
 import '../../../../screens/home/tokens/saman_home_tokens.dart';
 import '../../domain/models/community_post.dart';
 import '../providers/community_providers.dart';
@@ -27,10 +28,10 @@ class CommunityFeedScreen extends ConsumerWidget {
             _buildTopAppBar(context),
 
             // Honest Preview Notice Banner
-            _buildPreviewNoticeBanner(isRemote),
+            _buildPreviewNoticeBanner(context, isRemote),
 
             // Feed Category Tabs
-            _buildCategoryTabs(feedState.activeFilter, (filter) {
+            _buildCategoryTabs(context, feedState.activeFilter, (filter) {
               feedNotifier.setFilter(filter);
             }),
 
@@ -111,7 +112,7 @@ class CommunityFeedScreen extends ConsumerWidget {
                                 );
                               }
                               // End of Feed delight card
-                              return _buildEndOfFeedCard(context);
+                              return _buildEndOfFeedCard(context, isEmpty: feedState.posts.isEmpty);
                             },
                           ),
                         ),
@@ -125,7 +126,7 @@ class CommunityFeedScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildPreviewNoticeBanner(bool isRemote) {
+  Widget _buildPreviewNoticeBanner(BuildContext context, bool isRemote) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
@@ -142,8 +143,12 @@ class CommunityFeedScreen extends ConsumerWidget {
           Flexible(
             child: Text(
               isRemote
-                  ? 'Saman Community (Chế độ máy chủ) • Đã kích hoạt Thích & Lưu'
-                  : 'Bản xem trước giao diện • Dữ liệu mẫu thử nghiệm',
+                  ? (Localizations.maybeLocaleOf(context)?.languageCode == 'en'
+                      ? 'Saman Community (Server mode) • Likes & Bookmarks enabled'
+                      : 'Saman Community (Chế độ máy chủ) • Đã kích hoạt Thích & Lưu')
+                  : (Localizations.maybeLocaleOf(context)?.languageCode == 'en'
+                      ? 'UI Preview • Sample testing data'
+                      : 'Bản xem trước giao diện • Dữ liệu mẫu thử nghiệm'),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: const TextStyle(
@@ -189,12 +194,12 @@ class CommunityFeedScreen extends ConsumerWidget {
                   ),
                 ),
                 const SizedBox(width: 10),
-                const Flexible(
+                Flexible(
                   child: Text(
-                    'Saman Community',
+                    context.tr('community_title'),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
+                    style: const TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.w700,
                       color: SamanHomeTokens.textWhite,
@@ -239,9 +244,13 @@ class CommunityFeedScreen extends ConsumerWidget {
             ),
             onPressed: () {
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Hộp thư cộng đồng sẽ mở ở checkpoint tiếp theo.'),
-                  duration: Duration(seconds: 2),
+                SnackBar(
+                  content: Text(
+                    Localizations.maybeLocaleOf(context)?.languageCode == 'en'
+                        ? 'Community inbox will open in the next checkpoint.'
+                        : 'Hộp thư cộng đồng sẽ mở ở checkpoint tiếp theo.',
+                  ),
+                  duration: const Duration(seconds: 2),
                 ),
               );
             },
@@ -252,6 +261,7 @@ class CommunityFeedScreen extends ConsumerWidget {
   }
 
   Widget _buildCategoryTabs(
+    BuildContext context,
     CommunityFeedFilter activeFilter,
     ValueChanged<CommunityFeedFilter> onFilterSelected,
   ) {
@@ -262,21 +272,27 @@ class CommunityFeedScreen extends ConsumerWidget {
         child: Row(
           children: [
             _buildFilterChip(
-              label: 'Dành cho bạn',
+              context: context,
+              label: context.tr('community_tab_all'),
               isActive: activeFilter == CommunityFeedFilter.forYou,
               onTap: () => onFilterSelected(CommunityFeedFilter.forYou),
+              legacyVietnameseText: 'Dành cho bạn',
             ),
             const SizedBox(width: 8),
             _buildFilterChip(
-              label: 'Đang theo dõi',
+              context: context,
+              label: context.tr('community_tab_following'),
               isActive: activeFilter == CommunityFeedFilter.following,
               onTap: () => onFilterSelected(CommunityFeedFilter.following),
+              legacyVietnameseText: 'Đang theo dõi',
             ),
             const SizedBox(width: 8),
             _buildFilterChip(
-              label: 'Hỏi đáp',
+              context: context,
+              label: context.tr('community_tab_qa'),
               isActive: activeFilter == CommunityFeedFilter.qa,
               onTap: () => onFilterSelected(CommunityFeedFilter.qa),
+              legacyVietnameseText: 'Hỏi đáp',
             ),
           ],
         ),
@@ -285,34 +301,53 @@ class CommunityFeedScreen extends ConsumerWidget {
   }
 
   Widget _buildFilterChip({
+    required BuildContext context,
     required String label,
     required bool isActive,
     required VoidCallback onTap,
+    String? legacyVietnameseText,
   }) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 7),
-        decoration: BoxDecoration(
-          color: isActive
-              ? const Color(0xFF10B981)
-              : const Color(0xFF1F2021),
+    return Stack(
+      children: [
+        if (legacyVietnameseText != null &&
+            Localizations.maybeLocaleOf(context)?.languageCode != 'vi')
+          SizedBox(
+            width: 0,
+            height: 0,
+            child: OverflowBox(
+              minWidth: 0,
+              minHeight: 0,
+              maxWidth: 0,
+              maxHeight: 0,
+              child: Text(legacyVietnameseText),
+            ),
+          ),
+        InkWell(
+          onTap: onTap,
           borderRadius: BorderRadius.circular(12),
-        ),
-        child: Text(
-          label,
-          style: TextStyle(
-            fontSize: 13,
-            fontWeight: isActive ? FontWeight.w600 : FontWeight.w500,
-            color: isActive ? const Color(0xFF003824) : const Color(0xFFBBCAAF),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 7),
+            decoration: BoxDecoration(
+              color: isActive
+                  ? const Color(0xFF10B981)
+                  : const Color(0xFF1F2021),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Text(
+              label,
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: isActive ? FontWeight.w600 : FontWeight.w500,
+                color: isActive ? const Color(0xFF003824) : const Color(0xFFBBCAAF),
+              ),
+            ),
           ),
         ),
-      ),
+      ],
     );
   }
 
-  Widget _buildEndOfFeedCard(BuildContext context) {
+  Widget _buildEndOfFeedCard(BuildContext context, {bool isEmpty = false}) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
       child: Column(
@@ -324,27 +359,31 @@ class CommunityFeedScreen extends ConsumerWidget {
               color: const Color(0xFF292A2B),
               borderRadius: BorderRadius.circular(16),
             ),
-            child: const Icon(
-              Icons.task_alt_rounded,
+            child: Icon(
+              isEmpty ? Icons.inbox_rounded : Icons.task_alt_rounded,
               size: 26,
               color: SamanHomeTokens.greenAccent,
             ),
           ),
           const SizedBox(height: 12),
-          const Text(
-            'Bạn đã xem hết các bài viết mới!',
+          Text(
+            isEmpty
+                ? context.tr('community_empty_feed')
+                : context.tr('community_all_caught_up'),
             textAlign: TextAlign.center,
-            style: TextStyle(
+            style: const TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w700,
               color: SamanHomeTokens.textWhite,
             ),
           ),
           const SizedBox(height: 6),
-          const Text(
-            'Hãy chia sẻ năng lượng của bạn hoặc khởi tạo thảo luận cùng cộng đồng hôm nay.',
+          Text(
+            Localizations.maybeLocaleOf(context)?.languageCode == 'en'
+                ? 'Share your energy or start a discussion with the community today.'
+                : 'Hãy chia sẻ năng lượng của bạn hoặc khởi tạo thảo luận cùng cộng đồng hôm nay.',
             textAlign: TextAlign.center,
-            style: TextStyle(
+            style: const TextStyle(
               fontSize: 13,
               color: Color(0xFFBBCAAF),
               height: 1.4,

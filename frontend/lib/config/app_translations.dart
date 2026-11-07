@@ -94,6 +94,8 @@ final languageProvider = StateNotifierProvider<LanguageNotifier, Locale>((ref) {
   return LanguageNotifier();
 });
 
+final localeProvider = languageProvider;
+
 final languageModeProvider = Provider<AppLanguageMode>((ref) {
   ref.watch(languageProvider);
   return ref.read(languageProvider.notifier).currentMode;
@@ -148,6 +150,16 @@ class AppTranslations {
       'new_challenge': 'New challenge',
       'coming_soon': 'Feature coming soon!',
 
+      // Nutrition AI Model Selection
+      'model_core_3': 'Core 3',
+      'model_pro_3': 'Pro 3',
+      'model_core_3_desc': 'Quick lookup • Reference database',
+      'model_pro_3_desc': 'Multi-dish recognition • Vietnamese food support',
+      'model_core_3_accessibility': 'Core 3 model: Standard photo analysis',
+      'model_pro_3_accessibility': 'Pro 3 model: Advanced AI analysis',
+      'nutrition_mode_switch_to_core': 'Switch to Core 3',
+      'nutrition_mode_suggest_core': '💡 Tip: You can switch to Core 3 mode and try analyzing again.',
+
       // Navigation Tabs
       'tab_home': 'Home',
       'tab_workout': 'Workout',
@@ -191,6 +203,12 @@ class AppTranslations {
       'faq_a3':
           'No. Displayed prices are demo estimates, and AI limits will be announced. Features, limits, and pricing may change before launch.',
 
+      // Coach Persona & Drawer
+      'coach_persona': 'Coach Persona',
+      'coach_persona_desc': 'Coaching tone & response style',
+      'view_all_conversations': 'View all conversations',
+      'persona_updated': 'Coach persona updated successfully!',
+
       // Profile Screen
       'profile_title': 'Profile',
       'edit_profile_title': 'Edit Profile',
@@ -206,7 +224,13 @@ class AppTranslations {
       'allergies_hint': 'Allergies, injuries...',
       'change_pass': 'Change Password',
       'language': 'Language',
-      'logout': 'Log Out',
+      'logout': 'Log out',
+      'logout_confirm_title': 'Log out',
+      'logout_confirm_msg': 'Are you sure you want to log out?',
+      'logout_dialog_saman_msg':
+          'Are you sure you want to log out of your Saman account?',
+      'no_notifications': 'No new notifications. You are on track!',
+      'profile_health_details': 'Profile & Health Details',
       'save_changes': 'Save Changes',
       'dark_mode': 'Dark Mode',
       'light_mode': 'Light Mode',
@@ -220,6 +244,47 @@ class AppTranslations {
       'login_required': 'Please login again',
       'connection_error': 'Connection error',
       'server_error': 'Server error',
+
+      // Avatar & Profile Details (LOC-03)
+      'avatar_dialog_title': 'Profile Photo',
+      'choose_gallery': 'Choose from gallery',
+      'use_google_photo': 'Use Google photo',
+      'avatar_preview_title': 'Avatar Preview',
+      'avatar_update_success': 'Avatar updated successfully!',
+      'avatar_crop_hint': 'Image will be centered and cropped into a circle',
+      'save_avatar': 'Save Profile Photo',
+      'personal_info': 'Personal Information',
+      'health_metrics': 'Health Metrics',
+      'age_label': 'Age',
+      'height_label': 'Height',
+      'weight_label': 'Weight',
+      'activity_level_label': 'Activity Level',
+      'fitness_goal_label': 'Fitness Goal',
+      'edit_profile': 'Edit Profile',
+      'your_saman_profile': 'Your Saman profile',
+      'your_goal': 'YOUR GOAL',
+      'your_details': 'YOUR DETAILS',
+      'activity_level_heading': 'ACTIVITY LEVEL',
+      'account_heading': 'ACCOUNT',
+      'profile_incomplete_notice': 'Profile incomplete',
+      'journey_rewards_heading': 'JOURNEY & REWARDS',
+      'my_journey_title': 'Saman Journey',
+      'wallet_rewards_title': 'Rewards & AI Credits',
+      'manage_membership': 'Manage membership',
+      'error_load_profile': "We couldn't load your profile. Please check connection and retry.",
+      'try_again': 'Try again',
+
+      // Validation Errors (LOC-03)
+      'val_age_range': 'Age must be between 10 and 120',
+      'val_height_range': 'Height must be between 50cm and 250cm',
+      'val_weight_range': 'Weight must be between 20kg and 300kg',
+
+      // Settings & Preferences (LOC-03)
+      'settings_title': 'Settings',
+      'theme_setting': 'Theme',
+      'theme_light': 'Light',
+      'theme_dark': 'Dark',
+      'theme_system': 'System',
 
       // Options (Keys)
       'male': 'Male',
@@ -317,12 +382,23 @@ class AppTranslations {
       'your_active_plan': 'Your Active Plan',
       'explore_tier_btn': 'Explore',
       'membership_banner_title': 'Saman Membership',
-      'membership_banner_desc':
-          'Explore upcoming intelligence tiers: Plus, Pro & Ultra. Your account stays on Free.',
+      'membership_banner_desc': 'Explore Plus, Pro, and Ultra',
+      'membership_card_badge_preview': 'PREVIEW',
+      'membership_card_badge_updated': 'Updated',
+      'membership_card_desc_preview': 'Explore Plus, Pro, and Ultra',
+      'membership_card_desc_active': 'Active plan: {plan}',
+      'membership_card_cta_explore': 'Explore plans',
+      'membership_card_cta_upgrade': 'View upgrade options',
+      'membership_card_cta_your_plan': 'View your plan',
       'manage_membership_nav': 'Manage membership',
       'free_plan_status': 'Free plan',
 
       // Upgrade Sheets
+      'current_plan_free_badge': 'CURRENT PLAN: FREE',
+      'overview_free_desc':
+          'Your account stays on Free with core tracking. Paid plans are Coming Soon.',
+      'upgrade_sheet_plus_title': 'Upgrade to Plus',
+      'upgrade_sheet_pro_title': 'Upgrade to Pro',
       'explore_nutrition_ai': 'Explore Nutrition AI',
       'explore_nutrition_ai_desc':
           'Discover planned Gemini food photo analysis with Saman Plus.',
@@ -464,6 +540,93 @@ class AppTranslations {
       'community_write_comment': 'Write a comment...',
       'community_replying_to': 'Replying to',
       'community_all_caught_up': 'You are all caught up!',
+
+      // Community Feed & Filter Tabs
+      'community_tab_all': 'All',
+      'community_tab_following': 'Following',
+      'community_tab_qa': 'Q&A',
+      'community_empty_feed': 'No posts yet',
+      'community_create_post_hint': 'What\'s on your mind?',
+
+      // Post Card & Actions
+      'post_action_like': 'Like',
+      'post_action_comment': 'Comment',
+      'post_action_save': 'Save',
+      'post_action_share': 'Share',
+      'post_action_delete': 'Delete post',
+      'post_action_report': 'Report post',
+      'delete_post_confirm_title': 'Delete Post',
+      'delete_post_confirm_msg': 'Are you sure you want to delete this post?',
+      'delete_post_success': 'Post deleted successfully',
+
+      // Post Detail
+      'post_detail_title': 'Post',
+      'post_detail_comments_header': 'Comments',
+      'post_detail_write_comment': 'Write a comment...',
+      'post_detail_empty_comments': 'No comments yet. Be the first to comment!',
+      'post_not_found_title': 'This post does not exist or has been deleted',
+      'post_back_to_feed': 'Back to Feed',
+
+      // Compose Flow
+      'compose_post_title': 'Create Post',
+      'compose_publish_btn': 'Publish',
+      'compose_audience_public': 'Public',
+      'compose_audience_followers': 'Followers only',
+      'compose_audience_private': 'Private',
+      'compose_discard_draft_title': 'Discard post?',
+      'compose_discard_draft_msg': 'Your draft will be discarded.',
+      'compose_keep_editing': 'Keep editing',
+      'compose_discard': 'Discard',
+      'select_media_title': 'Select Photo',
+
+      // Nutrition Subsystem (LOC-04)
+      'nutrition_title': 'Nutrition',
+      'meal_suggestion_title': 'Meal Suggestions',
+      'meal_logged_success': 'Meal logged to journal!',
+      'confirm_and_log': 'Confirm & Log',
+      'missing_profile_info': 'Missing Profile information',
+      'missing_profile_desc':
+          'Please update personal details to calculate nutrition goals.',
+      'update_profile_now': 'Update now',
+      'macro_calories': 'Calories',
+      'macro_protein': 'Protein',
+      'macro_carbs': 'Carbs',
+      'macro_fat': 'Fat',
+      'meal_breakfast': 'Breakfast',
+      'meal_lunch': 'Lunch',
+      'meal_dinner': 'Dinner',
+      'meal_snack': 'Snacks',
+      'log_meal_btn': 'Log Meal',
+      'meal_plan_heading': 'MEAL PLAN',
+      'no_meal_plan_badge': 'NO MEAL PLAN',
+      'create_meal_plan_ai': 'Create meal plan with AI',
+      'create_plan_btn': 'Create Plan',
+      'load_nutrition_failed': 'Could not load nutrition data',
+
+      // Workout Subsystem (LOC-04)
+      'workout_title': 'Workout',
+      'workout_home_subtitle': 'Train, log & explore movements',
+      'my_plans': 'My Plans',
+      'today_scheduled_session': 'TODAY’S SCHEDULED SESSION',
+      'start_workout': 'Start workout',
+      'view_plan': 'View plan',
+      'quick_start': 'Quick start',
+      'quick_start_desc': 'Train without a plan',
+      'browse_library': 'Browse library',
+      'explore_exercises': 'Explore exercises',
+      'train_by_focus': 'TRAIN BY FOCUS',
+      'all_categories': 'All categories',
+      'your_plan': 'YOUR PLAN',
+      'view_full_plan': 'View full plan',
+      'last_workout': 'LAST WORKOUT',
+      'view_history': 'View history',
+      'no_saved_workouts': 'No saved workouts yet',
+      'rest_timer': 'Rest Timer',
+      'next_exercise': 'Next Exercise',
+      'log_set': 'Log Set',
+      'finish_workout': 'Finish Workout',
+      'sets_completed': 'Sets Completed',
+      'workout_summary_title': 'Workout Summary',
     },
     'vi': {
       // Home Screen
@@ -512,6 +675,16 @@ class AppTranslations {
       'new_challenge': 'Thử thách mới',
       'coming_soon': 'Tính năng đang phát triển!',
 
+      // Nutrition AI Model Selection
+      'model_core_3': 'Core 3',
+      'model_pro_3': 'Pro 3',
+      'model_core_3_desc': 'Tra cứu nhanh • Cơ sở dữ liệu tham chiếu',
+      'model_pro_3_desc': 'Nhận diện đa món • Hỗ trợ món ăn Việt',
+      'model_core_3_accessibility': 'Model Core 3: Phân tích ảnh tiêu chuẩn',
+      'model_pro_3_accessibility': 'Model Pro 3: Phân tích AI nâng cao',
+      'nutrition_mode_switch_to_core': 'Đổi sang Core 3',
+      'nutrition_mode_suggest_core': '💡 Gợi ý: Bạn có thể chuyển sang chế độ Core 3 và thử phân tích lại.',
+
       // Navigation Tabs
       'tab_home': 'Trang chủ',
       'tab_workout': 'Tập luyện',
@@ -555,8 +728,14 @@ class AppTranslations {
       'faq_a3':
           'Chưa. Mức giá hiển thị là ước tính thử nghiệm và hạn mức AI sẽ được thông báo sau. Tính năng, hạn mức và giá có thể thay đổi trước khi ra mắt.',
 
+      // Coach Persona & Drawer
+      'coach_persona': 'Phong cách Coach',
+      'coach_persona_desc': 'Tông giọng & phong cách phản hồi',
+      'view_all_conversations': 'Xem tất cả cuộc trò chuyện',
+      'persona_updated': 'Đã cập nhật phong cách Coach thành công!',
+
       // Profile Screen
-      'profile_title': 'Hồ sơ cá nhân',
+      'profile_title': 'Hồ sơ',
       'edit_profile_title': 'Chỉnh sửa hồ sơ',
       'body_stats': 'Chỉ số cơ thể',
       'age': 'Tuổi',
@@ -571,6 +750,13 @@ class AppTranslations {
       'change_pass': 'Đổi mật khẩu',
       'language': 'Ngôn ngữ',
       'logout': 'Đăng xuất',
+      'logout_confirm_title': 'Đăng xuất',
+      'logout_confirm_msg': 'Bạn có chắc chắn muốn đăng xuất không?',
+      'logout_dialog_saman_msg':
+          'Bạn có chắc chắn muốn đăng xuất khỏi tài khoản Saman không?',
+      'no_notifications':
+          'Không có thông báo mới. Bạn đang theo sát kế hoạch!',
+      'profile_health_details': 'Hồ sơ & Thông tin Sức khỏe',
       'save_changes': 'Lưu thay đổi',
       'dark_mode': 'Chế độ Tối',
       'light_mode': 'Chế độ Sáng',
@@ -584,6 +770,48 @@ class AppTranslations {
       'login_required': 'Vui lòng đăng nhập lại',
       'connection_error': 'Lỗi kết nối',
       'server_error': 'Lỗi máy chủ',
+
+      // Avatar & Profile Details (LOC-03)
+      'avatar_dialog_title': 'Ảnh đại diện',
+      'choose_gallery': 'Chọn từ thư viện',
+      'use_google_photo': 'Dùng ảnh Google',
+      'avatar_preview_title': 'Xem trước ảnh đại diện',
+      'avatar_update_success': 'Cập nhật ảnh đại diện thành công!',
+      'avatar_crop_hint': 'Ảnh sẽ được căn giữa và cắt theo khung tròn',
+      'save_avatar': 'Lưu ảnh đại diện',
+      'personal_info': 'Thông tin cá nhân',
+      'health_metrics': 'Chỉ số sức khỏe',
+      'age_label': 'Tuổi',
+      'height_label': 'Chiều cao',
+      'weight_label': 'Cân nặng',
+      'activity_level_label': 'Mức độ vận động',
+      'fitness_goal_label': 'Mục tiêu thể hình',
+      'edit_profile': 'Chỉnh sửa hồ sơ',
+      'your_saman_profile': 'Hồ sơ Saman của bạn',
+      'your_goal': 'MỤC TIÊU CỦA BẠN',
+      'your_details': 'THÔNG TIN CỦA BẠN',
+      'activity_level_heading': 'MỨC ĐỘ VẬN ĐỘNG',
+      'account_heading': 'TÀI KHOẢN',
+      'profile_incomplete_notice': 'Hồ sơ chưa hoàn thiện',
+      'journey_rewards_heading': 'HÀNH TRÌNH & ĐIỂM THƯỞNG',
+      'my_journey_title': 'Hành trình Saman',
+      'wallet_rewards_title': 'Điểm thưởng & Đổi lượt AI',
+      'manage_membership': 'Quản lý gói hội viên',
+      'error_load_profile':
+          'Không thể tải hồ sơ. Vui lòng kiểm tra kết nối và thử lại.',
+      'try_again': 'Thử lại',
+
+      // Validation Errors (LOC-03)
+      'val_age_range': 'Tuổi phải từ 10 đến 120',
+      'val_height_range': 'Chiều cao phải từ 50cm đến 250cm',
+      'val_weight_range': 'Cân nặng phải từ 20kg đến 300kg',
+
+      // Settings & Preferences (LOC-03)
+      'settings_title': 'Cài đặt',
+      'theme_setting': 'Giao diện',
+      'theme_light': 'Sáng',
+      'theme_dark': 'Tối',
+      'theme_system': 'Hệ thống',
 
       // Options (Keys)
       'male': 'Nam',
@@ -674,13 +902,24 @@ class AppTranslations {
       'compare_all_plans_btn': 'So sánh tất cả các gói',
       'your_active_plan': 'Gói đang hoạt động',
       'explore_tier_btn': 'Khám phá',
-      'membership_banner_title': 'Hội viên Saman',
-      'membership_banner_desc':
-          'Khám phá các gói dự kiến: Plus, Pro & Ultra. Tài khoản vẫn Miễn phí.',
+      'membership_banner_title': 'Saman Membership',
+      'membership_banner_desc': 'Tìm hiểu các gói Plus, Pro và Ultra',
+      'membership_card_badge_preview': 'Xem trước',
+      'membership_card_badge_updated': 'Có cập nhật',
+      'membership_card_desc_preview': 'Tìm hiểu các gói Plus, Pro và Ultra',
+      'membership_card_desc_active': 'Gói đang hoạt động: {plan}',
+      'membership_card_cta_explore': 'Khám phá các gói',
+      'membership_card_cta_upgrade': 'Xem gói nâng cấp',
+      'membership_card_cta_your_plan': 'Xem gói của bạn',
       'manage_membership_nav': 'Quản lý hội viên',
       'free_plan_status': 'Gói Miễn phí',
 
       // Upgrade Sheets
+      'current_plan_free_badge': 'GÓI HIỆN TẠI: MIỄN PHÍ',
+      'overview_free_desc':
+          'Tài khoản của bạn duy trì gói Miễn phí với các tính năng theo dõi cơ bản. Các gói trả phí sẽ sớm ra mắt.',
+      'upgrade_sheet_plus_title': 'Nâng cấp lên Plus',
+      'upgrade_sheet_pro_title': 'Nâng cấp lên Pro',
       'explore_nutrition_ai': 'Khám phá AI dinh dưỡng',
       'explore_nutrition_ai_desc':
           'Khám phá tính năng phân tích ảnh món ăn bằng Gemini với Saman Plus.',
@@ -821,6 +1060,93 @@ class AppTranslations {
       'community_write_comment': 'Viết bình luận...',
       'community_replying_to': 'Đang trả lời',
       'community_all_caught_up': 'Bạn đã xem hết các bài viết mới!',
+
+      // Community Feed & Filter Tabs
+      'community_tab_all': 'Tất cả',
+      'community_tab_following': 'Đang theo dõi',
+      'community_tab_qa': 'Hỏi & Đáp',
+      'community_empty_feed': 'Chưa có bài viết nào',
+      'community_create_post_hint': 'Bạn đang nghĩ gì?',
+
+      // Post Card & Actions
+      'post_action_like': 'Thích',
+      'post_action_comment': 'Bình luận',
+      'post_action_save': 'Lưu',
+      'post_action_share': 'Chia sẻ',
+      'post_action_delete': 'Xóa bài viết',
+      'post_action_report': 'Báo cáo nội dung',
+      'delete_post_confirm_title': 'Xóa bài viết',
+      'delete_post_confirm_msg': 'Bạn có chắc chắn muốn xóa bài viết này không?',
+      'delete_post_success': 'Đã xóa bài viết thành công',
+
+      // Post Detail
+      'post_detail_title': 'Bài viết',
+      'post_detail_comments_header': 'Bình luận',
+      'post_detail_write_comment': 'Viết bình luận...',
+      'post_detail_empty_comments': 'Chưa có bình luận nào. Hãy là người đầu tiên!',
+      'post_not_found_title': 'Bài viết này không tồn tại hoặc đã bị xóa',
+      'post_back_to_feed': 'Quay lại Bảng tin',
+
+      // Compose Flow
+      'compose_post_title': 'Tạo bài viết',
+      'compose_publish_btn': 'Đăng',
+      'compose_audience_public': 'Công khai',
+      'compose_audience_followers': 'Chỉ người theo dõi',
+      'compose_audience_private': 'Riêng tư',
+      'compose_discard_draft_title': 'Hủy bài viết?',
+      'compose_discard_draft_msg': 'Nội dung bạn đang viết sẽ bị mất.',
+      'compose_keep_editing': 'Tiếp tục viết',
+      'compose_discard': 'Hủy',
+      'select_media_title': 'Chọn ảnh',
+
+      // Nutrition Subsystem (LOC-04)
+      'nutrition_title': 'Dinh dưỡng',
+      'meal_suggestion_title': 'Gợi ý bữa ăn',
+      'meal_logged_success': 'Đã ghi nhận bữa ăn vào nhật ký!',
+      'confirm_and_log': 'Xác nhận & Ghi nhật ký',
+      'missing_profile_info': 'Thiếu thông tin Profile',
+      'missing_profile_desc':
+          'Vui lòng cập nhật thông tin cá nhân để tính toán mục tiêu dinh dưỡng.',
+      'update_profile_now': 'Cập nhật ngay',
+      'macro_calories': 'Calo',
+      'macro_protein': 'Đạm',
+      'macro_carbs': 'Tinh bột',
+      'macro_fat': 'Chất béo',
+      'meal_breakfast': 'Bữa sáng',
+      'meal_lunch': 'Bữa trưa',
+      'meal_dinner': 'Bữa tối',
+      'meal_snack': 'Bữa phụ',
+      'log_meal_btn': 'Ghi bữa ăn',
+      'meal_plan_heading': 'KẾ HOẠCH BỮA ĂN',
+      'no_meal_plan_badge': 'CHƯA CÓ KẾ HOẠCH',
+      'create_meal_plan_ai': 'Tạo kế hoạch ăn uống với AI',
+      'create_plan_btn': 'Tạo kế hoạch',
+      'load_nutrition_failed': 'Không thể tải dữ liệu dinh dưỡng',
+
+      // Workout Subsystem (LOC-04)
+      'workout_title': 'Tập luyện',
+      'workout_home_subtitle': 'Tập luyện, ghi nhật ký & khám phá chuyển động',
+      'my_plans': 'Kế hoạch của tôi',
+      'today_scheduled_session': 'BUỔI TẬP ĐÃ LÊN LỊCH HÔM NAY',
+      'start_workout': 'Bắt đầu tập',
+      'view_plan': 'Xem kế hoạch',
+      'quick_start': 'Bắt đầu nhanh',
+      'quick_start_desc': 'Tập không theo kế hoạch',
+      'browse_library': 'Duyệt thư viện',
+      'explore_exercises': 'Khám phá bài tập',
+      'train_by_focus': 'TẬP THEO NHÓM CƠ',
+      'all_categories': 'Tất cả danh mục',
+      'your_plan': 'KẾ HOẠCH CỦA BẠN',
+      'view_full_plan': 'Xem toàn bộ kế hoạch',
+      'last_workout': 'BUỔI TẬP GẦN NHẤT',
+      'view_history': 'Xem lịch sử',
+      'no_saved_workouts': 'Chưa có buổi tập nào',
+      'rest_timer': 'Thời gian nghỉ',
+      'next_exercise': 'Bài tập tiếp theo',
+      'log_set': 'Ghi hiệp',
+      'finish_workout': 'Hoàn thành buổi tập',
+      'sets_completed': 'Hiệp đã hoàn thành',
+      'workout_summary_title': 'Tổng kết buổi tập',
     },
   };
 

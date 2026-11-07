@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../../config/app_translations.dart';
 import '../../domain/models/membership_plan.dart';
 import '../providers/membership_providers.dart';
 import '../tokens/membership_tokens.dart';
@@ -107,7 +108,7 @@ class MembershipOverviewScreen extends ConsumerWidget {
     return Scaffold(
       backgroundColor: MembershipTokens.canvas,
       appBar: MembershipAppBar(
-        title: 'Membership',
+        title: context.tr('membership_title'),
         onBack: onBack,
       ),
       body: SafeArea(
@@ -121,11 +122,11 @@ class MembershipOverviewScreen extends ConsumerWidget {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               // 1. Introduction Header
-              _buildIntroSection(),
+              _buildIntroSection(context),
               const SizedBox(height: 16),
 
               // 2. Account Current Status Card
-              _buildCurrentAccountCard(accountMembership),
+              _buildCurrentAccountCard(context, accountMembership),
               const SizedBox(height: 20),
 
               // 3. Billing Selector
@@ -136,7 +137,7 @@ class MembershipOverviewScreen extends ConsumerWidget {
               const SizedBox(height: 20),
 
               // 4. Plan Cards (Free, Plus, Pro, Ultra)
-              _buildFreePlanCard(freePlan),
+              _buildFreePlanCard(context, freePlan),
               const SizedBox(height: 16),
 
               _buildPaidPlanCard(
@@ -166,7 +167,7 @@ class MembershipOverviewScreen extends ConsumerWidget {
               const SizedBox(height: 24),
 
               // 6. Quiet Footer Disclaimers
-              _buildFooter(),
+              _buildFooter(context),
               const SizedBox(height: 16),
             ],
           ),
@@ -175,7 +176,7 @@ class MembershipOverviewScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildIntroSection() {
+  Widget _buildIntroSection(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -190,7 +191,7 @@ class MembershipOverviewScreen extends ConsumerWidget {
             ),
           ),
           child: Text(
-            'MEMBERSHIP PREVIEW',
+            context.tr('membership_preview_badge'),
             style: MembershipTokens.mono(
               fontSize: 11,
               fontWeight: FontWeight.w600,
@@ -201,7 +202,7 @@ class MembershipOverviewScreen extends ConsumerWidget {
         ),
         const SizedBox(height: 12),
         Text(
-          'Elevate your training.',
+          context.tr('membership_hero_title'),
           style: MembershipTokens.headline(
             fontSize: 26,
             fontWeight: FontWeight.w700,
@@ -211,7 +212,7 @@ class MembershipOverviewScreen extends ConsumerWidget {
         ),
         const SizedBox(height: 6),
         Text(
-          'Explore planned tiers designed for nutrition intelligence and workout computer vision.',
+          context.tr('membership_hero_desc'),
           style: MembershipTokens.body(
             fontSize: 14,
             fontWeight: FontWeight.w400,
@@ -223,7 +224,7 @@ class MembershipOverviewScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildCurrentAccountCard([dynamic account]) {
+  Widget _buildCurrentAccountCard(BuildContext context, [dynamic account]) {
     if (account is AccountMembershipState && account.isUnknown) {
       return Container(
         padding: const EdgeInsets.all(14.0),
@@ -367,7 +368,7 @@ class MembershipOverviewScreen extends ConsumerWidget {
         ? 'Offline — Showing cached status. Quota limits may update once connected.'
         : (usage != null && usage.consumedUnits > 0
             ? 'Your account stays on $tierName with core tracking. Scans used: ${usage.consumedUnits}/${usage.limitUnits}.'
-            : 'Your account stays on Free with core tracking. Paid plans are Coming Soon.');
+            : context.tr('overview_free_desc'));
     return Container(
       padding: const EdgeInsets.all(14.0),
       decoration: BoxDecoration(
@@ -408,7 +409,9 @@ class MembershipOverviewScreen extends ConsumerWidget {
                   children: [
                     Flexible(
                       child: Text(
-                        'CURRENT PLAN: $tierName',
+                        tier == MembershipTier.free
+                            ? context.tr('current_plan_free_badge')
+                            : 'CURRENT PLAN: $tierName',
                         overflow: TextOverflow.ellipsis,
                         style: MembershipTokens.mono(
                           fontSize: 11,
@@ -447,7 +450,7 @@ class MembershipOverviewScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildFreePlanCard(MembershipPlan plan) {
+  Widget _buildFreePlanCard(BuildContext context, MembershipPlan plan) {
     return Container(
       padding: const EdgeInsets.all(18.0),
       decoration: BoxDecoration(
@@ -500,7 +503,7 @@ class MembershipOverviewScreen extends ConsumerWidget {
                   ),
                 ),
                 child: Text(
-                  'CURRENT',
+                  context.tr('current_badge'),
                   style: MembershipTokens.mono(
                     fontSize: 10,
                     fontWeight: FontWeight.w600,
@@ -603,7 +606,7 @@ class MembershipOverviewScreen extends ConsumerWidget {
                 const SizedBox(width: 6),
                 Flexible(
                   child: Text(
-                    'Your Active Plan',
+                    context.tr('your_active_plan'),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: MembershipTokens.body(
@@ -693,7 +696,7 @@ class MembershipOverviewScreen extends ConsumerWidget {
                         ),
                       ),
                       child: Text(
-                        'RECOMMENDED',
+                        context.tr('recommended_badge'),
                         style: MembershipTokens.mono(
                           fontSize: 10,
                           fontWeight: FontWeight.w600,
@@ -718,7 +721,7 @@ class MembershipOverviewScreen extends ConsumerWidget {
                       ),
                     ),
                     child: Text(
-                      'COMING SOON',
+                      context.tr('coming_soon_badge'),
                       style: MembershipTokens.mono(
                         fontSize: 10,
                         fontWeight: FontWeight.w600,
@@ -818,7 +821,7 @@ class MembershipOverviewScreen extends ConsumerWidget {
 
           // Primary Button to Explore Plan
           PrimaryMembershipButton(
-            text: 'Explore ${plan.name}',
+            text: '${context.tr('explore_tier_btn')} ${plan.name}',
             icon: Icons.arrow_forward_rounded,
             onPressed: () => _navigateToDetail(context, plan.tier),
           ),
@@ -971,7 +974,7 @@ class MembershipOverviewScreen extends ConsumerWidget {
                 children: [
                   Flexible(
                     child: Text(
-                      'Compare all plans',
+                      context.tr('compare_all_plans_btn'),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: MembershipTokens.body(
@@ -996,12 +999,12 @@ class MembershipOverviewScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildFooter() {
+  Widget _buildFooter(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
         Text(
-          'Demo pricing · Subject to change',
+          context.tr('demo_pricing_disclaimer'),
           style: MembershipTokens.mono(
             fontSize: 11,
             fontWeight: FontWeight.w400,
@@ -1011,7 +1014,7 @@ class MembershipOverviewScreen extends ConsumerWidget {
         ),
         const SizedBox(height: 6),
         Text(
-          'Paid memberships are not available yet. Features, limits, and prices may change before launch.',
+          context.tr('paid_notice_footer'),
           style: MembershipTokens.body(
             fontSize: 12,
             fontWeight: FontWeight.w400,

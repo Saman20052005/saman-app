@@ -23,6 +23,7 @@ import 'home/widgets/widgets.dart';
 // Journey Feature
 import 'package:shared_preferences/shared_preferences.dart';
 import '../features/journey/presentation/widgets/saman_journey_card.dart';
+import '../widgets/saman_feedback_snackbar.dart';
 import '../features/journey/presentation/screens/create_journey_screen.dart';
 
 // Destination Screens
@@ -123,21 +124,21 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       builder: (context) => AlertDialog(
         backgroundColor: SamanHomeTokens.cardSurface,
         title: Text(
-          tr('logout'),
+          context.tr('logout_confirm_title'),
           style: const TextStyle(
             color: SamanHomeTokens.textWhite,
             fontWeight: FontWeight.bold,
           ),
         ),
-        content: const Text(
-          'Are you sure you want to log out?',
-          style: TextStyle(color: SamanHomeTokens.textSecondary),
+        content: Text(
+          context.tr('logout_confirm_msg'),
+          style: const TextStyle(color: SamanHomeTokens.textSecondary),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
             child: Text(
-              tr('cancel'),
+              context.tr('cancel'),
               style: const TextStyle(color: SamanHomeTokens.textSecondary),
             ),
           ),
@@ -147,7 +148,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               backgroundColor: SamanHomeTokens.actionButtonSurface,
               foregroundColor: SamanHomeTokens.textWhite,
             ),
-            child: Text(tr('logout')),
+            child: Text(context.tr('logout')),
           ),
         ],
       ),
@@ -178,23 +179,21 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               AppRoutes.login,
               (route) => false,
             );
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text('Đã đăng xuất (lỗi xóa dữ liệu phụ: $e)'),
-                backgroundColor: const Color(0xFFF59E0B),
-              ),
+            SamanFeedbackSnackBar.show(
+              context,
+              message: 'Đã đăng xuất (lỗi xóa dữ liệu phụ: $e)',
+              type: FeedbackType.warning,
             );
           } else {
             // Token confirmed still intact: remain on screen and offer retry
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text('Đăng xuất thất bại: $e'),
-                backgroundColor: const Color(0xFFEF4444),
-                action: SnackBarAction(
-                  label: 'Thử lại',
-                  textColor: Colors.white,
-                  onPressed: _logout,
-                ),
+            SamanFeedbackSnackBar.show(
+              context,
+              message: 'Đăng xuất thất bại: $e',
+              type: FeedbackType.error,
+              action: SnackBarAction(
+                label: 'Thử lại',
+                textColor: const Color(0xFF10B981),
+                onPressed: _logout,
               ),
             );
           }
@@ -207,9 +206,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   void _handleNotificationTap() {
     ScaffoldMessenger.of(context).hideCurrentSnackBar();
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('No new notifications. You are on track!'),
-        duration: Duration(seconds: 2),
+      SnackBar(
+        content: Text(context.tr('no_notifications')),
+        duration: const Duration(seconds: 2),
         behavior: SnackBarBehavior.floating,
       ),
     );
@@ -233,9 +232,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   Icons.person_outline_rounded,
                   color: SamanHomeTokens.textWhite,
                 ),
-                title: const Text(
-                  'Profile & Health Details',
-                  style: TextStyle(color: SamanHomeTokens.textWhite),
+                title: Text(
+                  context.tr('profile_health_details'),
+                  style: const TextStyle(color: SamanHomeTokens.textWhite),
                 ),
                 trailing: const Icon(
                   Icons.chevron_right,
@@ -260,7 +259,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   color: Colors.redAccent,
                 ),
                 title: Text(
-                  tr('logout'),
+                  context.tr('logout'),
                   style: const TextStyle(color: Colors.redAccent),
                 ),
                 onTap: () {
@@ -311,13 +310,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       _pendingWaterRetryKey = null;
       _pendingWaterRetryDate = null;
       if (mounted) {
-        ScaffoldMessenger.of(context).hideCurrentSnackBar();
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('💧 +250ml water logged'),
-            duration: Duration(seconds: 2),
-            behavior: SnackBarBehavior.floating,
-          ),
+        SamanFeedbackSnackBar.show(
+          context,
+          message: '💧 +250ml water logged',
+          type: FeedbackType.success,
+          duration: const Duration(seconds: 2),
         );
       }
     } catch (e) {
@@ -325,17 +322,16 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           keyToUse ?? ref.read(nutritionProvider.notifier).lastFailedWaterKey;
       _pendingWaterRetryDate = dateToUse;
       if (mounted) {
-        ScaffoldMessenger.of(context).hideCurrentSnackBar();
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Text('Failed to update water. Please try again.'),
-            behavior: SnackBarBehavior.floating,
-            action: SnackBarAction(
-              label: 'Retry',
-              onPressed: () => _handleAddWater(
-                retryKey: _pendingWaterRetryKey,
-                retryDate: _pendingWaterRetryDate,
-              ),
+        SamanFeedbackSnackBar.show(
+          context,
+          message: 'Failed to update water. Please try again.',
+          type: FeedbackType.error,
+          action: SnackBarAction(
+            label: 'Retry',
+            textColor: const Color(0xFF10B981),
+            onPressed: () => _handleAddWater(
+              retryKey: _pendingWaterRetryKey,
+              retryDate: _pendingWaterRetryDate,
             ),
           ),
         );
@@ -484,9 +480,34 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               color: SamanHomeTokens.greenAccent,
               backgroundColor: SamanHomeTokens.cardSurface,
               onRefresh: _onRefresh,
-              child: CustomScrollView(
-                physics: const AlwaysScrollableScrollPhysics(),
-                slivers: [
+              child: Stack(
+                children: [
+                  // Ambient mood glow: subtle moss green behind greeting & Ask Saman, fading out by hero bottom
+                  Positioned(
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    height: 440,
+                    child: IgnorePointer(
+                      child: Container(
+                        decoration: const BoxDecoration(
+                          gradient: RadialGradient(
+                            center: Alignment(0.0, -0.6),
+                            radius: 1.0,
+                            colors: [
+                              Color(0x3320362D),
+                              Color(0x1420362D),
+                              Colors.transparent,
+                            ],
+                            stops: [0.0, 0.45, 1.0],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  CustomScrollView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    slivers: [
                   // 1. Header (Greeting, Subtitle, Actions)
                   SliverToBoxAdapter(
                     child: SafeArea(
@@ -590,7 +611,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   const SliverToBoxAdapter(child: SizedBox(height: 32)),
                 ],
               ),
-            ),
+            ],
+          ),
+        ),
     );
   }
 }

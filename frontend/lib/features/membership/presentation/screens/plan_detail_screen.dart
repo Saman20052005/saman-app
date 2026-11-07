@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../../config/app_translations.dart';
 import '../../domain/models/membership_plan.dart';
 import '../providers/membership_providers.dart';
 import '../tokens/membership_tokens.dart';
@@ -110,9 +111,9 @@ class _PlanDetailScreenState extends ConsumerState<PlanDetailScreen> {
 
               // 7. Primary Action Dock
               PrimaryMembershipButton(
-                text: 'Coming Soon',
+                text: context.tr('coming_soon_btn'),
                 icon: Icons.arrow_forward,
-                subtext: 'Preview only · Your account stays on Free',
+                subtext: context.tr('preview_only_notice'),
                 onPressed: _handleComingSoon,
               ),
               const SizedBox(height: 12),
@@ -132,7 +133,7 @@ class _PlanDetailScreenState extends ConsumerState<PlanDetailScreen> {
                     ),
                     alignment: Alignment.center,
                     child: Text(
-                      'Back to Membership',
+                      context.tr('back_to_membership'),
                       style: MembershipTokens.body(
                         fontSize: 14,
                         fontWeight: FontWeight.w500,
@@ -194,7 +195,7 @@ class _PlanDetailScreenState extends ConsumerState<PlanDetailScreen> {
                 ),
               ),
               child: Text(
-                'COMING SOON',
+                context.tr('coming_soon_badge'),
                 style: MembershipTokens.mono(
                   fontSize: 11,
                   fontWeight: FontWeight.w600,
@@ -218,7 +219,7 @@ class _PlanDetailScreenState extends ConsumerState<PlanDetailScreen> {
                   ),
                 ),
                 child: Text(
-                  'RECOMMENDED',
+                  context.tr('recommended_badge'),
                   style: MembershipTokens.mono(
                     fontSize: 11,
                     fontWeight: FontWeight.w600,
@@ -358,7 +359,7 @@ class _PlanDetailScreenState extends ConsumerState<PlanDetailScreen> {
 
           // Disclaimer Note
           Text(
-            'Demo pricing · Subject to change',
+            context.tr('demo_pricing_disclaimer'),
             style: MembershipTokens.mono(
               fontSize: 12,
               fontWeight: FontWeight.w400,
@@ -383,7 +384,7 @@ class _PlanDetailScreenState extends ConsumerState<PlanDetailScreen> {
             runSpacing: 4,
             children: [
               Text(
-                'Planned with ${plan.name}'.toUpperCase(),
+                '${context.tr('planned_with').toUpperCase()} ${plan.name.toUpperCase()}',
                 style: MembershipTokens.mono(
                   fontSize: 12,
                   fontWeight: FontWeight.w600,
@@ -405,7 +406,7 @@ class _PlanDetailScreenState extends ConsumerState<PlanDetailScreen> {
                   ),
                 ),
                 child: Text(
-                  'Roadmap',
+                  context.tr('roadmap_badge'),
                   style: MembershipTokens.mono(
                     fontSize: 11,
                     fontWeight: FontWeight.w500,
@@ -664,7 +665,9 @@ class _PlanDetailScreenState extends ConsumerState<PlanDetailScreen> {
                   ),
                 ),
                 child: Text(
-                  plan.tier.isUltra ? 'Tier Inherited' : 'Baseline Active',
+                  plan.tier.isUltra
+                      ? context.tr('tier_inherited')
+                      : context.tr('baseline_active'),
                   style: MembershipTokens.mono(
                     fontSize: 11,
                     fontWeight: FontWeight.w500,

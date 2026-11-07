@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../../config/app_translations.dart';
 import '../../domain/models/membership_plan.dart';
 import '../providers/membership_providers.dart';
 import '../tokens/membership_tokens.dart';
@@ -39,7 +40,7 @@ class MembershipComingSoonScreen extends ConsumerWidget {
     return Scaffold(
       backgroundColor: MembershipTokens.canvas,
       appBar: MembershipAppBar(
-        title: 'Saman Membership',
+        title: context.tr('membership_banner_title'),
         onBack: onBack,
       ),
       body: SafeArea(
@@ -53,15 +54,15 @@ class MembershipComingSoonScreen extends ConsumerWidget {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               // 1. Availability Status & Hero
-              _buildHeroSection(),
+              _buildHeroSection(context),
               const SizedBox(height: 24),
 
               // 2. You're Exploring Card
-              _buildExploringCard(plan, billingPeriod),
+              _buildExploringCard(context, plan, billingPeriod),
               const SizedBox(height: 16),
 
               // 3. Account Reassurance Card
-              _buildReassuranceCard(),
+              _buildReassuranceCard(context),
               const SizedBox(height: 28),
 
               // 4. Primary Navigation Action
@@ -74,7 +75,7 @@ class MembershipComingSoonScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildHeroSection() {
+  Widget _buildHeroSection(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -115,7 +116,7 @@ class MembershipComingSoonScreen extends ConsumerWidget {
                 ),
               ),
               child: Text(
-                'COMING SOON',
+                context.tr('coming_soon_badge'),
                 style: MembershipTokens.mono(
                   fontSize: 10,
                   fontWeight: FontWeight.w600,
@@ -128,7 +129,7 @@ class MembershipComingSoonScreen extends ConsumerWidget {
         ),
         const SizedBox(height: 16),
         Text(
-          'Something to look forward to.',
+          context.tr('coming_soon_hero_title'),
           style: MembershipTokens.headline(
             fontSize: 24,
             fontWeight: FontWeight.w700,
@@ -138,7 +139,7 @@ class MembershipComingSoonScreen extends ConsumerWidget {
         ),
         const SizedBox(height: 6),
         Text(
-          "This membership is not available yet. Explore what's planned while continuing with Free.",
+          context.tr('coming_soon_hero_desc'),
           style: MembershipTokens.body(
             fontSize: 14,
             fontWeight: FontWeight.w400,
@@ -150,7 +151,8 @@ class MembershipComingSoonScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildExploringCard(MembershipPlan plan, BillingPeriod period) {
+  Widget _buildExploringCard(
+      BuildContext context, MembershipPlan plan, BillingPeriod period) {
     final priceText = plan.priceDisplay(period);
     final unitText = plan.unitDisplay(period);
 
@@ -160,7 +162,7 @@ class MembershipComingSoonScreen extends ConsumerWidget {
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 4.0),
           child: Text(
-            "YOU'RE EXPLORING",
+            context.tr('youre_exploring'),
             style: MembershipTokens.mono(
               fontSize: 11,
               fontWeight: FontWeight.w600,
@@ -272,7 +274,7 @@ class MembershipComingSoonScreen extends ConsumerWidget {
               ),
               const SizedBox(height: 6),
               Text(
-                'Demo pricing · Subject to change',
+                context.tr('demo_pricing_disclaimer'),
                 style: MembershipTokens.mono(
                   fontSize: 11,
                   fontWeight: FontWeight.w400,
@@ -286,7 +288,7 @@ class MembershipComingSoonScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildReassuranceCard() {
+  Widget _buildReassuranceCard(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(16.0),
       decoration: BoxDecoration(
@@ -324,7 +326,7 @@ class MembershipComingSoonScreen extends ConsumerWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Your account stays on Free.',
+                  context.tr('account_stays_free_title'),
                   style: MembershipTokens.body(
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
@@ -333,7 +335,7 @@ class MembershipComingSoonScreen extends ConsumerWidget {
                 ),
                 const SizedBox(height: 3),
                 Text(
-                  'No payment has been taken and no paid membership has been activated.',
+                  context.tr('account_stays_free_desc'),
                   style: MembershipTokens.body(
                     fontSize: 12,
                     fontWeight: FontWeight.w400,
@@ -382,7 +384,7 @@ class MembershipComingSoonScreen extends ConsumerWidget {
               }),
             ),
             child: Text(
-              'Back to Membership',
+              context.tr('back_to_membership'),
               style: MembershipTokens.body(
                 fontSize: 15,
                 fontWeight: FontWeight.w600,
@@ -395,7 +397,7 @@ class MembershipComingSoonScreen extends ConsumerWidget {
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16.0),
           child: Text(
-            'Planned features, limits, and pricing may change before launch.',
+            context.tr('coming_soon_footer_note'),
             style: MembershipTokens.body(
               fontSize: 12,
               fontWeight: FontWeight.w400,
