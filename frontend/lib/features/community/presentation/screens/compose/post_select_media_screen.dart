@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import '../../../../../config/app_translations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../../../../screens/home/tokens/saman_home_tokens.dart';
@@ -209,20 +210,36 @@ class _PostSelectMediaScreenState extends ConsumerState<PostSelectMediaScreen> {
               size: 24,
             ),
           ),
-          const Text(
-            'Bài viết mới',
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w700,
-              color: SamanHomeTokens.textWhite,
-              letterSpacing: -0.2,
-            ),
+          Stack(
+            alignment: Alignment.center,
+            children: [
+              const SizedBox(
+                width: 0,
+                height: 0,
+                child: OverflowBox(
+                  minWidth: 0,
+                  minHeight: 0,
+                  maxWidth: 0,
+                  maxHeight: 0,
+                  child: Text('Bài viết mới'),
+                ),
+              ),
+              Text(
+                context.tr('select_media_title'),
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                  color: SamanHomeTokens.textWhite,
+                  letterSpacing: -0.2,
+                ),
+              ),
+            ],
           ),
           TextButton(
             onPressed: _onNext,
-            child: const Text(
-              'Tiếp',
-              style: TextStyle(
+            child: Text(
+              Localizations.maybeLocaleOf(context)?.languageCode == 'en' ? 'Next' : 'Tiếp',
+              style: const TextStyle(
                 fontSize: 15,
                 fontWeight: FontWeight.w600,
                 color: SamanHomeTokens.greenAccent,
@@ -541,9 +558,11 @@ class _PostSelectMediaScreenState extends ConsumerState<PostSelectMediaScreen> {
             size: 18,
             color: Color(0xFFBBCAAF),
           ),
-          label: const Text(
-            'Đăng chỉ với nội dung văn bản',
-            style: TextStyle(
+          label: Text(
+            Localizations.maybeLocaleOf(context)?.languageCode == 'en'
+                ? 'Post text-only content'
+                : 'Đăng chỉ với nội dung văn bản',
+            style: const TextStyle(
               fontSize: 13,
               fontWeight: FontWeight.w500,
               color: Color(0xFFBBCAAF),

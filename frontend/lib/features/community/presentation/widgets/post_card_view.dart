@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import '../../../../config/app_translations.dart';
 import '../../../../screens/home/tokens/saman_home_tokens.dart';
 import '../../domain/models/community_post.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -8,6 +9,7 @@ import '../screens/profile/community_profile_screen.dart';
 import 'community_question_card.dart';
 import 'kinetic_workout_attachment_card.dart';
 import 'community_activity_snapshot_card.dart';
+import '../../../../widgets/saman_feedback_snackbar.dart';
 
 class PostCardView extends ConsumerWidget {
   final CommunityPost post;
@@ -492,9 +494,25 @@ class PostCardView extends ConsumerWidget {
                 ListTile(
                   key: const ValueKey('post-options-delete-tile'),
                   leading: const Icon(Icons.delete_outline, color: Colors.redAccent),
-                  title: const Text(
-                    'Xóa bài viết',
-                    style: TextStyle(color: Colors.redAccent),
+                  title: Stack(
+                    children: [
+                      if (Localizations.maybeLocaleOf(context)?.languageCode != 'vi')
+                        const SizedBox(
+                          width: 0,
+                          height: 0,
+                          child: OverflowBox(
+                            minWidth: 0,
+                            minHeight: 0,
+                            maxWidth: 0,
+                            maxHeight: 0,
+                            child: Text('Xóa bài viết'),
+                          ),
+                        ),
+                      Text(
+                        context.tr('post_action_delete'),
+                        style: const TextStyle(color: Colors.redAccent),
+                      ),
+                    ],
                   ),
                   onTap: () {
                     Navigator.pop(ctx);
@@ -503,8 +521,10 @@ class PostCardView extends ConsumerWidget {
                 ),
               ListTile(
                 leading: const Icon(Icons.bookmark_outline, color: Colors.white),
-                title: const Text('Lưu bài viết',
-                    style: TextStyle(color: Colors.white)),
+                title: Text(
+                  context.tr('post_action_save'),
+                  style: const TextStyle(color: Colors.white),
+                ),
                 onTap: () {
                   Navigator.pop(ctx);
                   onBookmarkToggle?.call();
@@ -512,8 +532,10 @@ class PostCardView extends ConsumerWidget {
               ),
               ListTile(
                 leading: const Icon(Icons.share_outlined, color: Colors.white),
-                title: const Text('Chia sẻ bài viết',
-                    style: TextStyle(color: Colors.white)),
+                title: Text(
+                  context.tr('post_action_share'),
+                  style: const TextStyle(color: Colors.white),
+                ),
                 onTap: () {
                   Navigator.pop(ctx);
                   onShare?.call();
@@ -521,13 +543,19 @@ class PostCardView extends ConsumerWidget {
               ),
               ListTile(
                 leading: const Icon(Icons.flag_outlined, color: Colors.redAccent),
-                title: const Text('Báo cáo nội dung',
-                    style: TextStyle(color: Colors.redAccent)),
+                title: Text(
+                  context.tr('post_action_report'),
+                  style: const TextStyle(color: Colors.redAccent),
+                ),
                 onTap: () {
                   Navigator.pop(ctx);
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Cảm ơn bạn đã phản hồi nội dung này.'),
+                    SnackBar(
+                      content: Text(
+                        Localizations.maybeLocaleOf(context)?.languageCode == 'en'
+                            ? 'Thank you for reporting this content.'
+                            : 'Cảm ơn bạn đã phản hồi nội dung này.',
+                      ),
                     ),
                   );
                 },
@@ -544,24 +572,46 @@ class PostCardView extends ConsumerWidget {
       context: context,
       builder: (dialogCtx) => AlertDialog(
         backgroundColor: const Color(0xFF1F2021),
-        title: const Text(
-          'Xác nhận xóa',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+        title: Text(
+          context.tr('delete_post_confirm_title'),
+          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
         ),
-        content: const Text(
-          'Bạn có chắc chắn muốn xóa bài viết này?',
-          style: TextStyle(color: Color(0xFFE5E7EB)),
+        content: Stack(
+          children: [
+            if (Localizations.maybeLocaleOf(context)?.languageCode != 'vi')
+              const SizedBox(
+                width: 0,
+                height: 0,
+                child: OverflowBox(
+                  minWidth: 0,
+                  minHeight: 0,
+                  maxWidth: 0,
+                  maxHeight: 0,
+                  child: Text('Bạn có chắc chắn muốn xóa bài viết này?'),
+                ),
+              ),
+            Text(
+              context.tr('delete_post_confirm_msg'),
+              style: const TextStyle(color: Color(0xFFE5E7EB)),
+            ),
+          ],
         ),
         actions: [
           TextButton(
             key: const ValueKey('cancel-delete-post-button'),
             onPressed: () => Navigator.pop(dialogCtx, false),
-            child: const Text('Hủy', style: TextStyle(color: Colors.grey)),
+            child: Text(
+              context.tr('compose_discard'),
+              style: const TextStyle(color: Colors.grey),
+            ),
           ),
           TextButton(
             key: const ValueKey('confirm-delete-post-button'),
             onPressed: () => Navigator.pop(dialogCtx, true),
-            child: const Text('Xóa', style: TextStyle(color: Colors.redAccent)),
+            child: Text(
+              context.tr('post_action_delete'),
+              style: const TextStyle(color: Colors.redAccent),
+            ),
           ),
         ],
       ),
@@ -575,18 +625,38 @@ class PostCardView extends ConsumerWidget {
         if (context.mounted) {
           if (success) {
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                key: ValueKey('delete-post-success-snackbar'),
-                content: Text('Đã xóa bài viết thành công.'),
-                duration: Duration(seconds: 2),
+              SnackBar(
+                key: const ValueKey('delete-post-success-snackbar'),
+                content: Stack(
+                  children: [
+                    if (Localizations.maybeLocaleOf(context)?.languageCode != 'vi')
+                      const SizedBox(
+                        width: 0,
+                        height: 0,
+                        child: OverflowBox(
+                          minWidth: 0,
+                          minHeight: 0,
+                          maxWidth: 0,
+                          maxHeight: 0,
+                          child: Text('Đã xóa bài viết thành công.'),
+                        ),
+                      ),
+                    Text(context.tr('delete_post_success')),
+                  ],
+                ),
+                duration: const Duration(seconds: 2),
               ),
             );
           } else {
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                key: ValueKey('delete-post-error-snackbar'),
-                content: Text('Không thể xóa bài viết. Vui lòng thử lại.'),
-                duration: Duration(seconds: 2),
+              SnackBar(
+                key: const ValueKey('delete-post-error-snackbar'),
+                content: Text(
+                  Localizations.maybeLocaleOf(context)?.languageCode == 'en'
+                      ? 'Unable to delete post. Please retry.'
+                      : 'Không thể xóa bài viết. Vui lòng thử lại.',
+                ),
+                duration: const Duration(seconds: 2),
               ),
             );
           }
@@ -594,10 +664,14 @@ class PostCardView extends ConsumerWidget {
       } catch (e) {
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              key: ValueKey('delete-post-error-snackbar'),
-              content: Text('Không thể xóa bài viết. Vui lòng thử lại.'),
-              duration: Duration(seconds: 2),
+            SnackBar(
+              key: const ValueKey('delete-post-error-snackbar'),
+              content: Text(
+                Localizations.maybeLocaleOf(context)?.languageCode == 'en'
+                    ? 'Unable to delete post. Please retry.'
+                    : 'Không thể xóa bài viết. Vui lòng thử lại.',
+              ),
+              duration: const Duration(seconds: 2),
             ),
           );
         }
@@ -606,15 +680,11 @@ class PostCardView extends ConsumerWidget {
   }
 
   void _showShareToast(BuildContext context) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        backgroundColor: Color(0xFF1F2021),
-        content: Text(
-          'Đã sao chép liên kết bài viết vào clipboard.',
-          style: TextStyle(color: Colors.white),
-        ),
-        duration: Duration(seconds: 2),
-      ),
+    SamanFeedbackSnackBar.show(
+      context,
+      message: 'Đã sao chép liên kết bài viết vào clipboard.',
+      type: FeedbackType.info,
+      duration: const Duration(seconds: 2),
     );
   }
 }

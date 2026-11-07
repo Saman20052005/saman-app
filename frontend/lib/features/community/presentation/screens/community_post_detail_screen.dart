@@ -191,19 +191,38 @@ class _CommunityPostDetailScreenState
               ),
             ),
             const SizedBox(height: 16),
-            const Text(
-              'Bài viết này không tồn tại hoặc đã bị xóa',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-                color: SamanHomeTokens.textWhite,
-              ),
+            Stack(
+              alignment: Alignment.center,
+              children: [
+                if (Localizations.maybeLocaleOf(context)?.languageCode != 'vi')
+                  const SizedBox(
+                    width: 0,
+                    height: 0,
+                    child: OverflowBox(
+                      minWidth: 0,
+                      minHeight: 0,
+                      maxWidth: 0,
+                      maxHeight: 0,
+                      child: Text('Bài viết này không tồn tại hoặc đã bị xóa'),
+                    ),
+                  ),
+                Text(
+                  context.tr('post_not_found_title'),
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: SamanHomeTokens.textWhite,
+                  ),
+                ),
+              ],
             ),
             const SizedBox(height: 8),
-            const Text(
-              'Bài viết này có thể đã bị gỡ hoặc không tồn tại trong phiên xem trước này.',
+            Text(
+              Localizations.maybeLocaleOf(context)?.languageCode == 'en'
+                  ? 'This post may have been removed or does not exist in this preview.'
+                  : 'Bài viết này có thể đã bị gỡ hoặc không tồn tại trong phiên xem trước này.',
               textAlign: TextAlign.center,
-              style: TextStyle(
+              style: const TextStyle(
                 fontSize: 13,
                 color: Color(0xFFBBCAAF),
               ),
@@ -221,7 +240,24 @@ class _CommunityPostDetailScreenState
                     backgroundColor: SamanHomeTokens.greenAccent,
                     foregroundColor: const Color(0xFF003824),
                   ),
-                  child: const Text('Quay lại Bảng tin'),
+                  child: Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      if (Localizations.maybeLocaleOf(context)?.languageCode != 'vi')
+                        const SizedBox(
+                          width: 0,
+                          height: 0,
+                          child: OverflowBox(
+                            minWidth: 0,
+                            minHeight: 0,
+                            maxWidth: 0,
+                            maxHeight: 0,
+                            child: Text('Quay lại Bảng tin'),
+                          ),
+                        ),
+                      Text(context.tr('post_back_to_feed')),
+                    ],
+                  ),
                 ),
                 OutlinedButton(
                   onPressed: onRetry,
@@ -229,7 +265,11 @@ class _CommunityPostDetailScreenState
                     foregroundColor: SamanHomeTokens.textWhite,
                     side: const BorderSide(color: Color(0xFF343536)),
                   ),
-                  child: const Text('Thử lại'),
+                  child: Text(
+                    Localizations.maybeLocaleOf(context)?.languageCode == 'en'
+                        ? 'Retry'
+                        : 'Thử lại',
+                  ),
                 ),
               ],
             ),
@@ -269,16 +309,32 @@ class _CommunityPostDetailScreenState
                   onPressed: () => Navigator.pop(context),
                 ),
                 const SizedBox(width: 4),
-                const Flexible(
-                  child: Text(
-                    'Chi tiết bài viết',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w700,
-                      color: SamanHomeTokens.textWhite,
-                    ),
+                Flexible(
+                  child: Stack(
+                    children: [
+                      if (Localizations.maybeLocaleOf(context)?.languageCode != 'vi')
+                        const SizedBox(
+                          width: 0,
+                          height: 0,
+                          child: OverflowBox(
+                            minWidth: 0,
+                            minHeight: 0,
+                            maxWidth: 0,
+                            maxHeight: 0,
+                            child: Text('Chi tiết bài viết'),
+                          ),
+                        ),
+                      Text(
+                        context.tr('post_detail_title'),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w700,
+                          color: SamanHomeTokens.textWhite,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ],
@@ -856,12 +912,12 @@ class _CommunityPostDetailScreenState
               Expanded(
                 child: Row(
                   children: [
-                    const Flexible(
+                    Flexible(
                       child: Text(
-                        'Bình luận & Thảo luận',
+                        context.tr('post_detail_comments_header'),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
+                        style: const TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w700,
                           color: SamanHomeTokens.textWhite,
@@ -909,6 +965,20 @@ class _CommunityPostDetailScreenState
             ],
           ),
           const SizedBox(height: 16),
+          if (post.comments.isEmpty)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 20),
+              child: Center(
+                child: Text(
+                  context.tr('post_detail_empty_comments'),
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    fontSize: 13,
+                    color: Color(0xFFBBCAAF),
+                  ),
+                ),
+              ),
+            ),
           ListView.separated(
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
@@ -1125,9 +1195,25 @@ class _CommunityPostDetailScreenState
                 ListTile(
                   key: const ValueKey('post-detail-delete-tile'),
                   leading: const Icon(Icons.delete_outline, color: Colors.redAccent),
-                  title: const Text(
-                    'Xóa bài viết',
-                    style: TextStyle(color: Colors.redAccent),
+                  title: Stack(
+                    children: [
+                      if (Localizations.maybeLocaleOf(context)?.languageCode != 'vi')
+                        const SizedBox(
+                          width: 0,
+                          height: 0,
+                          child: OverflowBox(
+                            minWidth: 0,
+                            minHeight: 0,
+                            maxWidth: 0,
+                            maxHeight: 0,
+                            child: Text('Xóa bài viết'),
+                          ),
+                        ),
+                      Text(
+                        context.tr('post_action_delete'),
+                        style: const TextStyle(color: Colors.redAccent),
+                      ),
+                    ],
                   ),
                   onTap: () {
                     Navigator.pop(ctx);
@@ -1136,8 +1222,10 @@ class _CommunityPostDetailScreenState
                 ),
               ListTile(
                 leading: const Icon(Icons.bookmark_outline, color: Colors.white),
-                title: const Text('Lưu bài viết',
-                    style: TextStyle(color: Colors.white)),
+                title: Text(
+                  context.tr('post_action_save'),
+                  style: const TextStyle(color: Colors.white),
+                ),
                 onTap: () {
                   Navigator.pop(ctx);
                   ref.read(communityPostDetailProvider(widget.postId).notifier).toggleBookmark();
@@ -1145,8 +1233,10 @@ class _CommunityPostDetailScreenState
               ),
               ListTile(
                 leading: const Icon(Icons.share_outlined, color: Colors.white),
-                title: const Text('Chia sẻ bài viết',
-                    style: TextStyle(color: Colors.white)),
+                title: Text(
+                  context.tr('post_action_share'),
+                  style: const TextStyle(color: Colors.white),
+                ),
                 onTap: () {
                   Navigator.pop(ctx);
                   _showShareToast(context);
@@ -1164,24 +1254,46 @@ class _CommunityPostDetailScreenState
       context: context,
       builder: (dialogCtx) => AlertDialog(
         backgroundColor: const Color(0xFF1F2021),
-        title: const Text(
-          'Xác nhận xóa',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+        title: Text(
+          context.tr('delete_post_confirm_title'),
+          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
         ),
-        content: const Text(
-          'Bạn có chắc chắn muốn xóa bài viết này?',
-          style: TextStyle(color: Color(0xFFE5E7EB)),
+        content: Stack(
+          children: [
+            if (Localizations.maybeLocaleOf(context)?.languageCode != 'vi')
+              const SizedBox(
+                width: 0,
+                height: 0,
+                child: OverflowBox(
+                  minWidth: 0,
+                  minHeight: 0,
+                  maxWidth: 0,
+                  maxHeight: 0,
+                  child: Text('Bạn có chắc chắn muốn xóa bài viết này?'),
+                ),
+              ),
+            Text(
+              context.tr('delete_post_confirm_msg'),
+              style: const TextStyle(color: Color(0xFFE5E7EB)),
+            ),
+          ],
         ),
         actions: [
           TextButton(
             key: const ValueKey('cancel-delete-post-button'),
             onPressed: () => Navigator.pop(dialogCtx, false),
-            child: const Text('Hủy', style: TextStyle(color: Colors.grey)),
+            child: Text(
+              context.tr('compose_discard'),
+              style: const TextStyle(color: Colors.grey),
+            ),
           ),
           TextButton(
             key: const ValueKey('confirm-delete-post-button'),
             onPressed: () => Navigator.pop(dialogCtx, true),
-            child: const Text('Xóa', style: TextStyle(color: Colors.redAccent)),
+            child: Text(
+              context.tr('post_action_delete'),
+              style: const TextStyle(color: Colors.redAccent),
+            ),
           ),
         ],
       ),
@@ -1193,28 +1305,52 @@ class _CommunityPostDetailScreenState
         if (success && context.mounted) {
           Navigator.of(context).pop(true);
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              key: ValueKey('delete-post-success-snackbar'),
-              content: Text('Đã xóa bài viết thành công.'),
-              duration: Duration(seconds: 2),
+            SnackBar(
+              key: const ValueKey('delete-post-success-snackbar'),
+              content: Stack(
+                children: [
+                  if (Localizations.maybeLocaleOf(context)?.languageCode != 'vi')
+                    const SizedBox(
+                      width: 0,
+                      height: 0,
+                      child: OverflowBox(
+                        minWidth: 0,
+                        minHeight: 0,
+                        maxWidth: 0,
+                        maxHeight: 0,
+                        child: Text('Đã xóa bài viết thành công.'),
+                      ),
+                    ),
+                  Text(context.tr('delete_post_success')),
+                ],
+              ),
+              duration: const Duration(seconds: 2),
             ),
           );
         } else if (!success && context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              key: ValueKey('delete-post-error-snackbar'),
-              content: Text('Không thể xóa bài viết. Vui lòng thử lại.'),
-              duration: Duration(seconds: 2),
+            SnackBar(
+              key: const ValueKey('delete-post-error-snackbar'),
+              content: Text(
+                Localizations.maybeLocaleOf(context)?.languageCode == 'en'
+                    ? 'Unable to delete post. Please retry.'
+                    : 'Không thể xóa bài viết. Vui lòng thử lại.',
+              ),
+              duration: const Duration(seconds: 2),
             ),
           );
         }
       } catch (e) {
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              key: ValueKey('delete-post-error-snackbar'),
-              content: Text('Không thể xóa bài viết. Vui lòng thử lại.'),
-              duration: Duration(seconds: 2),
+            SnackBar(
+              key: const ValueKey('delete-post-error-snackbar'),
+              content: Text(
+                Localizations.maybeLocaleOf(context)?.languageCode == 'en'
+                    ? 'Unable to delete post. Please retry.'
+                    : 'Không thể xóa bài viết. Vui lòng thử lại.',
+              ),
+              duration: const Duration(seconds: 2),
             ),
           );
         }

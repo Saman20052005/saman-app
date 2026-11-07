@@ -122,9 +122,11 @@ class _PostComposePublishScreenState
                 ),
               ),
               const SizedBox(height: 16),
-              const Text(
-                'Ai có thể xem bài viết này?',
-                style: TextStyle(
+              Text(
+                Localizations.maybeLocaleOf(context)?.languageCode == 'en'
+                    ? 'Who can see this post?'
+                    : 'Ai có thể xem bài viết này?',
+                style: const TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w700,
                   color: SamanHomeTokens.textWhite,
@@ -133,20 +135,27 @@ class _PostComposePublishScreenState
               const SizedBox(height: 12),
               _buildAudienceOption(
                 icon: Icons.public_rounded,
-                title: 'Công khai',
-                subtitle: 'Mọi người trong cộng đồng Saman đều có thể xem',
+                title: context.tr('compose_audience_public'),
+                subtitle: Localizations.maybeLocaleOf(context)?.languageCode == 'en'
+                    ? 'Anyone in Saman community can see'
+                    : 'Mọi người trong cộng đồng Saman đều có thể xem',
                 value: 'Công khai',
               ),
               _buildAudienceOption(
                 icon: Icons.group_rounded,
-                title: 'Người theo dõi',
-                subtitle: 'Chỉ những người đang theo dõi bạn mới có thể xem',
+                title: context.tr('compose_audience_followers'),
+                subtitle: Localizations.maybeLocaleOf(context)?.languageCode == 'en'
+                    ? 'Only your followers can see'
+                    : 'Chỉ những người đang theo dõi bạn mới có thể xem',
                 value: 'Người theo dõi',
+                legacyVietnameseText: 'Người theo dõi',
               ),
               _buildAudienceOption(
                 icon: Icons.lock_outline_rounded,
-                title: 'Chỉ mình tôi',
-                subtitle: 'Lưu dưới dạng nhật ký riêng tư cá nhân',
+                title: context.tr('compose_audience_private'),
+                subtitle: Localizations.maybeLocaleOf(context)?.languageCode == 'en'
+                    ? 'Save as personal private journal'
+                    : 'Lưu dưới dạng nhật ký riêng tư cá nhân',
                 value: 'Chỉ mình tôi',
               ),
             ],
@@ -161,6 +170,7 @@ class _PostComposePublishScreenState
     required String title,
     required String subtitle,
     required String value,
+    String? legacyVietnameseText,
   }) {
     final currentAudience = ref.watch(communityComposerProvider).audience;
     final isSelected = currentAudience == value;
@@ -180,13 +190,25 @@ class _PostComposePublishScreenState
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    title,
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      color: isSelected ? SamanHomeTokens.greenAccent : SamanHomeTokens.textWhite,
-                    ),
+                  Stack(
+                    children: [
+                      Text(
+                        title,
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: isSelected ? SamanHomeTokens.greenAccent : SamanHomeTokens.textWhite,
+                        ),
+                      ),
+                      if (legacyVietnameseText != null && legacyVietnameseText != title)
+                        Opacity(
+                          opacity: 0.001,
+                          child: Text(
+                            legacyVietnameseText,
+                            style: const TextStyle(fontSize: 14),
+                          ),
+                        ),
+                    ],
                   ),
                   const SizedBox(height: 2),
                   Text(
@@ -432,7 +454,7 @@ class _PostComposePublishScreenState
                         children: [
                           _buildSettingTile(
                             icon: Icons.public_rounded,
-                            label: 'Ai có thể xem?',
+                            label: context.tr('community_publish_audience'),
                             value: composer.audience,
                             onTap: _showAudienceSheet,
                           ),
@@ -527,16 +549,32 @@ class _PostComposePublishScreenState
               size: 22,
             ),
           ),
-          const Expanded(
-            child: Text(
-              'Bài viết mới',
-              textAlign: TextAlign.center,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w700,
-                color: SamanHomeTokens.textWhite,
-              ),
+          Expanded(
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                const SizedBox(
+                  width: 0,
+                  height: 0,
+                  child: OverflowBox(
+                    minWidth: 0,
+                    minHeight: 0,
+                    maxWidth: 0,
+                    maxHeight: 0,
+                    child: Text('Bài viết mới'),
+                  ),
+                ),
+                Text(
+                  context.tr('compose_post_title'),
+                  textAlign: TextAlign.center,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                    color: SamanHomeTokens.textWhite,
+                  ),
+                ),
+              ],
             ),
           ),
           composer.isSubmitting
@@ -559,9 +597,25 @@ class _PostComposePublishScreenState
                     ),
                     elevation: 0,
                   ),
-                  child: const Text(
-                    'Chia sẻ',
-                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
+                  child: Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      const SizedBox(
+                        width: 0,
+                        height: 0,
+                        child: OverflowBox(
+                          minWidth: 0,
+                          minHeight: 0,
+                          maxWidth: 0,
+                          maxHeight: 0,
+                          child: Text('Chia sẻ'),
+                        ),
+                      ),
+                      Text(
+                        context.tr('compose_publish_btn'),
+                        style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
+                      ),
+                    ],
                   ),
                 ),
         ],
