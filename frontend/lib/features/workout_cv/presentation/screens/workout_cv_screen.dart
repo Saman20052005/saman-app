@@ -5,9 +5,11 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../presentation/tokens/saman_workout_tokens.dart';
 import '../../domain/entities/exercise_cv_state.dart';
+import '../../domain/services/lat_pulldown_baseline.dart';
 import '../controllers/workout_cv_controller.dart';
 import '../widgets/pose_skeleton_painter.dart';
 import '../workout_cv_replay_trial.dart';
+import 'workout_cv_result_screen.dart';
 
 class WorkoutCvScreen extends ConsumerStatefulWidget {
   final String exerciseId;
@@ -159,6 +161,8 @@ class _WorkoutCvScreenState extends ConsumerState<WorkoutCvScreen>
                   color: Colors.white70,
                   fontSize: 11,
                 ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
               ),
             ],
           ),
@@ -179,7 +183,38 @@ class _WorkoutCvScreenState extends ConsumerState<WorkoutCvScreen>
               }
             },
           ),
-        _buildStatusChip(cvState),
+        Flexible(child: _buildStatusChip(cvState)),
+        const SizedBox(width: 8),
+        IconButton(
+          key: const ValueKey('workout_cv_finish_button'),
+          tooltip: 'Hoàn thành / Stop',
+          icon: const Icon(
+            Icons.stop_circle_outlined,
+            color: SamanWorkoutTokens.emeraldAccent,
+            size: 28,
+          ),
+          onPressed: () {
+            final repHistory = List<LatPulldownRepEvent>.from(
+              ref.read(workoutCvControllerProvider).replayRepEvents,
+            );
+            ref.read(workoutCvControllerProvider.notifier).stop();
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (context.mounted) {
+                Navigator.of(context).pushReplacement(
+                  MaterialPageRoute(
+                    builder: (_) => WorkoutCvResultScreen(
+                      repHistory: repHistory,
+                      exerciseName: widget.exerciseName,
+                    ),
+                  ),
+                );
+              }
+            });
+          },
+          style: IconButton.styleFrom(
+            backgroundColor: Colors.black45,
+          ),
+        ),
       ],
     );
   }
@@ -272,13 +307,17 @@ class _WorkoutCvScreenState extends ConsumerState<WorkoutCvScreen>
         children: [
           Icon(icon, size: 13, color: fg),
           const SizedBox(width: 5),
-          Text(
-            label,
-            style: TextStyle(
-              color: fg,
-              fontSize: 11,
-              fontWeight: FontWeight.bold,
-              letterSpacing: 0.5,
+          Flexible(
+            child: Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: fg,
+                fontSize: 11,
+                fontWeight: FontWeight.bold,
+                letterSpacing: 0.5,
+              ),
             ),
           ),
         ],
@@ -298,7 +337,8 @@ class _WorkoutCvScreenState extends ConsumerState<WorkoutCvScreen>
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          if (cvState.exerciseSlug == 'lat-pulldown')
+          if (cvState.exerciseSlug == 'lat-pulldown' ||
+              cvState.exerciseSlug == 'pull-up')
             _ReplayRepSummary(
               countLabel: cvState.repCountLabel,
               statusLabel:
@@ -344,20 +384,37 @@ class _WorkoutCvScreenState extends ConsumerState<WorkoutCvScreen>
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                'FPS: ${cvState.fps.toStringAsFixed(1)} · Latency: ${cvState.latencyMs}ms',
-                style: const TextStyle(
-                  color: Colors.white70,
-                  fontSize: 11,
-                  fontFamily: 'monospace',
+              Flexible(
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    'FPS: ${cvState.fps.toStringAsFixed(1)} · Latency: ${cvState.latencyMs}ms',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: Colors.white70,
+                      fontSize: 11,
+                      fontFamily: 'monospace',
+                    ),
+                  ),
                 ),
               ),
-              Text(
-                'p50: ${cvState.p50LatencyMs}ms / p95: ${cvState.p95LatencyMs}ms',
-                style: const TextStyle(
-                  color: Colors.white54,
-                  fontSize: 11,
-                  fontFamily: 'monospace',
+              const SizedBox(width: 8),
+              Flexible(
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerRight,
+                  child: Text(
+                    'p50: ${cvState.p50LatencyMs}ms / p95: ${cvState.p95LatencyMs}ms',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: Colors.white54,
+                      fontSize: 11,
+                      fontFamily: 'monospace',
+                    ),
+                  ),
                 ),
               ),
             ],
@@ -366,7 +423,8 @@ class _WorkoutCvScreenState extends ConsumerState<WorkoutCvScreen>
           Text(
             cvState.sourceMode == 'video_replay'
                 ? 'Chỉ thử nghiệm • Không tự lưu lịch sử hoặc hoàn thành set'
-                : (cvState.exerciseSlug == 'lat-pulldown'
+                : (cvState.exerciseSlug == 'lat-pulldown' ||
+                        cvState.exerciseSlug == 'pull-up'
                     ? 'Baseline quy tắc · Rep tạm tính · Không tự lưu vào buổi tập'
                     : 'PoC Form Check · Không tự lưu vào buổi tập'),
             style: const TextStyle(
@@ -447,28 +505,47 @@ class _ReplayRepSummary extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  countLabel,
-                  key: const ValueKey('workout_cv_replay_rep_count'),
-                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    color: SamanWorkoutTokens.textPrimary,
+                FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    countLabel,
+                    key: const ValueKey('workout_cv_replay_rep_count'),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                      color: SamanWorkoutTokens.textPrimary,
+                    ),
                   ),
                 ),
-                Text(
-                  statusLabel,
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: SamanWorkoutTokens.textSecondary,
+                FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    statusLabel,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: SamanWorkoutTokens.textSecondary,
+                    ),
                   ),
                 ),
               ],
             ),
           ),
           if (onRestart != null)
-            TextButton.icon(
-              onPressed: onRestart,
-              icon: const Icon(Icons.replay),
-              label: const Text('Chạy lại'),
-              style: TextButton.styleFrom(foregroundColor: SamanWorkoutTokens.textPrimary),
+            Flexible(
+              fit: FlexFit.loose,
+              child: TextButton.icon(
+                onPressed: onRestart,
+                icon: const Icon(Icons.replay),
+                label: const Text(
+                  'Chạy lại',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                style: TextButton.styleFrom(foregroundColor: SamanWorkoutTokens.textPrimary),
+              ),
             ),
         ],
       ),
