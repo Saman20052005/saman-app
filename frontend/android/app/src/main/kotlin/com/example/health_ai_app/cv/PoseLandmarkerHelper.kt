@@ -68,53 +68,68 @@ class PoseLandmarkerHelper(
     fun setupPoseLandmarker() {
         if (poseLandmarker != null) return
         try {
-            val baseOptionBuilder = BaseOptions.builder()
-                .setModelAssetPath("pose_landmarker_lite.task")
-                .setDelegate(Delegate.CPU)
-
-            val optionsBuilder = PoseLandmarker.PoseLandmarkerOptions.builder()
-                .setBaseOptions(baseOptionBuilder.build())
-                .setMinPoseDetectionConfidence(0.5f)
-                .setMinTrackingConfidence(0.5f)
-                .setMinPosePresenceConfidence(0.5f)
-                .setNumPoses(2)
-                .setOutputSegmentationMasks(false)
-                .setRunningMode(RunningMode.LIVE_STREAM)
-                .setResultListener { result: PoseLandmarkerResult, input: MPImage ->
-                    val frameTime = result.timestampMs()
-                    val nowNs = SystemClock.elapsedRealtimeNanos()
-                    WorkoutCvPerfTracker.onCallback(frameTime)
-                    val meta = submitMetaMap.remove(frameTime)
-                    val inferenceTime = if (meta != null) {
-                        ((nowNs - meta.submitRealtimeNs) / 1_000_000L).coerceAtLeast(0L)
-                    } else {
-                        (SystemClock.uptimeMillis() - frameTime).coerceAtLeast(0L)
-                    }
-                    poseLandmarkerListener.onResults(
-                        ResultBundle(
-                            results = listOf(result),
-                            inferenceTime = inferenceTime,
-                            inputImageHeight = input.height,
-                            inputImageWidth = input.width,
-                            timestamp = frameTime,
-                            sessionGen = meta?.sessionGen ?: -1L,
-                            decoderPtsUs = meta?.decoderPtsUs ?: -1L,
-                            surfaceTimestampNs = meta?.surfaceTimestampNs ?: -1L,
-                            readbackMs = meta?.readbackMs ?: 0.0,
-                            isPtsVerified = meta?.isPtsVerified ?: false
-                        )
-                    )
-                }
-                .setErrorListener { error ->
-                    poseLandmarkerListener.onError(error.message ?: "MediaPipe detection error")
-                }
-
-            poseLandmarker = PoseLandmarker.createFromOptions(context, optionsBuilder.build())
-            Log.i(TAG, "PoseLandmarker initialized with CPU Delegate")
-        } catch (e: Exception) {
-            poseLandmarker = null
-            poseLandmarkerListener.onError("PoseLandmarker init failed: ${e.message}")
+            poseLandmarker = PoseLandmarker.createFromOptions(
+                context,
+                buildPoseLandmarkerOptions(Delegate.GPU)
+            )
+            Log.i(TAG, "MediaPipe initialized with GPU Delegate")
+        } catch (gpuEx: Exception) {
+            Log.w(TAG, "GPU Delegate init failed, falling back to CPU: ${gpuEx.message}")
+            try {
+                poseLandmarker = PoseLandmarker.createFromOptions(
+                    context,
+                    buildPoseLandmarkerOptions(Delegate.CPU)
+                )
+                Log.i(TAG, "MediaPipe initialized with CPU Delegate fallback")
+            } catch (cpuEx: Exception) {
+                poseLandmarker = null
+                poseLandmarkerListener.onError("PoseLandmarker init failed: ${cpuEx.message}")
+            }
         }
+    }
+
+    private fun buildPoseLandmarkerOptions(delegate: Delegate): PoseLandmarker.PoseLandmarkerOptions {
+        val baseOptionBuilder = BaseOptions.builder()
+            .setModelAssetPath(MODEL_NAME)
+            .setDelegate(delegate)
+
+        return PoseLandmarker.PoseLandmarkerOptions.builder()
+            .setBaseOptions(baseOptionBuilder.build())
+            .setMinPoseDetectionConfidence(0.4f)
+            .setMinTrackingConfidence(0.4f)
+            .setMinPosePresenceConfidence(0.4f)
+            .setNumPoses(1)
+            .setOutputSegmentationMasks(false)
+            .setRunningMode(RunningMode.LIVE_STREAM)
+            .setResultListener { result: PoseLandmarkerResult, input: MPImage ->
+                val frameTime = result.timestampMs()
+                val nowNs = SystemClock.elapsedRealtimeNanos()
+                WorkoutCvPerfTracker.onCallback(frameTime)
+                val meta = submitMetaMap.remove(frameTime)
+                val inferenceTime = if (meta != null) {
+                    ((nowNs - meta.submitRealtimeNs) / 1_000_000L).coerceAtLeast(0L)
+                } else {
+                    (SystemClock.uptimeMillis() - frameTime).coerceAtLeast(0L)
+                }
+                poseLandmarkerListener.onResults(
+                    ResultBundle(
+                        results = listOf(result),
+                        inferenceTime = inferenceTime,
+                        inputImageHeight = input.height,
+                        inputImageWidth = input.width,
+                        timestamp = frameTime,
+                        sessionGen = meta?.sessionGen ?: -1L,
+                        decoderPtsUs = meta?.decoderPtsUs ?: -1L,
+                        surfaceTimestampNs = meta?.surfaceTimestampNs ?: -1L,
+                        readbackMs = meta?.readbackMs ?: 0.0,
+                        isPtsVerified = meta?.isPtsVerified ?: false
+                    )
+                )
+            }
+            .setErrorListener { error ->
+                poseLandmarkerListener.onError(error.message ?: "MediaPipe detection error")
+            }
+            .build()
     }
 
     fun detectLiveStream(
