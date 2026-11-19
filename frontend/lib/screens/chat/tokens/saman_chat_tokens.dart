@@ -18,8 +18,10 @@ class SamanChatTokens {
   // ─── Surfaces & Containers ───────────────────────────────────────────
   static const Color canvas = SamanHomeTokens.canvas;
   static const Color surface = SamanHomeTokens.cardSurface; // #16171B
-  static const Color surfaceElevated = SamanHomeTokens.cardSurfaceElevated; // #1B1D22
-  static const Color iconContainerBg = SamanHomeTokens.iconContainerBg; // #212328
+  static const Color surfaceElevated =
+      SamanHomeTokens.cardSurfaceElevated; // #1B1D22
+  static const Color iconContainerBg =
+      SamanHomeTokens.iconContainerBg; // #212328
   static const Color chipBackground = SamanHomeTokens.cardSurface;
   static const Color drawerBg = Color(0xFF111215);
   static const Color drawerScrim = Color(0x99000000);
@@ -31,12 +33,16 @@ class SamanChatTokens {
   static const Color actionRowBorder = Color(0x0FFFFFFF); // ~0.059 white alpha
   /// Uniform outline icon color (#A8ADB7)
   static const Color actionRowIconColor = Color(0xFFA8ADB7);
+
   /// Subtle chevron color (#737985)
   static const Color actionRowChevronColor = Color(0xFF737985);
+
   /// Hover background feedback
   static const Color actionRowHoverBg = Color(0x0DFFFFFF);
+
   /// Focus background feedback
   static const Color actionRowFocusBg = Color(0x14FFFFFF);
+
   /// Pressed background feedback (alpha ~0.07)
   static const Color actionRowPressedBg = Color(0x12FFFFFF);
 
@@ -44,8 +50,10 @@ class SamanChatTokens {
   static const Color rapidChipBg = Color(0x06FFFFFF); // ~0.024 white alpha
   /// Compact rapid pill border (alpha ~0.06)
   static const Color rapidChipBorder = Color(0x0FFFFFFF);
+
   /// Rapid chip outline icon color
   static const Color rapidChipIconColor = Color(0xFFA8ADB7);
+
   /// Rapid chip text color (#C0C5CF)
   static const Color rapidChipTextColor = Color(0xFFC0C5CF);
 
@@ -79,6 +87,17 @@ class SamanChatTokens {
   static const Color greenAccent = SamanHomeTokens.greenAccent; // #10B981
   static const Color amberAccent = SamanHomeTokens.carbsAmber; // #F59E0B
   static const Color violetAccent = SamanHomeTokens.fatViolet; // #A855F7
+
+  // ─── Floating Account Menu Tokens (Gemini-Style Charcoal) ─────────
+  static const Color menuSurface = Color(0xFF1E2024);
+  static const Color menuBorder = Color(0xFF2D3039);
+  static const Color menuDivider = Color(0xFF2B2E37);
+  static const Color menuGroupHeader = Color(0xFF8E929C);
+  static const Color menuItemHover = Color(0xFF282B33);
+  static const Color menuItemText = Color(0xFFE4E4E7);
+  static const Color menuItemIcon = Color(0xFFA8ADB7);
+  static const Color menuChevron = Color(0xFF737985);
+  static const Color sparkleWhite = Color(0xFFF3F4F6);
 
   // ─── Typography Colors ───────────────────────────────────────────────
   static const Color textWhite = SamanHomeTokens.textWhite;

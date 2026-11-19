@@ -183,7 +183,7 @@ class AppSettingsScreen extends ConsumerWidget {
                         style: const TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w400,
-                          color: Color(0xFF636366),
+                          color: Color(0xFF6B7280),
                           letterSpacing: 0.3,
                         ),
                       ),
@@ -319,8 +319,7 @@ class AppSettingsScreen extends ConsumerWidget {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Flexible(
-                      flex: 5,
+                    Expanded(
                       child: subtitle != null
                           ? Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
@@ -328,7 +327,7 @@ class AppSettingsScreen extends ConsumerWidget {
                               children: [
                                 Text(
                                   title,
-                                  maxLines: 1,
+                                  maxLines: 2,
                                   overflow: TextOverflow.ellipsis,
                                   style: const TextStyle(
                                     fontSize: 15,
@@ -352,7 +351,7 @@ class AppSettingsScreen extends ConsumerWidget {
                             )
                           : Text(
                               title,
-                              maxLines: 1,
+                              maxLines: 2,
                               overflow: TextOverflow.ellipsis,
                               style: const TextStyle(
                                 fontSize: 15,
@@ -364,8 +363,8 @@ class AppSettingsScreen extends ConsumerWidget {
                     ),
                     if (value != null) ...[
                       const SizedBox(width: 8),
-                      Flexible(
-                        flex: 4,
+                      ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 130),
                         child: Text(
                           value,
                           maxLines: 1,
@@ -375,7 +374,7 @@ class AppSettingsScreen extends ConsumerWidget {
                             fontSize: 14,
                             fontWeight: FontWeight.w400,
                             color: isReadOnly
-                                ? const Color(0xFF636366)
+                                ? const Color(0xFF9CA3AF)
                                 : const Color(0xFF8E8E93),
                           ),
                         ),
@@ -391,7 +390,7 @@ class AppSettingsScreen extends ConsumerWidget {
                 const Icon(
                   Icons.chevron_right_rounded,
                   size: 18,
-                  color: Color(0xFF636366),
+                  color: Color(0xFF9CA3AF),
                 ),
               ],
             ],

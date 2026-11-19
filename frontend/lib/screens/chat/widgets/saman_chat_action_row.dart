@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../config/app_translations.dart';
 import 'history_analytics_sheet.dart';
 import '../tokens/saman_chat_tokens.dart';
 
@@ -7,6 +8,7 @@ class SamanChatActionItem {
   final IconData icon;
   final Color? iconColor;
   final String title;
+  final String? titleKey;
   final String prompt;
   final bool opensAnalytics;
 
@@ -14,6 +16,7 @@ class SamanChatActionItem {
     required this.icon,
     this.iconColor,
     required this.title,
+    this.titleKey,
     required this.prompt,
     this.opensAnalytics = false,
   });
@@ -38,6 +41,7 @@ class SamanChatActionItem {
     SamanChatActionItem(
       icon: Icons.insights,
       title: 'Phân tích xu hướng',
+      titleKey: 'action_trend_analytics',
       prompt: '',
       opensAnalytics: true,
     ),
@@ -69,6 +73,11 @@ class SamanChatActionRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final displayTitle = item.titleKey != null
+        ? context.tr(item.titleKey!)
+        : (item.title == 'Phân tích xu hướng'
+            ? context.tr('action_trend_analytics')
+            : item.title);
     return Material(
       color: Colors.transparent,
       child: InkWell(
@@ -105,7 +114,7 @@ class SamanChatActionRow extends StatelessWidget {
               const SizedBox(width: 12.0),
               Expanded(
                 child: Text(
-                  item.title,
+                  displayTitle,
                   style: SamanChatTokens.actionRowLabel,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,

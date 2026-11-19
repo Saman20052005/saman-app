@@ -23,18 +23,18 @@ class LogMealSheet extends ConsumerStatefulWidget {
 }
 
 class _LogMealSheetState extends ConsumerState<LogMealSheet> {
-  static const Color _bgCanvas = Color(0xFF0F0F0F);
-  static const Color _bgSurface = Color(0xFF1C1C1C);
-  static const Color _bgCard = Color(0xFF242424);
-  static const Color _borderSubtle = Color(0xFF2A2A2A);
-  static const Color _borderStrong = Color(0xFF3D3D3D);
+  static const Color _bgCanvas = Color(0xFF0C0D0E);
+  static const Color _bgSurface = Color(0xFF16171B);
+  static const Color _bgCard = Color(0xFF1E2026);
+  static const Color _borderSubtle = Color(0xFF26282F);
+  static const Color _borderStrong = Color(0xFF383A42);
 
-  static const Color _brandPrimary = Color(0xFF0E8F5E);
-  static const Color _aiAccent = Color(0xFFB95219);
+  static const Color _brandPrimary = Color(0xFF10B981);
+  static const Color _aiAccent = Color(0xFFF59E0B);
 
-  static const Color _textPrimary = Color(0xFFF0F0F0);
-  static const Color _textSecondary = Color(0xFFAAAAAA);
-  static const Color _textMuted = Color(0xFF707070);
+  static const Color _textPrimary = Color(0xFFF9FAFB);
+  static const Color _textSecondary = Color(0xFF9CA3AF);
+  static const Color _textMuted = Color(0xFF9CA3AF);
   static const Color _errorColor = Color(0xFFCF6679);
 
   final _noteController = TextEditingController();
@@ -430,7 +430,7 @@ class _LogMealSheetState extends ConsumerState<LogMealSheet> {
                                   Icon(
                                     Icons.balance_outlined,
                                     size: 16,
-                                    color: !isAdvanced ? Colors.white : _textSecondary,
+                                    color: !isAdvanced ? const Color(0xFF052E16) : _textSecondary,
                                   ),
                                   const SizedBox(width: 7),
                                   Flexible(
@@ -444,7 +444,7 @@ class _LogMealSheetState extends ConsumerState<LogMealSheet> {
                                             ? FontWeight.w600
                                             : FontWeight.w500,
                                         letterSpacing: -0.2,
-                                        color: !isAdvanced ? Colors.white : _textSecondary,
+                                        color: !isAdvanced ? const Color(0xFF052E16) : _textSecondary,
                                       ),
                                     ),
                                   ),
@@ -489,7 +489,7 @@ class _LogMealSheetState extends ConsumerState<LogMealSheet> {
                                   Icon(
                                     Icons.auto_awesome_outlined,
                                     size: 16,
-                                    color: isAdvanced ? Colors.white : _textSecondary,
+                                    color: isAdvanced ? const Color(0xFF052E16) : _textSecondary,
                                   ),
                                   const SizedBox(width: 7),
                                   Flexible(
@@ -503,7 +503,7 @@ class _LogMealSheetState extends ConsumerState<LogMealSheet> {
                                             ? FontWeight.w600
                                             : FontWeight.w500,
                                         letterSpacing: -0.2,
-                                        color: isAdvanced ? Colors.white : _textSecondary,
+                                        color: isAdvanced ? const Color(0xFF052E16) : _textSecondary,
                                       ),
                                     ),
                                   ),
@@ -690,7 +690,7 @@ class _LogMealSheetState extends ConsumerState<LogMealSheet> {
                           },
                     style: FilledButton.styleFrom(
                       backgroundColor: _brandPrimary,
-                      foregroundColor: Colors.white,
+                      foregroundColor: const Color(0xFF052E16),
                       disabledBackgroundColor: _brandPrimary.withOpacity(0.35),
                       elevation: 1,
                       shape: RoundedRectangleBorder(
@@ -703,7 +703,7 @@ class _LogMealSheetState extends ConsumerState<LogMealSheet> {
                             width: 20,
                             child: CircularProgressIndicator(
                               strokeWidth: 2,
-                              color: Colors.white,
+                              color: Color(0xFF052E16),
                             ),
                           )
                         : Row(

@@ -31,10 +31,10 @@ class SamanJourneyCard extends ConsumerWidget {
       margin: const EdgeInsets.symmetric(horizontal: 16),
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: const Color(0xFF16171B),
+        color: const Color(0xFF15191E),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: const Color(0xFF26282F),
+          color: const Color(0x14FFFFFF),
           width: 1,
         ),
       ),
@@ -82,7 +82,7 @@ class SamanJourneyCard extends ConsumerWidget {
           const Text(
             'Khởi đầu thói quen & Bứt phá mục tiêu',
             style: TextStyle(
-              fontFamily: 'Space Grotesk',
+              fontFamily: 'Manrope',
               fontSize: 17,
               fontWeight: FontWeight.bold,
               color: Color(0xFFF3F4F6),
@@ -143,10 +143,10 @@ class SamanJourneyCard extends ConsumerWidget {
       margin: const EdgeInsets.symmetric(horizontal: 16),
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: const Color(0xFF16171B),
+        color: const Color(0xFF15191E),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: const Color(0xFF26282F),
+          color: const Color(0x14FFFFFF),
           width: 1,
         ),
       ),
@@ -158,15 +158,16 @@ class SamanJourneyCard extends ConsumerWidget {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF212328),
+                  color: const Color(0xFF1B2127),
                   borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: const Color(0x14FFFFFF), width: 0.8),
                 ),
                 child: Text(
                   journey.focus.label.toUpperCase(),
                   style: const TextStyle(
                     fontSize: 11,
                     fontWeight: FontWeight.w600,
-                    color: Color(0xFF10B981),
+                    color: Color(0xFF54DFAC),
                     letterSpacing: 0.5,
                   ),
                 ),
@@ -175,8 +176,9 @@ class SamanJourneyCard extends ConsumerWidget {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF212328),
+                  color: const Color(0xFF1B2127),
                   borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: const Color(0x14FFFFFF), width: 0.8),
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
@@ -218,7 +220,7 @@ class SamanJourneyCard extends ConsumerWidget {
               Text(
                 'Ngày ${journey.completedDaysCount + 1} / ${journey.totalDays}',
                 style: const TextStyle(
-                  fontFamily: 'Space Grotesk',
+                  fontFamily: 'Manrope',
                   fontSize: 15,
                   fontWeight: FontWeight.bold,
                   color: Color(0xFFF3F4F6),
@@ -228,7 +230,7 @@ class SamanJourneyCard extends ConsumerWidget {
                 'Nhiệm vụ: $completedTasks/$totalTasks',
                 style: const TextStyle(
                   fontSize: 12,
-                  color: Color(0xFF94979E),
+                  color: Color(0xFFABB4BD),
                 ),
               ),
             ],
@@ -239,15 +241,15 @@ class SamanJourneyCard extends ConsumerWidget {
             child: LinearProgressIndicator(
               value: journey.progress,
               minHeight: 6,
-              backgroundColor: const Color(0xFF212328),
-              valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF10B981)),
+              backgroundColor: const Color(0xFF1B2127),
+              valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF54DFAC)),
             ),
           ),
           const SizedBox(height: 16),
           SizedBox(
             width: double.infinity,
             height: 42,
-            child: OutlinedButton(
+            child: ElevatedButton(
               onPressed: () {
                 if (onViewJourneyTap != null) {
                   onViewJourneyTap!();
@@ -255,9 +257,11 @@ class SamanJourneyCard extends ConsumerWidget {
                   Navigator.of(context).pushNamed(AppRoutes.myJourney);
                 }
               },
-              style: OutlinedButton.styleFrom(
-                foregroundColor: const Color(0xFFF3F4F6),
-                side: const BorderSide(color: Color(0xFF26282F), width: 1),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF1B2127),
+                foregroundColor: const Color(0xFFABB4BD),
+                elevation: 0,
+                side: const BorderSide(color: Color(0x14FFFFFF), width: 1),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),
@@ -268,12 +272,13 @@ class SamanJourneyCard extends ConsumerWidget {
                   Text(
                     'Xem chi tiết hành trình',
                     style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w500,
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFFABB4BD),
                     ),
                   ),
                   SizedBox(width: 4),
-                  Icon(Icons.chevron_right, size: 16, color: Color(0xFF94979E)),
+                  Icon(Icons.chevron_right, size: 16, color: Color(0xFFABB4BD)),
                 ],
               ),
             ),

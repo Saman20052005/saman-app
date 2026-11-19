@@ -31,7 +31,7 @@ class _PostSelectMediaScreenState extends ConsumerState<PostSelectMediaScreen> {
 
   late List<String> _selectedUrls;
   String _activePreviewUrl = _sampleMediaLibrary.first;
-  bool _isMultiSelect = true;
+  final bool _isMultiSelect = false;
   String _aspectRatio = '1:1';
 
   @override
@@ -57,21 +57,35 @@ class _PostSelectMediaScreenState extends ConsumerState<PostSelectMediaScreen> {
   }
 
   void _toggleSelection(String url) {
+    if (_selectedUrls.contains(url)) {
+      if (_selectedUrls.length > 1) {
+        setState(() {
+          _selectedUrls.remove(url);
+          if (_activePreviewUrl == url && _selectedUrls.isNotEmpty) {
+            _activePreviewUrl = _selectedUrls.first;
+          }
+        });
+      }
+      return;
+    }
+
+    if (_isMultiSelect) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            Localizations.maybeLocaleOf(context)?.languageCode == 'en'
+                ? 'Only 1 photo is currently supported'
+                : 'Tạm thời chỉ hỗ trợ 1 ảnh',
+          ),
+          duration: const Duration(seconds: 2),
+        ),
+      );
+      return;
+    }
+
     setState(() {
       _activePreviewUrl = url;
-      if (_selectedUrls.contains(url)) {
-        if (_selectedUrls.length > 1) {
-          _selectedUrls.remove(url);
-        }
-      } else {
-        if (_isMultiSelect) {
-          if (_selectedUrls.length < 10) {
-            _selectedUrls.add(url);
-          }
-        } else {
-          _selectedUrls = [url];
-        }
-      }
+      _selectedUrls = [url];
     });
   }
 
@@ -383,46 +397,42 @@ class _PostSelectMediaScreenState extends ConsumerState<PostSelectMediaScreen> {
           ),
           InkWell(
             onTap: () {
-              setState(() {
-                _isMultiSelect = !_isMultiSelect;
-                if (!_isMultiSelect && _selectedUrls.length > 1) {
-                  _selectedUrls = [_selectedUrls.first];
-                }
-              });
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(
+                    Localizations.maybeLocaleOf(context)?.languageCode == 'en'
+                        ? 'Only 1 photo is currently supported'
+                        : 'Tạm thời chỉ hỗ trợ 1 ảnh',
+                  ),
+                  duration: const Duration(seconds: 2),
+                ),
+              );
             },
             borderRadius: BorderRadius.circular(16),
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
               decoration: BoxDecoration(
-                color: _isMultiSelect
-                    ? SamanHomeTokens.greenAccent.withOpacity(0.15)
-                    : const Color(0xFF292A2B),
+                color: const Color(0xFF292A2B),
                 borderRadius: BorderRadius.circular(16),
                 border: Border.all(
-                  color: _isMultiSelect
-                      ? SamanHomeTokens.greenAccent
-                      : const Color(0xFF343536),
+                  color: const Color(0xFF343536),
                 ),
               ),
-              child: Row(
+              child: const Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Icon(
                     Icons.photo_library_outlined,
                     size: 14,
-                    color: _isMultiSelect
-                        ? SamanHomeTokens.greenAccent
-                        : const Color(0xFFBBCAAF),
+                    color: Color(0xFFBBCAAF),
                   ),
-                  const SizedBox(width: 6),
+                  SizedBox(width: 6),
                   Text(
                     'Chọn nhiều',
                     style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w600,
-                      color: _isMultiSelect
-                          ? SamanHomeTokens.greenAccent
-                          : const Color(0xFFBBCAAF),
+                      color: Color(0xFFBBCAAF),
                     ),
                   ),
                 ],

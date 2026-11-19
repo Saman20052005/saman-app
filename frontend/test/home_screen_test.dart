@@ -53,7 +53,7 @@ class FakeNutritionNotifier extends StateNotifier<AsyncValue<NutritionPlan?>>
 
 void main() {
   testWidgets('HomeScreen renders all 7 modular sections with wired data', (tester) async {
-    tester.view.physicalSize = const Size(1080, 2400);
+    tester.view.physicalSize = const Size(1080, 3200);
     tester.view.devicePixelRatio = 2.5;
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);

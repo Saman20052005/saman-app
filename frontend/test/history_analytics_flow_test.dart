@@ -58,21 +58,17 @@ void main() {
       await tester.tap(find.text('Phân tích xu hướng'));
       await tester.pumpAndSettle();
       expect(find.textContaining('Từ khi đăng ký'), findsOneWidget);
-      final locked = tester.widget<ChoiceChip>(find.ancestor(
-        of: find.textContaining('Từ khi đăng ký'),
-        matching: find.byType(ChoiceChip),
-      ));
-      expect(locked.onSelected, isNull);
+      expect(find.text('Chưa hỗ trợ trong bản thử nghiệm'), findsOneWidget);
 
-      await tester.tap(find.widgetWithText(ChoiceChip, '14 ngày'));
+      await tester.tap(find.text('14 ngày'));
       await tester.pumpAndSettle();
       expect(service.quoteCalls, 2);
-      expect(find.text('Ước lượng: ~1200 tokens'), findsOneWidget);
+      expect(find.text('~1200 token'), findsOneWidget);
 
-      await tester.tap(find.widgetWithText(ChoiceChip, '30 ngày'));
+      await tester.tap(find.text('30 ngày'));
       await tester.pumpAndSettle();
       expect(service.quoteCalls, 3);
-      expect(find.text('Phạm vi: 30 ngày'), findsOneWidget);
+      expect(find.text('Dữ liệu trong 30 ngày qua'), findsOneWidget);
 
       await tester.tap(find.text('Xác nhận phân tích'));
       await tester.pump();

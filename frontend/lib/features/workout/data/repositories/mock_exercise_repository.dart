@@ -42,6 +42,52 @@ class MockExerciseRepository implements ExerciseRepository {
       _sessions[sessionId] ?? (throw StateError('Demo session not found'));
 
   @override
+  Future<Map<String, LastExercisePerformance>> getLastPerformances(
+    List<String> exerciseIds,
+  ) async {
+    final requestedIds = exerciseIds.toSet();
+    final performances = <String, LastExercisePerformance>{};
+    final sessions = _sessions.values.toList()
+      ..sort((a, b) => b.startedAt.compareTo(a.startedAt));
+
+    for (final session in sessions) {
+      for (final id in requestedIds) {
+        if (performances.containsKey(id)) continue;
+        final matchingLogs = session.exerciseLogs
+            .where((log) => log.exerciseId == id || log.exerciseSlug == id)
+            .toList();
+        if (matchingLogs.isEmpty) continue;
+
+        final allSetsCompleted = matchingLogs.every((log) => log.isCompleted);
+        final candidates = matchingLogs.where((log) => log.isCompleted).toList();
+        final selectedLogs = candidates.isEmpty ? matchingLogs : candidates;
+        selectedLogs.sort((a, b) {
+          final weightComparison = a.weightKg.compareTo(b.weightKg);
+          if (weightComparison != 0) return weightComparison;
+          final repsComparison = a.repsCompleted.compareTo(b.repsCompleted);
+          if (repsComparison != 0) return repsComparison;
+          return a.setNumber.compareTo(b.setNumber);
+        });
+        final bestLog = selectedLogs.last;
+        final shouldIncrease = allSetsCompleted && bestLog.repsCompleted >= 8;
+        performances[id] = LastExercisePerformance(
+          exerciseId: id,
+          lastWeightKg: bestLog.weightKg,
+          lastReps: bestLog.repsCompleted,
+          suggestedWeightKg:
+              shouldIncrease ? bestLog.weightKg + 2.5 : bestLog.weightKg,
+          suggestedReps: bestLog.repsCompleted,
+          suggestionReason: shouldIncrease
+              ? 'completed_target_add_weight'
+              : 'maintain_current_load',
+          lastDate: session.startedAt.toIso8601String().split('T').first,
+        );
+      }
+    }
+    return performances;
+  }
+
+  @override
   Future<List<WorkoutPlan>> getMyPlans() async => _plans.values.toList();
 
   @override

@@ -105,8 +105,13 @@ class MealCard extends ConsumerWidget {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: isDark ? const Color(0xFF1C1C1C) : Colors.white,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        backgroundColor: isDark ? const Color(0xFF16171B) : Colors.white,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+          side: isDark
+              ? const BorderSide(color: Color(0xFF26282F))
+              : BorderSide.none,
+        ),
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -135,9 +140,12 @@ class MealCard extends ConsumerWidget {
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
                   color: isDark
-                      ? const Color(0xFF252525)
+                      ? const Color(0xFF1E2026)
                       : const Color(0xFFF5F5F5),
                   borderRadius: BorderRadius.circular(12),
+                  border: isDark
+                      ? Border.all(color: const Color(0xFF26282F))
+                      : null,
                 ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceAround,
@@ -234,8 +242,9 @@ class MealCard extends ConsumerWidget {
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
           // Dùng theme-safe: colorScheme.surface (không import extension)
-          color: isDark ? const Color(0xFF1C1C1C) : colors.surface,
+          color: isDark ? const Color(0xFF16171B) : colors.surface,
           borderRadius: BorderRadius.circular(20),
+          border: isDark ? Border.all(color: const Color(0xFF26282F)) : null,
           boxShadow: [
             BoxShadow(
               color: Colors.black.withOpacity(isDark ? 0.25 : 0.04),
@@ -480,10 +489,10 @@ class MealCard extends ConsumerWidget {
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF252525) : const Color(0xFFF8F8F8),
+        color: isDark ? const Color(0xFF1E2026) : const Color(0xFFF8F8F8),
         borderRadius: BorderRadius.circular(10),
         border: Border.all(
-          color: isDark ? const Color(0xFF333333) : const Color(0xFFEEEEEE),
+          color: isDark ? const Color(0xFF26282F) : const Color(0xFFEEEEEE),
         ),
       ),
       child: Row(
@@ -586,8 +595,9 @@ class _ActionButton extends StatelessWidget {
         padding: const EdgeInsets.symmetric(vertical: 9),
         decoration: BoxDecoration(
           // BUG FIX #2: không còn hardcode — theme-aware
-          color: isDark ? const Color(0xFF252525) : const Color(0xFFF5F5F5),
+          color: isDark ? const Color(0xFF1E2026) : const Color(0xFFF5F5F5),
           borderRadius: BorderRadius.circular(10),
+          border: isDark ? Border.all(color: const Color(0xFF26282F)) : null,
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,

@@ -112,7 +112,7 @@ class ExerciseDetailScreen extends ConsumerWidget {
                   SamanWorkoutTokens.spacingLg,
                   SamanWorkoutTokens.spacingSm,
                   SamanWorkoutTokens.spacingLg,
-                  100, // Space for fixed bottom CTA
+                  32,
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -171,42 +171,52 @@ class ExerciseDetailScreen extends ConsumerWidget {
       ),
 
       // 3. Fixed Bottom Floating CTA Bar
-      bottomSheet: Container(
-        color: SamanWorkoutTokens.canvas,
-        padding: const EdgeInsets.fromLTRB(
-          SamanWorkoutTokens.spacingLg,
-          0,
-          SamanWorkoutTokens.spacingLg,
-          20,
+      bottomNavigationBar: Container(
+        decoration: const BoxDecoration(
+          color: SamanWorkoutTokens.canvas,
+          border: Border(
+            top: BorderSide(color: SamanWorkoutTokens.border, width: 1),
+          ),
         ),
-        child: SizedBox(
-          width: double.infinity,
-          height: 48,
-          child: ElevatedButton(
-            key: const ValueKey('exercise_detail_start_button'),
-            onPressed: () => _handleStartExercise(context),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: SamanWorkoutTokens.buttonPrimary,
-              foregroundColor: SamanWorkoutTokens.buttonPrimaryText,
-              shape: RoundedRectangleBorder(
-                borderRadius:
-                    BorderRadius.circular(SamanWorkoutTokens.radiusMd),
-              ),
-              elevation: 4,
+        child: SafeArea(
+          top: false,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(
+              SamanWorkoutTokens.spacingLg,
+              12,
+              SamanWorkoutTokens.spacingLg,
+              16,
             ),
-            child: const Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(
-                  'Start exercise',
-                  style: TextStyle(
-                    fontWeight: FontWeight.w600,
-                    fontSize: 15,
+            child: SizedBox(
+              width: double.infinity,
+              height: 48,
+              child: ElevatedButton(
+                key: const ValueKey('exercise_detail_start_button'),
+                onPressed: () => _handleStartExercise(context),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: SamanWorkoutTokens.buttonPrimary,
+                  foregroundColor: SamanWorkoutTokens.buttonPrimaryText,
+                  shape: RoundedRectangleBorder(
+                    borderRadius:
+                        BorderRadius.circular(SamanWorkoutTokens.radiusMd),
                   ),
+                  elevation: 4,
                 ),
-                SizedBox(width: 6),
-                Icon(Icons.arrow_forward, size: 16),
-              ],
+                child: const Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      'Start exercise',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 15,
+                      ),
+                    ),
+                    SizedBox(width: 6),
+                    Icon(Icons.arrow_forward, size: 16),
+                  ],
+                ),
+              ),
             ),
           ),
         ),

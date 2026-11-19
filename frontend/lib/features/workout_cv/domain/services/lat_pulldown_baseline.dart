@@ -1,3 +1,5 @@
+import 'package:flutter/foundation.dart';
+
 import 'workout_cv_motion_features.dart';
 
 /// Operational phases for the Lat Pulldown exercise state machine.
@@ -78,7 +80,7 @@ class LatPulldownBaselineConfig {
     this.extendedEnterDeg = 105.0,
     this.pullingEnterDeg = 95.0,
     this.flexedEnterDeg = 55.0,
-    this.returningEnterDeg = 65.0,
+    this.returningEnterDeg = 68.0,
     this.minReadyHoldMs = 200,
     this.minExtendedHoldMs = 150,
     this.minRepDurationMs = 800,
@@ -336,14 +338,24 @@ class LatPulldownBaseline {
 
             if (duration >= config.minRepDurationMs) {
               _completedReps++;
+              final repCount = _completedReps;
+              final startMs = repStart;
+              final bottomMs = _bottomReachedTimestampMs ??
+                  ((repStart + timestampMs) ~/ 2);
+              final endMs = timestampMs;
+              final durationMs = endMs - startMs;
+              final minElbowDeg = _minElbowAngleInCurrentRep;
+
+              debugPrint(
+                  'CSV_QA: LAT_PULLDOWN, $repCount, $startMs, $bottomMs, $endMs, $durationMs, $minElbowDeg');
+
               newRepEvent = LatPulldownRepEvent(
-                repNumber: _completedReps,
-                startTimestampMs: repStart,
-                bottomTimestampMs: _bottomReachedTimestampMs ??
-                    ((repStart + timestampMs) ~/ 2),
-                endTimestampMs: timestampMs,
-                durationMs: duration,
-                minElbowAngleDeg: _minElbowAngleInCurrentRep,
+                repNumber: repCount,
+                startTimestampMs: startMs,
+                bottomTimestampMs: bottomMs,
+                endTimestampMs: endMs,
+                durationMs: durationMs,
+                minElbowAngleDeg: minElbowDeg,
                 status: 'PROVISIONAL',
               );
               _repHistory.add(newRepEvent);

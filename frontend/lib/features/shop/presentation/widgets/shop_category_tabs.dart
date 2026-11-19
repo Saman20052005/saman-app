@@ -34,29 +34,41 @@ class ShopCategoryTabs extends StatelessWidget {
         ),
       ),
       padding: const EdgeInsets.only(bottom: 2.0),
-      child: SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        physics: const BouncingScrollPhysics(),
-        child: Row(
-          children: [
-            // "Tất cả" (All) tab
-            _CategoryTabItem(
-              label: ShopTranslations.of(context, 'category_all'),
-              isSelected: selectedCategoryId == null,
-              onTap: () => onCategorySelected(null),
-            ),
-            const SizedBox(width: 24),
-
-            // Dynamic categories from repository
-            for (int i = 0; i < categories.length; i++) ...[
+      child: ShaderMask(
+        shaderCallback: (Rect bounds) {
+          return const LinearGradient(
+            begin: Alignment.centerLeft,
+            end: Alignment.centerRight,
+            colors: [Colors.white, Colors.white, Colors.transparent],
+            stops: [0.0, 0.92, 1.0],
+          ).createShader(bounds);
+        },
+        blendMode: BlendMode.dstIn,
+        child: SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          physics: const BouncingScrollPhysics(),
+          padding: const EdgeInsets.only(right: 16.0),
+          child: Row(
+            children: [
+              // "Tất cả" (All) tab
               _CategoryTabItem(
-                label: _getLocalizedCategoryName(context, categories[i]),
-                isSelected: selectedCategoryId == categories[i].id,
-                onTap: () => onCategorySelected(categories[i].id),
+                label: ShopTranslations.of(context, 'category_all'),
+                isSelected: selectedCategoryId == null,
+                onTap: () => onCategorySelected(null),
               ),
-              if (i < categories.length - 1) const SizedBox(width: 24),
+              const SizedBox(width: 18),
+
+              // Dynamic categories from repository
+              for (int i = 0; i < categories.length; i++) ...[
+                _CategoryTabItem(
+                  label: _getLocalizedCategoryName(context, categories[i]),
+                  isSelected: selectedCategoryId == categories[i].id,
+                  onTap: () => onCategorySelected(categories[i].id),
+                ),
+                if (i < categories.length - 1) const SizedBox(width: 18),
+              ],
             ],
-          ],
+          ),
         ),
       ),
     );

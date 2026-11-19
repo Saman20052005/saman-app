@@ -10,6 +10,7 @@ import '../localization/shop_translations.dart';
 import '../providers/shop_detail_providers.dart';
 import '../theme/shop_theme.dart';
 import '../widgets/shop_demo_explanation_sheet.dart';
+import '../../../../widgets/saman_feedback_snackbar.dart';
 
 /// Screen displaying comprehensive curated product details, provenance,
 /// specifications, and demo CTA launch.
@@ -266,69 +267,66 @@ class _ShopDetailScreenState extends ConsumerState<ShopDetailScreen> {
   ) {
     final product = state.product!;
 
-    return Stack(
+    return Column(
       children: [
         // Scrollable content stream
-        SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(
-            ShopTheme.paddingPage,
-            8.0,
-            ShopTheme.paddingPage,
-            120.0, // Prevent content overlap with sticky CTA
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // ─── 1. Hero Image Container ──────────────────────────────
-              _buildProductHeroImage(product),
-              const SizedBox(height: 20),
+        Expanded(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(
+              ShopTheme.paddingPage,
+              8.0,
+              ShopTheme.paddingPage,
+              24.0,
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // ─── 1. Hero Image Container ──────────────────────────────
+                _buildProductHeroImage(product),
+                const SizedBox(height: 20),
 
-              // ─── 2. Product Title & Seller ────────────────────────────
-              Text(
-                product.title,
-                style: ShopTheme.fontManrope(
-                  fontSize: 22,
-                  fontWeight: FontWeight.w700,
-                  color: ShopTheme.textPrimary,
-                  height: 1.25,
-                ),
-              ),
-              if (product.sellerName != null) ...[
-                const SizedBox(height: 6),
+                // ─── 2. Product Title & Seller ────────────────────────────
                 Text(
-                  ShopTranslations.of(context, 'seller_prefix')
-                      .replaceAll('{seller}', product.sellerName!),
+                  product.title,
                   style: ShopTheme.fontManrope(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w400,
-                    color: ShopTheme.textSecondary,
+                    fontSize: 22,
+                    fontWeight: FontWeight.w700,
+                    color: ShopTheme.textPrimary,
+                    height: 1.25,
                   ),
                 ),
+                if (product.sellerName != null) ...[
+                  const SizedBox(height: 6),
+                  Text(
+                    ShopTranslations.of(context, 'seller_prefix')
+                        .replaceAll('{seller}', product.sellerName!),
+                    style: ShopTheme.fontManrope(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w400,
+                      color: ShopTheme.textSecondary,
+                    ),
+                  ),
+                ],
+                const SizedBox(height: 12),
+
+                // ─── 3. Reference Price & Update Time ─────────────────────
+                _buildPriceSection(context, product),
+                const SizedBox(height: 20),
+
+                // ─── 4. "Vì sao Saman chọn" (Editorial Note) ──────────────
+                _buildWhySamanPicked(context, product),
+                const SizedBox(height: 24),
+
+                // ─── 5. Specifications Table ──────────────────────────────
+                if (product.specifications.isNotEmpty)
+                  _buildSpecificationsSection(context, product),
               ],
-              const SizedBox(height: 12),
-
-              // ─── 3. Reference Price & Update Time ─────────────────────
-              _buildPriceSection(context, product),
-              const SizedBox(height: 20),
-
-              // ─── 4. "Vì sao Saman chọn" (Editorial Note) ──────────────
-              _buildWhySamanPicked(context, product),
-              const SizedBox(height: 24),
-
-              // ─── 5. Specifications Table ──────────────────────────────
-              if (product.specifications.isNotEmpty)
-                _buildSpecificationsSection(context, product),
-            ],
+            ),
           ),
         ),
 
         // Sticky Bottom CTA Bar
-        Positioned(
-          left: 0,
-          right: 0,
-          bottom: 0,
-          child: _buildStickyCtaBar(context, state, controller),
-        ),
+        _buildStickyCtaBar(context, state, controller),
       ],
     );
   }
@@ -628,21 +626,18 @@ class _ShopDetailScreenState extends ConsumerState<ShopDetailScreen> {
     if (result.type == LauncherResultType.demo) {
       ShopDemoExplanationSheet.show(context, product);
     } else if (result.type == LauncherResultType.failed) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            result.message ??
-                ShopTranslations.of(context, 'launcher_error_message'),
-          ),
-          backgroundColor: ShopTheme.errorRed,
-          duration: const Duration(seconds: 4),
-          action: SnackBarAction(
-            label: ShopTranslations.of(context, 'launcher_retry'),
-            textColor: Colors.white,
-            onPressed: () {
-              _handleCtaLaunch(controller, product);
-            },
-          ),
+      SamanFeedbackSnackBar.show(
+        context,
+        message: result.message ??
+            ShopTranslations.of(context, 'launcher_error_message'),
+        type: FeedbackType.error,
+        duration: const Duration(seconds: 4),
+        action: SnackBarAction(
+          label: ShopTranslations.of(context, 'launcher_retry'),
+          textColor: const Color(0xFF10B981),
+          onPressed: () {
+            _handleCtaLaunch(controller, product);
+          },
         ),
       );
     }
@@ -685,67 +680,72 @@ class _ShopDetailScreenState extends ConsumerState<ShopDetailScreen> {
         ShopTheme.paddingPage,
         14.0,
       ),
-      decoration: BoxDecoration(
-        color: ShopTheme.canvas.withOpacity(0.95),
-        border: const Border(
-          top: BorderSide(color: ShopTheme.borderDivider, width: 1),
+      decoration: const BoxDecoration(
+        color: ShopTheme.canvas,
+        border: Border(
+          top: BorderSide(color: ShopTheme.borderSubtle, width: 1),
         ),
       ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          SizedBox(
-            width: double.infinity,
-            height: 50,
-            child: ElevatedButton(
-              onPressed: (isAvailable && !state.isLaunching)
-                  ? () => _handleCtaLaunch(controller, product)
-                  : null,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: isAvailable
-                    ? ShopTheme.ctaSurface
-                    : ShopTheme.surfaceElevated,
-                foregroundColor:
-                    isAvailable ? ShopTheme.ctaText : ShopTheme.textMuted,
-                disabledBackgroundColor: ShopTheme.surfaceElevated,
-                disabledForegroundColor: ShopTheme.textMuted,
-                elevation: 0,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(ShopTheme.radiusMd),
+      child: SafeArea(
+        top: false,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            SizedBox(
+              width: double.infinity,
+              height: 50,
+              child: ElevatedButton(
+                onPressed: (isAvailable && !state.isLaunching)
+                    ? () => _handleCtaLaunch(controller, product)
+                    : null,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: isAvailable
+                      ? ShopTheme.ctaSurface
+                      : ShopTheme.surfaceElevated,
+                  foregroundColor:
+                      isAvailable ? ShopTheme.ctaText : ShopTheme.textMuted,
+                  disabledBackgroundColor: ShopTheme.surfaceElevated,
+                  disabledForegroundColor: ShopTheme.textMuted,
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(ShopTheme.radiusMd),
+                  ),
                 ),
-              ),
-              child: state.isLaunching
-                  ? const SizedBox(
-                      width: 20,
-                      height: 20,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        valueColor: AlwaysStoppedAnimation<Color>(ShopTheme.ctaText),
+                child: state.isLaunching
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          valueColor:
+                              AlwaysStoppedAnimation<Color>(ShopTheme.ctaText),
+                        ),
+                      )
+                    : Text(
+                        ctaLabel,
+                        style: ShopTheme.ctaButtonText.copyWith(
+                          color:
+                              isAvailable ? ShopTheme.ctaText : ShopTheme.textMuted,
+                        ),
                       ),
-                    )
-                  : Text(
-                      ctaLabel,
-                      style: ShopTheme.ctaButtonText.copyWith(
-                        color: isAvailable ? ShopTheme.ctaText : ShopTheme.textMuted,
-                      ),
-                    ),
-            ),
-          ),
-          if (disclosureText != null) ...[
-            const SizedBox(height: 6),
-            Text(
-              disclosureText,
-              style: ShopTheme.fontManrope(
-                fontSize: 11,
-                fontWeight: FontWeight.w400,
-                color: ShopTheme.textMuted,
               ),
-              textAlign: TextAlign.center,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
             ),
+            if (disclosureText != null) ...[
+              const SizedBox(height: 6),
+              Text(
+                disclosureText,
+                style: ShopTheme.fontManrope(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w400,
+                  color: ShopTheme.textMuted,
+                ),
+                textAlign: TextAlign.center,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
           ],
-        ],
+        ),
       ),
     );
   }

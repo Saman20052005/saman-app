@@ -1,10 +1,12 @@
 import 'dart:async';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../data/datasources/workout_cv_native_source.dart';
 import '../../domain/entities/exercise_cv_state.dart';
 import '../../domain/entities/pose_landmark.dart';
 import '../../domain/services/lat_pulldown_baseline.dart';
+import '../../domain/services/pull_up_baseline.dart';
 import '../../domain/services/workout_cv_motion_features.dart';
 
 final workoutCvNativeSourceProvider = Provider<WorkoutCvNativeSource>((ref) {
@@ -27,9 +29,10 @@ class WorkoutCvNotifier extends StateNotifier<ExerciseCvState> {
   int _minRejectedSessionGen = 0;
   int _initGeneration = 0;
   bool _isStopped = false;
-  final LatPulldownBaseline _repTracker = LatPulldownBaseline();
+  dynamic _repTracker = LatPulldownBaseline();
   int? _repSessionGen;
   int? _lastRepPtsMs;
+  int _lastFrameProcessMs = 0;
   bool _analysisClosed = false;
   String? _replayVideoPath;
 
@@ -39,6 +42,7 @@ class WorkoutCvNotifier extends StateNotifier<ExerciseCvState> {
     required String exerciseId,
     required String exerciseSlug,
     bool videoReplay = false,
+    String? videoPath,
   }) async {
     final opId = ++_initGeneration;
     _isStopped = false;
@@ -46,6 +50,9 @@ class WorkoutCvNotifier extends StateNotifier<ExerciseCvState> {
     _subscription?.cancel();
     _subscription = null;
 
+    _repTracker = exerciseSlug == 'pull-up'
+        ? PullUpBaseline()
+        : LatPulldownBaseline();
     _resetRepAnalysis();
 
     state = state.copyWith(
@@ -61,8 +68,15 @@ class WorkoutCvNotifier extends StateNotifier<ExerciseCvState> {
       clearErrorMessage: true,
     );
 
-    if (videoReplay) {
-      await startVideoReplay();
+    const isReplayTrial = bool.fromEnvironment('WORKOUT_CV_REPLAY_TRIAL');
+    if (videoPath != null && videoPath.isNotEmpty) {
+      await startVideoReplay(videoPath: videoPath);
+      return;
+    }
+    if (videoReplay || isReplayTrial) {
+      await startVideoReplay(
+        videoPath: '/storage/emulated/0/Download/cv_test.mp4',
+      );
       return;
     }
 
@@ -114,9 +128,14 @@ class WorkoutCvNotifier extends StateNotifier<ExerciseCvState> {
   }
 
   Future<void> startVideoReplay({String? videoPath}) async {
-    final path = videoPath ?? '/data/data/com.example.health_ai_app/files/test_videos/15620300_1080_1920_50fps.mp4';
+    final path = (videoPath != null && videoPath.isNotEmpty)
+        ? videoPath
+        : (_replayVideoPath != null && _replayVideoPath!.isNotEmpty
+            ? _replayVideoPath!
+            : '/storage/emulated/0/Download/cv_test.mp4');
     final name = path.split('/').last;
     _replayVideoPath = path;
+    debugPrint('VIDEO_REPLAY_MODE: Tích hợp thành công, đang đọc file...');
 
     final opId = ++_initGeneration;
     _isStopped = false;
@@ -505,11 +524,13 @@ class WorkoutCvNotifier extends StateNotifier<ExerciseCvState> {
     _repTracker.reset();
     _repSessionGen = null;
     _lastRepPtsMs = null;
+    _lastFrameProcessMs = 0;
     _analysisClosed = false;
     state = state.copyWith(
       replayRepEvents: const [],
       analysisPhase: LatPulldownPhase.notReady,
       replayAnalysisStatus: ReplayAnalysisStatus.waiting,
+      abortCount: 0,
     );
   }
 
@@ -534,7 +555,7 @@ class WorkoutCvNotifier extends StateNotifier<ExerciseCvState> {
     // Display handshakes/progress are not pose samples or recognition failures.
     if (event['status'] == 'replayPreparing' ||
         event['status'] == 'previewProgress') return;
-    if (state.exerciseSlug != 'lat-pulldown') return;
+    if (state.exerciseSlug != 'lat-pulldown' && state.exerciseSlug != 'pull-up') return;
 
     final isReplay = state.sourceMode == 'video_replay';
     // Native camera timestamps are capture uptime, never inference arrival time.
@@ -553,6 +574,12 @@ class WorkoutCvNotifier extends StateNotifier<ExerciseCvState> {
       return;
     }
     if (_lastRepPtsMs != null && ptsMs <= _lastRepPtsMs!) return;
+
+    final currentMs = DateTime.now().millisecondsSinceEpoch;
+    if ((currentMs - _lastFrameProcessMs) < 250) {
+      return;
+    }
+    _lastFrameProcessMs = currentMs;
     _lastRepPtsMs = ptsMs;
 
     final features = WorkoutCvMotionFeatures.extractLatPulldownFeatures(
@@ -566,13 +593,18 @@ class WorkoutCvNotifier extends StateNotifier<ExerciseCvState> {
     );
     // Invalid/lost samples must reach the baseline to interrupt holds/cycles.
     final result = _repTracker.processFrameFeatures(features);
+    final phase = LatPulldownPhase.values.byName((result.phase as Enum).name);
+    final shouldIncrementAbort = result.resetReason != null &&
+        result.resetReason != 'droppedNonMonotonicTimestamp';
     state = state.copyWith(
-      replayRepEvents: _repTracker.repHistory,
-      analysisPhase: result.phase,
-      replayAnalysisStatus: result.isSampleValid &&
-              result.phase != LatPulldownPhase.notReady
+      replayRepEvents: _repTracker.repHistory as List<LatPulldownRepEvent>,
+      analysisPhase: phase,
+      replayAnalysisStatus: result.isSampleValid == true &&
+              phase != LatPulldownPhase.notReady
           ? ReplayAnalysisStatus.analyzing
           : ReplayAnalysisStatus.insufficientData,
+      abortCount:
+          shouldIncrementAbort ? state.abortCount + 1 : state.abortCount,
     );
   }
 

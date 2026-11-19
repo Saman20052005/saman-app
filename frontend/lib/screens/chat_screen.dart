@@ -21,6 +21,13 @@ import '../features/workout/domain/entities/workout_plan.dart';
 import '../features/workout/data/repositories/workout_repository_impl.dart';
 import '../services/api_client.dart';
 import '../widgets/saman_feedback_snackbar.dart';
+import '../features/membership/domain/models/membership_plan.dart';
+import '../features/membership/presentation/providers/membership_providers.dart';
+import '../features/membership/presentation/screens/plan_detail_screen.dart';
+import '../features/membership/presentation/widgets/upgrade_bottom_sheet.dart';
+
+const bool _kEnableAiPaywall =
+    bool.fromEnvironment('ENABLE_AI_PAYWALL', defaultValue: false);
 
 class ChatScreen extends ConsumerStatefulWidget {
   final String? initialMessage;
@@ -58,6 +65,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     _scrollController.addListener(_handleScroll);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(chatControllerProvider.notifier).loadConversations(loadLatest: true);
+      ref.read(chatControllerProvider.notifier).loadDailyBrief();
       _handleScroll();
     });
   }
@@ -84,6 +92,29 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     super.dispose();
   }
 
+  bool _isPaywallSheetOpen = false;
+
+  Future<void> _openPro3Paywall() async {
+    if (_isPaywallSheetOpen) return;
+    _isPaywallSheetOpen = true;
+    try {
+      final selectedTier =
+          await showUpgradeBottomSheet(context, tier: MembershipTier.pro);
+      if (mounted && selectedTier != null) {
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            settings: RouteSettings(
+              name: '/membership/detail/${selectedTier.name}',
+            ),
+            builder: (_) => PlanDetailScreen(tier: selectedTier),
+          ),
+        );
+      }
+    } finally {
+      _isPaywallSheetOpen = false;
+    }
+  }
+
   void _handleNudgePrimary(SamanNudge nudge) {
     setState(() {
       _activeNudge = null;
@@ -106,6 +137,21 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
 
   @override
   Widget build(BuildContext context) {
+    ref.listen<String?>(
+      chatControllerProvider.select((s) => s.paywallBenefitId),
+      (_, next) {
+        if (next != null) {
+          final route = ModalRoute.of(context);
+          final isCurrent = route?.isCurrent ?? true;
+          final isRoot = route?.isFirst ?? true;
+          final active = widget.isTabActive ??
+              ((!isRoot || ref.read(mainNavIndexProvider) == 2) && isCurrent);
+          if (!active) return;
+          ref.read(chatControllerProvider.notifier).clearPaywall();
+          _openPro3Paywall();
+        }
+      },
+    );
     final chatState = ref.watch(chatControllerProvider);
 
     _scrollToBottom();
@@ -192,11 +238,19 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                           !hasNudge)
                       ? SamanChatEmptyState(
                           onPromptSelected: _handleSuggestionSelected,
+                          contextData: chatState.dailyBrief != null ||
+                                  chatState.dailyBriefMetrics != null
+                              ? SamanChatContextData.fromDailyBrief(
+                                  brief: chatState.dailyBrief,
+                                  metrics: chatState.dailyBriefMetrics,
+                                )
+                              : const SamanChatContextData(),
                         )
                       : SamanMessageList(
                           messages: chatState.messages,
                           scrollController: _scrollController,
                           isLoading: chatState.isLoading,
+                          isStreaming: chatState.isStreaming,
                           errorMessage: chatState.errorMessage,
                           onRetry: _handleRetry,
                           onEditQuestion: _handleEditQuestion,
@@ -296,6 +350,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
             isEmptyState: chatState.messages.isEmpty &&
                 chatState.foodAnalysisState == null &&
                 !hasNudge,
+            chips: SamanRapidChipItem.fromDynamicChips(chatState.dynamicChips),
+            activeMode: chatState.selectedAIMode,
           ),
         ],
       ),
@@ -919,7 +975,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     final isBusy = chatState.isLoading ||
         chatState.foodAnalysisState?.status == FoodAnalysisStatus.analyzing;
     if (isBusy) return;
-    ref.read(chatControllerProvider.notifier).sendMessage(prompt);
+    ref.read(chatControllerProvider.notifier).sendMessageStreaming(prompt);
   }
 
   void _handleSuggestionSelected(String prompt) {
@@ -936,6 +992,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     required bool isLoading,
     required bool isAnalyzingFood,
     required bool isEmptyState,
+    required List<SamanRapidChipItem> chips,
+    required AIMode activeMode,
   }) {
     final isBusy = isLoading || isAnalyzingFood;
 
@@ -960,6 +1018,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
               ],
               if (isEmptyState && !isBusy) ...[
                 SamanChatRapidChips(
+                  chips: chips,
                   onChipSelected: _handleSuggestionSelected,
                 ),
                 const SizedBox(height: 8.0),
@@ -972,6 +1031,23 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                 loadingHintText: isAnalyzingFood
                     ? context.tr('saman_looking_at_meal')
                     : context.tr('saman_responding_hint'),
+                activeMode: activeMode,
+                onModeSelected: (mode) {
+                  if (mode == AIMode.pro3 && _kEnableAiPaywall) {
+                    final entitlements =
+                        ref.read(accountMembershipProvider).entitlements;
+                    final hasPro3 = entitlements.any(
+                      (e) =>
+                          e['benefit_id'] == 'ai.advanced_thinking' &&
+                          e['status'] == 'granted',
+                    );
+                    if (!hasPro3) {
+                      _openPro3Paywall();
+                      return;
+                    }
+                  }
+                  ref.read(chatControllerProvider.notifier).setAIMode(mode);
+                },
                 onAttachFoodPhoto: _handleAttachmentFlow,
                 onOpenAnalytics: _handleOpenAnalytics,
               ),
@@ -991,7 +1067,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     final text = _textController.text.trim();
     if (text.isEmpty) return;
     _textController.clear();
-    ref.read(chatControllerProvider.notifier).sendMessage(text);
+    ref.read(chatControllerProvider.notifier).sendMessageStreaming(text);
   }
 
   void _handleRetry() {

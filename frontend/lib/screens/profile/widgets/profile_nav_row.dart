@@ -112,11 +112,10 @@ class ProfileNavRow extends StatelessWidget {
                         : Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              Flexible(
-                                flex: 3,
+                              Expanded(
                                 child: Text(
                                   title,
-                                  maxLines: 1,
+                                  maxLines: 2,
                                   overflow: TextOverflow.ellipsis,
                                   style: const TextStyle(
                                     fontSize: 14,
@@ -126,21 +125,23 @@ class ProfileNavRow extends StatelessWidget {
                                   ),
                                 ),
                               ),
-                              const SizedBox(width: 8),
-                              if (valueWidget != null)
-                                Flexible(
-                                  flex: 4,
+                              if (valueWidget != null) ...[
+                                const SizedBox(width: 8),
+                                ConstrainedBox(
+                                  constraints: const BoxConstraints(maxWidth: 135),
                                   child: Align(
                                     alignment: Alignment.centerRight,
+                                    widthFactor: 1.0,
                                     child: FittedBox(
                                       fit: BoxFit.scaleDown,
                                       child: valueWidget!,
                                     ),
                                   ),
-                                )
-                              else if (value != null && value!.isNotEmpty)
-                                Flexible(
-                                  flex: 4,
+                                ),
+                              ] else if (value != null && value!.isNotEmpty) ...[
+                                const SizedBox(width: 8),
+                                ConstrainedBox(
+                                  constraints: const BoxConstraints(maxWidth: 135),
                                   child: Text(
                                     value!,
                                     maxLines: 1,
@@ -153,6 +154,7 @@ class ProfileNavRow extends StatelessWidget {
                                     ),
                                   ),
                                 ),
+                              ],
                             ],
                           ),
                   ),
@@ -163,7 +165,7 @@ class ProfileNavRow extends StatelessWidget {
                     const Icon(
                       Icons.chevron_right_rounded,
                       size: 18,
-                      color: SamanHomeTokens.textTertiary,
+                      color: Color(0xFF9CA3AF),
                     ),
                   ],
                 ],

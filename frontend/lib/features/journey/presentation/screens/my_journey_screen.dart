@@ -5,6 +5,7 @@ import '../../../../screens/food_log_screen.dart';
 import '../../../../presentation/screens/workout_home_screen.dart';
 import '../../domain/models/journey_models.dart';
 import '../providers/journey_providers.dart';
+import '../../../../widgets/saman_feedback_snackbar.dart';
 
 class MyJourneyScreen extends ConsumerWidget {
   const MyJourneyScreen({super.key});
@@ -55,7 +56,7 @@ class MyJourneyScreen extends ConsumerWidget {
                       const Text(
                         'Chưa có hành trình đang diễn ra',
                         style: TextStyle(
-                          fontFamily: 'Space Grotesk',
+                          fontFamily: 'Manrope',
                           fontSize: 20,
                           fontWeight: FontWeight.w600,
                           color: Color(0xFFF3F4F6),
@@ -143,7 +144,7 @@ class MyJourneyScreen extends ConsumerWidget {
                                 Text(
                                   'Hành trình của tôi',
                                   style: TextStyle(
-                                    fontFamily: 'Space Grotesk',
+                                    fontFamily: 'Manrope',
                                     fontSize: 22,
                                     fontWeight: FontWeight.bold,
                                     color: Color(0xFFF3F4F6),
@@ -233,7 +234,7 @@ class MyJourneyScreen extends ConsumerWidget {
                     const Text(
                       'Mỗi ngày một tốt hơn',
                       style: TextStyle(
-                        fontFamily: 'Space Grotesk',
+                        fontFamily: 'Manrope',
                         fontSize: 20,
                         fontWeight: FontWeight.bold,
                         color: Color(0xFFF3F4F6),
@@ -272,7 +273,7 @@ class MyJourneyScreen extends ConsumerWidget {
                     Text(
                       '${journey.currentStreak}',
                       style: const TextStyle(
-                        fontFamily: 'Space Grotesk',
+                        fontFamily: 'Manrope',
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
                         color: Color(0xFFF3F4F6),
@@ -351,7 +352,7 @@ class MyJourneyScreen extends ConsumerWidget {
             const Text(
               'Hôm nay',
               style: TextStyle(
-                fontFamily: 'Space Grotesk',
+                fontFamily: 'Manrope',
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
                 color: Color(0xFFF3F4F6),
@@ -440,11 +441,10 @@ class MyJourneyScreen extends ConsumerWidget {
                             .read(journeyControllerProvider.notifier)
                             .claimDailyReward(date: today.date);
                         if (ok && context.mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('🎉 Bạn đã nhận thành công 20 điểm thưởng!'),
-                              backgroundColor: Color(0xFF10B981),
-                            ),
+                          SamanFeedbackSnackBar.show(
+                            context,
+                            message: '🎉 Bạn đã nhận thành công 20 điểm thưởng!',
+                            type: FeedbackType.success,
                           );
                         }
                       },
@@ -678,7 +678,7 @@ class MyJourneyScreen extends ConsumerWidget {
                     const Text(
                       'Lịch hành trình',
                       style: TextStyle(
-                        fontFamily: 'Space Grotesk',
+                        fontFamily: 'Manrope',
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
                         color: Color(0xFFF3F4F6),

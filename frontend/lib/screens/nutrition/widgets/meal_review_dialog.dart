@@ -67,23 +67,23 @@ class MealReviewDialog extends StatefulWidget {
 }
 
 class _MealReviewDialogState extends State<MealReviewDialog> {
-  static const Color _bgCanvas = Color(0xFF0F0F0F);
-  static const Color _bgSurface = Color(0xFF1C1C1C);
-  static const Color _bgCard = Color(0xFF242424);
-  static const Color _borderSubtle = Color(0xFF2A2A2A);
-  static const Color _borderStrong = Color(0xFF3D3D3D);
+  static const Color _bgCanvas = Color(0xFF0C0D0E);
+  static const Color _bgSurface = Color(0xFF16171B);
+  static const Color _bgCard = Color(0xFF1E2026);
+  static const Color _borderSubtle = Color(0xFF26282F);
+  static const Color _borderStrong = Color(0xFF383A42);
 
-  static const Color _brandPrimary = Color(0xFF0E8F5E);
-  static const Color _brandPrimaryLight = Color(0x260E8F5E); // rgba(14, 143, 94, 0.15)
+  static const Color _brandPrimary = Color(0xFF10B981);
+  static const Color _brandPrimaryLight = Color(0x2610B981); // rgba(16, 185, 129, 0.15)
   static const Color _aiAccent = Color(0xFFFF8A3D);
 
   static const Color _proteinColor = Color(0xFF4D96FF);
   static const Color _carbsColor = Color(0xFFFFD93D);
   static const Color _fatColor = Color(0xFFFF6B6B);
 
-  static const Color _textPrimary = Color(0xFFF0F0F0);
-  static const Color _textSecondary = Color(0xFFAAAAAA);
-  static const Color _textMuted = Color(0xFF707070);
+  static const Color _textPrimary = Color(0xFFF9FAFB);
+  static const Color _textSecondary = Color(0xFF9CA3AF);
+  static const Color _textMuted = Color(0xFF9CA3AF);
   static const Color _errorColor = Color(0xFFCF6679);
 
   late AIAnalysisResult _current;
@@ -219,7 +219,7 @@ class _MealReviewDialogState extends State<MealReviewDialog> {
               decoration: BoxDecoration(
                 color: _isAdvanced
                     ? const Color(0xE6FF8A3D) // rgba(255, 138, 61, 0.9)
-                    : const Color(0xD90E8F5E), // rgba(14, 143, 94, 0.85)
+                    : const Color(0xE610B981), // rgba(16, 185, 129, 0.9)
                 borderRadius: BorderRadius.circular(20),
                 border: Border.all(color: Colors.white.withOpacity(0.2)),
                 boxShadow: [
@@ -232,10 +232,12 @@ class _MealReviewDialogState extends State<MealReviewDialog> {
               ),
               child: Text(
                 _isAdvanced ? '✨ AI ước tính' : '⚖️ Dữ liệu tham chiếu',
-                style: const TextStyle(
-                  color: Colors.white,
+                style: TextStyle(
+                  color: _isAdvanced
+                      ? const Color(0xFF0C0D0E)
+                      : const Color(0xFF052E16),
                   fontSize: 11,
-                  fontWeight: FontWeight.w600,
+                  fontWeight: FontWeight.w700,
                 ),
               ),
             ),
@@ -840,7 +842,7 @@ class _MealReviewDialogState extends State<MealReviewDialog> {
                     child: FilledButton(
                       style: FilledButton.styleFrom(
                         backgroundColor: _brandPrimary,
-                        foregroundColor: Colors.white,
+                        foregroundColor: const Color(0xFF052E16),
                         disabledBackgroundColor: _brandPrimary.withOpacity(0.35),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
@@ -853,7 +855,7 @@ class _MealReviewDialogState extends State<MealReviewDialog> {
                               height: 20,
                               child: CircularProgressIndicator(
                                 strokeWidth: 2,
-                                color: Colors.white,
+                                color: Color(0xFF052E16),
                               ),
                             )
                           : Text(

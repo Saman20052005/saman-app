@@ -35,6 +35,48 @@ class SamanRapidChipItem {
       icon: Icons.tune_outlined,
     ),
   ];
+
+  static IconData _resolveIcon(String? iconName) {
+    switch (iconName?.trim()) {
+      case 'water_drop':
+        return Icons.water_drop_outlined;
+      case 'restaurant':
+        return Icons.restaurant_outlined;
+      case 'bolt':
+        return Icons.bolt_outlined;
+      case 'fitness_center':
+        return Icons.fitness_center_outlined;
+      case 'tune':
+        return Icons.tune_outlined;
+      default:
+        return Icons.auto_awesome_outlined;
+    }
+  }
+
+  static List<SamanRapidChipItem> fromDynamicChips(
+    List<Map<String, String>> rawChips,
+  ) {
+    if (rawChips.isEmpty) {
+      return defaultChips;
+    }
+    final mapped = rawChips
+        .map((item) {
+          final label = (item['label'] ?? '').trim();
+          final prompt = (item['prompt'] ?? label).trim();
+          if (label.isEmpty || prompt.isEmpty) {
+            return null;
+          }
+          return SamanRapidChipItem(
+            label: label,
+            prompt: prompt,
+            icon: _resolveIcon(item['icon']),
+          );
+        })
+        .whereType<SamanRapidChipItem>()
+        .toList(growable: false);
+
+    return mapped.isEmpty ? defaultChips : mapped;
+  }
 }
 
 /// Horizontal scrollable rapid query chips row.
@@ -55,6 +97,11 @@ class SamanChatRapidChips extends StatelessWidget {
     this.chips = SamanRapidChipItem.defaultChips,
     required this.onChipSelected,
   });
+
+  static List<SamanRapidChipItem> fromDynamicChips(
+    List<Map<String, String>> rawChips,
+  ) =>
+      SamanRapidChipItem.fromDynamicChips(rawChips);
 
   @override
   Widget build(BuildContext context) {

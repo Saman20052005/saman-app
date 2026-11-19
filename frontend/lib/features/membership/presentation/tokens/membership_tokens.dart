@@ -54,7 +54,7 @@ abstract final class MembershipTokens {
     double? height,
     double? letterSpacing,
   }) {
-    return GoogleFonts.inter(
+    return GoogleFonts.manrope(
       fontSize: fontSize,
       fontWeight: fontWeight,
       color: color,

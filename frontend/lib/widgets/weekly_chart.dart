@@ -35,6 +35,11 @@ class WeeklyChart extends StatelessWidget {
     maxScale = maxScale * 1.2;
 
     const double chartHeight = 180;
+    final colorScheme = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final labelColor = isDark && colorScheme.secondary == Colors.tealAccent[200]
+        ? const Color(0xFF9CA3AF)
+        : colorScheme.secondary;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -43,14 +48,29 @@ class WeeklyChart extends StatelessWidget {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text(label,
-                style:
-                    const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+            Text(
+              label,
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 16,
+                color: colorScheme.onSurface,
+              ),
+            ),
             Row(
               children: [
-                _buildLegend(Colors.red.shade300, "Goal", isDashed: true),
+                _buildLegend(
+                  Colors.red.shade300,
+                  "Goal",
+                  isDashed: true,
+                  textColor: labelColor,
+                ),
                 const SizedBox(width: 12),
-                _buildLegend(color, "Actual", isDashed: false),
+                _buildLegend(
+                  color,
+                  "Actual",
+                  isDashed: false,
+                  textColor: labelColor,
+                ),
               ],
             )
           ],
@@ -68,6 +88,7 @@ class WeeklyChart extends StatelessWidget {
               maxScale: maxScale,
               color: color,
               labelType: label.contains("Calories") ? "kcal" : "g",
+              labelColor: labelColor,
             ),
           ),
         ),
@@ -75,7 +96,12 @@ class WeeklyChart extends StatelessWidget {
     );
   }
 
-  Widget _buildLegend(Color color, String text, {required bool isDashed}) {
+  Widget _buildLegend(
+    Color color,
+    String text, {
+    required bool isDashed,
+    required Color textColor,
+  }) {
     return Row(
       children: [
         Container(
@@ -96,7 +122,7 @@ class WeeklyChart extends StatelessWidget {
         const SizedBox(width: 4),
         Text(text,
             style: TextStyle(
-                color: Colors.grey.shade600,
+                color: textColor,
                 fontSize: 10,
                 fontWeight: FontWeight.bold)),
       ],
@@ -111,6 +137,7 @@ class LineChartPainter extends CustomPainter {
   final double maxScale;
   final Color color;
   final String labelType;
+  final Color labelColor;
 
   LineChartPainter({
     required this.data,
@@ -118,6 +145,7 @@ class LineChartPainter extends CustomPainter {
     required this.maxScale,
     required this.color,
     required this.labelType,
+    this.labelColor = const Color(0xFF9CA3AF),
   });
 
   @override
@@ -187,7 +215,7 @@ class LineChartPainter extends CustomPainter {
       String dayLabel = DateFormat('E').format(d);
 
       final TextSpan daySpan = TextSpan(
-          style: TextStyle(color: Colors.grey.shade600, fontSize: 10),
+          style: TextStyle(color: labelColor, fontSize: 10),
           text: dayLabel);
       final TextPainter dayTp = TextPainter(
           text: daySpan,

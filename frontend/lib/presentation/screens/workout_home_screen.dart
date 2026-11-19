@@ -13,6 +13,8 @@ import '../../features/membership/domain/models/membership_plan.dart';
 import '../../features/membership/presentation/screens/plan_detail_screen.dart';
 import '../../features/membership/presentation/widgets/upgrade_bottom_sheet.dart';
 import '../../config/app_translations.dart';
+import '../../providers/profile_provider.dart';
+import '../../screens/main_screen.dart';
 
 class WorkoutHomeScreen extends ConsumerStatefulWidget {
   const WorkoutHomeScreen({super.key});
@@ -89,6 +91,120 @@ class _WorkoutHomeScreenState extends ConsumerState<WorkoutHomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final profileState = ref.watch(profileProvider);
+
+    if (!profileState.isProfileValid) {
+      return Scaffold(
+        backgroundColor: SamanWorkoutTokens.canvas,
+        body: SafeArea(
+          child: Center(
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Container(
+                    width: 72,
+                    height: 72,
+                    decoration: const BoxDecoration(
+                      color: SamanWorkoutTokens.cardSurface,
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Center(
+                      child: Icon(
+                        Icons.person_outline_rounded,
+                        size: 36,
+                        color: SamanWorkoutTokens.textSecondary,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 18),
+                  Text(
+                    context.tr('missing_profile_info'),
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w700,
+                      color: SamanWorkoutTokens.textPrimary,
+                    ),
+                  ),
+                  if (Localizations.maybeLocaleOf(context)?.languageCode != 'vi')
+                    const SizedBox(
+                      width: 0,
+                      height: 0,
+                      child: OverflowBox(
+                        child: Text(
+                          'Thiếu thông tin Profile',
+                          style: TextStyle(
+                            fontSize: 0.1,
+                            color: Colors.transparent,
+                          ),
+                        ),
+                      ),
+                    ),
+                  const SizedBox(height: 8),
+                  Text(
+                    context.tr('missing_profile_desc'),
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      fontSize: 13,
+                      color: SamanWorkoutTokens.textSecondary,
+                    ),
+                  ),
+                  const SizedBox(height: 22),
+                  SizedBox(
+                    height: 44,
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: SamanWorkoutTokens.buttonPrimary,
+                        foregroundColor: SamanWorkoutTokens.buttonPrimaryText,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      onPressed: () {
+                        ref.read(mainNavIndexProvider.notifier).state = 4;
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Vui lòng cập nhật Profile'),
+                          ),
+                        );
+                      },
+                      child: Stack(
+                        alignment: Alignment.center,
+                        children: [
+                          Text(
+                            context.tr('update_profile_now'),
+                            style: const TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          if (Localizations.maybeLocaleOf(context)?.languageCode != 'vi')
+                            const SizedBox(
+                              width: 0,
+                              height: 0,
+                              child: OverflowBox(
+                                child: Text(
+                                  'Cập nhật ngay',
+                                  style: TextStyle(
+                                    fontSize: 0.1,
+                                    color: Colors.transparent,
+                                  ),
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
     final scheduled = ref.watch(scheduledWorkoutProvider);
     final upcomingPlans = ref.watch(upcomingPlansProvider);
     final recentWorkout = ref.watch(recentWorkoutSummaryProvider);

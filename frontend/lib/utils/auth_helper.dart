@@ -10,6 +10,8 @@ import '../presentation/providers/workout_history_providers.dart';
 import '../presentation/providers/active_workout_providers.dart';
 import '../presentation/providers/session_detail_providers.dart';
 import '../features/journey/presentation/providers/journey_providers.dart';
+import '../features/shop/presentation/providers/shop_providers.dart';
+import '../features/shop/data/repositories/shared_preferences_shop_wishlist_repository.dart';
 
 enum AuthTokenState {
   confirmedRetained,
@@ -196,6 +198,7 @@ class AuthHelper {
         }
         await prefs.remove('user_email');
         await prefs.remove('user_fullname');
+        await prefs.remove(SharedPreferencesShopWishlistRepository.storageKey);
       } catch (e) {
         debugPrint('[AUTH] Error removing user cache on logout: $e');
       }
@@ -210,6 +213,8 @@ class AuthHelper {
       container.invalidate(sessionDetailProvider);
       container.invalidate(journeyControllerProvider);
       container.invalidate(walletControllerProvider);
+      container.invalidate(shopWishlistRepositoryProvider);
+      container.invalidate(savedProductIdsStreamProvider);
     } on LogoutException catch (e) {
       if (e.tokenState == AuthTokenState.confirmedLost ||
           e.tokenState == AuthTokenState.indeterminate) {
@@ -233,6 +238,7 @@ class AuthHelper {
           }
           await prefs.remove('user_email');
           await prefs.remove('user_fullname');
+          await prefs.remove(SharedPreferencesShopWishlistRepository.storageKey);
         } catch (_) {}
 
         container.invalidate(profileProvider);
@@ -242,8 +248,10 @@ class AuthHelper {
         container.invalidate(workoutHistoryProvider);
         container.invalidate(activeWorkoutSessionProvider);
         container.invalidate(sessionDetailProvider);
-      container.invalidate(journeyControllerProvider);
-      container.invalidate(walletControllerProvider);
+        container.invalidate(journeyControllerProvider);
+        container.invalidate(walletControllerProvider);
+        container.invalidate(shopWishlistRepositoryProvider);
+        container.invalidate(savedProductIdsStreamProvider);
       }
       rethrow;
     } finally {

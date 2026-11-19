@@ -320,6 +320,49 @@ class ActiveWorkoutSessionNotifier
     state = state.copyWith(currentExerciseIndex: index,
         isResting: false, restSecondsLeft: 0);
   }
+
+  void attachCvFormSummary(String exerciseId, Map<String, dynamic> summary) {
+    final updatedExercises = state.exercises.map((e) {
+      if (e.id == exerciseId || (e.slug.isNotEmpty && e.slug == exerciseId)) {
+        return e.copyWith(cvFormSummary: Map<String, dynamic>.from(summary));
+      }
+      return e;
+    }).toList();
+    state = state.copyWith(exercises: updatedExercises);
+  }
+
+  void applyLastPerformanceHints(Map<String, LastExercisePerformance> hints) {
+    if (hints.isEmpty) return;
+    final updatedExercises = state.exercises.map((e) {
+      final hint =
+          hints[e.id] ?? (e.slug.isNotEmpty ? hints[e.slug] : null);
+      if (hint == null) return e;
+      if (e.completedSetsCount == 0 &&
+          e.unit == SetUnit.reps &&
+          hint.suggestedReps > 0) {
+        final suggestedWeight = hint.suggestedWeightKg.clamp(0.0, 500.0);
+        final suggestedReps = hint.suggestedReps.clamp(1, 999);
+        final updatedSets = e.sets
+            .map(
+              (s) => s.isCompleted
+                  ? s
+                  : s.copyWith(
+                      targetWeightKg: suggestedWeight,
+                      targetReps: suggestedReps,
+                    ),
+            )
+            .toList();
+        return e.copyWith(
+          lastPerformance: hint,
+          draftWeightKg: suggestedWeight,
+          draftReps: suggestedReps,
+          sets: updatedSets,
+        );
+      }
+      return e.copyWith(lastPerformance: hint);
+    }).toList();
+    state = state.copyWith(exercises: updatedExercises);
+  }
 }
 
 

@@ -19,6 +19,8 @@ class NutritionPlanDto {
   final int totalFatConsumed;
   final int rolloverCalories;
   final MacroTargetsDto macroTargets;
+  final String dayMode;
+  final DynamicNutritionTarget? dynamicTarget;
 
   NutritionPlanDto({
     this.id,
@@ -35,9 +37,12 @@ class NutritionPlanDto {
     this.totalFatConsumed = 0,
     this.rolloverCalories = 0,
     required this.macroTargets,
+    this.dayMode = 'rest',
+    this.dynamicTarget,
   });
 
   factory NutritionPlanDto.fromJson(Map<String, dynamic> json) {
+    final rawDynamicTarget = json['dynamic_target'];
     return NutritionPlanDto(
       id: json['_id']?.toString(),
       date: json['date'] ?? '',
@@ -54,6 +59,11 @@ class NutritionPlanDto {
       macroTargets: MacroTargetsDto.fromJson(
         Map<String, dynamic>.from((json['macro_targets'] ?? {}) as Map),
       ),
+      dayMode: (json['day_mode'] ?? 'rest').toString(),
+      dynamicTarget: rawDynamicTarget is Map
+          ? DynamicNutritionTarget.fromJson(
+              Map<String, dynamic>.from(rawDynamicTarget))
+          : null,
       meals: (json['meals'] as List<dynamic>?)
               ?.map((e) => MealDto.fromJson(e as Map<String, dynamic>))
               .toList() ??
@@ -85,6 +95,8 @@ class NutritionPlanDto {
       totalCarbsConsumed: totalCarbsConsumed,
       totalFatConsumed: totalFatConsumed,
       rolloverCalories: rolloverCalories,
+      dayMode: dayMode,
+      dynamicTarget: dynamicTarget,
     );
   }
 }

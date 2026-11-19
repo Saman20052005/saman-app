@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:image_picker/image_picker.dart';
 
 import '../../features/workout_cv/presentation/screens/workout_cv_screen.dart';
 
@@ -12,6 +13,8 @@ import '../providers/active_workout_providers.dart';
 import '../providers/active_workout_state.dart';
 import '../tokens/saman_workout_tokens.dart';
 import '../providers/exercise_providers.dart';
+import '../providers/workout_history_providers.dart';
+import '../../features/workout_cv/domain/services/cv_form_summary_calculator.dart';
 import '../widgets/exercise_thumbnail.dart';
 import 'workout_review_screen.dart';
 import 'workout_complete_screen.dart';
@@ -77,16 +80,39 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
     if (!mounted) return;
     final notifier = ref.read(activeWorkoutSessionProvider.notifier);
     final session = ref.read(activeWorkoutSessionProvider);
-    if (session.isFinished) {
-      notifier.startScheduledSession();
-      return;
-    }
     if (widget.exercises != null) {
       notifier.startSession(widget.exercises!, title: widget.title);
     } else if (widget.workoutPlan != null) {
       notifier.startSessionFromPlan(widget.workoutPlan!);
+    } else if (session.isFinished) {
+      notifier.startScheduledSession();
+    }
+    _loadLastPerformanceHints();
+  }
+
+  Future<void> _loadLastPerformanceHints() async {
+    try {
+      final ids = ref
+          .read(activeWorkoutSessionProvider)
+          .exercises
+          .map((e) => e.slug.isNotEmpty ? e.slug : e.id)
+          .toList();
+      if (ids.isEmpty) return;
+      final hints = await ref
+          .read(workoutSessionRepositoryProvider)
+          .getLastPerformances(ids);
+      if (mounted && hints.isNotEmpty) {
+        ref
+            .read(activeWorkoutSessionProvider.notifier)
+            .applyLastPerformanceHints(hints);
+      }
+    } catch (_) {
+      // Fail-silent: hints are optional (offline/test).
     }
   }
+
+  String _formatWeight(double w) =>
+      w == w.roundToDouble() ? w.toStringAsFixed(0) : w.toStringAsFixed(1);
   @override
   void dispose() {
     _autoTickTimer?.cancel();
@@ -424,7 +450,7 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
                       color: const Color(0xCC0C0D0E),
                       borderRadius:
                           BorderRadius.circular(SamanWorkoutTokens.radiusPill),
-                      border: Border.all(color: Colors.white12),
+                      border: Border.all(color: const Color(0xFF26282F)),
                     ),
                     child: const Row(
                       mainAxisSize: MainAxisSize.min,
@@ -463,7 +489,7 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
                       color: const Color(0xCC0C0D0E),
                       borderRadius:
                           BorderRadius.circular(SamanWorkoutTokens.radiusPill),
-                      border: Border.all(color: Colors.white12),
+                      border: Border.all(color: const Color(0xFF26282F)),
                     ),
                     child: const Row(
                       mainAxisSize: MainAxisSize.min,
@@ -804,7 +830,7 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Text(
-                  '${set.weightKg?.toStringAsFixed(0) ?? set.targetWeightKg.toStringAsFixed(0)}',
+                  _formatWeight(set.weightKg ?? set.targetWeightKg),
                   style: const TextStyle(
                     fontSize: 14,
                     fontFamily: 'monospace',
@@ -863,6 +889,54 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
     );
   }
 
+  Widget _buildLastPerformancePill(
+    ActiveExerciseInfo currentEx,
+    LastExercisePerformance hint,
+    ActiveWorkoutSessionNotifier notifier,
+  ) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(8),
+        onTap: () {
+          notifier.setDraftWeight(hint.suggestedWeightKg);
+          notifier.setDraftReps(
+            hint.suggestedReps > 0 ? hint.suggestedReps : currentEx.draftReps,
+          );
+        },
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+          decoration: BoxDecoration(
+            color: const Color(0xFF16171B),
+            border: Border.all(color: const Color(0xFF26282F)),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Text.rich(
+            TextSpan(
+              style: const TextStyle(
+                fontSize: 11,
+                fontFamily: 'monospace',
+                color: SamanWorkoutTokens.textSecondary,
+              ),
+              children: [
+                TextSpan(
+                  text:
+                      'Lần trước: ${_formatWeight(hint.lastWeightKg)}kg × ${hint.lastReps} • ',
+                ),
+                TextSpan(
+                  text: 'Gợi ý: ${_formatWeight(hint.suggestedWeightKg)}kg',
+                  style: const TextStyle(color: Color(0xFF10B981)),
+                ),
+              ],
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildActiveSetCard(
     ActiveWorkoutSetInfo set,
     ActiveExerciseInfo currentEx,
@@ -908,7 +982,7 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
-                  'TARGET: ' + set.targetWeightKg.toStringAsFixed(0) + ' KG × ' + set.targetReps.toString(),
+                  'TARGET: ' + _formatWeight(set.targetWeightKg) + ' KG × ' + set.targetReps.toString(),
                   style: const TextStyle(
                     fontSize: 11,
                     fontFamily: 'monospace',
@@ -922,6 +996,11 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
               ),
             ],
           ),
+          if (currentEx.lastPerformance != null) ...[
+            const SizedBox(height: 8),
+            _buildLastPerformancePill(
+                currentEx, currentEx.lastPerformance!, notifier),
+          ],
           const SizedBox(height: 12),
 
           // Steppers
@@ -967,7 +1046,7 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
                               textBaseline: TextBaseline.alphabetic,
                               children: [
                                 Text(
-                                  currentEx.draftWeightKg.toStringAsFixed(0),
+                                  _formatWeight(currentEx.draftWeightKg),
                                   style: const TextStyle(
                                     fontSize: 17,
                                     fontWeight: FontWeight.bold,
@@ -1103,78 +1182,75 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
       margin: const EdgeInsets.only(bottom: 6),
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
-        color: SamanWorkoutTokens.cardSurface.withOpacity(0.2),
+        color: SamanWorkoutTokens.cardSurface.withOpacity(0.55),
         borderRadius: BorderRadius.circular(SamanWorkoutTokens.radiusMd),
         border: Border.all(
-          color: SamanWorkoutTokens.borderSubtle.withOpacity(0.4),
+          color: SamanWorkoutTokens.borderSubtle,
         ),
       ),
-      child: Opacity(
-        opacity: 0.5,
-        child: Row(
-          children: [
-            Expanded(
-              flex: 2,
-              child: Text(
-                set.setNumber.toString(),
-                style: const TextStyle(
-                  fontSize: 13,
-                  fontFamily: 'monospace',
-                  color: SamanWorkoutTokens.textMuted,
-                ),
+      child: Row(
+        children: [
+          Expanded(
+            flex: 2,
+            child: Text(
+              set.setNumber.toString(),
+              style: const TextStyle(
+                fontSize: 13,
+                fontFamily: 'monospace',
+                color: SamanWorkoutTokens.textMuted,
               ),
             ),
-            Expanded(
-              flex: 4,
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(
-                    set.targetWeightKg.toStringAsFixed(0),
-                    style: const TextStyle(
-                      fontSize: 14,
-                      fontFamily: 'monospace',
-                      color: SamanWorkoutTokens.textMuted,
-                    ),
-                  ),
-                  const SizedBox(width: 3),
-                  const Text(
-                    'kg',
-                    style: TextStyle(
-                      fontSize: 11,
-                      color: SamanWorkoutTokens.textMuted,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            Expanded(
-              flex: 3,
-              child: Text(
-                '${set.targetReps}',
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                  fontSize: 14,
-                  fontFamily: 'monospace',
-                  color: SamanWorkoutTokens.textMuted,
-                ),
-              ),
-            ),
-            const Expanded(
-              flex: 3,
-              child: Align(
-                alignment: Alignment.centerRight,
-                child: Text(
-                  '—',
-                  style: TextStyle(
+          ),
+          Expanded(
+            flex: 4,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  _formatWeight(set.targetWeightKg),
+                  style: const TextStyle(
                     fontSize: 14,
+                    fontFamily: 'monospace',
                     color: SamanWorkoutTokens.textMuted,
                   ),
                 ),
+                const SizedBox(width: 3),
+                const Text(
+                  'kg',
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: SamanWorkoutTokens.textMuted,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Expanded(
+            flex: 3,
+            child: Text(
+              '${set.targetReps}',
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                fontSize: 14,
+                fontFamily: 'monospace',
+                color: SamanWorkoutTokens.textMuted,
               ),
             ),
-          ],
-        ),
+          ),
+          const Expanded(
+            flex: 3,
+            child: Align(
+              alignment: Alignment.centerRight,
+              child: Text(
+                '—',
+                style: TextStyle(
+                  fontSize: 14,
+                  color: SamanWorkoutTokens.textMuted,
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -1285,7 +1361,12 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
         currentEx.activeSet?.setNumber ?? (currentEx.completedSetsCount + 1);
 
     return Container(
-      color: SamanWorkoutTokens.canvas,
+      decoration: const BoxDecoration(
+        color: SamanWorkoutTokens.canvas,
+        border: Border(
+          top: BorderSide(color: SamanWorkoutTokens.borderSubtle, width: 1),
+        ),
+      ),
       padding: EdgeInsets.fromLTRB(
         16,
         12,
@@ -1398,10 +1479,13 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
   void _showExerciseQueue(BuildContext context, ActiveWorkoutSessionState session) {
     showModalBottomSheet<void>(
       context: context,
+      backgroundColor: SamanWorkoutTokens.cardSurface,
       builder: (sheetContext) => SafeArea(child: ListView.builder(
         shrinkWrap: true,
         itemCount: session.exerciseCount,
         itemBuilder: (_, index) => ListTile(
+          textColor: SamanWorkoutTokens.textPrimary,
+          selectedColor: SamanWorkoutTokens.emeraldAccent,
           title: Text(session.exercises[index].name),
           selected: index == session.currentExerciseIndex,
           onTap: () {
@@ -1569,14 +1653,39 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
         id == 'lat-pulldown' ||
         slug == 'lat-pulldown';
 
-    // 2. Only active on Android platform
-    final isAndroid =
-        !kIsWeb && defaultTargetPlatform == TargetPlatform.android;
-
-    if (!isSupported || !isAndroid) {
-      _showFormCheckModal(context, cameraUnavailable: isSupported && !isAndroid);
+    // 2. Bypass platform & exercise check for live camera workout-cv
+    const bypassCheck = bool.fromEnvironment('BYPASS_CV_CHECK', defaultValue: false);
+    if (bypassCheck) {
+      _showFormCheckModal(context, cameraUnavailable: isSupported);
       return;
     }
+
+    final mode = await _showFormCheckSourceSheet(context);
+    if (mode == null || !context.mounted) return;
+
+    String? selectedVideoPath;
+    if (mode == 'upload') {
+      try {
+        final XFile? picked =
+            await ImagePicker().pickVideo(source: ImageSource.gallery);
+        if (picked == null || picked.path.isEmpty) return;
+        selectedVideoPath = picked.path;
+      } catch (e) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Failed to pick video: $e'),
+              backgroundColor: SamanWorkoutTokens.surfaceElevated,
+            ),
+          );
+        }
+        return;
+      }
+    } else if (mode == 'realtime') {
+      selectedVideoPath = null;
+    }
+
+    if (!context.mounted) return;
 
     // 3. Capture wasPaused and sessionId before opening CV
     final sessionNotifier = ref.read(activeWorkoutSessionProvider.notifier);
@@ -1587,18 +1696,25 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
     sessionNotifier.pauseWorkout();
 
     // 5. Navigate to WorkoutCvScreen
-    await Navigator.of(context).push(
-      MaterialPageRoute(
+    final result = await Navigator.of(context).push<CvFormSummary>(
+      MaterialPageRoute<CvFormSummary>(
         builder: (_) => WorkoutCvScreen(
           exerciseId: currentEx.id,
           exerciseSlug:
               currentEx.slug.isNotEmpty ? currentEx.slug : currentEx.id,
           exerciseName: currentEx.name,
+          videoPath: selectedVideoPath,
         ),
       ),
     );
 
     if (!context.mounted) return;
+
+    if (result != null &&
+        result.totalReps > 0 &&
+        sessionNotifier.sessionId == currentSessionId) {
+      sessionNotifier.attachCvFormSummary(currentEx.id, result.toJson());
+    }
 
     // 6. Resume ONLY if workout was active before opening and remains in the same unfinished session
     final currentSession = ref.read(activeWorkoutSessionProvider);
@@ -1607,6 +1723,502 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
         !wasPaused) {
       sessionNotifier.resumeWorkout();
     }
+  }
+
+  Future<String?> _showFormCheckSourceSheet(BuildContext context) {
+    return showModalBottomSheet<String>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: const Color(0xFF0C0D0E),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        side: BorderSide(color: Color(0xFF26282F), width: 1),
+      ),
+      builder: (modalCtx) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                // 1. Drag handle (36x4, #26282F)
+                Center(
+                  child: Container(
+                    width: 36,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF26282F),
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+
+                // 2. Header Area
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Container(
+                          width: 36,
+                          height: 36,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF16171B),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: const Color(0xFF26282F)),
+                          ),
+                          child: const Icon(
+                            Icons.videocam_outlined,
+                            size: 20,
+                            color: Color(0xFF10B981),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        const Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              'Form Check Mode',
+                              style: TextStyle(
+                                fontSize: 19,
+                                fontWeight: FontWeight.w600,
+                                color: Color(0xFFF9FAFB),
+                                letterSpacing: -0.2,
+                                fontFamily: 'Space Grotesk',
+                                fontFamilyFallback: [
+                                  'Manrope',
+                                  'Inter',
+                                  'sans-serif',
+                                ],
+                              ),
+                            ),
+                            SizedBox(height: 2),
+                            Text(
+                              'COMPUTER VISION ANALYSIS',
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w500,
+                                color: Color(0xFF94979E),
+                                letterSpacing: 1.0,
+                                fontFamily: 'JetBrains Mono',
+                                fontFamilyFallback: [
+                                  'monospace',
+                                  'Courier New',
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF212328),
+                        borderRadius: BorderRadius.circular(6),
+                        border: Border.all(color: const Color(0xFF26282F)),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Container(
+                            width: 6,
+                            height: 6,
+                            decoration: const BoxDecoration(
+                              color: Color(0xFF10B981),
+                              shape: BoxShape.circle,
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          const Text(
+                            'AI VERIFIED',
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w500,
+                              color: Color(0xFFCBD5E1),
+                              letterSpacing: 1.0,
+                              fontFamily: 'JetBrains Mono',
+                              fontFamilyFallback: [
+                                'monospace',
+                                'Courier New',
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+
+                // 3. Criteria / Info Row
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 10,
+                  ),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF16171B),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: const Color(0xFF26282F)),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Container(
+                            width: 24,
+                            height: 24,
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF212328),
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(color: const Color(0xFF26282F)),
+                            ),
+                            child: const Icon(
+                              Icons.info_outline,
+                              size: 14,
+                              color: Color(0xFF94979E),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          const Text(
+                            'SELECT INPUT SOURCE',
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w500,
+                              color: Color(0xFF94979E),
+                              letterSpacing: 1.0,
+                              fontFamily: 'JetBrains Mono',
+                              fontFamilyFallback: [
+                                'monospace',
+                                'Courier New',
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                      const Text(
+                        'Pose AI · 30 FPS',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
+                          color: Color(0xFFF3F4F6),
+                          fontFamily: 'JetBrains Mono',
+                          fontFamilyFallback: [
+                            'monospace',
+                            'Courier New',
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 14),
+
+                // 4. Mode Selection Container (2 options)
+                Container(
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF16171B),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: const Color(0xFF26282F)),
+                  ),
+                  clipBehavior: Clip.antiAlias,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // Option 1 — Record Real-time
+                      Material(
+                        color: Colors.transparent,
+                        child: InkWell(
+                          key: const ValueKey('form_check_mode_realtime'),
+                          onTap: () => Navigator.of(modalCtx).pop('realtime'),
+                          splashColor: const Color(0x33212328),
+                          highlightColor: const Color(0x1F212328),
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 14,
+                              vertical: 14,
+                            ),
+                            child: Row(
+                              children: [
+                                Container(
+                                  width: 48,
+                                  height: 48,
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFF212328),
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(
+                                      color: const Color(0xFF26282F),
+                                    ),
+                                  ),
+                                  child: const Icon(
+                                    Icons.videocam_outlined,
+                                    size: 24,
+                                    color: Color(0xFF10B981),
+                                  ),
+                                ),
+                                const SizedBox(width: 14),
+                                const Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        'Record Real-time',
+                                        style: TextStyle(
+                                          fontSize: 15,
+                                          fontWeight: FontWeight.w600,
+                                          color: Color(0xFFF3F4F6),
+                                          fontFamily: 'Inter',
+                                          fontFamilyFallback: [
+                                            'Manrope',
+                                            'sans-serif',
+                                          ],
+                                        ),
+                                      ),
+                                      SizedBox(height: 3),
+                                      Text(
+                                        'Use camera for live pose & rep tracking',
+                                        style: TextStyle(
+                                          fontSize: 12.5,
+                                          fontWeight: FontWeight.w400,
+                                          color: Color(0xFF94979E),
+                                          fontFamily: 'Inter',
+                                          fontFamilyFallback: [
+                                            'Manrope',
+                                            'sans-serif',
+                                          ],
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                const SizedBox(width: 10),
+                                Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 8,
+                                        vertical: 3.5,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: const Color(0xFF212328),
+                                        borderRadius: BorderRadius.circular(6),
+                                        border: Border.all(
+                                          color: const Color(0xFF26282F),
+                                        ),
+                                      ),
+                                      child: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Container(
+                                            width: 6,
+                                            height: 6,
+                                            decoration: const BoxDecoration(
+                                              color: Color(0xFF10B981),
+                                              shape: BoxShape.circle,
+                                            ),
+                                          ),
+                                          const SizedBox(width: 5),
+                                          const Text(
+                                            'LIVE',
+                                            style: TextStyle(
+                                              fontSize: 11,
+                                              fontWeight: FontWeight.w500,
+                                              color: Color(0xFFCBD5E1),
+                                              letterSpacing: 0.8,
+                                              fontFamily: 'JetBrains Mono',
+                                              fontFamilyFallback: [
+                                                'monospace',
+                                                'Courier New',
+                                              ],
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    const SizedBox(width: 6),
+                                    const Icon(
+                                      Icons.chevron_right,
+                                      size: 18,
+                                      color: Color(0xFF94979E),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                      const Divider(
+                        height: 1,
+                        thickness: 1,
+                        color: Color(0xFF26282F),
+                      ),
+                      // Option 2 — Upload from Device
+                      Material(
+                        color: Colors.transparent,
+                        child: InkWell(
+                          key: const ValueKey('form_check_mode_upload'),
+                          onTap: () => Navigator.of(modalCtx).pop('upload'),
+                          splashColor: const Color(0x33212328),
+                          highlightColor: const Color(0x1F212328),
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 14,
+                              vertical: 14,
+                            ),
+                            child: Row(
+                              children: [
+                                Container(
+                                  width: 48,
+                                  height: 48,
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFF212328),
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(
+                                      color: const Color(0xFF26282F),
+                                    ),
+                                  ),
+                                  child: const Icon(
+                                    Icons.video_library_outlined,
+                                    size: 24,
+                                    color: Color(0xFFCBD5E1),
+                                  ),
+                                ),
+                                const SizedBox(width: 14),
+                                const Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        'Upload from Device',
+                                        style: TextStyle(
+                                          fontSize: 15,
+                                          fontWeight: FontWeight.w600,
+                                          color: Color(0xFFF3F4F6),
+                                          fontFamily: 'Inter',
+                                          fontFamilyFallback: [
+                                            'Manrope',
+                                            'sans-serif',
+                                          ],
+                                        ),
+                                      ),
+                                      SizedBox(height: 3),
+                                      Text(
+                                        'Select an .mp4 workout video from gallery',
+                                        style: TextStyle(
+                                          fontSize: 12.5,
+                                          fontWeight: FontWeight.w400,
+                                          color: Color(0xFF94979E),
+                                          fontFamily: 'Inter',
+                                          fontFamilyFallback: [
+                                            'Manrope',
+                                            'sans-serif',
+                                          ],
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                const SizedBox(width: 10),
+                                Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 8,
+                                        vertical: 3.5,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: const Color(0xFF212328),
+                                        borderRadius: BorderRadius.circular(6),
+                                        border: Border.all(
+                                          color: const Color(0xFF26282F),
+                                        ),
+                                      ),
+                                      child: const Text(
+                                        'MP4',
+                                        style: TextStyle(
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.w500,
+                                          color: Color(0xFFCBD5E1),
+                                          letterSpacing: 0.8,
+                                          fontFamily: 'JetBrains Mono',
+                                          fontFamilyFallback: [
+                                            'monospace',
+                                            'Courier New',
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 6),
+                                    const Icon(
+                                      Icons.chevron_right,
+                                      size: 18,
+                                      color: Color(0xFF94979E),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 14),
+
+                // 5. Footer: Cancel Button
+                Container(
+                  height: 48,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF16171B),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: const Color(0xFF26282F)),
+                  ),
+                  clipBehavior: Clip.antiAlias,
+                  child: Material(
+                    color: Colors.transparent,
+                    child: InkWell(
+                      key: const ValueKey('form_check_mode_cancel_button'),
+                      onTap: () => Navigator.of(modalCtx).pop(),
+                      splashColor: const Color(0x33212328),
+                      highlightColor: const Color(0x1F212328),
+                      child: const Center(
+                        child: Text(
+                          'Cancel',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: Color(0xFFCBD5E1),
+                            fontFamily: 'Inter',
+                            fontFamilyFallback: ['Manrope', 'sans-serif'],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
   }
 
   void _showFormCheckModal(BuildContext context, {bool cameraUnavailable = false}) {

@@ -59,6 +59,24 @@ abstract class INutritionRepository {
   Future<Food?> createCustomFood(Map<String, dynamic> body);
   Future<Map<String, dynamic>> getWeeklyReport(String startDate);
   Future<Food?> getFoodById(String foodId);
+  Future<List<RecentMealSummary>> getRecentMeals({int days = 14, int limit = 10});
+  Future<bool> quickRelogMeal({
+    required String sourceLogId,
+    String? mealType,
+    String? date,
+  });
+  Future<List<Supplement>> getSupplements(String dateStr);
+  Future<Supplement> addSupplement(Map<String, dynamic> body);
+  Future<bool> deleteSupplement(String logId);
+  Future<List<RecipeModel>> getRecipes();
+  Future<RecipeModel> createRecipe(Map<String, dynamic> body);
+  Future<bool> deleteRecipe(String recipeId);
+  Future<bool> logRecipe(
+    String recipeId, {
+    String? date,
+    String mealType = 'snack',
+    double servingsConsumed = 1.0,
+  });
 }
 
 /// Raised when an operation lookup finds an in-progress or failed_unknown operation

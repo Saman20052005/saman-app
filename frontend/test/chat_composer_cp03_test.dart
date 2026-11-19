@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:health_ai_app/config/app_theme.dart';
@@ -86,6 +87,13 @@ Widget _buildComposerTestHarness({
 }) {
   return MaterialApp(
     debugShowCheckedModeBanner: false,
+    locale: const Locale('vi'),
+    supportedLocales: const [Locale('vi'), Locale('en')],
+    localizationsDelegates: const [
+      GlobalMaterialLocalizations.delegate,
+      GlobalWidgetsLocalizations.delegate,
+      GlobalCupertinoLocalizations.delegate,
+    ],
     theme: SamanTheme.dark(),
     home: Scaffold(
       backgroundColor: SamanChatTokens.canvas,
@@ -447,6 +455,252 @@ void main() {
       // CircularProgressIndicator is displayed instead of active send button
       expect(find.byType(CircularProgressIndicator), findsOneWidget);
       expect(find.byIcon(Icons.arrow_upward_rounded), findsNothing);
+    });
+
+    testWidgets('10. Mode menu stays open when TextField is focused with keyboard insets and minor metric jitter', (tester) async {
+      final controller = TextEditingController();
+      final focusNode = FocusNode();
+      addTearDown(controller.dispose);
+      addTearDown(focusNode.dispose);
+
+      // Simulate mobile portrait screen with open soft keyboard (viewInsets.bottom = 300)
+      tester.view.physicalSize = const Size(390, 844);
+      tester.view.devicePixelRatio = 1.0;
+      tester.view.viewInsets = const FakeViewPadding(bottom: 300.0);
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      addTearDown(tester.view.resetViewInsets);
+
+      await tester.pumpWidget(_buildComposerTestHarness(
+        controller: controller,
+        focusNode: focusNode,
+      ));
+      await tester.pumpAndSettle();
+
+      // Focus TextField (simulating active typing with keyboard open)
+      await tester.tap(find.byType(TextField));
+      await tester.pumpAndSettle();
+      expect(focusNode.hasFocus, isTrue);
+
+      // Tap "Core 3" mode selector button
+      await tester.tap(find.text('Core 3'));
+      await tester.pump();
+      // Simulate immediate metric jitter right after overlay opens
+      tester.view.viewInsets = const FakeViewPadding(bottom: 288.0);
+      tester.binding.handleMetricsChanged();
+      await tester.pumpAndSettle();
+
+      // Mode menu remains open (not self-dismissed by focus change or metric jitter)
+      expect(find.byIcon(Icons.keyboard_arrow_up_rounded), findsOneWidget);
+      expect(find.text('Mặc định toàn diện'), findsOneWidget);
+      expect(find.text('Swift 3'), findsOneWidget);
+      expect(find.text('Pro 3'), findsOneWidget);
+
+      // Tapping Swift 3 closes menu and shows Pilot feedback SnackBar cleanly
+      await tester.tap(find.text('Swift 3'));
+      await tester.pumpAndSettle();
+      expect(find.text('Mặc định toàn diện'), findsNothing);
+      expect(find.text('Chế độ Swift 3 đang được hiệu chuẩn, vui lòng trải nghiệm Core 3.'), findsOneWidget);
+    });
+
+    testWidgets('11. Mode menu unfocuses TextField and stays open when keyboard collapses 300 -> 250 -> 0', (tester) async {
+      final controller = TextEditingController();
+      final focusNode = FocusNode();
+      addTearDown(controller.dispose);
+      addTearDown(focusNode.dispose);
+
+      tester.view.physicalSize = const Size(390, 844);
+      tester.view.devicePixelRatio = 1.0;
+      tester.view.viewInsets = const FakeViewPadding(bottom: 300.0);
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      addTearDown(tester.view.resetViewInsets);
+
+      await tester.pumpWidget(_buildComposerTestHarness(
+        controller: controller,
+        focusNode: focusNode,
+      ));
+      await tester.pumpAndSettle();
+
+      // Focus TextField while keyboard is open
+      await tester.tap(find.byType(TextField));
+      await tester.pumpAndSettle();
+      expect(focusNode.hasFocus, isTrue);
+
+      // Tap "Core 3" -> unfocuses TextField and opens mode menu
+      await tester.tap(find.text('Core 3'));
+      await tester.pump();
+      expect(focusNode.hasFocus, isFalse);
+
+      // Simulate keyboard sliding down: 300.0 -> 250.0 -> 0.0 with didChangeMetrics
+      tester.view.viewInsets = const FakeViewPadding(bottom: 250.0);
+      tester.binding.handleMetricsChanged();
+      await tester.pump();
+
+      tester.view.viewInsets = FakeViewPadding.zero;
+      tester.binding.handleMetricsChanged();
+      await tester.pumpAndSettle();
+
+      // Focus did not bounce back, and menu remains open with all 3 models visible
+      expect(focusNode.hasFocus, isFalse);
+      expect(find.byIcon(Icons.keyboard_arrow_up_rounded), findsOneWidget);
+      expect(find.text('Mặc định toàn diện'), findsOneWidget);
+      expect(find.text('Swift 3'), findsOneWidget);
+      expect(find.text('Pro 3'), findsOneWidget);
+      expect(find.text('Mức độ suy luận'), findsOneWidget);
+
+      final modeButtonRect = tester.getRect(find.descendant(
+        of: find.byType(SamanChatComposer),
+        matching: find.text('Core 3'),
+      ));
+      final menuRect = tester.getRect(find.ancestor(
+        of: find.text('Mặc định toàn diện'),
+        matching: find.byType(SingleChildScrollView),
+      ));
+      expect(menuRect.bottom, lessThanOrEqualTo(modeButtonRect.top));
+
+      // Menu only closes when tapping backdrop
+      await tester.tapAt(const Offset(20, 20));
+      await tester.pumpAndSettle();
+      expect(find.text('Mặc định toàn diện'), findsNothing);
+      expect(find.byIcon(Icons.keyboard_arrow_down_rounded), findsOneWidget);
+    });
+
+    testWidgets('12. Mode menu dynamic opensUpward places menu strictly above Core 3 when composer is at bottom', (tester) async {
+      final controller = TextEditingController();
+      final focusNode = FocusNode();
+      addTearDown(controller.dispose);
+      addTearDown(focusNode.dispose);
+
+      tester.view.physicalSize = const Size(390, 844);
+      tester.view.devicePixelRatio = 1.0;
+      tester.view.viewInsets = const FakeViewPadding(bottom: 300.0);
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      addTearDown(tester.view.resetViewInsets);
+
+      await tester.pumpWidget(MaterialApp(
+        debugShowCheckedModeBanner: false,
+        locale: const Locale('vi'),
+        supportedLocales: const [Locale('vi'), Locale('en')],
+        localizationsDelegates: const [
+          GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+        ],
+        theme: SamanTheme.dark(),
+        home: Scaffold(
+          backgroundColor: SamanChatTokens.canvas,
+          body: Align(
+            alignment: Alignment.bottomCenter,
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: SamanChatComposer(
+                controller: controller,
+                focusNode: focusNode,
+                onSend: () {},
+              ),
+            ),
+          ),
+        ),
+      ));
+      await tester.pumpAndSettle();
+
+      // Focus TextField while keyboard is up
+      await tester.tap(find.byType(TextField));
+      await tester.pumpAndSettle();
+
+      // Tap "Core 3" to open mode menu
+      await tester.tap(find.text('Core 3'));
+      await tester.pump();
+
+      // Keyboard collapses to bottom
+      tester.view.viewInsets = FakeViewPadding.zero;
+      tester.binding.handleMetricsChanged();
+      await tester.pumpAndSettle();
+
+      // Verify menu remains open and renders all options
+      expect(find.text('Mặc định toàn diện'), findsOneWidget);
+      expect(find.text('Swift 3'), findsOneWidget);
+      expect(find.text('Pro 3'), findsOneWidget);
+
+      final modeButtonRect = tester.getRect(find.descendant(
+        of: find.byType(SamanChatComposer),
+        matching: find.text('Core 3'),
+      ));
+      final menuRect = tester.getRect(find.ancestor(
+        of: find.text('Mặc định toàn diện'),
+        matching: find.byType(SingleChildScrollView),
+      ));
+
+      // Assert RenderBox of menu popover is strictly ABOVE the "Core 3" button
+      expect(menuRect.bottom, lessThanOrEqualTo(modeButtonRect.top));
+    });
+
+    testWidgets('13. Tools menu (+) dynamic opensUpward places menu strictly above + button when keyboard collapses', (tester) async {
+      final controller = TextEditingController();
+      final focusNode = FocusNode();
+      addTearDown(controller.dispose);
+      addTearDown(focusNode.dispose);
+
+      tester.view.physicalSize = const Size(390, 844);
+      tester.view.devicePixelRatio = 1.0;
+      tester.view.viewInsets = const FakeViewPadding(bottom: 300.0);
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      addTearDown(tester.view.resetViewInsets);
+
+      await tester.pumpWidget(MaterialApp(
+        debugShowCheckedModeBanner: false,
+        locale: const Locale('vi'),
+        supportedLocales: const [Locale('vi'), Locale('en')],
+        localizationsDelegates: const [
+          GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+        ],
+        theme: SamanTheme.dark(),
+        home: Scaffold(
+          backgroundColor: SamanChatTokens.canvas,
+          body: Align(
+            alignment: Alignment.bottomCenter,
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: SamanChatComposer(
+                controller: controller,
+                focusNode: focusNode,
+                onSend: () {},
+              ),
+            ),
+          ),
+        ),
+      ));
+      await tester.pumpAndSettle();
+
+      // Focus TextField while keyboard is up
+      await tester.tap(find.byType(TextField));
+      await tester.pumpAndSettle();
+
+      // Tap "+" button to open tools menu
+      await tester.tap(find.byIcon(Icons.add_rounded));
+      await tester.pump();
+
+      // Keyboard collapses to bottom
+      tester.view.viewInsets = FakeViewPadding.zero;
+      tester.binding.handleMetricsChanged();
+      await tester.pumpAndSettle();
+
+      // Verify tools menu is open
+      expect(find.text('Phân tích ảnh món ăn'), findsOneWidget);
+
+      final toolsButtonRect = tester.getRect(find.byIcon(Icons.close_rounded));
+      final toolsMenuRect = tester.getRect(find.ancestor(
+        of: find.text('Phân tích ảnh món ăn'),
+        matching: find.byType(Material),
+      ));
+
+      // Assert RenderBox of tools menu popover is strictly ABOVE the "+" button
+      expect(toolsMenuRect.bottom, lessThanOrEqualTo(toolsButtonRect.top));
     });
   });
 }

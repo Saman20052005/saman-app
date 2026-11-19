@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../../../screens/home/tokens/saman_home_tokens.dart';
+import '../../../../../widgets/saman_feedback_snackbar.dart';
 
 class CommunityEditProfileScreen extends StatefulWidget {
   final String? initialName;
@@ -66,12 +67,11 @@ class _CommunityEditProfileScreenState
     await Future.delayed(const Duration(milliseconds: 300));
     if (!mounted) return;
     setState(() => _isSaving = false);
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Đã cập nhật hồ sơ thành công!'),
-        backgroundColor: Color(0xFF003824),
-        duration: Duration(seconds: 2),
-      ),
+    SamanFeedbackSnackBar.show(
+      context,
+      message: 'Đã cập nhật hồ sơ thành công!',
+      type: FeedbackType.success,
+      duration: const Duration(seconds: 2),
     );
     Navigator.pop(context, {
       'name': _nameController.text.trim(),

@@ -42,6 +42,7 @@ class SamanCompanionBar extends StatelessWidget {
           vertical: 10,
         ),
         child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             const Icon(
               Icons.bolt_rounded,
@@ -51,12 +52,12 @@ class SamanCompanionBar extends StatelessWidget {
             const SizedBox(width: SamanHomeTokens.spacingSm),
             Expanded(
               child: RichText(
-                maxLines: 2,
+                maxLines: 3,
                 overflow: TextOverflow.ellipsis,
                 text: TextSpan(
                   style: const TextStyle(
                     fontSize: 12,
-                    height: 1.3,
+                    height: 1.35,
                     color: SamanHomeTokens.textSecondary,
                   ),
                   children: [

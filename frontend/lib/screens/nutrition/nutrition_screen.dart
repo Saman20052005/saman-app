@@ -14,6 +14,8 @@ import '../../../providers/profile_provider.dart';
 
 import '../food_log_screen.dart';
 
+import '../main_screen.dart';
+
 import 'meal_story_screen.dart';
 
 import 'weekly_report_screen.dart';
@@ -34,7 +36,11 @@ import 'widgets/nutrition_logged_meal_card.dart';
 
 import 'widgets/nutrition_summary.dart';
 
+import 'widgets/nutrition_supplements_card.dart';
+
 import 'widgets/nutrition_water_card.dart';
+
+import '../../features/nutrition/presentation/providers/recipes_supplements_provider.dart';
 
 import 'widgets/plan_generator_sheet.dart';
 
@@ -84,9 +90,16 @@ class NutritionScreen extends ConsumerStatefulWidget {
 
 class _NutritionScreenState extends ConsumerState<NutritionScreen> {
 
-  DateTime _selectedDate = DateTime.now();
+  static DateTime _vnToday() {
+    final vn = DateTime.now().toUtc().add(const Duration(hours: 7));
+    return DateTime(vn.year, vn.month, vn.day);
+  }
+
+  DateTime _selectedDate = _vnToday();
 
   bool _isWaterUpdating = false;
+
+  final Set<String> _loadedSupplementDates = <String>{};
 
 
 
@@ -128,6 +141,14 @@ class _NutritionScreenState extends ConsumerState<NutritionScreen> {
 
     final profile = ref.read(profileProvider);
 
+    if (!profile.isProfileValid) {
+
+      debugPrint('⏳ Profile invalid, blocking loadDailyPlan');
+
+      return;
+
+    }
+
     ref.read(nutritionProvider.notifier).loadDailyPlan(
 
           _selectedDate,
@@ -139,6 +160,15 @@ class _NutritionScreenState extends ConsumerState<NutritionScreen> {
           fallbackGoal: profile.profile.goal.name,
 
         );
+
+    final dateStr = DateFormat('yyyy-MM-dd').format(_selectedDate);
+    if (forceRefresh || !_loadedSupplementDates.contains(dateStr)) {
+      _loadedSupplementDates.add(dateStr);
+      Future.microtask(() {
+        if (!mounted) return;
+        ref.read(supplementsByDateProvider(dateStr).notifier).load();
+      });
+    }
 
   }
 
@@ -200,8 +230,6 @@ class _NutritionScreenState extends ConsumerState<NutritionScreen> {
 
   }
 
-
-
   void _openQuickLogMeal(String mealType) async {
 
     if (_isNavigating) return;
@@ -251,8 +279,6 @@ class _NutritionScreenState extends ConsumerState<NutritionScreen> {
     }
 
   }
-
-
 
   void _openReviewPortion(UsualFoodItem food) async {
 
@@ -324,6 +350,25 @@ class _NutritionScreenState extends ConsumerState<NutritionScreen> {
 
     }
 
+  }
+
+  Future<void> _handleQuickRelogMeal(RecentMealSummary meal) async {
+    final ok = await ref.read(nutritionProvider.notifier).quickRelogMeal(
+          sourceLogId: meal.sourceLogId,
+          mealType: meal.mealType.isNotEmpty ? meal.mealType : null,
+          date: _selectedDate,
+        );
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SamanFeedbackSnackBar.build(
+        context: context,
+        message: ok
+            ? 'Đã ghi nhanh "${meal.title}"!'
+            : 'Không thể ghi nhanh bữa ăn. Vui lòng thử lại.',
+        type: ok ? FeedbackType.success : FeedbackType.error,
+        duration: const Duration(seconds: 2),
+      ),
+    );
   }
 
 
@@ -1068,6 +1113,8 @@ class _NutritionScreenState extends ConsumerState<NutritionScreen> {
 
                       onPressed: () {
 
+                        ref.read(mainNavIndexProvider.notifier).state = 4;
+
                         ScaffoldMessenger.of(context).showSnackBar(
 
                           const SnackBar(
@@ -1274,11 +1321,13 @@ class _NutritionScreenState extends ConsumerState<NutritionScreen> {
 
 
 
+    final dateStr = DateFormat('yyyy-MM-dd').format(_selectedDate);
+
     final effectivePlan = plan ??
 
         NutritionPlan(
 
-          date: DateFormat('yyyy-MM-dd').format(_selectedDate),
+          date: dateStr,
 
           meals: [],
 
@@ -1352,20 +1401,28 @@ class _NutritionScreenState extends ConsumerState<NutritionScreen> {
 
         const SizedBox(height: 16),
 
+        // 6b. Supplements Card
+        NutritionSupplementsCard(
+          dateStr: dateStr,
+          fallbackSupplements: effectivePlan.supplements,
+        ),
+        const SizedBox(height: 16),
+
 
 
         // 7. Planned Meal Card
 
-        _buildPlannedMealSection(
-
-          meals,
-
-          profile,
-
-          profile.targetCalories - effectivePlan.totalCaloriesConsumed,
-
-          effectivePlan.totalCaloriesConsumed,
-
+        Builder(
+          builder: (context) {
+            final effectiveTargetCal =
+                effectivePlan.dynamicTarget?.calories ?? profile.targetCalories;
+            return _buildPlannedMealSection(
+              meals,
+              profile,
+              effectiveTargetCal - effectivePlan.totalCaloriesConsumed,
+              effectivePlan.totalCaloriesConsumed,
+            );
+          },
         ),
 
       ],
@@ -1599,6 +1656,8 @@ class _NutritionScreenState extends ConsumerState<NutritionScreen> {
       onQuickLog: _openQuickLogMeal,
 
       onReviewPortion: _openReviewPortion,
+
+      onQuickRelogMeal: _handleQuickRelogMeal,
 
     );
 
@@ -2078,7 +2137,7 @@ class _NutritionScreenState extends ConsumerState<NutritionScreen> {
 
               fontSize: 12,
 
-              color: Color(0xFF6B7280),
+              color: Color(0xFF9CA3AF),
 
             ),
 

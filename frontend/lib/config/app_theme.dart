@@ -127,49 +127,74 @@ class SamanTheme {
   static const _lSecond = Color(0xFF888888);
   static const _lOutline = Color(0xFFE8E8E8);
 
-  // ─── Dark palette ───────────────────────────────────────────────
-  static const _dBg = Color(0xFF0F0F0F);
-  static const _dSurface = Color(0xFF1C1C1C);
-  static const _dPrimary = Color(0xFFF0F0F0);
-  static const _dSecond = Color(0xFF888888);
-  static const _dOutline = Color(0xFF2A2A2A);
+  // ─── Dark palette (Calm Athleticism + WCAG AA) ──────────────────
+  static const _dBg = Color(0xFF0C0D0E);
+  static const _dSurface = Color(0xFF16171B);
+  static const _dSurfaceElevated = Color(0xFF1E2026);
+  static const _dPrimary = Color(0xFFF9FAFB);
+  static const _dSecond = Color(0xFF9CA3AF);
+  static const _dSubtle = Color(0xFF6B7280);
+  static const _dOutline = Color(0xFF26282F);
+  static const _dAccent = Color(0xFF10B981);
+  static const _dOnAccent = Color(0xFF052E16);
 
   // ─── Semantic (shared) ──────────────────────────────────────────
   static const success = Color(0xFF4CAF50);
   static const danger = Color(0xFFE53935);
   static const warning = Color(0xFFFFA726);
 
-  static TextTheme _textTheme(Color color) {
-    return GoogleFonts.interTextTheme(TextTheme(
-      displayLarge: GoogleFonts.inter(
+  static TextTheme _textTheme(Color color, {Color? secondaryColor}) {
+    final subColor = secondaryColor ?? color;
+    return GoogleFonts.manropeTextTheme(TextTheme(
+      displayLarge: GoogleFonts.manrope(
         fontSize: 32,
         fontWeight: FontWeight.w700,
         color: color,
       ),
-      headlineMedium: GoogleFonts.inter(
+      headlineMedium: GoogleFonts.manrope(
         fontSize: 24,
         fontWeight: FontWeight.w600,
         color: color,
       ),
-      titleLarge: GoogleFonts.inter(
+      titleLarge: GoogleFonts.manrope(
         fontSize: 18,
         fontWeight: FontWeight.w600,
         color: color,
       ),
-      bodyLarge: GoogleFonts.inter(
+      titleMedium: GoogleFonts.manrope(
+        fontSize: 16,
+        fontWeight: FontWeight.w600,
+        color: color,
+      ),
+      titleSmall: GoogleFonts.manrope(
+        fontSize: 14,
+        fontWeight: FontWeight.w600,
+        color: color,
+      ),
+      bodyLarge: GoogleFonts.manrope(
         fontSize: 15,
         fontWeight: FontWeight.w400,
         color: color,
       ),
-      bodyMedium: GoogleFonts.inter(
+      bodyMedium: GoogleFonts.manrope(
         fontSize: 15,
         fontWeight: FontWeight.w400,
         color: color,
       ),
-      labelSmall: GoogleFonts.inter(
+      bodySmall: GoogleFonts.manrope(
         fontSize: 13,
         fontWeight: FontWeight.w400,
+        color: subColor,
+      ),
+      labelLarge: GoogleFonts.manrope(
+        fontSize: 14,
+        fontWeight: FontWeight.w600,
         color: color,
+      ),
+      labelSmall: GoogleFonts.manrope(
+        fontSize: 13,
+        fontWeight: FontWeight.w400,
+        color: subColor,
       ),
     ));
   }
@@ -204,21 +229,21 @@ class SamanTheme {
           hairline: AppColors.hairline,
           surfaceElevated: AppColors.surfaceElevated,
           heroNumeric: TextStyle(
-            fontFamily: 'Inter',
+            fontFamily: 'Manrope',
             fontSize: 44,
             fontWeight: FontWeight.w800,
             letterSpacing: -2,
             color: AppColors.ink,
           ),
           labelCaps: TextStyle(
-            fontFamily: 'Inter',
+            fontFamily: 'Manrope',
             fontSize: 11,
             fontWeight: FontWeight.w700,
             letterSpacing: 1.4,
             color: AppColors.inkMuted,
           ),
           statValue: TextStyle(
-            fontFamily: 'Inter',
+            fontFamily: 'Manrope',
             fontSize: 17,
             fontWeight: FontWeight.w700,
             letterSpacing: -0.5,
@@ -302,11 +327,17 @@ class SamanTheme {
         ),
       ),
       snackBarTheme: const SnackBarThemeData(
-        backgroundColor: _lPrimary,
-        contentTextStyle: TextStyle(color: Colors.white),
+        backgroundColor: Color(0xFFF2F3F5),
+        contentTextStyle: TextStyle(
+          fontFamily: 'Manrope',
+          color: Color(0xFF1A1A18),
+          fontSize: 14,
+          fontWeight: FontWeight.w500,
+        ),
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.all(Radius.circular(12)),
+          side: BorderSide(color: Color(0xFFDADCE0), width: 1),
         ),
       ),
       bottomSheetTheme: const BottomSheetThemeData(
@@ -328,42 +359,42 @@ class SamanTheme {
       cardColor: _dSurface,
       dividerColor: _dOutline,
       colorScheme: const ColorScheme.dark(
-        primary: AppColors.primary,
-        onPrimary: AppColors.onPrimary,
+        primary: _dAccent,
+        onPrimary: _dOnAccent,
         secondary: _dSecond,
-        onSecondary: Color(0xFF0F0F0F),
+        onSecondary: _dBg,
         surface: _dSurface,
         onSurface: _dPrimary,
         outline: _dOutline,
-        surfaceContainerHighest: Color(0xFF252525),
+        surfaceContainerHighest: _dSurfaceElevated,
         error: danger,
       ),
-      textTheme: _textTheme(_dPrimary),
+      textTheme: _textTheme(_dPrimary, secondaryColor: _dSecond),
       extensions: const [
         AppThemeExtension(
           aiAccent: AppColors.aiAccent,
           primaryPressed: AppColors.primaryPressed,
           warning: AppColors.warning,
           inkMuted: _dSecond,
-          inkSubtle: Color(0xFF666666),
+          inkSubtle: _dSubtle,
           hairline: _dOutline,
-          surfaceElevated: Color(0xFF252525),
+          surfaceElevated: _dSurfaceElevated,
           heroNumeric: TextStyle(
-            fontFamily: 'Inter',
+            fontFamily: 'Manrope',
             fontSize: 44,
             fontWeight: FontWeight.w800,
             letterSpacing: -2,
             color: _dPrimary,
           ),
           labelCaps: TextStyle(
-            fontFamily: 'Inter',
+            fontFamily: 'Manrope',
             fontSize: 11,
             fontWeight: FontWeight.w700,
             letterSpacing: 1.4,
             color: _dSecond,
           ),
           statValue: TextStyle(
-            fontFamily: 'Inter',
+            fontFamily: 'Manrope',
             fontSize: 17,
             fontWeight: FontWeight.w700,
             letterSpacing: -0.5,
@@ -391,18 +422,43 @@ class SamanTheme {
         actionsIconTheme: IconThemeData(color: _dPrimary, size: 22),
       ),
       floatingActionButtonTheme: const FloatingActionButtonThemeData(
-        backgroundColor: AppColors.primary,
-        foregroundColor: AppColors.onPrimary,
+        backgroundColor: _dAccent,
+        foregroundColor: _dOnAccent,
         elevation: 0,
         shape: StadiumBorder(),
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
-          backgroundColor: AppColors.primary,
-          foregroundColor: AppColors.onPrimary,
-          disabledBackgroundColor: const Color(0xFF2D2D2D),
-          disabledForegroundColor: const Color(0xFF666666),
+          backgroundColor: _dAccent,
+          foregroundColor: _dOnAccent,
+          disabledBackgroundColor: _dSurfaceElevated,
+          disabledForegroundColor: _dSubtle,
           elevation: 0,
+          shape: const RoundedRectangleBorder(
+            borderRadius: BorderRadius.all(Radius.circular(12)),
+          ),
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+          textStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+        ),
+      ),
+      filledButtonTheme: FilledButtonThemeData(
+        style: FilledButton.styleFrom(
+          backgroundColor: _dAccent,
+          foregroundColor: _dOnAccent,
+          disabledBackgroundColor: _dSurfaceElevated,
+          disabledForegroundColor: _dSubtle,
+          elevation: 0,
+          shape: const RoundedRectangleBorder(
+            borderRadius: BorderRadius.all(Radius.circular(12)),
+          ),
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+          textStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+        ),
+      ),
+      outlinedButtonTheme: OutlinedButtonThemeData(
+        style: OutlinedButton.styleFrom(
+          foregroundColor: _dPrimary,
+          side: const BorderSide(color: _dOutline),
           shape: const RoundedRectangleBorder(
             borderRadius: BorderRadius.all(Radius.circular(12)),
           ),
@@ -413,25 +469,26 @@ class SamanTheme {
       textButtonTheme: TextButtonThemeData(
         style: TextButton.styleFrom(foregroundColor: _dPrimary),
       ),
-      inputDecorationTheme: InputDecorationTheme(
+      inputDecorationTheme: const InputDecorationTheme(
         filled: true,
         fillColor: _dSurface,
-        hintStyle: const TextStyle(color: _dSecond),
+        hintStyle: TextStyle(color: _dSubtle),
+        labelStyle: TextStyle(color: _dSecond),
         border: OutlineInputBorder(
-          borderRadius: const BorderRadius.all(Radius.circular(12)),
-          borderSide: const BorderSide(color: _dOutline),
+          borderRadius: BorderRadius.all(Radius.circular(12)),
+          borderSide: BorderSide(color: _dOutline),
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: const BorderRadius.all(Radius.circular(12)),
-          borderSide: const BorderSide(color: _dOutline),
+          borderRadius: BorderRadius.all(Radius.circular(12)),
+          borderSide: BorderSide(color: _dOutline),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: const BorderRadius.all(Radius.circular(12)),
-          borderSide: const BorderSide(color: _dPrimary, width: 1.5),
+          borderRadius: BorderRadius.all(Radius.circular(12)),
+          borderSide: BorderSide(color: _dAccent, width: 1.5),
         ),
       ),
       progressIndicatorTheme: const ProgressIndicatorThemeData(
-        color: _dPrimary,
+        color: _dAccent,
         linearTrackColor: _dOutline,
       ),
       chipTheme: const ChipThemeData(
@@ -440,22 +497,40 @@ class SamanTheme {
         labelStyle: TextStyle(color: _dPrimary, fontWeight: FontWeight.w500),
       ),
       dialogTheme: const DialogTheme(
-        backgroundColor: _dSurface,
+        backgroundColor: _dSurfaceElevated,
         surfaceTintColor: Colors.transparent,
+        titleTextStyle: TextStyle(
+          fontFamily: 'Manrope',
+          color: _dPrimary,
+          fontSize: 18,
+          fontWeight: FontWeight.w600,
+        ),
+        contentTextStyle: TextStyle(
+          fontFamily: 'Manrope',
+          color: _dSecond,
+          fontSize: 14,
+          fontWeight: FontWeight.w400,
+        ),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.all(Radius.circular(20)),
         ),
       ),
       snackBarTheme: const SnackBarThemeData(
-        backgroundColor: _dSurface,
-        contentTextStyle: TextStyle(color: _dPrimary),
+        backgroundColor: Color(0xFF26282D),
+        contentTextStyle: TextStyle(
+          fontFamily: 'Manrope',
+          color: Color(0xFFF3F4F6),
+          fontSize: 14,
+          fontWeight: FontWeight.w500,
+        ),
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.all(Radius.circular(12)),
+          side: BorderSide(color: Color(0xFF383A40), width: 1),
         ),
       ),
       bottomSheetTheme: const BottomSheetThemeData(
-        backgroundColor: _dSurface,
+        backgroundColor: _dSurfaceElevated,
         surfaceTintColor: Colors.transparent,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
@@ -467,20 +542,20 @@ class SamanTheme {
 
 // ─── Context extensions: dùng trong build() ────────────────────────
 extension SamanColors on BuildContext {
-  /// Card background — white (light) / #1C1C1C (dark)
+  /// Card background — white (light) / #16171B (dark)
   Color get surfaceColor => Theme.of(this).cardColor;
 
-  /// Page background — #F5F5F5 (light) / #0F0F0F (dark)
+  /// Page background — #FAF8F5 (light) / #0C0D0E (dark)
   Color get bgColor => Theme.of(this).scaffoldBackgroundColor;
 
-  /// Charcoal insight card — #2D2D2D (light) / #1A1A1A (dark)
+  /// Charcoal insight card — #2D2D2D (light) / #1E2026 (dark)
   Color get insightCardColor => Theme.of(this).brightness == Brightness.dark
-      ? const Color(0xFF1A1A1A)
+      ? const Color(0xFF1E2026)
       : const Color(0xFF2D2D2D);
 
   /// Progress track — muted gray adaptive
   Color get trackColor => Theme.of(this).brightness == Brightness.dark
-      ? const Color(0xFF2A2A2A)
+      ? const Color(0xFF26282F)
       : const Color(0xFFE8E8E8);
 
   /// Adaptive card shadow

@@ -22,13 +22,13 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 // ── Notifier (không thay đổi gì) ─────────────────────────────────────────────
 class ThemeNotifier extends StateNotifier<ThemeMode> {
-  ThemeNotifier() : super(ThemeMode.light) {
+  ThemeNotifier() : super(ThemeMode.dark) {
     _loadTheme();
   }
 
   Future<void> _loadTheme() async {
     final prefs = await SharedPreferences.getInstance();
-    final isDark = prefs.getBool('is_dark_mode') ?? false; // key giữ nguyên
+    final isDark = prefs.getBool('is_dark_mode') ?? true; // key giữ nguyên
     state = isDark ? ThemeMode.dark : ThemeMode.light;
   }
 

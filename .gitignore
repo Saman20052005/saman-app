@@ -103,3 +103,14 @@ env/
 **/ios/Flutter/flutter_export_environment.sh
 .aider-desk/
 
+## AI Context Packing
+saman_context_*.xml
+qa_context_*.xml
+flutter_test_log_*.txt
+pack_for_ai.py
+
+## UI Audit Binary Screenshots & Local Cache
+qa_artifacts/ui_audit/before/
+qa_artifacts/ui_audit/after/
+qa_artifacts/ui_audit/.ui_guard_baseline.json
+

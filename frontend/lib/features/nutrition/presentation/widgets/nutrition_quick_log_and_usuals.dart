@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../config/app_translations.dart';
+import '../../../../models/nutrition_model.dart';
+import '../../../../providers/nutrition_provider.dart';
 import '../../../../theme/nutrition_home_theme.dart';
 import '../../data/food_image_manifest.dart';
 import '../providers/nutrition_usual_foods_provider.dart';
@@ -11,16 +13,19 @@ class NutritionQuickLogAndUsuals extends ConsumerWidget {
     required this.selectedDate,
     required this.onQuickLog,
     required this.onReviewPortion,
+    this.onQuickRelogMeal,
     super.key,
   });
 
   final DateTime selectedDate;
   final void Function(String mealType) onQuickLog;
   final void Function(UsualFoodItem food) onReviewPortion;
+  final Future<void> Function(RecentMealSummary meal)? onQuickRelogMeal;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final usualsState = ref.watch(usualFoodsProvider);
+    final recentMealsAsync = ref.watch(recentMealsProvider);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -41,6 +46,22 @@ class NutritionQuickLogAndUsuals extends ConsumerWidget {
               ref.read(usualFoodsProvider.notifier).toggleFavorite(food),
           onReviewPortion: onReviewPortion,
           onRetry: () => ref.read(usualFoodsProvider.notifier).retry(),
+        ),
+
+        // 3. Recent Meals · 1-Tap Relog Panel
+        recentMealsAsync.when(
+          data: (meals) {
+            if (meals.isEmpty) return const SizedBox.shrink();
+            return Padding(
+              padding: const EdgeInsets.only(top: 16),
+              child: _RecentMealsSection(
+                meals: meals.take(5).toList(),
+                onQuickRelogMeal: onQuickRelogMeal,
+              ),
+            );
+          },
+          loading: () => const SizedBox.shrink(),
+          error: (_, __) => const SizedBox.shrink(),
         ),
       ],
     );
@@ -413,7 +434,7 @@ class NutritionYourUsualsCard extends StatelessWidget {
       ),
       child: Row(
         children: [
-          Icon(icon, size: 22, color: const Color(0xFF6B7280)),
+          Icon(icon, size: 22, color: const Color(0xFF9CA3AF)),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
@@ -650,7 +671,7 @@ class _UsualFoodCard extends StatelessWidget {
                   isFavorite ? Icons.favorite : Icons.favorite_border,
                   color: isFavorite
                       ? const Color(0xFF10B981)
-                      : const Color(0xFF6B7280),
+                      : const Color(0xFF9CA3AF),
                 ),
                 onPressed: onToggleFavorite,
               ),
@@ -659,11 +680,180 @@ class _UsualFoodCard extends StatelessWidget {
               const Icon(
                 Icons.chevron_right,
                 size: 16,
-                color: Color(0xFF6B7280),
+                color: Color(0xFF9CA3AF),
               ),
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _RecentMealsSection extends StatefulWidget {
+  const _RecentMealsSection({
+    required this.meals,
+    this.onQuickRelogMeal,
+  });
+
+  final List<RecentMealSummary> meals;
+  final Future<void> Function(RecentMealSummary meal)? onQuickRelogMeal;
+
+  @override
+  State<_RecentMealsSection> createState() => _RecentMealsSectionState();
+}
+
+class _RecentMealsSectionState extends State<_RecentMealsSection> {
+  final Set<String> _reloggingIds = {};
+
+  Future<void> _handleRelog(RecentMealSummary meal) async {
+    final callback = widget.onQuickRelogMeal;
+    if (callback == null || _reloggingIds.contains(meal.sourceLogId)) return;
+
+    setState(() => _reloggingIds.add(meal.sourceLogId));
+    try {
+      await callback(meal);
+    } finally {
+      if (mounted) {
+        setState(() => _reloggingIds.remove(meal.sourceLogId));
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final s = NutritionHomeStyle.of(context);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              'Bữa gần đây',
+              style: s.section.copyWith(
+                fontSize: 16,
+                fontWeight: FontWeight.w700,
+                color: s.ink,
+                letterSpacing: -0.2,
+              ),
+            ),
+            Text(
+              '1 chạm',
+              style: s.caption.copyWith(
+                fontSize: 12,
+                fontWeight: FontWeight.w500,
+                color: const Color(0xFF10B981),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 10),
+        Column(
+          children: [
+            for (int i = 0; i < widget.meals.length; i++) ...[
+              if (i > 0) const SizedBox(height: 8),
+              _RecentMealCard(
+                meal: widget.meals[i],
+                isRelogging: _reloggingIds.contains(widget.meals[i].sourceLogId),
+                onRelog: widget.onQuickRelogMeal != null
+                    ? () => _handleRelog(widget.meals[i])
+                    : null,
+              ),
+            ],
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+class _RecentMealCard extends StatelessWidget {
+  const _RecentMealCard({
+    required this.meal,
+    required this.isRelogging,
+    this.onRelog,
+  });
+
+  final RecentMealSummary meal;
+  final bool isRelogging;
+  final VoidCallback? onRelog;
+
+  @override
+  Widget build(BuildContext context) {
+    final subtitle = meal.mealType.isNotEmpty
+        ? '${meal.mealType} • ${meal.totalCalories} kcal'
+        : '${meal.totalCalories} kcal';
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: const Color(0xFF16171B),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: const Color(0xFF26282F), width: 1),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  meal.title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFFF9FAFB),
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  subtitle,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 11,
+                    color: Color(0xFF9CA3AF),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+          if (isRelogging)
+            const SizedBox(
+              width: 36,
+              height: 36,
+              child: Center(
+                child: SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: Color(0xFF10B981),
+                  ),
+                ),
+              ),
+            )
+          else
+            IconButton(
+              key: ValueKey('relog_btn_${meal.sourceLogId}'),
+              iconSize: 22,
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+              tooltip: 'Ghi nhanh bữa này',
+              icon: const Icon(
+                Icons.add_circle_outline,
+                color: Color(0xFF10B981),
+              ),
+              onPressed: onRelog,
+            ),
+        ],
       ),
     );
   }

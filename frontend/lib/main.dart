@@ -12,6 +12,8 @@ import 'config/routes.dart';
 import 'config/app_theme.dart';
 import 'utils/auth_helper.dart';
 
+import 'features/workout_cv/presentation/screens/workout_cv_screen.dart';
+
 // Import Provider để load dữ liệu và truy cập sharedPreferencesProvider
 import 'providers/profile_provider.dart';
 
@@ -29,8 +31,15 @@ void main() async {
 
   final sharedPrefs = await SharedPreferences.getInstance();
 
+  const isReplayTrial = bool.fromEnvironment('WORKOUT_CV_REPLAY_TRIAL');
+  if (isReplayTrial) {
+    debugPrint('NETWORK BYPASSED: Nhảy thẳng vào Lat Pulldown Replay');
+  }
+
   // 2.1. Debug: Print auth status on startup
-  await AuthHelper.printAuthStatus();
+  if (!isReplayTrial) {
+    await AuthHelper.printAuthStatus();
+  }
 
   // 3. Chạy App với ProviderScope đã Override
   runApp(
@@ -60,6 +69,8 @@ class _MyAppState extends ConsumerState<MyApp> {
     final locale = ref.watch(languageProvider);
     final themeMode = ref.watch(themeProvider);
 
+    const isReplayTrial = bool.fromEnvironment('WORKOUT_CV_REPLAY_TRIAL');
+
     return MaterialApp(
       title: 'Saman',
       debugShowCheckedModeBanner: false,
@@ -79,7 +90,14 @@ class _MyAppState extends ConsumerState<MyApp> {
       ],
 
       // Routing
-      initialRoute: AppRoutes.splash,
+      home: isReplayTrial
+          ? const WorkoutCvScreen(
+              exerciseId: 'lat-pulldown',
+              exerciseSlug: 'lat-pulldown',
+              exerciseName: 'Lat Pulldown',
+            )
+          : null,
+      initialRoute: isReplayTrial ? null : AppRoutes.splash,
       onGenerateRoute: (settings) => AppRoutes.onGenerateRoute(
         settings,
         enableSplashAnimations: widget.enableSplashAnimations,

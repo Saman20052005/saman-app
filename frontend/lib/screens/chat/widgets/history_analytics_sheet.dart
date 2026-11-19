@@ -1,10 +1,18 @@
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../config/app_translations.dart';
 import '../../../controllers/chat_controller.dart';
+import '../../../features/membership/domain/models/membership_plan.dart';
+import '../../../features/membership/presentation/providers/membership_providers.dart';
+import '../../../features/membership/presentation/screens/plan_detail_screen.dart';
+import '../../../features/membership/presentation/widgets/upgrade_bottom_sheet.dart';
 import '../../../presentation/providers/workout_history_providers.dart';
 import '../../../services/analytics_service.dart';
+
+const bool _kEnableAiPaywall =
+    bool.fromEnvironment('ENABLE_AI_PAYWALL', defaultValue: false);
 
 class HistoryAnalyticsSheet extends ConsumerStatefulWidget {
   const HistoryAnalyticsSheet({
@@ -52,6 +60,7 @@ class _HistoryAnalyticsSheetState extends ConsumerState<HistoryAnalyticsSheet> {
   bool _loadingQuote = false;
   bool _executing = false;
   bool _executeFailed = false;
+  bool _paywallBlocked = false;
   String? _error;
   int _quoteRequestEpoch = 0;
   ProviderSubscription<int>? _authScopeSubscription;
@@ -89,6 +98,7 @@ class _HistoryAnalyticsSheetState extends ConsumerState<HistoryAnalyticsSheet> {
       _loadingQuote = true;
       _quote = null;
       _error = null;
+      _paywallBlocked = false;
     });
     try {
       final quote = await _service.getPreflightQuote(targetDays);
@@ -97,6 +107,20 @@ class _HistoryAnalyticsSheetState extends ConsumerState<HistoryAnalyticsSheet> {
           targetDays == _rangeDays &&
           quote.rangeDays == _rangeDays) {
         setState(() => _quote = quote);
+      }
+    } on DioException catch (e) {
+      if (mounted &&
+          requestEpoch == _quoteRequestEpoch &&
+          targetDays == _rangeDays) {
+        if (e.response?.statusCode == 403) {
+          setState(() {
+            _paywallBlocked = true;
+            _error = null;
+            _executeFailed = false;
+          });
+        } else {
+          setState(() => _error = 'quote_fetch_error');
+        }
       }
     } catch (_) {
       if (mounted &&
@@ -116,6 +140,9 @@ class _HistoryAnalyticsSheetState extends ConsumerState<HistoryAnalyticsSheet> {
     setState(() {
       _rangeDays = days;
       _quote = null;
+      if (days == 7 || days == 14) {
+        _paywallBlocked = false;
+      }
     });
     await _loadQuote();
   }
@@ -139,6 +166,18 @@ class _HistoryAnalyticsSheetState extends ConsumerState<HistoryAnalyticsSheet> {
         ),
       ));
       await _loadQuote();
+    } on DioException catch (e) {
+      if (mounted) {
+        if (e.response?.statusCode == 403) {
+          setState(() {
+            _paywallBlocked = true;
+            _error = null;
+            _executeFailed = false;
+          });
+        } else {
+          setState(() => _executeFailed = true);
+        }
+      }
     } catch (_) {
       if (mounted) setState(() => _executeFailed = true);
     } finally {
@@ -149,6 +188,11 @@ class _HistoryAnalyticsSheetState extends ConsumerState<HistoryAnalyticsSheet> {
   @override
   Widget build(BuildContext context) {
     final width = MediaQuery.sizeOf(context).width;
+    final accountState = ref.watch(accountMembershipProvider);
+    final hasExtendedMemory = accountState.entitlements.any(
+      (e) =>
+          e['benefit_id'] == 'ai.extended_memory' && e['status'] == 'granted',
+    );
     final quote = _quote;
     final isMatchingQuote = quote != null && quote.rangeDays == _rangeDays;
     final hasData = isMatchingQuote &&
@@ -156,6 +200,7 @@ class _HistoryAnalyticsSheetState extends ConsumerState<HistoryAnalyticsSheet> {
     final canConfirm = isMatchingQuote &&
         !_loadingQuote &&
         !_executing &&
+        !_paywallBlocked &&
         (!widget.isDemo ? true : hasData);
 
     return Align(
@@ -296,6 +341,9 @@ class _HistoryAnalyticsSheetState extends ConsumerState<HistoryAnalyticsSheet> {
                               days: days,
                               isSelected: _rangeDays == days,
                               enabled: !_executing,
+                              showLock: days == 30 &&
+                                  ((_kEnableAiPaywall && !hasExtendedMemory) ||
+                                      (_paywallBlocked && _rangeDays == 30)),
                               onTap: () => _selectRange(days),
                             ),
                           ),
@@ -333,7 +381,7 @@ class _HistoryAnalyticsSheetState extends ConsumerState<HistoryAnalyticsSheet> {
                             overflow: TextOverflow.ellipsis,
                             style: const TextStyle(
                               fontSize: 11.0,
-                              color: Color(0xFF64748B),
+                              color: Color(0xFF94A3B8),
                             ),
                           ),
                         ),
@@ -343,18 +391,36 @@ class _HistoryAnalyticsSheetState extends ConsumerState<HistoryAnalyticsSheet> {
                   const SizedBox(height: 14.0),
 
                   // 4. Data Preview Card
-                  _PreviewDataCard(
-                    rangeDays: _rangeDays,
-                    quote: isMatchingQuote ? _quote : null,
-                    loading: _loadingQuote,
-                    error: _error,
-                    isDemo: widget.isDemo,
-                    onRetry: _loadQuote,
-                  ),
+                  if (_paywallBlocked)
+                    _PaywallBlockedCard(
+                      onUpgradeTap: () async {
+                        final selectedTier = await showUpgradeBottomSheet(
+                          context,
+                          tier: MembershipTier.pro,
+                        );
+                        if (selectedTier != null && context.mounted) {
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (_) =>
+                                  PlanDetailScreen(tier: selectedTier),
+                            ),
+                          );
+                        }
+                      },
+                    )
+                  else
+                    _PreviewDataCard(
+                      rangeDays: _rangeDays,
+                      quote: isMatchingQuote ? _quote : null,
+                      loading: _loadingQuote,
+                      error: _error,
+                      isDemo: widget.isDemo,
+                      onRetry: _loadQuote,
+                    ),
                   const SizedBox(height: 14.0),
 
                   // 5. Context & Scope guidance (Only if hasData)
-                  if (hasData && !_loadingQuote) ...[
+                  if (hasData && !_loadingQuote && !_paywallBlocked) ...[
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 2.0),
                       child: Column(
@@ -404,7 +470,7 @@ class _HistoryAnalyticsSheetState extends ConsumerState<HistoryAnalyticsSheet> {
                         backgroundColor: const Color(0xFF262F3D),
                         disabledBackgroundColor: Colors.white.withOpacity(0.05),
                         foregroundColor: Colors.white,
-                        disabledForegroundColor: const Color(0xFF64748B),
+                        disabledForegroundColor: const Color(0xFF94A3B8),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(24.0),
                           side: BorderSide(
@@ -435,7 +501,7 @@ class _HistoryAnalyticsSheetState extends ConsumerState<HistoryAnalyticsSheet> {
                                 fontWeight: FontWeight.w600,
                                 color: canConfirm
                                     ? Colors.white
-                                    : const Color(0xFF64748B),
+                                    : const Color(0xFF94A3B8),
                               ),
                             ),
                     ),
@@ -480,12 +546,14 @@ class _TimeRangeTab extends StatelessWidget {
     required this.days,
     required this.isSelected,
     required this.enabled,
+    this.showLock = false,
     required this.onTap,
   });
 
   final int days;
   final bool isSelected;
   final bool enabled;
+  final bool showLock;
   final VoidCallback onTap;
 
   @override
@@ -540,6 +608,14 @@ class _TimeRangeTab extends StatelessWidget {
                           : const Color(0xFF94A3B8),
                     ),
                   ),
+                  if (showLock) ...[
+                    const SizedBox(width: 4.0),
+                    const Icon(
+                      Icons.lock_outline,
+                      size: 13.0,
+                      color: Color(0xFF94979E),
+                    ),
+                  ],
                 ],
               ),
             ),
@@ -797,6 +873,85 @@ class _PreviewDataCard extends StatelessWidget {
               ),
             ],
           ],
+        ],
+      ),
+    );
+  }
+}
+
+class _PaywallBlockedCard extends StatelessWidget {
+  const _PaywallBlockedCard({
+    required this.onUpgradeTap,
+  });
+
+  final VoidCallback onUpgradeTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(16.0),
+      decoration: BoxDecoration(
+        color: const Color(0xFF17202B),
+        borderRadius: BorderRadius.circular(16.0),
+        border: Border.all(
+          color: const Color(0xFF10B981).withOpacity(0.35),
+          width: 1.0,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 36.0,
+                height: 36.0,
+                decoration: BoxDecoration(
+                  color: const Color(0xFF10B981).withOpacity(0.12),
+                  borderRadius: BorderRadius.circular(10.0),
+                ),
+                child: const Icon(
+                  Icons.lock_outline,
+                  size: 18.0,
+                  color: Color(0xFF10B981),
+                ),
+              ),
+              const SizedBox(width: 12.0),
+              const Expanded(
+                child: Text(
+                  'Phân tích lịch sử 30 ngày dành cho hội viên nâng cao',
+                  style: TextStyle(
+                    fontSize: 13.5,
+                    fontWeight: FontWeight.w500,
+                    color: Color(0xFFE2E8F0),
+                    height: 1.35,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14.0),
+          SizedBox(
+            height: 44.0,
+            child: FilledButton(
+              onPressed: onUpgradeTap,
+              style: FilledButton.styleFrom(
+                backgroundColor: const Color(0xFF10B981),
+                foregroundColor: const Color(0xFF0B1117),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(22.0),
+                ),
+                padding: const EdgeInsets.symmetric(horizontal: 16.0),
+              ),
+              child: const Text(
+                'Mở khóa gói hội viên',
+                style: TextStyle(
+                  fontSize: 13.5,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ),
         ],
       ),
     );

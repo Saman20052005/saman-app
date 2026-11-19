@@ -362,7 +362,7 @@ class UpgradeBottomSheet extends StatelessWidget {
                   context.tr('sheet_preview_notice'),
                   style: MembershipTokens.body(
                     fontSize: 12,
-                    color: MembershipTokens.textMuted.withOpacity(0.8),
+                    color: MembershipTokens.textMuted,
                   ),
                   textAlign: TextAlign.center,
                 ),

@@ -19,7 +19,6 @@ class MembershipAppBar extends StatelessWidget implements PreferredSizeWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: preferredSize.height,
       decoration: const BoxDecoration(
         color: MembershipTokens.canvas,
         border: Border(
@@ -31,9 +30,11 @@ class MembershipAppBar extends StatelessWidget implements PreferredSizeWidget {
       ),
       child: SafeArea(
         bottom: false,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 8.0),
-          child: Row(
+        child: SizedBox(
+          height: preferredSize.height,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8.0),
+            child: Row(
             children: [
               Semantics(
                 button: true,
@@ -78,6 +79,7 @@ class MembershipAppBar extends StatelessWidget implements PreferredSizeWidget {
                 const SizedBox(width: MembershipTokens.minTouchTarget),
             ],
           ),
+        ),
         ),
       ),
     );

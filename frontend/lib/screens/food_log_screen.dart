@@ -7,11 +7,14 @@ import 'package:intl/intl.dart';
 import '../features/nutrition/data/food_image_attribution.dart';
 import '../features/nutrition/data/food_image_manifest.dart';
 import '../features/nutrition/domain/entities/food.dart';
-import '../models/food_model.dart';
 import '../features/nutrition/presentation/providers/nutrition_usual_foods_provider.dart';
+import '../features/nutrition/presentation/providers/recipes_supplements_provider.dart';
+import '../models/food_model.dart';
+import '../models/nutrition_model.dart';
 import '../providers/nutrition_provider.dart';
 import '../providers/profile_provider.dart';
 import '../services/nutrition_service.dart';
+import 'nutrition/widgets/create_recipe_sheet.dart';
 
 enum FoodLogStep {
   initial,
@@ -127,6 +130,8 @@ class FoodLogScreenState extends ConsumerState<FoodLogScreen> {
   int _grams = 100;
   bool _isSaving = false;
   String? _saveError;
+  bool _showMyRecipes = false;
+  bool _recipesLoaded = false;
 
   static const List<String> _mealTypes = ['Breakfast', 'Lunch', 'Dinner', 'Snack'];
   static const List<String> _commonStaples = [
@@ -170,7 +175,11 @@ class FoodLogScreenState extends ConsumerState<FoodLogScreen> {
     return 'Dinner';
   }
 
-  DateTime get _effectiveDate => widget.selectedDate ?? DateTime.now();
+  DateTime get _effectiveDate {
+    if (widget.selectedDate != null) return widget.selectedDate!;
+    final vn = DateTime.now().toUtc().add(const Duration(hours: 7));
+    return DateTime(vn.year, vn.month, vn.day);
+  }
 
   FoodModel _toFoodModel(Food food) {
     return FoodModel(
@@ -1062,16 +1071,443 @@ class FoodLogScreenState extends ConsumerState<FoodLogScreen> {
 
         // Meal Selector
         _buildMealSegmentedSelector(),
+        const SizedBox(height: 12),
+
+        // Mode Segmented Pill: Tìm món | Công thức của tôi
+        _buildModeSegmentedPill(),
         const SizedBox(height: 16),
 
-        // Find Your Food Hero Card
-        _buildFindYourFoodHeroCard(),
-        const SizedBox(height: 18),
+        if (!_showMyRecipes) ...[
+          // Find Your Food Hero Card
+          _buildFindYourFoodHeroCard(),
+          const SizedBox(height: 18),
 
-        // Common Staples Section
-        _buildCommonStaplesSection(),
+          // Common Staples Section
+          _buildCommonStaplesSection(),
+        ] else ...[
+          _buildMyRecipesSection(),
+        ],
       ],
     );
+  }
+
+  Widget _buildModeSegmentedPill() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(
+        color: const Color(0xFF1E2026),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: const Color(0xFF26282F)),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: GestureDetector(
+              key: const Key('tab_find_food'),
+              onTap: () => setState(() => _showMyRecipes = false),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 180),
+                padding: const EdgeInsets.symmetric(vertical: 9),
+                decoration: BoxDecoration(
+                  color: !_showMyRecipes
+                      ? const Color(0xFF10B981)
+                      : Colors.transparent,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Center(
+                  child: Text(
+                    'Tìm món',
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight:
+                          !_showMyRecipes ? FontWeight.w700 : FontWeight.w500,
+                      color: !_showMyRecipes
+                          ? const Color(0xFF0C0D0E)
+                          : const Color(0xFF9CA3AF),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+          Expanded(
+            child: GestureDetector(
+              key: const Key('tab_my_recipes'),
+              onTap: () {
+                setState(() => _showMyRecipes = true);
+                if (!_recipesLoaded) {
+                  _recipesLoaded = true;
+                  ref.read(recipesProvider.notifier).loadRecipes();
+                }
+              },
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 180),
+                padding: const EdgeInsets.symmetric(vertical: 9),
+                decoration: BoxDecoration(
+                  color: _showMyRecipes
+                      ? const Color(0xFF10B981)
+                      : Colors.transparent,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Center(
+                  child: Text(
+                    'Công thức của tôi',
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight:
+                          _showMyRecipes ? FontWeight.w700 : FontWeight.w500,
+                      color: _showMyRecipes
+                          ? const Color(0xFF0C0D0E)
+                          : const Color(0xFF9CA3AF),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMyRecipesSection() {
+    final recipesState = ref.watch(recipesProvider);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        SizedBox(
+          height: 44,
+          child: OutlinedButton(
+            key: const Key('create_recipe_cta_button'),
+            onPressed: () {
+              CreateRecipeSheet.show(context);
+            },
+            style: OutlinedButton.styleFrom(
+              backgroundColor: const Color(0xFF1E2026),
+              foregroundColor: const Color(0xFF10B981),
+              side: const BorderSide(color: Color(0xFF26282F)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+            child: const Text(
+              '+ Tạo công thức mới',
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(height: 14),
+        if (recipesState.isLoading && recipesState.recipes.isEmpty)
+          Container(
+            padding: const EdgeInsets.symmetric(vertical: 36),
+            decoration: BoxDecoration(
+              color: const Color(0xFF1E2026),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: const Color(0xFF26282F)),
+            ),
+            child: const Center(
+              child: SizedBox(
+                width: 24,
+                height: 24,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: Color(0xFF10B981),
+                ),
+              ),
+            ),
+          )
+        else if (recipesState.error != null && recipesState.recipes.isEmpty)
+          Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: const Color(0xFF1E2026),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: const Color(0xFF26282F)),
+            ),
+            child: Column(
+              children: [
+                const Icon(
+                  Icons.error_outline,
+                  color: Color(0xFFEF4444),
+                  size: 32,
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  recipesState.error!,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    fontSize: 13,
+                    color: Color(0xFFF3F4F6),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                ElevatedButton.icon(
+                  onPressed: () {
+                    ref.read(recipesProvider.notifier).loadRecipes();
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF212328),
+                    foregroundColor: const Color(0xFFF3F4F6),
+                    side: const BorderSide(color: Color(0xFF26282F)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
+                  icon: const Icon(Icons.refresh, size: 16),
+                  label: const Text('Thử lại'),
+                ),
+              ],
+            ),
+          )
+        else if (recipesState.recipes.isEmpty)
+          Container(
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: const Color(0xFF1E2026),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: const Color(0xFF26282F)),
+            ),
+            child: const Column(
+              children: [
+                Icon(
+                  Icons.menu_book_outlined,
+                  size: 36,
+                  color: Color(0xFF9CA3AF),
+                ),
+                SizedBox(height: 10),
+                Text(
+                  'Chưa có công thức nào',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFFF9FAFB),
+                  ),
+                ),
+                SizedBox(height: 4),
+                Text(
+                  'Hãy nhấn "+ Tạo công thức mới" để tạo công thức đầu tiên của bạn.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Color(0xFF9CA3AF),
+                  ),
+                ),
+              ],
+            ),
+          )
+        else
+          Column(
+            children: [
+              for (int i = 0; i < recipesState.recipes.length; i++) ...[
+                if (i > 0) const SizedBox(height: 10),
+                _buildRecipeCard(
+                  recipesState.recipes[i],
+                  isMutating: recipesState.isMutating,
+                ),
+              ],
+            ],
+          ),
+      ],
+    );
+  }
+
+  Widget _buildRecipeCard(RecipeModel recipe, {required bool isMutating}) {
+    return Container(
+      key: ValueKey('recipe_card_${recipe.id}'),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: const Color(0xFF1E2026),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFF26282F)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      recipe.name,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFFF9FAFB),
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Row(
+                      children: [
+                        Text(
+                          '${recipe.caloriesPerServing} kcal / phần',
+                          style: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                            color: Color(0xFF10B981),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 2,
+                          ),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF16171B),
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: const Color(0xFF26282F)),
+                          ),
+                          child: Text(
+                            '${recipe.servings} phần',
+                            style: const TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                              color: Color(0xFFCBD5E1),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              IconButton(
+                key: ValueKey('delete_recipe_${recipe.id}'),
+                tooltip: 'Xoá công thức',
+                visualDensity: VisualDensity.compact,
+                onPressed: isMutating
+                    ? null
+                    : () => _confirmDeleteRecipe(recipe),
+                icon: const Icon(
+                  Icons.delete_outline,
+                  size: 18,
+                  color: Color(0xFF9CA3AF),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Expanded(
+                child: Text(
+                  'P: ${recipe.proteinPerServing.toStringAsFixed(1)}g · C: ${recipe.carbsPerServing.toStringAsFixed(1)}g · F: ${recipe.fatPerServing.toStringAsFixed(1)}g',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: Color(0xFF9CA3AF),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 10),
+              SizedBox(
+                height: 36,
+                child: ElevatedButton(
+                  key: ValueKey('log_recipe_${recipe.id}'),
+                  onPressed: isMutating
+                      ? null
+                      : () async {
+                          final ok = await ref
+                              .read(recipesProvider.notifier)
+                              .logRecipeServing(
+                                recipe.id,
+                                date: DateFormat('yyyy-MM-dd')
+                                    .format(_effectiveDate),
+                                mealType: _selectedMealType.toLowerCase(),
+                                servingsConsumed: 1.0,
+                                refreshPlan: false,
+                              );
+                          if (!mounted) return;
+                          if (ok) {
+                            Navigator.of(context).pop(true);
+                          }
+                        },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF10B981),
+                    foregroundColor: const Color(0xFF0C0D0E),
+                    elevation: 0,
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
+                  child: const Text(
+                    'Ghi 1 phần',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _confirmDeleteRecipe(RecipeModel recipe) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: const Color(0xFF16171B),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: const BorderSide(color: Color(0xFF26282F)),
+        ),
+        title: const Text(
+          'Xoá công thức?',
+          style: TextStyle(
+            color: Color(0xFFF9FAFB),
+            fontSize: 16,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        content: Text(
+          'Bạn có chắc muốn xoá công thức "${recipe.name}"?',
+          style: const TextStyle(
+            color: Color(0xFF9CA3AF),
+            fontSize: 13,
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text(
+              'Huỷ',
+              style: TextStyle(color: Color(0xFF9CA3AF)),
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFEF4444),
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+            ),
+            child: const Text('Xoá'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed == true && mounted) {
+      await ref.read(recipesProvider.notifier).deleteRecipe(recipe.id);
+    }
   }
 
   Widget _buildFindYourFoodHeroCard() {
@@ -1092,17 +1528,13 @@ class FoodLogScreenState extends ConsumerState<FoodLogScreen> {
             child: Stack(
               fit: StackFit.expand,
               children: [
-                Image.network(
-                  'https://lh3.googleusercontent.com/aida/AEtjO1W86QkGkO9s6k_JtH3s8vHlXf4c0X14qH8_s4u5hK_L2y8xVbA2m8z1_qL9p=s800',
+                Image.asset(
+                  'assets/images/nutrition.jpg',
                   fit: BoxFit.cover,
-                  errorBuilder: (_, __, ___) => Image.asset(
-                    'assets/images/nutrition.jpg',
-                    fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) => Container(
-                      color: const Color(0xFF212328),
-                      child: const Center(
-                        child: Icon(Icons.restaurant, size: 40, color: Color(0xFF9CA3AF)),
-                      ),
+                  errorBuilder: (_, __, ___) => Container(
+                    color: const Color(0xFF212328),
+                    child: const Center(
+                      child: Icon(Icons.restaurant, size: 40, color: Color(0xFF9CA3AF)),
                     ),
                   ),
                 ),
@@ -1321,7 +1753,7 @@ class FoodLogScreenState extends ConsumerState<FoodLogScreen> {
                     'Basis: per 100g',
                     style: TextStyle(
                       fontSize: 11,
-                      color: Color(0xFF6B7280),
+                      color: Color(0xFF9CA3AF),
                     ),
                   ),
                 ],
@@ -1424,7 +1856,7 @@ class FoodLogScreenState extends ConsumerState<FoodLogScreen> {
               ElevatedButton.icon(
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF10B981),
-                  foregroundColor: Colors.white,
+                  foregroundColor: const Color(0xFF052E16),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 ),
@@ -1432,7 +1864,7 @@ class FoodLogScreenState extends ConsumerState<FoodLogScreen> {
                 icon: const Icon(Icons.add, size: 18),
                 label: const Text(
                   'Tự tạo món mới',
-                  style: TextStyle(fontWeight: FontWeight.w600),
+                  style: TextStyle(fontWeight: FontWeight.w700),
                 ),
               ),
             ],
@@ -1599,7 +2031,7 @@ class FoodLogScreenState extends ConsumerState<FoodLogScreen> {
                   textAlign: TextAlign.center,
                   style: const TextStyle(
                     fontSize: 11,
-                    color: Color(0xFF6B7280),
+                    color: Color(0xFF9CA3AF),
                     height: 1.4,
                   ),
                 ),
@@ -2393,7 +2825,7 @@ class FoodLogScreenState extends ConsumerState<FoodLogScreen> {
               overflow: TextOverflow.ellipsis,
               style: const TextStyle(
                 fontSize: 9,
-                color: Color(0xFF6B7280),
+                color: Color(0xFF9CA3AF),
               ),
             ),
           ],

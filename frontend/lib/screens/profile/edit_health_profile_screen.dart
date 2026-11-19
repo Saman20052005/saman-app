@@ -654,7 +654,7 @@ class _EditHealthProfileScreenState
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
                       border: Border.all(
-                        color: isSelected ? Colors.white : const Color(0xFF26282F),
+                        color: isSelected ? Colors.white : const Color(0xFF6B7280),
                         width: 1.5,
                       ),
                     ),
@@ -790,7 +790,7 @@ class _EditHealthProfileScreenState
                                   decoration: BoxDecoration(
                                     shape: BoxShape.circle,
                                     border: Border.all(
-                                      color: isSelected ? Colors.white : const Color(0xFF26282F),
+                                      color: isSelected ? Colors.white : const Color(0xFF6B7280),
                                       width: 1.5,
                                     ),
                                   ),
@@ -1522,20 +1522,26 @@ class _EditHealthProfileScreenState
                               },
                         style: ElevatedButton.styleFrom(
                           backgroundColor: isSaveEnabled
-                              ? const Color(0xFF212328)
-                              : const Color(0xFF16171B),
+                              ? const Color(0xFF10B981)
+                              : const Color(0xFF1E2026),
                           foregroundColor: isSaveEnabled
-                              ? Colors.white
-                              : const Color(0xFF6B7280),
+                              ? const Color(0xFF052E16)
+                              : const Color(0xFF9CA3AF),
+                          disabledBackgroundColor: isSaveEnabled
+                              ? const Color(0xFF10B981)
+                              : const Color(0xFF1E2026),
+                          disabledForegroundColor: isSaveEnabled
+                              ? const Color(0xFF052E16)
+                              : const Color(0xFF9CA3AF),
                           elevation: isSaveEnabled ? 4 : 0,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),
-                            side: BorderSide(
-                              color: isSaveEnabled
-                                  ? const Color(0xFF26282F)
-                                  : const Color(0xFF26282F).withOpacity(0.5),
-                              width: 1,
-                            ),
+                            side: isSaveEnabled
+                                ? BorderSide.none
+                                : const BorderSide(
+                                    color: Color(0xFF383A42),
+                                    width: 1,
+                                  ),
                           ),
                         ),
                         child: isSavingInFlight
@@ -1547,7 +1553,7 @@ class _EditHealthProfileScreenState
                                     height: 16,
                                     child: CircularProgressIndicator(
                                       strokeWidth: 2,
-                                      color: Colors.white,
+                                      color: Color(0xFF052E16),
                                     ),
                                   ),
                                   SizedBox(width: 10),
@@ -1722,8 +1728,8 @@ class _EditHealthProfileScreenState
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     border: Border.all(
-                      color: isSelected ? Colors.white : const Color(0xFF26282F),
-                      width: 1,
+                      color: isSelected ? Colors.white : const Color(0xFF6B7280),
+                      width: 1.5,
                     ),
                   ),
                   child: isSelected

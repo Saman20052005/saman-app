@@ -1,5 +1,7 @@
 import 'dart:async';
+import 'package:dio/dio.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../../../../config/api_config.dart';
 import '../../domain/failures/shop_failure.dart';
 import '../../domain/repositories/shop_wishlist_repository.dart';
 
@@ -14,7 +16,69 @@ class SharedPreferencesShopWishlistRepository
   /// Lock chain to serialize concurrent read-modify-write operations FIFO.
   Future<void> _writeQueue = Future.value();
 
-  SharedPreferencesShopWishlistRepository(this._prefs);
+  final Dio? _dio;
+  final String _baseUrl;
+  final bool _syncEnabled;
+
+  SharedPreferencesShopWishlistRepository(
+    this._prefs, {
+    Dio? dio,
+    String? baseUrl,
+    bool syncEnabled = false,
+  })  : _dio = dio,
+        _baseUrl = (baseUrl ?? '').replaceAll(RegExp(r'/+$'), ''),
+        _syncEnabled = syncEnabled;
+
+  String get _effectiveBaseUrl =>
+      _baseUrl.isEmpty ? ApiConfig.baseUrl.replaceAll(RegExp(r'/+$'), '') : _baseUrl;
+
+  Future<void> syncFromRemote() async {
+    if (!_syncEnabled || _dio == null) return;
+
+    // Join the same FIFO queue as local writes so the merge sees the latest
+    // bookmarks and cannot overwrite a concurrent tap.
+    final queued = _writeQueue.then((_) async {
+      try {
+        final response = await _dio.get('$_effectiveBaseUrl/api/shop/wishlist');
+        final data = response.data;
+        if (data is! Map || data['saved_product_ids'] is! List) return;
+
+        final remoteIds = List<String>.from(data['saved_product_ids'] as List);
+        final localIds = await getSavedProductIds();
+        final merged = <String>[
+          ...localIds,
+          ...remoteIds.where((id) => !localIds.contains(id)),
+        ];
+
+        final success = await _prefs.setStringList(storageKey, merged);
+        if (!success) return;
+        _controller.add(List.unmodifiable(merged));
+
+        if (!_sameIds(merged, remoteIds)) {
+          await _pushRemote(merged);
+        }
+      } catch (_) {
+        // Remote sync is best-effort; the local wishlist remains usable.
+      }
+    });
+    _writeQueue = queued.catchError((_) {});
+    await _writeQueue;
+  }
+
+  bool _sameIds(List<String> a, List<String> b) {
+    if (a.length != b.length) return false;
+    for (var i = 0; i < a.length; i++) {
+      if (a[i] != b[i]) return false;
+    }
+    return true;
+  }
+
+  Future<void> _pushRemote(List<String> ids) async {
+    await _dio!.put(
+      '$_effectiveBaseUrl/api/shop/wishlist',
+      data: {'saved_product_ids': ids},
+    );
+  }
 
   @override
   Future<List<String>> getSavedProductIds() async {
@@ -103,6 +167,9 @@ class SharedPreferencesShopWishlistRepository
         // Only broadcast once persistent write succeeds
         _controller.add(List.unmodifiable(modified));
         completer.complete();
+        if (_syncEnabled && _dio != null) {
+          unawaited(_pushRemote(modified).catchError((_) {}));
+        }
       } catch (e) {
         if (!completer.isCompleted) {
           if (e is ShopFailure) {

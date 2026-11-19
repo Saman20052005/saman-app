@@ -10,6 +10,8 @@ import 'package:intl/intl.dart';
 import '../config/app_translations.dart';
 import '../config/routes.dart';
 import '../config/theme_provider.dart';
+import '../controllers/chat_controller.dart';
+import '../models/saman_nudge.dart';
 import '../utils/auth_helper.dart';
 import '../providers/profile_provider.dart';
 import '../providers/nutrition_provider.dart';
@@ -22,6 +24,7 @@ import 'home/widgets/widgets.dart';
 
 // Journey Feature
 import 'package:shared_preferences/shared_preferences.dart';
+import '../features/journey/presentation/providers/journey_providers.dart';
 import '../features/journey/presentation/widgets/saman_journey_card.dart';
 import '../widgets/saman_feedback_snackbar.dart';
 import '../features/journey/presentation/screens/create_journey_screen.dart';
@@ -31,7 +34,6 @@ import 'chat_screen.dart';
 import 'food_log_screen.dart';
 import 'nutrition/nutrition_screen.dart';
 import 'profile_screen.dart';
-import 'report_screen.dart';
 import '../presentation/screens/active_workout_screen.dart';
 import '../presentation/screens/workout_home_screen.dart';
 
@@ -57,7 +59,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
-      ref.read(nutritionProvider.notifier).loadDailyPlan(DateTime.now());
+      final vn = DateTime.now().toUtc().add(const Duration(hours: 7));
+      final vnToday = DateTime(vn.year, vn.month, vn.day);
+      ref.read(nutritionProvider.notifier).loadDailyPlan(vnToday);
+      ref.read(chatControllerProvider.notifier).loadDailyBrief();
       _checkPostOnboardingJourneyInvitation();
     });
   }
@@ -104,9 +109,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
   Future<void> _onRefresh() async {
     await _loadProfile();
+    final vn = DateTime.now().toUtc().add(const Duration(hours: 7));
+    final vnToday = DateTime(vn.year, vn.month, vn.day);
     await ref
         .read(nutritionProvider.notifier)
-        .loadDailyPlan(DateTime.now(), forceRefresh: true);
+        .loadDailyPlan(vnToday, forceRefresh: true);
+    try {
+      await ref.read(chatControllerProvider.notifier).loadDailyBrief();
+    } catch (_) {}
     ref.invalidate(popularExercisesProvider);
   }
 
@@ -274,10 +284,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     );
   }
 
-  void _navigateToChat() {
+  void _navigateToChat({SamanNudge? nudge}) {
     Navigator.push(
       context,
-      MaterialPageRoute(builder: (_) => const ChatScreen()),
+      MaterialPageRoute(builder: (_) => ChatScreen(initialNudge: nudge)),
     );
   }
 
@@ -374,9 +384,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   }
 
   void _navigateToProgress() {
-    Navigator.push(
+    SamanFeedbackSnackBar.show(
       context,
-      MaterialPageRoute(builder: (_) => const ReportScreen()),
+      message: 'T?nh n?ng ?ang ho?n thi?n, s? s?m ra m?t!',
+      type: FeedbackType.info,
     );
   }
 
@@ -399,6 +410,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final plan = nutritionState.valueOrNull;
     final macroTargets = ref.watch(macroTargetsProvider);
     final weeklyGoal = ref.watch(weeklyGoalNotifierProvider);
+    final chatState = ref.watch(chatControllerProvider);
+    final journeyState = ref.watch(journeyControllerProvider);
 
     // 1. User Name & Header Subtitle
     final rawName = _profile?['name'] ?? 'Saman';
@@ -409,35 +422,44 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         '${DateFormat('EEEE, MMM d').format(now)} • Recovery & Power';
 
     // 2. Nutrition & Water Metrics
+    final dynamicTarget = plan?.dynamicTarget;
+    final hasDynamicTarget = dynamicTarget != null && dynamicTarget.calories > 0;
+
     final caloriesConsumed = plan?.totalCaloriesConsumed ?? 1850;
-    final caloriesTarget =
-        (macroTargets?.calories != null && macroTargets!.calories > 0)
+    final caloriesTarget = hasDynamicTarget
+        ? dynamicTarget.calories
+        : ((macroTargets?.calories != null && macroTargets!.calories > 0)
             ? macroTargets.calories
             : (profileState.targetCalories > 0
                 ? profileState.targetCalories
-                : 2500);
+                : 2500));
 
     final proteinConsumed = (plan?.totalProteinConsumed ?? 120).toDouble();
-    final proteinTarget =
-        (macroTargets?.protein != null && macroTargets!.protein > 0)
+    final proteinTarget = (hasDynamicTarget && dynamicTarget.protein > 0)
+        ? dynamicTarget.protein.toDouble()
+        : ((macroTargets?.protein != null && macroTargets!.protein > 0)
             ? macroTargets.protein
             : (profileState.targetProtein > 0
                 ? profileState.targetProtein.toDouble()
-                : 160.0);
+                : 160.0));
 
     final carbsConsumed = (plan?.totalCarbsConsumed ?? 210).toDouble();
-    final carbsTarget = (macroTargets?.carbs != null && macroTargets!.carbs > 0)
-        ? macroTargets.carbs
-        : (profileState.targetCarbs > 0
-            ? profileState.targetCarbs.toDouble()
-            : 260.0);
+    final carbsTarget = (hasDynamicTarget && dynamicTarget.carbs > 0)
+        ? dynamicTarget.carbs.toDouble()
+        : ((macroTargets?.carbs != null && macroTargets!.carbs > 0)
+            ? macroTargets.carbs
+            : (profileState.targetCarbs > 0
+                ? profileState.targetCarbs.toDouble()
+                : 260.0));
 
     final fatConsumed = (plan?.totalFatConsumed ?? 55).toDouble();
-    final fatTarget = (macroTargets?.fat != null && macroTargets!.fat > 0)
-        ? macroTargets.fat
-        : (profileState.targetFat > 0
-            ? profileState.targetFat.toDouble()
-            : 70.0);
+    final fatTarget = (hasDynamicTarget && dynamicTarget.fat > 0)
+        ? dynamicTarget.fat.toDouble()
+        : ((macroTargets?.fat != null && macroTargets!.fat > 0)
+            ? macroTargets.fat
+            : (profileState.targetFat > 0
+                ? profileState.targetFat.toDouble()
+                : 70.0));
 
     final waterConsumedLiters = (plan?.currentWater ?? 1800) / 1000.0;
     final targetWaterVal = plan?.targetWater;
@@ -468,6 +490,52 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final completionPercentage =
         ((completedSessions / targetSessions) * 100).round().clamp(0, 100);
     final activeDayIndex = (now.weekday - 1).clamp(0, 6);
+
+    String? pendingTaskTitle;
+    final todayRecord = journeyState.journey?.todayRecord;
+    if (todayRecord != null && !todayRecord.isRestDay) {
+      for (final t in todayRecord.tasks) {
+        if (!t.isCompleted) {
+          pendingTaskTitle = t.title;
+          break;
+        }
+      }
+    }
+
+    final dailyBriefMetrics = chatState.dailyBriefMetrics;
+    final bool hasStaleDailyBriefMetrics = plan != null &&
+        dailyBriefMetrics != null &&
+        ((dailyBriefMetrics['calories'] as num?)?.round() !=
+                plan.totalCaloriesConsumed ||
+            (dailyBriefMetrics['water_ml'] as num?)?.round() !=
+                plan.currentWater);
+
+    final SamanNudge? activeNudge =
+        (chatState.dailyNudge == null || hasStaleDailyBriefMetrics)
+            ? (SamanNudgeHelper.buildGroundedHomeNudge(
+                  consumedCalories: plan?.totalCaloriesConsumed ?? 0,
+                  targetCalories: caloriesTarget,
+                  consumedProtein: (plan?.totalProteinConsumed ?? 0).toDouble(),
+                  targetProtein: proteinTarget,
+                  waterMl: plan?.currentWater ?? 0,
+                  waterTargetMl: (waterTargetLiters * 1000).round(),
+                  pendingJourneyTaskTitle: pendingTaskTitle,
+                  hasRealNutritionData: plan != null,
+                ) ??
+                (plan != null
+                    ? SamanNudge(
+                        id: 'live_nutrition_summary_nudge',
+                        message:
+                            'Hôm nay: ${plan.totalCaloriesConsumed}/$caloriesTarget kcal · ${plan.currentWater} ml nước.',
+                        supportingLine:
+                            '• ${plan.totalCaloriesConsumed} / $caloriesTarget kcal · ${plan.currentWater} / ${(waterTargetLiters * 1000).round()} ml nước',
+                        primaryLabel: 'Hỏi Saman',
+                        secondaryLabel: 'Để sau',
+                        promptToSend:
+                            'Dựa trên tiến độ hôm nay (${plan.totalCaloriesConsumed}/$caloriesTarget kcal, ${plan.currentWater} ml nước), tôi nên làm gì tiếp theo?',
+                      )
+                    : null))
+            : chatState.dailyNudge;
 
     return Scaffold(
       backgroundColor: SamanHomeTokens.canvas,
@@ -527,7 +595,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   // 2. Saman Companion AI Line
                   SliverToBoxAdapter(
                     child: SamanCompanionBar(
-                      onAskSamanTap: _navigateToChat,
+                      message: activeNudge?.message,
+                      onAskSamanTap: () => _navigateToChat(nudge: activeNudge),
                     ).animate().fadeIn(duration: 350.ms),
                   ),
                   const SliverToBoxAdapter(

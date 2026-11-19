@@ -14,6 +14,36 @@ class ExerciseRepositoryImpl implements ExerciseRepository {
   const ExerciseRepositoryImpl({required this.dio});
 
   @override
+  Future<Map<String, LastExercisePerformance>> getLastPerformances(
+    List<String> exerciseIds,
+  ) async {
+    if (exerciseIds.isEmpty) return {};
+
+    final response = await dio.get(
+      '${ApiConfig.baseUrl}/api/workouts/last-performance',
+      queryParameters: {'exercise_ids': exerciseIds.join(',')},
+    );
+    final dynamic responseData = response.data;
+    final dynamic rawItems = responseData is Map ? responseData['items'] : null;
+    if (rawItems is! Map) return {};
+
+    final performances = <String, LastExercisePerformance>{};
+    for (final entry in rawItems.entries) {
+      final key = entry.key.toString();
+      final value = entry.value;
+      if (value is! Map) continue;
+      try {
+        performances[key] = LastExercisePerformance.fromJson(
+          Map<String, dynamic>.from(value),
+        );
+      } on Object {
+        // Ignore malformed entries while preserving other valid performances.
+      }
+    }
+    return performances;
+  }
+
+  @override
   Future<List<MuscleGroup>> getMuscleGroups() async {
     final Response<dynamic> response =
         await dio.get(ApiConfig.muscleGroupsEndpoint);

@@ -9,6 +9,7 @@ import 'package:health_ai_app/providers/profile_provider.dart';
 import 'package:health_ai_app/screens/chat/tokens/saman_chat_tokens.dart';
 import 'package:health_ai_app/screens/chat/widgets/history_analytics_sheet.dart';
 import 'package:health_ai_app/screens/chat/widgets/saman_attachment_sheet.dart';
+import 'package:health_ai_app/screens/chat/widgets/saman_account_popup_menu.dart';
 import 'package:health_ai_app/screens/chat/widgets/saman_chat_drawer.dart';
 import 'package:health_ai_app/screens/chat/widgets/saman_error_response.dart';
 import 'package:health_ai_app/screens/chat/widgets/saman_generating_indicator.dart';
@@ -61,7 +62,9 @@ class _IntegrationChatNotifier extends StateNotifier<ChatState>
                   ChatConversationSummary(
                     id: 'thread_B',
                     title: 'Tính toán calo TDEE',
-                    updatedAt: DateTime.now().subtract(const Duration(days: 1)).toIso8601String(),
+                    updatedAt: DateTime.now()
+                        .subtract(const Duration(days: 1))
+                        .toIso8601String(),
                   ),
                 ],
                 activeConversationId: 'thread_A',
@@ -81,7 +84,8 @@ class _IntegrationChatNotifier extends StateNotifier<ChatState>
 
     chatAttempts++;
     sentMessages.add(trimmed);
-    final opId = 'op_canonical_${sentMessages.length.toString().padLeft(4, '0')}';
+    final opId =
+        'op_canonical_${sentMessages.length.toString().padLeft(4, '0')}';
     operationIds.add(opId);
 
     state = state.copyWith(
@@ -224,7 +228,9 @@ void main() {
     // ══════════════════════════════════════════════════════════════════════════
     // SECTION A: Sidebar & Navigation Acceptance
     // ══════════════════════════════════════════════════════════════════════════
-    testWidgets('Ca A1. Desktop Sidebar: Expand -> Rail -> Expand retains draft & scroll', (tester) async {
+    testWidgets(
+        'Ca A1. Desktop Sidebar: Expand -> Rail -> Expand retains draft & scroll',
+        (tester) async {
       tester.view.physicalSize = const Size(1024, 768);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(() {
@@ -233,7 +239,8 @@ void main() {
       });
 
       final notifier = _IntegrationChatNotifier();
-      await tester.pumpWidget(_buildIntegrationApp(chatNotifier: notifier, size: const Size(1024, 768)));
+      await tester.pumpWidget(_buildIntegrationApp(
+          chatNotifier: notifier, size: const Size(1024, 768)));
       await tester.pumpAndSettle();
 
       // Verify permanent sidebar is present
@@ -250,7 +257,8 @@ void main() {
       expect(toggleFinder, findsOneWidget);
       await tester.tap(toggleFinder);
       await tester.pump();
-      await tester.pump(const Duration(milliseconds: 200)); // finish 200ms animation
+      await tester
+          .pump(const Duration(milliseconds: 200)); // finish 200ms animation
       await tester.pumpAndSettle();
 
       // Verify collapsed rail (thread title hidden, open tooltip shown)
@@ -268,7 +276,9 @@ void main() {
       expect(find.text(draft), findsOneWidget);
     });
 
-    testWidgets('Ca A2. Dynamic Resize across 840px breakpoint maintains integrity', (tester) async {
+    testWidgets(
+        'Ca A2. Dynamic Resize across 840px breakpoint maintains integrity',
+        (tester) async {
       tester.view.physicalSize = const Size(1024, 768);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(() {
@@ -277,14 +287,16 @@ void main() {
       });
 
       final notifier = _IntegrationChatNotifier();
-      await tester.pumpWidget(_buildIntegrationApp(chatNotifier: notifier, size: const Size(1024, 768)));
+      await tester.pumpWidget(_buildIntegrationApp(
+          chatNotifier: notifier, size: const Size(1024, 768)));
       await tester.pumpAndSettle();
 
       expect(find.byType(SamanChatDrawer), findsOneWidget);
 
       // Resize down to 400px (Mobile viewport)
       tester.view.physicalSize = const Size(400, 800);
-      await tester.pumpWidget(_buildIntegrationApp(chatNotifier: notifier, size: const Size(400, 800)));
+      await tester.pumpWidget(_buildIntegrationApp(
+          chatNotifier: notifier, size: const Size(400, 800)));
       await tester.pumpAndSettle();
 
       // Verify desktop permanent sidebar is gone and drawer icon is available
@@ -292,14 +304,17 @@ void main() {
 
       // Resize back to 1024px
       tester.view.physicalSize = const Size(1024, 768);
-      await tester.pumpWidget(_buildIntegrationApp(chatNotifier: notifier, size: const Size(1024, 768)));
+      await tester.pumpWidget(_buildIntegrationApp(
+          chatNotifier: notifier, size: const Size(1024, 768)));
       await tester.pumpAndSettle();
 
       // Verify permanent sidebar returned cleanly without conflicting duplicates
       expect(find.byType(SamanChatDrawer), findsOneWidget);
     });
 
-    testWidgets('Ca A3. Mobile Drawer: Open, close by scrim/back, and switch threads', (tester) async {
+    testWidgets(
+        'Ca A3. Mobile Drawer: Open, close by scrim/back, and switch threads',
+        (tester) async {
       tester.view.physicalSize = const Size(400, 800);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(() {
@@ -308,7 +323,8 @@ void main() {
       });
 
       final notifier = _IntegrationChatNotifier();
-      await tester.pumpWidget(_buildIntegrationApp(chatNotifier: notifier, size: const Size(400, 800)));
+      await tester.pumpWidget(_buildIntegrationApp(
+          chatNotifier: notifier, size: const Size(400, 800)));
       await tester.pumpAndSettle();
 
       // Open drawer via header button
@@ -327,7 +343,9 @@ void main() {
       expect(notifier.lastLoadedId, 'thread_B');
     });
 
-    testWidgets('Ca A4. Navigation entries: Account row, Settings gear and Reminders', (tester) async {
+    testWidgets(
+        'Ca A4. Navigation entries: Account row, Settings gear and Reminders',
+        (tester) async {
       tester.view.physicalSize = const Size(1024, 768);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(() {
@@ -336,16 +354,23 @@ void main() {
       });
 
       final notifier = _IntegrationChatNotifier();
-      await tester.pumpWidget(_buildIntegrationApp(chatNotifier: notifier, size: const Size(1024, 768)));
+      await tester.pumpWidget(_buildIntegrationApp(
+          chatNotifier: notifier, size: const Size(1024, 768)));
       await tester.pumpAndSettle();
 
       // Verify pinned account row is visible
       expect(find.text('Saman Athlete'), findsOneWidget);
 
-      // Tap settings gear icon -> opens preferences / personas sheet
+      // Tap settings gear icon -> opens floating account menu
       final gearFinder = find.byTooltip('Tùy chọn Saman');
       expect(gearFinder, findsOneWidget);
       await tester.tap(gearFinder);
+      await tester.pumpAndSettle();
+
+      expect(find.byType(SamanAccountPopupMenu), findsOneWidget);
+
+      // Tap Cá nhân hóa Coach -> opens preferences / personas sheet
+      await tester.tap(find.text('Cá nhân hóa Coach'));
       await tester.pumpAndSettle();
 
       expect(find.text('Saman Preferences'), findsOneWidget);
@@ -353,13 +378,14 @@ void main() {
       Navigator.of(tester.element(find.text('Saman Preferences'))).pop();
       await tester.pumpAndSettle();
 
-      // Tap Account row -> navigates to Profile
+      // Tap Account row -> opens floating account menu
       await tester.tap(find.text('Saman Athlete'));
       await tester.pumpAndSettle();
-      expect(find.byType(ProfileScreen), findsOneWidget);
+      expect(find.byType(SamanAccountPopupMenu), findsOneWidget);
     });
 
-    testWidgets('Ca A5. New Chat does not dispatch empty request to backend', (tester) async {
+    testWidgets('Ca A5. New Chat does not dispatch empty request to backend',
+        (tester) async {
       tester.view.physicalSize = const Size(1024, 768);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(() {
@@ -368,7 +394,8 @@ void main() {
       });
 
       final notifier = _IntegrationChatNotifier();
-      await tester.pumpWidget(_buildIntegrationApp(chatNotifier: notifier, size: const Size(1024, 768)));
+      await tester.pumpWidget(_buildIntegrationApp(
+          chatNotifier: notifier, size: const Size(1024, 768)));
       await tester.pumpAndSettle();
 
       // Tap 'Đoạn chat mới' pill button
@@ -383,7 +410,9 @@ void main() {
     // ══════════════════════════════════════════════════════════════════════════
     // SECTION B: Composer, Keyboard & Popovers Acceptance
     // ══════════════════════════════════════════════════════════════════════════
-    testWidgets('Ca B1. Vietnamese IME composing guard blocks Enter; multiline expands', (tester) async {
+    testWidgets(
+        'Ca B1. Vietnamese IME composing guard blocks Enter; multiline expands',
+        (tester) async {
       tester.view.physicalSize = const Size(400, 800);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(() {
@@ -392,7 +421,8 @@ void main() {
       });
 
       final notifier = _IntegrationChatNotifier();
-      await tester.pumpWidget(_buildIntegrationApp(chatNotifier: notifier, size: const Size(400, 800)));
+      await tester.pumpWidget(_buildIntegrationApp(
+          chatNotifier: notifier, size: const Size(400, 800)));
       await tester.pumpAndSettle();
 
       final textField = tester.widget<TextField>(find.byType(TextField));
@@ -425,7 +455,9 @@ void main() {
       expect(notifier.chatAttempts, 1);
     });
 
-    testWidgets('Ca B2. Popover menus dismiss cleanly via Outside Tap and Escape key', (tester) async {
+    testWidgets(
+        'Ca B2. Popover menus dismiss cleanly via Outside Tap and Escape key',
+        (tester) async {
       tester.view.physicalSize = const Size(400, 800);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(() {
@@ -434,7 +466,8 @@ void main() {
       });
 
       final notifier = _IntegrationChatNotifier();
-      await tester.pumpWidget(_buildIntegrationApp(chatNotifier: notifier, size: const Size(400, 800)));
+      await tester.pumpWidget(_buildIntegrationApp(
+          chatNotifier: notifier, size: const Size(400, 800)));
       await tester.pumpAndSettle();
 
       // Open Tools popover
@@ -462,7 +495,9 @@ void main() {
       expect(find.text('Mặc định toàn diện'), findsNothing);
     });
 
-    testWidgets('Ca B3. Locked AI modes (Swift 3 & Pro 3) do not alter selection', (tester) async {
+    testWidgets(
+        'Ca B3. Locked AI modes (Swift 3 & Pro 3) do not alter selection',
+        (tester) async {
       tester.view.physicalSize = const Size(400, 800);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(() {
@@ -471,7 +506,8 @@ void main() {
       });
 
       final notifier = _IntegrationChatNotifier();
-      await tester.pumpWidget(_buildIntegrationApp(chatNotifier: notifier, size: const Size(400, 800)));
+      await tester.pumpWidget(_buildIntegrationApp(
+          chatNotifier: notifier, size: const Size(400, 800)));
       await tester.pumpAndSettle();
 
       // Open Mode Menu
@@ -487,7 +523,9 @@ void main() {
       expect(find.text('Core 3'), findsWidgets);
     });
 
-    testWidgets('Ca B4. Tools entry points open HistoryAnalyticsSheet and SamanAttachmentSheet', (tester) async {
+    testWidgets(
+        'Ca B4. Tools entry points open HistoryAnalyticsSheet and SamanAttachmentSheet',
+        (tester) async {
       tester.view.physicalSize = const Size(400, 800);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(() {
@@ -496,7 +534,8 @@ void main() {
       });
 
       final notifier = _IntegrationChatNotifier();
-      await tester.pumpWidget(_buildIntegrationApp(chatNotifier: notifier, size: const Size(400, 800)));
+      await tester.pumpWidget(_buildIntegrationApp(
+          chatNotifier: notifier, size: const Size(400, 800)));
       await tester.pumpAndSettle();
 
       // 1. Open Tools popover -> Tap 'Phân tích lịch sử'
@@ -532,7 +571,9 @@ void main() {
     // ══════════════════════════════════════════════════════════════════════════
     // SECTION C: Turn Lifecycle Acceptance (Send, Wait, Respond, Scroll)
     // ══════════════════════════════════════════════════════════════════════════
-    testWidgets('Ca C1. User bubble appears immediately, draft clears, waiting indicator shows', (tester) async {
+    testWidgets(
+        'Ca C1. User bubble appears immediately, draft clears, waiting indicator shows',
+        (tester) async {
       tester.view.physicalSize = const Size(400, 800);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(() {
@@ -541,7 +582,8 @@ void main() {
       });
 
       final notifier = _IntegrationChatNotifier();
-      await tester.pumpWidget(_buildIntegrationApp(chatNotifier: notifier, size: const Size(400, 800)));
+      await tester.pumpWidget(_buildIntegrationApp(
+          chatNotifier: notifier, size: const Size(400, 800)));
       await tester.pumpAndSettle();
 
       const question = 'Hôm nay tôi nên tập nhóm cơ nào?';
@@ -560,7 +602,9 @@ void main() {
       expect(find.byType(SamanGeneratingIndicator), findsOneWidget);
     });
 
-    testWidgets('Ca C2. Compose next draft while waiting; draft preserved when response arrives', (tester) async {
+    testWidgets(
+        'Ca C2. Compose next draft while waiting; draft preserved when response arrives',
+        (tester) async {
       tester.view.physicalSize = const Size(400, 800);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(() {
@@ -569,7 +613,8 @@ void main() {
       });
 
       final notifier = _IntegrationChatNotifier();
-      await tester.pumpWidget(_buildIntegrationApp(chatNotifier: notifier, size: const Size(400, 800)));
+      await tester.pumpWidget(_buildIntegrationApp(
+          chatNotifier: notifier, size: const Size(400, 800)));
       await tester.pumpAndSettle();
 
       // Send first message
@@ -593,7 +638,9 @@ void main() {
       expect(field.controller!.text, nextDraft);
     });
 
-    testWidgets('Ca C3. Double-send & concurrent Enter/Send guard rejects duplicates', (tester) async {
+    testWidgets(
+        'Ca C3. Double-send & concurrent Enter/Send guard rejects duplicates',
+        (tester) async {
       tester.view.physicalSize = const Size(400, 800);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(() {
@@ -602,7 +649,8 @@ void main() {
       });
 
       final notifier = _IntegrationChatNotifier();
-      await tester.pumpWidget(_buildIntegrationApp(chatNotifier: notifier, size: const Size(400, 800)));
+      await tester.pumpWidget(_buildIntegrationApp(
+          chatNotifier: notifier, size: const Size(400, 800)));
       await tester.pumpAndSettle();
 
       await tester.enterText(find.byType(TextField), 'Thử nghiệm gửi đúp');
@@ -621,7 +669,9 @@ void main() {
     // ══════════════════════════════════════════════════════════════════════════
     // SECTION D: Error Recovery, Retry & Multi-Thread Isolation
     // ══════════════════════════════════════════════════════════════════════════
-    testWidgets('Ca D1. Server error shows non-alarmist message with Retry & Edit actions', (tester) async {
+    testWidgets(
+        'Ca D1. Server error shows non-alarmist message with Retry & Edit actions',
+        (tester) async {
       tester.view.physicalSize = const Size(1024, 800);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(() {
@@ -630,7 +680,8 @@ void main() {
       });
 
       final notifier = _IntegrationChatNotifier();
-      await tester.pumpWidget(_buildIntegrationApp(chatNotifier: notifier, size: const Size(400, 800)));
+      await tester.pumpWidget(_buildIntegrationApp(
+          chatNotifier: notifier, size: const Size(400, 800)));
       await tester.pumpAndSettle();
 
       await tester.enterText(find.byType(TextField), 'Câu hỏi gặp lỗi mạng');
@@ -650,11 +701,15 @@ void main() {
       await tester.tap(find.text('Retry'));
       await tester.pump();
       expect(notifier.retryAttempts, 1);
-      final userBubbles = find.descendant(of: find.byType(SamanMessageList), matching: find.byType(SamanUserMessage));
+      final userBubbles = find.descendant(
+          of: find.byType(SamanMessageList),
+          matching: find.byType(SamanUserMessage));
       expect(userBubbles, findsOneWidget);
     });
 
-    testWidgets('Ca D2. Edit question protects active draft with confirmation dialog', (tester) async {
+    testWidgets(
+        'Ca D2. Edit question protects active draft with confirmation dialog',
+        (tester) async {
       tester.view.physicalSize = const Size(1024, 800);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(() {
@@ -663,7 +718,8 @@ void main() {
       });
 
       final notifier = _IntegrationChatNotifier();
-      await tester.pumpWidget(_buildIntegrationApp(chatNotifier: notifier, size: const Size(400, 800)));
+      await tester.pumpWidget(_buildIntegrationApp(
+          chatNotifier: notifier, size: const Size(400, 800)));
       await tester.pumpAndSettle();
 
       // Send question and simulate failure
@@ -705,7 +761,9 @@ void main() {
       expect(field.controller!.text, 'Câu hỏi gốc bị lỗi');
     });
 
-    testWidgets('Ca D3. Thread switching isolates responses and preserves canonical state', (tester) async {
+    testWidgets(
+        'Ca D3. Thread switching isolates responses and preserves canonical state',
+        (tester) async {
       tester.view.physicalSize = const Size(1024, 768);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(() {
@@ -714,7 +772,8 @@ void main() {
       });
 
       final notifier = _IntegrationChatNotifier();
-      await tester.pumpWidget(_buildIntegrationApp(chatNotifier: notifier, size: const Size(1024, 768)));
+      await tester.pumpWidget(_buildIntegrationApp(
+          chatNotifier: notifier, size: const Size(1024, 768)));
       await tester.pumpAndSettle();
 
       // Currently on thread_A
@@ -740,7 +799,9 @@ void main() {
     // ══════════════════════════════════════════════════════════════════════════
     // SECTION E: Motion & Accessibility Compliance
     // ══════════════════════════════════════════════════════════════════════════
-    testWidgets('Ca E1. Mid-flight sidebar transition (100ms) has zero layout overflow', (tester) async {
+    testWidgets(
+        'Ca E1. Mid-flight sidebar transition (100ms) has zero layout overflow',
+        (tester) async {
       tester.view.physicalSize = const Size(1024, 768);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(() {
@@ -749,22 +810,27 @@ void main() {
       });
 
       final notifier = _IntegrationChatNotifier();
-      await tester.pumpWidget(_buildIntegrationApp(chatNotifier: notifier, size: const Size(1024, 768)));
+      await tester.pumpWidget(_buildIntegrationApp(
+          chatNotifier: notifier, size: const Size(1024, 768)));
       await tester.pumpAndSettle();
 
       // Trigger collapse
       await tester.tap(find.byTooltip('Thu gọn thanh bên'));
       await tester.pump();
-      await tester.pump(const Duration(milliseconds: 100)); // Exactly mid-flight
+      await tester
+          .pump(const Duration(milliseconds: 100)); // Exactly mid-flight
 
       // Verify width is between 64 and 260 and no Flutter exception occurred
-      final drawerBox = tester.renderObject<RenderBox>(find.byType(SamanChatDrawer));
+      final drawerBox =
+          tester.renderObject<RenderBox>(find.byType(SamanChatDrawer));
       expect(drawerBox.size.width, lessThan(260.0));
       expect(drawerBox.size.width, greaterThan(64.0));
       expect(tester.takeException(), isNull);
     });
 
-    testWidgets('Ca E2. Reduced motion collapses animation durations to Duration.zero', (tester) async {
+    testWidgets(
+        'Ca E2. Reduced motion collapses animation durations to Duration.zero',
+        (tester) async {
       tester.view.physicalSize = const Size(1024, 768);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(() {
@@ -784,11 +850,14 @@ void main() {
       await tester.tap(find.byTooltip('Thu gọn thanh bên'));
       await tester.pump(); // Instant transition with 0 duration
 
-      final drawerBox = tester.renderObject<RenderBox>(find.byType(SamanChatDrawer));
+      final drawerBox =
+          tester.renderObject<RenderBox>(find.byType(SamanChatDrawer));
       expect(drawerBox.size.width, equals(64.0));
     });
 
-    testWidgets('Ca E3. Mobile primary touch targets strictly satisfy 48x48 logical px', (tester) async {
+    testWidgets(
+        'Ca E3. Mobile primary touch targets strictly satisfy 48x48 logical px',
+        (tester) async {
       tester.view.physicalSize = const Size(400, 800);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(() {
@@ -797,13 +866,16 @@ void main() {
       });
 
       final notifier = _IntegrationChatNotifier();
-      await tester.pumpWidget(_buildIntegrationApp(chatNotifier: notifier, size: const Size(400, 800)));
+      await tester.pumpWidget(_buildIntegrationApp(
+          chatNotifier: notifier, size: const Size(400, 800)));
       await tester.pumpAndSettle();
 
-      final plusFinder = find.descendant(
-        of: find.byTooltip('Thêm công cụ'),
-        matching: find.byType(SizedBox),
-      ).first;
+      final plusFinder = find
+          .descendant(
+            of: find.byTooltip('Thêm công cụ'),
+            matching: find.byType(SizedBox),
+          )
+          .first;
       final plusSize = tester.getSize(plusFinder);
       expect(plusSize.width, greaterThanOrEqualTo(48.0));
       expect(plusSize.height, greaterThanOrEqualTo(48.0));
@@ -812,10 +884,12 @@ void main() {
       await tester.enterText(find.byType(TextField), 'Ke hoach tap hom nay');
       await tester.pumpAndSettle();
 
-      final sendFinder = find.descendant(
-        of: find.bySemanticsLabel('Gửi tin nhắn'),
-        matching: find.byType(SizedBox),
-      ).first;
+      final sendFinder = find
+          .descendant(
+            of: find.bySemanticsLabel('Gửi tin nhắn'),
+            matching: find.byType(SizedBox),
+          )
+          .first;
       final sendSize = tester.getSize(sendFinder);
       expect(sendSize.width, greaterThanOrEqualTo(48.0));
       expect(sendSize.height, greaterThanOrEqualTo(48.0));

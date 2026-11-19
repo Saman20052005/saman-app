@@ -10,8 +10,8 @@ import '../../widgets/community_bottom_navigation_bar.dart';
 import '../../widgets/create_content_bottom_sheet.dart';
 import 'community_edit_profile_screen.dart';
 import 'community_follow_list_screen.dart';
-import '../drafts/community_drafts_screen.dart';
 import '../saved/community_saved_screen.dart';
+import '../../../../../widgets/saman_feedback_snackbar.dart';
 
 class CommunityProfileScreen extends ConsumerStatefulWidget {
   final String authorId;
@@ -114,11 +114,10 @@ class _CommunityProfileScreenState
           isFollowing: prevFollowing,
           followerCount: author.followerCount,
         );
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Không thể cập nhật theo dõi: ${e.toString()}'),
-            backgroundColor: Colors.redAccent,
-          ),
+        SamanFeedbackSnackBar.show(
+          context,
+          message: 'Không thể cập nhật theo dõi: ${e.toString()}',
+          type: FeedbackType.error,
         );
       }
     } finally {
@@ -209,7 +208,12 @@ class _CommunityProfileScreenState
                 } else if (tab == CommunityNavTab.create) {
                   CreateContentBottomSheet.show(context);
                 } else if (tab == CommunityNavTab.notifications) {
-                  Navigator.pushNamed(context, '/community/notifications');
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Tính năng đang hoàn thiện, sẽ sớm ra mắt!'),
+                      duration: Duration(seconds: 2),
+                    ),
+                  );
                 }
               },
             ),
@@ -579,10 +583,10 @@ class _CommunityProfileScreenState
             height: 36,
             child: OutlinedButton.icon(
               onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => const CommunityDraftsScreen(),
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Tính năng đang hoàn thiện, sẽ sớm ra mắt!'),
+                    duration: Duration(seconds: 2),
                   ),
                 );
               },

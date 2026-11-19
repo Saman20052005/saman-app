@@ -91,6 +91,8 @@ class NutritionRepositoryImpl implements INutritionRepository {
       totalCarbsConsumed: dailyPlan.totalCarbsConsumed,
       totalFatConsumed: dailyPlan.totalFatConsumed,
       rolloverCalories: dailyPlan.rolloverCalories,
+      dayMode: dailyPlan.dayMode,
+      dynamicTarget: dailyPlan.dynamicTarget ?? generatedPlan.dynamicTarget,
     );
   }
 
@@ -282,5 +284,87 @@ class NutritionRepositoryImpl implements INutritionRepository {
     final data = await _remoteDataSource.getFoodById(foodId);
     if (data == null) return null;
     return FoodDto.fromJson(data).toEntity();
+  }
+
+  @override
+  Future<List<RecentMealSummary>> getRecentMeals({
+    int days = 14,
+    int limit = 10,
+  }) async {
+    final rawList = await _remoteDataSource.getRecentMeals(
+      days: days,
+      limit: limit,
+    );
+    return rawList.map((e) => RecentMealSummary.fromJson(e)).toList();
+  }
+
+  @override
+  Future<bool> quickRelogMeal({
+    required String sourceLogId,
+    String? mealType,
+    String? date,
+  }) async {
+    return await _remoteDataSource.quickRelogMeal(
+      sourceLogId: sourceLogId,
+      mealType: mealType,
+      date: date,
+    );
+  }
+
+  @override
+  Future<List<Supplement>> getSupplements(String dateStr) async {
+    final rawList = await _remoteDataSource.getSupplements(dateStr);
+    return rawList.map((e) => Supplement.fromJson(e)).toList();
+  }
+
+  @override
+  Future<Supplement> addSupplement(Map<String, dynamic> body) async {
+    final data = await _remoteDataSource.addSupplement(body);
+    final payload = data['supplement'] is Map
+        ? Map<String, dynamic>.from(data['supplement'] as Map)
+        : (data['log'] is Map
+            ? Map<String, dynamic>.from(data['log'] as Map)
+            : data);
+    return Supplement.fromJson(payload);
+  }
+
+  @override
+  Future<bool> deleteSupplement(String logId) async {
+    return await _remoteDataSource.deleteSupplement(logId);
+  }
+
+  @override
+  Future<List<RecipeModel>> getRecipes() async {
+    final rawList = await _remoteDataSource.getRecipes();
+    return rawList.map((e) => RecipeModel.fromJson(e)).toList();
+  }
+
+  @override
+  Future<RecipeModel> createRecipe(Map<String, dynamic> body) async {
+    final data = await _remoteDataSource.createRecipe(body);
+    final payload = data['recipe'] is Map
+        ? Map<String, dynamic>.from(data['recipe'] as Map)
+        : data;
+    return RecipeModel.fromJson(payload);
+  }
+
+  @override
+  Future<bool> deleteRecipe(String recipeId) async {
+    return await _remoteDataSource.deleteRecipe(recipeId);
+  }
+
+  @override
+  Future<bool> logRecipe(
+    String recipeId, {
+    String? date,
+    String mealType = 'snack',
+    double servingsConsumed = 1.0,
+  }) async {
+    return await _remoteDataSource.logRecipe(
+      recipeId,
+      date: date,
+      mealType: mealType,
+      servingsConsumed: servingsConsumed,
+    );
   }
 }

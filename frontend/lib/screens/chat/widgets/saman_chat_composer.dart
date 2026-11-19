@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import '../../../config/app_translations.dart';
 import '../../../controllers/chat_controller.dart';
 import '../tokens/saman_chat_tokens.dart';
 
@@ -101,9 +102,14 @@ class _SamanChatComposerState extends State<SamanChatComposer> with WidgetsBindi
   @override
   void didChangeMetrics() {
     super.didChangeMetrics();
-    if (_isToolsMenuOpen || _isModeMenuOpen) {
-      _closeAllPopovers();
+    if (!mounted || _activeOverlay == null) {
+      return;
     }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        _activeOverlay?.markNeedsBuild();
+      }
+    });
   }
 
   @override
@@ -147,15 +153,25 @@ class _SamanChatComposerState extends State<SamanChatComposer> with WidgetsBindi
 
   void _openToolsMenu() {
     _closeAllPopovers();
-    final renderBox = _toolsKey.currentContext?.findRenderObject() as RenderBox?;
-    final offset = renderBox?.localToGlobal(Offset.zero) ?? Offset.zero;
-    final screenHeight = MediaQuery.sizeOf(context).height;
-    final keyboardHeight = MediaQuery.viewInsetsOf(context).bottom;
-    final spaceBelow = screenHeight - keyboardHeight - (offset.dy + (renderBox?.size.height ?? 36.0));
-    final opensUpward = spaceBelow < 180.0 || keyboardHeight > 0;
+    FocusManager.instance.primaryFocus?.unfocus();
 
     _activeOverlay = OverlayEntry(
-      builder: (context) {
+      builder: (overlayContext) {
+        final renderBox = _toolsKey.currentContext?.findRenderObject() as RenderBox?;
+        final offset = (renderBox != null && renderBox.attached)
+            ? renderBox.localToGlobal(Offset.zero)
+            : Offset.zero;
+        final targetHeight = (renderBox != null && renderBox.attached)
+            ? renderBox.size.height
+            : 36.0;
+        final mediaQuery = MediaQuery.of(overlayContext);
+        final screenHeight = mediaQuery.size.height;
+        final topSafe = mediaQuery.padding.top + 8.0;
+        final bottomSafe = mediaQuery.padding.bottom + mediaQuery.viewInsets.bottom + 8.0;
+        final spaceAbove = offset.dy - topSafe;
+        final spaceBelow = screenHeight - (offset.dy + targetHeight) - bottomSafe;
+        final effectiveOpensUpward = spaceAbove >= 180.0 || spaceAbove >= spaceBelow;
+
         return Stack(
           children: [
             // Barrier
@@ -170,9 +186,9 @@ class _SamanChatComposerState extends State<SamanChatComposer> with WidgetsBindi
               child: CompositedTransformFollower(
                 link: _toolsLayerLink,
                 showWhenUnlinked: false,
-                targetAnchor: opensUpward ? Alignment.topLeft : Alignment.bottomLeft,
-                followerAnchor: opensUpward ? Alignment.bottomLeft : Alignment.topLeft,
-                offset: Offset(0, opensUpward ? -8.0 : 8.0),
+                targetAnchor: effectiveOpensUpward ? Alignment.topLeft : Alignment.bottomLeft,
+                followerAnchor: effectiveOpensUpward ? Alignment.bottomLeft : Alignment.topLeft,
+                offset: Offset(0, effectiveOpensUpward ? -8.0 : 8.0),
                 child: FocusScope(
                   autofocus: true,
                   onKeyEvent: (node, event) {
@@ -186,7 +202,7 @@ class _SamanChatComposerState extends State<SamanChatComposer> with WidgetsBindi
                   child: Material(
                     color: Colors.transparent,
                     child: _AnimatedPopoverCard(
-                      opensUpward: opensUpward,
+                      opensUpward: effectiveOpensUpward,
                       child: Container(
                         width: 250.0,
                       decoration: BoxDecoration(
@@ -264,52 +280,39 @@ class _SamanChatComposerState extends State<SamanChatComposer> with WidgetsBindi
 
   void _openModeMenu() {
     _closeAllPopovers();
+    FocusManager.instance.primaryFocus?.unfocus();
     final renderBox = _modeKey.currentContext?.findRenderObject() as RenderBox?;
     final offset = renderBox?.localToGlobal(Offset.zero) ?? Offset.zero;
-    final screenHeight = MediaQuery.sizeOf(context).height;
-    final keyboardHeight = MediaQuery.viewInsetsOf(context).bottom;
-    final spaceBelow = screenHeight - keyboardHeight - (offset.dy + (renderBox?.size.height ?? 36.0));
-    final opensUpward = spaceBelow < 220.0 || keyboardHeight > 0;
+    final targetSize = renderBox?.size ?? const Size(72.0, 36.0);
+    final mediaQuery = MediaQuery.of(context);
+    final screenHeight = mediaQuery.size.height;
+    final topSafe = mediaQuery.padding.top + 8.0;
+    final bottomSafe = mediaQuery.padding.bottom + mediaQuery.viewInsets.bottom + 8.0;
+    final spaceAbove = offset.dy - topSafe;
+    final spaceBelow = screenHeight - (offset.dy + targetSize.height) - bottomSafe;
+    final opensUpward = spaceAbove >= 220.0 || spaceAbove >= spaceBelow;
 
     _activeOverlay = OverlayEntry(
-      builder: (context) {
+      builder: (overlayContext) {
         return _ModeMenuOverlay(
+          targetKey: _modeKey,
           targetOffset: offset,
-          targetSize: renderBox?.size ?? const Size(72.0, 36.0),
+          targetSize: targetSize,
           opensUpward: opensUpward,
           onClose: _closeAllPopovers,
           onSelectMedium: () {
             _closeAllPopovers();
-            _effectiveFocusNode.requestFocus();
           },
-          onSwift3Tapped: () {
-            _closeAllPopovers();
-            ScaffoldMessenger.of(context).hideCurrentSnackBar();
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Chế độ Swift 3 đang được hiệu chuẩn, vui lòng trải nghiệm Core 3.'),
-                duration: Duration(seconds: 2),
-                behavior: SnackBarBehavior.floating,
-              ),
-            );
-          },
-          onPro3Tapped: () {
-            _closeAllPopovers();
-            ScaffoldMessenger.of(context).hideCurrentSnackBar();
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Chế độ Pro 3 sẽ ra mắt trong bản cập nhật tới.'),
-                duration: Duration(seconds: 2),
-                behavior: SnackBarBehavior.floating,
-              ),
-            );
-          },
+          activeMode: widget.activeMode,
+          onModeSelected: widget.onModeSelected,
           onLockedThinkingLevelTapped: (level) {
-            ScaffoldMessenger.of(context).hideCurrentSnackBar();
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Mức suy luận này chưa được mở'),
-                duration: Duration(seconds: 2),
+            if (!mounted) return;
+            final messenger = ScaffoldMessenger.maybeOf(context);
+            messenger?.hideCurrentSnackBar();
+            messenger?.showSnackBar(
+              SnackBar(
+                content: Text(context.tr('badge_coming_soon')),
+                duration: const Duration(seconds: 2),
                 behavior: SnackBarBehavior.floating,
               ),
             );
@@ -429,16 +432,25 @@ Widget _buildPopoverItem({
     );
   }
 
+  String _modeTitle(BuildContext context, AIMode mode) {
+    return switch (mode) {
+      AIMode.swift3 => context.tr('model_swift_3_title'),
+      AIMode.core3 => context.tr('model_core_3_title'),
+      AIMode.pro3 => context.tr('model_pro_3_title'),
+    };
+  }
+
   Widget _buildModeButton({required bool disableAnimations}) {
     return CompositedTransformTarget(
       link: _modeLayerLink,
       child: Semantics(
         button: true,
-        label: 'Chế độ AI: Core 3. ',
+        label: 'AI: ${_modeTitle(context, widget.activeMode)}. ',
         child: Material(
           color: Colors.transparent,
           child: InkWell(
             key: _modeKey,
+            canRequestFocus: false,
             borderRadius: BorderRadius.circular(16.0),
             hoverColor: SamanChatTokens.actionRowHoverBg,
             focusColor: SamanChatTokens.actionRowFocusBg,
@@ -455,8 +467,17 @@ Widget _buildPopoverItem({
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
+                  Container(
+                    width: 6.0,
+                    height: 6.0,
+                    margin: const EdgeInsets.only(right: 6.0),
+                    decoration: const BoxDecoration(
+                      color: Color(0xFF10B981),
+                      shape: BoxShape.circle,
+                    ),
+                  ),
                   Text(
-                    'Core 3',
+                    _modeTitle(context, widget.activeMode),
                     style: TextStyle(
                       fontSize: 13.0,
                       fontWeight: FontWeight.w600,
@@ -562,7 +583,7 @@ Widget _buildPopoverItem({
                 child: Icon(
                   Icons.arrow_upward_rounded,
                   color: canSend
-                      ? Colors.white
+                      ? const Color(0xFF052E16)
                       : SamanChatTokens.composerSendDisabledIcon,
                   size: 20.0,
                 ),
@@ -592,8 +613,10 @@ Widget _buildPopoverItem({
         filled: true,
         fillColor: Colors.transparent,
         hoverColor: Colors.transparent,
-        hintText: widget.hintText ?? 'Hỏi Saman về dinh dưỡng, bài tập, phục hồi...',
-        hintStyle: SamanChatTokens.composerHint,
+        hintText: widget.hintText ?? 'Hỏi Saman...',
+        hintStyle: SamanChatTokens.composerHint.copyWith(
+          color: const Color(0xFF9CA3AF),
+        ),
         isDense: true,
         contentPadding: isSingleLine
             ? const EdgeInsets.symmetric(horizontal: 8.0, vertical: 10.0)
@@ -778,24 +801,26 @@ class _AnimatedPopoverCardState extends State<_AnimatedPopoverCard>
 }
 
 class _ModeMenuOverlay extends StatefulWidget {
+  final GlobalKey targetKey;
   final Offset targetOffset;
   final Size targetSize;
   final bool opensUpward;
   final VoidCallback onClose;
   final VoidCallback onSelectMedium;
-  final VoidCallback onSwift3Tapped;
-  final VoidCallback onPro3Tapped;
+  final AIMode activeMode;
+  final ValueChanged<AIMode>? onModeSelected;
   final ValueChanged<String> onLockedThinkingLevelTapped;
   final VoidCallback onRequestFocusComposer;
 
   const _ModeMenuOverlay({
+    required this.targetKey,
     required this.targetOffset,
     required this.targetSize,
     required this.opensUpward,
     required this.onClose,
     required this.onSelectMedium,
-    required this.onSwift3Tapped,
-    required this.onPro3Tapped,
+    required this.activeMode,
+    this.onModeSelected,
     required this.onLockedThinkingLevelTapped,
     required this.onRequestFocusComposer,
   });
@@ -811,19 +836,12 @@ class _ModeMenuOverlayState extends State<_ModeMenuOverlay> {
   Timer? _openDebounceTimer;
   Timer? _closeGraceTimer;
   late final FocusNode _triggerFocusNode;
-  late final FocusScopeNode _overlayFocusScopeNode;
   final GlobalKey _triggerKey = GlobalKey();
 
   @override
   void initState() {
     super.initState();
     _triggerFocusNode = FocusNode();
-    _overlayFocusScopeNode = FocusScopeNode();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) {
-        _triggerFocusNode.requestFocus();
-      }
-    });
   }
 
   @override
@@ -831,26 +849,53 @@ class _ModeMenuOverlayState extends State<_ModeMenuOverlay> {
     _openDebounceTimer?.cancel();
     _closeGraceTimer?.cancel();
     _triggerFocusNode.dispose();
-    _overlayFocusScopeNode.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    final screenSize = MediaQuery.sizeOf(context);
+    final mediaQuery = MediaQuery.of(context);
+    final screenSize = mediaQuery.size;
     final isDesktop = screenSize.width >= 600.0;
     const mainMenuWidth = 270.0;
     const submenuWidth = 240.0;
     const gap = 6.0;
 
-    final modeRight = widget.targetOffset.dx + widget.targetSize.width;
+    final targetBox = widget.targetKey.currentContext?.findRenderObject() as RenderBox?;
+    final targetOffset = (targetBox != null && targetBox.attached)
+        ? targetBox.localToGlobal(Offset.zero)
+        : widget.targetOffset;
+    final targetSize = (targetBox != null && targetBox.attached)
+        ? targetBox.size
+        : widget.targetSize;
+
+    final modeRight = targetOffset.dx + targetSize.width;
     double mainMenuLeft = modeRight - mainMenuWidth;
     mainMenuLeft = mainMenuLeft.clamp(12.0, screenSize.width - mainMenuWidth - 12.0);
     final mainMenuRight = mainMenuLeft + mainMenuWidth;
 
-    final opensUpward = widget.opensUpward;
-    final double? mainMenuTop = opensUpward ? null : widget.targetOffset.dy + widget.targetSize.height + 8.0;
-    final double? mainMenuBottom = opensUpward ? (screenSize.height - widget.targetOffset.dy + 8.0) : null;
+    final topSafe = mediaQuery.padding.top + 8.0;
+    final bottomSafe = mediaQuery.padding.bottom + mediaQuery.viewInsets.bottom + 8.0;
+
+    final spaceAbove = targetOffset.dy - topSafe;
+    final spaceBelow = screenSize.height - (targetOffset.dy + targetSize.height) - bottomSafe;
+    final effectiveOpensUpward = spaceAbove >= 220.0 || spaceAbove >= spaceBelow;
+
+    final double? mainMenuTop = effectiveOpensUpward
+        ? null
+        : (targetOffset.dy + targetSize.height + 8.0).clamp(
+            topSafe,
+            (screenSize.height - bottomSafe - 80.0).clamp(topSafe, screenSize.height),
+          );
+    final double? mainMenuBottom = effectiveOpensUpward
+        ? (screenSize.height - targetOffset.dy + 8.0).clamp(
+            bottomSafe,
+            (screenSize.height - topSafe - 80.0).clamp(bottomSafe, screenSize.height),
+          )
+        : null;
+    final double maxMenuHeight = effectiveOpensUpward
+        ? (screenSize.height - mainMenuBottom! - topSafe).clamp(120.0, screenSize.height * 0.65)
+        : (screenSize.height - mainMenuTop! - bottomSafe).clamp(120.0, screenSize.height * 0.65);
 
     final spaceToRight = screenSize.width - mainMenuRight;
     final openToRight = spaceToRight >= (submenuWidth + 12.0);
@@ -865,34 +910,17 @@ class _ModeMenuOverlayState extends State<_ModeMenuOverlay> {
       resolvedSubmenuTop = null;
     }
 
-    return FocusScope(
-      node: _overlayFocusScopeNode,
-      autofocus: true,
-      onKeyEvent: (node, event) {
-        if (event is KeyDownEvent && event.logicalKey == LogicalKeyboardKey.escape) {
-          if (_isThinkingSubmenuOpen) {
-            setState(() => _isThinkingSubmenuOpen = false);
-            _triggerFocusNode.requestFocus();
-            return KeyEventResult.handled;
-          }
-          widget.onClose();
-          widget.onRequestFocusComposer();
-          return KeyEventResult.handled;
+    return PopScope(
+      canPop: false,
+      onPopInvoked: (didPop) {
+        if (didPop) return;
+        if (_isThinkingSubmenuOpen) {
+          setState(() => _isThinkingSubmenuOpen = false);
+          return;
         }
-        return KeyEventResult.ignored;
+        widget.onClose();
       },
-      child: PopScope(
-        canPop: false,
-        onPopInvoked: (didPop) {
-          if (didPop) return;
-          if (_isThinkingSubmenuOpen) {
-            setState(() => _isThinkingSubmenuOpen = false);
-            return;
-          }
-          widget.onClose();
-          widget.onRequestFocusComposer();
-        },
-        child: Stack(
+      child: Stack(
           children: [
             // 1. Barrier
             Positioned.fill(
@@ -911,10 +939,15 @@ class _ModeMenuOverlayState extends State<_ModeMenuOverlay> {
               child: Material(
                 color: Colors.transparent,
                 child: _AnimatedPopoverCard(
-                  opensUpward: opensUpward,
-                  child: isDesktop
-                      ? _buildDesktopMainMenu()
-                      : (_isThinkingSubmenuOpen ? _buildMobileSubmenu() : _buildMobileMainMenu()),
+                  opensUpward: effectiveOpensUpward,
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(maxHeight: maxMenuHeight),
+                    child: SingleChildScrollView(
+                      child: isDesktop
+                          ? _buildDesktopMainMenu()
+                          : (_isThinkingSubmenuOpen ? _buildMobileSubmenu() : _buildMobileMainMenu()),
+                    ),
+                  ),
                 ),
               ),
             ),
@@ -950,7 +983,6 @@ class _ModeMenuOverlayState extends State<_ModeMenuOverlay> {
               ),
           ],
         ),
-      ),
     );
   }
 
@@ -977,35 +1009,7 @@ class _ModeMenuOverlayState extends State<_ModeMenuOverlay> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            _buildModeItem(
-              title: 'Core 3',
-              subtitle: 'Mặc định toàn diện',
-              isActive: true,
-              badgeText: 'Đang dùng',
-              icon: Icons.check_rounded,
-              iconColor: SamanChatTokens.greenAccent,
-              onTap: widget.onClose,
-            ),
-            const Divider(height: 1.0, thickness: 1.0, color: SamanChatTokens.borderSubtle),
-            _buildModeItem(
-              title: 'Swift 3',
-              subtitle: 'Phản hồi nhanh, câu hỏi ngắn',
-              isActive: false,
-              badgeText: 'Sắp ra mắt',
-              icon: Icons.lock_outline_rounded,
-              iconColor: SamanChatTokens.textMuted,
-              onTap: widget.onSwift3Tapped,
-            ),
-            const Divider(height: 1.0, thickness: 1.0, color: SamanChatTokens.borderSubtle),
-            _buildModeItem(
-              title: 'Pro 3',
-              subtitle: 'Suy luận chuyên sâu & kế hoạch dài hạn',
-              isActive: false,
-              badgeText: 'Sắp ra mắt',
-              icon: Icons.lock_outline_rounded,
-              iconColor: SamanChatTokens.textMuted,
-              onTap: widget.onPro3Tapped,
-            ),
+            _buildModeItems(minTouchTarget: false),
             const Divider(height: 1.0, thickness: 1.0, color: SamanChatTokens.borderSubtle),
             _buildThinkingTriggerRow(isDesktop: true),
           ],
@@ -1037,38 +1041,7 @@ class _ModeMenuOverlayState extends State<_ModeMenuOverlay> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            _buildModeItem(
-              title: 'Core 3',
-              subtitle: 'Mặc định toàn diện',
-              isActive: true,
-              badgeText: 'Đang dùng',
-              icon: Icons.check_rounded,
-              iconColor: SamanChatTokens.greenAccent,
-              onTap: widget.onClose,
-              minTouchTarget: true,
-            ),
-            const Divider(height: 1.0, thickness: 1.0, color: SamanChatTokens.borderSubtle),
-            _buildModeItem(
-              title: 'Swift 3',
-              subtitle: 'Phản hồi nhanh, câu hỏi ngắn',
-              isActive: false,
-              badgeText: 'Sắp ra mắt',
-              icon: Icons.lock_outline_rounded,
-              iconColor: SamanChatTokens.textMuted,
-              onTap: widget.onSwift3Tapped,
-              minTouchTarget: true,
-            ),
-            const Divider(height: 1.0, thickness: 1.0, color: SamanChatTokens.borderSubtle),
-            _buildModeItem(
-              title: 'Pro 3',
-              subtitle: 'Suy luận chuyên sâu & kế hoạch dài hạn',
-              isActive: false,
-              badgeText: 'Sắp ra mắt',
-              icon: Icons.lock_outline_rounded,
-              iconColor: SamanChatTokens.textMuted,
-              onTap: widget.onPro3Tapped,
-              minTouchTarget: true,
-            ),
+            _buildModeItems(minTouchTarget: true),
             const Divider(height: 1.0, thickness: 1.0, color: SamanChatTokens.borderSubtle),
             _buildThinkingTriggerRow(isDesktop: false),
           ],
@@ -1104,6 +1077,7 @@ class _ModeMenuOverlayState extends State<_ModeMenuOverlay> {
               button: true,
               label: 'Quay lại menu chế độ AI',
               child: InkWell(
+                canRequestFocus: false,
                 onTap: () {
                   setState(() => _isThinkingSubmenuOpen = false);
                 },
@@ -1112,17 +1086,17 @@ class _ModeMenuOverlayState extends State<_ModeMenuOverlay> {
                 child: Container(
                   constraints: const BoxConstraints(minHeight: 48.0),
                   padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 12.0),
-                  child: const Row(
+                  child: Row(
                     children: [
-                      Icon(
+                      const Icon(
                         Icons.chevron_left_rounded,
                         size: 22.0,
                         color: SamanChatTokens.textWhite,
                       ),
-                      SizedBox(width: 8.0),
+                      const SizedBox(width: 8.0),
                       Text(
-                        'Mức độ suy luận',
-                        style: TextStyle(
+                        context.tr('thinking_level_title'),
+                        style: const TextStyle(
                           fontSize: 13.5,
                           fontWeight: FontWeight.w700,
                           color: SamanChatTokens.textWhite,
@@ -1136,17 +1110,17 @@ class _ModeMenuOverlayState extends State<_ModeMenuOverlay> {
             const Divider(height: 1.0, thickness: 1.0, color: SamanChatTokens.borderSubtle),
             _buildThinkingMenuItem(
               title: 'Low',
-              subtitle: 'Nhanh và gọn',
+              subtitle: context.tr('thinking_low_sub'),
               isActive: false,
               isLocked: true,
-              badgeText: 'Sắp ra mắt',
+              badgeText: context.tr('badge_coming_soon'),
               onTap: () => widget.onLockedThinkingLevelTapped('Low'),
               minTouchTarget: true,
             ),
             const Divider(height: 1.0, thickness: 1.0, color: SamanChatTokens.borderSubtle),
             _buildThinkingMenuItem(
               title: 'Medium',
-              subtitle: 'Cân bằng độ sâu',
+              subtitle: context.tr('thinking_med_sub'),
               isActive: true,
               isLocked: false,
               onTap: widget.onSelectMedium,
@@ -1155,10 +1129,10 @@ class _ModeMenuOverlayState extends State<_ModeMenuOverlay> {
             const Divider(height: 1.0, thickness: 1.0, color: SamanChatTokens.borderSubtle),
             _buildThinkingMenuItem(
               title: 'High',
-              subtitle: 'Phân tích kỹ hơn',
+              subtitle: context.tr('thinking_high_sub'),
               isActive: false,
               isLocked: true,
-              badgeText: 'Sắp ra mắt',
+              badgeText: context.tr('badge_coming_soon'),
               onTap: () => widget.onLockedThinkingLevelTapped('High'),
               minTouchTarget: true,
             ),
@@ -1216,17 +1190,17 @@ class _ModeMenuOverlayState extends State<_ModeMenuOverlay> {
               children: [
                 _buildThinkingMenuItem(
                   title: 'Low',
-                  subtitle: 'Nhanh và gọn',
+                  subtitle: context.tr('thinking_low_sub'),
                   isActive: false,
                   isLocked: true,
-                  badgeText: 'Sắp ra mắt',
+                  badgeText: context.tr('badge_coming_soon'),
                   onTap: () => widget.onLockedThinkingLevelTapped('Low'),
                   minTouchTarget: isMobile,
                 ),
                 const Divider(height: 1.0, thickness: 1.0, color: SamanChatTokens.borderSubtle),
                 _buildThinkingMenuItem(
                   title: 'Medium',
-                  subtitle: 'Cân bằng độ sâu',
+                  subtitle: context.tr('thinking_med_sub'),
                   isActive: true,
                   isLocked: false,
                   onTap: widget.onSelectMedium,
@@ -1235,10 +1209,10 @@ class _ModeMenuOverlayState extends State<_ModeMenuOverlay> {
                 const Divider(height: 1.0, thickness: 1.0, color: SamanChatTokens.borderSubtle),
                 _buildThinkingMenuItem(
                   title: 'High',
-                  subtitle: 'Phân tích kỹ hơn',
+                  subtitle: context.tr('thinking_high_sub'),
                   isActive: false,
                   isLocked: true,
-                  badgeText: 'Sắp ra mắt',
+                  badgeText: context.tr('badge_coming_soon'),
                   onTap: () => widget.onLockedThinkingLevelTapped('High'),
                   minTouchTarget: isMobile,
                 ),
@@ -1255,7 +1229,7 @@ class _ModeMenuOverlayState extends State<_ModeMenuOverlay> {
     return Semantics(
       button: true,
       label:
-          'Mức độ suy luận. ${_isThinkingSubmenuOpen ? "Đang mở menu mức suy luận" : "Bấm để mở menu mức suy luận"}',
+          '${context.tr('thinking_level_title')}. ${_isThinkingSubmenuOpen ? "Open" : "Closed"}',
       child: MouseRegion(
         onEnter: isDesktop
             ? (_) {
@@ -1283,7 +1257,6 @@ class _ModeMenuOverlayState extends State<_ModeMenuOverlay> {
             : null,
         child: Focus(
           focusNode: _triggerFocusNode,
-          autofocus: true,
           onKeyEvent: (node, event) {
             if (event is KeyDownEvent) {
               if (event.logicalKey == LogicalKeyboardKey.arrowRight ||
@@ -1299,6 +1272,7 @@ class _ModeMenuOverlayState extends State<_ModeMenuOverlay> {
             key: _triggerKey,
             padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 6.0),
             child: InkWell(
+              canRequestFocus: false,
               onTap: () {
                 setState(() => _isThinkingSubmenuOpen = !_isThinkingSubmenuOpen);
               },
@@ -1319,9 +1293,9 @@ class _ModeMenuOverlayState extends State<_ModeMenuOverlay> {
                 ),
                 child: Row(
                   children: [
-                    const Text(
-                      'Mức độ suy luận',
-                      style: TextStyle(
+                    Text(
+                      context.tr('thinking_level_title'),
+                      style: const TextStyle(
                         fontSize: 13.0,
                         fontWeight: FontWeight.w600,
                         color: SamanChatTokens.textWhite,
@@ -1357,10 +1331,11 @@ class _ModeMenuOverlayState extends State<_ModeMenuOverlay> {
     return Semantics(
       button: true,
       label: isActive
-          ? '$title: $subtitle. Đang dùng'
+          ? '$title: $subtitle. ${context.tr('badge_active_using')}'
           : '$title: $subtitle. ${badgeText ?? "Đang khóa"} (giữ nguyên mức hiện tại)',
       selected: isActive,
       child: InkWell(
+        canRequestFocus: false,
         onTap: onTap,
         hoverColor: SamanChatTokens.actionRowHoverBg,
         focusColor: SamanChatTokens.actionRowFocusBg,
@@ -1437,8 +1412,41 @@ class _ModeMenuOverlayState extends State<_ModeMenuOverlay> {
     );
   }
 
-  Widget _buildModeItem({
-    required String title,
+  Widget _buildModeItems({required bool minTouchTarget}) {
+    final entries = <(AIMode, String, String, IconData)>[
+      (AIMode.swift3, 'model_swift_3_title', 'model_swift_3_sub', Icons.bolt_rounded),
+      (AIMode.core3, 'model_core_3_title', 'model_core_3_sub', Icons.balance_outlined),
+      (AIMode.pro3, 'model_pro_3_title', 'model_pro_3_sub', Icons.auto_awesome_rounded),
+    ];
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        for (var i = 0; i < entries.length; i++) ...[
+          if (i > 0)
+            const Divider(height: 1.0, thickness: 1.0, color: SamanChatTokens.borderSubtle),
+          Builder(builder: (context) {
+            final (mode, titleKey, subKey, icon) = entries[i];
+            final isActive = mode == widget.activeMode;
+            return _buildModeItem(
+              title: context.tr(titleKey),
+              subtitle: context.tr(subKey),
+              isActive: isActive,
+              badgeText: isActive ? context.tr('badge_active_using') : 'FREE',
+              icon: isActive ? Icons.check_rounded : icon,
+              iconColor: isActive ? const Color(0xFF10B981) : SamanChatTokens.textMuted,
+              onTap: () {
+                widget.onModeSelected?.call(mode);
+                widget.onClose();
+              },
+              minTouchTarget: minTouchTarget,
+            );
+          }),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildModeItem({    required String title,
     required String subtitle,
     required bool isActive,
     required String badgeText,
@@ -1450,10 +1458,11 @@ class _ModeMenuOverlayState extends State<_ModeMenuOverlay> {
     return Semantics(
       button: true,
       label: isActive
-          ? '$title: $subtitle. Đang dùng'
-          : '$title: $subtitle. $badgeText (đang khóa, giữ nguyên chế độ hiện tại)',
+          ? '$title: $subtitle. ${context.tr('badge_active_using')}'
+          : '$title: $subtitle. $badgeText',
       selected: isActive,
       child: InkWell(
+        canRequestFocus: false,
         onTap: onTap,
         hoverColor: SamanChatTokens.actionRowHoverBg,
         focusColor: SamanChatTokens.actionRowFocusBg,

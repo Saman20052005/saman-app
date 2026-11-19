@@ -37,7 +37,12 @@ class CommunityBottomNavigationBar extends StatelessWidget {
         CreateContentBottomSheet.show(context);
         break;
       case CommunityNavTab.notifications:
-        Navigator.pushNamed(context, '/community/notifications');
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Tính năng đang hoàn thiện, sẽ sớm ra mắt!'),
+            duration: Duration(seconds: 2),
+          ),
+        );
         break;
       case CommunityNavTab.profile:
         Navigator.pushNamed(context, '/community/profile');

@@ -79,7 +79,7 @@ class _HeaderSquareButton extends StatelessWidget {
   const _HeaderSquareButton({
     required this.icon,
     this.hasBadge = false,
-    this.badgeColor = SamanHomeTokens.greenAccent,
+    this.badgeColor = SamanHomeTokens.mintAccent,
     this.tooltip,
     this.onTap,
   });
@@ -101,7 +101,7 @@ class _HeaderSquareButton extends StatelessWidget {
           width: 38,
           height: 38,
           decoration: BoxDecoration(
-            color: SamanHomeTokens.cardSurface,
+            color: SamanHomeTokens.secondarySurface,
             borderRadius: BorderRadius.circular(SamanHomeTokens.radiusMd),
             border: Border.all(
               color: SamanHomeTokens.border,
@@ -127,7 +127,7 @@ class _HeaderSquareButton extends StatelessWidget {
                       color: badgeColor,
                       shape: BoxShape.circle,
                       border: Border.all(
-                        color: SamanHomeTokens.cardSurface,
+                        color: SamanHomeTokens.secondarySurface,
                         width: 1.5,
                       ),
                     ),

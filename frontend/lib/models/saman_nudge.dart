@@ -28,6 +28,18 @@ class SamanNudge {
     this.promptToSend,
   });
 
+  factory SamanNudge.fromJson(Map<String, dynamic> json) {
+    return SamanNudge(
+      id: json['id']?.toString() ?? 'ai_nudge',
+      message: json['message']?.toString() ?? '',
+      supportingLine: json['supporting_line']?.toString(),
+      primaryLabel: json['primary_label']?.toString() ?? 'Ask Saman',
+      secondaryLabel: json['secondary_label']?.toString() ?? 'Later',
+      promptToSend: json['prompt_to_send']?.toString(),
+      timestamp: DateTime.now(),
+    );
+  }
+
   SamanNudge copyWith({
     String? id,
     String? message,
@@ -91,5 +103,95 @@ class SamanNudgeHelper {
       onPrimary: onPrimary,
       onSecondary: onSecondary,
     );
+  }
+
+  static SamanNudge? fromDailyBrief(Map<String, dynamic> payload) {
+    final rawNudge = payload['nudge'];
+    if (rawNudge is Map) {
+      final parsed = SamanNudge.fromJson(Map<String, dynamic>.from(rawNudge));
+      if (parsed.message.trim().isNotEmpty) {
+        return parsed;
+      }
+    }
+
+    final brief = (payload['daily_brief'] ?? payload['brief'])?.toString();
+    if (brief != null && brief.trim().isNotEmpty) {
+      return SamanNudge(
+        id: 'daily_brief_nudge',
+        message: brief,
+        primaryLabel: 'Hỏi Saman',
+        secondaryLabel: 'Để sau',
+        promptToSend: 'Dựa trên tình hình hôm nay, tôi nên làm gì tiếp theo?',
+      );
+    }
+
+    return null;
+  }
+
+  static SamanNudge? buildGroundedHomeNudge({
+    required int consumedCalories,
+    required int targetCalories,
+    required double consumedProtein,
+    required double targetProtein,
+    required int waterMl,
+    required int waterTargetMl,
+    String? pendingJourneyTaskTitle,
+    bool hasRealNutritionData = false,
+    VoidCallback? onPrimary,
+    VoidCallback? onSecondary,
+  }) {
+    if (!hasRealNutritionData && pendingJourneyTaskTitle == null) {
+      return null;
+    }
+
+    if (pendingJourneyTaskTitle != null &&
+        pendingJourneyTaskTitle.trim().isNotEmpty) {
+      final title = pendingJourneyTaskTitle.trim();
+      return SamanNudge(
+        id: 'journey_task_nudge',
+        message: 'Bạn có nhiệm vụ hành trình đang chờ: "$title". Hoàn thành sớm nhé!',
+        supportingLine: 'Hành trình hôm nay',
+        primaryLabel: 'Xem nhiệm vụ',
+        secondaryLabel: 'Để sau',
+        promptToSend: 'Hướng dẫn tôi hoàn thành nhiệm vụ "$title"',
+        onPrimary: onPrimary,
+        onSecondary: onSecondary,
+      );
+    }
+
+    if (targetProtein > 0 && consumedProtein < targetProtein * 0.7) {
+      final remainingProtein = (targetProtein - consumedProtein).clamp(0, 9999).round();
+      final remainingCalories = (targetCalories - consumedCalories).clamp(0, 9999);
+      return SamanNudge(
+        id: 'nutrition_deficit_nudge',
+        message:
+            'Bạn đang thiếu khoảng ${remainingProtein}g đạm và $remainingCalories kcal so với mục tiêu hôm nay. Hãy bổ sung thêm trong bữa ăn tiếp theo nhé!',
+        supportingLine:
+            '• ${consumedProtein.round()} / ${targetProtein.round()}g đạm · $consumedCalories / $targetCalories kcal',
+        primaryLabel: 'Gợi ý món ăn',
+        secondaryLabel: 'Để sau',
+        promptToSend:
+            'Gợi ý cho tôi món ăn bổ sung khoảng ${remainingProtein}g đạm và $remainingCalories kcal.',
+        onPrimary: onPrimary,
+        onSecondary: onSecondary,
+      );
+    }
+
+    if (waterTargetMl > 0 && waterMl < waterTargetMl * 0.5) {
+      final missingWater = waterTargetMl - waterMl;
+      return SamanNudge(
+        id: 'water_hydration_nudge',
+        message:
+            'Bạn mới uống $waterMl ml nước, còn thiếu $missingWater ml nữa để đạt mục tiêu. Nhớ uống thêm nước nhé!',
+        supportingLine: '• $waterMl / $waterTargetMl ml nước',
+        primaryLabel: 'Ghi nhận nước',
+        secondaryLabel: 'Để sau',
+        promptToSend: 'Tôi vừa uống thêm nước, hãy cập nhật nhật ký nước giúp tôi.',
+        onPrimary: onPrimary,
+        onSecondary: onSecondary,
+      );
+    }
+
+    return null;
   }
 }

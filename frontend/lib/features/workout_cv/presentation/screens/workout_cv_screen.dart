@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../presentation/tokens/saman_workout_tokens.dart';
 import '../../domain/entities/exercise_cv_state.dart';
+import '../../domain/services/cv_form_summary_calculator.dart';
 import '../../domain/services/lat_pulldown_baseline.dart';
 import '../controllers/workout_cv_controller.dart';
 import '../widgets/pose_skeleton_painter.dart';
@@ -15,12 +16,14 @@ class WorkoutCvScreen extends ConsumerStatefulWidget {
   final String exerciseId;
   final String exerciseSlug;
   final String exerciseName;
+  final String? videoPath;
 
   const WorkoutCvScreen({
     super.key,
     required this.exerciseId,
     required this.exerciseSlug,
     required this.exerciseName,
+    this.videoPath,
   });
 
   @override
@@ -32,6 +35,9 @@ class _WorkoutCvScreenState extends ConsumerState<WorkoutCvScreen>
   bool get _useReplayTrial =>
       shouldUseWorkoutCvReplayTrial(exerciseSlug: widget.exerciseSlug);
 
+  bool get _hasUploadedVideo =>
+      widget.videoPath != null && widget.videoPath!.isNotEmpty;
+
   bool get _supportsCamera =>
       !kIsWeb && defaultTargetPlatform == TargetPlatform.android;
 
@@ -41,6 +47,7 @@ class _WorkoutCvScreenState extends ConsumerState<WorkoutCvScreen>
           exerciseId: widget.exerciseId,
           exerciseSlug: widget.exerciseSlug,
           videoReplay: _useReplayTrial,
+          videoPath: widget.videoPath,
         );
   }
 
@@ -153,9 +160,11 @@ class _WorkoutCvScreenState extends ConsumerState<WorkoutCvScreen>
               ),
               Text(
                 cvState.sourceMode == 'video_replay'
-                    ? 'Replay thử nghiệm • phát chậm'
+                    ? (_hasUploadedVideo
+                        ? 'Video Form Analysis'
+                        : 'Replay thử nghiệm • phát chậm')
                     : (_supportsCamera
-                        ? 'MediaPipe Pose Lite · Back Camera'
+                        ? 'Live Camera Analysis'
                         : 'Camera CV chỉ hỗ trợ Android'),
                 style: const TextStyle(
                   color: Colors.white70,
@@ -168,7 +177,7 @@ class _WorkoutCvScreenState extends ConsumerState<WorkoutCvScreen>
           ),
         ),
         const SizedBox(width: 8),
-        if (_useReplayTrial)
+        if (_useReplayTrial || _hasUploadedVideo)
           IconButton(
             key: const ValueKey('workout_cv_switch_replay_button'),
             tooltip: cvState.sourceMode == 'video_replay' ? 'Chạy lại từ 0' : 'Video Replay',
@@ -179,7 +188,7 @@ class _WorkoutCvScreenState extends ConsumerState<WorkoutCvScreen>
               if (cvState.sourceMode == 'video_replay') {
                 notifier.restartVideoReplay();
               } else {
-                notifier.startVideoReplay();
+                notifier.startVideoReplay(videoPath: widget.videoPath);
               }
             },
           ),
@@ -194,17 +203,20 @@ class _WorkoutCvScreenState extends ConsumerState<WorkoutCvScreen>
             size: 28,
           ),
           onPressed: () {
+            final cvState = ref.read(workoutCvControllerProvider);
+            final summary = cvState.formSummary;
             final repHistory = List<LatPulldownRepEvent>.from(
-              ref.read(workoutCvControllerProvider).replayRepEvents,
+              cvState.replayRepEvents,
             );
             ref.read(workoutCvControllerProvider.notifier).stop();
             WidgetsBinding.instance.addPostFrameCallback((_) {
               if (context.mounted) {
                 Navigator.of(context).pushReplacement(
-                  MaterialPageRoute(
+                  MaterialPageRoute<CvFormSummary>(
                     builder: (_) => WorkoutCvResultScreen(
                       repHistory: repHistory,
                       exerciseName: widget.exerciseName,
+                      formSummary: summary,
                     ),
                   ),
                 );
@@ -229,8 +241,10 @@ class _WorkoutCvScreenState extends ConsumerState<WorkoutCvScreen>
       case TrackingStatus.detecting:
         bg = const Color(0x3310B981);
         fg = const Color(0xFF10B981);
-        label = 'TRACKING';
-        icon = Icons.check_circle_outline;
+        label = cvState.replayAnalysisStatus == ReplayAnalysisStatus.analyzing
+            ? cvState.replayAnalysisLabel
+            : 'Đang phân tích';
+        icon = Icons.accessibility_new;
         break;
       case TrackingStatus.needsSetup:
         bg = const Color(0x33F59E0B);
@@ -343,8 +357,10 @@ class _WorkoutCvScreenState extends ConsumerState<WorkoutCvScreen>
               countLabel: cvState.repCountLabel,
               statusLabel:
                   '${cvState.replayAnalysisLabel} · Pha: ${cvState.analysisPhase.name}',
-              onRestart: _useReplayTrial
-                  ? () => ref.read(workoutCvControllerProvider.notifier).restartVideoReplay()
+              onRestart: cvState.sourceMode == 'video_replay'
+                  ? () => ref
+                      .read(workoutCvControllerProvider.notifier)
+                      .restartVideoReplay()
                   : null,
             ),
           // Guide banner
@@ -418,19 +434,6 @@ class _WorkoutCvScreenState extends ConsumerState<WorkoutCvScreen>
                 ),
               ),
             ],
-          ),
-          const SizedBox(height: 4),
-          Text(
-            cvState.sourceMode == 'video_replay'
-                ? 'Chỉ thử nghiệm • Không tự lưu lịch sử hoặc hoàn thành set'
-                : (cvState.exerciseSlug == 'lat-pulldown' ||
-                        cvState.exerciseSlug == 'pull-up'
-                    ? 'Baseline quy tắc · Rep tạm tính · Không tự lưu vào buổi tập'
-                    : 'PoC Form Check · Không tự lưu vào buổi tập'),
-            style: const TextStyle(
-              color: Colors.white38,
-              fontSize: 10,
-            ),
           ),
         ],
       ),

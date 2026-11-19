@@ -28,11 +28,16 @@ class ExerciseVideoPlayer extends StatelessWidget {
           CachedNetworkImage(
             imageUrl: exercise.thumbnailUrl,
             fit: BoxFit.cover,
-            placeholder: (_, __) => Container(color: Colors.grey[300]),
+            placeholder: (_, __) => Container(
+              color: Theme.of(context).colorScheme.surfaceContainerHighest,
+            ),
             errorWidget: (_, __, ___) => Container(
-              color: Colors.grey[300],
-              child: const Icon(Icons.fitness_center,
-                  size: 80, color: Colors.grey),
+              color: Theme.of(context).colorScheme.surfaceContainerHighest,
+              child: Icon(
+                Icons.fitness_center,
+                size: 80,
+                color: Theme.of(context).colorScheme.secondary,
+              ),
             ),
           ),
           // Gradient overlay

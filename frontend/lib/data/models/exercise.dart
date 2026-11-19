@@ -65,6 +65,7 @@ class ExerciseSetLog with _$ExerciseSetLog {
     @Default(false) bool isCompleted,
     int? restTakenSeconds,
     @Default(false) bool cvDetected,
+    Map<String, dynamic>? cvFormSummary,
   }) = _ExerciseSetLog;
 
   factory ExerciseSetLog.fromJson(Map<String, dynamic> json) =>
@@ -82,14 +83,58 @@ class ExerciseSetLog with _$ExerciseSetLog {
     'isCompleted': isCompleted,
     'restTakenSeconds': restTakenSeconds,
     'cvDetected': cvDetected,
+    if (cvFormSummary != null) 'cvFormSummary': cvFormSummary,
   };
 
   static Map<String, dynamic> _validateJson(Map<String, dynamic> json) {
+    final normalized = json['cvFormSummary'] == null &&
+            json['cv_form_summary'] is Map
+        ? Map<String, dynamic>.from(json)
+        : json;
+    if (!identical(normalized, json)) {
+      normalized['cvFormSummary'] = normalized['cv_form_summary'];
+    }
     // JSON numbers must not be truncated into valid timed results.
-    if (json['unit'] == 'seconds' && (json['secondsCompleted'] is! int || json['repsCompleted'] != 0)) {
+    if (normalized['unit'] == 'seconds' &&
+        (normalized['secondsCompleted'] is! int ||
+            normalized['repsCompleted'] != 0)) {
       throw const FormatException('Timed sets require integer seconds and zero reps');
     }
-    return json;
+    return normalized;
+  }
+}
+
+class LastExercisePerformance {
+  final String exerciseId;
+  final double lastWeightKg;
+  final int lastReps;
+  final double suggestedWeightKg;
+  final int suggestedReps;
+  final String suggestionReason;
+  final String? lastDate;
+
+  const LastExercisePerformance({
+    required this.exerciseId,
+    required this.lastWeightKg,
+    required this.lastReps,
+    required this.suggestedWeightKg,
+    required this.suggestedReps,
+    required this.suggestionReason,
+    this.lastDate,
+  });
+
+  factory LastExercisePerformance.fromJson(Map<String, dynamic> json) {
+    return LastExercisePerformance(
+      exerciseId: (json['exercise_id'] ?? json['exerciseId'] ?? '').toString(),
+      lastWeightKg: (json['last_weight_kg'] as num?)?.toDouble() ?? 0.0,
+      lastReps: (json['last_reps'] as num?)?.toInt() ?? 0,
+      suggestedWeightKg:
+          (json['suggested_weight_kg'] as num?)?.toDouble() ?? 0.0,
+      suggestedReps: (json['suggested_reps'] as num?)?.toInt() ?? 0,
+      suggestionReason:
+          (json['suggestion_reason'] ?? 'maintain_current_load').toString(),
+      lastDate: json['last_date']?.toString(),
+    );
   }
 }
 

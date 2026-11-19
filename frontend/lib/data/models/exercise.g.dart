@@ -78,6 +78,7 @@ _$ExerciseSetLogImpl _$$ExerciseSetLogImplFromJson(Map<String, dynamic> json) =>
       isCompleted: json['isCompleted'] as bool? ?? false,
       restTakenSeconds: (json['restTakenSeconds'] as num?)?.toInt(),
       cvDetected: json['cvDetected'] as bool? ?? false,
+      cvFormSummary: json['cvFormSummary'] as Map<String, dynamic>?,
     );
 
 const _$SetUnitEnumMap = {

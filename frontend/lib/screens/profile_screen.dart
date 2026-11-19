@@ -19,6 +19,7 @@ import '../features/membership/presentation/screens/manage_membership_screen.dar
 import '../features/membership/presentation/screens/membership_overview_screen.dart';
 import 'profile/widgets/membership_banner_card.dart';
 import 'profile/widgets/profile_nav_row.dart';
+import 'profile/widgets/weight_trend_card.dart';
 import '../services/unit_converter.dart';
 import 'settings/app_settings_screen.dart';
 import '../widgets/saman_feedback_snackbar.dart';
@@ -848,6 +849,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     _buildYourDetailsPanel(profile),
                     const SizedBox(height: 14),
 
+                    const WeightTrendCard(),
+                    const SizedBox(height: 14),
+
                     // 5. Activity Level Card
                     _buildActivityLevelCard(profile),
                     const SizedBox(height: 14),
@@ -1057,7 +1061,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                               const Icon(
                                 Icons.chevron_right,
                                 size: 18,
-                                color: Color(0xFF71717A),
+                                color: Color(0xFF9CA3AF),
                               ),
                             ],
                           ),

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../config/routes.dart';
 import '../../domain/models/journey_models.dart';
 import '../providers/journey_providers.dart';
+import '../../../../widgets/saman_feedback_snackbar.dart';
 
 class WalletRewardsScreen extends ConsumerStatefulWidget {
   const WalletRewardsScreen({super.key});
@@ -23,7 +24,6 @@ class _WalletRewardsScreenState extends ConsumerState<WalletRewardsScreen> {
   }
 
   void _showConfirmBottomSheet(BuildContext context, RewardItem reward, WalletState walletState) {
-    final messenger = ScaffoldMessenger.of(context);
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
@@ -54,7 +54,7 @@ class _WalletRewardsScreenState extends ConsumerState<WalletRewardsScreen> {
               Text(
                 'Đổi ${reward.title}?',
                 style: const TextStyle(
-                  fontFamily: 'Space Grotesk',
+                  fontFamily: 'Manrope',
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
                   color: Color(0xFFF3F4F6),
@@ -112,38 +112,17 @@ class _WalletRewardsScreenState extends ConsumerState<WalletRewardsScreen> {
                         .redeemReward(reward);
                     if (!mounted) return;
                     if (success) {
-                      messenger.showSnackBar(
-                        SnackBar(
-                          backgroundColor: const Color(0xFF212328),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            side: const BorderSide(color: Color(0x4D10B981)),
-                          ),
-                          content: Row(
-                            children: [
-                              const Icon(Icons.check_circle_rounded, color: Color(0xFF10B981), size: 20),
-                              const SizedBox(width: 10),
-                              Expanded(
-                                child: Text(
-                                  'Đã đổi thành công ${reward.title}.',
-                                  style: const TextStyle(color: Color(0xFFF3F4F6), fontSize: 13),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
+                      SamanFeedbackSnackBar.show(
+                        context,
+                        message: 'Đã đổi thành công ${reward.title}.',
+                        type: FeedbackType.success,
                       );
                     } else {
                       final err = ref.read(walletControllerProvider).errorMessage ?? 'Đổi quà thất bại.';
-                      messenger.showSnackBar(
-                        SnackBar(
-                          backgroundColor: const Color(0xFF212328),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            side: const BorderSide(color: Color(0x4DEF4444)),
-                          ),
-                          content: Text(err, style: const TextStyle(color: Color(0xFFF3F4F6))),
-                        ),
+                      SamanFeedbackSnackBar.show(
+                        context,
+                        message: err,
+                        type: FeedbackType.error,
                       );
                     }
                   },
@@ -215,7 +194,7 @@ class _WalletRewardsScreenState extends ConsumerState<WalletRewardsScreen> {
                       const Text(
                         'Ví điểm & Lượt AI',
                         style: TextStyle(
-                          fontFamily: 'Space Grotesk',
+                          fontFamily: 'Manrope',
                           fontSize: 22,
                           fontWeight: FontWeight.w600,
                           color: Color(0xFFF3F4F6),
@@ -281,7 +260,7 @@ class _WalletRewardsScreenState extends ConsumerState<WalletRewardsScreen> {
                           Text(
                             '${walletState.balance}',
                             style: const TextStyle(
-                              fontFamily: 'Space Grotesk',
+                              fontFamily: 'Manrope',
                               fontSize: 48,
                               fontWeight: FontWeight.bold,
                               color: Color(0xFFF3F4F6),
@@ -331,7 +310,7 @@ class _WalletRewardsScreenState extends ConsumerState<WalletRewardsScreen> {
                           const Text(
                             'Đổi lượt AI',
                             style: TextStyle(
-                              fontFamily: 'Space Grotesk',
+                              fontFamily: 'Manrope',
                               fontSize: 15,
                               fontWeight: FontWeight.w600,
                               color: Color(0xFFF3F4F6),
@@ -368,16 +347,11 @@ class _WalletRewardsScreenState extends ConsumerState<WalletRewardsScreen> {
                                     onTap: isAvailable
                                         ? () => setState(() => _selectedReward = item)
                                         : () {
-                                            ScaffoldMessenger.of(context).hideCurrentSnackBar();
-                                            ScaffoldMessenger.of(context).showSnackBar(
-                                              SnackBar(
-                                                backgroundColor: const Color(0xFF212328),
-                                                duration: const Duration(seconds: 2),
-                                                content: Text(
-                                                  '${item.title}: Gói đổi sắp ra mắt (đang kết nối hạ tầng AI quota)',
-                                                  style: const TextStyle(fontSize: 13, color: Color(0xFFF3F4F6)),
-                                                ),
-                                              ),
+                                            SamanFeedbackSnackBar.show(
+                                              context,
+                                              message: '${item.title}: Gói đổi sắp ra mắt (đang kết nối hạ tầng AI quota)',
+                                              type: FeedbackType.info,
+                                              duration: const Duration(seconds: 2),
                                             );
                                           },
                                     child: Opacity(
@@ -484,7 +458,7 @@ class _WalletRewardsScreenState extends ConsumerState<WalletRewardsScreen> {
                           const Text(
                             'Lịch sử giao dịch',
                             style: TextStyle(
-                              fontFamily: 'Space Grotesk',
+                              fontFamily: 'Manrope',
                               fontSize: 15,
                               fontWeight: FontWeight.w600,
                               color: Color(0xFFF3F4F6),

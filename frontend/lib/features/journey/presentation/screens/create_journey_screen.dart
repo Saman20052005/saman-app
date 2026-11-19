@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../domain/models/journey_models.dart';
 import '../providers/journey_providers.dart';
+import '../../../../widgets/saman_feedback_snackbar.dart';
 
 class CreateJourneyScreen extends ConsumerStatefulWidget {
   final VoidCallback? onDismiss;
@@ -96,20 +97,18 @@ class _CreateJourneyScreenState extends ConsumerState<CreateJourneyScreen> {
     setState(() => _isSubmitting = false);
 
     if (success) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Hành trình mới đã được khởi tạo thành công!'),
-          backgroundColor: Color(0xFF10B981),
-        ),
+      SamanFeedbackSnackBar.show(
+        context,
+        message: 'Hành trình mới đã được khởi tạo thành công!',
+        type: FeedbackType.success,
       );
       Navigator.of(context).pop(true);
     } else {
       final err = ref.read(journeyControllerProvider).errorMessage ?? 'Không thể tạo hành trình.';
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Lỗi: $err'),
-          backgroundColor: const Color(0xFFEF4444),
-        ),
+      SamanFeedbackSnackBar.show(
+        context,
+        message: 'Lỗi: $err',
+        type: FeedbackType.error,
       );
     }
   }
@@ -166,7 +165,7 @@ class _CreateJourneyScreenState extends ConsumerState<CreateJourneyScreen> {
                     const Text(
                       'Tạo hành trình',
                       style: TextStyle(
-                        fontFamily: 'Space Grotesk',
+                        fontFamily: 'Manrope',
                         fontSize: 28,
                         fontWeight: FontWeight.w600,
                         color: Color(0xFFF3F4F6),

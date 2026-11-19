@@ -1,10 +1,12 @@
 // [File: lib/providers/nutrition_provider.dart]
+import 'dart:async';
 import 'dart:convert';
 import 'dart:math';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import '../controllers/chat_controller.dart';
 import '../models/nutrition_model.dart';
 import '../features/nutrition/data/models/nutrition_plan_dto.dart';
 import '../features/nutrition/data/models/macro_targets_dto.dart';
@@ -71,6 +73,13 @@ final macroTargetsProvider = Provider<MacroTargets?>((ref) {
   return nutritionNotifier.macroTargets;
 });
 
+final recentMealsProvider =
+    FutureProvider.autoDispose<List<RecentMealSummary>>((ref) async {
+  ref.watch(workoutAuthScopeProvider);
+  final repo = ref.watch(nutritionRepositoryProvider);
+  return repo.getRecentMeals(days: 14, limit: 10);
+});
+
 class NutritionNotifier extends StateNotifier<AsyncValue<NutritionPlan?>> {
   final Ref? _ref;
   final INutritionRepository _repository;
@@ -110,6 +119,7 @@ class NutritionNotifier extends StateNotifier<AsyncValue<NutritionPlan?>> {
   final Map<String, ({String date, int deltaMl, bool confirmed})>
       _waterOperations = {};
   final Set<String> _waterInFlight = {};
+  final Map<String, Future<void>> _inFlightLoads = {};
 
   Future<NutritionRequestContext?> _captureOwner() async {
     final owner = await _captureSession?.call();
@@ -123,6 +133,7 @@ class NutritionNotifier extends StateNotifier<AsyncValue<NutritionPlan?>> {
       _waterOperations.clear();
       _dailyReads.clear();
       _dateEpoch.clear();
+      _inFlightLoads.clear();
       _lastFailedWaterKey = null;
       _lastWaterKey = null;
       state = const AsyncValue.loading();
@@ -213,15 +224,64 @@ class NutritionNotifier extends StateNotifier<AsyncValue<NutritionPlan?>> {
   String? get lastFailedWaterKey => _lastFailedWaterKey;
 
   // =========================================================
-  // 1. LOAD DATA (CÓ CACHING)
+  // 1. LOAD DATA (CÓ CACHING & IN-FLIGHT DEDUP)
   // =========================================================
+  Future<void> refreshCurrentPlan({
+    String? dateStr,
+    bool forceRefresh = true,
+  }) async {
+    if (dateStr != null && _selectedDate != null && _selectedDate != dateStr) {
+      _localCache.remove(dateStr);
+      return;
+    }
+    final activeDateStr = dateStr ?? _selectedDate;
+    final DateTime targetDate;
+    if (activeDateStr != null) {
+      targetDate = DateFormat('yyyy-MM-dd').parse(activeDateStr);
+    } else {
+      final vn = DateTime.now().toUtc().add(const Duration(hours: 7));
+      targetDate = DateTime(vn.year, vn.month, vn.day);
+    }
+    await loadDailyPlan(
+      targetDate,
+      forceRefresh: forceRefresh,
+      fallbackGoal: _lastGoal ?? 'maintain',
+    );
+  }
+
   Future<void> loadDailyPlan(
     DateTime date, {
     bool forceRefresh = false,
     int fallbackCalories = 2000,
     String fallbackGoal = 'maintain',
-  }) async {
+  }) {
     final dateStr = DateFormat('yyyy-MM-dd').format(date);
+    if (!forceRefresh && _inFlightLoads.containsKey(dateStr)) {
+      return _inFlightLoads[dateStr]!;
+    }
+    late final Future<void> future;
+    future = _executeLoadDailyPlan(
+      date,
+      dateStr: dateStr,
+      forceRefresh: forceRefresh,
+      fallbackCalories: fallbackCalories,
+      fallbackGoal: fallbackGoal,
+    ).whenComplete(() {
+      if (identical(_inFlightLoads[dateStr], future)) {
+        _inFlightLoads.remove(dateStr);
+      }
+    });
+    _inFlightLoads[dateStr] = future;
+    return future;
+  }
+
+  Future<void> _executeLoadDailyPlan(
+    DateTime date, {
+    required String dateStr,
+    required bool forceRefresh,
+    required int fallbackCalories,
+    required String fallbackGoal,
+  }) async {
     final request = ++_loadRequest;
     _selectedDate = dateStr;
     final epoch = _dateEpoch[dateStr] ?? 0;
@@ -309,6 +369,17 @@ class NutritionNotifier extends StateNotifier<AsyncValue<NutritionPlan?>> {
   // =========================================================
   // 3. WATER UPDATE & ADD (ATOMIC & OPTIMISTIC CONCURRENCY)
   // =========================================================
+  void _refreshDailyBrief() {
+    try {
+      final ref = _ref;
+      if (ref != null) {
+        unawaited(
+          ref.read(chatControllerProvider.notifier).loadDailyBrief(force: true),
+        );
+      }
+    } catch (_) {}
+  }
+
   Future<String> addWater(int deltaMl,
       {required String date, String? idempotencyKey}) async {
     final owner = _captureSession == null ? null : await _captureOwner();
@@ -407,6 +478,7 @@ class NutritionNotifier extends StateNotifier<AsyncValue<NutritionPlan?>> {
             .toList();
         if (completed.isNotEmpty) _waterOperations.remove(completed.first);
       }
+      _refreshDailyBrief();
       return key;
     } catch (e, st) {
       await _validateOwner(owner);
@@ -462,6 +534,7 @@ class NutritionNotifier extends StateNotifier<AsyncValue<NutritionPlan?>> {
       await _validateOwner(owner);
       if (!ok) throw StateError('Failed to update water intake');
       _acceptDaily(updatedPlan);
+      _refreshDailyBrief();
     } catch (e, st) {
       await _validateOwner(owner);
       if (readRevision == (_dailyReads[date] ?? 0)) {
@@ -529,12 +602,46 @@ class NutritionNotifier extends StateNotifier<AsyncValue<NutritionPlan?>> {
         // Reload để lấy data chuẩn từ server (bao gồm ID của meal vừa tạo)
         // forceRefresh = true để cập nhật cache
         await loadDailyPlan(date, forceRefresh: true);
+        _refreshDailyBrief();
         return true;
       } else {
         return false;
       }
     } catch (e) {
       debugPrint("❌ Error adding meal: $e");
+      return false;
+    }
+  }
+
+  Future<bool> quickRelogMeal({
+    required String sourceLogId,
+    String? mealType,
+    required DateTime date,
+  }) async {
+    try {
+      final dateStr = DateFormat('yyyy-MM-dd').format(date);
+      final ok = await _repository.quickRelogMeal(
+        sourceLogId: sourceLogId,
+        mealType: mealType,
+        date: dateStr,
+      );
+
+      if (ok) {
+        if (_ref != null) {
+          try {
+            _ref.read(journeyControllerProvider.notifier).onActivityCompleted(
+                  type: JourneyTaskType.nutrition,
+                );
+          } catch (_) {}
+        }
+        await loadDailyPlan(date, forceRefresh: true);
+        _ref?.invalidate(recentMealsProvider);
+        _refreshDailyBrief();
+        return true;
+      }
+      return false;
+    } catch (e) {
+      debugPrint("❌ Error quick relogging meal: $e");
       return false;
     }
   }
@@ -632,6 +739,7 @@ class NutritionNotifier extends StateNotifier<AsyncValue<NutritionPlan?>> {
 
   void clearCache() {
     _localCache.clear();
+    _inFlightLoads.clear();
     _macroTargets = null;
     // Trigger state update to notify listeners
     if (!state.hasError) state = AsyncValue.data(state.valueOrNull);

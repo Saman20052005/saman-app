@@ -21,7 +21,7 @@ class SamanWorkoutTokens {
   // ─── Typography & Content Colors ─────────────────────────────────────
   static const Color textPrimary = Color(0xFFF9FAFB);
   static const Color textSecondary = Color(0xFF94979E);
-  static const Color textMuted = Color(0xFF71717A);
+  static const Color textMuted = Color(0xFF9CA3AF);
   static const Color textSub = Color(0xFFCBD5E1);
 
   // ─── Semantic Accents ────────────────────────────────────────────────

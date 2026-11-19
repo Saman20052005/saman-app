@@ -6,11 +6,13 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:image_picker/image_picker.dart';
 import '../config/api_config.dart';
 import '../models/ai_analysis_result.dart';
+import '../models/saman_nudge.dart';
 import '../services/api_client.dart';
 import '../services/analytics_service.dart';
 import '../services/nutrition_service.dart';
 import 'package:dio/dio.dart';
 import '../presentation/providers/workout_history_providers.dart';
+import '../providers/nutrition_provider.dart';
 import '../utils/auth_helper.dart';
 
 String generateChatOperationId() {
@@ -115,37 +117,52 @@ enum AIMode { swift3, core3, pro3 }
 
 // --- 3. STATE ---
 class ChatState {
-  // Only the verified Core 3 contract is selectable during the pilot.
-  AIMode get selectedAIMode => AIMode.core3;
-
+  final AIMode selectedAIMode;
   final List<ChatMessage> messages;
   final bool isLoading;
+  final bool isStreaming;
   final String? errorMessage;
   final String? failedUserMessage;
+  final String? paywallBenefitId;
   final ChatFoodAnalysisState? foodAnalysisState;
   final String? activeConversationId;
   final List<ChatConversationSummary> recentConversations;
   final bool isLoadingHistory;
   final Map<String, dynamic>? pendingAction;
+  final String? dailyBrief;
+  final SamanNudge? dailyNudge;
+  final Map<String, dynamic>? dailyBriefMetrics;
+  final List<Map<String, String>> dynamicChips;
 
   ChatState({
+    this.selectedAIMode = AIMode.core3,
     this.messages = const [],
     this.isLoading = false,
+    this.isStreaming = false,
     this.errorMessage,
     this.failedUserMessage,
+    this.paywallBenefitId,
     this.foodAnalysisState,
     this.activeConversationId,
     this.recentConversations = const [],
     this.isLoadingHistory = false,
     this.pendingAction,
+    this.dailyBrief,
+    this.dailyNudge,
+    this.dailyBriefMetrics,
+    this.dynamicChips = const [],
   });
 
   ChatState copyWith({
+    AIMode? selectedAIMode,
     List<ChatMessage>? messages,
     bool? isLoading,
+    bool? isStreaming,
     String? errorMessage,
     bool clearError = false,
     String? failedUserMessage,
+    String? paywallBenefitId,
+    bool clearPaywall = false,
     bool clearFailedUserMessage = false,
     ChatFoodAnalysisState? foodAnalysisState,
     bool clearFoodAnalysis = false,
@@ -155,14 +172,23 @@ class ChatState {
     bool? isLoadingHistory,
     Map<String, dynamic>? pendingAction,
     bool clearPendingAction = false,
+    String? dailyBrief,
+    SamanNudge? dailyNudge,
+    bool clearDailyNudge = false,
+    Map<String, dynamic>? dailyBriefMetrics,
+    List<Map<String, String>>? dynamicChips,
   }) {
     return ChatState(
+      selectedAIMode: selectedAIMode ?? this.selectedAIMode,
       messages: messages ?? this.messages,
       isLoading: isLoading ?? this.isLoading,
+      isStreaming: isStreaming ?? this.isStreaming,
       errorMessage: clearError ? null : (errorMessage ?? this.errorMessage),
       failedUserMessage: clearFailedUserMessage
           ? null
           : (failedUserMessage ?? this.failedUserMessage),
+      paywallBenefitId:
+          clearPaywall ? null : (paywallBenefitId ?? this.paywallBenefitId),
       foodAnalysisState: clearFoodAnalysis
           ? null
           : (foodAnalysisState ?? this.foodAnalysisState),
@@ -174,6 +200,10 @@ class ChatState {
       pendingAction: clearPendingAction
           ? null
           : (pendingAction ?? this.pendingAction),
+      dailyBrief: dailyBrief ?? this.dailyBrief,
+      dailyNudge: clearDailyNudge ? null : (dailyNudge ?? this.dailyNudge),
+      dailyBriefMetrics: dailyBriefMetrics ?? this.dailyBriefMetrics,
+      dynamicChips: dynamicChips ?? this.dynamicChips,
     );
   }
 }
@@ -185,10 +215,13 @@ class ChatController extends StateNotifier<ChatState> {
   final AnalyticsService _analyticsService;
   int _requestEpoch = 0;
   int _foodAnalysisEpoch = 0;
+  int _dailyBriefSeq = 0;
   String? _currentAccountToken;
   String? _failedOperationId;
   Map<String, dynamic>? _failedPayload;
   final Map<String, String> _analyticsOperationIds = {};
+  Future<void>? _inFlightDailyBrief;
+  Future<void>? _inFlightConversations;
 
   ChatController(this.ref,
       {NutritionService? nutritionService, AnalyticsService? analyticsService})
@@ -204,10 +237,13 @@ class ChatController extends StateNotifier<ChatState> {
   void _onAuthScopeChanged() {
     _requestEpoch++;
     _foodAnalysisEpoch++;
+    _dailyBriefSeq++;
     _currentAccountToken = null;
     _failedOperationId = null;
     _failedPayload = null;
     _analyticsOperationIds.clear();
+    _inFlightDailyBrief = null;
+    _inFlightConversations = null;
     if (mounted) {
       state = ChatState(messages: [], recentConversations: []);
     }
@@ -225,6 +261,91 @@ class ChatController extends StateNotifier<ChatState> {
     const storage = FlutterSecureStorage();
     return await storage.read(key: 'auth_token') ??
         await storage.read(key: 'jwt_token');
+  }
+
+  String? _extractEntitlementBenefitId(Object error) {
+    if (error is! DioException || error.response?.statusCode != 403) {
+      return null;
+    }
+
+    dynamic data = error.response?.data;
+    if (data is String) {
+      try {
+        data = jsonDecode(data);
+      } catch (_) {
+        return null;
+      }
+    }
+    if (data is! Map) return null;
+
+    final detail = data['detail'];
+    final payload = detail is Map ? detail : data;
+
+    final benefitId = payload['benefit_id'];
+    if (payload['code'] == 'entitlement_required' || benefitId != null) {
+      return benefitId?.toString() ?? 'ai.advanced_thinking';
+    }
+    return null;
+  }
+
+  void setAIMode(AIMode mode) {
+    state = state.copyWith(selectedAIMode: mode);
+  }
+
+  Future<void> loadDailyBrief({bool force = false}) {
+    if (!force && _inFlightDailyBrief != null) {
+      return _inFlightDailyBrief!;
+    }
+    final seq = ++_dailyBriefSeq;
+    late final Future<void> future;
+    future = _executeLoadDailyBrief(seq).whenComplete(() {
+      if (identical(_inFlightDailyBrief, future)) {
+        _inFlightDailyBrief = null;
+      }
+    });
+    _inFlightDailyBrief = future;
+    return future;
+  }
+
+  Future<void> _executeLoadDailyBrief(int seq) async {
+    try {
+      final response = await ApiClient.dio.get(ApiConfig.chatDailyBriefEndpoint);
+      if (!mounted || seq != _dailyBriefSeq) return;
+      if (response.statusCode == 200) {
+        final data = response.data is String
+            ? jsonDecode(response.data as String)
+            : response.data;
+        if (data is Map) {
+          final mapData = Map<String, dynamic>.from(data);
+          final parsedNudge = SamanNudgeHelper.fromDailyBrief(mapData);
+          final brief = (data['daily_brief'] ?? data['brief'])?.toString();
+          final rawMetrics = data['daily_brief_metrics'] ?? data['metrics'];
+          final metrics = rawMetrics is Map
+              ? Map<String, dynamic>.from(rawMetrics)
+              : null;
+          final rawChips = data['dynamic_chips'] ?? data['chips'];
+          final chips = <Map<String, String>>[];
+          if (rawChips is List) {
+            for (final item in rawChips) {
+              if (item is Map) {
+                chips.add(
+                  item.map((k, v) => MapEntry(k.toString(), v?.toString() ?? '')),
+                );
+              }
+            }
+          }
+          state = state.copyWith(
+            dailyBrief: brief,
+            dailyNudge: parsedNudge,
+            clearDailyNudge: parsedNudge == null,
+            dailyBriefMetrics: metrics,
+            dynamicChips: chips,
+          );
+        }
+      }
+    } catch (_) {
+      // Silent when offline or in test environments
+    }
   }
 
   Future<void> sendMessage(String text) async {
@@ -245,6 +366,201 @@ class ChatController extends StateNotifier<ChatState> {
     _failedOperationId = opId;
     _failedPayload = null;
     await _sendRequest(trimmed, operationId: opId);
+  }
+
+  Future<void> sendMessageStreaming(String text) async {
+    final trimmed = text.trim();
+    if (trimmed.isEmpty) return;
+
+    final userMsg = ChatMessage(role: 'user', content: trimmed);
+    state = state.copyWith(
+      messages: [...state.messages, userMsg],
+      isLoading: true,
+      isStreaming: true,
+      clearError: true,
+      clearFailedUserMessage: true,
+      clearPendingAction: true,
+    );
+
+    final opId = _newOperationId();
+    _failedOperationId = opId;
+    final payload = <String, dynamic>{
+      "message": trimmed,
+      "history": _getLastMessages(5, excludeLatestUser: true),
+      "contract_version": "core3-local-v1",
+      "operation_id": opId,
+      "ai_mode": state.selectedAIMode.name,
+    };
+    if (state.activeConversationId != null &&
+        state.activeConversationId!.isNotEmpty) {
+      payload["conversation_id"] = state.activeConversationId;
+    }
+    _failedPayload = Map<String, dynamic>.from(payload);
+
+    final epoch = ++_requestEpoch;
+    bool hasReceivedToken = false;
+    bool assistantAdded = false;
+    String accumulated = '';
+    String? nextActiveId = state.activeConversationId;
+
+    try {
+      final response = await ApiClient.dio.post(
+        ApiConfig.chatStreamEndpoint,
+        data: payload,
+        options: Options(responseType: ResponseType.stream),
+      );
+
+      if (_requestEpoch != epoch || !mounted) return;
+      if (response.statusCode != 200 || response.data is! ResponseBody) {
+        throw Exception("Stream Error: ${response.statusCode}");
+      }
+
+      final body = response.data as ResponseBody;
+      final lines = body.stream
+          .cast<List<int>>()
+          .transform(utf8.decoder)
+          .transform(const LineSplitter());
+
+      String? currentEvent;
+      bool streamDone = false;
+
+      await for (final line in lines) {
+        if (_requestEpoch != epoch || !mounted) return;
+
+        if (line.isEmpty) {
+          currentEvent = null;
+          continue;
+        }
+        if (line.startsWith('event:')) {
+          currentEvent = line.substring(6).trim();
+          continue;
+        }
+        if (!line.startsWith('data:')) continue;
+
+        final rawData = line.substring(5).trim();
+        if (rawData.isEmpty) continue;
+        if (rawData == '[DONE]') {
+          streamDone = true;
+          break;
+        }
+
+        dynamic decoded;
+        try {
+          decoded = jsonDecode(rawData);
+        } catch (_) {
+          continue;
+        }
+        if (decoded is! Map) continue;
+
+        final eventType = (currentEvent ??
+                decoded['type']?.toString() ??
+                decoded['event']?.toString() ??
+                '')
+            .toLowerCase();
+
+        if (eventType == 'delta' ||
+            (eventType.isEmpty &&
+                (decoded.containsKey('delta') ||
+                    decoded.containsKey('token')))) {
+          final chunk = (decoded['delta'] ??
+                  decoded['text'] ??
+                  decoded['content'] ??
+                  decoded['token'] ??
+                  '')
+              .toString();
+          if (chunk.isNotEmpty) {
+            hasReceivedToken = true;
+            accumulated += chunk;
+            final updatedMessages = List<ChatMessage>.from(state.messages);
+            final streamingMsg =
+                ChatMessage(role: 'assistant', content: accumulated);
+            if (!assistantAdded) {
+              updatedMessages.add(streamingMsg);
+              assistantAdded = true;
+            } else {
+              updatedMessages[updatedMessages.length - 1] = streamingMsg;
+            }
+            state = state.copyWith(
+              messages: updatedMessages,
+              isLoading: true,
+              isStreaming: true,
+            );
+          }
+        } else if (eventType == 'action' || decoded['action'] is Map) {
+          final actionMap = decoded['action'] is Map
+              ? Map<String, dynamic>.from(decoded['action'] as Map)
+              : Map<String, dynamic>.from(decoded);
+          state = state.copyWith(pendingAction: actionMap);
+        } else if (eventType == 'done') {
+          final returnedConvId = decoded['conversation_id']?.toString();
+          if (returnedConvId != null && returnedConvId.isNotEmpty) {
+            nextActiveId = returnedConvId;
+          }
+          final doneAction = decoded['action'] is Map
+              ? Map<String, dynamic>.from(decoded['action'] as Map)
+              : null;
+          state = state.copyWith(
+            activeConversationId: nextActiveId,
+            pendingAction: doneAction ?? state.pendingAction,
+            isLoading: false,
+            isStreaming: false,
+            clearError: true,
+            clearFailedUserMessage: true,
+          );
+          streamDone = true;
+          break;
+        } else if (eventType == 'error') {
+          throw Exception(
+            decoded['message']?.toString() ??
+                decoded['error']?.toString() ??
+                'Stream error',
+          );
+        }
+      }
+
+      if (_requestEpoch != epoch || !mounted) return;
+      if (!hasReceivedToken && state.pendingAction == null) {
+        await _sendRequest(trimmed, operationId: opId, existingPayload: payload);
+        return;
+      }
+      if (!streamDone || state.isLoading || state.isStreaming) {
+        state = state.copyWith(
+          activeConversationId: nextActiveId,
+          isLoading: false,
+          isStreaming: false,
+          clearError: true,
+          clearFailedUserMessage: true,
+        );
+      }
+      _failedOperationId = null;
+      _failedPayload = null;
+      if (mounted) {
+        loadConversations(loadLatest: false);
+      }
+    } catch (e) {
+      if (_requestEpoch != epoch || !mounted) return;
+      final benefitId = _extractEntitlementBenefitId(e);
+      if (benefitId != null) {
+        state = state.copyWith(
+          isLoading: false,
+          isStreaming: false,
+          paywallBenefitId: benefitId,
+          clearError: true,
+        );
+        return;
+      }
+      if (!hasReceivedToken) {
+        await _sendRequest(trimmed, operationId: opId, existingPayload: payload);
+        return;
+      }
+      debugPrint("Chat Stream Error: $e");
+      state = state.copyWith(
+        isLoading: false,
+        isStreaming: false,
+        errorMessage: "I couldn't complete that response.",
+        failedUserMessage: trimmed,
+      );
+    }
   }
 
   /// Retries sending the failed user message without duplicating it in messages list
@@ -292,6 +608,7 @@ class ChatController extends StateNotifier<ChatState> {
             "history": _getLastMessages(5, excludeLatestUser: true),
             "contract_version": "core3-local-v1",
             "operation_id": operationId,
+            "ai_mode": state.selectedAIMode.name,
           };
       if (existingPayload == null &&
           state.activeConversationId != null &&
@@ -333,6 +650,7 @@ class ChatController extends StateNotifier<ChatState> {
           pendingAction: returnedAction,
           clearPendingAction: returnedAction == null,
           isLoading: false,
+          isStreaming: false,
           clearError: true,
           clearFailedUserMessage: true,
         );
@@ -348,13 +666,28 @@ class ChatController extends StateNotifier<ChatState> {
       }
     } catch (e) {
       if (_requestEpoch != epoch || !mounted) return;
+      final benefitId = _extractEntitlementBenefitId(e);
+      if (benefitId != null) {
+        state = state.copyWith(
+          isLoading: false,
+          isStreaming: false,
+          paywallBenefitId: benefitId,
+          clearError: true,
+        );
+        return;
+      }
       debugPrint("Chat Error: $e");
       state = state.copyWith(
         isLoading: false,
+        isStreaming: false,
         errorMessage: "I couldn't complete that response.",
         failedUserMessage: text,
       );
     }
+  }
+
+  void clearPaywall() {
+    state = state.copyWith(clearPaywall: true);
   }
 
   String _newOperationId() {
@@ -441,6 +774,12 @@ class ChatController extends StateNotifier<ChatState> {
           clearError: true,
           clearFailedUserMessage: true,
         );
+        if (actionType == 'log_water' || actionType == 'log_meal') {
+          await ref.read(nutritionProvider.notifier).refreshCurrentPlan();
+          await loadDailyBrief(force: true);
+        } else if (actionType == 'adjust_workout') {
+          await loadDailyBrief(force: true);
+        }
       } else {
         throw Exception("Server Error: ${response.statusCode}");
       }
@@ -533,6 +872,27 @@ class ChatController extends StateNotifier<ChatState> {
 
   /// Tải danh sách conversations gần đây của user
   Future<void> loadConversations({bool loadLatest = false}) async {
+    if (_inFlightConversations != null) {
+      await _inFlightConversations;
+      if (loadLatest &&
+          mounted &&
+          state.activeConversationId == null &&
+          state.recentConversations.isNotEmpty) {
+        await loadConversation(state.recentConversations.first.id);
+      }
+      return;
+    }
+    late final Future<void> future;
+    future = _executeLoadConversations(loadLatest: loadLatest).whenComplete(() {
+      if (identical(_inFlightConversations, future)) {
+        _inFlightConversations = null;
+      }
+    });
+    _inFlightConversations = future;
+    return future;
+  }
+
+  Future<void> _executeLoadConversations({bool loadLatest = false}) async {
     final epoch = ++_requestEpoch;
     try {
       const storage = FlutterSecureStorage();

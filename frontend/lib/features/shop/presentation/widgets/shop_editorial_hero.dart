@@ -52,14 +52,14 @@ class ShopEditorialHero extends StatelessWidget {
                         Text(
                           ShopTranslations.of(context, 'hero_title'),
                           style: ShopTheme.heroTitle,
-                          maxLines: 2,
+                          maxLines: 3,
                           overflow: TextOverflow.ellipsis,
                         ),
                         const SizedBox(height: 6),
                         Text(
                           ShopTranslations.of(context, 'hero_subtitle'),
                           style: ShopTheme.heroSubtitle,
-                          maxLines: 2,
+                          maxLines: 3,
                           overflow: TextOverflow.ellipsis,
                         ),
                       ],
