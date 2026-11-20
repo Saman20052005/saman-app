@@ -163,31 +163,31 @@ void main() {
       final darkPalette = SamanTheme.dark().extension<SamanPalette>()!;
 
       expect(theme.brightness, Brightness.light);
-      expect(theme.scaffoldBackgroundColor, const Color(0xFFF8FAFC));
+      expect(theme.scaffoldBackgroundColor, const Color(0xFFEEF2F6));
       expect(theme.cardColor, const Color(0xFFFFFFFF));
-      expect(theme.dividerColor, const Color(0xFFE2E8F0));
+      expect(theme.dividerColor, const Color(0xFFD5DCE6));
 
       expect(theme.colorScheme.primary, const Color(0xFF059669));
       expect(theme.colorScheme.onPrimary, const Color(0xFFFFFFFF));
       expect(theme.colorScheme.surface, const Color(0xFFFFFFFF));
       expect(theme.colorScheme.onSurface, const Color(0xFF0F172A));
       expect(theme.colorScheme.secondary, const Color(0xFF475569));
-      expect(theme.colorScheme.outline, const Color(0xFFE2E8F0));
+      expect(theme.colorScheme.outline, const Color(0xFFD5DCE6));
       expect(theme.colorScheme.surfaceContainerHighest, const Color(0xFFF1F5F9));
       expect(theme.colorScheme.error, const Color(0xFFDC2626));
 
       expect(ext.surfaceElevated, const Color(0xFFF1F5F9));
       expect(ext.inkMuted, const Color(0xFF475569));
       expect(ext.inkSubtle, const Color(0xFF64748B));
-      expect(ext.hairline, const Color(0xFFE2E8F0));
+      expect(ext.hairline, const Color(0xFFD5DCE6));
       expect(ext.aiAccent, const Color(0xFFEA580C));
       expect(ext.warning, const Color(0xFFD97706));
 
       expect(palette.isDark, isFalse);
-      expect(palette.canvas, const Color(0xFFF8FAFC));
+      expect(palette.canvas, const Color(0xFFEEF2F6));
       expect(palette.surface, const Color(0xFFFFFFFF));
       expect(palette.surfaceElevated, const Color(0xFFF1F5F9));
-      expect(palette.border, const Color(0xFFE2E8F0));
+      expect(palette.border, const Color(0xFFD5DCE6));
       expect(palette.textPrimary, const Color(0xFF0F172A));
       expect(palette.textSecondary, const Color(0xFF475569));
       expect(palette.textMuted, const Color(0xFF64748B));
@@ -237,7 +237,7 @@ void main() {
       );
       expect(
         theme.outlinedButtonTheme.style?.side?.resolve({})?.color,
-        const Color(0xFFE2E8F0),
+        const Color(0xFFD5DCE6),
       );
       expect(
         theme.inputDecorationTheme.fillColor,
@@ -256,7 +256,7 @@ void main() {
         const Color(0xFF059669),
       );
       expect(theme.progressIndicatorTheme.color, const Color(0xFF059669));
-      expect(theme.progressIndicatorTheme.linearTrackColor, const Color(0xFFE2E8F0));
+      expect(theme.progressIndicatorTheme.linearTrackColor, const Color(0xFFD5DCE6));
       expect(theme.dialogTheme.backgroundColor, const Color(0xFFFFFFFF));
       expect(theme.dialogTheme.titleTextStyle?.color, const Color(0xFF0F172A));
       expect(theme.dialogTheme.contentTextStyle?.color, const Color(0xFF475569));

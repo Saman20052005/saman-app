@@ -1,5 +1,6 @@
 // lib/screens/profile_screen.dart
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'dart:io';
@@ -660,57 +661,66 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     final dangerColor =
         palette.isDark ? const Color(0xFFEF4444) : palette.danger;
 
-    return Scaffold(
-      backgroundColor: palette.canvas,
-      body: Stack(
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: SystemUiOverlayStyle(
+        statusBarColor: Colors.transparent,
+        statusBarIconBrightness:
+            palette.isDark ? Brightness.light : Brightness.dark,
+        statusBarBrightness:
+            palette.isDark ? Brightness.dark : Brightness.light,
+      ),
+      child: Scaffold(
+        backgroundColor: palette.canvas,
+        body: Stack(
         children: [
-          // Atmospheric Top-Right Photography Accent
-          Positioned(
-            top: 0,
-            right: 0,
-            width: 240,
-            height: 220,
-            child: IgnorePointer(
-              child: Stack(
-                fit: StackFit.expand,
-                children: [
-                  Image.asset(
-                    'assets/profile/step1_top_bg.jpg',
-                    fit: BoxFit.cover,
-                    alignment: Alignment.topCenter,
-                    opacity: AlwaysStoppedAnimation(palette.isDark ? 0.25 : 0.14),
-                    errorBuilder: (_, __, ___) => const SizedBox.shrink(),
-                  ),
-                  DecoratedBox(
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.centerLeft,
-                        end: Alignment.centerRight,
-                        colors: [
-                          palette.canvas,
-                          palette.canvas.withOpacity(0.8),
-                          Colors.transparent,
-                        ],
+          // Atmospheric Top-Right Photography Accent (Dark Mode only; Light Mode stays clean/flat)
+          if (palette.isDark)
+            Positioned(
+              top: 0,
+              right: 0,
+              width: 240,
+              height: 220,
+              child: IgnorePointer(
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    Image.asset(
+                      'assets/profile/step1_top_bg.jpg',
+                      fit: BoxFit.cover,
+                      alignment: Alignment.topCenter,
+                      opacity: const AlwaysStoppedAnimation(0.25),
+                      errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+                    ),
+                    DecoratedBox(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.centerLeft,
+                          end: Alignment.centerRight,
+                          colors: [
+                            palette.canvas,
+                            palette.canvas.withOpacity(0.8),
+                            Colors.transparent,
+                          ],
+                        ),
                       ),
                     ),
-                  ),
-                  DecoratedBox(
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.bottomCenter,
-                        end: Alignment.topCenter,
-                        colors: [
-                          palette.canvas,
-                          palette.canvas.withOpacity(0.7),
-                          Colors.transparent,
-                        ],
+                    DecoratedBox(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.bottomCenter,
+                          end: Alignment.topCenter,
+                          colors: [
+                            palette.canvas,
+                            palette.canvas.withOpacity(0.7),
+                            Colors.transparent,
+                          ],
+                        ),
                       ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
-          ),
 
           SafeArea(
             bottom: false,
@@ -1105,6 +1115,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           ),
         ],
       ),
+      ),
     );
   }
 
@@ -1134,24 +1145,41 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             child: IgnorePointer(
               child: Stack(
                 fit: StackFit.expand,
+                clipBehavior: Clip.none,
                 children: [
                   Image.asset(
                     assetPath,
                     fit: BoxFit.cover,
                     alignment: Alignment.center,
-                    opacity: AlwaysStoppedAnimation(palette.isDark ? 0.40 : 0.25),
+                    opacity: AlwaysStoppedAnimation(palette.isDark ? 0.40 : 0.85),
                     errorBuilder: (_, __, ___) => const SizedBox.shrink(),
                   ),
-                  DecoratedBox(
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.centerLeft,
-                        end: Alignment.centerRight,
-                        colors: [
-                          palette.surface,
-                          palette.surface.withOpacity(0.75),
-                          Colors.transparent,
-                        ],
+                  Positioned(
+                    left: -2,
+                    top: -1,
+                    right: 0,
+                    bottom: -1,
+                    child: DecoratedBox(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.centerLeft,
+                          end: Alignment.centerRight,
+                          stops: palette.isDark
+                              ? null
+                              : const [0.0, 0.08, 0.30, 0.60],
+                          colors: palette.isDark
+                              ? [
+                                  palette.surface,
+                                  palette.surface.withOpacity(0.75),
+                                  Colors.transparent,
+                                ]
+                              : [
+                                  palette.surface,
+                                  palette.surface,
+                                  palette.surface.withOpacity(0.65),
+                                  Colors.transparent,
+                                ],
+                        ),
                       ),
                     ),
                   ),

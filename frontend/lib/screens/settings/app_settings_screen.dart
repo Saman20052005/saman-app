@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../config/app_metadata.dart';
 import '../../config/app_theme.dart';
 import '../../config/app_translations.dart';
+import '../../config/theme_provider.dart';
 import '../../services/unit_converter.dart';
 
 class AppSettingsScreen extends ConsumerWidget {
@@ -17,6 +18,7 @@ class AppSettingsScreen extends ConsumerWidget {
     final locale = ref.watch(languageProvider);
     final languageMode = ref.watch(languageModeProvider);
     final unitSystem = ref.watch(unitProvider);
+    final isDarkMode = ref.watch(themeProvider) == ThemeMode.dark;
     final appVersion = ref.watch(appVersionProvider);
 
     // Resolve displayed language label
@@ -86,6 +88,46 @@ class AppSettingsScreen extends ConsumerWidget {
                           value: currentUnitDisplay,
                           showChevron: true,
                           onTap: () => _openUnitsSheet(context, ref, locale),
+                        ),
+                        _buildDivider(context),
+                        // Row: Dark Mode
+                        _buildSettingsRow(
+                          context: context,
+                          key: const Key('setting_row_dark_mode'),
+                          icon: Icons.dark_mode_outlined,
+                          title: locale.languageCode == 'vi'
+                              ? 'Giao diện tối'
+                              : 'Dark Mode',
+                          subtitle: locale.languageCode == 'vi'
+                              ? (isDarkMode ? 'Đang bật' : 'Đang tắt')
+                              : (isDarkMode ? 'On' : 'Off'),
+                          showChevron: false,
+                          onTap: () =>
+                              ref.read(themeProvider.notifier).toggleTheme(),
+                          trailing: Switch(
+                            key: const Key('setting_switch_dark_mode'),
+                            value: isDarkMode,
+                            onChanged: (_) =>
+                                ref.read(themeProvider.notifier).toggleTheme(),
+                            materialTapTargetSize:
+                                MaterialTapTargetSize.shrinkWrap,
+                            activeColor: palette.onAccent,
+                            activeTrackColor: palette.accent,
+                            inactiveThumbColor: palette.isDark
+                                ? const Color(0xFF8E8E93)
+                                : palette.textMuted,
+                            inactiveTrackColor: palette.isDark
+                                ? const Color(0xFF27272A)
+                                : palette.surfaceElevated,
+                            trackOutlineColor:
+                                WidgetStateProperty.resolveWith<Color?>(
+                              (states) => states.contains(WidgetState.selected)
+                                  ? Colors.transparent
+                                  : (palette.isDark
+                                      ? const Color(0x14FFFFFF)
+                                      : palette.border),
+                            ),
+                          ),
                         ),
                       ],
                     ),
@@ -310,6 +352,7 @@ class AppSettingsScreen extends ConsumerWidget {
     required String title,
     String? subtitle,
     String? value,
+    Widget? trailing,
     bool showChevron = true,
     bool isReadOnly = false,
     VoidCallback? onTap,
@@ -415,8 +458,11 @@ class AppSettingsScreen extends ConsumerWidget {
                 ),
               ),
 
-              // Trailing Chevron
-              if (showChevron) ...[
+              // Trailing Widget or Chevron
+              if (trailing != null) ...[
+                const SizedBox(width: 8),
+                trailing,
+              ] else if (showChevron) ...[
                 const SizedBox(width: 6),
                 Icon(
                   Icons.chevron_right_rounded,

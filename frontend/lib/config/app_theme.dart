@@ -9,13 +9,13 @@ class AppColors {
   AppColors._();
 
   // Calm Athleticism Light (WCAG AA)
-  static const canvas = Color(0xFFF8FAFC);
+  static const canvas = Color(0xFFEEF2F6);
   static const surface = Color(0xFFFFFFFF);
   static const surfaceElevated = Color(0xFFF1F5F9);
   static const ink = Color(0xFF0F172A);
   static const inkMuted = Color(0xFF475569);
   static const inkSubtle = Color(0xFF64748B);
-  static const hairline = Color(0xFFE2E8F0);
+  static const hairline = Color(0xFFD5DCE6);
   static const primary = Color(0xFF059669);
   static const primaryPressed = Color(0xFF047857);
   static const onPrimary = Color(0xFFFFFFFF);
@@ -167,10 +167,10 @@ class SamanPalette extends ThemeExtension<SamanPalette> {
 
   /// Calm Athleticism Light (WCAG AA)
   static const SamanPalette light = SamanPalette(
-    canvas: Color(0xFFF8FAFC),
+    canvas: Color(0xFFEEF2F6),
     surface: Color(0xFFFFFFFF),
     surfaceElevated: Color(0xFFF1F5F9),
-    border: Color(0xFFE2E8F0),
+    border: Color(0xFFD5DCE6),
     borderSubtle: Color(0xFFEDF2F7),
     textPrimary: Color(0xFF0F172A),
     textSecondary: Color(0xFF475569),
@@ -291,13 +291,13 @@ class SamanTheme {
   SamanTheme._();
 
   // ─── Light palette (Calm Athleticism Light + WCAG AA) ───────────
-  static const _lBg = Color(0xFFF8FAFC);
+  static const _lBg = Color(0xFFEEF2F6);
   static const _lSurface = Color(0xFFFFFFFF);
   static const _lSurfaceElevated = Color(0xFFF1F5F9);
   static const _lPrimary = Color(0xFF0F172A);
   static const _lSecond = Color(0xFF475569);
   static const _lSubtle = Color(0xFF64748B);
-  static const _lOutline = Color(0xFFE2E8F0);
+  static const _lOutline = Color(0xFFD5DCE6);
   static const _lAccent = Color(0xFF059669);
   static const _lOnAccent = Color(0xFFFFFFFF);
   static const _lDanger = Color(0xFFDC2626);
