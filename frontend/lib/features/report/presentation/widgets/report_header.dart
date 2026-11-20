@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../../config/app_theme.dart';
 
 class ReportHeader extends StatelessWidget {
   final VoidCallback onBack;
@@ -12,6 +13,17 @@ class ReportHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final p = SamanPalette.of(context);
+    final isDark = p.isDark;
+    final btnBg = isDark ? const Color(0xFF16171A) : p.surface;
+    final btnBorder = isDark ? const Color(0xFF26282F) : p.border;
+    final iconCol = isDark ? const Color(0xFFE5E7EB) : p.textPrimary;
+    final titleCol = isDark ? const Color(0xFFF3F4F6) : p.textPrimary;
+    final mutedCol = isDark ? const Color(0xFFA1A1AA) : p.textSecondary;
+    final disabledBg = isDark ? const Color(0xFF141517) : p.surfaceElevated;
+    final disabledBorder = isDark ? const Color(0xFF212328) : p.border;
+    final disabledIcon = isDark ? const Color(0xFF52525B) : p.textMuted;
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: Row(
@@ -30,20 +42,20 @@ class ReportHeader extends StatelessWidget {
                       width: 38,
                       height: 38,
                       decoration: BoxDecoration(
-                        color: const Color(0xFF16171A),
+                        color: btnBg,
                         borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: const Color(0xFF26282F)),
+                        border: Border.all(color: btnBorder),
                       ),
-                      child: const Icon(
+                      child: Icon(
                         Icons.chevron_left_rounded,
-                        color: Color(0xFFE5E7EB),
+                        color: iconCol,
                         size: 22,
                       ),
                     ),
                   ),
                 ),
                 const SizedBox(width: 12),
-                const Expanded(
+                Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisSize: MainAxisSize.min,
@@ -54,11 +66,11 @@ class ReportHeader extends StatelessWidget {
                           fontSize: 20,
                           fontWeight: FontWeight.w700,
                           letterSpacing: -0.5,
-                          color: Color(0xFFF3F4F6),
+                          color: titleCol,
                           height: 1.2,
                         ),
                       ),
-                      SizedBox(height: 2),
+                      const SizedBox(height: 2),
                       Text(
                         'Your progress, in perspective.',
                         maxLines: 1,
@@ -66,7 +78,7 @@ class ReportHeader extends StatelessWidget {
                         style: TextStyle(
                           fontSize: 11,
                           fontWeight: FontWeight.w400,
-                          color: Color(0xFFA1A1AA),
+                          color: mutedCol,
                           height: 1.2,
                         ),
                       ),
@@ -89,13 +101,13 @@ class ReportHeader extends StatelessWidget {
                   width: 38,
                   height: 38,
                   decoration: BoxDecoration(
-                    color: const Color(0xFF16171A),
+                    color: btnBg,
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: const Color(0xFF26282F)),
+                    border: Border.all(color: btnBorder),
                   ),
-                  child: const Icon(
+                  child: Icon(
                     Icons.file_upload_outlined,
-                    color: Color(0xFFA1A1AA),
+                    color: mutedCol,
                     size: 19,
                   ),
                 ),
@@ -108,13 +120,13 @@ class ReportHeader extends StatelessWidget {
                 width: 38,
                 height: 38,
                 decoration: BoxDecoration(
-                  color: const Color(0xFF141517),
+                  color: disabledBg,
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: const Color(0xFF212328)),
+                  border: Border.all(color: disabledBorder),
                 ),
-                child: const Icon(
+                child: Icon(
                   Icons.file_upload_outlined,
-                  color: Color(0xFF52525B),
+                  color: disabledIcon,
                   size: 19,
                 ),
               ),

@@ -78,18 +78,19 @@ class _SamanAccountPopupMenuState extends State<SamanAccountPopupMenu>
   }
 
   void _showUnavailableFeatureNotice(String title) {
+    final t = SamanChatTokens.of(context);
     _handleCloseWithAnimation();
     ScaffoldMessenger.of(context).hideCurrentSnackBar();
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
           '$title: Tính năng chưa khả dụng trong phiên bản thử nghiệm.',
-          style: const TextStyle(
-            color: SamanChatTokens.textWhite,
+          style: TextStyle(
+            color: t.textWhite,
             fontSize: 13,
           ),
         ),
-        backgroundColor: SamanChatTokens.surfaceElevated,
+        backgroundColor: t.surfaceElevated,
         duration: const Duration(seconds: 2),
         behavior: SnackBarBehavior.floating,
       ),
@@ -127,53 +128,57 @@ class _SamanAccountPopupMenuState extends State<SamanAccountPopupMenu>
     _handleCloseWithAnimation();
     showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: SamanChatTokens.menuSurface,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16.0),
-          side: const BorderSide(color: SamanChatTokens.menuBorder),
-        ),
-        title: Text(
-          context.tr('theme_dialog_title'),
-          style: const TextStyle(color: SamanChatTokens.textWhite, fontSize: 16),
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              leading: const Icon(Icons.dark_mode_outlined,
-                  color: SamanChatTokens.textPrimary),
-              title: Text(context.tr('theme_dark_default'),
-                  style: const TextStyle(
-                      color: SamanChatTokens.textWhite, fontSize: 14)),
-              trailing:
-                  const Icon(Icons.check_rounded, color: Color(0xFF10B981)),
-              onTap: () => Navigator.of(ctx).pop(),
-            ),
-            ListTile(
-              leading: const Icon(Icons.light_mode_outlined,
-                  color: SamanChatTokens.textMuted),
-              title: Text(context.tr('theme_light_coming_soon'),
-                  style: const TextStyle(
-                      color: SamanChatTokens.textMuted, fontSize: 14)),
-              onTap: () => Navigator.of(ctx).pop(),
-            ),
-            ListTile(
-              leading: const Icon(Icons.settings_system_daydream_outlined,
-                  color: SamanChatTokens.textMuted),
-              title: Text(context.tr('theme_system_coming_soon'),
-                  style: const TextStyle(
-                      color: SamanChatTokens.textMuted, fontSize: 14)),
-              onTap: () => Navigator.of(ctx).pop(),
-            ),
-          ],
-        ),
-      ),
+      builder: (ctx) {
+        final t = SamanChatTokens.of(ctx);
+        return AlertDialog(
+          backgroundColor: t.menuSurface,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16.0),
+            side: BorderSide(color: t.menuBorder),
+          ),
+          title: Text(
+            context.tr('theme_dialog_title'),
+            style: TextStyle(color: t.textWhite, fontSize: 16),
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: Icon(Icons.dark_mode_outlined,
+                    color: t.textPrimary),
+                title: Text(context.tr('theme_dark_default'),
+                    style: TextStyle(
+                        color: t.textWhite, fontSize: 14)),
+                trailing:
+                    Icon(Icons.check_rounded, color: t.greenAccent),
+                onTap: () => Navigator.of(ctx).pop(),
+              ),
+              ListTile(
+                leading: Icon(Icons.light_mode_outlined,
+                    color: t.textMuted),
+                title: Text(context.tr('theme_light_coming_soon'),
+                    style: TextStyle(
+                        color: t.textMuted, fontSize: 14)),
+                onTap: () => Navigator.of(ctx).pop(),
+              ),
+              ListTile(
+                leading: Icon(Icons.settings_system_daydream_outlined,
+                    color: t.textMuted),
+                title: Text(context.tr('theme_system_coming_soon'),
+                    style: TextStyle(
+                        color: t.textMuted, fontSize: 14)),
+                onTap: () => Navigator.of(ctx).pop(),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 
   @override
   Widget build(BuildContext context) {
+    final t = SamanChatTokens.of(context);
     final reduceMotion = MediaQuery.of(context).disableAnimations;
     final rowHeight = widget.isDesktop ? 40.0 : 44.0;
     final screenHeight = MediaQuery.sizeOf(context).height;
@@ -197,17 +202,19 @@ class _SamanAccountPopupMenuState extends State<SamanAccountPopupMenu>
         width: 280.0,
         constraints: BoxConstraints(maxHeight: maxMenuHeight),
         decoration: BoxDecoration(
-          color: SamanChatTokens.menuSurface,
+          color: t.menuSurface,
           borderRadius: BorderRadius.circular(16.0),
           border: Border.all(
-            color: SamanChatTokens.menuBorder,
+            color: t.menuBorder,
             width: 1.0,
           ),
-          boxShadow: const [
+          boxShadow: [
             BoxShadow(
-              color: Color(0xA6000000),
+              color: t.isDark
+                  ? const Color(0xA6000000)
+                  : const Color(0x1F0F172A),
               blurRadius: 36.0,
-              offset: Offset(0, 16),
+              offset: const Offset(0, 16),
             ),
           ],
         ),
@@ -220,8 +227,9 @@ class _SamanAccountPopupMenuState extends State<SamanAccountPopupMenu>
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 // ─── NHÓM 1: TÀI KHOẢN ───
-                _buildGroupHeader('Tài khoản'),
+                _buildGroupHeader(t, 'Tài khoản'),
                 _buildRow(
+                  t: t,
                   icon: Icons.timelapse_outlined,
                   title: 'Giới hạn sử dụng',
                   rowHeight: rowHeight,
@@ -229,12 +237,14 @@ class _SamanAccountPopupMenuState extends State<SamanAccountPopupMenu>
                       _showUnavailableFeatureNotice('Giới hạn sử dụng'),
                 ),
                 _buildRow(
+                  t: t,
                   icon: Icons.info_outline_rounded,
                   title: 'Quản lý gói',
                   rowHeight: rowHeight,
                   onTap: _handleManagePlans,
                 ),
                 _buildRow(
+                  t: t,
                   icon: Icons.auto_awesome_rounded,
                   title: 'Nâng cấp gói',
                   rowHeight: rowHeight,
@@ -242,17 +252,19 @@ class _SamanAccountPopupMenuState extends State<SamanAccountPopupMenu>
                   onTap: _handleUpgradePlans,
                 ),
 
-                _buildDivider(),
+                _buildDivider(t),
 
                 // ─── NHÓM 2: TÙY CHỌN ───
-                _buildGroupHeader('Tùy chọn'),
+                _buildGroupHeader(t, 'Tùy chọn'),
                 _buildRow(
+                  t: t,
                   icon: Icons.person_outline_rounded,
                   title: 'Cá nhân hóa Coach',
                   rowHeight: rowHeight,
                   onTap: _handleOpenPreferences,
                 ),
                 _buildRow(
+                  t: t,
                   icon: Icons.brightness_medium_outlined,
                   title: 'Giao diện',
                   rowHeight: rowHeight,
@@ -260,6 +272,7 @@ class _SamanAccountPopupMenuState extends State<SamanAccountPopupMenu>
                   onTap: _handleThemeSubmenu,
                 ),
                 _buildRow(
+                  t: t,
                   icon: Icons.notifications_none_rounded,
                   title: 'Cài đặt nhắc nhở',
                   rowHeight: rowHeight,
@@ -273,11 +286,12 @@ class _SamanAccountPopupMenuState extends State<SamanAccountPopupMenu>
                   },
                 ),
 
-                _buildDivider(),
+                _buildDivider(t),
 
                 // ─── NHÓM 3: DỮ LIỆU VÀ QUYỀN RIÊNG TƯ ───
-                _buildGroupHeader('Dữ liệu và quyền riêng tư'),
+                _buildGroupHeader(t, 'Dữ liệu và quyền riêng tư'),
                 _buildRow(
+                  t: t,
                   icon: Icons.upload_file_outlined,
                   title: 'Dữ liệu dùng để cá nhân hóa',
                   rowHeight: rowHeight,
@@ -285,6 +299,7 @@ class _SamanAccountPopupMenuState extends State<SamanAccountPopupMenu>
                       'Dữ liệu dùng để cá nhân hóa'),
                 ),
                 _buildRow(
+                  t: t,
                   icon: Icons.history_rounded,
                   title: 'Lịch sử trò chuyện',
                   rowHeight: rowHeight,
@@ -298,12 +313,14 @@ class _SamanAccountPopupMenuState extends State<SamanAccountPopupMenu>
                   },
                 ),
                 _buildRow(
+                  t: t,
                   icon: Icons.feedback_outlined,
                   title: 'Gửi phản hồi',
                   rowHeight: rowHeight,
                   onTap: () => _showUnavailableFeatureNotice('Gửi phản hồi'),
                 ),
                 _buildRow(
+                  t: t,
                   icon: Icons.help_outline_rounded,
                   title: 'Trợ giúp',
                   rowHeight: rowHeight,
@@ -317,33 +334,34 @@ class _SamanAccountPopupMenuState extends State<SamanAccountPopupMenu>
     );
   }
 
-  Widget _buildGroupHeader(String text) {
+  Widget _buildGroupHeader(SamanChatPalette t, String text) {
     return Padding(
       padding: const EdgeInsets.only(left: 8.0, top: 4.0, bottom: 2.0),
       child: Text(
         text,
-        style: const TextStyle(
+        style: TextStyle(
           fontSize: 11.0,
           fontWeight: FontWeight.w500,
-          color: SamanChatTokens.menuGroupHeader,
+          color: t.menuGroupHeader,
           letterSpacing: 0.1,
         ),
       ),
     );
   }
 
-  Widget _buildDivider() {
-    return const Padding(
-      padding: EdgeInsets.symmetric(horizontal: 4.0, vertical: 4.0),
+  Widget _buildDivider(SamanChatPalette t) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 4.0, vertical: 4.0),
       child: Divider(
         height: 1.0,
         thickness: 1.0,
-        color: SamanChatTokens.menuDivider,
+        color: t.menuDivider,
       ),
     );
   }
 
   Widget _buildRow({
+    required SamanChatPalette t,
     required IconData icon,
     required String title,
     required double rowHeight,
@@ -351,17 +369,15 @@ class _SamanAccountPopupMenuState extends State<SamanAccountPopupMenu>
     bool hasChevron = false,
     bool isSparkle = false,
   }) {
-    final textColor =
-        isSparkle ? SamanChatTokens.textWhite : SamanChatTokens.menuItemText;
-    final iconColor =
-        isSparkle ? SamanChatTokens.sparkleWhite : SamanChatTokens.menuItemIcon;
+    final textColor = isSparkle ? t.textWhite : t.menuItemText;
+    final iconColor = isSparkle ? t.sparkleWhite : t.menuItemIcon;
 
     return Material(
       color: Colors.transparent,
       child: InkWell(
         borderRadius: BorderRadius.circular(10.0),
-        hoverColor: SamanChatTokens.menuItemHover,
-        splashColor: SamanChatTokens.menuItemHover,
+        hoverColor: t.menuItemHover,
+        splashColor: t.menuItemHover,
         onTap: onTap,
         child: SizedBox(
           height: rowHeight,
@@ -388,10 +404,10 @@ class _SamanAccountPopupMenuState extends State<SamanAccountPopupMenu>
                   ),
                 ),
                 if (hasChevron)
-                  const Icon(
+                  Icon(
                     Icons.chevron_right_rounded,
                     size: 16.0,
-                    color: SamanChatTokens.menuChevron,
+                    color: t.menuChevron,
                   ),
               ],
             ),

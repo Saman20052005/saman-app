@@ -141,7 +141,7 @@ class _MainScreenState extends ConsumerState<MainScreen> {
     });
 
     return Scaffold(
-      backgroundColor: SamanHomeTokens.canvas,
+      backgroundColor: SamanHomeTokens.of(context).canvas,
       body: IndexedStack(
         index: currentIndex,
         children: _screens,

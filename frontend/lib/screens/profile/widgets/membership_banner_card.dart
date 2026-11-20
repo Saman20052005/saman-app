@@ -88,20 +88,29 @@ class MembershipBannerCard extends ConsumerWidget {
       }
     }
 
-    // Colors: Signature dark palette (#18181B)
-    // ProfileScreen in Saman App is styled under Dark Calm Athleticism (dark background 0xFF0C0D0E).
-    const cardBg = Color(0xFF18181B);
-    const cardBorder = Color(0xFF26282F);
-    const logoBoxBg = Color(0xFF242427);
-    const logoColor = Color(0xFFF4F0E8);
-    const champagneAccent = Color(0xFFC9AA78);
+    // Colors: Adaptive Light / Dark (Dark preserves signature #18181B palette)
+    final cardBg =
+        isDark ? const Color(0xFF18181B) : const Color(0xFFFFFFFF);
+    final cardBorder =
+        isDark ? const Color(0xFF26282F) : const Color(0xFFE2E8F0);
+    final logoBoxBg =
+        isDark ? const Color(0xFF242427) : const Color(0xFFF1F5F9);
+    final logoColor =
+        isDark ? const Color(0xFFF4F0E8) : const Color(0xFF0F172A);
+    final champagneAccent =
+        isDark ? const Color(0xFFC9AA78) : const Color(0xFFB45309);
     final logoBorderColor = champagneAccent.withOpacity(0.35);
 
-    const titleColor = Color(0xFFF3F4F6);
-    const descColor = Color(0xFF9CA3AF);
-    const previewBadgeBg = Color(0xFF242427);
-    const previewBadgeBorder = Color(0xFF383A42);
-    const previewBadgeText = Color(0xFF94979E);
+    final titleColor =
+        isDark ? const Color(0xFFF3F4F6) : const Color(0xFF0F172A);
+    final descColor =
+        isDark ? const Color(0xFF9CA3AF) : const Color(0xFF475569);
+    final previewBadgeBg =
+        isDark ? const Color(0xFF242427) : const Color(0xFFF1F5F9);
+    final previewBadgeBorder =
+        isDark ? const Color(0xFF383A42) : const Color(0xFFE2E8F0);
+    final previewBadgeText =
+        isDark ? const Color(0xFF94979E) : const Color(0xFF475569);
 
     final semanticLabel =
         '$titleText, $badgeText, $descriptionText. $ctaText';
@@ -135,7 +144,7 @@ class MembershipBannerCard extends ConsumerWidget {
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Graphite logo box with champagne border & ivory S mark
+                // Logo box with accent border & adaptive S mark
                 Container(
                   width: 46,
                   height: 46,
@@ -151,7 +160,6 @@ class MembershipBannerCard extends ConsumerWidget {
                   child: AppLogo(
                     size: 24,
                     color: logoColor,
-                    isLightMode: !isDark,
                   ),
                 ),
                 const SizedBox(width: 14),

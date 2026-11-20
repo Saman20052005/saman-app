@@ -214,21 +214,24 @@ class SamanPersonaMenu extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = SamanChatTokens.of(context);
     return Container(
       width: width,
       constraints: BoxConstraints(maxHeight: maxHeight),
       decoration: BoxDecoration(
-        color: SamanChatTokens.menuSurface,
+        color: t.menuSurface,
         borderRadius: BorderRadius.circular(16.0),
         border: Border.all(
-          color: SamanChatTokens.menuBorder,
+          color: t.menuBorder,
           width: 1.0,
         ),
-        boxShadow: const [
+        boxShadow: [
           BoxShadow(
-            color: Color(0xA6000000),
+            color: t.isDark
+                ? const Color(0xA6000000)
+                : const Color(0x1F0F172A),
             blurRadius: 36.0,
-            offset: Offset(0, 16),
+            offset: const Offset(0, 16),
           ),
         ],
       ),
@@ -251,31 +254,31 @@ class SamanPersonaMenu extends StatelessWidget {
                         children: [
                           Text(
                             context.tr('persona_menu_title'),
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 13,
                               fontWeight: FontWeight.w600,
-                              color: SamanChatTokens.textWhite,
+                              color: t.textWhite,
                             ),
                           ),
                           const SizedBox(height: 1),
-                          const Text(
+                          Text(
                             'Saman Preferences',
                             style: TextStyle(
                               fontSize: 10,
                               fontWeight: FontWeight.w400,
-                              color: SamanChatTokens.textMuted,
+                              color: t.textMuted,
                             ),
                           ),
                         ],
                       ),
                     ),
                     if (isSaving)
-                      const SizedBox(
+                      SizedBox(
                         width: 16,
                         height: 16,
                         child: CircularProgressIndicator(
                           strokeWidth: 2.0,
-                          valueColor: AlwaysStoppedAnimation(Color(0xFF10B981)),
+                          valueColor: AlwaysStoppedAnimation(t.greenAccent),
                         ),
                       )
                     else
@@ -285,12 +288,12 @@ class SamanPersonaMenu extends StatelessWidget {
                         child: InkWell(
                           borderRadius: BorderRadius.circular(12.0),
                           onTap: onClose,
-                          child: const Padding(
-                            padding: EdgeInsets.all(4.0),
+                          child: Padding(
+                            padding: const EdgeInsets.all(4.0),
                             child: Icon(
                               Icons.close_rounded,
                               size: 16,
-                              color: SamanChatTokens.textMuted,
+                              color: t.textMuted,
                             ),
                           ),
                         ),
@@ -300,15 +303,15 @@ class SamanPersonaMenu extends StatelessWidget {
               ),
 
               const SizedBox(height: 6.0),
-              const Divider(
-                color: SamanChatTokens.menuDivider,
+              Divider(
+                color: t.menuDivider,
                 height: 1.0,
               ),
               const SizedBox(height: 6.0),
 
               // 3 Personas
               for (final persona in CoachPersona.values)
-                _buildPersonaRow(persona),
+                _buildPersonaRow(t, persona),
             ],
           ),
         ),
@@ -316,7 +319,7 @@ class SamanPersonaMenu extends StatelessWidget {
     );
   }
 
-  Widget _buildPersonaRow(CoachPersona persona) {
+  Widget _buildPersonaRow(SamanChatPalette t, CoachPersona persona) {
     final isSelected = persona == currentPersona;
 
     return Semantics(
@@ -327,32 +330,37 @@ class SamanPersonaMenu extends StatelessWidget {
         color: Colors.transparent,
         child: InkWell(
           borderRadius: BorderRadius.circular(10.0),
-          hoverColor: SamanChatTokens.menuItemHover,
+          hoverColor: t.menuItemHover,
           onTap: isSaving ? null : () => onSelectPersona(persona),
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 8.0),
             decoration: BoxDecoration(
               color: isSelected
-                  ? const Color(0x1A10B981)
+                  ? t.greenAccent.withOpacity(0.10)
                   : Colors.transparent,
               borderRadius: BorderRadius.circular(10.0),
               border: isSelected
-                  ? Border.all(color: const Color(0x3310B981), width: 1.0)
+                  ? Border.all(
+                      color: t.greenAccent.withOpacity(0.20),
+                      width: 1.0,
+                    )
                   : null,
             ),
             child: Row(
               children: [
-                // Icon / Emoji on dark badge
+                // Icon / Emoji badge
                 Container(
                   width: 36.0,
                   height: 36.0,
                   decoration: BoxDecoration(
-                    color: const Color(0xFF252830),
+                    color: t.isDark
+                        ? const Color(0xFF252830)
+                        : t.surfaceElevated,
                     borderRadius: BorderRadius.circular(9.0),
                     border: Border.all(
                       color: isSelected
-                          ? const Color(0xFF10B981)
-                          : const Color(0xFF323642),
+                          ? t.greenAccent
+                          : (t.isDark ? const Color(0xFF323642) : t.border),
                       width: 1.0,
                     ),
                   ),
@@ -382,9 +390,7 @@ class SamanPersonaMenu extends StatelessWidget {
                                   style: TextStyle(
                                     fontSize: 13,
                                     fontWeight: FontWeight.w600,
-                                    color: isSelected
-                                        ? SamanChatTokens.textWhite
-                                        : SamanChatTokens.textPrimary,
+                                    color: isSelected ? t.textWhite : t.textPrimary,
                                   ),
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
@@ -395,9 +401,9 @@ class SamanPersonaMenu extends StatelessWidget {
                           const SizedBox(height: 2.0),
                           Text(
                             isVi ? persona.vietnameseDesc : persona.shortDescription,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 11,
-                              color: SamanChatTokens.textMuted,
+                              color: t.textMuted,
                               height: 1.25,
                             ),
                             maxLines: 2,
@@ -413,9 +419,9 @@ class SamanPersonaMenu extends StatelessWidget {
 
                 // Selected Checkmark
                 if (isSelected)
-                  const Icon(
+                  Icon(
                     Icons.check_rounded,
-                    color: Color(0xFF10B981),
+                    color: t.greenAccent,
                     size: 18,
                   )
                 else

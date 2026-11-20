@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:health_ai_app/features/report/domain/entities/weekly_report_entity.dart';
+import '../../../../config/app_theme.dart';
 
 class DailyBreakdownSheet extends StatelessWidget {
   final List<DailyStats> days;
@@ -34,17 +35,39 @@ class DailyBreakdownSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final p = SamanPalette.of(context);
+    final isDark = p.isDark;
+    final sheetBg = isDark ? const Color(0xFF0C0D0E) : p.surface;
+    final borderCol = isDark ? const Color(0xFF26282F) : p.border;
+    final handleCol = isDark ? const Color(0xFF353842) : const Color(0xFFCBD5E1);
+    final dividerCol = isDark ? const Color(0xFF23252A) : p.border;
+    final cardBg = isDark ? const Color(0xFF16171A) : p.canvas;
+    final innerBg = isDark ? const Color(0xFF101114) : p.surface;
+    final titleCol = isDark ? Colors.white : p.textPrimary;
+    final mutedCol = isDark ? const Color(0xFFA1A1AA) : p.textSecondary;
+    final subtleCol = isDark ? const Color(0xFF71717A) : p.textMuted;
+    final futureCol = isDark ? const Color(0xFF52525B) : const Color(0xFF94A3B8);
+    final calCol = isDark ? const Color(0xFFE5E7EB) : p.textPrimary;
+    final emerald = isDark ? const Color(0xFF10B981) : p.accent;
+    final amber = isDark ? const Color(0xFFF59E0B) : p.amber;
+    final blueText = isDark ? const Color(0xFF60A5FA) : const Color(0xFF2563EB);
+    final blueBorder =
+        isDark ? const Color(0xFF3B82F6).withOpacity(0.4) : const Color(0xFF2563EB).withOpacity(0.45);
+    final blueBadgeBg =
+        isDark ? const Color(0xFF3B82F6).withOpacity(0.15) : const Color(0xFF2563EB).withOpacity(0.1);
+    final workoutTextCol = isDark ? const Color(0xFFD1D5DB) : p.textPrimary;
+
     return Container(
       constraints: BoxConstraints(
         maxHeight: MediaQuery.sizeOf(context).height * 0.82,
       ),
-      decoration: const BoxDecoration(
-        color: Color(0xFF0C0D0E),
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      decoration: BoxDecoration(
+        color: sheetBg,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
         border: Border(
-          top: BorderSide(color: Color(0xFF26282F)),
-          left: BorderSide(color: Color(0xFF26282F)),
-          right: BorderSide(color: Color(0xFF26282F)),
+          top: BorderSide(color: borderCol),
+          left: BorderSide(color: borderCol),
+          right: BorderSide(color: borderCol),
         ),
       ),
       child: Column(
@@ -57,7 +80,7 @@ class DailyBreakdownSheet extends StatelessWidget {
               height: 4,
               margin: const EdgeInsets.only(top: 10, bottom: 6),
               decoration: BoxDecoration(
-                color: const Color(0xFF353842),
+                color: handleCol,
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
@@ -69,7 +92,7 @@ class DailyBreakdownSheet extends StatelessWidget {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Expanded(
+                Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -78,29 +101,28 @@ class DailyBreakdownSheet extends StatelessWidget {
                         style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.w700,
-                          color: Colors.white,
+                          color: titleCol,
                         ),
                       ),
-                      SizedBox(height: 2),
+                      const SizedBox(height: 2),
                       Text(
                         'Day-by-day telemetry and recorded sessions',
                         style: TextStyle(
                           fontSize: 11,
-                          color: Color(0xFFA1A1AA),
+                          color: mutedCol,
                         ),
                       ),
                     ],
                   ),
                 ),
                 IconButton(
-                  icon: const Icon(Icons.close_rounded,
-                      color: Color(0xFFA1A1AA), size: 20),
+                  icon: Icon(Icons.close_rounded, color: mutedCol, size: 20),
                   onPressed: () => Navigator.pop(context),
                 ),
               ],
             ),
           ),
-          const Divider(color: Color(0xFF23252A), height: 1),
+          Divider(color: dividerCol, height: 1),
 
           // Content List
           Flexible(
@@ -116,12 +138,10 @@ class DailyBreakdownSheet extends StatelessWidget {
                 return Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF16171A),
+                    color: cardBg,
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(
-                      color: d.isToday
-                          ? const Color(0xFF3B82F6).withOpacity(0.4)
-                          : const Color(0xFF26282F),
+                      color: d.isToday ? blueBorder : borderCol,
                     ),
                   ),
                   child: Column(
@@ -141,9 +161,7 @@ class DailyBreakdownSheet extends StatelessWidget {
                                     style: TextStyle(
                                       fontSize: 12.5,
                                       fontWeight: FontWeight.w600,
-                                      color: d.isToday
-                                          ? const Color(0xFF60A5FA)
-                                          : Colors.white,
+                                      color: d.isToday ? blueText : titleCol,
                                     ),
                                   ),
                                 ),
@@ -153,16 +171,15 @@ class DailyBreakdownSheet extends StatelessWidget {
                                     padding: const EdgeInsets.symmetric(
                                         horizontal: 5, vertical: 1),
                                     decoration: BoxDecoration(
-                                      color: const Color(0xFF3B82F6)
-                                          .withOpacity(0.15),
+                                      color: blueBadgeBg,
                                       borderRadius: BorderRadius.circular(4),
                                     ),
-                                    child: const Text(
+                                    child: Text(
                                       'Today',
                                       style: TextStyle(
                                         fontSize: 9.5,
                                         fontWeight: FontWeight.w600,
-                                        color: Color(0xFF60A5FA),
+                                        color: blueText,
                                       ),
                                     ),
                                   ),
@@ -176,32 +193,32 @@ class DailyBreakdownSheet extends StatelessWidget {
                               padding: const EdgeInsets.symmetric(
                                   horizontal: 6, vertical: 1.5),
                               decoration: BoxDecoration(
-                                color: const Color(0xFF10B981).withOpacity(0.12),
+                                color: emerald.withOpacity(0.12),
                                 borderRadius: BorderRadius.circular(4),
                               ),
                               child: Text(
                                 '${d.logCount} logged',
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontSize: 10,
                                   fontWeight: FontWeight.w500,
-                                  color: Color(0xFF10B981),
+                                  color: emerald,
                                 ),
                               ),
                             )
                           else if (d.isFuture)
-                            const Text(
+                            Text(
                               'Upcoming',
                               style: TextStyle(
                                 fontSize: 10.5,
-                                color: Color(0xFF52525B),
+                                color: futureCol,
                               ),
                             )
                           else
-                            const Text(
+                            Text(
                               'Unlogged',
                               style: TextStyle(
                                 fontSize: 10.5,
-                                color: Color(0xFF71717A),
+                                color: subtleCol,
                               ),
                             ),
                         ],
@@ -217,14 +234,20 @@ class DailyBreakdownSheet extends StatelessWidget {
                               value: d.isRecorded
                                   ? '${d.caloriesIn.round()} kcal'
                                   : '—',
-                              color: const Color(0xFFE5E7EB),
+                              color: calCol,
+                              labelColor: isDark
+                                  ? const Color(0xFF9CA3AF)
+                                  : p.textSecondary,
                             ),
                           ),
                           Expanded(
                             child: _MetricTile(
                               label: 'Protein',
                               value: d.isRecorded ? '${d.protein.round()}g' : '—',
-                              color: const Color(0xFF10B981),
+                              color: emerald,
+                              labelColor: isDark
+                                  ? const Color(0xFF9CA3AF)
+                                  : p.textSecondary,
                             ),
                           ),
                           Expanded(
@@ -233,7 +256,10 @@ class DailyBreakdownSheet extends StatelessWidget {
                               value: (d.hasWorkout && d.caloriesBurned > 0)
                                   ? '${d.caloriesBurned.round()} kcal'
                                   : (d.isRestDay ? '0 kcal (Rest)' : '—'),
-                              color: const Color(0xFFF59E0B),
+                              color: amber,
+                              labelColor: isDark
+                                  ? const Color(0xFF9CA3AF)
+                                  : p.textSecondary,
                             ),
                           ),
                         ],
@@ -245,24 +271,24 @@ class DailyBreakdownSheet extends StatelessWidget {
                           padding: const EdgeInsets.symmetric(
                               horizontal: 8, vertical: 4),
                           decoration: BoxDecoration(
-                            color: const Color(0xFF101114),
+                            color: innerBg,
                             borderRadius: BorderRadius.circular(6),
-                            border: Border.all(color: const Color(0xFF23252A)),
+                            border: Border.all(color: dividerCol),
                           ),
                           child: Row(
                             children: [
-                              const Icon(
+                              Icon(
                                 Icons.fitness_center_rounded,
                                 size: 12,
-                                color: Color(0xFFF59E0B),
+                                color: amber,
                               ),
                               const SizedBox(width: 6),
                               Expanded(
                                 child: Text(
                                   '${d.workoutTitle} · ${d.workoutDurationMinutes} min',
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                     fontSize: 10.5,
-                                    color: Color(0xFFD1D5DB),
+                                    color: workoutTextCol,
                                   ),
                                 ),
                               ),
@@ -287,11 +313,13 @@ class _MetricTile extends StatelessWidget {
   final String label;
   final String value;
   final Color color;
+  final Color labelColor;
 
   const _MetricTile({
     required this.label,
     required this.value,
     required this.color,
+    required this.labelColor,
   });
 
   @override
@@ -301,9 +329,9 @@ class _MetricTile extends StatelessWidget {
       children: [
         Text(
           label,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 9.5,
-            color: Color(0xFF9CA3AF),
+            color: labelColor,
           ),
         ),
         const SizedBox(height: 2),

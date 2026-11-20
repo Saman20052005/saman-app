@@ -155,4 +155,229 @@ class SamanHomeTokens {
     letterSpacing: 0.2,
     color: textPrimary,
   );
+
+  /// Adaptive Light / Dark palette resolved from the active [ThemeData.brightness].
+  static SamanHomePalette of(BuildContext context) {
+    return Theme.of(context).brightness == Brightness.dark
+        ? SamanHomePalette.dark
+        : SamanHomePalette.light;
+  }
+}
+
+/// Adaptive token snapshot for Saman Home screens (1-to-1 Light / Dark parity).
+@immutable
+class SamanHomePalette {
+  const SamanHomePalette({
+    required this.isDark,
+    required this.canvas,
+    required this.cardSurface,
+    required this.cardSurfaceElevated,
+    required this.secondarySurface,
+    required this.companionSurface,
+    required this.actionButtonSurface,
+    required this.iconContainerBg,
+    required this.ambientMoodGlow,
+    required this.border,
+    required this.borderSubtle,
+    required this.borderHigh,
+    required this.divider,
+    required this.textWhite,
+    required this.textPrimary,
+    required this.textSecondary,
+    required this.textMuted,
+    required this.textTertiary,
+    required this.primaryCtaBg,
+    required this.primaryCtaText,
+    required this.mintAccent,
+    required this.mintCtaText,
+    required this.greenAccent,
+    required this.greenBadgeBg,
+    required this.greenBadgeBorder,
+    required this.carbsAmber,
+    required this.fatRose,
+    required this.fatViolet,
+    required this.waterCyan,
+    required this.waterFill,
+    required this.calorieFill,
+    required this.progressTrack,
+    required this.chartGrid,
+    required this.chartTargetDashed,
+    required this.chartActualLine,
+  });
+
+  final bool isDark;
+  final Color canvas;
+  final Color cardSurface;
+  final Color cardSurfaceElevated;
+  final Color secondarySurface;
+  final Color companionSurface;
+  final Color actionButtonSurface;
+  final Color iconContainerBg;
+  final Color ambientMoodGlow;
+  final Color border;
+  final Color borderSubtle;
+  final Color borderHigh;
+  final Color divider;
+  final Color textWhite;
+  final Color textPrimary;
+  final Color textSecondary;
+  final Color textMuted;
+  final Color textTertiary;
+  final Color primaryCtaBg;
+  final Color primaryCtaText;
+  final Color mintAccent;
+  final Color mintCtaText;
+  final Color greenAccent;
+  final Color greenBadgeBg;
+  final Color greenBadgeBorder;
+  final Color carbsAmber;
+  final Color fatRose;
+  final Color fatViolet;
+  final Color waterCyan;
+  final Color waterFill;
+  final Color calorieFill;
+  final Color progressTrack;
+  final Color chartGrid;
+  final Color chartTargetDashed;
+  final Color chartActualLine;
+
+  static const SamanHomePalette dark = SamanHomePalette(
+    isDark: true,
+    canvas: SamanHomeTokens.canvas,
+    cardSurface: SamanHomeTokens.cardSurface,
+    cardSurfaceElevated: SamanHomeTokens.cardSurfaceElevated,
+    secondarySurface: SamanHomeTokens.secondarySurface,
+    companionSurface: SamanHomeTokens.companionSurface,
+    actionButtonSurface: SamanHomeTokens.actionButtonSurface,
+    iconContainerBg: SamanHomeTokens.iconContainerBg,
+    ambientMoodGlow: SamanHomeTokens.ambientMoodGlow,
+    border: SamanHomeTokens.border,
+    borderSubtle: SamanHomeTokens.borderSubtle,
+    borderHigh: SamanHomeTokens.borderHigh,
+    divider: SamanHomeTokens.divider,
+    textWhite: SamanHomeTokens.textWhite,
+    textPrimary: SamanHomeTokens.textPrimary,
+    textSecondary: SamanHomeTokens.textSecondary,
+    textMuted: SamanHomeTokens.textMuted,
+    textTertiary: SamanHomeTokens.textTertiary,
+    primaryCtaBg: SamanHomeTokens.primaryCtaBg,
+    primaryCtaText: SamanHomeTokens.primaryCtaText,
+    mintAccent: SamanHomeTokens.mintAccent,
+    mintCtaText: SamanHomeTokens.mintCtaText,
+    greenAccent: SamanHomeTokens.greenAccent,
+    greenBadgeBg: SamanHomeTokens.greenBadgeBg,
+    greenBadgeBorder: SamanHomeTokens.greenBadgeBorder,
+    carbsAmber: SamanHomeTokens.carbsAmber,
+    fatRose: SamanHomeTokens.fatRose,
+    fatViolet: SamanHomeTokens.fatViolet,
+    waterCyan: SamanHomeTokens.waterCyan,
+    waterFill: SamanHomeTokens.waterFill,
+    calorieFill: SamanHomeTokens.calorieFill,
+    progressTrack: SamanHomeTokens.progressTrack,
+    chartGrid: SamanHomeTokens.chartGrid,
+    chartTargetDashed: SamanHomeTokens.chartTargetDashed,
+    chartActualLine: SamanHomeTokens.chartActualLine,
+  );
+
+  static const SamanHomePalette light = SamanHomePalette(
+    isDark: false,
+    canvas: Color(0xFFF8FAFC),
+    cardSurface: Color(0xFFFFFFFF),
+    cardSurfaceElevated: Color(0xFFF1F5F9),
+    secondarySurface: Color(0xFFF1F5F9),
+    companionSurface: Color(0xFFFFFFFF),
+    actionButtonSurface: Color(0xFFF1F5F9),
+    iconContainerBg: Color(0xFFF1F5F9),
+    ambientMoodGlow: Color(0xFFDCFCE7),
+    border: Color(0xFFE2E8F0),
+    borderSubtle: Color(0xFFE2E8F0),
+    borderHigh: Color(0xFFCBD5E1),
+    divider: Color(0xFFE2E8F0),
+    textWhite: Color(0xFF0F172A),
+    textPrimary: Color(0xFF0F172A),
+    textSecondary: Color(0xFF475569),
+    textMuted: Color(0xFF64748B),
+    textTertiary: Color(0xFF64748B),
+    primaryCtaBg: Color(0xFF0F172A),
+    primaryCtaText: Color(0xFFFFFFFF),
+    mintAccent: Color(0xFF0F172A),
+    mintCtaText: Color(0xFFFFFFFF),
+    greenAccent: Color(0xFF059669),
+    greenBadgeBg: Color(0x1A059669),
+    greenBadgeBorder: Color(0x33059669),
+    carbsAmber: Color(0xFFD97706),
+    fatRose: Color(0xFFE11D48),
+    fatViolet: Color(0xFFE11D48),
+    waterCyan: Color(0xFF0891B2),
+    waterFill: Color(0xFF0891B2),
+    calorieFill: Color(0xFF059669),
+    progressTrack: Color(0xFFE2E8F0),
+    chartGrid: Color(0xFFE2E8F0),
+    chartTargetDashed: Color(0xFF94A3B8),
+    chartActualLine: Color(0xFF059669),
+  );
+
+  TextStyle get screenTitle => TextStyle(
+        fontSize: 24,
+        fontWeight: FontWeight.w700,
+        letterSpacing: -0.5,
+        color: textPrimary,
+        height: 1.2,
+      );
+
+  TextStyle get headerSubtitle => TextStyle(
+        fontSize: 12,
+        fontWeight: FontWeight.w500,
+        letterSpacing: 0.1,
+        color: textSecondary,
+        height: 1.3,
+      );
+
+  TextStyle get sectionHeader => TextStyle(
+        fontSize: 11,
+        fontWeight: FontWeight.w700,
+        letterSpacing: 1.1,
+        color: textSecondary,
+      );
+
+  TextStyle get linkText => TextStyle(
+        fontSize: 12,
+        fontWeight: FontWeight.w500,
+        color: textSecondary,
+      );
+
+  TextStyle get cardTitle => TextStyle(
+        fontSize: 20,
+        fontWeight: FontWeight.w700,
+        letterSpacing: -0.4,
+        color: textPrimary,
+        height: 1.2,
+      );
+
+  TextStyle get cardSubtitle => TextStyle(
+        fontSize: 12,
+        fontWeight: FontWeight.w400,
+        color: textSecondary,
+      );
+
+  TextStyle get statValue => TextStyle(
+        fontSize: 16,
+        fontWeight: FontWeight.w700,
+        letterSpacing: -0.3,
+        color: textPrimary,
+      );
+
+  TextStyle get statLabel => TextStyle(
+        fontSize: 10,
+        fontWeight: FontWeight.w600,
+        letterSpacing: 0.8,
+        color: textSecondary,
+      );
+
+  TextStyle get badgeText => TextStyle(
+        fontSize: 11,
+        fontWeight: FontWeight.w500,
+        letterSpacing: 0.2,
+        color: textPrimary,
+      );
 }

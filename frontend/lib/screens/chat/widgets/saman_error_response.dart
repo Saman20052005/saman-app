@@ -28,6 +28,7 @@ class SamanErrorResponse extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = SamanChatTokens.of(context);
     return Semantics(
       label: 'Saman could not complete response. Options: Retry or Edit question.',
       child: Column(
@@ -35,15 +36,15 @@ class SamanErrorResponse extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           // 1. Identity row: Small S monogram + "Saman"
-          const Row(
+          Row(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              SamanMonogram.chat(),
-              SizedBox(width: 8.0),
+              const SamanMonogram.chat(),
+              const SizedBox(width: 8.0),
               Text(
                 'Saman',
-                style: SamanChatTokens.assistantName,
+                style: t.assistantName,
               ),
             ],
           ),
@@ -53,8 +54,8 @@ class SamanErrorResponse extends StatelessWidget {
           // 2. Human, non-alarmist error copy directly on canvas
           Text(
             errorMessage,
-            style: SamanChatTokens.assistantBody.copyWith(
-              color: SamanChatTokens.textSecondary,
+            style: t.assistantBody.copyWith(
+              color: t.textSecondary,
             ),
           ),
 
@@ -73,8 +74,8 @@ class SamanErrorResponse extends StatelessWidget {
                   child: InkWell(
                     borderRadius: BorderRadius.circular(4.0),
                     onTap: onRetry,
-                    child: const Padding(
-                      padding: EdgeInsets.symmetric(vertical: 4.0, horizontal: 2.0),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 4.0, horizontal: 2.0),
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
@@ -83,16 +84,16 @@ class SamanErrorResponse extends StatelessWidget {
                             style: TextStyle(
                               fontSize: 14,
                               fontWeight: FontWeight.w500,
-                              color: SamanChatTokens.greenAccent,
+                              color: t.greenAccent,
                             ),
                           ),
-                          SizedBox(width: 4.0),
+                          const SizedBox(width: 4.0),
                           Text(
                             '→',
                             style: TextStyle(
                               fontSize: 14,
                               fontWeight: FontWeight.w500,
-                              color: SamanChatTokens.greenAccent,
+                              color: t.greenAccent,
                             ),
                           ),
                         ],
@@ -113,14 +114,14 @@ class SamanErrorResponse extends StatelessWidget {
                   child: InkWell(
                     borderRadius: BorderRadius.circular(4.0),
                     onTap: onEditQuestion,
-                    child: const Padding(
-                      padding: EdgeInsets.symmetric(vertical: 4.0, horizontal: 2.0),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 4.0, horizontal: 2.0),
                       child: Text(
                         'Edit question',
                         style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w400,
-                          color: SamanChatTokens.textMuted,
+                          color: t.textMuted,
                         ),
                       ),
                     ),

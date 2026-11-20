@@ -19,6 +19,7 @@ class ProfileSectionGroup extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = SamanHomeTokens.of(context);
     return Padding(
       padding: const EdgeInsets.symmetric(
         horizontal: SamanHomeTokens.spacingLg,
@@ -29,16 +30,16 @@ class ProfileSectionGroup extends StatelessWidget {
           if (title != null && title!.isNotEmpty) ...[
             Text(
               title!,
-              style: SamanHomeTokens.sectionHeader,
+              style: tokens.sectionHeader,
             ),
             const SizedBox(height: SamanHomeTokens.spacingSm),
           ],
           Container(
             decoration: BoxDecoration(
-              color: SamanHomeTokens.cardSurface,
+              color: tokens.cardSurface,
               borderRadius: BorderRadius.circular(SamanHomeTokens.radiusLg),
               border: Border.all(
-                color: SamanHomeTokens.border,
+                color: tokens.border,
                 width: 1,
               ),
             ),

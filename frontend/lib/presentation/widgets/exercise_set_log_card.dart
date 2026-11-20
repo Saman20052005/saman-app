@@ -10,6 +10,7 @@ class ExerciseSetLogCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = SamanWorkoutTokens.of(context);
     final summary = log.cvFormSummary;
     final hasSummary = summary != null && summary.isNotEmpty;
 
@@ -17,9 +18,9 @@ class ExerciseSetLogCard extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
-        color: SamanWorkoutTokens.surfaceElevated,
+        color: t.surfaceElevated,
         borderRadius: BorderRadius.circular(SamanWorkoutTokens.radiusMd),
-        border: Border.all(color: SamanWorkoutTokens.border),
+        border: Border.all(color: t.border),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -32,10 +33,10 @@ class ExerciseSetLogCard extends StatelessWidget {
                   'Set ${index + 1}',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontFamily: 'monospace',
                     fontWeight: FontWeight.w600,
-                    color: SamanWorkoutTokens.textPrimary,
+                    color: t.textPrimary,
                     fontSize: 13,
                   ),
                 ),
@@ -49,8 +50,8 @@ class ExerciseSetLogCard extends StatelessWidget {
                       : '${log.repsCompleted} reps',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: SamanWorkoutTokens.textSecondary,
+                  style: TextStyle(
+                    color: t.textSecondary,
                     fontSize: 13,
                   ),
                 ),
@@ -63,31 +64,31 @@ class ExerciseSetLogCard extends StatelessWidget {
                     '${_formatWeight(log.weightKg)} kg',
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontFamily: 'monospace',
                       fontWeight: FontWeight.w600,
-                      color: SamanWorkoutTokens.textPrimary,
+                      color: t.textPrimary,
                       fontSize: 13,
                     ),
                   ),
                 ),
               ],
               if (log.cvDetected)
-                const Padding(
-                  padding: EdgeInsets.only(left: 4, right: 4),
+                Padding(
+                  padding: const EdgeInsets.only(left: 4, right: 4),
                   child: Icon(
                     Icons.visibility,
                     size: 16,
-                    color: SamanWorkoutTokens.emeraldAccent,
+                    color: t.emeraldAccent,
                   ),
                 ),
               if (log.isCompleted)
-                const Padding(
-                  padding: EdgeInsets.only(left: 4),
+                Padding(
+                  padding: const EdgeInsets.only(left: 4),
                   child: Icon(
                     Icons.check_circle,
                     size: 16,
-                    color: SamanWorkoutTokens.emeraldAccent,
+                    color: t.emeraldAccent,
                   ),
                 ),
             ],
@@ -114,6 +115,7 @@ class _CvFormSummaryStrip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = SamanWorkoutTokens.of(context);
     final validReps = _readInt(summary['valid_reps'] ?? summary['validReps']);
     final fastReps = _readInt(summary['fast_reps'] ?? summary['fastReps']);
     final avgTempo =
@@ -128,9 +130,9 @@ class _CvFormSummaryStrip extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
       decoration: BoxDecoration(
-        color: SamanWorkoutTokens.cardSurface,
+        color: t.cardSurface,
         borderRadius: BorderRadius.circular(SamanWorkoutTokens.radiusSm),
-        border: Border.all(color: SamanWorkoutTokens.border),
+        border: Border.all(color: t.border),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -140,13 +142,13 @@ class _CvFormSummaryStrip extends StatelessWidget {
               Container(
                 width: 6,
                 height: 6,
-                decoration: const BoxDecoration(
+                decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: SamanWorkoutTokens.emeraldAccent,
+                  color: t.emeraldAccent,
                 ),
               ),
               const SizedBox(width: 6),
-              const Expanded(
+              Expanded(
                 child: Text(
                   'CV FORM ANALYSIS',
                   maxLines: 1,
@@ -156,18 +158,18 @@ class _CvFormSummaryStrip extends StatelessWidget {
                     fontSize: 10,
                     fontWeight: FontWeight.w700,
                     letterSpacing: 0.8,
-                    color: SamanWorkoutTokens.emeraldAccent,
+                    color: t.emeraldAccent,
                   ),
                 ),
               ),
               if (abortCount != null && abortCount > 0)
                 Text(
                   'Aborts: $abortCount',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontFamily: 'monospace',
                     fontSize: 10,
                     fontWeight: FontWeight.w600,
-                    color: SamanWorkoutTokens.amberAccent,
+                    color: t.amberAccent,
                   ),
                 ),
             ],
@@ -180,24 +182,22 @@ class _CvFormSummaryStrip extends StatelessWidget {
               if (validReps != null)
                 _MetricText(
                   text: 'Valid reps: $validReps',
-                  color: SamanWorkoutTokens.emeraldAccent,
+                  color: t.emeraldAccent,
                 ),
               if (fastReps != null)
                 _MetricText(
                   text: 'Fast reps: $fastReps',
-                  color: fastReps > 0
-                      ? SamanWorkoutTokens.amberAccent
-                      : SamanWorkoutTokens.textSecondary,
+                  color: fastReps > 0 ? t.amberAccent : t.textSecondary,
                 ),
               if (avgTempo != null)
                 _MetricText(
                   text: 'Avg tempo: ${_formatDecimal(avgTempo)}s',
-                  color: SamanWorkoutTokens.textPrimary,
+                  color: t.textPrimary,
                 ),
               if (avgElbow != null)
                 _MetricText(
                   text: 'Elbow angle: ${_formatDecimal(avgElbow)}°',
-                  color: SamanWorkoutTokens.textPrimary,
+                  color: t.textPrimary,
                 ),
             ],
           ),

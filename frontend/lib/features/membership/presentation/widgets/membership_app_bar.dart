@@ -18,12 +18,13 @@ class MembershipAppBar extends StatelessWidget implements PreferredSizeWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = MembershipTokens.of(context);
     return Container(
-      decoration: const BoxDecoration(
-        color: MembershipTokens.canvas,
+      decoration: BoxDecoration(
+        color: t.canvas,
         border: Border(
           bottom: BorderSide(
-            color: MembershipTokens.border,
+            color: t.border,
             width: 1.0,
           ),
         ),
@@ -52,9 +53,9 @@ class MembershipAppBar extends StatelessWidget implements PreferredSizeWidget {
                     width: MembershipTokens.minTouchTarget,
                     height: MembershipTokens.minTouchTarget,
                     alignment: Alignment.center,
-                    child: const Icon(
+                    child: Icon(
                       Icons.arrow_back,
-                      color: MembershipTokens.textPrimary,
+                      color: t.textPrimary,
                       size: 24,
                     ),
                   ),
@@ -64,10 +65,10 @@ class MembershipAppBar extends StatelessWidget implements PreferredSizeWidget {
               Expanded(
                 child: Text(
                   title,
-                  style: MembershipTokens.headline(
+                  style: t.headline(
                     fontSize: 18,
                     fontWeight: FontWeight.w600,
-                    color: MembershipTokens.textPrimary,
+                    color: t.textPrimary,
                   ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,

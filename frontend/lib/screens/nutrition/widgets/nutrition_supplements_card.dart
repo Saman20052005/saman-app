@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../config/app_theme.dart';
 import '../../../features/nutrition/presentation/providers/recipes_supplements_provider.dart';
 import '../../../models/nutrition_model.dart';
 
@@ -27,13 +28,6 @@ class NutritionSupplementsCard extends ConsumerWidget {
     required this.dateStr,
     this.fallbackSupplements = const [],
   });
-
-  static const Color _cardBg = Color(0xFF16171B);
-  static const Color _borderColor = Color(0xFF26282F);
-  static const Color _pillBg = Color(0xFF212328);
-  static const Color _emeraldAccent = Color(0xFF10B981);
-  static const Color _textPrimary = Color(0xFFF9FAFB);
-  static const Color _textSecondary = Color(0xFF9CA3AF);
 
   Future<void> _openLogSheet(BuildContext context) async {
     await showModalBottomSheet<bool>(
@@ -63,6 +57,16 @@ class NutritionSupplementsCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final palette = SamanPalette.of(context);
+    final isDark = palette.isDark;
+    final cardBg = isDark ? const Color(0xFF16171B) : palette.surface;
+    final borderColor = isDark ? const Color(0xFF26282F) : palette.border;
+    final pillBg = isDark ? const Color(0xFF212328) : palette.surfaceElevated;
+    final emeraldAccent = isDark ? const Color(0xFF10B981) : palette.accent;
+    final textPrimary = isDark ? const Color(0xFFF9FAFB) : palette.textPrimary;
+    final textSecondary =
+        isDark ? const Color(0xFF9CA3AF) : palette.textSecondary;
+
     final supplementsAsync = ref.watch(supplementsByDateProvider(dateStr));
     final List<Supplement> items =
         supplementsAsync.valueOrNull ?? fallbackSupplements;
@@ -103,9 +107,9 @@ class NutritionSupplementsCard extends ConsumerWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: _cardBg,
+        color: cardBg,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: _borderColor),
+        border: Border.all(color: borderColor),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -115,22 +119,22 @@ class NutritionSupplementsCard extends ConsumerWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Row(
+              Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Icon(
                     Icons.bolt_rounded,
                     size: 18,
-                    color: _emeraldAccent,
+                    color: emeraldAccent,
                   ),
-                  SizedBox(width: 6),
+                  const SizedBox(width: 6),
                   Text(
                     'SUPPLEMENTS',
                     style: TextStyle(
                       fontFamily: 'monospace',
                       fontSize: 12,
                       fontWeight: FontWeight.w700,
-                      color: _textSecondary,
+                      color: textSecondary,
                       letterSpacing: 1.2,
                     ),
                   ),
@@ -151,26 +155,26 @@ class NutritionSupplementsCard extends ConsumerWidget {
                       vertical: 10,
                     ),
                     decoration: BoxDecoration(
-                      color: _pillBg,
+                      color: pillBg,
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: _borderColor),
+                      border: Border.all(color: borderColor),
                     ),
-                    child: const Center(
+                    child: Center(
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Icon(
                             Icons.add,
                             size: 16,
-                            color: _emeraldAccent,
+                            color: emeraldAccent,
                           ),
-                          SizedBox(width: 4),
+                          const SizedBox(width: 4),
                           Text(
                             'Log',
                             style: TextStyle(
                               fontSize: 12,
                               fontWeight: FontWeight.w600,
-                              color: _textPrimary,
+                              color: textPrimary,
                             ),
                           ),
                         ],
@@ -184,11 +188,11 @@ class NutritionSupplementsCard extends ConsumerWidget {
           const SizedBox(height: 12),
 
           if (items.isEmpty) ...[
-            const Text(
+            Text(
               'Ghi nhanh 1 chạm:',
               style: TextStyle(
                 fontSize: 12,
-                color: _textSecondary,
+                color: textSecondary,
               ),
             ),
             const SizedBox(height: 8),
@@ -208,25 +212,25 @@ class NutritionSupplementsCard extends ConsumerWidget {
                         vertical: 8,
                       ),
                       decoration: BoxDecoration(
-                        color: _pillBg,
+                        color: pillBg,
                         borderRadius: BorderRadius.circular(999),
-                        border: Border.all(color: _borderColor),
+                        border: Border.all(color: borderColor),
                       ),
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          const Icon(
+                          Icon(
                             Icons.add_circle_outline_rounded,
                             size: 14,
-                            color: _emeraldAccent,
+                            color: emeraldAccent,
                           ),
                           const SizedBox(width: 6),
                           Text(
                             chip.label,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 12,
                               fontWeight: FontWeight.w500,
-                              color: _textPrimary,
+                              color: textPrimary,
                             ),
                           ),
                         ],
@@ -241,10 +245,10 @@ class NutritionSupplementsCard extends ConsumerWidget {
               children: [
                 for (int i = 0; i < items.length; i++) ...[
                   if (i > 0)
-                    const Divider(
+                    Divider(
                       height: 16,
                       thickness: 1,
-                      color: _borderColor,
+                      color: borderColor,
                     ),
                   _SupplementRow(
                     item: items[i],
@@ -277,6 +281,13 @@ class _SupplementRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final palette = SamanPalette.of(context);
+    final isDark = palette.isDark;
+    final textPrimary = isDark ? const Color(0xFFF9FAFB) : palette.textPrimary;
+    final textSecondary =
+        isDark ? const Color(0xFF9CA3AF) : palette.textSecondary;
+    final emeraldAccent = isDark ? const Color(0xFF10B981) : palette.accent;
+
     final dosageText = (item.dosage != null && item.dosage!.trim().isNotEmpty)
         ? item.dosage!.trim()
         : '${_formatSupplementAmount(item.amount)} ${item.unit}'.trim();
@@ -291,10 +302,10 @@ class _SupplementRow extends StatelessWidget {
                 item.name,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
-                  color: Color(0xFFF9FAFB),
+                  color: textPrimary,
                 ),
               ),
               const SizedBox(height: 2),
@@ -302,25 +313,25 @@ class _SupplementRow extends StatelessWidget {
                 children: [
                   Text(
                     dosageText,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w500,
-                      color: Color(0xFF10B981),
+                      color: emeraldAccent,
                     ),
                   ),
                   if (item.time.trim().isNotEmpty) ...[
-                    const Text(
+                    Text(
                       ' · ',
                       style: TextStyle(
                         fontSize: 12,
-                        color: Color(0xFF9CA3AF),
+                        color: textSecondary,
                       ),
                     ),
                     Text(
                       item.time.trim(),
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 12,
-                        color: Color(0xFF9CA3AF),
+                        color: textSecondary,
                       ),
                     ),
                   ],
@@ -334,10 +345,10 @@ class _SupplementRow extends StatelessWidget {
             onPressed: onDelete,
             tooltip: 'Xoá',
             visualDensity: VisualDensity.compact,
-            icon: const Icon(
+            icon: Icon(
               Icons.delete_outline_rounded,
               size: 18,
-              color: Color(0xFF9CA3AF),
+              color: textSecondary,
             ),
           ),
       ],
@@ -358,15 +369,6 @@ class SupplementLogSheet extends ConsumerStatefulWidget {
 }
 
 class _SupplementLogSheetState extends ConsumerState<SupplementLogSheet> {
-  static const Color _cardBg = Color(0xFF16171B);
-  static const Color _borderColor = Color(0xFF26282F);
-  static const Color _pillBg = Color(0xFF212328);
-  static const Color _emeraldAccent = Color(0xFF10B981);
-  static const Color _primaryCtaBg = Color(0xFFF9FAFB);
-  static const Color _primaryCtaText = Color(0xFF0C0D0E);
-  static const Color _textPrimary = Color(0xFFF9FAFB);
-  static const Color _textSecondary = Color(0xFF9CA3AF);
-
   static const List<String> _units = ['g', 'scoop', 'viên', 'ml'];
   static const List<String> _timings = ['Sáng', 'Trước tập', 'Sau tập', 'Tối'];
 
@@ -437,16 +439,28 @@ class _SupplementLogSheetState extends ConsumerState<SupplementLogSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final palette = SamanPalette.of(context);
+    final isDark = palette.isDark;
+    final cardBg = isDark ? const Color(0xFF16171B) : palette.surface;
+    final borderColor = isDark ? const Color(0xFF26282F) : palette.border;
+    final pillBg = isDark ? const Color(0xFF212328) : palette.surfaceElevated;
+    final emeraldAccent = isDark ? const Color(0xFF10B981) : palette.accent;
+    final primaryCtaBg = isDark ? const Color(0xFFF9FAFB) : palette.accent;
+    final primaryCtaText = isDark ? const Color(0xFF0C0D0E) : palette.onAccent;
+    final textPrimary = isDark ? const Color(0xFFF9FAFB) : palette.textPrimary;
+    final textSecondary =
+        isDark ? const Color(0xFF9CA3AF) : palette.textSecondary;
+
     final bottomInset = MediaQuery.viewInsetsOf(context).bottom;
 
     return Container(
-      decoration: const BoxDecoration(
-        color: _cardBg,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      decoration: BoxDecoration(
+        color: cardBg,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
         border: Border(
-          top: BorderSide(color: _borderColor),
-          left: BorderSide(color: _borderColor),
-          right: BorderSide(color: _borderColor),
+          top: BorderSide(color: borderColor),
+          left: BorderSide(color: borderColor),
+          right: BorderSide(color: borderColor),
         ),
       ),
       padding: EdgeInsets.fromLTRB(16, 12, 16, bottomInset + 20),
@@ -460,7 +474,7 @@ class _SupplementLogSheetState extends ConsumerState<SupplementLogSheet> {
                 width: 40,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: _borderColor,
+                  color: borderColor,
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
@@ -469,31 +483,31 @@ class _SupplementLogSheetState extends ConsumerState<SupplementLogSheet> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Row(
+                Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Icon(
                       Icons.bolt_rounded,
                       size: 20,
-                      color: _emeraldAccent,
+                      color: emeraldAccent,
                     ),
-                    SizedBox(width: 8),
+                    const SizedBox(width: 8),
                     Text(
                       'Ghi nhận Supplement',
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w700,
-                        color: _textPrimary,
+                        color: textPrimary,
                       ),
                     ),
                   ],
                 ),
                 IconButton(
                   onPressed: _isSaving ? null : () => Navigator.of(context).pop(false),
-                  icon: const Icon(
+                  icon: Icon(
                     Icons.close_rounded,
                     size: 20,
-                    color: _textSecondary,
+                    color: textSecondary,
                   ),
                 ),
               ],
@@ -501,81 +515,81 @@ class _SupplementLogSheetState extends ConsumerState<SupplementLogSheet> {
             const SizedBox(height: 14),
 
             // Tên thực phẩm bổ sung
-            const Text(
+            Text(
               'Tên thực phẩm bổ sung',
               style: TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.w600,
-                color: _textSecondary,
+                color: textSecondary,
               ),
             ),
             const SizedBox(height: 6),
             TextField(
               controller: _nameController,
-              style: const TextStyle(color: _textPrimary, fontSize: 14),
+              style: TextStyle(color: textPrimary, fontSize: 14),
               decoration: InputDecoration(
                 hintText: 'VD: Creatine Monohydrate, Whey Protein...',
-                hintStyle: const TextStyle(color: _textSecondary, fontSize: 13),
+                hintStyle: TextStyle(color: textSecondary, fontSize: 13),
                 filled: true,
-                fillColor: _pillBg,
+                fillColor: pillBg,
                 contentPadding: const EdgeInsets.symmetric(
                   horizontal: 14,
                   vertical: 12,
                 ),
                 enabledBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: _borderColor),
+                  borderSide: BorderSide(color: borderColor),
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: _emeraldAccent),
+                  borderSide: BorderSide(color: emeraldAccent),
                 ),
               ),
             ),
             const SizedBox(height: 14),
 
             // Số lượng
-            const Text(
+            Text(
               'Số lượng',
               style: TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.w600,
-                color: _textSecondary,
+                color: textSecondary,
               ),
             ),
             const SizedBox(height: 6),
             TextField(
               controller: _amountController,
               keyboardType: const TextInputType.numberWithOptions(decimal: true),
-              style: const TextStyle(color: _textPrimary, fontSize: 14),
+              style: TextStyle(color: textPrimary, fontSize: 14),
               decoration: InputDecoration(
                 hintText: '5',
-                hintStyle: const TextStyle(color: _textSecondary, fontSize: 13),
+                hintStyle: TextStyle(color: textSecondary, fontSize: 13),
                 filled: true,
-                fillColor: _pillBg,
+                fillColor: pillBg,
                 contentPadding: const EdgeInsets.symmetric(
                   horizontal: 14,
                   vertical: 12,
                 ),
                 enabledBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: _borderColor),
+                  borderSide: BorderSide(color: borderColor),
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: _emeraldAccent),
+                  borderSide: BorderSide(color: emeraldAccent),
                 ),
               ),
             ),
             const SizedBox(height: 14),
 
             // Đơn vị (pill)
-            const Text(
+            Text(
               'Đơn vị',
               style: TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.w600,
-                color: _textSecondary,
+                color: textSecondary,
               ),
             ),
             const SizedBox(height: 8),
@@ -593,11 +607,11 @@ class _SupplementLogSheetState extends ConsumerState<SupplementLogSheet> {
                     ),
                     decoration: BoxDecoration(
                       color: selected
-                          ? _emeraldAccent.withOpacity(0.16)
-                          : _pillBg,
+                          ? emeraldAccent.withOpacity(0.16)
+                          : pillBg,
                       borderRadius: BorderRadius.circular(999),
                       border: Border.all(
-                        color: selected ? _emeraldAccent : _borderColor,
+                        color: selected ? emeraldAccent : borderColor,
                       ),
                     ),
                     child: Text(
@@ -605,7 +619,7 @@ class _SupplementLogSheetState extends ConsumerState<SupplementLogSheet> {
                       style: TextStyle(
                         fontSize: 13,
                         fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
-                        color: selected ? _emeraldAccent : _textPrimary,
+                        color: selected ? emeraldAccent : textPrimary,
                       ),
                     ),
                   ),
@@ -615,12 +629,12 @@ class _SupplementLogSheetState extends ConsumerState<SupplementLogSheet> {
             const SizedBox(height: 14),
 
             // Thời điểm (pill)
-            const Text(
+            Text(
               'Thời điểm',
               style: TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.w600,
-                color: _textSecondary,
+                color: textSecondary,
               ),
             ),
             const SizedBox(height: 8),
@@ -638,11 +652,11 @@ class _SupplementLogSheetState extends ConsumerState<SupplementLogSheet> {
                     ),
                     decoration: BoxDecoration(
                       color: selected
-                          ? _emeraldAccent.withOpacity(0.16)
-                          : _pillBg,
+                          ? emeraldAccent.withOpacity(0.16)
+                          : pillBg,
                       borderRadius: BorderRadius.circular(999),
                       border: Border.all(
-                        color: selected ? _emeraldAccent : _borderColor,
+                        color: selected ? emeraldAccent : borderColor,
                       ),
                     ),
                     child: Text(
@@ -650,7 +664,7 @@ class _SupplementLogSheetState extends ConsumerState<SupplementLogSheet> {
                       style: TextStyle(
                         fontSize: 13,
                         fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
-                        color: selected ? _emeraldAccent : _textPrimary,
+                        color: selected ? emeraldAccent : textPrimary,
                       ),
                     ),
                   ),
@@ -666,27 +680,27 @@ class _SupplementLogSheetState extends ConsumerState<SupplementLogSheet> {
               child: FilledButton(
                 onPressed: _isSaving ? null : _handleSave,
                 style: FilledButton.styleFrom(
-                  backgroundColor: _primaryCtaBg,
-                  foregroundColor: _primaryCtaText,
+                  backgroundColor: primaryCtaBg,
+                  foregroundColor: primaryCtaText,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(14),
                   ),
                 ),
                 child: _isSaving
-                    ? const SizedBox(
+                    ? SizedBox(
                         width: 18,
                         height: 18,
                         child: CircularProgressIndicator(
                           strokeWidth: 2,
-                          color: _primaryCtaText,
+                          color: primaryCtaText,
                         ),
                       )
-                    : const Text(
+                    : Text(
                         'Lưu',
                         style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w700,
-                          color: _primaryCtaText,
+                          color: primaryCtaText,
                         ),
                       ),
               ),

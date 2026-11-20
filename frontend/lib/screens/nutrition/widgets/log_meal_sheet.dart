@@ -10,6 +10,7 @@ import '../../../models/meal_log.dart';
 import '../../../models/ai_analysis_result.dart';
 import '../../../providers/daily_story_provider.dart';
 import '../../../services/nutrition_service.dart';
+import '../../../config/app_theme.dart';
 import '../../../config/app_translations.dart';
 import '../../../widgets/saman_feedback_snackbar.dart';
 import 'meal_review_dialog.dart' hide MealType;
@@ -22,20 +23,79 @@ class LogMealSheet extends ConsumerStatefulWidget {
   ConsumerState<LogMealSheet> createState() => _LogMealSheetState();
 }
 
+class _LogMealColors {
+  const _LogMealColors({
+    required this.isDark,
+    required this.bgCanvas,
+    required this.bgSurface,
+    required this.bgCard,
+    required this.borderSubtle,
+    required this.borderStrong,
+    required this.brandPrimary,
+    required this.onBrandPrimary,
+    required this.aiAccent,
+    required this.onAiAccent,
+    required this.textPrimary,
+    required this.textSecondary,
+    required this.textMuted,
+    required this.errorColor,
+  });
+
+  final bool isDark;
+  final Color bgCanvas;
+  final Color bgSurface;
+  final Color bgCard;
+  final Color borderSubtle;
+  final Color borderStrong;
+  final Color brandPrimary;
+  final Color onBrandPrimary;
+  final Color aiAccent;
+  final Color onAiAccent;
+  final Color textPrimary;
+  final Color textSecondary;
+  final Color textMuted;
+  final Color errorColor;
+
+  factory _LogMealColors.of(BuildContext context) {
+    final palette = SamanPalette.of(context);
+    if (palette.isDark) {
+      return const _LogMealColors(
+        isDark: true,
+        bgCanvas: Color(0xFF0C0D0E),
+        bgSurface: Color(0xFF16171B),
+        bgCard: Color(0xFF1E2026),
+        borderSubtle: Color(0xFF26282F),
+        borderStrong: Color(0xFF383A42),
+        brandPrimary: Color(0xFF10B981),
+        onBrandPrimary: Color(0xFF052E16),
+        aiAccent: Color(0xFFF59E0B),
+        onAiAccent: Color(0xFF052E16),
+        textPrimary: Color(0xFFF9FAFB),
+        textSecondary: Color(0xFF9CA3AF),
+        textMuted: Color(0xFF9CA3AF),
+        errorColor: Color(0xFFCF6679),
+      );
+    }
+    return _LogMealColors(
+      isDark: false,
+      bgCanvas: palette.canvas,
+      bgSurface: palette.surface,
+      bgCard: palette.surfaceElevated,
+      borderSubtle: palette.border,
+      borderStrong: const Color(0xFFCBD5E1),
+      brandPrimary: palette.accent,
+      onBrandPrimary: palette.onAccent,
+      aiAccent: palette.amber,
+      onAiAccent: Colors.white,
+      textPrimary: palette.textPrimary,
+      textSecondary: palette.textSecondary,
+      textMuted: palette.textSecondary,
+      errorColor: palette.danger,
+    );
+  }
+}
+
 class _LogMealSheetState extends ConsumerState<LogMealSheet> {
-  static const Color _bgCanvas = Color(0xFF0C0D0E);
-  static const Color _bgSurface = Color(0xFF16171B);
-  static const Color _bgCard = Color(0xFF1E2026);
-  static const Color _borderSubtle = Color(0xFF26282F);
-  static const Color _borderStrong = Color(0xFF383A42);
-
-  static const Color _brandPrimary = Color(0xFF10B981);
-  static const Color _aiAccent = Color(0xFFF59E0B);
-
-  static const Color _textPrimary = Color(0xFFF9FAFB);
-  static const Color _textSecondary = Color(0xFF9CA3AF);
-  static const Color _textMuted = Color(0xFF9CA3AF);
-  static const Color _errorColor = Color(0xFFCF6679);
 
   final _noteController = TextEditingController();
   MealType _selectedType = MealType.snack;
@@ -162,83 +222,86 @@ class _LogMealSheetState extends ConsumerState<LogMealSheet> {
       // The photo and note remain available for another analysis attempt.
       await showDialog<void>(
         context: context,
-        builder: (context) => AlertDialog(
-          backgroundColor: _bgSurface,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-            side: const BorderSide(color: _borderStrong),
-          ),
-          title: Text(
-            context.tr('cannot_analyze_image'),
-            style: const TextStyle(
-              color: _textPrimary,
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
+        builder: (context) {
+          final c = _LogMealColors.of(context);
+          return AlertDialog(
+            backgroundColor: c.bgSurface,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+              side: BorderSide(color: c.borderStrong),
             ),
-          ),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                foodAnalysisErrorMessage(error),
-                style: const TextStyle(
-                  color: _errorColor,
-                  fontSize: 13,
-                  fontWeight: FontWeight.w500,
-                ),
+            title: Text(
+              context.tr('cannot_analyze_image'),
+              style: TextStyle(
+                color: c.textPrimary,
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
               ),
-              const SizedBox(height: 10),
-              Text(
-                context.tr('save_photo_only_unavailable'),
-                style: const TextStyle(
-                  color: _textSecondary,
-                  fontSize: 12,
-                  height: 1.45,
-                ),
-              ),
-              if (_mode == 'advanced') ...[
-                const SizedBox(height: 12),
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: _bgCard,
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: _borderSubtle),
+            ),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  foodAnalysisErrorMessage(error),
+                  style: TextStyle(
+                    color: c.errorColor,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
                   ),
-                  child: Text(
-                    context.tr('nutrition_mode_suggest_core'),
-                    style: const TextStyle(
-                      color: _brandPrimary,
-                      fontSize: 11,
-                      height: 1.35,
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  context.tr('save_photo_only_unavailable'),
+                  style: TextStyle(
+                    color: c.textSecondary,
+                    fontSize: 12,
+                    height: 1.45,
+                  ),
+                ),
+                if (_mode == 'advanced') ...[
+                  const SizedBox(height: 12),
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: c.bgCard,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: c.borderSubtle),
+                    ),
+                    child: Text(
+                      context.tr('nutrition_mode_suggest_core'),
+                      style: TextStyle(
+                        color: c.brandPrimary,
+                        fontSize: 11,
+                        height: 1.35,
+                      ),
                     ),
                   ),
-                ),
+                ],
               ],
-            ],
-          ),
-          actions: [
-            if (_mode == 'advanced')
+            ),
+            actions: [
+              if (_mode == 'advanced')
+                TextButton(
+                  onPressed: () {
+                    setState(() => _mode = 'standard');
+                    Navigator.pop(context);
+                  },
+                  child: Text(
+                    context.tr('nutrition_mode_switch_to_core'),
+                    style: TextStyle(color: c.brandPrimary, fontSize: 13),
+                  ),
+                ),
               TextButton(
-                onPressed: () {
-                  setState(() => _mode = 'standard');
-                  Navigator.pop(context);
-                },
+                onPressed: () => Navigator.pop(context),
                 child: Text(
-                  context.tr('nutrition_mode_switch_to_core'),
-                  style: const TextStyle(color: _brandPrimary, fontSize: 13),
+                  context.tr('dialog_close'),
+                  style: TextStyle(color: c.textSecondary, fontSize: 13),
                 ),
               ),
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: Text(
-                context.tr('dialog_close'),
-                style: const TextStyle(color: _textSecondary, fontSize: 13),
-              ),
-            ),
-          ],
-        ),
+            ],
+          );
+        },
       );
     } finally {
       if (mounted) setState(() => _isAnalyzing = false);
@@ -253,6 +316,7 @@ class _LogMealSheetState extends ConsumerState<LogMealSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final c = _LogMealColors.of(context);
     final dateStr = DateFormat('yyyy-MM-dd').format(widget.selectedDate);
     final displayDateStr = DateFormat('EEE, MMM d').format(widget.selectedDate);
     final isToday = DateUtils.isSameDay(widget.selectedDate, DateTime.now());
@@ -272,13 +336,13 @@ class _LogMealSheetState extends ConsumerState<LogMealSheet> {
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 480),
         child: Container(
-          decoration: const BoxDecoration(
-            color: _bgSurface,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+          decoration: BoxDecoration(
+            color: c.bgSurface,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
             border: Border(
-              top: BorderSide(color: _borderStrong, width: 1),
-              left: BorderSide(color: _borderStrong, width: 1),
-              right: BorderSide(color: _borderStrong, width: 1),
+              top: BorderSide(color: c.borderStrong, width: 1),
+              left: BorderSide(color: c.borderStrong, width: 1),
+              right: BorderSide(color: c.borderStrong, width: 1),
             ),
           ),
           padding: EdgeInsets.only(
@@ -298,7 +362,7 @@ class _LogMealSheetState extends ConsumerState<LogMealSheet> {
                     width: 40,
                     height: 4,
                     decoration: BoxDecoration(
-                      color: _borderStrong,
+                      color: c.borderStrong,
                       borderRadius: BorderRadius.circular(2),
                     ),
                   ),
@@ -309,7 +373,7 @@ class _LogMealSheetState extends ConsumerState<LogMealSheet> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Expanded(
+                    Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -318,16 +382,16 @@ class _LogMealSheetState extends ConsumerState<LogMealSheet> {
                             style: TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.w700,
-                              color: _textPrimary,
+                              color: c.textPrimary,
                               letterSpacing: -0.3,
                             ),
                           ),
-                          SizedBox(height: 2),
+                          const SizedBox(height: 2),
                           Text(
                             'Chụp ảnh hoặc chọn từ thư viện để phân tích',
                             style: TextStyle(
                               fontSize: 12,
-                              color: _textSecondary,
+                              color: c.textSecondary,
                             ),
                           ),
                         ],
@@ -335,7 +399,7 @@ class _LogMealSheetState extends ConsumerState<LogMealSheet> {
                     ),
                     IconButton(
                       tooltip: 'Đóng',
-                      icon: const Icon(Icons.close, color: _textSecondary, size: 22),
+                      icon: Icon(Icons.close, color: c.textSecondary, size: 22),
                       onPressed: () => Navigator.of(context).pop(false),
                     ),
                   ],
@@ -346,34 +410,34 @@ class _LogMealSheetState extends ConsumerState<LogMealSheet> {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                   decoration: BoxDecoration(
-                    color: _bgCard,
+                    color: c.bgCard,
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: _borderSubtle),
+                    border: Border.all(color: c.borderSubtle),
                   ),
                   child: Row(
                     children: [
-                      const Icon(
+                      Icon(
                         Icons.calendar_today_rounded,
                         size: 14,
-                        color: _brandPrimary,
+                        color: c.brandPrimary,
                       ),
                       const SizedBox(width: 8),
                       Text(
                         displayDateStr,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w500,
-                          color: _textPrimary,
+                          color: c.textPrimary,
                         ),
                       ),
                       if (isToday) ...[
                         const SizedBox(width: 4),
-                        const Text(
+                        Text(
                           '· Hôm nay',
                           style: TextStyle(
                             fontSize: 11,
                             fontWeight: FontWeight.w600,
-                            color: _textMuted,
+                            color: c.textMuted,
                           ),
                         ),
                       ],
@@ -383,16 +447,16 @@ class _LogMealSheetState extends ConsumerState<LogMealSheet> {
                 const SizedBox(height: 14),
 
                 // Meal Type Segmented Selector
-                _buildMealTypeSegmentedSelector(),
+                _buildMealTypeSegmentedSelector(c),
                 const SizedBox(height: 14),
 
                 // Mode Selector Pill (Core 3 / Pro 3)
                 Container(
                   padding: const EdgeInsets.all(4),
                   decoration: BoxDecoration(
-                    color: _bgCard,
+                    color: c.bgCard,
                     borderRadius: BorderRadius.circular(24),
-                    border: Border.all(color: _borderSubtle),
+                    border: Border.all(color: c.borderSubtle),
                   ),
                   child: Row(
                     children: [
@@ -410,12 +474,12 @@ class _LogMealSheetState extends ConsumerState<LogMealSheet> {
                               duration: const Duration(milliseconds: 180),
                               padding: const EdgeInsets.symmetric(vertical: 9),
                               decoration: BoxDecoration(
-                                color: !isAdvanced ? _brandPrimary : Colors.transparent,
+                                color: !isAdvanced ? c.brandPrimary : Colors.transparent,
                                 borderRadius: BorderRadius.circular(20),
                                 boxShadow: !isAdvanced
                                     ? [
                                         BoxShadow(
-                                          color: _brandPrimary.withOpacity(0.20),
+                                          color: c.brandPrimary.withOpacity(0.20),
                                           blurRadius: 4,
                                           offset: const Offset(0, 1),
                                         ),
@@ -430,7 +494,7 @@ class _LogMealSheetState extends ConsumerState<LogMealSheet> {
                                   Icon(
                                     Icons.balance_outlined,
                                     size: 16,
-                                    color: !isAdvanced ? const Color(0xFF052E16) : _textSecondary,
+                                    color: !isAdvanced ? c.onBrandPrimary : c.textSecondary,
                                   ),
                                   const SizedBox(width: 7),
                                   Flexible(
@@ -444,7 +508,7 @@ class _LogMealSheetState extends ConsumerState<LogMealSheet> {
                                             ? FontWeight.w600
                                             : FontWeight.w500,
                                         letterSpacing: -0.2,
-                                        color: !isAdvanced ? const Color(0xFF052E16) : _textSecondary,
+                                        color: !isAdvanced ? c.onBrandPrimary : c.textSecondary,
                                       ),
                                     ),
                                   ),
@@ -469,12 +533,12 @@ class _LogMealSheetState extends ConsumerState<LogMealSheet> {
                               duration: const Duration(milliseconds: 180),
                               padding: const EdgeInsets.symmetric(vertical: 9),
                               decoration: BoxDecoration(
-                                color: isAdvanced ? _aiAccent : Colors.transparent,
+                                color: isAdvanced ? c.aiAccent : Colors.transparent,
                                 borderRadius: BorderRadius.circular(20),
                                 boxShadow: isAdvanced
                                     ? [
                                         BoxShadow(
-                                          color: _aiAccent.withOpacity(0.18),
+                                          color: c.aiAccent.withOpacity(0.18),
                                           blurRadius: 4,
                                           offset: const Offset(0, 1),
                                         ),
@@ -489,7 +553,7 @@ class _LogMealSheetState extends ConsumerState<LogMealSheet> {
                                   Icon(
                                     Icons.auto_awesome_outlined,
                                     size: 16,
-                                    color: isAdvanced ? const Color(0xFF052E16) : _textSecondary,
+                                    color: isAdvanced ? c.onAiAccent : c.textSecondary,
                                   ),
                                   const SizedBox(width: 7),
                                   Flexible(
@@ -503,7 +567,7 @@ class _LogMealSheetState extends ConsumerState<LogMealSheet> {
                                             ? FontWeight.w600
                                             : FontWeight.w500,
                                         letterSpacing: -0.2,
-                                        color: isAdvanced ? const Color(0xFF052E16) : _textSecondary,
+                                        color: isAdvanced ? c.onAiAccent : c.textSecondary,
                                       ),
                                     ),
                                   ),
@@ -521,16 +585,16 @@ class _LogMealSheetState extends ConsumerState<LogMealSheet> {
                   padding: const EdgeInsets.symmetric(horizontal: 4.0),
                   child: Row(
                     children: [
-                      const Icon(Icons.info_outline, size: 12, color: _textMuted),
+                      Icon(Icons.info_outline, size: 12, color: c.textMuted),
                       const SizedBox(width: 6),
                       Expanded(
                         child: Text(
                           isAdvanced
                               ? context.tr('model_pro_3_desc')
                               : context.tr('model_core_3_desc'),
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 11,
-                            color: _textSecondary,
+                            color: c.textSecondary,
                           ),
                         ),
                       ),
@@ -544,9 +608,9 @@ class _LogMealSheetState extends ConsumerState<LogMealSheet> {
                   Container(
                     padding: const EdgeInsets.all(20),
                     decoration: BoxDecoration(
-                      color: _bgCanvas,
+                      color: c.bgCanvas,
                       borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: _borderStrong),
+                      border: Border.all(color: c.borderStrong),
                     ),
                     child: Column(
                       children: [
@@ -555,25 +619,25 @@ class _LogMealSheetState extends ConsumerState<LogMealSheet> {
                           height: 28,
                           child: CircularProgressIndicator(
                             strokeWidth: 3,
-                            color: isAdvanced ? _aiAccent : _brandPrimary,
+                            color: isAdvanced ? c.aiAccent : c.brandPrimary,
                           ),
                         ),
                         const SizedBox(height: 12),
                         Text(
                           context.tr('analyzing_food'),
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.w600,
-                            color: _textPrimary,
+                            color: c.textPrimary,
                           ),
                         ),
                         const SizedBox(height: 4),
                         Text(
                           context.tr('analyzing_food_desc'),
                           textAlign: TextAlign.center,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 11,
-                            color: _textSecondary,
+                            color: c.textSecondary,
                             height: 1.4,
                           ),
                         ),
@@ -582,13 +646,13 @@ class _LogMealSheetState extends ConsumerState<LogMealSheet> {
                           padding: const EdgeInsets.symmetric(
                               horizontal: 10, vertical: 4),
                           decoration: BoxDecoration(
-                            color: _bgCard,
+                            color: c.bgCard,
                             borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: _borderSubtle),
+                            border: Border.all(color: c.borderSubtle),
                           ),
                           child: Text(
                             context.tr('anti_double_submit_locked'),
-                            style: const TextStyle(fontSize: 10, color: _textMuted),
+                            style: TextStyle(fontSize: 10, color: c.textMuted),
                           ),
                         ),
                       ],
@@ -598,15 +662,15 @@ class _LogMealSheetState extends ConsumerState<LogMealSheet> {
                 ],
 
                 // Photo Picker & Preview Section
-                _buildPhotoSection(),
+                _buildPhotoSection(c),
                 const SizedBox(height: 14),
 
                 // Note TextField
                 Container(
                   decoration: BoxDecoration(
-                    color: _bgCanvas,
+                    color: c.bgCanvas,
                     borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: _borderSubtle),
+                    border: Border.all(color: c.borderSubtle),
                   ),
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                   child: TextField(
@@ -616,16 +680,16 @@ class _LogMealSheetState extends ConsumerState<LogMealSheet> {
                     keyboardType: TextInputType.multiline,
                     textInputAction: TextInputAction.newline,
                     textAlignVertical: TextAlignVertical.top,
-                    cursorColor: _brandPrimary,
-                    style: const TextStyle(
-                      color: _textPrimary,
+                    cursorColor: c.brandPrimary,
+                    style: TextStyle(
+                      color: c.textPrimary,
                       fontSize: 13,
                       height: 1.4,
                     ),
                     decoration: InputDecoration(
                       hintText: context.tr('meal_note_hint'),
-                      hintStyle: const TextStyle(
-                        color: _textMuted,
+                      hintStyle: TextStyle(
+                        color: c.textMuted,
                         fontSize: 13,
                         height: 1.4,
                       ),
@@ -648,21 +712,21 @@ class _LogMealSheetState extends ConsumerState<LogMealSheet> {
                 Container(
                   padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
-                    color: _bgCanvas.withOpacity(0.6),
+                    color: c.isDark ? c.bgCanvas.withOpacity(0.6) : c.bgCard,
                     borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: _borderSubtle),
+                    border: Border.all(color: c.borderSubtle),
                   ),
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Icon(Icons.info_outline, size: 14, color: _textMuted),
+                      Icon(Icons.info_outline, size: 14, color: c.textMuted),
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(
                           context.tr('analyze_and_confirm_notice'),
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 11,
-                            color: _textMuted,
+                            color: c.textMuted,
                             height: 1.35,
                           ),
                         ),
@@ -689,21 +753,21 @@ class _LogMealSheetState extends ConsumerState<LogMealSheet> {
                             await _handleLogStory();
                           },
                     style: FilledButton.styleFrom(
-                      backgroundColor: _brandPrimary,
-                      foregroundColor: const Color(0xFF052E16),
-                      disabledBackgroundColor: _brandPrimary.withOpacity(0.35),
+                      backgroundColor: c.brandPrimary,
+                      foregroundColor: c.onBrandPrimary,
+                      disabledBackgroundColor: c.brandPrimary.withOpacity(0.35),
                       elevation: 1,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(14),
                       ),
                     ),
                     child: _isAnalyzing
-                        ? const SizedBox(
+                        ? SizedBox(
                             height: 20,
                             width: 20,
                             child: CircularProgressIndicator(
                               strokeWidth: 2,
-                              color: Color(0xFF052E16),
+                              color: c.onBrandPrimary,
                             ),
                           )
                         : Row(
@@ -732,10 +796,10 @@ class _LogMealSheetState extends ConsumerState<LogMealSheet> {
                         : () => Navigator.of(context).pop(false),
                     child: Text(
                       context.tr('cancel'),
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.w500,
-                        color: _textSecondary,
+                        color: c.textSecondary,
                       ),
                     ),
                   ),
@@ -761,14 +825,14 @@ class _LogMealSheetState extends ConsumerState<LogMealSheet> {
     }
   }
 
-  Widget _buildMealTypeSegmentedSelector() {
+  Widget _buildMealTypeSegmentedSelector(_LogMealColors c) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(4),
       decoration: BoxDecoration(
-        color: _bgCard,
+        color: c.bgCard,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: _borderSubtle),
+        border: Border.all(color: c.borderSubtle),
       ),
       child: Row(
         children: MealType.values.map((type) {
@@ -780,15 +844,15 @@ class _LogMealSheetState extends ConsumerState<LogMealSheet> {
                 duration: const Duration(milliseconds: 180),
                 padding: const EdgeInsets.symmetric(vertical: 8),
                 decoration: BoxDecoration(
-                  color: isSelected ? _bgSurface : Colors.transparent,
+                  color: isSelected ? c.bgSurface : Colors.transparent,
                   borderRadius: BorderRadius.circular(12),
                   border: isSelected
-                      ? Border.all(color: _brandPrimary.withOpacity(0.5))
+                      ? Border.all(color: c.brandPrimary.withOpacity(0.5))
                       : null,
                   boxShadow: isSelected
                       ? [
                           BoxShadow(
-                            color: Colors.black.withOpacity(0.3),
+                            color: Colors.black.withOpacity(c.isDark ? 0.3 : 0.06),
                             blurRadius: 4,
                             offset: const Offset(0, 1),
                           )
@@ -802,8 +866,8 @@ class _LogMealSheetState extends ConsumerState<LogMealSheet> {
                       Container(
                         width: 5,
                         height: 5,
-                        decoration: const BoxDecoration(
-                          color: _brandPrimary,
+                        decoration: BoxDecoration(
+                          color: c.brandPrimary,
                           shape: BoxShape.circle,
                         ),
                       ),
@@ -818,7 +882,7 @@ class _LogMealSheetState extends ConsumerState<LogMealSheet> {
                           fontSize: 11,
                           fontWeight:
                               isSelected ? FontWeight.w600 : FontWeight.w500,
-                          color: isSelected ? _textPrimary : _textSecondary,
+                          color: isSelected ? c.textPrimary : c.textSecondary,
                         ),
                       ),
                     ),
@@ -832,13 +896,13 @@ class _LogMealSheetState extends ConsumerState<LogMealSheet> {
     );
   }
 
-  Widget _buildPhotoSection() {
+  Widget _buildPhotoSection(_LogMealColors c) {
     if (_pickedFile != null) {
       return Container(
         decoration: BoxDecoration(
-          color: _bgCanvas,
+          color: c.bgCanvas,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: _borderSubtle),
+          border: Border.all(color: c.borderSubtle),
         ),
         padding: const EdgeInsets.all(12),
         child: Column(
@@ -852,15 +916,15 @@ class _LogMealSheetState extends ConsumerState<LogMealSheet> {
                     ? Image.network(
                         _pickedFile!.path,
                         fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => const Center(
-                          child: Icon(Icons.broken_image, color: _errorColor),
+                        errorBuilder: (_, __, ___) => Center(
+                          child: Icon(Icons.broken_image, color: c.errorColor),
                         ),
                       )
                     : Image.file(
                         File(_pickedFile!.path),
                         fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => const Center(
-                          child: Icon(Icons.broken_image, color: _textSecondary),
+                        errorBuilder: (_, __, ___) => Center(
+                          child: Icon(Icons.broken_image, color: c.textSecondary),
                         ),
                       ),
               ),
@@ -873,19 +937,19 @@ class _LogMealSheetState extends ConsumerState<LogMealSheet> {
                   onPressed: _isAnalyzing
                       ? null
                       : () => _pickImage(ImageSource.camera),
-                  icon: const Icon(Icons.refresh, size: 16, color: _brandPrimary),
+                  icon: Icon(Icons.refresh, size: 16, color: c.brandPrimary),
                   label: Text(
                     context.tr('change_photo'),
-                    style: const TextStyle(fontSize: 12, color: _brandPrimary),
+                    style: TextStyle(fontSize: 12, color: c.brandPrimary),
                   ),
                 ),
                 TextButton.icon(
                   onPressed: _isAnalyzing ? null : _clearImage,
-                  icon: const Icon(Icons.delete_outline,
-                      size: 16, color: _errorColor),
+                  icon: Icon(Icons.delete_outline,
+                      size: 16, color: c.errorColor),
                   label: Text(
                     context.tr('delete_photo'),
-                    style: const TextStyle(fontSize: 12, color: _errorColor),
+                    style: TextStyle(fontSize: 12, color: c.errorColor),
                   ),
                 ),
               ],
@@ -897,9 +961,9 @@ class _LogMealSheetState extends ConsumerState<LogMealSheet> {
 
     return Container(
       decoration: BoxDecoration(
-        color: _bgCanvas,
+        color: c.bgCanvas,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: _borderStrong),
+        border: Border.all(color: c.borderStrong),
       ),
       padding: const EdgeInsets.all(16),
       child: Column(
@@ -908,31 +972,31 @@ class _LogMealSheetState extends ConsumerState<LogMealSheet> {
             width: 48,
             height: 48,
             decoration: BoxDecoration(
-              color: _bgCard,
+              color: c.bgCard,
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: _borderSubtle),
+              border: Border.all(color: c.borderSubtle),
             ),
             child: Icon(
               Icons.add_a_photo_outlined,
               size: 24,
-              color: _mode == 'advanced' ? _aiAccent : _brandPrimary,
+              color: _mode == 'advanced' ? c.aiAccent : c.brandPrimary,
             ),
           ),
           const SizedBox(height: 10),
           Text(
             context.tr('add_meal_photo'),
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.w600,
-              color: _textPrimary,
+              color: c.textPrimary,
             ),
           ),
           const SizedBox(height: 2),
           Text(
             context.tr('take_or_pick_photo'),
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 11,
-              color: _textSecondary,
+              color: c.textSecondary,
             ),
           ),
           const SizedBox(height: 14),
@@ -946,9 +1010,9 @@ class _LogMealSheetState extends ConsumerState<LogMealSheet> {
                   icon: const Icon(Icons.camera_alt, size: 16),
                   label: Text(context.tr('camera_action')),
                   style: OutlinedButton.styleFrom(
-                    backgroundColor: _bgCard,
-                    foregroundColor: _textPrimary,
-                    side: const BorderSide(color: _borderSubtle),
+                    backgroundColor: c.bgCard,
+                    foregroundColor: c.textPrimary,
+                    side: BorderSide(color: c.borderSubtle),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
@@ -965,9 +1029,9 @@ class _LogMealSheetState extends ConsumerState<LogMealSheet> {
                   icon: const Icon(Icons.photo_library, size: 16),
                   label: Text(context.tr('gallery_action')),
                   style: OutlinedButton.styleFrom(
-                    backgroundColor: _bgCard,
-                    foregroundColor: _textPrimary,
-                    side: const BorderSide(color: _borderSubtle),
+                    backgroundColor: c.bgCard,
+                    foregroundColor: c.textPrimary,
+                    side: BorderSide(color: c.borderSubtle),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),

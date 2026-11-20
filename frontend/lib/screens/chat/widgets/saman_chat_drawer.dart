@@ -170,15 +170,16 @@ class _SamanChatDrawerState extends ConsumerState<SamanChatDrawer> {
   }
 
   void _handleRecentPlaceholder(BuildContext context) {
+    final t = SamanChatTokens.of(context);
     _closeDrawerIfNeeded(context);
     ScaffoldMessenger.of(context).hideCurrentSnackBar();
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
           context.tr('history_placeholder_msg'),
-          style: const TextStyle(color: SamanChatTokens.textWhite, fontSize: 13),
+          style: TextStyle(color: t.textWhite, fontSize: 13),
         ),
-        backgroundColor: SamanChatTokens.surfaceElevated,
+        backgroundColor: t.surfaceElevated,
         duration: const Duration(seconds: 2),
         behavior: SnackBarBehavior.floating,
       ),
@@ -186,15 +187,16 @@ class _SamanChatDrawerState extends ConsumerState<SamanChatDrawer> {
   }
 
   void _handleRemindersPlaceholder(BuildContext context) {
+    final t = SamanChatTokens.of(context);
     _closeDrawerIfNeeded(context);
     ScaffoldMessenger.of(context).hideCurrentSnackBar();
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
           context.tr('reminders_placeholder_msg'),
-          style: const TextStyle(color: SamanChatTokens.textWhite, fontSize: 13),
+          style: TextStyle(color: t.textWhite, fontSize: 13),
         ),
-        backgroundColor: SamanChatTokens.surfaceElevated,
+        backgroundColor: t.surfaceElevated,
         duration: const Duration(seconds: 2),
         behavior: SnackBarBehavior.floating,
       ),
@@ -215,6 +217,7 @@ class _SamanChatDrawerState extends ConsumerState<SamanChatDrawer> {
 
   @override
   Widget build(BuildContext context) {
+    final t = SamanChatTokens.of(context);
     final screenWidth = MediaQuery.sizeOf(context).width;
 
     final Widget rootContent;
@@ -222,16 +225,16 @@ class _SamanChatDrawerState extends ConsumerState<SamanChatDrawer> {
       final drawerWidth = (screenWidth * 0.82).clamp(280.0, 340.0);
       rootContent = Drawer(
         width: drawerWidth,
-        backgroundColor: SamanChatTokens.drawerBg,
+        backgroundColor: t.drawerBg,
         shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.zero,
         ),
         child: Container(
-          decoration: const BoxDecoration(
-            color: SamanChatTokens.drawerBg,
+          decoration: BoxDecoration(
+            color: t.drawerBg,
             border: Border(
               right: BorderSide(
-                color: SamanChatTokens.borderSubtle,
+                color: t.borderSubtle,
                 width: 1.0,
               ),
             ),
@@ -252,11 +255,11 @@ class _SamanChatDrawerState extends ConsumerState<SamanChatDrawer> {
             : const Duration(milliseconds: 200),
         curve: Curves.easeInOutCubic,
         width: targetWidth,
-        decoration: const BoxDecoration(
-          color: SamanChatTokens.drawerBg,
+        decoration: BoxDecoration(
+          color: t.drawerBg,
           border: Border(
             right: BorderSide(
-              color: SamanChatTokens.borderSubtle,
+              color: t.borderSubtle,
               width: 1.0,
             ),
           ),
@@ -302,6 +305,7 @@ class _SamanChatDrawerState extends ConsumerState<SamanChatDrawer> {
   }
 
   Widget _buildExpandedContent(BuildContext context, WidgetRef ref) {
+    final t = SamanChatTokens.of(context);
     final profileState = ref.watch(profileProvider);
     final personaState = ref.watch(coachPersonaProvider);
     final currentPersona = personaState.persona;
@@ -330,20 +334,20 @@ class _SamanChatDrawerState extends ConsumerState<SamanChatDrawer> {
                       children: [
                         Text(
                           context.tr('saman_coach_title'),
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.w600,
-                            color: SamanChatTokens.textWhite,
+                            color: t.textWhite,
                             letterSpacing: 0.2,
                           ),
                         ),
                         const SizedBox(height: 2),
                         Text(
                           context.tr('saman_coach_subtitle'),
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 11,
                             fontWeight: FontWeight.w400,
-                            color: SamanChatTokens.textMuted,
+                            color: t.textMuted,
                             letterSpacing: 0.1,
                           ),
                         ),
@@ -356,10 +360,10 @@ class _SamanChatDrawerState extends ConsumerState<SamanChatDrawer> {
                       label: context.tr('collapse_sidebar'),
                       child: IconButton(
                         visualDensity: VisualDensity.compact,
-                        icon: const Icon(
+                        icon: Icon(
                           Icons.view_sidebar_outlined,
                           size: 20,
-                          color: SamanChatTokens.textSecondary,
+                          color: t.textSecondary,
                         ),
                         tooltip: context.tr('collapse_sidebar'),
                         onPressed: onToggleExpand,
@@ -368,10 +372,10 @@ class _SamanChatDrawerState extends ConsumerState<SamanChatDrawer> {
                   else
                     IconButton(
                       visualDensity: VisualDensity.compact,
-                      icon: const Icon(
+                      icon: Icon(
                         Icons.close_rounded,
                         size: 20,
-                        color: SamanChatTokens.textSecondary,
+                        color: t.textSecondary,
                       ),
                       tooltip: context.tr('close_menu'),
                       onPressed: () => Navigator.pop(context),
@@ -396,29 +400,29 @@ class _SamanChatDrawerState extends ConsumerState<SamanChatDrawer> {
                     padding: const EdgeInsets.symmetric(
                         horizontal: 14.0, vertical: 10.0),
                     decoration: BoxDecoration(
-                      color: SamanChatTokens.surface,
+                      color: t.surface,
                       borderRadius: BorderRadius.circular(24.0),
                       border: Border.all(
-                        color: SamanChatTokens.borderSubtle,
+                        color: t.borderSubtle,
                         width: 1.0,
                       ),
                     ),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        const Icon(
+                        Icon(
                           Icons.add_rounded,
                           size: 18,
-                          color: SamanChatTokens.textWhite,
+                          color: t.textWhite,
                         ),
                         const SizedBox(width: 8.0),
                         Flexible(
                           child: Text(
                             context.tr('new_conversation'),
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 13,
                               fontWeight: FontWeight.w600,
-                              color: SamanChatTokens.textWhite,
+                              color: t.textWhite,
                             ),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
@@ -443,10 +447,10 @@ class _SamanChatDrawerState extends ConsumerState<SamanChatDrawer> {
                           const EdgeInsets.symmetric(horizontal: 4.0, vertical: 4.0),
                       child: Text(
                         context.tr('coach_tools_header'),
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w600,
-                          color: SamanChatTokens.textMuted,
+                          color: t.textMuted,
                           letterSpacing: 0.3,
                         ),
                       ),
@@ -481,10 +485,10 @@ class _SamanChatDrawerState extends ConsumerState<SamanChatDrawer> {
                           const EdgeInsets.symmetric(horizontal: 4.0, vertical: 4.0),
                       child: Text(
                         context.tr('recent_header'),
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w600,
-                          color: SamanChatTokens.textMuted,
+                          color: t.textMuted,
                           letterSpacing: 0.3,
                         ),
                       ),
@@ -496,9 +500,9 @@ class _SamanChatDrawerState extends ConsumerState<SamanChatDrawer> {
                             horizontal: 10.0, vertical: 8.0),
                         child: Text(
                           context.tr('no_recent_conversations'),
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 13,
-                            color: SamanChatTokens.textMuted,
+                            color: t.textMuted,
                           ),
                         ),
                       )
@@ -527,19 +531,19 @@ class _SamanChatDrawerState extends ConsumerState<SamanChatDrawer> {
                             Flexible(
                               child: Text(
                                 context.tr('view_all_conversations'),
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontSize: 12,
-                                  color: SamanChatTokens.textMuted,
+                                  color: t.textMuted,
                                 ),
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                               ),
                             ),
                             const SizedBox(width: 4.0),
-                            const Icon(
+                            Icon(
                               Icons.arrow_forward_rounded,
                               size: 13,
-                              color: SamanChatTokens.textMuted,
+                              color: t.textMuted,
                             ),
                           ],
                         ),
@@ -549,8 +553,8 @@ class _SamanChatDrawerState extends ConsumerState<SamanChatDrawer> {
                     const SizedBox(height: 14.0),
 
                     // Utilities
-                    const Divider(
-                      color: SamanChatTokens.borderSubtle,
+                    Divider(
+                      color: t.borderSubtle,
                       height: 1.0,
                     ),
                     const SizedBox(height: 8.0),
@@ -574,8 +578,8 @@ class _SamanChatDrawerState extends ConsumerState<SamanChatDrawer> {
               ),
 
               // 4. Sticky Footer: Pinned Account Row
-              const Divider(
-                color: SamanChatTokens.borderSubtle,
+              Divider(
+                color: t.borderSubtle,
                 height: 1.0,
               ),
               const SizedBox(height: 8.0),
@@ -606,10 +610,10 @@ class _SamanChatDrawerState extends ConsumerState<SamanChatDrawer> {
                               children: [
                                 Text(
                                   athleteName,
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                     fontSize: 13,
                                     fontWeight: FontWeight.w600,
-                                    color: SamanChatTokens.textWhite,
+                                    color: t.textWhite,
                                   ),
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
@@ -617,9 +621,9 @@ class _SamanChatDrawerState extends ConsumerState<SamanChatDrawer> {
                                 const SizedBox(height: 1.0),
                                 Text(
                                   SamanChatDrawer.maskEmail(email),
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                     fontSize: 11,
-                                    color: SamanChatTokens.textMuted,
+                                    color: t.textMuted,
                                   ),
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
@@ -629,10 +633,10 @@ class _SamanChatDrawerState extends ConsumerState<SamanChatDrawer> {
                           ),
                           IconButton(
                             visualDensity: VisualDensity.compact,
-                            icon: const Icon(
+                            icon: Icon(
                               Icons.settings_outlined,
                               size: 18,
-                              color: SamanChatTokens.textSecondary,
+                              color: t.textSecondary,
                             ),
                             tooltip: context.tr('saman_options_tooltip'),
                             onPressed: _toggleAccountMenu,
@@ -692,6 +696,7 @@ class _SamanChatDrawerState extends ConsumerState<SamanChatDrawer> {
   }
 
   Widget _buildRailContent(BuildContext context, WidgetRef ref) {
+    final t = SamanChatTokens.of(context);
     final profileState = ref.watch(profileProvider);
     final personaState = ref.watch(coachPersonaProvider);
     final personaName = personaState.persona.displayName;
@@ -709,9 +714,9 @@ class _SamanChatDrawerState extends ConsumerState<SamanChatDrawer> {
             button: true,
             label: context.tr('expand_sidebar'),
             child: IconButton(
-              icon: const Icon(
+              icon: Icon(
                 Icons.view_sidebar_outlined,
-                color: SamanChatTokens.textSecondary,
+                color: t.textSecondary,
                 size: 20,
               ),
               tooltip: context.tr('expand_sidebar'),
@@ -726,9 +731,9 @@ class _SamanChatDrawerState extends ConsumerState<SamanChatDrawer> {
             button: true,
             label: context.tr('new_conversation'),
             child: IconButton(
-              icon: const Icon(
+              icon: Icon(
                 Icons.add_rounded,
-                color: SamanChatTokens.textWhite,
+                color: t.textWhite,
                 size: 22,
               ),
               tooltip: context.tr('new_conversation'),
@@ -737,8 +742,8 @@ class _SamanChatDrawerState extends ConsumerState<SamanChatDrawer> {
           ),
 
           const SizedBox(height: 12.0),
-          const Divider(
-            color: SamanChatTokens.borderSubtle,
+          Divider(
+            color: t.borderSubtle,
             height: 1.0,
             indent: 14,
             endIndent: 14,
@@ -752,9 +757,9 @@ class _SamanChatDrawerState extends ConsumerState<SamanChatDrawer> {
                 children: [
                   if (onOpenAnalytics != null)
                     IconButton(
-                      icon: const Icon(
+                      icon: Icon(
                         Icons.insights_rounded,
-                        color: SamanChatTokens.textSecondary,
+                        color: t.textSecondary,
                         size: 20,
                       ),
                       tooltip: context.tr('tool_history_analytics'),
@@ -762,9 +767,9 @@ class _SamanChatDrawerState extends ConsumerState<SamanChatDrawer> {
                     ),
                   if (onAttachFoodPhoto != null)
                     IconButton(
-                      icon: const Icon(
+                      icon: Icon(
                         Icons.add_a_photo_rounded,
-                        color: SamanChatTokens.textSecondary,
+                        color: t.textSecondary,
                         size: 20,
                       ),
                       tooltip: context.tr('tool_food_photo_analysis'),
@@ -773,9 +778,9 @@ class _SamanChatDrawerState extends ConsumerState<SamanChatDrawer> {
                   const SizedBox(height: 8.0),
                   // History expand affordance in rail
                   IconButton(
-                    icon: const Icon(
+                    icon: Icon(
                       Icons.history_rounded,
-                      color: SamanChatTokens.textMuted,
+                      color: t.textMuted,
                       size: 20,
                     ),
                     tooltip: context.tr('history_rail_tooltip').replaceAll('{count}', '${recentConversations.length}'),
@@ -787,8 +792,8 @@ class _SamanChatDrawerState extends ConsumerState<SamanChatDrawer> {
           ),
 
           // 4. Bottom Pinned Icons in Rail
-          const Divider(
-            color: SamanChatTokens.borderSubtle,
+          Divider(
+            color: t.borderSubtle,
             height: 1.0,
             indent: 14,
             endIndent: 14,
@@ -796,9 +801,9 @@ class _SamanChatDrawerState extends ConsumerState<SamanChatDrawer> {
           const SizedBox(height: 8.0),
           IconButton(
             key: _railPersonaKey,
-            icon: const Icon(
+            icon: Icon(
               Icons.tune_rounded,
-              color: SamanChatTokens.textSecondary,
+              color: t.textSecondary,
               size: 20,
             ),
             tooltip: context.tr('coach_persona_tooltip').replaceAll('{name}', personaName),
@@ -839,13 +844,14 @@ class _RecentConversationRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = SamanChatTokens.of(context);
     return Container(
       margin: const EdgeInsets.only(bottom: 2.0),
       decoration: BoxDecoration(
-        color: isSelected ? SamanChatTokens.surface : Colors.transparent,
+        color: isSelected ? t.surface : Colors.transparent,
         borderRadius: BorderRadius.circular(10.0),
         border: isSelected
-            ? Border.all(color: SamanChatTokens.borderSubtle, width: 1.0)
+            ? Border.all(color: t.borderSubtle, width: 1.0)
             : null,
       ),
       child: InkWell(
@@ -861,9 +867,7 @@ class _RecentConversationRow extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 13,
                     fontWeight: isSelected ? FontWeight.w500 : FontWeight.w400,
-                    color: isSelected
-                        ? SamanChatTokens.textWhite
-                        : SamanChatTokens.textSecondary,
+                    color: isSelected ? t.textWhite : t.textSecondary,
                   ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
@@ -873,9 +877,9 @@ class _RecentConversationRow extends StatelessWidget {
                 const SizedBox(width: 8.0),
                 Text(
                   timestamp,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 11,
-                    color: SamanChatTokens.textMuted,
+                    color: t.textMuted,
                   ),
                 ),
               ],
@@ -902,6 +906,7 @@ class _CoachToolRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = SamanChatTokens.of(context);
     return Container(
       margin: const EdgeInsets.only(bottom: 2.0),
       child: InkWell(
@@ -914,7 +919,7 @@ class _CoachToolRow extends StatelessWidget {
               Icon(
                 icon,
                 size: 17,
-                color: SamanChatTokens.textSecondary,
+                color: t.textSecondary,
               ),
               const SizedBox(width: 10.0),
               Expanded(
@@ -924,10 +929,10 @@ class _CoachToolRow extends StatelessWidget {
                   children: [
                     Text(
                       title,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.w400,
-                        color: SamanChatTokens.textWhite,
+                        color: t.textWhite,
                       ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
@@ -936,9 +941,9 @@ class _CoachToolRow extends StatelessWidget {
                       const SizedBox(height: 1.0),
                       Text(
                         subtitle!,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 11,
-                          color: SamanChatTokens.textMuted,
+                          color: t.textMuted,
                         ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
@@ -947,10 +952,10 @@ class _CoachToolRow extends StatelessWidget {
                   ],
                 ),
               ),
-              const Icon(
+              Icon(
                 Icons.chevron_right_rounded,
                 size: 16,
-                color: SamanChatTokens.textMuted,
+                color: t.textMuted,
               ),
             ],
           ),
@@ -978,6 +983,7 @@ class _DrawerUtilityRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = SamanChatTokens.of(context);
     return Container(
       margin: const EdgeInsets.only(bottom: 2.0),
       child: InkWell(
@@ -990,7 +996,7 @@ class _DrawerUtilityRow extends StatelessWidget {
               Icon(
                 icon,
                 size: 17,
-                color: SamanChatTokens.textSecondary,
+                color: t.textSecondary,
               ),
               const SizedBox(width: 10.0),
               Expanded(
@@ -1000,20 +1006,20 @@ class _DrawerUtilityRow extends StatelessWidget {
                   children: [
                     Text(
                       title,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.w400,
-                        color: SamanChatTokens.textWhite,
+                        color: t.textWhite,
                       ),
                     ),
                     if (subtitle != null) ...[
                       const SizedBox(height: 1.0),
                       Text(
                         subtitle!,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 11,
                           fontWeight: FontWeight.w400,
-                          color: SamanChatTokens.textMuted,
+                          color: t.textMuted,
                         ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
@@ -1027,15 +1033,15 @@ class _DrawerUtilityRow extends StatelessWidget {
                   width: 6,
                   height: 6,
                   margin: const EdgeInsets.only(right: 8.0),
-                  decoration: const BoxDecoration(
-                    color: SamanChatTokens.greenAccent,
+                  decoration: BoxDecoration(
+                    color: t.greenAccent,
                     shape: BoxShape.circle,
                   ),
                 ),
-              const Icon(
+              Icon(
                 Icons.chevron_right_rounded,
                 size: 16,
-                color: SamanChatTokens.textMuted,
+                color: t.textMuted,
               ),
             ],
           ),

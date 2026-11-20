@@ -33,6 +33,10 @@ class ProfileNavRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = SamanHomeTokens.of(context);
+    final chevronColor =
+        tokens.isDark ? const Color(0xFF9CA3AF) : tokens.textMuted;
+
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -40,7 +44,9 @@ class ProfileNavRow extends StatelessWidget {
           color: Colors.transparent,
           child: InkWell(
             onTap: onTap,
-            splashColor: Colors.white.withOpacity(0.04),
+            splashColor: tokens.isDark
+                ? Colors.white.withOpacity(0.04)
+                : tokens.textPrimary.withOpacity(0.05),
             highlightColor: Colors.transparent,
             child: Container(
               constraints: const BoxConstraints(minHeight: 52),
@@ -57,10 +63,10 @@ class ProfileNavRow extends StatelessWidget {
                       width: 28,
                       height: 28,
                       decoration: BoxDecoration(
-                        color: SamanHomeTokens.iconContainerBg,
+                        color: tokens.iconContainerBg,
                         borderRadius: BorderRadius.circular(SamanHomeTokens.radiusSm),
                         border: Border.all(
-                          color: SamanHomeTokens.borderSubtle,
+                          color: tokens.borderSubtle,
                           width: 0.8,
                         ),
                       ),
@@ -68,7 +74,7 @@ class ProfileNavRow extends StatelessWidget {
                         child: Icon(
                           icon,
                           size: 15,
-                          color: SamanHomeTokens.textSecondary,
+                          color: tokens.textSecondary,
                         ),
                       ),
                     ),
@@ -86,10 +92,10 @@ class ProfileNavRow extends StatelessWidget {
                                 title,
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontSize: 14,
                                   fontWeight: FontWeight.w500,
-                                  color: SamanHomeTokens.textWhite,
+                                  color: tokens.textWhite,
                                   letterSpacing: -0.1,
                                 ),
                               ),
@@ -101,10 +107,10 @@ class ProfileNavRow extends StatelessWidget {
                                   value!,
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                     fontSize: 12,
                                     fontWeight: FontWeight.w400,
-                                    color: SamanHomeTokens.textSecondary,
+                                    color: tokens.textSecondary,
                                   ),
                                 ),
                             ],
@@ -117,10 +123,10 @@ class ProfileNavRow extends StatelessWidget {
                                   title,
                                   maxLines: 2,
                                   overflow: TextOverflow.ellipsis,
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                     fontSize: 14,
                                     fontWeight: FontWeight.w500,
-                                    color: SamanHomeTokens.textWhite,
+                                    color: tokens.textWhite,
                                     letterSpacing: -0.1,
                                   ),
                                 ),
@@ -147,10 +153,10 @@ class ProfileNavRow extends StatelessWidget {
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
                                     textAlign: TextAlign.right,
-                                    style: const TextStyle(
+                                    style: TextStyle(
                                       fontSize: 13,
                                       fontWeight: FontWeight.w400,
-                                      color: SamanHomeTokens.textSecondary,
+                                      color: tokens.textSecondary,
                                     ),
                                   ),
                                 ),
@@ -162,10 +168,10 @@ class ProfileNavRow extends StatelessWidget {
                   // Trailing Chevron
                   if (showChevron) ...[
                     const SizedBox(width: 8),
-                    const Icon(
+                    Icon(
                       Icons.chevron_right_rounded,
                       size: 18,
-                      color: Color(0xFF9CA3AF),
+                      color: chevronColor,
                     ),
                   ],
                 ],
@@ -174,10 +180,10 @@ class ProfileNavRow extends StatelessWidget {
           ),
         ),
         if (showDivider)
-          const Padding(
-            padding: EdgeInsets.only(left: SamanHomeTokens.spacingLg),
+          Padding(
+            padding: const EdgeInsets.only(left: SamanHomeTokens.spacingLg),
             child: Divider(
-              color: SamanHomeTokens.borderSubtle,
+              color: tokens.borderSubtle,
               height: 1,
               thickness: 1,
             ),

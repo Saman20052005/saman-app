@@ -19,6 +19,8 @@ class LogoutRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = SamanHomeTokens.of(context);
+    final mutedRed = tokens.isDark ? _mutedRed : const Color(0xFFDC2626);
     return Padding(
       padding: const EdgeInsets.symmetric(
         horizontal: SamanHomeTokens.spacingLg,
@@ -28,7 +30,7 @@ class LogoutRow extends StatelessWidget {
         child: InkWell(
           onTap: onTap,
           borderRadius: BorderRadius.circular(SamanHomeTokens.radiusMd),
-          splashColor: _mutedRed.withOpacity(0.08),
+          splashColor: mutedRed.withOpacity(0.08),
           highlightColor: Colors.transparent,
           child: Container(
             constraints: const BoxConstraints(minHeight: 48),
@@ -36,7 +38,7 @@ class LogoutRow extends StatelessWidget {
               horizontal: SamanHomeTokens.spacingSm,
               vertical: 12,
             ),
-            child: const FittedBox(
+            child: FittedBox(
               fit: BoxFit.scaleDown,
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -44,15 +46,15 @@ class LogoutRow extends StatelessWidget {
                   Icon(
                     Icons.logout_rounded,
                     size: 18,
-                    color: _mutedRed,
+                    color: mutedRed,
                   ),
-                  SizedBox(width: 8),
+                  const SizedBox(width: 8),
                   Text(
                     'Log out',
                     style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
-                      color: _mutedRed,
+                      color: mutedRed,
                       letterSpacing: 0.1,
                     ),
                   ),

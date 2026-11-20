@@ -2,6 +2,7 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../config/app_theme.dart';
 import '../../../features/profile/presentation/providers/weight_history_provider.dart';
 import '../../../providers/profile_provider.dart';
 import '../../../widgets/saman_feedback_snackbar.dart';
@@ -12,6 +13,8 @@ class WeightTrendCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final palette = context.samanColors;
+    final textPrimary = palette.isDark ? Colors.white : palette.textPrimary;
     final selectedDays = ref.watch(weightHistoryDaysProvider);
     final historyAsync = ref.watch(weightHistoryProvider);
     final profileState = ref.watch(profileProvider);
@@ -23,9 +26,9 @@ class WeightTrendCard extends ConsumerWidget {
 
     return Container(
       decoration: BoxDecoration(
-        color: const Color(0xFF16171B),
+        color: palette.surface,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFF26282F)),
+        border: Border.all(color: palette.border),
       ),
       padding: const EdgeInsets.all(16),
       child: Column(
@@ -35,10 +38,10 @@ class WeightTrendCard extends ConsumerWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
+              Text(
                 'WEIGHT TREND',
                 style: TextStyle(
-                  color: Color(0xFF9CA3AF),
+                  color: palette.textSecondary,
                   fontSize: 11,
                   fontWeight: FontWeight.w600,
                   letterSpacing: 1.0,
@@ -52,7 +55,7 @@ class WeightTrendCard extends ConsumerWidget {
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      _buildPillFilter(ref, selectedDays),
+                      _buildPillFilter(context, ref, selectedDays),
                       const SizedBox(width: 6),
                       _buildLogButton(context, ref, currentWeight),
                     ],
@@ -72,18 +75,18 @@ class WeightTrendCard extends ConsumerWidget {
                 latestWeight != null && latestWeight > 0
                     ? latestWeight.toStringAsFixed(1)
                     : '—',
-                style: const TextStyle(
-                  color: Colors.white,
+                style: TextStyle(
+                  color: textPrimary,
                   fontSize: 24,
                   fontWeight: FontWeight.bold,
                   letterSpacing: -0.5,
                 ),
               ),
               const SizedBox(width: 4),
-              const Text(
+              Text(
                 'kg',
                 style: TextStyle(
-                  color: Color(0xFF9CA3AF),
+                  color: palette.textSecondary,
                   fontSize: 13,
                   fontWeight: FontWeight.w500,
                 ),
@@ -94,18 +97,14 @@ class WeightTrendCard extends ConsumerWidget {
                   padding:
                       const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                   decoration: BoxDecoration(
-                    color: (delta <= 0
-                            ? const Color(0xFF10B981)
-                            : const Color(0xFFF59E0B))
+                    color: (delta <= 0 ? palette.accent : palette.amber)
                         .withOpacity(0.15),
                     borderRadius: BorderRadius.circular(6),
                   ),
                   child: Text(
                     '${delta > 0 ? "+" : ""}${delta.toStringAsFixed(1)} kg',
                     style: TextStyle(
-                      color: delta <= 0
-                          ? const Color(0xFF10B981)
-                          : const Color(0xFFF59E0B),
+                      color: delta <= 0 ? palette.accent : palette.amber,
                       fontSize: 11,
                       fontWeight: FontWeight.w600,
                     ),
@@ -119,18 +118,23 @@ class WeightTrendCard extends ConsumerWidget {
           // Chart Area (~152px height)
           SizedBox(
             height: 152,
-            child: _buildChartArea(historyAsync, weightData),
+            child: _buildChartArea(context, historyAsync, weightData),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildPillFilter(WidgetRef ref, int selectedDays) {
+  Widget _buildPillFilter(
+      BuildContext context, WidgetRef ref, int selectedDays) {
+    final palette = context.samanColors;
+    final textPrimary = palette.isDark ? Colors.white : palette.textPrimary;
     return Container(
       padding: const EdgeInsets.all(2),
       decoration: BoxDecoration(
-        color: const Color(0xFF202227),
+        color: palette.isDark
+            ? const Color(0xFF202227)
+            : palette.surfaceElevated,
         borderRadius: BorderRadius.circular(8),
       ),
       child: Row(
@@ -144,12 +148,15 @@ class WeightTrendCard extends ConsumerWidget {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
               decoration: BoxDecoration(
-                color:
-                    isSelected ? const Color(0xFF26282F) : Colors.transparent,
+                color: isSelected
+                    ? (palette.isDark
+                        ? const Color(0xFF26282F)
+                        : palette.surface)
+                    : Colors.transparent,
                 borderRadius: BorderRadius.circular(6),
                 border: isSelected
                     ? Border.all(
-                        color: const Color(0xFF10B981).withOpacity(0.4),
+                        color: palette.accent.withOpacity(0.4),
                         width: 1,
                       )
                     : null,
@@ -157,7 +164,7 @@ class WeightTrendCard extends ConsumerWidget {
               child: Text(
                 '${days}D',
                 style: TextStyle(
-                  color: isSelected ? Colors.white : const Color(0xFF9CA3AF),
+                  color: isSelected ? textPrimary : palette.textSecondary,
                   fontSize: 10,
                   fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
                 ),
@@ -171,28 +178,29 @@ class WeightTrendCard extends ConsumerWidget {
 
   Widget _buildLogButton(
       BuildContext context, WidgetRef ref, double? currentWeight) {
+    final palette = context.samanColors;
     return GestureDetector(
       key: const Key('weight_trend_log_button'),
       onTap: () => _showLogWeightBottomSheet(context, ref, currentWeight),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
         decoration: BoxDecoration(
-          color: const Color(0xFF10B981).withOpacity(0.12),
+          color: palette.accent.withOpacity(0.12),
           borderRadius: BorderRadius.circular(8),
           border: Border.all(
-            color: const Color(0xFF10B981).withOpacity(0.5),
+            color: palette.accent.withOpacity(0.5),
             width: 1,
           ),
         ),
-        child: const Row(
+        child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.add, size: 12, color: Color(0xFF10B981)),
-            SizedBox(width: 2),
+            Icon(Icons.add, size: 12, color: palette.accent),
+            const SizedBox(width: 2),
             Text(
               'Log',
               style: TextStyle(
-                color: Color(0xFF10B981),
+                color: palette.accent,
                 fontSize: 11,
                 fontWeight: FontWeight.w600,
               ),
@@ -212,16 +220,20 @@ class WeightTrendCard extends ConsumerWidget {
   }
 
   Widget _buildChartArea(
+    BuildContext context,
     AsyncValue<WeightHistoryData> historyAsync,
     WeightHistoryData? data,
   ) {
+    final palette = context.samanColors;
+    final tooltipBg =
+        palette.isDark ? const Color(0xFF26282F) : const Color(0xFF0F172A);
     final entries = data?.entries ?? const [];
     if (entries.isEmpty) {
-      return const Center(
+      return Center(
         child: Text(
           'Chưa có lịch sử cân nặng • Bấm + Log để bắt đầu',
           style: TextStyle(
-            color: Color(0xFF9CA3AF),
+            color: palette.textSecondary,
             fontSize: 12,
           ),
           textAlign: TextAlign.center,
@@ -244,8 +256,8 @@ class WeightTrendCard extends ConsumerWidget {
             show: true,
             drawVerticalLine: false,
             horizontalInterval: 1.0,
-            getDrawingHorizontalLine: (_) => const FlLine(
-              color: Color(0xFF26282F),
+            getDrawingHorizontalLine: (_) => FlLine(
+              color: palette.border,
               strokeWidth: 1,
             ),
           ),
@@ -265,8 +277,8 @@ class WeightTrendCard extends ConsumerWidget {
                     child: Text(
                       value.toStringAsFixed(1),
                       textAlign: TextAlign.right,
-                      style: const TextStyle(
-                        color: Color(0xFF9CA3AF),
+                      style: TextStyle(
+                        color: palette.textSecondary,
                         fontSize: 10,
                       ),
                     ),
@@ -291,8 +303,8 @@ class WeightTrendCard extends ConsumerWidget {
                     padding: const EdgeInsets.only(top: 6),
                     child: Text(
                       _formatShortDate(entries.first.date),
-                      style: const TextStyle(
-                        color: Color(0xFF9CA3AF),
+                      style: TextStyle(
+                        color: palette.textSecondary,
                         fontSize: 10,
                       ),
                     ),
@@ -304,7 +316,7 @@ class WeightTrendCard extends ConsumerWidget {
           borderData: FlBorderData(show: false),
           lineTouchData: LineTouchData(
             touchTooltipData: LineTouchTooltipData(
-              tooltipBgColor: const Color(0xFF26282F),
+              tooltipBgColor: tooltipBg,
               tooltipRoundedRadius: 8,
               getTooltipItems: (touchedSpots) {
                 return touchedSpots.map((spot) {
@@ -325,7 +337,7 @@ class WeightTrendCard extends ConsumerWidget {
             LineChartBarData(
               spots: [FlSpot(0, w)],
               isCurved: true,
-              color: const Color(0xFF10B981),
+              color: palette.accent,
               barWidth: 2.5,
               isStrokeCapRound: true,
               dotData: FlDotData(
@@ -333,17 +345,17 @@ class WeightTrendCard extends ConsumerWidget {
                 getDotPainter: (spot, percent, barData, index) =>
                     FlDotCirclePainter(
                   radius: 4,
-                  color: const Color(0xFF10B981),
+                  color: palette.accent,
                   strokeWidth: 2,
-                  strokeColor: Colors.white,
+                  strokeColor: palette.isDark ? Colors.white : palette.surface,
                 ),
               ),
               belowBarData: BarAreaData(
                 show: true,
                 gradient: LinearGradient(
                   colors: [
-                    const Color(0xFF10B981).withOpacity(0.15),
-                    const Color(0xFF10B981).withOpacity(0.0),
+                    palette.accent.withOpacity(0.15),
+                    palette.accent.withOpacity(0.0),
                   ],
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
@@ -386,8 +398,8 @@ class WeightTrendCard extends ConsumerWidget {
           show: true,
           drawVerticalLine: false,
           horizontalInterval: yInterval,
-          getDrawingHorizontalLine: (_) => const FlLine(
-            color: Color(0xFF26282F),
+          getDrawingHorizontalLine: (_) => FlLine(
+            color: palette.border,
             strokeWidth: 1,
           ),
         ),
@@ -407,8 +419,8 @@ class WeightTrendCard extends ConsumerWidget {
                   child: Text(
                     value.toStringAsFixed(1),
                     textAlign: TextAlign.right,
-                    style: const TextStyle(
-                      color: Color(0xFF9CA3AF),
+                    style: TextStyle(
+                      color: palette.textSecondary,
                       fontSize: 10,
                     ),
                   ),
@@ -442,8 +454,8 @@ class WeightTrendCard extends ConsumerWidget {
                   padding: const EdgeInsets.only(top: 6),
                   child: Text(
                     _formatShortDate(entries[idx].date),
-                    style: const TextStyle(
-                      color: Color(0xFF9CA3AF),
+                    style: TextStyle(
+                      color: palette.textSecondary,
                       fontSize: 10,
                     ),
                   ),
@@ -455,7 +467,7 @@ class WeightTrendCard extends ConsumerWidget {
         borderData: FlBorderData(show: false),
         lineTouchData: LineTouchData(
           touchTooltipData: LineTouchTooltipData(
-            tooltipBgColor: const Color(0xFF26282F),
+            tooltipBgColor: tooltipBg,
             tooltipRoundedRadius: 8,
             getTooltipItems: (touchedSpots) {
               return touchedSpots.map((spot) {
@@ -479,7 +491,7 @@ class WeightTrendCard extends ConsumerWidget {
           LineChartBarData(
             spots: spots,
             isCurved: true,
-            color: const Color(0xFF10B981),
+            color: palette.accent,
             barWidth: 2.5,
             isStrokeCapRound: true,
             dotData: const FlDotData(show: false),
@@ -487,8 +499,8 @@ class WeightTrendCard extends ConsumerWidget {
               show: true,
               gradient: LinearGradient(
                 colors: [
-                  const Color(0xFF10B981).withOpacity(0.15),
-                  const Color(0xFF10B981).withOpacity(0.0),
+                  palette.accent.withOpacity(0.15),
+                  palette.accent.withOpacity(0.0),
                 ],
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
@@ -505,10 +517,11 @@ class WeightTrendCard extends ConsumerWidget {
     WidgetRef ref,
     double? currentWeight,
   ) {
+    final palette = context.samanColors;
     showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
-      backgroundColor: const Color(0xFF16171B),
+      backgroundColor: palette.surface,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -598,6 +611,14 @@ class _LogWeightBottomSheetState extends State<_LogWeightBottomSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final palette = context.samanColors;
+    final textPrimary = palette.isDark ? Colors.white : palette.textPrimary;
+    final handleColor =
+        palette.isDark ? const Color(0xFF374151) : palette.border;
+    final fieldFill =
+        palette.isDark ? const Color(0xFF26282F) : palette.surfaceElevated;
+    final fieldBorder =
+        palette.isDark ? const Color(0xFF374151) : palette.border;
     final bottomInset = MediaQuery.of(context).viewInsets.bottom;
     return Padding(
       padding: EdgeInsets.only(
@@ -615,7 +636,7 @@ class _LogWeightBottomSheetState extends State<_LogWeightBottomSheet> {
               width: 36,
               height: 4,
               decoration: BoxDecoration(
-                color: const Color(0xFF374151),
+                color: handleColor,
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
@@ -624,17 +645,16 @@ class _LogWeightBottomSheetState extends State<_LogWeightBottomSheet> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
+              Text(
                 'Log weight',
                 style: TextStyle(
-                  color: Colors.white,
+                  color: textPrimary,
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
                 ),
               ),
               IconButton(
-                icon:
-                    const Icon(Icons.close, color: Color(0xFF9CA3AF), size: 20),
+                icon: Icon(Icons.close, color: palette.textSecondary, size: 20),
                 onPressed: () => Navigator.of(context).pop(),
                 visualDensity: VisualDensity.compact,
               ),
@@ -647,20 +667,19 @@ class _LogWeightBottomSheetState extends State<_LogWeightBottomSheet> {
             keyboardType:
                 const TextInputType.numberWithOptions(decimal: true),
             autofocus: true,
-            style: const TextStyle(
-              color: Colors.white,
+            style: TextStyle(
+              color: textPrimary,
               fontSize: 22,
               fontWeight: FontWeight.w600,
             ),
             decoration: InputDecoration(
               filled: true,
-              fillColor: const Color(0xFF26282F),
+              fillColor: fieldFill,
               hintText: 'VD: 70.5',
-              hintStyle:
-                  const TextStyle(color: Color(0xFF6B7280), fontSize: 16),
+              hintStyle: TextStyle(color: palette.textMuted, fontSize: 16),
               suffixText: 'kg',
-              suffixStyle: const TextStyle(
-                color: Color(0xFF9CA3AF),
+              suffixStyle: TextStyle(
+                color: palette.textSecondary,
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
               ),
@@ -668,15 +687,15 @@ class _LogWeightBottomSheetState extends State<_LogWeightBottomSheet> {
                   const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
-                borderSide: const BorderSide(color: Color(0xFF374151)),
+                borderSide: BorderSide(color: fieldBorder),
               ),
               enabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
-                borderSide: const BorderSide(color: Color(0xFF374151)),
+                borderSide: BorderSide(color: fieldBorder),
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
-                borderSide: const BorderSide(color: Color(0xFF10B981)),
+                borderSide: BorderSide(color: palette.accent),
               ),
               errorText: _errorMessage,
             ),
@@ -689,27 +708,26 @@ class _LogWeightBottomSheetState extends State<_LogWeightBottomSheet> {
               key: const Key('save_weight_button'),
               onPressed: _isSaving ? null : _submit,
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF10B981),
-                disabledBackgroundColor:
-                    const Color(0xFF10B981).withOpacity(0.5),
+                backgroundColor: palette.accent,
+                disabledBackgroundColor: palette.accent.withOpacity(0.5),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),
                 elevation: 0,
               ),
               child: _isSaving
-                  ? const SizedBox(
+                  ? SizedBox(
                       width: 20,
                       height: 20,
                       child: CircularProgressIndicator(
                         strokeWidth: 2,
-                        color: Color(0xFF052E16),
+                        color: palette.onAccent,
                       ),
                     )
-                  : const Text(
+                  : Text(
                       'Save weight',
                       style: TextStyle(
-                        color: Color(0xFF052E16),
+                        color: palette.onAccent,
                         fontSize: 16,
                         fontWeight: FontWeight.w700,
                       ),

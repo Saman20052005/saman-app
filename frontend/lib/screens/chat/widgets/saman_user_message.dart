@@ -21,6 +21,7 @@ class SamanUserMessage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = SamanChatTokens.of(context);
     final screenWidth = MediaQuery.sizeOf(context).width;
     final maxBubbleWidth = (screenWidth > 480 ? 480 : screenWidth) * 0.78;
 
@@ -31,7 +32,7 @@ class SamanUserMessage extends StatelessWidget {
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 10.0),
           decoration: BoxDecoration(
-            color: SamanChatTokens.userBubble,
+            color: t.userBubble,
             borderRadius: const BorderRadius.only(
               topLeft: Radius.circular(16.0),
               topRight: Radius.circular(4.0),
@@ -39,13 +40,13 @@ class SamanUserMessage extends StatelessWidget {
               bottomRight: Radius.circular(16.0),
             ),
             border: Border.all(
-              color: SamanChatTokens.userBubbleBorder,
+              color: t.userBubbleBorder,
               width: 1.0,
             ),
           ),
           child: Text(
             message.content,
-            style: SamanChatTokens.userMessage,
+            style: t.userMessage,
           ),
         ),
       ),

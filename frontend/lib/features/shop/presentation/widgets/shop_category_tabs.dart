@@ -24,11 +24,12 @@ class ShopCategoryTabs extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = ShopTheme.of(context);
     return Container(
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         border: Border(
           bottom: BorderSide(
-            color: ShopTheme.borderDivider,
+            color: t.borderDivider,
             width: 1,
           ),
         ),
@@ -101,6 +102,7 @@ class _CategoryTabItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = ShopTheme.of(context);
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(ShopTheme.radiusSm),
@@ -111,14 +113,14 @@ class _CategoryTabItem extends StatelessWidget {
           children: [
             Text(
               label,
-              style: isSelected ? ShopTheme.tabActive : ShopTheme.tabInactive,
+              style: isSelected ? t.tabActive : t.tabInactive,
             ),
             const SizedBox(height: 6),
             Container(
               height: 1.5,
               width: isSelected ? 24 : 0,
               decoration: BoxDecoration(
-                color: isSelected ? ShopTheme.textPrimary : Colors.transparent,
+                color: isSelected ? t.textPrimary : Colors.transparent,
                 borderRadius: BorderRadius.circular(1.0),
               ),
             ),

@@ -52,6 +52,8 @@ import '../../features/membership/presentation/screens/plan_detail_screen.dart';
 
 import '../../features/membership/presentation/widgets/upgrade_bottom_sheet.dart';
 
+import '../../config/app_theme.dart';
+
 import '../../config/app_translations.dart';
 
 
@@ -516,6 +518,15 @@ class _NutritionScreenState extends ConsumerState<NutritionScreen> {
   void _reviewAndLogMeal(Meal meal) {
 
     final pinnedDate = _selectedDate;
+    final palette = SamanPalette.of(context);
+    final isDark = palette.isDark;
+    final sheetBg = isDark ? const Color(0xFF16171B) : palette.surface;
+    final inkPrimary = isDark ? const Color(0xFFF9FAFB) : palette.textPrimary;
+    final inkBody = isDark ? const Color(0xFFF3F4F6) : palette.textPrimary;
+    final inkMuted = isDark ? const Color(0xFF9CA3AF) : palette.textSecondary;
+    final ctaBg = isDark ? const Color(0xFFF9FAFB) : palette.accent;
+    final ctaFg = isDark ? const Color(0xFF0C0D0E) : palette.onAccent;
+    final errorFg = isDark ? const Color(0xFFEF4444) : palette.danger;
 
 
 
@@ -523,7 +534,7 @@ class _NutritionScreenState extends ConsumerState<NutritionScreen> {
 
       context: context,
 
-      backgroundColor: const Color(0xFF16171B),
+      backgroundColor: sheetBg,
 
       shape: const RoundedRectangleBorder(
 
@@ -571,13 +582,13 @@ class _NutritionScreenState extends ConsumerState<NutritionScreen> {
 
                               context.tr('meal_suggestion_title'),
 
-                              style: const TextStyle(
+                              style: TextStyle(
 
                                 fontSize: 18,
 
                                 fontWeight: FontWeight.w700,
 
-                                color: Color(0xFFF9FAFB),
+                                color: inkPrimary,
 
                               ),
 
@@ -619,7 +630,7 @@ class _NutritionScreenState extends ConsumerState<NutritionScreen> {
 
                           icon:
 
-                              const Icon(Icons.close, color: Color(0xFF9CA3AF)),
+                              Icon(Icons.close, color: inkMuted),
 
                           onPressed: isSaving ? null : () => Navigator.pop(ctx),
 
@@ -635,13 +646,13 @@ class _NutritionScreenState extends ConsumerState<NutritionScreen> {
 
                       meal.name,
 
-                      style: const TextStyle(
+                      style: TextStyle(
 
                         fontSize: 16,
 
                         fontWeight: FontWeight.w600,
 
-                        color: Color(0xFFF3F4F6),
+                        color: inkBody,
 
                       ),
 
@@ -653,11 +664,11 @@ class _NutritionScreenState extends ConsumerState<NutritionScreen> {
 
                       '${meal.calories} kcal · ${meal.protein.toInt()}g protein · ${meal.carbs.toInt()}g carbs · ${meal.fat.toInt()}g fat',
 
-                      style: const TextStyle(
+                      style: TextStyle(
 
                         fontSize: 13,
 
-                        color: Color(0xFF9CA3AF),
+                        color: inkMuted,
 
                       ),
 
@@ -671,11 +682,11 @@ class _NutritionScreenState extends ConsumerState<NutritionScreen> {
 
                         errorMessage!,
 
-                        style: const TextStyle(
+                        style: TextStyle(
 
                           fontSize: 12,
 
-                          color: Color(0xFFEF4444),
+                          color: errorFg,
 
                         ),
 
@@ -695,9 +706,9 @@ class _NutritionScreenState extends ConsumerState<NutritionScreen> {
 
                         style: ElevatedButton.styleFrom(
 
-                          backgroundColor: const Color(0xFFF9FAFB),
+                          backgroundColor: ctaBg,
 
-                          foregroundColor: const Color(0xFF0C0D0E),
+                          foregroundColor: ctaFg,
 
                           shape: RoundedRectangleBorder(
 
@@ -813,7 +824,7 @@ class _NutritionScreenState extends ConsumerState<NutritionScreen> {
 
                         child: isSaving
 
-                            ? const SizedBox(
+                            ? SizedBox(
 
                                 width: 20,
 
@@ -823,7 +834,7 @@ class _NutritionScreenState extends ConsumerState<NutritionScreen> {
 
                                   strokeWidth: 2,
 
-                                  color: Color(0xFF0C0D0E),
+                                  color: ctaFg,
 
                                 ),
 
@@ -973,13 +984,23 @@ class _NutritionScreenState extends ConsumerState<NutritionScreen> {
 
 
 
+    final palette = SamanPalette.of(context);
+    final isDark = palette.isDark;
+    final canvasBg = isDark ? const Color(0xFF0C0D0E) : palette.canvas;
+    final surfaceBg = isDark ? const Color(0xFF16171B) : palette.surface;
+    final inkPrimary = isDark ? const Color(0xFFF9FAFB) : palette.textPrimary;
+    final inkMuted = isDark ? const Color(0xFF9CA3AF) : palette.textSecondary;
+    final accentColor = isDark ? const Color(0xFF10B981) : palette.accent;
+    final ctaBg = isDark ? const Color(0xFFF9FAFB) : palette.accent;
+    final ctaFg = isDark ? const Color(0xFF0C0D0E) : palette.onAccent;
+
     // Profile incomplete state
 
     if (!profileState.isProfileValid) {
 
       return Scaffold(
 
-        backgroundColor: const Color(0xFF0C0D0E),
+        backgroundColor: canvasBg,
 
         body: SafeArea(
 
@@ -1001,15 +1022,17 @@ class _NutritionScreenState extends ConsumerState<NutritionScreen> {
 
                     height: 72,
 
-                    decoration: const BoxDecoration(
+                    decoration: BoxDecoration(
 
-                      color: Color(0xFF16171B),
+                      color: surfaceBg,
 
                       shape: BoxShape.circle,
 
+                      border: isDark ? null : Border.all(color: palette.border),
+
                     ),
 
-                    child: const Center(
+                    child: Center(
 
                       child: Icon(
 
@@ -1017,7 +1040,7 @@ class _NutritionScreenState extends ConsumerState<NutritionScreen> {
 
                         size: 36,
 
-                        color: Color(0xFF9CA3AF),
+                        color: inkMuted,
 
                       ),
 
@@ -1031,13 +1054,13 @@ class _NutritionScreenState extends ConsumerState<NutritionScreen> {
 
                     context.tr('missing_profile_info'),
 
-                    style: const TextStyle(
+                    style: TextStyle(
 
                       fontSize: 18,
 
                       fontWeight: FontWeight.w700,
 
-                      color: Color(0xFFF9FAFB),
+                      color: inkPrimary,
 
                     ),
 
@@ -1079,11 +1102,11 @@ class _NutritionScreenState extends ConsumerState<NutritionScreen> {
 
                     textAlign: TextAlign.center,
 
-                    style: const TextStyle(
+                    style: TextStyle(
 
                       fontSize: 13,
 
-                      color: Color(0xFF9CA3AF),
+                      color: inkMuted,
 
                     ),
 
@@ -1099,9 +1122,9 @@ class _NutritionScreenState extends ConsumerState<NutritionScreen> {
 
                       style: ElevatedButton.styleFrom(
 
-                        backgroundColor: const Color(0xFFF9FAFB),
+                        backgroundColor: ctaBg,
 
-                        foregroundColor: const Color(0xFF0C0D0E),
+                        foregroundColor: ctaFg,
 
                         shape: RoundedRectangleBorder(
 
@@ -1203,15 +1226,15 @@ class _NutritionScreenState extends ConsumerState<NutritionScreen> {
 
       child: Scaffold(
 
-        backgroundColor: const Color(0xFF0C0D0E),
+        backgroundColor: canvasBg,
 
         body: SafeArea(
 
           child: RefreshIndicator(
 
-            color: const Color(0xFF10B981),
+            color: accentColor,
 
-            backgroundColor: const Color(0xFF16171B),
+            backgroundColor: surfaceBg,
 
             onRefresh: () async {
 
@@ -1441,6 +1464,16 @@ class _NutritionScreenState extends ConsumerState<NutritionScreen> {
 
       List<NutritionLogEntry> entries, int totalCaloriesConsumed) {
 
+    final palette = SamanPalette.of(context);
+    final isDark = palette.isDark;
+    final surfaceBg = isDark ? const Color(0xFF16171B) : palette.surface;
+    final pillBg = isDark ? const Color(0xFF212328) : palette.surfaceElevated;
+    final borderCol = isDark ? const Color(0xFF26282F) : palette.border;
+    final inkBody = isDark ? const Color(0xFFF3F4F6) : palette.textPrimary;
+    final inkMuted = isDark ? const Color(0xFF9CA3AF) : palette.textSecondary;
+    final accentCol = isDark ? const Color(0xFF10B981) : palette.accent;
+    final amberCol = isDark ? const Color(0xFFF59E0B) : palette.amber;
+
     final bool hasAggregateMismatch =
 
         totalCaloriesConsumed > 0 && entries.isEmpty;
@@ -1461,13 +1494,13 @@ class _NutritionScreenState extends ConsumerState<NutritionScreen> {
 
           decoration: BoxDecoration(
 
-            color: const Color(0xFF16171B),
+            color: surfaceBg,
 
             borderRadius: BorderRadius.circular(16),
 
             border:
 
-                Border.all(color: const Color(0xFFF59E0B).withOpacity(0.3)),
+                Border.all(color: amberCol.withOpacity(0.3)),
 
           ),
 
@@ -1475,19 +1508,19 @@ class _NutritionScreenState extends ConsumerState<NutritionScreen> {
 
             children: [
 
-              const Icon(
+              Icon(
 
                 Icons.sync_problem_rounded,
 
                 size: 28,
 
-                color: Color(0xFFF59E0B),
+                color: amberCol,
 
               ),
 
               const SizedBox(height: 8),
 
-              const Text(
+              Text(
 
                 'Data needs refreshing',
 
@@ -1497,7 +1530,7 @@ class _NutritionScreenState extends ConsumerState<NutritionScreen> {
 
                   fontWeight: FontWeight.w600,
 
-                  color: Color(0xFFF3F4F6),
+                  color: inkBody,
 
                 ),
 
@@ -1505,7 +1538,7 @@ class _NutritionScreenState extends ConsumerState<NutritionScreen> {
 
               const SizedBox(height: 4),
 
-              const Text(
+              Text(
 
                 'Logged entries do not match total consumed intake',
 
@@ -1515,7 +1548,7 @@ class _NutritionScreenState extends ConsumerState<NutritionScreen> {
 
                   fontSize: 12,
 
-                  color: Color(0xFF9CA3AF),
+                  color: inkMuted,
 
                 ),
 
@@ -1541,15 +1574,15 @@ class _NutritionScreenState extends ConsumerState<NutritionScreen> {
 
                     decoration: BoxDecoration(
 
-                      color: const Color(0xFF212328),
+                      color: pillBg,
 
                       borderRadius: BorderRadius.circular(8),
 
-                      border: Border.all(color: const Color(0xFF26282F)),
+                      border: Border.all(color: borderCol),
 
                     ),
 
-                    child: const Row(
+                    child: Row(
 
                       mainAxisSize: MainAxisSize.min,
 
@@ -1561,11 +1594,11 @@ class _NutritionScreenState extends ConsumerState<NutritionScreen> {
 
                           size: 14,
 
-                          color: Color(0xFF10B981),
+                          color: accentCol,
 
                         ),
 
-                        SizedBox(width: 6),
+                        const SizedBox(width: 6),
 
                         Text(
 
@@ -1577,7 +1610,7 @@ class _NutritionScreenState extends ConsumerState<NutritionScreen> {
 
                             fontWeight: FontWeight.w600,
 
-                            color: Color(0xFF10B981),
+                            color: accentCol,
 
                           ),
 
@@ -1751,6 +1784,14 @@ class _NutritionScreenState extends ConsumerState<NutritionScreen> {
 
       List<Meal> meals, ProfileState profile, int remainCal, int consumedCal) {
 
+    final palette = SamanPalette.of(context);
+    final isDark = palette.isDark;
+    final surfaceBg = isDark ? const Color(0xFF16171B) : palette.surface;
+    final pillBg = isDark ? const Color(0xFF212328) : palette.surfaceElevated;
+    final borderCol = isDark ? const Color(0xFF26282F) : palette.border;
+    final inkMuted = isDark ? const Color(0xFF9CA3AF) : palette.textSecondary;
+    final accentCol = isDark ? const Color(0xFF10B981) : palette.accent;
+
     if (meals.isEmpty) {
 
       return Container(
@@ -1759,11 +1800,11 @@ class _NutritionScreenState extends ConsumerState<NutritionScreen> {
 
         decoration: BoxDecoration(
 
-          color: const Color(0xFF16171B),
+          color: surfaceBg,
 
           borderRadius: BorderRadius.circular(16),
 
-          border: Border.all(color: const Color(0xFF26282F)),
+          border: Border.all(color: borderCol),
 
         ),
 
@@ -1789,13 +1830,13 @@ class _NutritionScreenState extends ConsumerState<NutritionScreen> {
 
                   context.tr('meal_plan_heading'),
 
-                  style: const TextStyle(
+                  style: TextStyle(
 
                     fontSize: 12,
 
                     fontWeight: FontWeight.w700,
 
-                    color: Color(0xFF9CA3AF),
+                    color: inkMuted,
 
                     letterSpacing: 1.2,
 
@@ -1811,11 +1852,11 @@ class _NutritionScreenState extends ConsumerState<NutritionScreen> {
 
                   decoration: BoxDecoration(
 
-                    color: const Color(0xFF212328),
+                    color: pillBg,
 
                     borderRadius: BorderRadius.circular(4),
 
-                    border: Border.all(color: const Color(0xFF26282F)),
+                    border: Border.all(color: borderCol),
 
                   ),
 
@@ -1823,13 +1864,13 @@ class _NutritionScreenState extends ConsumerState<NutritionScreen> {
 
                     context.tr('no_meal_plan_badge'),
 
-                    style: const TextStyle(
+                    style: TextStyle(
 
                       fontSize: 10,
 
                       fontWeight: FontWeight.w600,
 
-                      color: Color(0xFF9CA3AF),
+                      color: inkMuted,
 
                       letterSpacing: 0.6,
 
@@ -1861,11 +1902,11 @@ class _NutritionScreenState extends ConsumerState<NutritionScreen> {
 
                   context.tr('create_meal_plan_ai'),
 
-                  style: const TextStyle(
+                  style: TextStyle(
 
                     fontSize: 13,
 
-                    color: Color(0xFF9CA3AF),
+                    color: inkMuted,
 
                   ),
 
@@ -1903,13 +1944,13 @@ class _NutritionScreenState extends ConsumerState<NutritionScreen> {
 
                     context.tr('create_plan_btn'),
 
-                    style: const TextStyle(
+                    style: TextStyle(
 
                       fontSize: 13,
 
                       fontWeight: FontWeight.w600,
 
-                      color: Color(0xFF10B981),
+                      color: accentCol,
 
                     ),
 
@@ -1997,6 +2038,11 @@ class _NutritionScreenState extends ConsumerState<NutritionScreen> {
 
   Widget _buildSkeletonBox({required double height}) {
 
+    final palette = SamanPalette.of(context);
+    final isDark = palette.isDark;
+    final surfaceBg = isDark ? const Color(0xFF16171B) : palette.surface;
+    final borderCol = isDark ? const Color(0xFF26282F) : palette.border;
+
     return Container(
 
       height: height,
@@ -2005,15 +2051,15 @@ class _NutritionScreenState extends ConsumerState<NutritionScreen> {
 
       decoration: BoxDecoration(
 
-        color: const Color(0xFF16171B),
+        color: surfaceBg,
 
         borderRadius: BorderRadius.circular(16),
 
-        border: Border.all(color: const Color(0xFF26282F)),
+        border: Border.all(color: borderCol),
 
       ),
 
-      child: const Center(
+      child: Center(
 
         child: SizedBox(
 
@@ -2025,7 +2071,7 @@ class _NutritionScreenState extends ConsumerState<NutritionScreen> {
 
             strokeWidth: 2,
 
-            color: Color(0xFF26282F),
+            color: borderCol,
 
           ),
 
@@ -2045,6 +2091,14 @@ class _NutritionScreenState extends ConsumerState<NutritionScreen> {
 
   Widget _buildErrorView(Object error) {
 
+    final palette = SamanPalette.of(context);
+    final isDark = palette.isDark;
+    final surfaceBg = isDark ? const Color(0xFF16171B) : palette.surface;
+    final pillBg = isDark ? const Color(0xFF212328) : palette.surfaceElevated;
+    final borderCol = isDark ? const Color(0xFF26282F) : palette.border;
+    final inkBody = isDark ? const Color(0xFFF3F4F6) : palette.textPrimary;
+    final inkMuted = isDark ? const Color(0xFF9CA3AF) : palette.textSecondary;
+
     return Container(
 
       width: double.infinity,
@@ -2053,11 +2107,11 @@ class _NutritionScreenState extends ConsumerState<NutritionScreen> {
 
       decoration: BoxDecoration(
 
-        color: const Color(0xFF16171B),
+        color: surfaceBg,
 
         borderRadius: BorderRadius.circular(16),
 
-        border: Border.all(color: const Color(0xFF26282F)),
+        border: Border.all(color: borderCol),
 
       ),
 
@@ -2065,13 +2119,13 @@ class _NutritionScreenState extends ConsumerState<NutritionScreen> {
 
         children: [
 
-          const Icon(
+          Icon(
 
             Icons.cloud_off_rounded,
 
             size: 36,
 
-            color: Color(0xFF9CA3AF),
+            color: inkMuted,
 
           ),
 
@@ -2081,13 +2135,13 @@ class _NutritionScreenState extends ConsumerState<NutritionScreen> {
 
             context.tr('load_nutrition_failed'),
 
-            style: const TextStyle(
+            style: TextStyle(
 
               fontSize: 15,
 
               fontWeight: FontWeight.w600,
 
-              color: Color(0xFFF3F4F6),
+              color: inkBody,
 
             ),
 
@@ -2133,11 +2187,11 @@ class _NutritionScreenState extends ConsumerState<NutritionScreen> {
 
             overflow: TextOverflow.ellipsis,
 
-            style: const TextStyle(
+            style: TextStyle(
 
               fontSize: 12,
 
-              color: Color(0xFF9CA3AF),
+              color: inkMuted,
 
             ),
 
@@ -2149,15 +2203,15 @@ class _NutritionScreenState extends ConsumerState<NutritionScreen> {
 
             style: ElevatedButton.styleFrom(
 
-              backgroundColor: const Color(0xFF212328),
+              backgroundColor: pillBg,
 
-              foregroundColor: const Color(0xFFF3F4F6),
+              foregroundColor: inkBody,
 
               shape: RoundedRectangleBorder(
 
                 borderRadius: BorderRadius.circular(10),
 
-                side: const BorderSide(color: Color(0xFF26282F)),
+                side: BorderSide(color: borderCol),
 
               ),
 

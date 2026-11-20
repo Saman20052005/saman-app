@@ -32,6 +32,7 @@ class ProgressSnapshotCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = SamanHomeTokens.of(context);
     final resolvedWorkouts = workoutsValue ?? (workoutsCount != null ? '$workoutsCount' : '—');
     final resolvedStreak = streakValue ?? (streakDays != null ? '${streakDays}d' : '—');
     final resolvedAdherence = adherenceValue ?? (adherencePercent != null ? '$adherencePercent%' : '—');
@@ -43,18 +44,18 @@ class ProgressSnapshotCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
+          Text(
             'YOUR PROGRESS',
-            style: SamanHomeTokens.sectionHeader,
+            style: tokens.sectionHeader,
           ),
           const SizedBox(height: SamanHomeTokens.spacingSm),
           Container(
             padding: const EdgeInsets.all(SamanHomeTokens.spacingLg),
             decoration: BoxDecoration(
-              color: SamanHomeTokens.cardSurface,
+              color: tokens.cardSurface,
               borderRadius: BorderRadius.circular(SamanHomeTokens.radiusLg),
               border: Border.all(
-                color: SamanHomeTokens.border,
+                color: tokens.border,
                 width: 1,
               ),
             ),
@@ -67,7 +68,7 @@ class ProgressSnapshotCard extends StatelessWidget {
                       child: _MetricItem(
                         value: resolvedWorkouts,
                         label: 'Workouts',
-                        valueColor: SamanHomeTokens.textWhite,
+                        valueColor: tokens.textWhite,
                       ),
                     ),
                     const _VerticalDivider(),
@@ -77,8 +78,8 @@ class ProgressSnapshotCard extends StatelessWidget {
                         value: resolvedStreak,
                         label: 'Current streak',
                         valueColor: resolvedStreak != '—'
-                            ? SamanHomeTokens.greenAccent
-                            : SamanHomeTokens.textWhite,
+                            ? tokens.greenAccent
+                            : tokens.textWhite,
                       ),
                     ),
                     const _VerticalDivider(),
@@ -87,14 +88,14 @@ class ProgressSnapshotCard extends StatelessWidget {
                       child: _MetricItem(
                         value: resolvedAdherence,
                         label: 'Plan adherence',
-                        valueColor: SamanHomeTokens.textWhite,
+                        valueColor: tokens.textWhite,
                       ),
                     ),
                   ],
                 ),
                 const SizedBox(height: SamanHomeTokens.spacingMd),
-                const Divider(
-                  color: SamanHomeTokens.borderSubtle,
+                Divider(
+                  color: tokens.borderSubtle,
                   height: 1,
                 ),
                 const SizedBox(height: SamanHomeTokens.spacingSm),
@@ -106,8 +107,8 @@ class ProgressSnapshotCard extends StatelessWidget {
                           child: InkWell(
                             onTap: onViewProgressTap,
                             borderRadius: BorderRadius.circular(SamanHomeTokens.radiusXs),
-                            child: const Padding(
-                              padding: EdgeInsets.symmetric(vertical: 4, horizontal: 2),
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 2),
                               child: Row(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
@@ -116,22 +117,22 @@ class ProgressSnapshotCard extends StatelessWidget {
                                     style: TextStyle(
                                       fontSize: 13,
                                       fontWeight: FontWeight.w500,
-                                      color: SamanHomeTokens.textSecondary,
+                                      color: tokens.textSecondary,
                                     ),
                                   ),
-                                  SizedBox(width: 4),
+                                  const SizedBox(width: 4),
                                   Icon(
                                     Icons.arrow_forward_rounded,
                                     size: 14,
-                                    color: SamanHomeTokens.textSecondary,
+                                    color: tokens.textSecondary,
                                   ),
                                 ],
                               ),
                             ),
                           ),
                         )
-                      : const Padding(
-                          padding: EdgeInsets.symmetric(vertical: 4, horizontal: 2),
+                      : Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 2),
                           child: Text(
                             'View progress · Coming soon',
                             maxLines: 1,
@@ -139,7 +140,7 @@ class ProgressSnapshotCard extends StatelessWidget {
                             style: TextStyle(
                               fontSize: 12,
                               fontWeight: FontWeight.w400,
-                              color: SamanHomeTokens.textMuted,
+                              color: tokens.textMuted,
                             ),
                           ),
                         ),
@@ -166,6 +167,7 @@ class _MetricItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = SamanHomeTokens.of(context);
     return Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.center,
@@ -185,10 +187,10 @@ class _MetricItem extends StatelessWidget {
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
           textAlign: TextAlign.center,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 11,
             fontWeight: FontWeight.w500,
-            color: SamanHomeTokens.textMuted,
+            color: tokens.textMuted,
             letterSpacing: 0.2,
           ),
         ),
@@ -202,10 +204,11 @@ class _VerticalDivider extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = SamanHomeTokens.of(context);
     return Container(
       width: 1,
       height: 36,
-      color: SamanHomeTokens.borderSubtle,
+      color: tokens.borderSubtle,
       margin: const EdgeInsets.symmetric(horizontal: 4),
     );
   }

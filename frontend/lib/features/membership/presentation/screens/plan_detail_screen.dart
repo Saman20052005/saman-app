@@ -66,11 +66,12 @@ class _PlanDetailScreenState extends ConsumerState<PlanDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final t = MembershipTokens.of(context);
     final billingPeriod = ref.watch(billingPeriodProvider);
     final plan = ref.watch(membershipPlanProvider(widget.tier));
 
     return Scaffold(
-      backgroundColor: MembershipTokens.canvas,
+      backgroundColor: t.canvas,
       appBar: MembershipAppBar(
         title: plan.name,
         onBack: _handleBack,
@@ -86,27 +87,27 @@ class _PlanDetailScreenState extends ConsumerState<PlanDetailScreen> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               // 1. Plan Hero
-              _buildPlanHero(plan),
+              _buildPlanHero(plan, t),
               const SizedBox(height: 24),
 
               // 2. Demo Price Card
-              _buildPriceCard(plan, billingPeriod),
+              _buildPriceCard(plan, billingPeriod, t),
               const SizedBox(height: 24),
 
               // 3. Planned Benefits
-              _buildPlannedBenefits(plan),
+              _buildPlannedBenefits(plan, t),
               const SizedBox(height: 24),
 
               // 4. Allowance Summary
-              _buildAllowanceSummary(plan),
+              _buildAllowanceSummary(plan, t),
               const SizedBox(height: 24),
 
               // 5. Inherited Benefits (Expandable)
-              _buildInheritedBenefits(plan),
+              _buildInheritedBenefits(plan, t),
               const SizedBox(height: 24),
 
               // 6. Availability Notice
-              _buildAvailabilityNotice(plan),
+              _buildAvailabilityNotice(plan, t),
               const SizedBox(height: 24),
 
               // 7. Primary Action Dock
@@ -134,10 +135,10 @@ class _PlanDetailScreenState extends ConsumerState<PlanDetailScreen> {
                     alignment: Alignment.center,
                     child: Text(
                       context.tr('back_to_membership'),
-                      style: MembershipTokens.body(
+                      style: t.body(
                         fontSize: 14,
                         fontWeight: FontWeight.w500,
-                        color: MembershipTokens.accent,
+                        color: t.accent,
                       ),
                     ),
                   ),
@@ -151,7 +152,7 @@ class _PlanDetailScreenState extends ConsumerState<PlanDetailScreen> {
     );
   }
 
-  Widget _buildPlanHero(MembershipPlan plan) {
+  Widget _buildPlanHero(MembershipPlan plan, MembershipPalette t) {
     final isPro = plan.tier.isPro;
 
     return Column(
@@ -166,12 +167,10 @@ class _PlanDetailScreenState extends ConsumerState<PlanDetailScreen> {
               width: 44,
               height: 44,
               decoration: BoxDecoration(
-                color: MembershipTokens.card,
+                color: t.card,
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(
-                  color: isPro
-                      ? MembershipTokens.accentBorder
-                      : MembershipTokens.border,
+                  color: isPro ? t.accentBorder : t.border,
                   width: 1.0,
                 ),
               ),
@@ -179,27 +178,25 @@ class _PlanDetailScreenState extends ConsumerState<PlanDetailScreen> {
               child: Icon(
                 plan.icon,
                 size: 22,
-                color: isPro
-                    ? MembershipTokens.accent
-                    : MembershipTokens.textMuted,
+                color: isPro ? t.accent : t.textMuted,
               ),
             ),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
               decoration: BoxDecoration(
-                color: MembershipTokens.card,
+                color: t.card,
                 borderRadius: BorderRadius.circular(6),
                 border: Border.all(
-                  color: MembershipTokens.border,
+                  color: t.border,
                   width: 1.0,
                 ),
               ),
               child: Text(
                 context.tr('coming_soon_badge'),
-                style: MembershipTokens.mono(
+                style: t.mono(
                   fontSize: 11,
                   fontWeight: FontWeight.w600,
-                  color: MembershipTokens.textMuted,
+                  color: t.textMuted,
                   letterSpacing: 0.5,
                 ),
               ),
@@ -211,19 +208,19 @@ class _PlanDetailScreenState extends ConsumerState<PlanDetailScreen> {
                   vertical: 4,
                 ),
                 decoration: BoxDecoration(
-                  color: MembershipTokens.accentBg,
+                  color: t.accentBg,
                   borderRadius: BorderRadius.circular(6),
                   border: Border.all(
-                    color: MembershipTokens.accentBorder,
+                    color: t.accentBorder,
                     width: 1.0,
                   ),
                 ),
                 child: Text(
                   context.tr('recommended_badge'),
-                  style: MembershipTokens.mono(
+                  style: t.mono(
                     fontSize: 11,
                     fontWeight: FontWeight.w600,
-                    color: MembershipTokens.accent,
+                    color: t.accent,
                     letterSpacing: 0.5,
                   ),
                 ),
@@ -233,30 +230,30 @@ class _PlanDetailScreenState extends ConsumerState<PlanDetailScreen> {
         const SizedBox(height: 16),
         Text(
           plan.name,
-          style: MembershipTokens.headline(
+          style: t.headline(
             fontSize: 32,
             fontWeight: FontWeight.w700,
-            color: MembershipTokens.textPrimary,
+            color: t.textPrimary,
             letterSpacing: -0.5,
           ),
         ),
         const SizedBox(height: 4),
         Text(
           plan.subtitle.toUpperCase(),
-          style: MembershipTokens.mono(
+          style: t.mono(
             fontSize: 12,
             fontWeight: FontWeight.w500,
-            color: MembershipTokens.textMuted,
+            color: t.textMuted,
             letterSpacing: 0.5,
           ),
         ),
         const SizedBox(height: 12),
         Text(
           plan.heroDescription,
-          style: MembershipTokens.body(
+          style: t.body(
             fontSize: 14,
             fontWeight: FontWeight.w400,
-            color: MembershipTokens.textMuted,
+            color: t.textMuted,
             height: 1.45,
           ),
         ),
@@ -264,14 +261,15 @@ class _PlanDetailScreenState extends ConsumerState<PlanDetailScreen> {
     );
   }
 
-  Widget _buildPriceCard(MembershipPlan plan, BillingPeriod period) {
+  Widget _buildPriceCard(
+      MembershipPlan plan, BillingPeriod period, MembershipPalette t) {
     return Container(
       padding: const EdgeInsets.all(16.0),
       decoration: BoxDecoration(
-        color: MembershipTokens.card,
+        color: t.card,
         borderRadius: BorderRadius.circular(MembershipTokens.cardRadius),
         border: Border.all(
-          color: MembershipTokens.border,
+          color: t.border,
           width: 1.0,
         ),
       ),
@@ -293,19 +291,19 @@ class _PlanDetailScreenState extends ConsumerState<PlanDetailScreen> {
               children: [
                 Text(
                   '\$${plan.monthlyPrice}',
-                  style: MembershipTokens.mono(
+                  style: t.mono(
                     fontSize: 36,
                     fontWeight: FontWeight.w600,
-                    color: MembershipTokens.textPrimary,
+                    color: t.textPrimary,
                   ),
                 ),
                 const SizedBox(width: 4),
                 Text(
                   '/ month',
-                  style: MembershipTokens.mono(
+                  style: t.mono(
                     fontSize: 14,
                     fontWeight: FontWeight.w400,
-                    color: MembershipTokens.textMuted,
+                    color: t.textMuted,
                   ),
                 ),
               ],
@@ -320,19 +318,19 @@ class _PlanDetailScreenState extends ConsumerState<PlanDetailScreen> {
                   children: [
                     Text(
                       '\$${plan.yearlyPrice}',
-                      style: MembershipTokens.mono(
+                      style: t.mono(
                         fontSize: 36,
                         fontWeight: FontWeight.w600,
-                        color: MembershipTokens.textPrimary,
+                        color: t.textPrimary,
                       ),
                     ),
                     const SizedBox(width: 4),
                     Text(
                       '/ year',
-                      style: MembershipTokens.mono(
+                      style: t.mono(
                         fontSize: 14,
                         fontWeight: FontWeight.w400,
-                        color: MembershipTokens.textMuted,
+                        color: t.textMuted,
                       ),
                     ),
                   ],
@@ -340,18 +338,18 @@ class _PlanDetailScreenState extends ConsumerState<PlanDetailScreen> {
                 const SizedBox(height: 6),
                 Text(
                   'Equivalent to \$${plan.yearlyEquivalentMonthlyPrice} / month',
-                  style: MembershipTokens.body(
+                  style: t.body(
                     fontSize: 12,
                     fontWeight: FontWeight.w500,
-                    color: MembershipTokens.textMuted,
+                    color: t.textMuted,
                   ),
                 ),
               ],
             ),
 
           const SizedBox(height: 14),
-          const Divider(
-            color: MembershipTokens.border,
+          Divider(
+            color: t.border,
             height: 1,
             thickness: 1,
           ),
@@ -360,10 +358,10 @@ class _PlanDetailScreenState extends ConsumerState<PlanDetailScreen> {
           // Disclaimer Note
           Text(
             context.tr('demo_pricing_disclaimer'),
-            style: MembershipTokens.mono(
+            style: t.mono(
               fontSize: 12,
               fontWeight: FontWeight.w400,
-              color: MembershipTokens.textMuted,
+              color: t.textMuted,
             ),
           ),
         ],
@@ -371,7 +369,7 @@ class _PlanDetailScreenState extends ConsumerState<PlanDetailScreen> {
     );
   }
 
-  Widget _buildPlannedBenefits(MembershipPlan plan) {
+  Widget _buildPlannedBenefits(MembershipPlan plan, MembershipPalette t) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -385,10 +383,10 @@ class _PlanDetailScreenState extends ConsumerState<PlanDetailScreen> {
             children: [
               Text(
                 '${context.tr('planned_with').toUpperCase()} ${plan.name.toUpperCase()}',
-                style: MembershipTokens.mono(
+                style: t.mono(
                   fontSize: 12,
                   fontWeight: FontWeight.w600,
-                  color: MembershipTokens.textMuted,
+                  color: t.textMuted,
                   letterSpacing: 0.5,
                 ),
               ),
@@ -398,19 +396,19 @@ class _PlanDetailScreenState extends ConsumerState<PlanDetailScreen> {
                   vertical: 2,
                 ),
                 decoration: BoxDecoration(
-                  color: MembershipTokens.surfaceHigh,
+                  color: t.surfaceHigh,
                   borderRadius: BorderRadius.circular(4),
                   border: Border.all(
-                    color: MembershipTokens.border,
+                    color: t.border,
                     width: 1.0,
                   ),
                 ),
                 child: Text(
                   context.tr('roadmap_badge'),
-                  style: MembershipTokens.mono(
+                  style: t.mono(
                     fontSize: 11,
                     fontWeight: FontWeight.w500,
-                    color: MembershipTokens.textMuted,
+                    color: t.textMuted,
                   ),
                 ),
               ),
@@ -420,10 +418,10 @@ class _PlanDetailScreenState extends ConsumerState<PlanDetailScreen> {
         const SizedBox(height: 10),
         Container(
           decoration: BoxDecoration(
-            color: MembershipTokens.card,
+            color: t.card,
             borderRadius: BorderRadius.circular(MembershipTokens.cardRadius),
             border: Border.all(
-              color: MembershipTokens.border,
+              color: t.border,
               width: 1.0,
             ),
           ),
@@ -440,10 +438,10 @@ class _PlanDetailScreenState extends ConsumerState<PlanDetailScreen> {
                         width: 36,
                         height: 36,
                         decoration: BoxDecoration(
-                          color: MembershipTokens.surfaceHigh,
+                          color: t.surfaceHigh,
                           borderRadius: BorderRadius.circular(10),
                           border: Border.all(
-                            color: MembershipTokens.border,
+                            color: t.border,
                             width: 1.0,
                           ),
                         ),
@@ -451,7 +449,7 @@ class _PlanDetailScreenState extends ConsumerState<PlanDetailScreen> {
                         child: Icon(
                           plan.plannedBenefits[i].icon,
                           size: 19,
-                          color: MembershipTokens.textMuted,
+                          color: t.textMuted,
                         ),
                       ),
                       const SizedBox(width: 14),
@@ -465,27 +463,27 @@ class _PlanDetailScreenState extends ConsumerState<PlanDetailScreen> {
                                 Expanded(
                                   child: Text(
                                     plan.plannedBenefits[i].title,
-                                    style: MembershipTokens.body(
+                                    style: t.body(
                                       fontSize: 14,
                                       fontWeight: FontWeight.w600,
-                                      color: MembershipTokens.textPrimary,
+                                      color: t.textPrimary,
                                     ),
                                   ),
                                 ),
-                                const Icon(
+                                Icon(
                                   Icons.schedule,
                                   size: 16,
-                                  color: MembershipTokens.textMuted,
+                                  color: t.textMuted,
                                 ),
                               ],
                             ),
                             const SizedBox(height: 4),
                             Text(
                               plan.plannedBenefits[i].description,
-                              style: MembershipTokens.body(
+                              style: t.body(
                                 fontSize: 14,
                                 fontWeight: FontWeight.w400,
-                                color: MembershipTokens.textMuted,
+                                color: t.textMuted,
                                 height: 1.35,
                               ),
                             ),
@@ -496,8 +494,8 @@ class _PlanDetailScreenState extends ConsumerState<PlanDetailScreen> {
                   ),
                 ),
                 if (i < plan.plannedBenefits.length - 1)
-                  const Divider(
-                    color: MembershipTokens.border,
+                  Divider(
+                    color: t.border,
                     height: 1,
                     thickness: 1,
                   ),
@@ -509,14 +507,14 @@ class _PlanDetailScreenState extends ConsumerState<PlanDetailScreen> {
     );
   }
 
-  Widget _buildAllowanceSummary(MembershipPlan plan) {
+  Widget _buildAllowanceSummary(MembershipPlan plan, MembershipPalette t) {
     return Container(
       padding: const EdgeInsets.all(16.0),
       decoration: BoxDecoration(
-        color: MembershipTokens.card,
+        color: t.card,
         borderRadius: BorderRadius.circular(MembershipTokens.cardRadius),
         border: Border.all(
-          color: MembershipTokens.border,
+          color: t.border,
           width: 1.0,
         ),
       ),
@@ -529,10 +527,10 @@ class _PlanDetailScreenState extends ConsumerState<PlanDetailScreen> {
               Expanded(
                 child: Text(
                   plan.tier.isPro ? 'NUTRITION AI' : 'AI ALLOWANCE',
-                  style: MembershipTokens.mono(
+                  style: t.mono(
                     fontSize: 12,
                     fontWeight: FontWeight.w500,
-                    color: MembershipTokens.textMuted,
+                    color: t.textMuted,
                     letterSpacing: 0.5,
                   ),
                 ),
@@ -543,19 +541,19 @@ class _PlanDetailScreenState extends ConsumerState<PlanDetailScreen> {
                   vertical: 3,
                 ),
                 decoration: BoxDecoration(
-                  color: MembershipTokens.surfaceHigh,
+                  color: t.surfaceHigh,
                   borderRadius: BorderRadius.circular(6),
                   border: Border.all(
-                    color: MembershipTokens.border,
+                    color: t.border,
                     width: 1.0,
                   ),
                 ),
                 child: Text(
                   plan.aiAllowanceText,
-                  style: MembershipTokens.mono(
+                  style: t.mono(
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
-                    color: MembershipTokens.textPrimary,
+                    color: t.textPrimary,
                   ),
                 ),
               ),
@@ -564,8 +562,8 @@ class _PlanDetailScreenState extends ConsumerState<PlanDetailScreen> {
 
           if (plan.workoutCvAllowanceText != null) ...[
             const SizedBox(height: 12),
-            const Divider(
-              color: MembershipTokens.border,
+            Divider(
+              color: t.border,
               height: 1,
               thickness: 1,
             ),
@@ -575,10 +573,10 @@ class _PlanDetailScreenState extends ConsumerState<PlanDetailScreen> {
                 Expanded(
                   child: Text(
                     'WORKOUT CV',
-                    style: MembershipTokens.mono(
+                    style: t.mono(
                       fontSize: 12,
                       fontWeight: FontWeight.w500,
-                      color: MembershipTokens.textMuted,
+                      color: t.textMuted,
                       letterSpacing: 0.5,
                     ),
                   ),
@@ -589,19 +587,19 @@ class _PlanDetailScreenState extends ConsumerState<PlanDetailScreen> {
                     vertical: 3,
                   ),
                   decoration: BoxDecoration(
-                    color: MembershipTokens.surfaceHigh,
+                    color: t.surfaceHigh,
                     borderRadius: BorderRadius.circular(6),
                     border: Border.all(
-                      color: MembershipTokens.border,
+                      color: t.border,
                       width: 1.0,
                     ),
                   ),
                   child: Text(
                     plan.workoutCvAllowanceText!,
-                    style: MembershipTokens.mono(
+                    style: t.mono(
                       fontSize: 12,
                       fontWeight: FontWeight.w600,
-                      color: MembershipTokens.textPrimary,
+                      color: t.textPrimary,
                     ),
                   ),
                 ),
@@ -610,18 +608,18 @@ class _PlanDetailScreenState extends ConsumerState<PlanDetailScreen> {
           ],
 
           const SizedBox(height: 12),
-          const Divider(
-            color: MembershipTokens.border,
+          Divider(
+            color: t.border,
             height: 1,
             thickness: 1,
           ),
           const SizedBox(height: 12),
           Text(
             plan.allowanceSubtext,
-            style: MembershipTokens.body(
+            style: t.body(
               fontSize: 12,
               fontWeight: FontWeight.w400,
-              color: MembershipTokens.textMuted,
+              color: t.textMuted,
               height: 1.4,
             ),
           ),
@@ -630,7 +628,7 @@ class _PlanDetailScreenState extends ConsumerState<PlanDetailScreen> {
     );
   }
 
-  Widget _buildInheritedBenefits(MembershipPlan plan) {
+  Widget _buildInheritedBenefits(MembershipPlan plan, MembershipPalette t) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -644,10 +642,10 @@ class _PlanDetailScreenState extends ConsumerState<PlanDetailScreen> {
             children: [
               Text(
                 'ALSO INCLUDED',
-                style: MembershipTokens.mono(
+                style: t.mono(
                   fontSize: 12,
                   fontWeight: FontWeight.w600,
-                  color: MembershipTokens.textMuted,
+                  color: t.textMuted,
                   letterSpacing: 0.5,
                 ),
               ),
@@ -657,10 +655,10 @@ class _PlanDetailScreenState extends ConsumerState<PlanDetailScreen> {
                   vertical: 2,
                 ),
                 decoration: BoxDecoration(
-                  color: MembershipTokens.accentBg,
+                  color: t.accentBg,
                   borderRadius: BorderRadius.circular(4),
                   border: Border.all(
-                    color: MembershipTokens.accentBorder,
+                    color: t.accentBorder,
                     width: 1.0,
                   ),
                 ),
@@ -668,10 +666,10 @@ class _PlanDetailScreenState extends ConsumerState<PlanDetailScreen> {
                   plan.tier.isUltra
                       ? context.tr('tier_inherited')
                       : context.tr('baseline_active'),
-                  style: MembershipTokens.mono(
+                  style: t.mono(
                     fontSize: 11,
                     fontWeight: FontWeight.w500,
-                    color: MembershipTokens.accent,
+                    color: t.accent,
                   ),
                 ),
               ),
@@ -681,10 +679,10 @@ class _PlanDetailScreenState extends ConsumerState<PlanDetailScreen> {
         const SizedBox(height: 10),
         Container(
           decoration: BoxDecoration(
-            color: MembershipTokens.card,
+            color: t.card,
             borderRadius: BorderRadius.circular(MembershipTokens.cardRadius),
             border: Border.all(
-              color: MembershipTokens.border,
+              color: t.border,
               width: 1.0,
             ),
           ),
@@ -705,18 +703,18 @@ class _PlanDetailScreenState extends ConsumerState<PlanDetailScreen> {
                       width: 28,
                       height: 28,
                       decoration: BoxDecoration(
-                        color: MembershipTokens.surfaceHigh,
+                        color: t.surfaceHigh,
                         borderRadius: BorderRadius.circular(8),
                         border: Border.all(
-                          color: MembershipTokens.border,
+                          color: t.border,
                           width: 1.0,
                         ),
                       ),
                       alignment: Alignment.center,
-                      child: const Icon(
+                      child: Icon(
                         Icons.check,
                         size: 16,
-                        color: MembershipTokens.accent,
+                        color: t.accent,
                       ),
                     ),
                     const SizedBox(width: 12),
@@ -726,20 +724,20 @@ class _PlanDetailScreenState extends ConsumerState<PlanDetailScreen> {
                         children: [
                           Text(
                             plan.inheritedSectionTitle,
-                            style: MembershipTokens.body(
+                            style: t.body(
                               fontSize: 14,
                               fontWeight: FontWeight.w600,
-                              color: MembershipTokens.textPrimary,
+                              color: t.textPrimary,
                             ),
                           ),
                           if (!_isInheritedExpanded) ...[
                             const SizedBox(height: 2),
                             Text(
                               plan.inheritedSectionSubtitle,
-                              style: MembershipTokens.body(
+                              style: t.body(
                                 fontSize: 12,
                                 fontWeight: FontWeight.w400,
-                                color: MembershipTokens.textMuted,
+                                color: t.textMuted,
                               ),
                             ),
                           ],
@@ -751,7 +749,7 @@ class _PlanDetailScreenState extends ConsumerState<PlanDetailScreen> {
                           ? Icons.expand_less
                           : Icons.expand_more,
                       size: 20,
-                      color: MembershipTokens.textMuted,
+                      color: t.textMuted,
                     ),
                   ],
                 ),
@@ -760,8 +758,8 @@ class _PlanDetailScreenState extends ConsumerState<PlanDetailScreen> {
               // Expanded Breakdown
               if (_isInheritedExpanded) ...[
                 const SizedBox(height: 12),
-                const Divider(
-                  color: MembershipTokens.border,
+                Divider(
+                  color: t.border,
                   height: 1,
                   thickness: 1,
                 ),
@@ -772,10 +770,10 @@ class _PlanDetailScreenState extends ConsumerState<PlanDetailScreen> {
                       padding: const EdgeInsets.only(top: 8.0, bottom: 6.0),
                       child: Text(
                         group.groupTitle!,
-                        style: MembershipTokens.mono(
+                        style: t.mono(
                           fontSize: 10,
                           fontWeight: FontWeight.w600,
-                          color: MembershipTokens.textMuted,
+                          color: t.textMuted,
                           letterSpacing: 0.5,
                         ),
                       ),
@@ -789,18 +787,16 @@ class _PlanDetailScreenState extends ConsumerState<PlanDetailScreen> {
                           Icon(
                             item.isPlanned ? Icons.schedule : Icons.check,
                             size: 16,
-                            color: item.isPlanned
-                                ? MembershipTokens.textMuted
-                                : MembershipTokens.accent,
+                            color: item.isPlanned ? t.textMuted : t.accent,
                           ),
                           const SizedBox(width: 10),
                           Expanded(
                             child: Text(
                               item.title,
-                              style: MembershipTokens.body(
+                              style: t.body(
                                 fontSize: 13,
                                 fontWeight: FontWeight.w400,
-                                color: MembershipTokens.textSubtle,
+                                color: t.textSubtle,
                               ),
                             ),
                           ),
@@ -810,8 +806,8 @@ class _PlanDetailScreenState extends ConsumerState<PlanDetailScreen> {
                   ],
                   if (group != plan.inheritedGroups.last) ...[
                     const SizedBox(height: 6),
-                    const Divider(
-                      color: MembershipTokens.border,
+                    Divider(
+                      color: t.border,
                       height: 1,
                       thickness: 1,
                     ),
@@ -826,14 +822,14 @@ class _PlanDetailScreenState extends ConsumerState<PlanDetailScreen> {
     );
   }
 
-  Widget _buildAvailabilityNotice(MembershipPlan plan) {
+  Widget _buildAvailabilityNotice(MembershipPlan plan, MembershipPalette t) {
     return Center(
       child: Text(
         plan.availabilityNotice,
-        style: MembershipTokens.body(
+        style: t.body(
           fontSize: 12,
           fontWeight: FontWeight.w400,
-          color: MembershipTokens.textMuted,
+          color: t.textMuted,
           height: 1.4,
         ),
         textAlign: TextAlign.center,

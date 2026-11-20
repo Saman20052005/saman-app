@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import '../../../config/app_theme.dart';
 import '../../../models/ai_analysis_result.dart';
 import '../../../features/nutrition/domain/repositories/nutrition_repository.dart';
 import '../../../services/nutrition_service.dart' show foodAnalysisErrorMessage;
@@ -66,25 +67,103 @@ class MealReviewDialog extends StatefulWidget {
   State<MealReviewDialog> createState() => _MealReviewDialogState();
 }
 
+class _MealReviewColors {
+  const _MealReviewColors({
+    required this.isDark,
+    required this.bgCanvas,
+    required this.bgSurface,
+    required this.bgCard,
+    required this.borderSubtle,
+    required this.borderStrong,
+    required this.brandPrimary,
+    required this.brandPrimaryLight,
+    required this.onBrandPrimary,
+    required this.aiAccent,
+    required this.proteinColor,
+    required this.carbsColor,
+    required this.fatColor,
+    required this.textPrimary,
+    required this.textSecondary,
+    required this.textMuted,
+    required this.errorColor,
+    required this.errorBannerBg,
+    required this.errorBannerBorder,
+    required this.errorBannerText,
+  });
+
+  final bool isDark;
+  final Color bgCanvas;
+  final Color bgSurface;
+  final Color bgCard;
+  final Color borderSubtle;
+  final Color borderStrong;
+  final Color brandPrimary;
+  final Color brandPrimaryLight;
+  final Color onBrandPrimary;
+  final Color aiAccent;
+  final Color proteinColor;
+  final Color carbsColor;
+  final Color fatColor;
+  final Color textPrimary;
+  final Color textSecondary;
+  final Color textMuted;
+  final Color errorColor;
+  final Color errorBannerBg;
+  final Color errorBannerBorder;
+  final Color errorBannerText;
+
+  factory _MealReviewColors.of(BuildContext context) {
+    final palette = SamanPalette.of(context);
+    if (palette.isDark) {
+      return const _MealReviewColors(
+        isDark: true,
+        bgCanvas: Color(0xFF0C0D0E),
+        bgSurface: Color(0xFF16171B),
+        bgCard: Color(0xFF1E2026),
+        borderSubtle: Color(0xFF26282F),
+        borderStrong: Color(0xFF383A42),
+        brandPrimary: Color(0xFF10B981),
+        brandPrimaryLight: Color(0x2610B981),
+        onBrandPrimary: Color(0xFF052E16),
+        aiAccent: Color(0xFFFF8A3D),
+        proteinColor: Color(0xFF4D96FF),
+        carbsColor: Color(0xFFFFD93D),
+        fatColor: Color(0xFFFF6B6B),
+        textPrimary: Color(0xFFF9FAFB),
+        textSecondary: Color(0xFF9CA3AF),
+        textMuted: Color(0xFF9CA3AF),
+        errorColor: Color(0xFFCF6679),
+        errorBannerBg: Color(0x1ACF6679),
+        errorBannerBorder: Color(0x66CF6679),
+        errorBannerText: Color(0xFFFFB3BA),
+      );
+    }
+    return _MealReviewColors(
+      isDark: false,
+      bgCanvas: palette.canvas,
+      bgSurface: palette.surface,
+      bgCard: palette.surfaceElevated,
+      borderSubtle: palette.border,
+      borderStrong: const Color(0xFFCBD5E1),
+      brandPrimary: palette.accent,
+      brandPrimaryLight: const Color(0x1F059669),
+      onBrandPrimary: palette.onAccent,
+      aiAccent: const Color(0xFFD97706),
+      proteinColor: const Color(0xFF2563EB),
+      carbsColor: const Color(0xFFD97706),
+      fatColor: const Color(0xFFDC2626),
+      textPrimary: palette.textPrimary,
+      textSecondary: palette.textSecondary,
+      textMuted: palette.textSecondary,
+      errorColor: palette.danger,
+      errorBannerBg: const Color(0xFFFEF2F2),
+      errorBannerBorder: const Color(0xFFFECACA),
+      errorBannerText: const Color(0xFFB91C1C),
+    );
+  }
+}
+
 class _MealReviewDialogState extends State<MealReviewDialog> {
-  static const Color _bgCanvas = Color(0xFF0C0D0E);
-  static const Color _bgSurface = Color(0xFF16171B);
-  static const Color _bgCard = Color(0xFF1E2026);
-  static const Color _borderSubtle = Color(0xFF26282F);
-  static const Color _borderStrong = Color(0xFF383A42);
-
-  static const Color _brandPrimary = Color(0xFF10B981);
-  static const Color _brandPrimaryLight = Color(0x2610B981); // rgba(16, 185, 129, 0.15)
-  static const Color _aiAccent = Color(0xFFFF8A3D);
-
-  static const Color _proteinColor = Color(0xFF4D96FF);
-  static const Color _carbsColor = Color(0xFFFFD93D);
-  static const Color _fatColor = Color(0xFFFF6B6B);
-
-  static const Color _textPrimary = Color(0xFFF9FAFB);
-  static const Color _textSecondary = Color(0xFF9CA3AF);
-  static const Color _textMuted = Color(0xFF9CA3AF);
-  static const Color _errorColor = Color(0xFFCF6679);
 
   late AIAnalysisResult _current;
   late double _grams;
@@ -167,7 +246,7 @@ class _MealReviewDialogState extends State<MealReviewDialog> {
     }
   }
 
-  Widget _buildDishHeroImage() {
+  Widget _buildDishHeroImage(_MealReviewColors c) {
     Widget? imageWidget;
 
     if (widget.imageFile != null) {
@@ -178,14 +257,14 @@ class _MealReviewDialogState extends State<MealReviewDialog> {
               fit: BoxFit.cover,
               width: double.infinity,
               height: double.infinity,
-              errorBuilder: (_, __, ___) => _buildPlaceholderGraphic(),
+              errorBuilder: (_, __, ___) => _buildPlaceholderGraphic(c),
             )
           : Image.file(
               File(path),
               fit: BoxFit.cover,
               width: double.infinity,
               height: double.infinity,
-              errorBuilder: (_, __, ___) => _buildPlaceholderGraphic(),
+              errorBuilder: (_, __, ___) => _buildPlaceholderGraphic(c),
             );
     } else if (widget.imagePath != null && widget.imagePath!.isNotEmpty) {
       imageWidget = Image.file(
@@ -193,7 +272,7 @@ class _MealReviewDialogState extends State<MealReviewDialog> {
         fit: BoxFit.cover,
         width: double.infinity,
         height: double.infinity,
-        errorBuilder: (_, __, ___) => _buildPlaceholderGraphic(),
+        errorBuilder: (_, __, ___) => _buildPlaceholderGraphic(c),
       );
     }
 
@@ -201,15 +280,15 @@ class _MealReviewDialogState extends State<MealReviewDialog> {
       width: double.infinity,
       height: 130,
       decoration: BoxDecoration(
-        color: const Color(0xFF252525),
+        color: c.isDark ? const Color(0xFF252525) : c.bgCard,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: _borderSubtle),
+        border: Border.all(color: c.borderSubtle),
       ),
       clipBehavior: Clip.antiAlias,
       child: Stack(
         fit: StackFit.expand,
         children: [
-          imageWidget ?? _buildPlaceholderGraphic(),
+          imageWidget ?? _buildPlaceholderGraphic(c),
           // Provenance Badge top-left (Honest data source, no Gemini confidence percentage)
           Positioned(
             top: 10,
@@ -217,14 +296,18 @@ class _MealReviewDialogState extends State<MealReviewDialog> {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
               decoration: BoxDecoration(
-                color: _isAdvanced
-                    ? const Color(0xE6FF8A3D) // rgba(255, 138, 61, 0.9)
-                    : const Color(0xE610B981), // rgba(16, 185, 129, 0.9)
+                color: c.isDark
+                    ? (_isAdvanced
+                        ? const Color(0xE6FF8A3D)
+                        : const Color(0xE610B981))
+                    : (_isAdvanced
+                        ? const Color(0xE6C2410C)
+                        : const Color(0xE6047857)),
                 borderRadius: BorderRadius.circular(20),
                 border: Border.all(color: Colors.white.withOpacity(0.2)),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.4),
+                    color: Colors.black.withOpacity(c.isDark ? 0.4 : 0.2),
                     blurRadius: 6,
                     offset: const Offset(0, 2),
                   ),
@@ -233,9 +316,11 @@ class _MealReviewDialogState extends State<MealReviewDialog> {
               child: Text(
                 _isAdvanced ? '✨ AI ước tính' : '⚖️ Dữ liệu tham chiếu',
                 style: TextStyle(
-                  color: _isAdvanced
-                      ? const Color(0xFF0C0D0E)
-                      : const Color(0xFF052E16),
+                  color: c.isDark
+                      ? (_isAdvanced
+                          ? const Color(0xFF0C0D0E)
+                          : const Color(0xFF052E16))
+                      : Colors.white,
                   fontSize: 11,
                   fontWeight: FontWeight.w700,
                 ),
@@ -247,22 +332,24 @@ class _MealReviewDialogState extends State<MealReviewDialog> {
     );
   }
 
-  Widget _buildPlaceholderGraphic() {
+  Widget _buildPlaceholderGraphic(_MealReviewColors c) {
     return Container(
       width: double.infinity,
       height: double.infinity,
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [Color(0xFF2B1F1A), Color(0xFF1A241E)],
+          colors: c.isDark
+              ? const [Color(0xFF2B1F1A), Color(0xFF1A241E)]
+              : const [Color(0xFFF1F5F9), Color(0xFFE2E8F0)],
         ),
       ),
-      child: const Center(
+      child: Center(
         child: Icon(
           Icons.restaurant_rounded,
           size: 44,
-          color: Color(0xFF666666),
+          color: c.isDark ? const Color(0xFF666666) : c.textSecondary,
         ),
       ),
     );
@@ -270,6 +357,7 @@ class _MealReviewDialogState extends State<MealReviewDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final c = _MealReviewColors.of(context);
     final isLowConfidence = _current.lowConfidence;
 
     return PopScope(
@@ -279,11 +367,11 @@ class _MealReviewDialogState extends State<MealReviewDialog> {
         maxChildSize: 0.96,
         minChildSize: 0.5,
         builder: (_, controller) => Container(
-          decoration: const BoxDecoration(
-            color: _bgSurface,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          decoration: BoxDecoration(
+            color: c.bgSurface,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
             border: Border(
-              top: BorderSide(color: _borderStrong, width: 1),
+              top: BorderSide(color: c.borderStrong, width: 1),
             ),
           ),
           child: SafeArea(
@@ -300,7 +388,7 @@ class _MealReviewDialogState extends State<MealReviewDialog> {
                       width: 40,
                       height: 4,
                       decoration: BoxDecoration(
-                        color: _borderStrong,
+                        color: c.borderStrong,
                         borderRadius: BorderRadius.circular(2),
                       ),
                     ),
@@ -311,18 +399,18 @@ class _MealReviewDialogState extends State<MealReviewDialog> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text(
+                      Text(
                         'Kiểm tra món ăn',
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w700,
-                          color: _textPrimary,
+                          color: c.textPrimary,
                           letterSpacing: -0.2,
                         ),
                       ),
                       IconButton(
                         tooltip: 'Đóng',
-                        icon: const Icon(Icons.close, color: _textSecondary, size: 20),
+                        icon: Icon(Icons.close, color: c.textSecondary, size: 20),
                         onPressed: _saving ? null : () => Navigator.of(context).pop(null),
                         visualDensity: VisualDensity.compact,
                         padding: EdgeInsets.zero,
@@ -333,7 +421,7 @@ class _MealReviewDialogState extends State<MealReviewDialog> {
                   const SizedBox(height: 12),
 
                   // Hero Dish Card with Image & Provenance Badge
-                  _buildDishHeroImage(),
+                  _buildDishHeroImage(c),
                   const SizedBox(height: 12),
 
                   // Low Confidence Warning (Neutral, no blurry assumption)
@@ -341,25 +429,25 @@ class _MealReviewDialogState extends State<MealReviewDialog> {
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                       decoration: BoxDecoration(
-                        color: const Color(0x1ACF6679),
-                        border: Border.all(color: const Color(0x66CF6679)),
+                        color: c.errorBannerBg,
+                        border: Border.all(color: c.errorBannerBorder),
                         borderRadius: BorderRadius.circular(12),
                       ),
-                      child: const Row(
+                      child: Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Icon(
                             Icons.warning_amber_rounded,
                             size: 16,
-                            color: _errorColor,
+                            color: c.errorColor,
                           ),
-                          SizedBox(width: 8),
+                          const SizedBox(width: 8),
                           Expanded(
                             child: Text(
                               '⚠️ Mức độ nhận diện thấp — vui lòng kiểm tra lại món ăn và số gram.',
                               style: TextStyle(
                                 fontSize: 12,
-                                color: Color(0xFFFFB3BA),
+                                color: c.errorBannerText,
                                 height: 1.4,
                               ),
                             ),
@@ -375,25 +463,25 @@ class _MealReviewDialogState extends State<MealReviewDialog> {
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                       decoration: BoxDecoration(
-                        color: const Color(0x1ACF6679),
-                        border: Border.all(color: const Color(0x66CF6679)),
+                        color: c.errorBannerBg,
+                        border: Border.all(color: c.errorBannerBorder),
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Icon(
+                          Icon(
                             Icons.error_outline_rounded,
                             size: 16,
-                            color: _errorColor,
+                            color: c.errorColor,
                           ),
                           const SizedBox(width: 8),
                           Expanded(
                             child: Text(
                               _saveError!,
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 12,
-                                color: Color(0xFFFFB3BA),
+                                color: c.errorBannerText,
                                 height: 1.4,
                               ),
                             ),
@@ -413,20 +501,20 @@ class _MealReviewDialogState extends State<MealReviewDialog> {
                       Expanded(
                         child: Text(
                           _current.foodName,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 17,
                             fontWeight: FontWeight.w700,
-                            color: _textPrimary,
+                            color: c.textPrimary,
                           ),
                         ),
                       ),
                       const SizedBox(width: 8),
                       Text(
                         '${_grams.toStringAsFixed(0)}g • ${_current.calories.toStringAsFixed(0)} kcal',
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w500,
-                          color: _textSecondary,
+                          color: c.textSecondary,
                         ),
                       ),
                     ],
@@ -435,11 +523,11 @@ class _MealReviewDialogState extends State<MealReviewDialog> {
                   // Top 3 Relabel suggestions if present
                   if (_current.top3.length > 1) ...[
                     const SizedBox(height: 6),
-                    const Text(
+                    Text(
                       'Không đúng? Chọn lại từ gợi ý:',
                       style: TextStyle(
                         fontSize: 11,
-                        color: _textMuted,
+                        color: c.textMuted,
                       ),
                     ),
                     const SizedBox(height: 6),
@@ -455,10 +543,10 @@ class _MealReviewDialogState extends State<MealReviewDialog> {
                           child: Container(
                             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                             decoration: BoxDecoration(
-                              color: isSelected ? _brandPrimaryLight : _bgCard,
+                              color: isSelected ? c.brandPrimaryLight : c.bgCard,
                               borderRadius: BorderRadius.circular(12),
                               border: Border.all(
-                                color: isSelected ? _brandPrimary : _borderSubtle,
+                                color: isSelected ? c.brandPrimary : c.borderSubtle,
                               ),
                             ),
                             child: Text(
@@ -466,7 +554,7 @@ class _MealReviewDialogState extends State<MealReviewDialog> {
                               style: TextStyle(
                                 fontSize: 11,
                                 fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-                                color: isSelected ? _brandPrimary : _textSecondary,
+                                color: isSelected ? c.brandPrimary : c.textSecondary,
                               ),
                             ),
                           ),
@@ -480,8 +568,8 @@ class _MealReviewDialogState extends State<MealReviewDialog> {
                   Container(
                     padding: const EdgeInsets.all(14),
                     decoration: BoxDecoration(
-                      color: _bgCanvas,
-                      border: Border.all(color: _borderSubtle),
+                      color: c.bgCanvas,
+                      border: Border.all(color: c.borderSubtle),
                       borderRadius: BorderRadius.circular(14),
                     ),
                     child: Column(
@@ -489,21 +577,21 @@ class _MealReviewDialogState extends State<MealReviewDialog> {
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            const Text(
+                            Text(
                               'KHỐI LƯỢNG',
                               style: TextStyle(
                                 fontSize: 11,
                                 fontWeight: FontWeight.w600,
-                                color: _textSecondary,
+                                color: c.textSecondary,
                                 letterSpacing: 0.5,
                               ),
                             ),
                             Text(
                               '${_grams.toStringAsFixed(0)}g',
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 17,
                                 fontWeight: FontWeight.w700,
-                                color: _brandPrimary,
+                                color: c.brandPrimary,
                               ),
                             ),
                           ],
@@ -511,10 +599,10 @@ class _MealReviewDialogState extends State<MealReviewDialog> {
                         const SizedBox(height: 4),
                         SliderTheme(
                           data: SliderTheme.of(context).copyWith(
-                            activeTrackColor: _brandPrimary,
-                            inactiveTrackColor: _borderStrong,
-                            thumbColor: _brandPrimary,
-                            overlayColor: _brandPrimaryLight,
+                            activeTrackColor: c.brandPrimary,
+                            inactiveTrackColor: c.borderStrong,
+                            thumbColor: c.brandPrimary,
+                            overlayColor: c.brandPrimaryLight,
                             trackHeight: 4,
                             thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 8),
                           ),
@@ -526,14 +614,14 @@ class _MealReviewDialogState extends State<MealReviewDialog> {
                             onChanged: _confirmedData == null ? _onGramsChanged : null,
                           ),
                         ),
-                        const Padding(
-                          padding: EdgeInsets.symmetric(horizontal: 4.0),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 4.0),
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              Text('10g', style: TextStyle(fontSize: 10, color: _textMuted)),
-                              Text('250g', style: TextStyle(fontSize: 10, color: _textMuted)),
-                              Text('500g', style: TextStyle(fontSize: 10, color: _textMuted)),
+                              Text('10g', style: TextStyle(fontSize: 10, color: c.textMuted)),
+                              Text('250g', style: TextStyle(fontSize: 10, color: c.textMuted)),
+                              Text('500g', style: TextStyle(fontSize: 10, color: c.textMuted)),
                             ],
                           ),
                         ),
@@ -549,8 +637,12 @@ class _MealReviewDialogState extends State<MealReviewDialog> {
                         child: Container(
                           padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 2),
                           decoration: BoxDecoration(
-                            color: _bgCard,
-                            border: Border.all(color: Colors.white.withOpacity(0.12)),
+                            color: c.bgCard,
+                            border: Border.all(
+                              color: c.isDark
+                                  ? Colors.white.withOpacity(0.12)
+                                  : c.borderSubtle,
+                            ),
                             borderRadius: BorderRadius.circular(12),
                           ),
                           child: Column(
@@ -559,20 +651,20 @@ class _MealReviewDialogState extends State<MealReviewDialog> {
                                 fit: BoxFit.scaleDown,
                                 child: Text(
                                   _current.calories.toStringAsFixed(0),
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                     fontSize: 15,
                                     fontWeight: FontWeight.w700,
-                                    color: _textPrimary,
+                                    color: c.textPrimary,
                                   ),
                                 ),
                               ),
                               const SizedBox(height: 2),
-                              const Text(
+                              Text(
                                 'KCAL',
                                 style: TextStyle(
                                   fontSize: 10,
                                   fontWeight: FontWeight.w500,
-                                  color: _textSecondary,
+                                  color: c.textSecondary,
                                 ),
                               ),
                             ],
@@ -584,8 +676,8 @@ class _MealReviewDialogState extends State<MealReviewDialog> {
                         child: Container(
                           padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 2),
                           decoration: BoxDecoration(
-                            color: _bgCard,
-                            border: Border.all(color: _borderSubtle),
+                            color: c.bgCard,
+                            border: Border.all(color: c.borderSubtle),
                             borderRadius: BorderRadius.circular(12),
                           ),
                           child: Column(
@@ -594,20 +686,20 @@ class _MealReviewDialogState extends State<MealReviewDialog> {
                                 fit: BoxFit.scaleDown,
                                 child: Text(
                                   '${_current.protein.toStringAsFixed(1)}g',
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                     fontSize: 15,
                                     fontWeight: FontWeight.w700,
-                                    color: _proteinColor,
+                                    color: c.proteinColor,
                                   ),
                                 ),
                               ),
                               const SizedBox(height: 2),
-                              const Text(
+                              Text(
                                 'ĐẠM',
                                 style: TextStyle(
                                   fontSize: 10,
                                   fontWeight: FontWeight.w500,
-                                  color: _textSecondary,
+                                  color: c.textSecondary,
                                 ),
                               ),
                             ],
@@ -619,8 +711,8 @@ class _MealReviewDialogState extends State<MealReviewDialog> {
                         child: Container(
                           padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 2),
                           decoration: BoxDecoration(
-                            color: _bgCard,
-                            border: Border.all(color: _borderSubtle),
+                            color: c.bgCard,
+                            border: Border.all(color: c.borderSubtle),
                             borderRadius: BorderRadius.circular(12),
                           ),
                           child: Column(
@@ -629,20 +721,20 @@ class _MealReviewDialogState extends State<MealReviewDialog> {
                                 fit: BoxFit.scaleDown,
                                 child: Text(
                                   '${_current.carbs.toStringAsFixed(1)}g',
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                     fontSize: 15,
                                     fontWeight: FontWeight.w700,
-                                    color: _carbsColor,
+                                    color: c.carbsColor,
                                   ),
                                 ),
                               ),
                               const SizedBox(height: 2),
-                              const Text(
+                              Text(
                                 'CARB',
                                 style: TextStyle(
                                   fontSize: 10,
                                   fontWeight: FontWeight.w500,
-                                  color: _textSecondary,
+                                  color: c.textSecondary,
                                 ),
                               ),
                             ],
@@ -654,8 +746,8 @@ class _MealReviewDialogState extends State<MealReviewDialog> {
                         child: Container(
                           padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 2),
                           decoration: BoxDecoration(
-                            color: _bgCard,
-                            border: Border.all(color: _borderSubtle),
+                            color: c.bgCard,
+                            border: Border.all(color: c.borderSubtle),
                             borderRadius: BorderRadius.circular(12),
                           ),
                           child: Column(
@@ -664,20 +756,20 @@ class _MealReviewDialogState extends State<MealReviewDialog> {
                                 fit: BoxFit.scaleDown,
                                 child: Text(
                                   '${_current.fat.toStringAsFixed(1)}g',
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                     fontSize: 15,
                                     fontWeight: FontWeight.w700,
-                                    color: _fatColor,
+                                    color: c.fatColor,
                                   ),
                                 ),
                               ),
                               const SizedBox(height: 2),
-                              const Text(
+                              Text(
                                 'BÉO',
                                 style: TextStyle(
                                   fontSize: 10,
                                   fontWeight: FontWeight.w500,
-                                  color: _textSecondary,
+                                  color: c.textSecondary,
                                 ),
                               ),
                             ],
@@ -695,14 +787,14 @@ class _MealReviewDialogState extends State<MealReviewDialog> {
                       child: Container(
                         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                         decoration: BoxDecoration(
-                          color: _bgCard,
-                          border: Border.all(color: _borderSubtle),
+                          color: c.bgCard,
+                          border: Border.all(color: c.borderSubtle),
                           borderRadius: BorderRadius.circular(10),
                         ),
                         child: Text(
                           'Chất xơ  ${_current.fiber!.toStringAsFixed(1)}g',
-                          style: const TextStyle(
-                            color: _textPrimary,
+                          style: TextStyle(
+                            color: c.textPrimary,
                             fontSize: 13,
                             fontWeight: FontWeight.w600,
                           ),
@@ -719,8 +811,10 @@ class _MealReviewDialogState extends State<MealReviewDialog> {
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                     decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.03),
-                      border: Border.all(color: _borderSubtle),
+                      color: c.isDark
+                          ? Colors.white.withOpacity(0.03)
+                          : c.bgCard,
+                      border: Border.all(color: c.borderSubtle),
                       borderRadius: BorderRadius.circular(10),
                     ),
                     child: Row(
@@ -729,14 +823,14 @@ class _MealReviewDialogState extends State<MealReviewDialog> {
                           child: RichText(
                             overflow: TextOverflow.ellipsis,
                             text: TextSpan(
-                              style: const TextStyle(fontSize: 11, color: _textSecondary),
+                              style: TextStyle(fontSize: 11, color: c.textSecondary),
                               children: [
                                 const TextSpan(text: 'Nguồn số liệu: '),
                                 TextSpan(
                                   text: _isAdvanced ? 'AI ước tính' : 'Dữ liệu tham chiếu',
                                   style: TextStyle(
                                     fontWeight: FontWeight.w600,
-                                    color: _isAdvanced ? _aiAccent : _brandPrimary,
+                                    color: _isAdvanced ? c.aiAccent : c.brandPrimary,
                                   ),
                                 ),
                               ],
@@ -758,14 +852,14 @@ class _MealReviewDialogState extends State<MealReviewDialog> {
                                   style: TextStyle(
                                     fontSize: 11,
                                     fontWeight: FontWeight.w500,
-                                    color: _isAdvanced ? _aiAccent : _brandPrimary,
+                                    color: _isAdvanced ? c.aiAccent : c.brandPrimary,
                                   ),
                                 ),
                                 const SizedBox(width: 3),
                                 Icon(
                                   Icons.info_outline,
                                   size: 12,
-                                  color: _isAdvanced ? _aiAccent : _brandPrimary,
+                                  color: _isAdvanced ? c.aiAccent : c.brandPrimary,
                                 ),
                               ],
                             ),
@@ -779,17 +873,17 @@ class _MealReviewDialogState extends State<MealReviewDialog> {
                     Container(
                       padding: const EdgeInsets.all(10),
                       decoration: BoxDecoration(
-                        color: const Color(0xFF222222),
-                        border: Border.all(color: _borderStrong),
+                        color: c.isDark ? const Color(0xFF222222) : c.bgCard,
+                        border: Border.all(color: c.borderStrong),
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Text(
                         _isAdvanced
                             ? 'Chỉ số calo và macro do AI ước lượng từ hình ảnh thực phẩm. Vui lòng kiểm tra và điều chỉnh gram theo thực tế đĩa ăn.'
                             : 'Dinh dưỡng được tra cứu từ cơ sở dữ liệu tham chiếu theo số gram được phân loại.',
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 11,
-                          color: _textSecondary,
+                          color: c.textSecondary,
                           height: 1.45,
                         ),
                       ),
@@ -812,9 +906,9 @@ class _MealReviewDialogState extends State<MealReviewDialog> {
                             child: Container(
                               padding: const EdgeInsets.symmetric(vertical: 8),
                               decoration: BoxDecoration(
-                                color: isSelected ? _bgSurface : _bgCard,
+                                color: isSelected ? c.bgSurface : c.bgCard,
                                 border: Border.all(
-                                  color: isSelected ? _brandPrimary : _borderSubtle,
+                                  color: isSelected ? c.brandPrimary : c.borderSubtle,
                                 ),
                                 borderRadius: BorderRadius.circular(8),
                               ),
@@ -824,7 +918,7 @@ class _MealReviewDialogState extends State<MealReviewDialog> {
                                 style: TextStyle(
                                   fontSize: 11,
                                   fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-                                  color: isSelected ? _brandPrimary : _textSecondary,
+                                  color: isSelected ? c.brandPrimary : c.textSecondary,
                                 ),
                               ),
                             ),
@@ -841,21 +935,21 @@ class _MealReviewDialogState extends State<MealReviewDialog> {
                     height: 48,
                     child: FilledButton(
                       style: FilledButton.styleFrom(
-                        backgroundColor: _brandPrimary,
-                        foregroundColor: const Color(0xFF052E16),
-                        disabledBackgroundColor: _brandPrimary.withOpacity(0.35),
+                        backgroundColor: c.brandPrimary,
+                        foregroundColor: c.onBrandPrimary,
+                        disabledBackgroundColor: c.brandPrimary.withOpacity(0.35),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
                         ),
                       ),
                       onPressed: _saving || !_retryAllowed ? null : _confirm,
                       child: _saving
-                          ? const SizedBox(
+                          ? SizedBox(
                               width: 20,
                               height: 20,
                               child: CircularProgressIndicator(
                                 strokeWidth: 2,
-                                color: Color(0xFF052E16),
+                                color: c.onBrandPrimary,
                               ),
                             )
                           : Text(
@@ -874,8 +968,8 @@ class _MealReviewDialogState extends State<MealReviewDialog> {
                     height: 40,
                     child: OutlinedButton(
                       style: OutlinedButton.styleFrom(
-                        foregroundColor: _textSecondary,
-                        side: const BorderSide(color: _borderSubtle),
+                        foregroundColor: c.textSecondary,
+                        side: BorderSide(color: c.borderSubtle),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
                         ),
@@ -906,21 +1000,25 @@ class IngredientReviewSection extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) => Container(
+  Widget build(BuildContext context) {
+    final c = _MealReviewColors.of(context);
+    return Container(
         width: double.infinity,
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: const Color(0xFF242424),
-          border: Border.all(color: const Color(0xFF2A2A2A)),
+          color: c.isDark ? const Color(0xFF242424) : c.bgCard,
+          border: Border.all(
+            color: c.isDark ? const Color(0xFF2A2A2A) : c.borderSubtle,
+          ),
           borderRadius: BorderRadius.circular(12),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
+            Text(
               'Thành phần ước tính',
               style: TextStyle(
-                color: Color(0xFFF0F0F0),
+                color: c.isDark ? const Color(0xFFF0F0F0) : c.textPrimary,
                 fontSize: 14,
                 fontWeight: FontWeight.w700,
               ),
@@ -934,12 +1032,21 @@ class IngredientReviewSection extends StatelessWidget {
                     Expanded(
                       child: Text(
                         ingredient.name,
-                        style: const TextStyle(color: Color(0xFFF0F0F0)),
+                        style: TextStyle(
+                          color: c.isDark
+                              ? const Color(0xFFF0F0F0)
+                              : c.textPrimary,
+                        ),
                       ),
                     ),
                     Text(
                       '${ingredient.portionGrams.toStringAsFixed(0)}g · ${ingredient.calories.toStringAsFixed(0)} kcal',
-                      style: const TextStyle(color: Color(0xFFAAAAAA), fontSize: 12),
+                      style: TextStyle(
+                        color: c.isDark
+                            ? const Color(0xFFAAAAAA)
+                            : c.textSecondary,
+                        fontSize: 12,
+                      ),
                     ),
                   ],
                 ),
@@ -947,6 +1054,7 @@ class IngredientReviewSection extends StatelessWidget {
           ],
         ),
       );
+  }
 }
 
 class MealLogData {

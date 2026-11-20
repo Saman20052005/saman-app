@@ -27,16 +27,17 @@ class SamanPlusCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = SamanHomeTokens.of(context);
     return Container(
       margin: const EdgeInsets.symmetric(
         horizontal: SamanHomeTokens.spacingLg,
       ),
       padding: const EdgeInsets.all(SamanHomeTokens.spacingLg),
       decoration: BoxDecoration(
-        color: SamanHomeTokens.cardSurfaceElevated,
+        color: tokens.cardSurfaceElevated,
         borderRadius: BorderRadius.circular(SamanHomeTokens.radiusLg),
         border: Border.all(
-          color: SamanHomeTokens.border,
+          color: tokens.border,
           width: 1,
         ),
       ),
@@ -49,18 +50,18 @@ class SamanPlusCard extends StatelessWidget {
               Container(
                 width: 6,
                 height: 6,
-                decoration: const BoxDecoration(
+                decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: SamanHomeTokens.greenAccent,
+                  color: tokens.greenAccent,
                 ),
               ),
               const SizedBox(width: 6),
-              const Text(
+              Text(
                 'SAMAN+',
                 style: TextStyle(
                   fontSize: 11,
                   fontWeight: FontWeight.w700,
-                  color: SamanHomeTokens.greenAccent,
+                  color: tokens.greenAccent,
                   letterSpacing: 1.0,
                 ),
               ),
@@ -69,36 +70,36 @@ class SamanPlusCard extends StatelessWidget {
           const SizedBox(height: SamanHomeTokens.spacingSm),
 
           // Title
-          const Text(
+          Text(
             'Unlock more with Saman+',
             style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w700,
-              color: SamanHomeTokens.textWhite,
+              color: tokens.textWhite,
               letterSpacing: -0.3,
             ),
           ),
           const SizedBox(height: 4),
 
           // Description
-          const Text(
+          Text(
             'Adaptive plans, deeper insights and more personalized coaching.',
             style: TextStyle(
               fontSize: 13,
               fontWeight: FontWeight.w400,
-              color: SamanHomeTokens.textSecondary,
+              color: tokens.textSecondary,
               height: 1.35,
             ),
           ),
           const SizedBox(height: SamanHomeTokens.spacingSm),
 
           // Benefits
-          const Text(
+          Text(
             'Advanced reports · Body trends · More Saman Coach',
             style: TextStyle(
               fontSize: 11,
               fontWeight: FontWeight.w500,
-              color: SamanHomeTokens.textMuted,
+              color: tokens.textMuted,
             ),
           ),
           const SizedBox(height: SamanHomeTokens.spacingMd),
@@ -117,17 +118,17 @@ class SamanPlusCard extends StatelessWidget {
                     children: [
                       Text(
                         actionLabel,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.w600,
-                          color: SamanHomeTokens.greenAccent,
+                          color: tokens.greenAccent,
                         ),
                       ),
                       const SizedBox(width: 4),
-                      const Icon(
+                      Icon(
                         Icons.arrow_forward_rounded,
                         size: 14,
-                        color: SamanHomeTokens.greenAccent,
+                        color: tokens.greenAccent,
                       ),
                     ],
                   ),
@@ -142,10 +143,10 @@ class SamanPlusCard extends StatelessWidget {
                 children: [
                   Text(
                     actionLabel,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.w600,
-                      color: SamanHomeTokens.greenAccent,
+                      color: tokens.greenAccent,
                     ),
                   ),
                 ],

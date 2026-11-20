@@ -15,15 +15,19 @@ class SamanFeedbackSnackBar {
   static const Color darkText = Color(0xFFF3F4F6);
   static const Color darkSubtext = Color(0xFF94979E);
 
-  static const Color lightBg = Color(0xFFF2F3F5);
-  static const Color lightBorder = Color(0xFFDADCE0);
-  static const Color lightText = Color(0xFF1A1A18);
-  static const Color lightSubtext = Color(0xFF6B6862);
+  static const Color lightBg = Color(0xFFFFFFFF);
+  static const Color lightBorder = Color(0xFFE2E8F0);
+  static const Color lightText = Color(0xFF0F172A);
+  static const Color lightSubtext = Color(0xFF475569);
 
   static const Color successGreen = Color(0xFF10B981);
+  static const Color lightSuccessGreen = Color(0xFF059669);
   static const Color warningOrange = Color(0xFFF59E0B);
+  static const Color lightWarningOrange = Color(0xFFD97706);
   static const Color errorRed = Color(0xFFEF4444);
+  static const Color lightErrorRed = Color(0xFFDC2626);
   static const Color infoBlue = Color(0xFF3B82F6);
+  static const Color lightInfoBlue = Color(0xFF0891B2);
 
   static IconData _iconForType(FeedbackType type) {
     switch (type) {
@@ -38,16 +42,16 @@ class SamanFeedbackSnackBar {
     }
   }
 
-  static Color _iconColorForType(FeedbackType type) {
+  static Color _iconColorForType(FeedbackType type, {required bool isDark}) {
     switch (type) {
       case FeedbackType.success:
-        return successGreen;
+        return isDark ? successGreen : lightSuccessGreen;
       case FeedbackType.warning:
-        return warningOrange;
+        return isDark ? warningOrange : lightWarningOrange;
       case FeedbackType.error:
-        return errorRed;
+        return isDark ? errorRed : lightErrorRed;
       case FeedbackType.info:
-        return infoBlue;
+        return isDark ? infoBlue : lightInfoBlue;
     }
   }
 
@@ -66,7 +70,8 @@ class SamanFeedbackSnackBar {
     final border = isDark ? darkBorder : lightBorder;
     final textColor = isDark ? darkText : lightText;
     final subtextColor = isDark ? darkSubtext : lightSubtext;
-    final iconColor = _iconColorForType(type);
+    final resolvedSuccessGreen = isDark ? successGreen : lightSuccessGreen;
+    final iconColor = _iconColorForType(type, isDark: isDark);
     final iconData = _iconForType(type);
 
     final screenWidth = MediaQuery.maybeSizeOf(context)?.width ?? 400.0;
@@ -80,7 +85,7 @@ class SamanFeedbackSnackBar {
       effectiveAction = SnackBarAction(
         key: action.key,
         label: action.label,
-        textColor: action.textColor ?? successGreen,
+        textColor: action.textColor ?? resolvedSuccessGreen,
         disabledTextColor: action.disabledTextColor,
         backgroundColor: action.backgroundColor,
         disabledBackgroundColor: action.disabledBackgroundColor,

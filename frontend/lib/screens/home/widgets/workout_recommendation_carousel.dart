@@ -152,12 +152,13 @@ class _WorkoutHeroCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = SamanHomeTokens.of(context);
     return Container(
       decoration: BoxDecoration(
-        color: SamanHomeTokens.cardSurface,
+        color: tokens.cardSurface,
         borderRadius: BorderRadius.circular(SamanHomeTokens.radiusXl),
         border: Border.all(
-          color: SamanHomeTokens.border,
+          color: tokens.border,
           width: 1,
         ),
       ),

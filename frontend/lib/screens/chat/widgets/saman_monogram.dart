@@ -14,7 +14,7 @@ class SamanMonogram extends StatelessWidget {
   final Color? backgroundColor;
   final Color? borderColor;
   final Color? textColor;
-  final bool isLightMode;
+  final bool? isLightMode;
 
   const SamanMonogram({
     super.key,
@@ -24,7 +24,7 @@ class SamanMonogram extends StatelessWidget {
     this.backgroundColor,
     this.borderColor,
     this.textColor,
-    this.isLightMode = false,
+    this.isLightMode,
   });
 
   /// Factory constructor for small header logo (22x22)
@@ -35,7 +35,7 @@ class SamanMonogram extends StatelessWidget {
         backgroundColor = null,
         borderColor = null,
         textColor = null,
-        isLightMode = false;
+        isLightMode = null;
 
   /// Factory constructor for assistant chat response logo (22x22)
   const SamanMonogram.chat({super.key})
@@ -45,7 +45,7 @@ class SamanMonogram extends StatelessWidget {
         backgroundColor = null,
         borderColor = null,
         textColor = null,
-        isLightMode = false;
+        isLightMode = null;
 
   /// Factory constructor for hero empty state logo (42x42)
   const SamanMonogram.hero({super.key})
@@ -55,15 +55,17 @@ class SamanMonogram extends StatelessWidget {
         backgroundColor = null,
         borderColor = null,
         textColor = null,
-        isLightMode = false;
+        isLightMode = null;
 
   @override
   Widget build(BuildContext context) {
+    final effectiveIsLightMode =
+        isLightMode ?? (Theme.of(context).brightness == Brightness.light);
     return Semantics(
       excludeSemantics: true,
       child: AppLogo(
         size: size,
-        isLightMode: isLightMode,
+        isLightMode: effectiveIsLightMode,
       ),
     );
   }

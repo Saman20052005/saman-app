@@ -172,6 +172,8 @@ class _SamanChatComposerState extends State<SamanChatComposer> with WidgetsBindi
         final spaceBelow = screenHeight - (offset.dy + targetHeight) - bottomSafe;
         final effectiveOpensUpward = spaceAbove >= 180.0 || spaceAbove >= spaceBelow;
 
+        final t = SamanChatTokens.of(overlayContext);
+
         return Stack(
           children: [
             // Barrier
@@ -206,17 +208,19 @@ class _SamanChatComposerState extends State<SamanChatComposer> with WidgetsBindi
                       child: Container(
                         width: 250.0,
                       decoration: BoxDecoration(
-                        color: SamanChatTokens.surfaceElevated,
+                        color: t.isDark ? t.surfaceElevated : t.surface,
                         borderRadius: BorderRadius.circular(14.0),
                         border: Border.all(
-                          color: SamanChatTokens.borderSubtle,
+                          color: t.borderSubtle,
                           width: 1.0,
                         ),
-                        boxShadow: const [
+                        boxShadow: [
                           BoxShadow(
-                            color: Color(0x66000000),
+                            color: t.isDark
+                                ? const Color(0x66000000)
+                                : const Color(0x1A0F172A),
                             blurRadius: 16.0,
-                            offset: Offset(0, 6),
+                            offset: const Offset(0, 6),
                           ),
                         ],
                       ),
@@ -226,6 +230,7 @@ class _SamanChatComposerState extends State<SamanChatComposer> with WidgetsBindi
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             _buildPopoverItem(
+                              palette: t,
                               icon: Icons.add_a_photo_outlined,
                               title: 'Phân tích ảnh món ăn',
                               subtitle: 'Standard & Advanced AI',
@@ -238,12 +243,13 @@ class _SamanChatComposerState extends State<SamanChatComposer> with WidgetsBindi
                                 }
                               },
                             ),
-                            const Divider(
+                            Divider(
                               height: 1.0,
                               thickness: 1.0,
-                              color: SamanChatTokens.borderSubtle,
+                              color: t.borderSubtle,
                             ),
                             _buildPopoverItem(
+                              palette: t,
                               icon: Icons.insights_outlined,
                               title: 'Phân tích lịch sử',
                               subtitle: '7, 14, 30 ngày',
@@ -329,6 +335,7 @@ class _SamanChatComposerState extends State<SamanChatComposer> with WidgetsBindi
   }
 
 Widget _buildPopoverItem({
+    required SamanChatPalette palette,
     required IconData icon,
     required String title,
     required String subtitle,
@@ -339,14 +346,14 @@ Widget _buildPopoverItem({
       label: '$title: $subtitle',
       child: InkWell(
         onTap: onTap,
-        hoverColor: SamanChatTokens.actionRowHoverBg,
-        focusColor: SamanChatTokens.actionRowFocusBg,
-        highlightColor: SamanChatTokens.actionRowPressedBg,
+        hoverColor: palette.actionRowHoverBg,
+        focusColor: palette.actionRowFocusBg,
+        highlightColor: palette.actionRowPressedBg,
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 14.0, vertical: 11.0),
           child: Row(
             children: [
-              Icon(icon, size: 20.0, color: SamanChatTokens.textWhite),
+              Icon(icon, size: 20.0, color: palette.textWhite),
               const SizedBox(width: 12.0),
               Expanded(
                 child: Column(
@@ -355,18 +362,18 @@ Widget _buildPopoverItem({
                   children: [
                     Text(
                       title,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 13.5,
                         fontWeight: FontWeight.w600,
-                        color: SamanChatTokens.textWhite,
+                        color: palette.textWhite,
                       ),
                     ),
                     const SizedBox(height: 2.0),
                     Text(
                       subtitle,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 11.5,
-                        color: SamanChatTokens.textMuted,
+                        color: palette.textMuted,
                       ),
                     ),
                   ],
@@ -380,6 +387,7 @@ Widget _buildPopoverItem({
   }
 
   Widget _buildToolsButton({required bool disableAnimations}) {
+    final t = SamanChatTokens.of(context);
     return CompositedTransformTarget(
       link: _toolsLayerLink,
       child: Semantics(
@@ -396,16 +404,18 @@ Widget _buildPopoverItem({
                 child: InkWell(
                   key: _toolsKey,
                   borderRadius: BorderRadius.circular(18.0),
-                  hoverColor: SamanChatTokens.actionRowHoverBg,
-                  focusColor: SamanChatTokens.actionRowFocusBg,
-                  highlightColor: SamanChatTokens.actionRowPressedBg,
+                  hoverColor: t.actionRowHoverBg,
+                  focusColor: t.actionRowFocusBg,
+                  highlightColor: t.actionRowPressedBg,
                   onTap: _toggleToolsMenu,
                   child: AnimatedContainer(
                     duration: disableAnimations ? Duration.zero : const Duration(milliseconds: 140),
                     width: 36.0,
                     height: 36.0,
                     decoration: BoxDecoration(
-                      color: _isToolsMenuOpen ? SamanChatTokens.surface : SamanChatTokens.iconContainerBg,
+                      color: _isToolsMenuOpen
+                          ? (t.isDark ? t.surface : t.borderSubtle)
+                          : t.iconContainerBg,
                       shape: BoxShape.circle,
                     ),
                     alignment: Alignment.center,
@@ -418,7 +428,7 @@ Widget _buildPopoverItem({
                       child: Icon(
                         _isToolsMenuOpen ? Icons.close_rounded : Icons.add_rounded,
                         key: ValueKey(_isToolsMenuOpen ? 'tools_close_icon' : 'tools_add_icon'),
-                        color: _isToolsMenuOpen ? SamanChatTokens.textWhite : SamanChatTokens.textSecondary,
+                        color: _isToolsMenuOpen ? t.textWhite : t.textSecondary,
                         size: 20.0,
                       ),
                     ),
@@ -441,6 +451,7 @@ Widget _buildPopoverItem({
   }
 
   Widget _buildModeButton({required bool disableAnimations}) {
+    final t = SamanChatTokens.of(context);
     return CompositedTransformTarget(
       link: _modeLayerLink,
       child: Semantics(
@@ -452,15 +463,17 @@ Widget _buildPopoverItem({
             key: _modeKey,
             canRequestFocus: false,
             borderRadius: BorderRadius.circular(16.0),
-            hoverColor: SamanChatTokens.actionRowHoverBg,
-            focusColor: SamanChatTokens.actionRowFocusBg,
-            highlightColor: SamanChatTokens.actionRowPressedBg,
+            hoverColor: t.actionRowHoverBg,
+            focusColor: t.actionRowFocusBg,
+            highlightColor: t.actionRowPressedBg,
             onTap: _toggleModeMenu,
             child: Container(
               height: 48.0,
               padding: const EdgeInsets.symmetric(horizontal: 10.0),
               decoration: BoxDecoration(
-                color: _isModeMenuOpen ? const Color(0x1FFFFFFF) : Colors.transparent,
+                color: _isModeMenuOpen
+                    ? (t.isDark ? const Color(0x1FFFFFFF) : t.surfaceElevated)
+                    : Colors.transparent,
                 borderRadius: BorderRadius.circular(16.0),
               ),
               alignment: Alignment.center,
@@ -471,8 +484,8 @@ Widget _buildPopoverItem({
                     width: 6.0,
                     height: 6.0,
                     margin: const EdgeInsets.only(right: 6.0),
-                    decoration: const BoxDecoration(
-                      color: Color(0xFF10B981),
+                    decoration: BoxDecoration(
+                      color: t.greenAccent,
                       shape: BoxShape.circle,
                     ),
                   ),
@@ -481,7 +494,7 @@ Widget _buildPopoverItem({
                     style: TextStyle(
                       fontSize: 13.0,
                       fontWeight: FontWeight.w600,
-                      color: _isModeMenuOpen ? SamanChatTokens.textWhite : SamanChatTokens.textSecondary,
+                      color: _isModeMenuOpen ? t.textWhite : t.textSecondary,
                     ),
                   ),
                   const SizedBox(width: 2.0),
@@ -495,7 +508,7 @@ Widget _buildPopoverItem({
                       _isModeMenuOpen ? Icons.keyboard_arrow_up_rounded : Icons.keyboard_arrow_down_rounded,
                       key: ValueKey(_isModeMenuOpen ? 'mode_chevron_up' : 'mode_chevron_down'),
                       size: 18.0,
-                      color: _isModeMenuOpen ? SamanChatTokens.textWhite : SamanChatTokens.textSecondary,
+                      color: _isModeMenuOpen ? t.textWhite : t.textSecondary,
                     ),
                   ),
                 ],
@@ -508,6 +521,7 @@ Widget _buildPopoverItem({
   }
 
   Widget _buildLoadingIndicator() {
+    final t = SamanChatTokens.of(context);
     return Semantics(
       label: widget.loadingHintText ?? 'Saman đang phản hồi',
       child: SizedBox(
@@ -518,20 +532,20 @@ Widget _buildPopoverItem({
             width: 34.0,
             height: 34.0,
             decoration: BoxDecoration(
-              color: SamanChatTokens.composerStopBg,
+              color: t.composerStopBg,
               shape: BoxShape.circle,
               border: Border.all(
-                color: SamanChatTokens.borderSubtle,
+                color: t.borderSubtle,
                 width: 1.0,
               ),
             ),
             alignment: Alignment.center,
-            child: const SizedBox(
+            child: SizedBox(
               width: 16.0,
               height: 16.0,
               child: CircularProgressIndicator(
                 strokeWidth: 2.0,
-                color: SamanChatTokens.textSecondary,
+                color: t.textSecondary,
               ),
             ),
           ),
@@ -544,6 +558,7 @@ Widget _buildPopoverItem({
     if (widget.isLoading) {
       return _buildLoadingIndicator();
     }
+    final t = SamanChatTokens.of(context);
     return Semantics(
       button: true,
       enabled: canSend,
@@ -556,9 +571,9 @@ Widget _buildPopoverItem({
             color: Colors.transparent,
             child: InkWell(
               borderRadius: BorderRadius.circular(18.0),
-              hoverColor: SamanChatTokens.actionRowHoverBg,
-              focusColor: SamanChatTokens.actionRowFocusBg,
-              highlightColor: SamanChatTokens.actionRowPressedBg,
+              hoverColor: t.actionRowHoverBg,
+              focusColor: t.actionRowFocusBg,
+              highlightColor: t.actionRowPressedBg,
               onTap: canSend ? widget.onSend : null,
               child: AnimatedContainer(
                 duration: disableAnimations ? Duration.zero : const Duration(milliseconds: 140),
@@ -566,13 +581,13 @@ Widget _buildPopoverItem({
                 height: 36.0,
                 decoration: BoxDecoration(
                   color: canSend
-                      ? SamanChatTokens.greenAccent
-                      : SamanChatTokens.composerSendDisabledBg,
+                      ? (t.isDark ? t.greenAccent : t.composerSendBg)
+                      : t.composerSendDisabledBg,
                   shape: BoxShape.circle,
                   boxShadow: canSend
                       ? [
                           BoxShadow(
-                            color: SamanChatTokens.greenAccent.withOpacity(0.35),
+                            color: t.greenAccent.withOpacity(t.isDark ? 0.35 : 0.25),
                             offset: const Offset(0, 2),
                             blurRadius: 6.0,
                           ),
@@ -583,8 +598,8 @@ Widget _buildPopoverItem({
                 child: Icon(
                   Icons.arrow_upward_rounded,
                   color: canSend
-                      ? const Color(0xFF052E16)
-                      : SamanChatTokens.composerSendDisabledIcon,
+                      ? (t.isDark ? const Color(0xFF052E16) : t.composerSendIcon)
+                      : t.composerSendDisabledIcon,
                   size: 20.0,
                 ),
               ),
@@ -596,13 +611,14 @@ Widget _buildPopoverItem({
   }
 
   Widget _buildInputField({required bool isSingleLine, required bool canSend}) {
+    final t = SamanChatTokens.of(context);
     return TextField(
       key: _textFieldKey,
       focusNode: _effectiveFocusNode,
       controller: widget.controller,
       enabled: true,
-      style: SamanChatTokens.composerInput,
-      cursorColor: SamanChatTokens.textWhite,
+      style: t.composerInput,
+      cursorColor: t.textWhite,
       textCapitalization: TextCapitalization.sentences,
       keyboardType: TextInputType.multiline,
       textInputAction: TextInputAction.send,
@@ -614,8 +630,8 @@ Widget _buildPopoverItem({
         fillColor: Colors.transparent,
         hoverColor: Colors.transparent,
         hintText: widget.hintText ?? 'Hỏi Saman...',
-        hintStyle: SamanChatTokens.composerHint.copyWith(
-          color: const Color(0xFF9CA3AF),
+        hintStyle: t.composerHint.copyWith(
+          color: t.isDark ? const Color(0xFF9CA3AF) : t.textMuted,
         ),
         isDense: true,
         contentPadding: isSingleLine
@@ -640,6 +656,7 @@ Widget _buildPopoverItem({
   Widget build(BuildContext context) {
     final canSend = !widget.isLoading && _hasText;
     final disableAnimations = MediaQuery.maybeOf(context)?.disableAnimations ?? false;
+    final t = SamanChatTokens.of(context);
 
     return Focus(
       onKeyEvent: (node, event) {
@@ -671,16 +688,18 @@ Widget _buildPopoverItem({
             ? const EdgeInsets.fromLTRB(14.0, 10.0, 12.0, 8.0)
             : const EdgeInsets.symmetric(horizontal: 6.0, vertical: 4.0),
         decoration: BoxDecoration(
-          color: SamanChatTokens.composerBg,
+          color: t.composerBg,
           borderRadius: BorderRadius.circular(_hasText ? 22.0 : 26.0),
           border: Border.all(
-            color: SamanChatTokens.composerBorder,
+            color: t.composerBorder,
             width: 1.0,
           ),
-          boxShadow: const [
+          boxShadow: [
             BoxShadow(
-              color: Color(0x33000000),
-              offset: Offset(0, 4),
+              color: t.isDark
+                  ? const Color(0x33000000)
+                  : const Color(0x140F172A),
+              offset: const Offset(0, 4),
               blurRadius: 16,
             ),
           ],
@@ -987,20 +1006,21 @@ class _ModeMenuOverlayState extends State<_ModeMenuOverlay> {
   }
 
   Widget _buildDesktopMainMenu() {
+    final t = SamanChatTokens.of(context);
     return Container(
       width: 270.0,
       decoration: BoxDecoration(
-        color: SamanChatTokens.surfaceElevated,
+        color: t.isDark ? t.surfaceElevated : t.surface,
         borderRadius: BorderRadius.circular(14.0),
         border: Border.all(
-          color: SamanChatTokens.borderSubtle,
+          color: t.borderSubtle,
           width: 1.0,
         ),
-        boxShadow: const [
+        boxShadow: [
           BoxShadow(
-            color: Color(0x66000000),
+            color: t.isDark ? const Color(0x66000000) : const Color(0x1A0F172A),
             blurRadius: 16.0,
-            offset: Offset(0, 6),
+            offset: const Offset(0, 6),
           ),
         ],
       ),
@@ -1010,7 +1030,7 @@ class _ModeMenuOverlayState extends State<_ModeMenuOverlay> {
           mainAxisSize: MainAxisSize.min,
           children: [
             _buildModeItems(minTouchTarget: false),
-            const Divider(height: 1.0, thickness: 1.0, color: SamanChatTokens.borderSubtle),
+            Divider(height: 1.0, thickness: 1.0, color: t.borderSubtle),
             _buildThinkingTriggerRow(isDesktop: true),
           ],
         ),
@@ -1019,20 +1039,21 @@ class _ModeMenuOverlayState extends State<_ModeMenuOverlay> {
   }
 
   Widget _buildMobileMainMenu() {
+    final t = SamanChatTokens.of(context);
     return Container(
       width: 270.0,
       decoration: BoxDecoration(
-        color: SamanChatTokens.surfaceElevated,
+        color: t.isDark ? t.surfaceElevated : t.surface,
         borderRadius: BorderRadius.circular(14.0),
         border: Border.all(
-          color: SamanChatTokens.borderSubtle,
+          color: t.borderSubtle,
           width: 1.0,
         ),
-        boxShadow: const [
+        boxShadow: [
           BoxShadow(
-            color: Color(0x66000000),
+            color: t.isDark ? const Color(0x66000000) : const Color(0x1A0F172A),
             blurRadius: 16.0,
-            offset: Offset(0, 6),
+            offset: const Offset(0, 6),
           ),
         ],
       ),
@@ -1042,7 +1063,7 @@ class _ModeMenuOverlayState extends State<_ModeMenuOverlay> {
           mainAxisSize: MainAxisSize.min,
           children: [
             _buildModeItems(minTouchTarget: true),
-            const Divider(height: 1.0, thickness: 1.0, color: SamanChatTokens.borderSubtle),
+            Divider(height: 1.0, thickness: 1.0, color: t.borderSubtle),
             _buildThinkingTriggerRow(isDesktop: false),
           ],
         ),
@@ -1051,20 +1072,21 @@ class _ModeMenuOverlayState extends State<_ModeMenuOverlay> {
   }
 
   Widget _buildMobileSubmenu() {
+    final t = SamanChatTokens.of(context);
     return Container(
       width: 270.0,
       decoration: BoxDecoration(
-        color: SamanChatTokens.surfaceElevated,
+        color: t.isDark ? t.surfaceElevated : t.surface,
         borderRadius: BorderRadius.circular(14.0),
         border: Border.all(
-          color: SamanChatTokens.borderSubtle,
+          color: t.borderSubtle,
           width: 1.0,
         ),
-        boxShadow: const [
+        boxShadow: [
           BoxShadow(
-            color: Color(0x66000000),
+            color: t.isDark ? const Color(0x66000000) : const Color(0x1A0F172A),
             blurRadius: 16.0,
-            offset: Offset(0, 6),
+            offset: const Offset(0, 6),
           ),
         ],
       ),
@@ -1081,25 +1103,25 @@ class _ModeMenuOverlayState extends State<_ModeMenuOverlay> {
                 onTap: () {
                   setState(() => _isThinkingSubmenuOpen = false);
                 },
-                hoverColor: SamanChatTokens.actionRowHoverBg,
-                focusColor: SamanChatTokens.actionRowFocusBg,
+                hoverColor: t.actionRowHoverBg,
+                focusColor: t.actionRowFocusBg,
                 child: Container(
                   constraints: const BoxConstraints(minHeight: 48.0),
                   padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 12.0),
                   child: Row(
                     children: [
-                      const Icon(
+                      Icon(
                         Icons.chevron_left_rounded,
                         size: 22.0,
-                        color: SamanChatTokens.textWhite,
+                        color: t.textWhite,
                       ),
                       const SizedBox(width: 8.0),
                       Text(
                         context.tr('thinking_level_title'),
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 13.5,
                           fontWeight: FontWeight.w700,
-                          color: SamanChatTokens.textWhite,
+                          color: t.textWhite,
                         ),
                       ),
                     ],
@@ -1107,7 +1129,7 @@ class _ModeMenuOverlayState extends State<_ModeMenuOverlay> {
                 ),
               ),
             ),
-            const Divider(height: 1.0, thickness: 1.0, color: SamanChatTokens.borderSubtle),
+            Divider(height: 1.0, thickness: 1.0, color: t.borderSubtle),
             _buildThinkingMenuItem(
               title: 'Low',
               subtitle: context.tr('thinking_low_sub'),
@@ -1117,7 +1139,7 @@ class _ModeMenuOverlayState extends State<_ModeMenuOverlay> {
               onTap: () => widget.onLockedThinkingLevelTapped('Low'),
               minTouchTarget: true,
             ),
-            const Divider(height: 1.0, thickness: 1.0, color: SamanChatTokens.borderSubtle),
+            Divider(height: 1.0, thickness: 1.0, color: t.borderSubtle),
             _buildThinkingMenuItem(
               title: 'Medium',
               subtitle: context.tr('thinking_med_sub'),
@@ -1126,7 +1148,7 @@ class _ModeMenuOverlayState extends State<_ModeMenuOverlay> {
               onTap: widget.onSelectMedium,
               minTouchTarget: true,
             ),
-            const Divider(height: 1.0, thickness: 1.0, color: SamanChatTokens.borderSubtle),
+            Divider(height: 1.0, thickness: 1.0, color: t.borderSubtle),
             _buildThinkingMenuItem(
               title: 'High',
               subtitle: context.tr('thinking_high_sub'),
@@ -1143,6 +1165,7 @@ class _ModeMenuOverlayState extends State<_ModeMenuOverlay> {
   }
 
   Widget _buildSubmenuCard({required bool isMobile}) {
+    final t = SamanChatTokens.of(context);
     return MouseRegion(
       onEnter: (_) {
         _closeGraceTimer?.cancel();
@@ -1169,17 +1192,17 @@ class _ModeMenuOverlayState extends State<_ModeMenuOverlay> {
         child: Container(
           width: 240.0,
           decoration: BoxDecoration(
-            color: SamanChatTokens.surfaceElevated,
+            color: t.isDark ? t.surfaceElevated : t.surface,
             borderRadius: BorderRadius.circular(14.0),
             border: Border.all(
-              color: SamanChatTokens.borderSubtle,
+              color: t.borderSubtle,
               width: 1.0,
             ),
-            boxShadow: const [
+            boxShadow: [
               BoxShadow(
-                color: Color(0x66000000),
+                color: t.isDark ? const Color(0x66000000) : const Color(0x1A0F172A),
                 blurRadius: 16.0,
-                offset: Offset(0, 6),
+                offset: const Offset(0, 6),
               ),
             ],
           ),
@@ -1197,7 +1220,7 @@ class _ModeMenuOverlayState extends State<_ModeMenuOverlay> {
                   onTap: () => widget.onLockedThinkingLevelTapped('Low'),
                   minTouchTarget: isMobile,
                 ),
-                const Divider(height: 1.0, thickness: 1.0, color: SamanChatTokens.borderSubtle),
+                Divider(height: 1.0, thickness: 1.0, color: t.borderSubtle),
                 _buildThinkingMenuItem(
                   title: 'Medium',
                   subtitle: context.tr('thinking_med_sub'),
@@ -1206,7 +1229,7 @@ class _ModeMenuOverlayState extends State<_ModeMenuOverlay> {
                   onTap: widget.onSelectMedium,
                   minTouchTarget: isMobile,
                 ),
-                const Divider(height: 1.0, thickness: 1.0, color: SamanChatTokens.borderSubtle),
+                Divider(height: 1.0, thickness: 1.0, color: t.borderSubtle),
                 _buildThinkingMenuItem(
                   title: 'High',
                   subtitle: context.tr('thinking_high_sub'),
@@ -1225,6 +1248,7 @@ class _ModeMenuOverlayState extends State<_ModeMenuOverlay> {
   }
 
   Widget _buildThinkingTriggerRow({required bool isDesktop}) {
+    final t = SamanChatTokens.of(context);
     final isHighlighted = _isHoveringTrigger || _isThinkingSubmenuOpen;
     return Semantics(
       button: true,
@@ -1278,16 +1302,20 @@ class _ModeMenuOverlayState extends State<_ModeMenuOverlay> {
               },
               borderRadius: BorderRadius.circular(10.0),
               hoverColor: Colors.transparent,
-              focusColor: SamanChatTokens.actionRowFocusBg,
+              focusColor: t.actionRowFocusBg,
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 120),
                 constraints: BoxConstraints(minHeight: isDesktop ? 36.0 : 48.0),
                 padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 8.0),
                 decoration: BoxDecoration(
-                  color: isHighlighted ? const Color(0x1FFFFFFF) : Colors.transparent,
+                  color: isHighlighted
+                      ? (t.isDark ? const Color(0x1FFFFFFF) : t.surfaceElevated)
+                      : Colors.transparent,
                   borderRadius: BorderRadius.circular(10.0),
                   border: Border.all(
-                    color: isHighlighted ? const Color(0x33FFFFFF) : Colors.transparent,
+                    color: isHighlighted
+                        ? (t.isDark ? const Color(0x33FFFFFF) : t.borderSubtle)
+                        : Colors.transparent,
                     width: 1.0,
                   ),
                 ),
@@ -1295,10 +1323,10 @@ class _ModeMenuOverlayState extends State<_ModeMenuOverlay> {
                   children: [
                     Text(
                       context.tr('thinking_level_title'),
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 13.0,
                         fontWeight: FontWeight.w600,
-                        color: SamanChatTokens.textWhite,
+                        color: t.textWhite,
                       ),
                     ),
                     const Spacer(),
@@ -1306,8 +1334,8 @@ class _ModeMenuOverlayState extends State<_ModeMenuOverlay> {
                       Icons.chevron_right_rounded,
                       size: 18.0,
                       color: isHighlighted
-                          ? SamanChatTokens.textWhite
-                          : const Color(0xFFD5D8E0),
+                          ? t.textWhite
+                          : (t.isDark ? const Color(0xFFD5D8E0) : t.textSecondary),
                     ),
                   ],
                 ),
@@ -1328,6 +1356,7 @@ class _ModeMenuOverlayState extends State<_ModeMenuOverlay> {
     required VoidCallback onTap,
     bool minTouchTarget = false,
   }) {
+    final t = SamanChatTokens.of(context);
     return Semantics(
       button: true,
       label: isActive
@@ -1337,28 +1366,30 @@ class _ModeMenuOverlayState extends State<_ModeMenuOverlay> {
       child: InkWell(
         canRequestFocus: false,
         onTap: onTap,
-        hoverColor: SamanChatTokens.actionRowHoverBg,
-        focusColor: SamanChatTokens.actionRowFocusBg,
-        highlightColor: SamanChatTokens.actionRowPressedBg,
+        hoverColor: t.actionRowHoverBg,
+        focusColor: t.actionRowFocusBg,
+        highlightColor: t.actionRowPressedBg,
         child: Container(
           constraints: BoxConstraints(
             minHeight: minTouchTarget ? 48.0 : 42.0,
           ),
-          color: isActive ? const Color(0x0FFFFFFF) : Colors.transparent,
+          color: isActive
+              ? (t.isDark ? const Color(0x0FFFFFFF) : t.surfaceElevated)
+              : Colors.transparent,
           padding: const EdgeInsets.symmetric(horizontal: 14.0, vertical: 10.0),
           child: Row(
             children: [
               if (isActive)
-                const Icon(
+                Icon(
                   Icons.check_rounded,
                   size: 18.0,
-                  color: SamanChatTokens.greenAccent,
+                  color: t.greenAccent,
                 )
               else
-                const Icon(
+                Icon(
                   Icons.lock_outline_rounded,
                   size: 16.0,
-                  color: SamanChatTokens.textMuted,
+                  color: t.textMuted,
                 ),
               const SizedBox(width: 12.0),
               Expanded(
@@ -1371,15 +1402,15 @@ class _ModeMenuOverlayState extends State<_ModeMenuOverlay> {
                       style: TextStyle(
                         fontSize: 13.5,
                         fontWeight: isActive ? FontWeight.w700 : FontWeight.w500,
-                        color: isActive ? SamanChatTokens.textWhite : SamanChatTokens.textSecondary,
+                        color: isActive ? t.textWhite : t.textSecondary,
                       ),
                     ),
                     const SizedBox(height: 2.0),
                     Text(
                       subtitle,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 11.0,
-                        color: SamanChatTokens.textMuted,
+                        color: t.textMuted,
                       ),
                     ),
                   ],
@@ -1389,19 +1420,19 @@ class _ModeMenuOverlayState extends State<_ModeMenuOverlay> {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 7.0, vertical: 3.0),
                   decoration: BoxDecoration(
-                    color: const Color(0x1FFFFFFF),
+                    color: t.isDark ? const Color(0x1FFFFFFF) : t.surfaceElevated,
                     borderRadius: BorderRadius.circular(10.0),
                     border: Border.all(
-                      color: const Color(0x33FFFFFF),
+                      color: t.isDark ? const Color(0x33FFFFFF) : t.borderSubtle,
                       width: 0.8,
                     ),
                   ),
                   child: Text(
                     badgeText,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 10.5,
                       fontWeight: FontWeight.w600,
-                      color: Color(0xFFD5D8E0),
+                      color: t.isDark ? const Color(0xFFD5D8E0) : t.textSecondary,
                     ),
                   ),
                 ),
@@ -1413,6 +1444,7 @@ class _ModeMenuOverlayState extends State<_ModeMenuOverlay> {
   }
 
   Widget _buildModeItems({required bool minTouchTarget}) {
+    final t = SamanChatTokens.of(context);
     final entries = <(AIMode, String, String, IconData)>[
       (AIMode.swift3, 'model_swift_3_title', 'model_swift_3_sub', Icons.bolt_rounded),
       (AIMode.core3, 'model_core_3_title', 'model_core_3_sub', Icons.balance_outlined),
@@ -1423,7 +1455,7 @@ class _ModeMenuOverlayState extends State<_ModeMenuOverlay> {
       children: [
         for (var i = 0; i < entries.length; i++) ...[
           if (i > 0)
-            const Divider(height: 1.0, thickness: 1.0, color: SamanChatTokens.borderSubtle),
+            Divider(height: 1.0, thickness: 1.0, color: t.borderSubtle),
           Builder(builder: (context) {
             final (mode, titleKey, subKey, icon) = entries[i];
             final isActive = mode == widget.activeMode;
@@ -1433,7 +1465,7 @@ class _ModeMenuOverlayState extends State<_ModeMenuOverlay> {
               isActive: isActive,
               badgeText: isActive ? context.tr('badge_active_using') : 'FREE',
               icon: isActive ? Icons.check_rounded : icon,
-              iconColor: isActive ? const Color(0xFF10B981) : SamanChatTokens.textMuted,
+              iconColor: isActive ? t.greenAccent : t.textMuted,
               onTap: () {
                 widget.onModeSelected?.call(mode);
                 widget.onClose();
@@ -1446,7 +1478,8 @@ class _ModeMenuOverlayState extends State<_ModeMenuOverlay> {
     );
   }
 
-  Widget _buildModeItem({    required String title,
+  Widget _buildModeItem({
+    required String title,
     required String subtitle,
     required bool isActive,
     required String badgeText,
@@ -1455,6 +1488,7 @@ class _ModeMenuOverlayState extends State<_ModeMenuOverlay> {
     required VoidCallback onTap,
     bool minTouchTarget = false,
   }) {
+    final t = SamanChatTokens.of(context);
     return Semantics(
       button: true,
       label: isActive
@@ -1464,12 +1498,14 @@ class _ModeMenuOverlayState extends State<_ModeMenuOverlay> {
       child: InkWell(
         canRequestFocus: false,
         onTap: onTap,
-        hoverColor: SamanChatTokens.actionRowHoverBg,
-        focusColor: SamanChatTokens.actionRowFocusBg,
-        highlightColor: SamanChatTokens.actionRowPressedBg,
+        hoverColor: t.actionRowHoverBg,
+        focusColor: t.actionRowFocusBg,
+        highlightColor: t.actionRowPressedBg,
         child: Container(
           constraints: BoxConstraints(minHeight: minTouchTarget ? 48.0 : 42.0),
-          color: isActive ? const Color(0x0FFFFFFF) : Colors.transparent,
+          color: isActive
+              ? (t.isDark ? const Color(0x0FFFFFFF) : t.surfaceElevated)
+              : Colors.transparent,
           padding: const EdgeInsets.symmetric(horizontal: 14.0, vertical: 10.0),
           child: Row(
             children: [
@@ -1485,15 +1521,15 @@ class _ModeMenuOverlayState extends State<_ModeMenuOverlay> {
                       style: TextStyle(
                         fontSize: 13.5,
                         fontWeight: isActive ? FontWeight.w700 : FontWeight.w500,
-                        color: isActive ? SamanChatTokens.textWhite : SamanChatTokens.textSecondary,
+                        color: isActive ? t.textWhite : t.textSecondary,
                       ),
                     ),
                     const SizedBox(height: 2.0),
                     Text(
                       subtitle,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 11.0,
-                        color: SamanChatTokens.textMuted,
+                        color: t.textMuted,
                       ),
                     ),
                   ],
@@ -1502,10 +1538,14 @@ class _ModeMenuOverlayState extends State<_ModeMenuOverlay> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 7.0, vertical: 3.0),
                 decoration: BoxDecoration(
-                  color: isActive ? const Color(0x2610B981) : const Color(0x1FFFFFFF),
+                  color: isActive
+                      ? t.greenAccent.withOpacity(0.15)
+                      : (t.isDark ? const Color(0x1FFFFFFF) : t.surfaceElevated),
                   borderRadius: BorderRadius.circular(10.0),
                   border: Border.all(
-                    color: isActive ? const Color(0x6610B981) : const Color(0x33FFFFFF),
+                    color: isActive
+                        ? t.greenAccent.withOpacity(0.40)
+                        : (t.isDark ? const Color(0x33FFFFFF) : t.borderSubtle),
                     width: 0.8,
                   ),
                 ),
@@ -1514,7 +1554,9 @@ class _ModeMenuOverlayState extends State<_ModeMenuOverlay> {
                   style: TextStyle(
                     fontSize: 10.5,
                     fontWeight: FontWeight.w600,
-                    color: isActive ? SamanChatTokens.greenAccent : const Color(0xFFD5D8E0),
+                    color: isActive
+                        ? t.greenAccent
+                        : (t.isDark ? const Color(0xFFD5D8E0) : t.textSecondary),
                   ),
                 ),
               ),

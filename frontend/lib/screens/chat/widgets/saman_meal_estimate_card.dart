@@ -24,34 +24,36 @@ class SamanMealEstimateCard extends ConsumerWidget {
     required this.onLogMeal,
   });
 
-  Widget _buildSourceBadge(String source) {
+  Widget _buildSourceBadge(SamanChatPalette t, String source) {
     final isGemini = source == 'gemini_estimate';
+    final geminiColor =
+        t.isDark ? const Color(0xFFFF8A3D) : const Color(0xFFEA580C);
     final String label;
     final Color color;
     if (isGemini) {
       label = 'Gemini estimate';
-      color = const Color(0xFFFF8A3D);
+      color = geminiColor;
     } else if (source == 'usda') {
       label = 'USDA data';
-      color = SamanChatTokens.greenAccent;
+      color = t.greenAccent;
     } else if (source == 'openfoodfacts') {
       label = 'OpenFoodFacts';
-      color = SamanChatTokens.greenAccent;
+      color = t.greenAccent;
     } else if (source == 'fallback') {
       label = 'Reference data';
-      color = SamanChatTokens.textSecondary;
+      color = t.textSecondary;
     } else {
       label = 'Source unavailable';
-      color = SamanChatTokens.textSecondary;
+      color = t.textSecondary;
     }
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 3.0),
       decoration: BoxDecoration(
-        color: isGemini ? const Color(0x26FF8A3D) : SamanChatTokens.canvas,
+        color: isGemini ? geminiColor.withOpacity(0.15) : t.canvas,
         borderRadius: BorderRadius.circular(6.0),
         border: Border.all(
-          color: isGemini ? const Color(0xFFFF8A3D) : SamanChatTokens.borderSubtle,
+          color: isGemini ? geminiColor : t.borderSubtle,
           width: 1.0,
         ),
       ),
@@ -69,6 +71,9 @@ class SamanMealEstimateCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final t = SamanChatTokens.of(context);
+    final geminiColor =
+        t.isDark ? const Color(0xFFFF8A3D) : const Color(0xFFEA580C);
     // Read real nutrition context if available
     final macroTargets = ref.watch(macroTargetsProvider);
     final nutritionPlanAsync = ref.watch(nutritionProvider);
@@ -91,10 +96,10 @@ class SamanMealEstimateCard extends ConsumerWidget {
       width: double.infinity,
       constraints: const BoxConstraints(maxWidth: 380.0),
       decoration: BoxDecoration(
-        color: SamanChatTokens.surface,
+        color: t.surface,
         borderRadius: BorderRadius.circular(14.0),
         border: Border.all(
-          color: SamanChatTokens.borderSubtle,
+          color: t.borderSubtle,
           width: 1.0,
         ),
       ),
@@ -109,21 +114,21 @@ class SamanMealEstimateCard extends ConsumerWidget {
             runSpacing: 6.0,
             crossAxisAlignment: WrapCrossAlignment.center,
             children: [
-              const Text(
+              Text(
                 'Meal estimate',
                 style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w600,
-                  color: SamanChatTokens.textWhite,
+                  color: t.textWhite,
                 ),
               ),
-              _buildSourceBadge(result.nutritionSource),
+              _buildSourceBadge(t, result.nutritionSource),
             ],
           ),
 
           const SizedBox(height: 8.0),
-          const Divider(
-            color: SamanChatTokens.borderSubtle,
+          Divider(
+            color: t.borderSubtle,
             height: 1.0,
           ),
           const SizedBox(height: 10.0),
@@ -136,10 +141,10 @@ class SamanMealEstimateCard extends ConsumerWidget {
               Expanded(
                 child: Text(
                   result.foodName,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.w600,
-                    color: SamanChatTokens.textWhite,
+                    color: t.textWhite,
                   ),
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
@@ -148,10 +153,10 @@ class SamanMealEstimateCard extends ConsumerWidget {
               const SizedBox(width: 8.0),
               Text(
                 '~${result.calories.round()} kcal',
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
-                  color: SamanChatTokens.greenAccent,
+                  color: t.greenAccent,
                 ),
               ),
             ],
@@ -159,11 +164,11 @@ class SamanMealEstimateCard extends ConsumerWidget {
 
           if (result.nutritionSource == 'gemini_estimate') ...[
             const SizedBox(height: 6.0),
-            const Text(
+            Text(
               'Calories and macros are AI estimates. Please review before logging.',
               style: TextStyle(
                 fontSize: 11,
-                color: Color(0xFFFF8A3D),
+                color: geminiColor,
               ),
             ),
           ],
@@ -174,27 +179,27 @@ class SamanMealEstimateCard extends ConsumerWidget {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 8.0),
             decoration: BoxDecoration(
-              color: SamanChatTokens.canvas,
+              color: t.canvas,
               borderRadius: BorderRadius.circular(10.0),
               border: Border.all(
-                color: SamanChatTokens.borderSubtle,
+                color: t.borderSubtle,
                 width: 1.0,
               ),
             ),
             child: Row(
               children: [
                 _MacroColumn(
-                  dotColor: SamanChatTokens.greenAccent,
+                  dotColor: t.greenAccent,
                   label: 'PROTEIN',
                   grams: result.protein.round(),
                 ),
                 _MacroColumn(
-                  dotColor: SamanChatTokens.amberAccent,
+                  dotColor: t.amberAccent,
                   label: 'CARBS',
                   grams: result.carbs.round(),
                 ),
                 _MacroColumn(
-                  dotColor: SamanChatTokens.violetAccent,
+                  dotColor: t.violetAccent,
                   label: 'FAT',
                   grams: result.fat.round(),
                 ),
@@ -212,17 +217,17 @@ class SamanMealEstimateCard extends ConsumerWidget {
                 children: [
                   Text(
                     '~$remainingProtein g protein remaining',
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 12,
-                      color: SamanChatTokens.textSecondary,
+                      color: t.textSecondary,
                     ),
                   ),
                   const SizedBox(height: 2.0),
                   Text(
                     '~$remainingCalories kcal remaining',
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 12,
-                      color: SamanChatTokens.textSecondary,
+                      color: t.textSecondary,
                     ),
                   ),
                 ],
@@ -231,8 +236,8 @@ class SamanMealEstimateCard extends ConsumerWidget {
           ],
 
           const SizedBox(height: 10.0),
-          const Divider(
-            color: SamanChatTokens.borderSubtle,
+          Divider(
+            color: t.borderSubtle,
             height: 1.0,
           ),
           const SizedBox(height: 6.0),
@@ -251,17 +256,15 @@ class SamanMealEstimateCard extends ConsumerWidget {
                     style: TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.w600,
-                      color: isMealLogged
-                          ? SamanChatTokens.textMuted
-                          : SamanChatTokens.greenAccent,
+                      color: isMealLogged ? t.textMuted : t.greenAccent,
                     ),
                   ),
                   if (!isMealLogged) ...[
                     const SizedBox(width: 4.0),
-                    const Icon(
+                    Icon(
                       Icons.arrow_forward_rounded,
                       size: 15,
-                      color: SamanChatTokens.greenAccent,
+                      color: t.greenAccent,
                     ),
                   ],
                 ],
@@ -287,6 +290,7 @@ class _MacroColumn extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = SamanChatTokens.of(context);
     return Expanded(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -305,11 +309,11 @@ class _MacroColumn extends StatelessWidget {
               Flexible(
                 child: Text(
                   label,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 10,
                     fontWeight: FontWeight.w500,
                     letterSpacing: 0.5,
-                    color: SamanChatTokens.textMuted,
+                    color: t.textMuted,
                   ),
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -319,10 +323,10 @@ class _MacroColumn extends StatelessWidget {
           const SizedBox(height: 4.0),
           Text(
             '${grams}g',
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.w600,
-              color: SamanChatTokens.textWhite,
+              color: t.textWhite,
             ),
           ),
         ],

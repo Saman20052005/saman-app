@@ -42,6 +42,7 @@ class DailyTargetsCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = SamanHomeTokens.of(context);
     final badgeText = onTrackBadgeText ?? '2 ${context.tr('on_track')}';
     final caloriePercent = caloriesTarget > 0
         ? (caloriesConsumed / caloriesTarget).clamp(0.0, 1.0)
@@ -65,10 +66,10 @@ class DailyTargetsCard extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(SamanHomeTokens.spacingLg),
         decoration: BoxDecoration(
-          color: SamanHomeTokens.cardSurface,
+          color: tokens.cardSurface,
           borderRadius: BorderRadius.circular(SamanHomeTokens.radiusXl),
           border: Border.all(
-            color: SamanHomeTokens.border,
+            color: tokens.border,
             width: 1,
           ),
         ),
@@ -81,7 +82,7 @@ class DailyTargetsCard extends StatelessWidget {
               children: [
                 Text(
                   context.tr('daily_targets_title'),
-                  style: SamanHomeTokens.sectionHeader,
+                  style: tokens.sectionHeader,
                 ),
                 const SizedBox(width: 8),
                 Flexible(
@@ -97,21 +98,21 @@ class DailyTargetsCard extends StatelessWidget {
                             vertical: 2.5,
                           ),
                           decoration: BoxDecoration(
-                            color: SamanHomeTokens.greenBadgeBg,
+                            color: tokens.greenBadgeBg,
                             borderRadius: BorderRadius.circular(
                               SamanHomeTokens.radiusPill,
                             ),
                             border: Border.all(
-                              color: SamanHomeTokens.greenBadgeBorder,
+                              color: tokens.greenBadgeBorder,
                               width: 1,
                             ),
                           ),
                           child: Text(
                             badgeText,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 11,
                               fontWeight: FontWeight.w500,
-                              color: SamanHomeTokens.greenAccent,
+                              color: tokens.greenAccent,
                             ),
                           ),
                         ),
@@ -132,13 +133,13 @@ class DailyTargetsCard extends StatelessWidget {
                                 children: [
                                   Text(
                                     context.tr('nutrition_details'),
-                                    style: SamanHomeTokens.linkText,
+                                    style: tokens.linkText,
                                   ),
                                   const SizedBox(width: 2),
-                                  const Icon(
+                                  Icon(
                                     Icons.arrow_forward_rounded,
                                     size: 13,
-                                    color: SamanHomeTokens.textSecondary,
+                                    color: tokens.textSecondary,
                                   ),
                                 ],
                               ),
@@ -169,13 +170,13 @@ class DailyTargetsCard extends StatelessWidget {
             const SizedBox(height: 6),
             _SlimProgressBar(
               value: caloriePercent,
-              fillColor: SamanHomeTokens.greenAccent,
+              fillColor: tokens.greenAccent,
               height: 6.0,
             ),
             const SizedBox(height: SamanHomeTokens.spacingMd),
 
-            const Divider(
-              color: SamanHomeTokens.divider,
+            Divider(
+              color: tokens.divider,
               height: 1,
               thickness: 1,
             ),
@@ -188,11 +189,11 @@ class DailyTargetsCard extends StatelessWidget {
                   child: _MacroColumn(
                     name: context.tr('macro_protein_upper'),
                     percentage: '${(proteinPercent * 100).round()}%',
-                    percentColor: SamanHomeTokens.greenAccent,
+                    percentColor: tokens.greenAccent,
                     currentAmount: '${proteinConsumed.round()}g',
                     targetAmount: ' / ${proteinTarget.round()}g',
                     progressValue: proteinPercent,
-                    progressColor: SamanHomeTokens.greenAccent,
+                    progressColor: tokens.greenAccent,
                   ),
                 ),
                 const SizedBox(width: SamanHomeTokens.spacingMd),
@@ -200,11 +201,11 @@ class DailyTargetsCard extends StatelessWidget {
                   child: _MacroColumn(
                     name: context.tr('macro_carbs_upper'),
                     percentage: '${(carbsPercent * 100).round()}%',
-                    percentColor: SamanHomeTokens.carbsAmber,
+                    percentColor: tokens.carbsAmber,
                     currentAmount: '${carbsConsumed.round()}g',
                     targetAmount: ' / ${carbsTarget.round()}g',
                     progressValue: carbsPercent,
-                    progressColor: SamanHomeTokens.carbsAmber,
+                    progressColor: tokens.carbsAmber,
                   ),
                 ),
                 const SizedBox(width: SamanHomeTokens.spacingMd),
@@ -212,19 +213,19 @@ class DailyTargetsCard extends StatelessWidget {
                   child: _MacroColumn(
                     name: context.tr('macro_fat_upper'),
                     percentage: '${(fatPercent * 100).round()}%',
-                    percentColor: SamanHomeTokens.fatRose,
+                    percentColor: tokens.fatRose,
                     currentAmount: '${fatConsumed.round()}g',
                     targetAmount: ' / ${fatTarget.round()}g',
                     progressValue: fatPercent,
-                    progressColor: SamanHomeTokens.fatRose,
+                    progressColor: tokens.fatRose,
                   ),
                 ),
               ],
             ),
             const SizedBox(height: SamanHomeTokens.spacingMd),
 
-            const Divider(
-              color: SamanHomeTokens.divider,
+            Divider(
+              color: tokens.divider,
               height: 1,
               thickness: 1,
             ),
@@ -240,7 +241,7 @@ class DailyTargetsCard extends StatelessWidget {
             const SizedBox(height: 6),
             _SlimProgressBar(
               value: waterPercent,
-              fillColor: SamanHomeTokens.waterCyan,
+              fillColor: tokens.waterCyan,
               height: 6.0,
             ),
           ],
@@ -265,15 +266,16 @@ class _MetricHeaderValueRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = SamanHomeTokens.of(context);
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         Text(
           title,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 14,
             fontWeight: FontWeight.w500,
-            color: SamanHomeTokens.textPrimary,
+            color: tokens.textPrimary,
           ),
         ),
         const SizedBox(width: 8),
@@ -286,33 +288,33 @@ class _MetricHeaderValueRow extends StatelessWidget {
               children: [
                 Text(
                   currentText,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
-                    color: SamanHomeTokens.textWhite,
+                    color: tokens.textWhite,
                   ),
                 ),
                 Text(
                   targetUnitText,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w400,
-                    color: SamanHomeTokens.textSecondary,
+                    color: tokens.textSecondary,
                   ),
                 ),
-                const Text(
+                Text(
                   ' · ',
                   style: TextStyle(
                     fontSize: 12,
-                    color: SamanHomeTokens.textMuted,
+                    color: tokens.textMuted,
                   ),
                 ),
                 Text(
                   percentageText,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w500,
-                    color: SamanHomeTokens.textPrimary,
+                    color: tokens.textPrimary,
                   ),
                 ),
               ],
@@ -345,6 +347,7 @@ class _MacroColumn extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = SamanHomeTokens.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -356,11 +359,11 @@ class _MacroColumn extends StatelessWidget {
                 name,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 10,
                   fontWeight: FontWeight.w600,
                   letterSpacing: 0.5,
-                  color: SamanHomeTokens.textSecondary,
+                  color: tokens.textSecondary,
                 ),
               ),
             ),
@@ -383,18 +386,18 @@ class _MacroColumn extends StatelessWidget {
             children: [
               Text(
                 currentAmount,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w600,
-                  color: SamanHomeTokens.textWhite,
+                  color: tokens.textWhite,
                 ),
               ),
               Text(
                 targetAmount,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 10.5,
                   fontWeight: FontWeight.w400,
-                  color: SamanHomeTokens.textSecondary,
+                  color: tokens.textSecondary,
                 ),
               ),
             ],
@@ -423,6 +426,7 @@ class _SlimProgressBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = SamanHomeTokens.of(context);
     return LayoutBuilder(
       builder: (context, constraints) {
         final totalWidth = constraints.maxWidth;
@@ -433,7 +437,7 @@ class _SlimProgressBar extends StatelessWidget {
           width: totalWidth,
           height: height,
           decoration: BoxDecoration(
-            color: SamanHomeTokens.progressTrack,
+            color: tokens.progressTrack,
             borderRadius: BorderRadius.circular(SamanHomeTokens.radiusPill),
           ),
           alignment: Alignment.centerLeft,

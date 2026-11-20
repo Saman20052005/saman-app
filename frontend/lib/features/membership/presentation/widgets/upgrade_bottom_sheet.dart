@@ -13,11 +13,13 @@ Future<MembershipTier?> showUpgradeBottomSheet(
   BuildContext context, {
   required MembershipTier tier,
 }) {
+  final t = MembershipTokens.of(context);
   return showModalBottomSheet<MembershipTier>(
     context: context,
     isScrollControlled: true,
     backgroundColor: Colors.transparent,
-    barrierColor: Colors.black.withOpacity(0.75),
+    barrierColor:
+        t.isDark ? Colors.black.withOpacity(0.75) : const Color(0x660F172A),
     builder: (modalContext) => UpgradeBottomSheet(
       tier: tier,
       onClose: () => Navigator.of(modalContext).pop(null),
@@ -43,6 +45,7 @@ class UpgradeBottomSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = MembershipTokens.of(context);
     final isPlus = tier == MembershipTier.plus;
     final title = isPlus
         ? context.tr('upgrade_sheet_plus_title')
@@ -71,13 +74,13 @@ class UpgradeBottomSheet extends StatelessWidget {
     final tierLabel = isPlus ? 'PLUS' : 'PRO';
 
     return Container(
-      decoration: const BoxDecoration(
-        color: MembershipTokens.card,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      decoration: BoxDecoration(
+        color: t.card,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
         border: Border(
-          top: BorderSide(color: MembershipTokens.border),
-          left: BorderSide(color: MembershipTokens.border),
-          right: BorderSide(color: MembershipTokens.border),
+          top: BorderSide(color: t.border),
+          left: BorderSide(color: t.border),
+          right: BorderSide(color: t.border),
         ),
       ),
       child: SafeArea(
@@ -96,7 +99,7 @@ class UpgradeBottomSheet extends StatelessWidget {
                     width: 40,
                     height: 4,
                     decoration: BoxDecoration(
-                      color: MembershipTokens.borderStrong,
+                      color: t.borderStrong,
                       borderRadius: BorderRadius.circular(2),
                     ),
                   ),
@@ -105,7 +108,7 @@ class UpgradeBottomSheet extends StatelessWidget {
                     child: IconButton(
                       key: const ValueKey('upgrade_sheet_close_button'),
                       icon: const Icon(Icons.close, size: 20),
-                      color: MembershipTokens.textMuted,
+                      color: t.textMuted,
                       tooltip: 'Close',
                       onPressed: () {
                         if (onClose != null) {
@@ -126,14 +129,14 @@ class UpgradeBottomSheet extends StatelessWidget {
                   width: 48,
                   height: 48,
                   decoration: BoxDecoration(
-                    color: MembershipTokens.surfaceHigh,
+                    color: t.surfaceHigh,
                     borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: MembershipTokens.border),
+                    border: Border.all(color: t.border),
                   ),
                   child: Icon(
                     isPlus ? Icons.restaurant : Icons.fitness_center,
                     size: 24,
-                    color: MembershipTokens.textPrimary,
+                    color: t.textPrimary,
                   ),
                 ),
               ),
@@ -145,28 +148,28 @@ class UpgradeBottomSheet extends StatelessWidget {
                   padding:
                       const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                   decoration: BoxDecoration(
-                    color: MembershipTokens.surfaceHigh,
+                    color: t.surfaceHigh,
                     borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: MembershipTokens.border),
+                    border: Border.all(color: t.border),
                   ),
                   child: RichText(
                     text: TextSpan(
                       children: [
                         TextSpan(
                           text: tierLabel,
-                          style: MembershipTokens.mono(
+                          style: t.mono(
                             fontSize: 10,
                             fontWeight: FontWeight.w700,
-                            color: MembershipTokens.accent,
+                            color: t.accent,
                             letterSpacing: 0.5,
                           ),
                         ),
                         TextSpan(
                           text: ' · ${context.tr('membership_card_badge_preview').toUpperCase()}',
-                          style: MembershipTokens.mono(
+                          style: t.mono(
                             fontSize: 10,
                             fontWeight: FontWeight.w600,
-                            color: MembershipTokens.textMuted,
+                            color: t.textMuted,
                             letterSpacing: 0.5,
                           ),
                         ),
@@ -180,10 +183,10 @@ class UpgradeBottomSheet extends StatelessWidget {
               // Heading & Subtitle
               Text(
                 title,
-                style: MembershipTokens.headline(
+                style: t.headline(
                   fontSize: 22,
                   fontWeight: FontWeight.w700,
-                  color: MembershipTokens.textPrimary,
+                  color: t.textPrimary,
                 ),
                 textAlign: TextAlign.center,
               ),
@@ -208,9 +211,9 @@ class UpgradeBottomSheet extends StatelessWidget {
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 child: Text(
                   description,
-                  style: MembershipTokens.body(
+                  style: t.body(
                     fontSize: 14,
-                    color: MembershipTokens.textMuted,
+                    color: t.textMuted,
                     height: 1.4,
                   ),
                   textAlign: TextAlign.center,
@@ -221,9 +224,9 @@ class UpgradeBottomSheet extends StatelessWidget {
               // Benefit Preview Card (Compact Inset Card)
               Container(
                 decoration: BoxDecoration(
-                  color: MembershipTokens.surfaceHigh,
+                  color: t.surfaceHigh,
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: MembershipTokens.border),
+                  border: Border.all(color: t.border),
                 ),
                 padding: const EdgeInsets.all(14),
                 child: Column(
@@ -235,7 +238,7 @@ class UpgradeBottomSheet extends StatelessWidget {
                           padding: const EdgeInsets.symmetric(vertical: 8),
                           child: Divider(
                             height: 1,
-                            color: MembershipTokens.border.withOpacity(0.6),
+                            color: t.border.withOpacity(0.6),
                           ),
                         ),
                       Row(
@@ -244,25 +247,24 @@ class UpgradeBottomSheet extends StatelessWidget {
                             width: 28,
                             height: 28,
                             decoration: BoxDecoration(
-                              color: MembershipTokens.card,
+                              color: t.card,
                               borderRadius: BorderRadius.circular(8),
-                              border:
-                                  Border.all(color: MembershipTokens.border),
+                              border: Border.all(color: t.border),
                             ),
-                            child: const Icon(
+                            child: Icon(
                               Icons.schedule,
                               size: 16,
-                              color: MembershipTokens.textMuted,
+                              color: t.textMuted,
                             ),
                           ),
                           const SizedBox(width: 12),
                           Expanded(
                             child: Text(
                               benefits[i],
-                              style: MembershipTokens.body(
+                              style: t.body(
                                 fontSize: 13.5,
                                 fontWeight: FontWeight.w500,
-                                color: MembershipTokens.textPrimary,
+                                color: t.textPrimary,
                               ),
                             ),
                           ),
@@ -272,7 +274,7 @@ class UpgradeBottomSheet extends StatelessWidget {
                     const SizedBox(height: 10),
                     Divider(
                       height: 1,
-                      color: MembershipTokens.border.withOpacity(0.8),
+                      color: t.border.withOpacity(0.8),
                     ),
                     const SizedBox(height: 10),
                     Row(
@@ -281,9 +283,9 @@ class UpgradeBottomSheet extends StatelessWidget {
                         Expanded(
                           child: Text(
                             context.tr('limits_tba'),
-                            style: MembershipTokens.mono(
+                            style: t.mono(
                               fontSize: 11,
-                              color: MembershipTokens.textMuted,
+                              color: t.textMuted,
                             ),
                           ),
                         ),
@@ -292,18 +294,18 @@ class UpgradeBottomSheet extends StatelessWidget {
                           padding: const EdgeInsets.symmetric(
                               horizontal: 6, vertical: 2),
                           decoration: BoxDecoration(
-                            color: MembershipTokens.card,
+                            color: t.card,
                             borderRadius: BorderRadius.circular(4),
                             border: Border.all(
-                              color: MembershipTokens.border.withOpacity(0.6),
+                              color: t.border.withOpacity(0.6),
                             ),
                           ),
                           child: Text(
                             context.tr('badge_planned').toUpperCase(),
-                            style: MembershipTokens.mono(
+                            style: t.mono(
                               fontSize: 10,
                               fontWeight: FontWeight.w600,
-                              color: MembershipTokens.textMuted,
+                              color: t.textMuted,
                               letterSpacing: 0.5,
                             ),
                           ),
@@ -342,14 +344,14 @@ class UpgradeBottomSheet extends StatelessWidget {
                   },
                   style: TextButton.styleFrom(
                     minimumSize: const Size(double.infinity, 48),
-                    foregroundColor: MembershipTokens.textMuted,
+                    foregroundColor: t.textMuted,
                   ),
                   child: Text(
                     secondaryText,
-                    style: MembershipTokens.body(
+                    style: t.body(
                       fontSize: 14,
                       fontWeight: FontWeight.w500,
-                      color: MembershipTokens.textMuted,
+                      color: t.textMuted,
                     ),
                   ),
                 ),
@@ -360,9 +362,9 @@ class UpgradeBottomSheet extends StatelessWidget {
               Center(
                 child: Text(
                   context.tr('sheet_preview_notice'),
-                  style: MembershipTokens.body(
+                  style: t.body(
                     fontSize: 12,
-                    color: MembershipTokens.textMuted,
+                    color: t.textMuted,
                   ),
                   textAlign: TextAlign.center,
                 ),

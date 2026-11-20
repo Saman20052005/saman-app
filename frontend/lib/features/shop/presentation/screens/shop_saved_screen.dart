@@ -39,20 +39,21 @@ class _ShopSavedScreenState extends ConsumerState<ShopSavedScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final t = ShopTheme.of(context);
     final state = ref.watch(shopSavedControllerProvider);
     final controller = ref.read(shopSavedControllerProvider.notifier);
 
     return Scaffold(
-      backgroundColor: ShopTheme.canvas,
+      backgroundColor: t.canvas,
       body: SafeArea(
         child: Column(
           children: [
             // Top boutique header
-            _buildHeader(context, state),
+            _buildHeader(context, t, state),
 
             // Main body
             Expanded(
-              child: _buildBody(context, state, controller),
+              child: _buildBody(context, t, state, controller),
             ),
           ],
         ),
@@ -60,7 +61,11 @@ class _ShopSavedScreenState extends ConsumerState<ShopSavedScreen> {
     );
   }
 
-  Widget _buildHeader(BuildContext context, ShopSavedState state) {
+  Widget _buildHeader(
+    BuildContext context,
+    ShopPalette t,
+    ShopSavedState state,
+  ) {
     final count = state.items.length;
 
     return Container(
@@ -77,15 +82,15 @@ class _ShopSavedScreenState extends ConsumerState<ShopSavedScreen> {
               width: 38,
               height: 38,
               decoration: BoxDecoration(
-                color: ShopTheme.surfaceElevated,
+                color: t.surfaceElevated,
                 shape: BoxShape.circle,
-                border: Border.all(color: ShopTheme.borderSubtle, width: 1),
+                border: Border.all(color: t.borderSubtle, width: 1),
               ),
               alignment: Alignment.center,
-              child: const Icon(
+              child: Icon(
                 Icons.arrow_back_ios_new_rounded,
                 size: 16,
-                color: ShopTheme.textPrimary,
+                color: t.textPrimary,
               ),
             ),
           ),
@@ -93,23 +98,23 @@ class _ShopSavedScreenState extends ConsumerState<ShopSavedScreen> {
           // Title
           Text(
             ShopTranslations.of(context, 'saved_title'),
-            style: ShopTheme.headerTitle,
+            style: t.headerTitle,
           ),
 
           // Count badge
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
             decoration: BoxDecoration(
-              color: ShopTheme.surfaceElevated,
+              color: t.surfaceElevated,
               borderRadius: BorderRadius.circular(ShopTheme.radiusPill),
-              border: Border.all(color: ShopTheme.borderSubtle, width: 1),
+              border: Border.all(color: t.borderSubtle, width: 1),
             ),
             child: Text(
               '$count',
               style: ShopTheme.fontManrope(
                 fontSize: 12,
                 fontWeight: FontWeight.w600,
-                color: count > 0 ? ShopTheme.emerald : ShopTheme.textMuted,
+                color: count > 0 ? t.emerald : t.textMuted,
               ),
             ),
           ),
@@ -120,30 +125,31 @@ class _ShopSavedScreenState extends ConsumerState<ShopSavedScreen> {
 
   Widget _buildBody(
     BuildContext context,
+    ShopPalette t,
     ShopSavedState state,
     ShopSavedController controller,
   ) {
     switch (state.status) {
       case ShopSavedStatus.initialLoading:
-        return const Center(
+        return Center(
           child: CircularProgressIndicator(
             strokeWidth: 2,
-            valueColor: AlwaysStoppedAnimation<Color>(ShopTheme.emerald),
+            valueColor: AlwaysStoppedAnimation<Color>(t.emerald),
           ),
         );
 
       case ShopSavedStatus.error:
-        return _buildErrorView(context, state, controller);
+        return _buildErrorView(context, t, state, controller);
 
       case ShopSavedStatus.loaded:
         if (state.isEmpty) {
-          return _buildEmptyView(context);
+          return _buildEmptyView(context, t);
         }
-        return _buildListView(context, state, controller);
+        return _buildListView(context, t, state, controller);
     }
   }
 
-  Widget _buildEmptyView(BuildContext context) {
+  Widget _buildEmptyView(BuildContext context, ShopPalette t) {
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(ShopTheme.paddingPage),
@@ -154,21 +160,21 @@ class _ShopSavedScreenState extends ConsumerState<ShopSavedScreen> {
               width: 72,
               height: 72,
               decoration: BoxDecoration(
-                color: ShopTheme.surfaceElevated,
+                color: t.surfaceElevated,
                 shape: BoxShape.circle,
-                border: Border.all(color: ShopTheme.borderSubtle, width: 1),
+                border: Border.all(color: t.borderSubtle, width: 1),
               ),
               alignment: Alignment.center,
-              child: const Icon(
+              child: Icon(
                 Icons.bookmark_outline_rounded,
                 size: 32,
-                color: ShopTheme.textMuted,
+                color: t.textMuted,
               ),
             ),
             const SizedBox(height: 20),
             Text(
               ShopTranslations.of(context, 'saved_empty_title'),
-              style: ShopTheme.headerTitle,
+              style: t.headerTitle,
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 8),
@@ -177,7 +183,7 @@ class _ShopSavedScreenState extends ConsumerState<ShopSavedScreen> {
               style: ShopTheme.fontManrope(
                 fontSize: 13,
                 fontWeight: FontWeight.w400,
-                color: ShopTheme.textSecondary,
+                color: t.textSecondary,
                 height: 1.4,
               ),
               textAlign: TextAlign.center,
@@ -193,8 +199,8 @@ class _ShopSavedScreenState extends ConsumerState<ShopSavedScreen> {
                 }
               },
               style: ElevatedButton.styleFrom(
-                backgroundColor: ShopTheme.ctaSurface,
-                foregroundColor: ShopTheme.ctaText,
+                backgroundColor: t.ctaSurface,
+                foregroundColor: t.ctaText,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(ShopTheme.radiusMd),
                 ),
@@ -205,7 +211,7 @@ class _ShopSavedScreenState extends ConsumerState<ShopSavedScreen> {
               ),
               child: Text(
                 ShopTranslations.of(context, 'explore_catalog_action'),
-                style: ShopTheme.ctaButtonText,
+                style: t.ctaButtonText,
               ),
             ),
           ],
@@ -216,6 +222,7 @@ class _ShopSavedScreenState extends ConsumerState<ShopSavedScreen> {
 
   Widget _buildErrorView(
     BuildContext context,
+    ShopPalette t,
     ShopSavedState state,
     ShopSavedController controller,
   ) {
@@ -225,15 +232,15 @@ class _ShopSavedScreenState extends ConsumerState<ShopSavedScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(
+            Icon(
               Icons.error_outline_rounded,
               size: 56,
-              color: ShopTheme.errorRed,
+              color: t.errorRed,
             ),
             const SizedBox(height: 16),
             Text(
               ShopTranslations.of(context, 'first_page_error_title'),
-              style: ShopTheme.headerTitle,
+              style: t.headerTitle,
               textAlign: TextAlign.center,
             ),
             if (state.errorMessage != null) ...[
@@ -243,7 +250,7 @@ class _ShopSavedScreenState extends ConsumerState<ShopSavedScreen> {
                 style: ShopTheme.fontManrope(
                   fontSize: 13,
                   fontWeight: FontWeight.w400,
-                  color: ShopTheme.textSecondary,
+                  color: t.textSecondary,
                 ),
                 textAlign: TextAlign.center,
               ),
@@ -252,8 +259,8 @@ class _ShopSavedScreenState extends ConsumerState<ShopSavedScreen> {
             ElevatedButton(
               onPressed: controller.retry,
               style: ElevatedButton.styleFrom(
-                backgroundColor: ShopTheme.surfaceElevated,
-                foregroundColor: ShopTheme.textPrimary,
+                backgroundColor: t.surfaceElevated,
+                foregroundColor: t.textPrimary,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(ShopTheme.radiusMd),
                 ),
@@ -263,7 +270,7 @@ class _ShopSavedScreenState extends ConsumerState<ShopSavedScreen> {
                 style: ShopTheme.fontManrope(
                   fontSize: 13,
                   fontWeight: FontWeight.w600,
-                  color: ShopTheme.textPrimary,
+                  color: t.textPrimary,
                 ),
               ),
             ),
@@ -275,6 +282,7 @@ class _ShopSavedScreenState extends ConsumerState<ShopSavedScreen> {
 
   Widget _buildListView(
     BuildContext context,
+    ShopPalette t,
     ShopSavedState state,
     ShopSavedController controller,
   ) {
@@ -289,13 +297,14 @@ class _ShopSavedScreenState extends ConsumerState<ShopSavedScreen> {
       separatorBuilder: (_, __) => const SizedBox(height: 12),
       itemBuilder: (context, index) {
         final item = state.items[index];
-        return _buildSavedItemCard(context, item, controller);
+        return _buildSavedItemCard(context, t, item, controller);
       },
     );
   }
 
   Widget _buildSavedItemCard(
     BuildContext context,
+    ShopPalette t,
     SavedItemRecord item,
     ShopSavedController controller,
   ) {
@@ -309,9 +318,9 @@ class _ShopSavedScreenState extends ConsumerState<ShopSavedScreen> {
         child: Container(
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
-            color: ShopTheme.surfaceCard,
+            color: t.surfaceCard,
             borderRadius: BorderRadius.circular(ShopTheme.radiusLg),
-            border: Border.all(color: ShopTheme.borderSubtle, width: 1),
+            border: Border.all(color: t.borderSubtle, width: 1),
           ),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.center,
@@ -321,17 +330,17 @@ class _ShopSavedScreenState extends ConsumerState<ShopSavedScreen> {
                 width: 72,
                 height: 72,
                 decoration: BoxDecoration(
-                  color: ShopTheme.surfaceElevated,
+                  color: t.surfaceElevated,
                   borderRadius: BorderRadius.circular(ShopTheme.radiusMd),
-                  border: Border.all(color: ShopTheme.borderSubtle, width: 0.8),
+                  border: Border.all(color: t.borderSubtle, width: 0.8),
                 ),
                 clipBehavior: Clip.antiAlias,
                 child: product != null
-                    ? _buildThumbnailWidget(product.heroImageUrl)
-                    : const Icon(
+                    ? _buildThumbnailWidget(t, product.heroImageUrl)
+                    : Icon(
                         Icons.inventory_2_outlined,
                         size: 28,
-                        color: ShopTheme.textMuted,
+                        color: t.textMuted,
                       ),
               ),
               const SizedBox(width: 14),
@@ -351,9 +360,7 @@ class _ShopSavedScreenState extends ConsumerState<ShopSavedScreen> {
                       style: ShopTheme.fontManrope(
                         fontSize: 14,
                         fontWeight: FontWeight.w600,
-                        color: product != null
-                            ? ShopTheme.textPrimary
-                            : ShopTheme.textMuted,
+                        color: product != null ? t.textPrimary : t.textMuted,
                         height: 1.25,
                       ),
                     ),
@@ -364,11 +371,11 @@ class _ShopSavedScreenState extends ConsumerState<ShopSavedScreen> {
                           : ShopTranslations.of(context, 'missing_product_id')
                               .replaceAll('{id}', item.productId),
                       style: product?.priceVnd != null
-                          ? ShopTheme.productPrice
+                          ? t.productPrice
                           : ShopTheme.fontManrope(
                               fontSize: 12,
                               fontWeight: FontWeight.w400,
-                              color: ShopTheme.textSecondary,
+                              color: t.textSecondary,
                             ),
                     ),
                   ],
@@ -379,10 +386,10 @@ class _ShopSavedScreenState extends ConsumerState<ShopSavedScreen> {
               // 3. Remove / Unsave Action Button
               IconButton(
                 onPressed: () => controller.unsave(item.productId),
-                icon: const Icon(
+                icon: Icon(
                   Icons.bookmark_remove_outlined,
                   size: 20,
-                  color: ShopTheme.emerald,
+                  color: t.emerald,
                 ),
                 tooltip: ShopTranslations.of(context, 'unsave_product'),
               ),
@@ -393,32 +400,32 @@ class _ShopSavedScreenState extends ConsumerState<ShopSavedScreen> {
     );
   }
 
-  Widget _buildThumbnailWidget(String imagePath) {
+  Widget _buildThumbnailWidget(ShopPalette t, String imagePath) {
     if (imagePath.startsWith('assets/')) {
       return Image.asset(
         imagePath,
         fit: BoxFit.cover,
-        errorBuilder: (_, __, ___) => _fallbackThumbnail(),
+        errorBuilder: (_, __, ___) => _fallbackThumbnail(t),
       );
     }
     if (imagePath.startsWith('http://') || imagePath.startsWith('https://')) {
       return Image.network(
         imagePath,
         fit: BoxFit.cover,
-        errorBuilder: (_, __, ___) => _fallbackThumbnail(),
+        errorBuilder: (_, __, ___) => _fallbackThumbnail(t),
       );
     }
-    return _fallbackThumbnail();
+    return _fallbackThumbnail(t);
   }
 
-  Widget _fallbackThumbnail() {
+  Widget _fallbackThumbnail(ShopPalette t) {
     return Container(
-      color: ShopTheme.surfaceElevated,
+      color: t.surfaceElevated,
       alignment: Alignment.center,
-      child: const Icon(
+      child: Icon(
         Icons.fitness_center_rounded,
         size: 22,
-        color: ShopTheme.textMuted,
+        color: t.textMuted,
       ),
     );
   }

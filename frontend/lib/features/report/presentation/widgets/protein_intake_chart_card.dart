@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart' hide TextDirection;
 import 'package:health_ai_app/features/report/domain/entities/weekly_report_entity.dart';
+import '../../../../config/app_theme.dart';
 
 class ProteinIntakeChartCard extends StatelessWidget {
   final List<DailyStats> days;
@@ -60,14 +61,31 @@ class ProteinIntakeChartCard extends StatelessWidget {
       }
     }
 
+    final p = SamanPalette.of(context);
+    final isDark = p.isDark;
+    final cardBg = isDark ? const Color(0xFF16171A) : p.surface;
+    final borderCol = isDark ? const Color(0xFF26282F) : p.border;
+    final gridCol = isDark ? const Color(0xFF23252A) : p.border;
+    final emerald = isDark ? const Color(0xFF10B981) : p.accent;
+    final headingCol = isDark ? const Color(0xFFD1D5DB) : p.textPrimary;
+    final valueCol = isDark ? Colors.white : p.textPrimary;
+    final subCol = isDark ? const Color(0xFFA1A1AA) : p.textSecondary;
+    final mutedCol = isDark ? const Color(0xFF71717A) : p.textMuted;
+    final futureCol = isDark ? const Color(0xFF52525B) : const Color(0xFF94A3B8);
+    const Color selectedDotCol = Colors.white;
+    final activeDayPillBg = isDark
+        ? Colors.white.withOpacity(0.1)
+        : const Color(0xFF0F172A).withOpacity(0.08);
+    final activeDayTextCol = isDark ? Colors.white : p.textPrimary;
+
     final dayLabels = ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'];
 
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFF16171A),
+        color: cardBg,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFF26282F)),
+        border: Border.all(color: borderCol),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -86,13 +104,13 @@ class ProteinIntakeChartCard extends StatelessWidget {
                         Container(
                           width: 8,
                           height: 8,
-                          decoration: const BoxDecoration(
-                            color: Color(0xFF10B981),
+                          decoration: BoxDecoration(
+                            color: emerald,
                             shape: BoxShape.circle,
                           ),
                         ),
                         const SizedBox(width: 6),
-                        const Flexible(
+                        Flexible(
                           child: Text(
                             'PROTEIN INTAKE',
                             maxLines: 1,
@@ -101,7 +119,7 @@ class ProteinIntakeChartCard extends StatelessWidget {
                               fontSize: 11,
                               fontWeight: FontWeight.w700,
                               letterSpacing: 0.8,
-                              color: Color(0xFFD1D5DB),
+                              color: headingCol,
                             ),
                           ),
                         ),
@@ -114,15 +132,15 @@ class ProteinIntakeChartCard extends StatelessWidget {
                       children: [
                         Text(
                           '${avgProtein.round()}',
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 28,
                             fontWeight: FontWeight.w700,
                             letterSpacing: -0.5,
-                            color: Colors.white,
+                            color: valueCol,
                           ),
                         ),
                         const SizedBox(width: 6),
-                        const Flexible(
+                        Flexible(
                           child: Text(
                             'g / day avg',
                             maxLines: 1,
@@ -130,7 +148,7 @@ class ProteinIntakeChartCard extends StatelessWidget {
                             style: TextStyle(
                               fontSize: 12,
                               fontWeight: FontWeight.w400,
-                              color: Color(0xFFA1A1AA),
+                              color: subCol,
                             ),
                           ),
                         ),
@@ -143,13 +161,13 @@ class ProteinIntakeChartCard extends StatelessWidget {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
-                  const Text(
+                  Text(
                     'DAILY GOAL',
                     style: TextStyle(
                       fontSize: 10,
                       fontWeight: FontWeight.w600,
                       letterSpacing: 0.6,
-                      color: Color(0xFF71717A),
+                      color: mutedCol,
                     ),
                   ),
                   const SizedBox(height: 3),
@@ -157,18 +175,18 @@ class ProteinIntakeChartCard extends StatelessWidget {
                     padding:
                         const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                     decoration: BoxDecoration(
-                      color: const Color(0xFF10B981).withOpacity(0.1),
+                      color: emerald.withOpacity(0.1),
                       borderRadius: BorderRadius.circular(6),
                       border: Border.all(
-                        color: const Color(0xFF10B981).withOpacity(0.2),
+                        color: emerald.withOpacity(0.2),
                       ),
                     ),
                     child: Text(
                       targetProtein > 0 ? '$targetProtein g' : 'No goal set',
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 11.5,
                         fontWeight: FontWeight.w600,
-                        color: Color(0xFF10B981),
+                        color: emerald,
                       ),
                     ),
                   ),
@@ -196,6 +214,12 @@ class ProteinIntakeChartCard extends StatelessWidget {
                         maxY: maxY,
                         targetProtein: targetProtein,
                         selectedIndex: safeIndex,
+                        surfaceColor: cardBg,
+                        emeraldColor: emerald,
+                        gridColor: gridCol,
+                        selectedDotColor: selectedDotCol,
+                        futureColor: futureCol,
+                        unloggedColor: mutedCol,
                       ),
                     ),
 
@@ -219,7 +243,7 @@ class ProteinIntakeChartCard extends StatelessWidget {
                                 alignment: Alignment.center,
                                 decoration: isSelected
                                     ? BoxDecoration(
-                                        color: Colors.white.withOpacity(0.1),
+                                        color: activeDayPillBg,
                                         borderRadius: BorderRadius.circular(4),
                                       )
                                     : null,
@@ -231,10 +255,8 @@ class ProteinIntakeChartCard extends StatelessWidget {
                                         ? FontWeight.w700
                                         : FontWeight.w400,
                                     color: isSelected
-                                        ? Colors.white
-                                        : (isFuture
-                                            ? const Color(0xFF52525B)
-                                            : const Color(0xFFA1A1AA)),
+                                        ? activeDayTextCol
+                                        : (isFuture ? futureCol : subCol),
                                   ),
                                 ),
                               ),
@@ -272,9 +294,9 @@ class ProteinIntakeChartCard extends StatelessWidget {
           // Selected Date & Value Footer
           Container(
             padding: const EdgeInsets.only(top: 10),
-            decoration: const BoxDecoration(
+            decoration: BoxDecoration(
               border: Border(
-                top: BorderSide(color: Color(0xFF23252A), width: 1),
+                top: BorderSide(color: gridCol, width: 1),
               ),
             ),
             child: Wrap(
@@ -289,18 +311,18 @@ class ProteinIntakeChartCard extends StatelessWidget {
                     Container(
                       width: 6,
                       height: 6,
-                      decoration: const BoxDecoration(
-                        color: Color(0xFF10B981),
+                      decoration: BoxDecoration(
+                        color: emerald,
                         shape: BoxShape.circle,
                       ),
                     ),
                     const SizedBox(width: 8),
                     Text(
                       selectedDateLabel,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 11.5,
                         fontWeight: FontWeight.w500,
-                        color: Color(0xFFD1D5DB),
+                        color: headingCol,
                       ),
                     ),
                   ],
@@ -311,19 +333,19 @@ class ProteinIntakeChartCard extends StatelessWidget {
                   children: [
                     Text(
                       selectedValLabel,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w700,
-                        color: Color(0xFF10B981),
+                        color: emerald,
                       ),
                     ),
                     if (pctGoalLabel.isNotEmpty)
                       Text(
                         pctGoalLabel,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 10.5,
                           fontWeight: FontWeight.w400,
-                          color: Color(0xFFA1A1AA),
+                          color: subCol,
                         ),
                       ),
                   ],
@@ -342,12 +364,24 @@ class ProteinChartPainter extends CustomPainter {
   final double maxY;
   final int targetProtein;
   final int selectedIndex;
+  final Color surfaceColor;
+  final Color emeraldColor;
+  final Color gridColor;
+  final Color selectedDotColor;
+  final Color futureColor;
+  final Color unloggedColor;
 
   ProteinChartPainter({
     required this.days,
     required this.maxY,
     required this.targetProtein,
     required this.selectedIndex,
+    this.surfaceColor = const Color(0xFF16171A),
+    this.emeraldColor = const Color(0xFF10B981),
+    this.gridColor = const Color(0xFF23252A),
+    this.selectedDotColor = Colors.white,
+    this.futureColor = const Color(0xFF52525B),
+    this.unloggedColor = const Color(0xFF71717A),
   });
 
   @override
@@ -357,7 +391,7 @@ class ProteinChartPainter extends CustomPainter {
 
     // 1. Draw horizontal grid lines
     final gridPaint = Paint()
-      ..color = const Color(0xFF23252A)
+      ..color = gridColor
       ..strokeWidth = 1;
 
     for (double f = 0.25; f <= 1.0; f += 0.35) {
@@ -370,7 +404,7 @@ class ProteinChartPainter extends CustomPainter {
       final goalY = (1.0 - (targetProtein / maxY).clamp(0.0, 1.0)) * plotHeight;
       if (goalY >= 0 && goalY <= plotHeight) {
         final goalPaint = Paint()
-          ..color = const Color(0xFF10B981).withOpacity(0.5)
+          ..color = emeraldColor.withOpacity(0.5)
           ..strokeWidth = 1.2
           ..style = PaintingStyle.stroke;
 
@@ -392,7 +426,7 @@ class ProteinChartPainter extends CustomPainter {
           style: TextStyle(
             fontSize: 8.5,
             fontWeight: FontWeight.w600,
-            color: const Color(0xFF10B981).withOpacity(0.85),
+            color: emeraldColor.withOpacity(0.85),
           ),
         );
         final tp = TextPainter(
@@ -422,9 +456,7 @@ class ProteinChartPainter extends CustomPainter {
           style: TextStyle(
             fontSize: 12,
             fontFamily: 'monospace',
-            color: day != null && day.isFuture
-                ? const Color(0xFF52525B)
-                : const Color(0xFF71717A),
+            color: day != null && day.isFuture ? futureColor : unloggedColor,
           ),
         );
         final tp = TextPainter(
@@ -456,7 +488,7 @@ class ProteinChartPainter extends CustomPainter {
 
     // 5. Draw gradient area and line for each contiguous segment
     final linePaint = Paint()
-      ..color = const Color(0xFF10B981)
+      ..color = emeraldColor
       ..strokeWidth = 2.5
       ..style = PaintingStyle.stroke
       ..strokeCap = StrokeCap.round
@@ -484,12 +516,12 @@ class ProteinChartPainter extends CustomPainter {
         fillPath.close();
 
         final fillPaint = Paint()
-          ..shader = const LinearGradient(
+          ..shader = LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
             colors: [
-              Color(0x3810B981), // 22% opacity
-              Color(0x0010B981),
+              emeraldColor.withOpacity(0.22),
+              emeraldColor.withOpacity(0.0),
             ],
           ).createShader(Rect.fromLTWH(
               seg.first.dx, 0, seg.last.dx - seg.first.dx, plotHeight))
@@ -502,12 +534,12 @@ class ProteinChartPainter extends CustomPainter {
 
     // 6. Draw Data Points (circles)
     final nodeOuterPaint = Paint()
-      ..color = const Color(0xFF10B981)
+      ..color = emeraldColor
       ..strokeWidth = 2
       ..style = PaintingStyle.stroke;
 
     final nodeInnerPaint = Paint()
-      ..color = const Color(0xFF16171A)
+      ..color = surfaceColor
       ..style = PaintingStyle.fill;
 
     for (int i = 0; i < points.length; i++) {
@@ -517,17 +549,17 @@ class ProteinChartPainter extends CustomPainter {
       final isSelected = i == selectedIndex;
 
       if (isSelected) {
-        // Selected node: outer emerald ring + white dot
-        canvas.drawCircle(pt, 6, Paint()..color = const Color(0xFF16171A));
+        // Selected node: outer emerald ring + dot
+        canvas.drawCircle(pt, 6, Paint()..color = surfaceColor);
         canvas.drawCircle(
           pt,
           6,
           Paint()
-            ..color = const Color(0xFF10B981)
+            ..color = emeraldColor
             ..strokeWidth = 2.5
             ..style = PaintingStyle.stroke,
         );
-        canvas.drawCircle(pt, 3, Paint()..color = Colors.white);
+        canvas.drawCircle(pt, 3, Paint()..color = selectedDotColor);
       } else {
         // Regular node
         canvas.drawCircle(pt, 3.5, nodeInnerPaint);
@@ -541,5 +573,11 @@ class ProteinChartPainter extends CustomPainter {
       oldDelegate.days != days ||
       oldDelegate.maxY != maxY ||
       oldDelegate.targetProtein != targetProtein ||
-      oldDelegate.selectedIndex != selectedIndex;
+      oldDelegate.selectedIndex != selectedIndex ||
+      oldDelegate.surfaceColor != surfaceColor ||
+      oldDelegate.emeraldColor != emeraldColor ||
+      oldDelegate.gridColor != gridColor ||
+      oldDelegate.selectedDotColor != selectedDotColor ||
+      oldDelegate.futureColor != futureColor ||
+      oldDelegate.unloggedColor != unloggedColor;
 }

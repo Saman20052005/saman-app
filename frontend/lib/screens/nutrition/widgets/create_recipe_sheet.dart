@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../config/app_theme.dart';
 import '../../../features/nutrition/domain/entities/food.dart';
 import '../../../features/nutrition/presentation/providers/recipes_supplements_provider.dart';
 import '../../../models/nutrition_model.dart';
@@ -26,15 +27,75 @@ class CreateRecipeSheet extends ConsumerStatefulWidget {
   ConsumerState<CreateRecipeSheet> createState() => _CreateRecipeSheetState();
 }
 
+class _RecipeSheetColors {
+  const _RecipeSheetColors({
+    required this.isDark,
+    required this.sheetBg,
+    required this.cardBg,
+    required this.borderColor,
+    required this.stepperBg,
+    required this.stepperBorder,
+    required this.accentColor,
+    required this.onAccentColor,
+    required this.saveBtnColor,
+    required this.saveBtnFgColor,
+    required this.textPrimary,
+    required this.textSecondary,
+    required this.errorColor,
+  });
+
+  final bool isDark;
+  final Color sheetBg;
+  final Color cardBg;
+  final Color borderColor;
+  final Color stepperBg;
+  final Color stepperBorder;
+  final Color accentColor;
+  final Color onAccentColor;
+  final Color saveBtnColor;
+  final Color saveBtnFgColor;
+  final Color textPrimary;
+  final Color textSecondary;
+  final Color errorColor;
+
+  factory _RecipeSheetColors.of(BuildContext context) {
+    final palette = SamanPalette.of(context);
+    if (palette.isDark) {
+      return const _RecipeSheetColors(
+        isDark: true,
+        sheetBg: Color(0xFF16171B),
+        cardBg: Color(0xFF1E2026),
+        borderColor: Color(0xFF26282F),
+        stepperBg: Color(0xFF26282F),
+        stepperBorder: Color(0xFF383A42),
+        accentColor: Color(0xFF10B981),
+        onAccentColor: Color(0xFF0C0D0E),
+        saveBtnColor: Color(0xFFF9FAFB),
+        saveBtnFgColor: Color(0xFF0C0D0E),
+        textPrimary: Color(0xFFF9FAFB),
+        textSecondary: Color(0xFF9CA3AF),
+        errorColor: Color(0xFFEF4444),
+      );
+    }
+    return _RecipeSheetColors(
+      isDark: false,
+      sheetBg: palette.surface,
+      cardBg: palette.surfaceElevated,
+      borderColor: palette.border,
+      stepperBg: palette.surface,
+      stepperBorder: const Color(0xFFCBD5E1),
+      accentColor: palette.accent,
+      onAccentColor: palette.onAccent,
+      saveBtnColor: palette.accent,
+      saveBtnFgColor: palette.onAccent,
+      textPrimary: palette.textPrimary,
+      textSecondary: palette.textSecondary,
+      errorColor: palette.danger,
+    );
+  }
+}
+
 class _CreateRecipeSheetState extends ConsumerState<CreateRecipeSheet> {
-  static const Color _sheetBg = Color(0xFF16171B);
-  static const Color _cardBg = Color(0xFF1E2026);
-  static const Color _borderColor = Color(0xFF26282F);
-  static const Color _accentColor = Color(0xFF10B981);
-  static const Color _saveBtnColor = Color(0xFFF9FAFB);
-  static const Color _textPrimary = Color(0xFFF9FAFB);
-  static const Color _textSecondary = Color(0xFF9CA3AF);
-  static const Color _errorColor = Color(0xFFEF4444);
 
   final TextEditingController _nameCtrl = TextEditingController();
   final TextEditingController _searchCtrl = TextEditingController();
@@ -252,19 +313,20 @@ class _CreateRecipeSheetState extends ConsumerState<CreateRecipeSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final c = _RecipeSheetColors.of(context);
     final bottomInset = MediaQuery.viewInsetsOf(context).bottom;
 
     return Center(
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 480),
         child: Container(
-          decoration: const BoxDecoration(
-            color: _sheetBg,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          decoration: BoxDecoration(
+            color: c.sheetBg,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
             border: Border(
-              top: BorderSide(color: _borderColor),
-              left: BorderSide(color: _borderColor),
-              right: BorderSide(color: _borderColor),
+              top: BorderSide(color: c.borderColor),
+              left: BorderSide(color: c.borderColor),
+              right: BorderSide(color: c.borderColor),
             ),
           ),
           padding: EdgeInsets.fromLTRB(18, 12, 18, 20 + bottomInset),
@@ -279,7 +341,7 @@ class _CreateRecipeSheetState extends ConsumerState<CreateRecipeSheet> {
                     width: 40,
                     height: 4,
                     decoration: BoxDecoration(
-                      color: _borderColor,
+                      color: c.borderColor,
                       borderRadius: BorderRadius.circular(2),
                     ),
                   ),
@@ -290,13 +352,13 @@ class _CreateRecipeSheetState extends ConsumerState<CreateRecipeSheet> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Expanded(
+                    Expanded(
                       child: Text(
                         'Tạo công thức mới',
                         style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.w700,
-                          color: _textPrimary,
+                          color: c.textPrimary,
                           letterSpacing: -0.3,
                         ),
                       ),
@@ -305,9 +367,9 @@ class _CreateRecipeSheetState extends ConsumerState<CreateRecipeSheet> {
                       tooltip: 'Đóng',
                       onPressed:
                           _isSaving ? null : () => Navigator.of(context).pop(),
-                      icon: const Icon(
+                      icon: Icon(
                         Icons.close,
-                        color: _textSecondary,
+                        color: c.textSecondary,
                         size: 22,
                       ),
                     ),
@@ -324,24 +386,24 @@ class _CreateRecipeSheetState extends ConsumerState<CreateRecipeSheet> {
                       vertical: 10,
                     ),
                     decoration: BoxDecoration(
-                      color: _errorColor.withOpacity(0.12),
+                      color: c.errorColor.withOpacity(0.12),
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: _errorColor.withOpacity(0.5)),
+                      border: Border.all(color: c.errorColor.withOpacity(0.5)),
                     ),
                     child: Row(
                       children: [
-                        const Icon(
+                        Icon(
                           Icons.error_outline,
-                          color: _errorColor,
+                          color: c.errorColor,
                           size: 18,
                         ),
                         const SizedBox(width: 8),
                         Expanded(
                           child: Text(
                             _submitError!,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 12,
-                              color: _errorColor,
+                              color: c.errorColor,
                               fontWeight: FontWeight.w500,
                             ),
                           ),
@@ -353,12 +415,12 @@ class _CreateRecipeSheetState extends ConsumerState<CreateRecipeSheet> {
                 ],
 
                 // Recipe Name TextField
-                const Text(
+                Text(
                   'Tên công thức',
                   style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w600,
-                    color: _textPrimary,
+                    color: c.textPrimary,
                   ),
                 ),
                 const SizedBox(height: 6),
@@ -370,30 +432,30 @@ class _CreateRecipeSheetState extends ConsumerState<CreateRecipeSheet> {
                       setState(() => _submitError = null);
                     }
                   },
-                  style: const TextStyle(
-                    color: _textPrimary,
+                  style: TextStyle(
+                    color: c.textPrimary,
                     fontSize: 14,
                   ),
                   decoration: InputDecoration(
                     hintText: 'VD: Ức gà áp chảo khoai lang',
-                    hintStyle: const TextStyle(
-                      color: _textSecondary,
+                    hintStyle: TextStyle(
+                      color: c.textSecondary,
                       fontSize: 13,
                     ),
                     isDense: true,
                     filled: true,
-                    fillColor: _cardBg,
+                    fillColor: c.cardBg,
                     contentPadding: const EdgeInsets.symmetric(
                       horizontal: 14,
                       vertical: 12,
                     ),
                     enabledBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: _borderColor),
+                      borderSide: BorderSide(color: c.borderColor),
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: _accentColor),
+                      borderSide: BorderSide(color: c.accentColor),
                     ),
                   ),
                 ),
@@ -406,24 +468,25 @@ class _CreateRecipeSheetState extends ConsumerState<CreateRecipeSheet> {
                     vertical: 10,
                   ),
                   decoration: BoxDecoration(
-                    color: _cardBg,
+                    color: c.cardBg,
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: _borderColor),
+                    border: Border.all(color: c.borderColor),
                   ),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text(
+                      Text(
                         'Số khẩu phần (servings)',
                         style: TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.w600,
-                          color: _textPrimary,
+                          color: c.textPrimary,
                         ),
                       ),
                       Row(
                         children: [
                           _buildStepperButton(
+                            c: c,
                             key: const Key('servings_decrement_btn'),
                             icon: Icons.remove,
                             onTap: _servings > 1
@@ -435,14 +498,15 @@ class _CreateRecipeSheetState extends ConsumerState<CreateRecipeSheet> {
                             child: Text(
                               '$_servings',
                               key: const Key('servings_value_text'),
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 15,
                                 fontWeight: FontWeight.w700,
-                                color: _textPrimary,
+                                color: c.textPrimary,
                               ),
                             ),
                           ),
                           _buildStepperButton(
+                            c: c,
                             key: const Key('servings_increment_btn'),
                             icon: Icons.add,
                             onTap: () => setState(() => _servings++),
@@ -455,12 +519,12 @@ class _CreateRecipeSheetState extends ConsumerState<CreateRecipeSheet> {
                 const SizedBox(height: 16),
 
                 // Add Ingredients Section
-                const Text(
+                Text(
                   'Thêm nguyên liệu',
                   style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w600,
-                    color: _textPrimary,
+                    color: c.textPrimary,
                   ),
                 ),
                 const SizedBox(height: 6),
@@ -468,38 +532,38 @@ class _CreateRecipeSheetState extends ConsumerState<CreateRecipeSheet> {
                   key: const Key('ingredient_search_input'),
                   controller: _searchCtrl,
                   onChanged: _onSearchChanged,
-                  style: const TextStyle(
-                    color: _textPrimary,
+                  style: TextStyle(
+                    color: c.textPrimary,
                     fontSize: 13,
                   ),
                   decoration: InputDecoration(
                     hintText: 'Tìm nguyên liệu (VD: ức gà, cơm, trứng...)',
-                    hintStyle: const TextStyle(
-                      color: _textSecondary,
+                    hintStyle: TextStyle(
+                      color: c.textSecondary,
                       fontSize: 13,
                     ),
-                    prefixIcon: const Icon(
+                    prefixIcon: Icon(
                       Icons.search,
-                      color: _textSecondary,
+                      color: c.textSecondary,
                       size: 18,
                     ),
                     suffixIcon: _isSearching
-                        ? const Padding(
-                            padding: EdgeInsets.all(12),
+                        ? Padding(
+                            padding: const EdgeInsets.all(12),
                             child: SizedBox(
                               width: 14,
                               height: 14,
                               child: CircularProgressIndicator(
                                 strokeWidth: 2,
-                                color: _accentColor,
+                                color: c.accentColor,
                               ),
                             ),
                           )
                         : (_searchCtrl.text.isNotEmpty
                             ? IconButton(
-                                icon: const Icon(
+                                icon: Icon(
                                   Icons.clear,
-                                  color: _textSecondary,
+                                  color: c.textSecondary,
                                   size: 18,
                                 ),
                                 onPressed: () {
@@ -510,18 +574,18 @@ class _CreateRecipeSheetState extends ConsumerState<CreateRecipeSheet> {
                             : null),
                     isDense: true,
                     filled: true,
-                    fillColor: _cardBg,
+                    fillColor: c.cardBg,
                     contentPadding: const EdgeInsets.symmetric(
                       horizontal: 12,
                       vertical: 12,
                     ),
                     enabledBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: _borderColor),
+                      borderSide: BorderSide(color: c.borderColor),
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: _accentColor),
+                      borderSide: BorderSide(color: c.accentColor),
                     ),
                   ),
                 ),
@@ -530,9 +594,9 @@ class _CreateRecipeSheetState extends ConsumerState<CreateRecipeSheet> {
                   const SizedBox(height: 6),
                   Text(
                     _searchError!,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 12,
-                      color: _errorColor,
+                      color: c.errorColor,
                     ),
                   ),
                 ],
@@ -543,17 +607,17 @@ class _CreateRecipeSheetState extends ConsumerState<CreateRecipeSheet> {
                   Container(
                     constraints: const BoxConstraints(maxHeight: 160),
                     decoration: BoxDecoration(
-                      color: _cardBg,
+                      color: c.cardBg,
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: _borderColor),
+                      border: Border.all(color: c.borderColor),
                     ),
                     child: ListView.separated(
                       shrinkWrap: true,
                       padding: const EdgeInsets.symmetric(vertical: 4),
                       itemCount: _searchResults.length,
-                      separatorBuilder: (_, __) => const Divider(
+                      separatorBuilder: (_, __) => Divider(
                         height: 1,
-                        color: _borderColor,
+                        color: c.borderColor,
                       ),
                       itemBuilder: (context, index) {
                         final food = _searchResults[index];
@@ -581,24 +645,24 @@ class _CreateRecipeSheetState extends ConsumerState<CreateRecipeSheet> {
                                           fontSize: 13,
                                           fontWeight: FontWeight.w600,
                                           color: isSelected
-                                              ? _accentColor
-                                              : _textPrimary,
+                                              ? c.accentColor
+                                              : c.textPrimary,
                                         ),
                                       ),
                                       const SizedBox(height: 2),
                                       Text(
                                         '${food.calories.round()} kcal / 100g · Đạm ${food.protein.toStringAsFixed(1)}g · Carb ${food.carbs.toStringAsFixed(1)}g · Béo ${food.fat.toStringAsFixed(1)}g',
-                                        style: const TextStyle(
+                                        style: TextStyle(
                                           fontSize: 11,
-                                          color: _textSecondary,
+                                          color: c.textSecondary,
                                         ),
                                       ),
                                     ],
                                   ),
                                 ),
-                                const Icon(
+                                Icon(
                                   Icons.add_circle_outline,
-                                  color: _accentColor,
+                                  color: c.accentColor,
                                   size: 18,
                                 ),
                               ],
@@ -616,9 +680,9 @@ class _CreateRecipeSheetState extends ConsumerState<CreateRecipeSheet> {
                   Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: _cardBg,
+                      color: c.cardBg,
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: _accentColor.withOpacity(0.6)),
+                      border: Border.all(color: c.accentColor.withOpacity(0.6)),
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -628,18 +692,18 @@ class _CreateRecipeSheetState extends ConsumerState<CreateRecipeSheet> {
                             Expanded(
                               child: Text(
                                 _selectedFood!.name,
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontSize: 13,
                                   fontWeight: FontWeight.w700,
-                                  color: _textPrimary,
+                                  color: c.textPrimary,
                                 ),
                               ),
                             ),
                             Text(
                               '${_selectedFood!.calories.round()} kcal / 100g',
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 11,
-                                color: _accentColor,
+                                color: c.accentColor,
                                 fontWeight: FontWeight.w600,
                               ),
                             ),
@@ -662,20 +726,20 @@ class _CreateRecipeSheetState extends ConsumerState<CreateRecipeSheet> {
                                     RegExp(r'[0-9.]'),
                                   ),
                                 ],
-                                style: const TextStyle(
-                                  color: _textPrimary,
+                                style: TextStyle(
+                                  color: c.textPrimary,
                                   fontSize: 13,
                                   fontWeight: FontWeight.w600,
                                 ),
                                 decoration: InputDecoration(
                                   suffixText: 'g',
-                                  suffixStyle: const TextStyle(
-                                    color: _textSecondary,
+                                  suffixStyle: TextStyle(
+                                    color: c.textSecondary,
                                     fontSize: 12,
                                   ),
                                   isDense: true,
                                   filled: true,
-                                  fillColor: _sheetBg,
+                                  fillColor: c.sheetBg,
                                   contentPadding: const EdgeInsets.symmetric(
                                     horizontal: 10,
                                     vertical: 10,
@@ -683,12 +747,12 @@ class _CreateRecipeSheetState extends ConsumerState<CreateRecipeSheet> {
                                   enabledBorder: OutlineInputBorder(
                                     borderRadius: BorderRadius.circular(10),
                                     borderSide:
-                                        const BorderSide(color: _borderColor),
+                                        BorderSide(color: c.borderColor),
                                   ),
                                   focusedBorder: OutlineInputBorder(
                                     borderRadius: BorderRadius.circular(10),
                                     borderSide:
-                                        const BorderSide(color: _accentColor),
+                                        BorderSide(color: c.accentColor),
                                   ),
                                 ),
                               ),
@@ -701,8 +765,8 @@ class _CreateRecipeSheetState extends ConsumerState<CreateRecipeSheet> {
                                   key: const Key('add_ingredient_btn'),
                                   onPressed: _onAddIngredient,
                                   style: ElevatedButton.styleFrom(
-                                    backgroundColor: _accentColor,
-                                    foregroundColor: const Color(0xFF0C0D0E),
+                                    backgroundColor: c.accentColor,
+                                    foregroundColor: c.onAccentColor,
                                     elevation: 0,
                                     shape: RoundedRectangleBorder(
                                       borderRadius: BorderRadius.circular(10),
@@ -730,17 +794,17 @@ class _CreateRecipeSheetState extends ConsumerState<CreateRecipeSheet> {
                   const SizedBox(height: 12),
                   Container(
                     decoration: BoxDecoration(
-                      color: _cardBg,
+                      color: c.cardBg,
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: _borderColor),
+                      border: Border.all(color: c.borderColor),
                     ),
                     child: ListView.separated(
                       shrinkWrap: true,
                       physics: const NeverScrollableScrollPhysics(),
                       itemCount: _ingredients.length,
-                      separatorBuilder: (_, __) => const Divider(
+                      separatorBuilder: (_, __) => Divider(
                         height: 1,
-                        color: _borderColor,
+                        color: c.borderColor,
                       ),
                       itemBuilder: (context, index) {
                         final item = _ingredients[index];
@@ -757,18 +821,18 @@ class _CreateRecipeSheetState extends ConsumerState<CreateRecipeSheet> {
                                   children: [
                                     Text(
                                       '${item.name} (${item.quantity.round()}g)',
-                                      style: const TextStyle(
+                                      style: TextStyle(
                                         fontSize: 13,
                                         fontWeight: FontWeight.w600,
-                                        color: _textPrimary,
+                                        color: c.textPrimary,
                                       ),
                                     ),
                                     const SizedBox(height: 2),
                                     Text(
                                       '${item.calories.round()} kcal · Đạm ${item.protein.toStringAsFixed(1)}g · Carb ${item.carbs.toStringAsFixed(1)}g · Béo ${item.fat.toStringAsFixed(1)}g',
-                                      style: const TextStyle(
+                                      style: TextStyle(
                                         fontSize: 11,
-                                        color: _textSecondary,
+                                        color: c.textSecondary,
                                       ),
                                     ),
                                   ],
@@ -778,9 +842,9 @@ class _CreateRecipeSheetState extends ConsumerState<CreateRecipeSheet> {
                                 key: ValueKey('remove_ingredient_$index'),
                                 tooltip: 'Xoá nguyên liệu',
                                 onPressed: () => _onRemoveIngredient(index),
-                                icon: const Icon(
+                                icon: Icon(
                                   Icons.delete_outline,
-                                  color: _textSecondary,
+                                  color: c.textSecondary,
                                   size: 18,
                                 ),
                               ),
@@ -799,9 +863,9 @@ class _CreateRecipeSheetState extends ConsumerState<CreateRecipeSheet> {
                   key: const Key('nutrition_per_serving_card'),
                   padding: const EdgeInsets.all(14),
                   decoration: BoxDecoration(
-                    color: _cardBg,
+                    color: c.cardBg,
                     borderRadius: BorderRadius.circular(14),
-                    border: Border.all(color: _borderColor),
+                    border: Border.all(color: c.borderColor),
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -809,19 +873,19 @@ class _CreateRecipeSheetState extends ConsumerState<CreateRecipeSheet> {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          const Text(
+                          Text(
                             'Dinh dưỡng / 1 phần',
                             style: TextStyle(
                               fontSize: 13,
                               fontWeight: FontWeight.w700,
-                              color: _textPrimary,
+                              color: c.textPrimary,
                             ),
                           ),
                           Text(
                             'Tổng chia $_servings phần',
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 11,
-                              color: _textSecondary,
+                              color: c.textSecondary,
                             ),
                           ),
                         ],
@@ -831,6 +895,7 @@ class _CreateRecipeSheetState extends ConsumerState<CreateRecipeSheet> {
                         children: [
                           Expanded(
                             child: _buildMacroMetric(
+                              c: c,
                               label: 'kcal',
                               value: '${_caloriesPerServing.round()}',
                               isHighlight: true,
@@ -839,6 +904,7 @@ class _CreateRecipeSheetState extends ConsumerState<CreateRecipeSheet> {
                           const SizedBox(width: 8),
                           Expanded(
                             child: _buildMacroMetric(
+                              c: c,
                               label: 'Đạm (g)',
                               value: _proteinPerServing.toStringAsFixed(1),
                             ),
@@ -846,6 +912,7 @@ class _CreateRecipeSheetState extends ConsumerState<CreateRecipeSheet> {
                           const SizedBox(width: 8),
                           Expanded(
                             child: _buildMacroMetric(
+                              c: c,
                               label: 'Carb (g)',
                               value: _carbsPerServing.toStringAsFixed(1),
                             ),
@@ -853,6 +920,7 @@ class _CreateRecipeSheetState extends ConsumerState<CreateRecipeSheet> {
                           const SizedBox(width: 8),
                           Expanded(
                             child: _buildMacroMetric(
+                              c: c,
                               label: 'Béo (g)',
                               value: _fatPerServing.toStringAsFixed(1),
                             ),
@@ -865,28 +933,28 @@ class _CreateRecipeSheetState extends ConsumerState<CreateRecipeSheet> {
 
                 const SizedBox(height: 18),
 
-                // Save Recipe Button (#F9FAFB)
+                // Save Recipe Button
                 SizedBox(
                   height: 48,
                   child: ElevatedButton(
                     key: const Key('save_recipe_btn'),
                     onPressed: _isSaving ? null : _handleSaveRecipe,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: _saveBtnColor,
-                      foregroundColor: const Color(0xFF0C0D0E),
-                      disabledBackgroundColor: _saveBtnColor.withOpacity(0.5),
+                      backgroundColor: c.saveBtnColor,
+                      foregroundColor: c.saveBtnFgColor,
+                      disabledBackgroundColor: c.saveBtnColor.withOpacity(0.5),
                       elevation: 0,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
                     ),
                     child: _isSaving
-                        ? const SizedBox(
+                        ? SizedBox(
                             width: 20,
                             height: 20,
                             child: CircularProgressIndicator(
                               strokeWidth: 2,
-                              color: Color(0xFF0C0D0E),
+                              color: c.saveBtnFgColor,
                             ),
                           )
                         : const Text(
@@ -907,6 +975,7 @@ class _CreateRecipeSheetState extends ConsumerState<CreateRecipeSheet> {
   }
 
   Widget _buildStepperButton({
+    required _RecipeSheetColors c,
     required Key key,
     required IconData icon,
     required VoidCallback? onTap,
@@ -920,22 +989,23 @@ class _CreateRecipeSheetState extends ConsumerState<CreateRecipeSheet> {
         width: 30,
         height: 30,
         decoration: BoxDecoration(
-          color: enabled ? const Color(0xFF26282F) : _sheetBg,
+          color: enabled ? c.stepperBg : c.sheetBg,
           borderRadius: BorderRadius.circular(8),
           border: Border.all(
-            color: enabled ? const Color(0xFF383A42) : _borderColor,
+            color: enabled ? c.stepperBorder : c.borderColor,
           ),
         ),
         child: Icon(
           icon,
           size: 16,
-          color: enabled ? _textPrimary : _textSecondary,
+          color: enabled ? c.textPrimary : c.textSecondary,
         ),
       ),
     );
   }
 
   Widget _buildMacroMetric({
+    required _RecipeSheetColors c,
     required String label,
     required String value,
     bool isHighlight = false,
@@ -943,10 +1013,10 @@ class _CreateRecipeSheetState extends ConsumerState<CreateRecipeSheet> {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 6),
       decoration: BoxDecoration(
-        color: _sheetBg,
+        color: c.sheetBg,
         borderRadius: BorderRadius.circular(10),
         border: Border.all(
-          color: isHighlight ? _accentColor.withOpacity(0.5) : _borderColor,
+          color: isHighlight ? c.accentColor.withOpacity(0.5) : c.borderColor,
         ),
       ),
       child: Column(
@@ -956,15 +1026,15 @@ class _CreateRecipeSheetState extends ConsumerState<CreateRecipeSheet> {
             style: TextStyle(
               fontSize: 15,
               fontWeight: FontWeight.w700,
-              color: isHighlight ? _accentColor : _textPrimary,
+              color: isHighlight ? c.accentColor : c.textPrimary,
             ),
           ),
           const SizedBox(height: 2),
           Text(
             label,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 11,
-              color: _textSecondary,
+              color: c.textSecondary,
             ),
           ),
         ],

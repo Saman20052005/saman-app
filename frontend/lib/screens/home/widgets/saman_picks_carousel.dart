@@ -92,11 +92,12 @@ class SamanPicksCarousel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = SamanHomeTokens.of(context);
     final defaultPicks = [
       SamanPickItem(
         id: 'journal_recovery',
         categoryTag: context.tr('saman_journal_tag'),
-        tagColor: SamanHomeTokens.greenAccent,
+        tagColor: tokens.greenAccent,
         title: context.tr('saman_pick_journal_title'),
         description: context.tr('saman_pick_journal_desc'),
         actionLabel: context.tr('saman_pick_journal_action'),
@@ -105,7 +106,7 @@ class SamanPicksCarousel extends StatelessWidget {
       SamanPickItem(
         id: 'shop_recovery',
         categoryTag: context.tr('saman_shop_tag'),
-        tagColor: SamanHomeTokens.textSecondary,
+        tagColor: tokens.textSecondary,
         title: context.tr('saman_pick_shop_title'),
         description: context.tr('saman_pick_shop_desc'),
         actionLabel: context.tr('saman_pick_shop_action'),
@@ -132,17 +133,17 @@ class SamanPicksCarousel extends StatelessWidget {
                   children: [
                     Text(
                       context.tr('saman_picks_title'),
-                      style: SamanHomeTokens.sectionHeader,
+                      style: tokens.sectionHeader,
                     ),
                     const SizedBox(height: 2),
                     Text(
                       context.tr('saman_picks_subtitle'),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w400,
-                        color: SamanHomeTokens.textSecondary,
+                        color: tokens.textSecondary,
                       ),
                     ),
                   ],
@@ -161,13 +162,13 @@ class SamanPicksCarousel extends StatelessWidget {
                       children: [
                         Text(
                           context.tr('explore'),
-                          style: SamanHomeTokens.linkText,
+                          style: tokens.linkText,
                         ),
                         const SizedBox(width: 2),
-                        const Icon(
+                        Icon(
                           Icons.arrow_forward_rounded,
                           size: 13,
-                          color: SamanHomeTokens.textSecondary,
+                          color: tokens.textSecondary,
                         ),
                       ],
                     ),
@@ -217,6 +218,7 @@ class _SamanPickCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = SamanHomeTokens.of(context);
     final screenWidth = MediaQuery.sizeOf(context).width;
     // Responsive width: ~84% on phone, constrained on wider devices
     final cardWidth = (screenWidth * 0.84).clamp(280.0, 360.0);
@@ -237,10 +239,10 @@ class _SamanPickCard extends StatelessWidget {
           width: cardWidth,
           padding: const EdgeInsets.all(SamanHomeTokens.spacingLg),
           decoration: BoxDecoration(
-            color: SamanHomeTokens.cardSurface,
+            color: tokens.cardSurface,
             borderRadius: BorderRadius.circular(SamanHomeTokens.radiusXl),
             border: Border.all(
-              color: SamanHomeTokens.borderSubtle,
+              color: tokens.borderSubtle,
               width: 1,
             ),
           ),
@@ -267,10 +269,10 @@ class _SamanPickCard extends StatelessWidget {
                       item.title,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 13.5,
                         fontWeight: FontWeight.w600,
-                        color: SamanHomeTokens.textPrimary,
+                        color: tokens.textPrimary,
                         height: 1.2,
                       ),
                     ),
@@ -279,10 +281,10 @@ class _SamanPickCard extends StatelessWidget {
                       item.description,
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 11.5,
                         fontWeight: FontWeight.w400,
-                        color: SamanHomeTokens.textSecondary,
+                        color: tokens.textSecondary,
                         height: 1.25,
                       ),
                     ),
@@ -300,17 +302,17 @@ class _SamanPickCard extends StatelessWidget {
                             children: [
                               Text(
                                 item.actionLabel,
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontSize: 11.5,
                                   fontWeight: FontWeight.w500,
-                                  color: SamanHomeTokens.textSecondary,
+                                  color: tokens.textSecondary,
                                 ),
                               ),
                               const SizedBox(width: 3),
-                              const Icon(
+                              Icon(
                                 Icons.arrow_forward_rounded,
                                 size: 12,
-                                color: SamanHomeTokens.textSecondary,
+                                color: tokens.textSecondary,
                               ),
                             ],
                           ),
@@ -327,10 +329,10 @@ class _SamanPickCard extends StatelessWidget {
                 width: 76,
                 height: 76,
                 decoration: BoxDecoration(
-                  color: SamanHomeTokens.iconContainerBg,
+                  color: tokens.iconContainerBg,
                   borderRadius: BorderRadius.circular(SamanHomeTokens.radiusMd),
                   border: Border.all(
-                    color: SamanHomeTokens.border,
+                    color: tokens.border,
                     width: 1,
                   ),
                 ),
@@ -338,10 +340,10 @@ class _SamanPickCard extends StatelessWidget {
                 child: Image.asset(
                   item.imageAssetPath,
                   fit: BoxFit.cover,
-                  errorBuilder: (_, __, ___) => const Icon(
+                  errorBuilder: (_, __, ___) => Icon(
                     Icons.image_outlined,
                     size: 24,
-                    color: SamanHomeTokens.textSecondary,
+                    color: tokens.textSecondary,
                   ),
                 ),
               ),

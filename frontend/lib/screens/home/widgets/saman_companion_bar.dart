@@ -21,6 +21,7 @@ class SamanCompanionBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = SamanHomeTokens.of(context);
     final displayMessage =
         message ?? context.tr('saman_companion_default_message');
 
@@ -30,10 +31,10 @@ class SamanCompanionBar extends StatelessWidget {
       ),
       child: Container(
         decoration: BoxDecoration(
-          color: SamanHomeTokens.companionSurface,
+          color: tokens.companionSurface,
           borderRadius: BorderRadius.circular(SamanHomeTokens.radiusMd),
           border: Border.all(
-            color: SamanHomeTokens.borderSubtle,
+            color: tokens.borderSubtle,
             width: 1,
           ),
         ),
@@ -44,10 +45,10 @@ class SamanCompanionBar extends StatelessWidget {
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            const Icon(
+            Icon(
               Icons.bolt_rounded,
               size: 16,
-              color: SamanHomeTokens.carbsAmber,
+              color: tokens.carbsAmber,
             ),
             const SizedBox(width: SamanHomeTokens.spacingSm),
             Expanded(
@@ -55,17 +56,17 @@ class SamanCompanionBar extends StatelessWidget {
                 maxLines: 3,
                 overflow: TextOverflow.ellipsis,
                 text: TextSpan(
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 12,
                     height: 1.35,
-                    color: SamanHomeTokens.textSecondary,
+                    color: tokens.textSecondary,
                   ),
                   children: [
-                    const TextSpan(
+                    TextSpan(
                       text: 'Saman: ',
                       style: TextStyle(
                         fontWeight: FontWeight.w600,
-                        color: SamanHomeTokens.textPrimary,
+                        color: tokens.textPrimary,
                       ),
                     ),
                     TextSpan(text: displayMessage),
@@ -85,10 +86,10 @@ class SamanCompanionBar extends StatelessWidget {
                     vertical: 5,
                   ),
                   decoration: BoxDecoration(
-                    color: SamanHomeTokens.secondarySurface,
+                    color: tokens.secondarySurface,
                     borderRadius: BorderRadius.circular(SamanHomeTokens.radiusSm),
                     border: Border.all(
-                      color: SamanHomeTokens.border,
+                      color: tokens.border,
                       width: 1,
                     ),
                   ),
@@ -97,17 +98,17 @@ class SamanCompanionBar extends StatelessWidget {
                     children: [
                       Text(
                         context.tr('ask_saman'),
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w500,
-                          color: SamanHomeTokens.textSecondary,
+                          color: tokens.textSecondary,
                         ),
                       ),
                       const SizedBox(width: 4),
-                      const Icon(
+                      Icon(
                         Icons.arrow_forward_rounded,
                         size: 13,
-                        color: SamanHomeTokens.textSecondary,
+                        color: tokens.textSecondary,
                       ),
                     ],
                   ),

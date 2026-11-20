@@ -20,6 +20,7 @@ class DateSelector extends StatelessWidget {
 
   void _pickDate(BuildContext context) async {
     final now = DateTime.now();
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final picked = await showDatePicker(
       context: context,
       initialDate: selectedDate,
@@ -28,13 +29,21 @@ class DateSelector extends StatelessWidget {
       builder: (context, child) {
         return Theme(
           data: Theme.of(context).copyWith(
-            colorScheme: const ColorScheme.dark(
-              primary: Color(0xFF10B981),
-              onPrimary: Color(0xFF0C0D0E),
-              surface: Color(0xFF16171B),
-              onSurface: Color(0xFFF3F4F6),
-            ),
-            dialogBackgroundColor: const Color(0xFF16171B),
+            colorScheme: isDark
+                ? const ColorScheme.dark(
+                    primary: Color(0xFF10B981),
+                    onPrimary: Color(0xFF0C0D0E),
+                    surface: Color(0xFF16171B),
+                    onSurface: Color(0xFFF3F4F6),
+                  )
+                : const ColorScheme.light(
+                    primary: Color(0xFF059669),
+                    onPrimary: Color(0xFFFFFFFF),
+                    surface: Color(0xFFFFFFFF),
+                    onSurface: Color(0xFF0F172A),
+                  ),
+            dialogBackgroundColor:
+                isDark ? const Color(0xFF16171B) : const Color(0xFFFFFFFF),
           ),
           child: child!,
         );

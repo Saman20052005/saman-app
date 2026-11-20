@@ -41,6 +41,7 @@ class PersonalIdentityCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = SamanHomeTokens.of(context);
     final initials = _getInitials(userName);
 
     return Container(
@@ -49,10 +50,10 @@ class PersonalIdentityCard extends StatelessWidget {
       ),
       padding: const EdgeInsets.all(SamanHomeTokens.spacingLg),
       decoration: BoxDecoration(
-        color: SamanHomeTokens.cardSurface,
+        color: tokens.cardSurface,
         borderRadius: BorderRadius.circular(SamanHomeTokens.radiusLg),
         border: Border.all(
-          color: SamanHomeTokens.border,
+          color: tokens.border,
           width: 1,
         ),
       ),
@@ -65,19 +66,19 @@ class PersonalIdentityCard extends StatelessWidget {
             height: 52,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: SamanHomeTokens.iconContainerBg,
+              color: tokens.iconContainerBg,
               border: Border.all(
-                color: SamanHomeTokens.borderHigh,
+                color: tokens.borderHigh,
                 width: 1.5,
               ),
             ),
             child: Center(
               child: Text(
                 initials,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.w700,
-                  color: SamanHomeTokens.textWhite,
+                  color: tokens.textWhite,
                   letterSpacing: 0.5,
                 ),
               ),
@@ -95,10 +96,10 @@ class PersonalIdentityCard extends StatelessWidget {
                   userName.isNotEmpty ? userName : 'Athlete',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 17,
                     fontWeight: FontWeight.w700,
-                    color: SamanHomeTokens.textWhite,
+                    color: tokens.textWhite,
                     letterSpacing: -0.3,
                   ),
                 ),
@@ -108,10 +109,10 @@ class PersonalIdentityCard extends StatelessWidget {
                     userEmail,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w400,
-                      color: SamanHomeTokens.textSecondary,
+                      color: tokens.textSecondary,
                     ),
                   ),
                 ],
@@ -130,19 +131,19 @@ class PersonalIdentityCard extends StatelessWidget {
                             vertical: 2.5,
                           ),
                           decoration: BoxDecoration(
-                            color: SamanHomeTokens.actionButtonSurface,
+                            color: tokens.actionButtonSurface,
                             borderRadius: BorderRadius.circular(SamanHomeTokens.radiusXs),
                             border: Border.all(
-                              color: SamanHomeTokens.borderSubtle,
+                              color: tokens.borderSubtle,
                               width: 1,
                             ),
                           ),
                           child: Text(
                             planLabel!.toUpperCase(),
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 10,
                               fontWeight: FontWeight.w600,
-                              color: SamanHomeTokens.textSecondary,
+                              color: tokens.textSecondary,
                               letterSpacing: 0.8,
                             ),
                           ),
@@ -150,10 +151,10 @@ class PersonalIdentityCard extends StatelessWidget {
                       if (memberSince != null && memberSince!.isNotEmpty)
                         Text(
                           memberSince!,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 11,
                             fontWeight: FontWeight.w400,
-                            color: SamanHomeTokens.textMuted,
+                            color: tokens.textMuted,
                           ),
                         ),
                     ],
@@ -172,7 +173,7 @@ class PersonalIdentityCard extends StatelessWidget {
               key: const Key('edit_profile_cta_button'),
               onTap: onEditProfileTap,
               borderRadius: BorderRadius.circular(24),
-              child: const SizedBox(
+              child: SizedBox(
                 width: 48,
                 height: 48,
                 child: Center(
@@ -182,10 +183,10 @@ class PersonalIdentityCard extends StatelessWidget {
                     child: DecoratedBox(
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        color: SamanHomeTokens.actionButtonSurface,
+                        color: tokens.actionButtonSurface,
                         border: Border.fromBorderSide(
                           BorderSide(
-                            color: SamanHomeTokens.border,
+                            color: tokens.border,
                             width: 1,
                           ),
                         ),
@@ -194,7 +195,7 @@ class PersonalIdentityCard extends StatelessWidget {
                         child: Icon(
                           Icons.edit_outlined,
                           size: 16,
-                          color: SamanHomeTokens.textSecondary,
+                          color: tokens.textSecondary,
                         ),
                       ),
                     ),

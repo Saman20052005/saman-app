@@ -96,19 +96,20 @@ class SamanPlansComparisonScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final t = SamanChatTokens.of(context);
     final accountMembership = ref.watch(accountMembershipProvider);
     final activeTier = accountMembership.tier;
 
     return Scaffold(
-      backgroundColor: const Color(0xFF0C0D0E),
+      backgroundColor: t.canvas,
       appBar: AppBar(
-        backgroundColor: SamanChatTokens.drawerBg,
+        backgroundColor: t.drawerBg,
         elevation: 0,
         scrolledUnderElevation: 0,
         leading: IconButton(
-          icon: const Icon(
+          icon: Icon(
             Icons.arrow_back_rounded,
-            color: SamanChatTokens.textPrimary,
+            color: t.textPrimary,
           ),
           tooltip: 'Quay lại',
           onPressed: () {
@@ -121,39 +122,41 @@ class SamanPlansComparisonScreen extends ConsumerWidget {
         ),
         title: Row(
           children: [
-            const Text(
+            Text(
               'Các gói Saman',
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
-                color: SamanChatTokens.textWhite,
+                color: t.textWhite,
               ),
             ),
             const SizedBox(width: 8),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
               decoration: BoxDecoration(
-                color: const Color(0xFF18191E),
+                color: t.isDark ? const Color(0xFF18191E) : t.surfaceElevated,
                 borderRadius: BorderRadius.circular(999),
-                border: Border.all(color: const Color(0xFF2B2E38)),
+                border: Border.all(
+                  color: t.isDark ? const Color(0xFF2B2E38) : t.border,
+                ),
               ),
-              child: const Text(
+              child: Text(
                 'Bản xem trước',
                 style: TextStyle(
                   fontSize: 10,
                   fontWeight: FontWeight.w500,
-                  color: Color(0xFF10B981),
+                  color: t.greenAccent,
                 ),
               ),
             ),
           ],
         ),
-        bottom: const PreferredSize(
-          preferredSize: Size.fromHeight(1.0),
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(1.0),
           child: Divider(
             height: 1.0,
             thickness: 1.0,
-            color: SamanChatTokens.borderSubtle,
+            color: t.borderSubtle,
           ),
         ),
       ),
@@ -165,25 +168,25 @@ class SamanPlansComparisonScreen extends ConsumerWidget {
             Container(
               padding: const EdgeInsets.all(12.0),
               decoration: BoxDecoration(
-                color: SamanChatTokens.surface,
+                color: t.surface,
                 borderRadius: BorderRadius.circular(12.0),
-                border: Border.all(color: SamanChatTokens.borderSubtle),
+                border: Border.all(color: t.borderSubtle),
               ),
-              child: const Row(
+              child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Icon(
                     Icons.info_outline_rounded,
                     size: 18,
-                    color: Color(0xFF10B981),
+                    color: t.greenAccent,
                   ),
-                  SizedBox(width: 10),
+                  const SizedBox(width: 10),
                   Expanded(
                     child: Text(
                       'Bản xem trước tính năng: Bảng so sánh quyền lợi minh họa, chưa yêu cầu phương thức thanh toán. Bạn có thể chọn bất kỳ gói nào để xem chi tiết.',
                       style: TextStyle(
                         fontSize: 12,
-                        color: SamanChatTokens.textSecondary,
+                        color: t.textSecondary,
                         height: 1.4,
                       ),
                     ),
@@ -198,7 +201,7 @@ class SamanPlansComparisonScreen extends ConsumerWidget {
             for (final plan in SamanPlanPreviewItem.defaultPlans)
               Padding(
                 padding: const EdgeInsets.only(bottom: 12.0),
-                child: _buildPlanCard(context, plan, activeTier),
+                child: _buildPlanCard(context, t, plan, activeTier),
               ),
           ],
         ),
@@ -208,6 +211,7 @@ class SamanPlansComparisonScreen extends ConsumerWidget {
 
   Widget _buildPlanCard(
     BuildContext context,
+    SamanChatPalette t,
     SamanPlanPreviewItem plan,
     MembershipTier activeTier,
   ) {
@@ -215,10 +219,11 @@ class SamanPlansComparisonScreen extends ConsumerWidget {
         (plan.tier == MembershipTier.free && activeTier == MembershipTier.free);
 
     final borderColor = plan.isHighlighted
-        ? const Color(0xFF3B4254)
-        : SamanChatTokens.borderSubtle;
-    final cardBg =
-        plan.isHighlighted ? const Color(0xFF16181F) : const Color(0xFF141518);
+        ? (t.isDark ? const Color(0xFF3B4254) : t.greenAccent.withOpacity(0.45))
+        : t.borderSubtle;
+    final cardBg = plan.isHighlighted
+        ? (t.isDark ? const Color(0xFF16181F) : t.surface)
+        : (t.isDark ? const Color(0xFF141518) : t.surface);
 
     return Container(
       decoration: BoxDecoration(
@@ -226,11 +231,13 @@ class SamanPlansComparisonScreen extends ConsumerWidget {
         borderRadius: BorderRadius.circular(16.0),
         border: Border.all(color: borderColor, width: 1.0),
         boxShadow: plan.isHighlighted
-            ? const [
+            ? [
                 BoxShadow(
-                  color: Color(0x59000000),
+                  color: t.isDark
+                      ? const Color(0x59000000)
+                      : const Color(0x120F172A),
                   blurRadius: 18,
-                  offset: Offset(0, 4),
+                  offset: const Offset(0, 4),
                 )
               ]
             : null,
@@ -247,18 +254,18 @@ class SamanPlansComparisonScreen extends ConsumerWidget {
                 children: [
                   Text(
                     plan.title,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
-                      color: SamanChatTokens.textWhite,
+                      color: t.textWhite,
                     ),
                   ),
                   if (plan.tier == MembershipTier.pro) ...[
                     const SizedBox(width: 4),
-                    const Icon(
+                    Icon(
                       Icons.auto_awesome_rounded,
                       size: 16,
-                      color: Color(0xFFFBBF24),
+                      color: t.isDark ? const Color(0xFFFBBF24) : t.amberAccent,
                     ),
                   ],
                 ],
@@ -270,16 +277,22 @@ class SamanPlansComparisonScreen extends ConsumerWidget {
                     vertical: 2,
                   ),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF1B2620),
+                    color: t.isDark
+                        ? const Color(0xFF1B2620)
+                        : t.greenAccent.withOpacity(0.12),
                     borderRadius: BorderRadius.circular(6),
-                    border: Border.all(color: const Color(0xFF164E35)),
+                    border: Border.all(
+                      color: t.isDark
+                          ? const Color(0xFF164E35)
+                          : t.greenAccent.withOpacity(0.35),
+                    ),
                   ),
-                  child: const Text(
+                  child: Text(
                     'Gói hiện tại',
                     style: TextStyle(
                       fontSize: 10,
                       fontWeight: FontWeight.w600,
-                      color: Color(0xFF10B981),
+                      color: t.greenAccent,
                     ),
                   ),
                 )
@@ -290,16 +303,22 @@ class SamanPlansComparisonScreen extends ConsumerWidget {
                     vertical: 2,
                   ),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF2B2312),
+                    color: t.isDark
+                        ? const Color(0xFF2B2312)
+                        : t.amberAccent.withOpacity(0.12),
                     borderRadius: BorderRadius.circular(6),
-                    border: Border.all(color: const Color(0xFF52411E)),
+                    border: Border.all(
+                      color: t.isDark
+                          ? const Color(0xFF52411E)
+                          : t.amberAccent.withOpacity(0.35),
+                    ),
                   ),
-                  child: const Text(
+                  child: Text(
                     'Khuyên dùng',
                     style: TextStyle(
                       fontSize: 10,
                       fontWeight: FontWeight.w600,
-                      color: Color(0xFFFBBF24),
+                      color: t.isDark ? const Color(0xFFFBBF24) : t.amberAccent,
                     ),
                   ),
                 )
@@ -310,16 +329,18 @@ class SamanPlansComparisonScreen extends ConsumerWidget {
                     vertical: 2,
                   ),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF1F222B),
+                    color: t.isDark ? const Color(0xFF1F222B) : t.surfaceElevated,
                     borderRadius: BorderRadius.circular(6),
-                    border: Border.all(color: const Color(0xFF313647)),
+                    border: Border.all(
+                      color: t.isDark ? const Color(0xFF313647) : t.border,
+                    ),
                   ),
                   child: Text(
                     plan.badgeText,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 10,
                       fontWeight: FontWeight.w500,
-                      color: Color(0xFFA5B4FC),
+                      color: t.isDark ? const Color(0xFFA5B4FC) : t.textSecondary,
                     ),
                   ),
                 ),
@@ -331,9 +352,9 @@ class SamanPlansComparisonScreen extends ConsumerWidget {
           // Description
           Text(
             plan.description,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 13,
-              color: SamanChatTokens.textSecondary,
+              color: t.textSecondary,
               height: 1.4,
             ),
           ),
@@ -348,17 +369,17 @@ class SamanPlansComparisonScreen extends ConsumerWidget {
               return Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Icon(
+                  Icon(
                     Icons.check_rounded,
                     size: 14,
-                    color: Color(0xFFA1A1AA),
+                    color: t.isDark ? const Color(0xFFA1A1AA) : t.textSecondary,
                   ),
                   const SizedBox(width: 4),
                   Text(
                     b,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 11,
-                      color: SamanChatTokens.textMuted,
+                      color: t.textMuted,
                     ),
                   ),
                 ],
@@ -375,18 +396,22 @@ class SamanPlansComparisonScreen extends ConsumerWidget {
                 ? OutlinedButton(
                     onPressed: null,
                     style: OutlinedButton.styleFrom(
-                      side: const BorderSide(color: Color(0xFF2B2E36)),
-                      backgroundColor: const Color(0xFF1E2026),
+                      side: BorderSide(
+                        color: t.isDark ? const Color(0xFF2B2E36) : t.border,
+                      ),
+                      backgroundColor: t.isDark
+                          ? const Color(0xFF1E2026)
+                          : t.surfaceElevated,
                       padding: const EdgeInsets.symmetric(vertical: 10.0),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(10.0),
                       ),
                     ),
-                    child: const Text(
+                    child: Text(
                       'Đang sử dụng',
                       style: TextStyle(
                         fontSize: 12,
-                        color: SamanChatTokens.textMuted,
+                        color: t.textMuted,
                       ),
                     ),
                   )
@@ -394,10 +419,12 @@ class SamanPlansComparisonScreen extends ConsumerWidget {
                     onPressed: () => _handleSelectPlan(context, plan),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: plan.isHighlighted
-                          ? Colors.white
-                          : const Color(0xFF1C1F28),
+                          ? (t.isDark ? Colors.white : t.greenAccent)
+                          : (t.isDark
+                              ? const Color(0xFF1C1F28)
+                              : const Color(0xFF0F172A)),
                       foregroundColor: plan.isHighlighted
-                          ? const Color(0xFF111215)
+                          ? (t.isDark ? const Color(0xFF111215) : Colors.white)
                           : Colors.white,
                       elevation: 0,
                       padding: const EdgeInsets.symmetric(vertical: 10.0),
@@ -406,7 +433,9 @@ class SamanPlansComparisonScreen extends ConsumerWidget {
                         side: BorderSide(
                           color: plan.isHighlighted
                               ? Colors.transparent
-                              : const Color(0xFF2D3242),
+                              : (t.isDark
+                                  ? const Color(0xFF2D3242)
+                                  : Colors.transparent),
                         ),
                       ),
                     ),
@@ -419,7 +448,9 @@ class SamanPlansComparisonScreen extends ConsumerWidget {
                             fontSize: 12,
                             fontWeight: FontWeight.w600,
                             color: plan.isHighlighted
-                                ? const Color(0xFF111215)
+                                ? (t.isDark
+                                    ? const Color(0xFF111215)
+                                    : Colors.white)
                                 : Colors.white,
                           ),
                         ),
@@ -428,7 +459,9 @@ class SamanPlansComparisonScreen extends ConsumerWidget {
                           Icons.arrow_forward_rounded,
                           size: 14,
                           color: plan.isHighlighted
-                              ? const Color(0xFF111215)
+                              ? (t.isDark
+                                  ? const Color(0xFF111215)
+                                  : Colors.white)
                               : Colors.white,
                         ),
                       ],

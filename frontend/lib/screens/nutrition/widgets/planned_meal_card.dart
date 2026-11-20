@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../config/app_theme.dart';
 import '../../../config/app_translations.dart';
 import '../../../../models/nutrition_model.dart';
 
@@ -22,15 +23,24 @@ class PlannedMealCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final palette = SamanPalette.of(context);
+    final isDark = palette.isDark;
+    final cardBg = isDark ? const Color(0xFF16171B) : palette.surface;
+    final pillBg = isDark ? const Color(0xFF212328) : palette.surfaceElevated;
+    final borderCol = isDark ? const Color(0xFF26282F) : palette.border;
+    final inkPrimary = isDark ? const Color(0xFFF3F4F6) : palette.textPrimary;
+    final inkMuted = isDark ? const Color(0xFF9CA3AF) : palette.textSecondary;
+    final accentCol = isDark ? const Color(0xFF10B981) : palette.accent;
+
     final headerType = _formatMealHeader();
     final timeStr = headerType;
 
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFF16171B),
+        color: cardBg,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFF26282F)),
+        border: Border.all(color: borderCol),
       ),
       child: LayoutBuilder(
         builder: (context, constraints) {
@@ -45,17 +55,17 @@ class PlannedMealCard extends StatelessWidget {
                 constraints: const BoxConstraints(minHeight: 44),
                 padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF212328),
+                  color: pillBg,
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: const Color(0xFF26282F)),
+                  border: Border.all(color: borderCol),
                 ),
                 child: Center(
                   child: Text(
                     context.tr('review_and_log'),
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w600,
-                      color: Color(0xFFF3F4F6),
+                      color: inkPrimary,
                     ),
                   ),
                 ),
@@ -79,10 +89,10 @@ class PlannedMealCard extends StatelessWidget {
                         children: [
                           Text(
                             context.tr('meal_plan_heading'),
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 12,
                               fontWeight: FontWeight.w700,
-                              color: Color(0xFF9CA3AF),
+                              color: inkMuted,
                               letterSpacing: 1.2,
                             ),
                           ),
@@ -90,18 +100,18 @@ class PlannedMealCard extends StatelessWidget {
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                             decoration: BoxDecoration(
-                              color: const Color(0xFF212328),
+                              color: pillBg,
                               borderRadius: BorderRadius.circular(4),
                               border: Border.all(
-                                color: const Color(0xFF10B981).withOpacity(0.3),
+                                color: accentCol.withOpacity(0.3),
                               ),
                             ),
                             child: Text(
                               context.tr('planned_badge'),
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 10,
                                 fontWeight: FontWeight.w600,
-                                color: Color(0xFF10B981),
+                                color: accentCol,
                                 letterSpacing: 0.6,
                               ),
                             ),
@@ -116,10 +126,10 @@ class PlannedMealCard extends StatelessWidget {
                       timeStr,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 11,
                         fontWeight: FontWeight.w500,
-                        color: Color(0xFF9CA3AF),
+                        color: inkMuted,
                       ),
                     ),
                   ),
@@ -134,9 +144,9 @@ class PlannedMealCard extends StatelessWidget {
                   children: [
                     Text(
                       context.tr('suggested_meal'),
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 12,
-                        color: Color(0xFF9CA3AF),
+                        color: inkMuted,
                       ),
                     ),
                     const SizedBox(height: 2),
@@ -144,10 +154,10 @@ class PlannedMealCard extends StatelessWidget {
                       '$headerType: ${meal.name}',
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w600,
-                        color: Color(0xFFF3F4F6),
+                        color: inkPrimary,
                         letterSpacing: -0.2,
                       ),
                     ),
@@ -156,9 +166,9 @@ class PlannedMealCard extends StatelessWidget {
                       '${meal.calories} kcal · ${meal.protein.toInt()}g pro · ${meal.carbs.toInt()}g carb · ${meal.fat.toInt()}g fat',
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 11,
-                        color: Color(0xFF9CA3AF),
+                        color: inkMuted,
                         letterSpacing: -0.1,
                       ),
                     ),
@@ -179,9 +189,9 @@ class PlannedMealCard extends StatelessWidget {
                         children: [
                           Text(
                             context.tr('suggested_meal'),
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 12,
-                              color: Color(0xFF9CA3AF),
+                              color: inkMuted,
                             ),
                           ),
                           const SizedBox(height: 2),
@@ -189,10 +199,10 @@ class PlannedMealCard extends StatelessWidget {
                             '$headerType: ${meal.name}',
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 14,
                               fontWeight: FontWeight.w600,
-                              color: Color(0xFFF3F4F6),
+                              color: inkPrimary,
                               letterSpacing: -0.2,
                             ),
                           ),
@@ -201,9 +211,9 @@ class PlannedMealCard extends StatelessWidget {
                             '${meal.calories} kcal · ${meal.protein.toInt()}g pro · ${meal.carbs.toInt()}g carb · ${meal.fat.toInt()}g fat',
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 11,
-                              color: Color(0xFF9CA3AF),
+                              color: inkMuted,
                               letterSpacing: -0.1,
                             ),
                           ),

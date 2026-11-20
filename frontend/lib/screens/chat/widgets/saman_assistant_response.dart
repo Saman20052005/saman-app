@@ -41,133 +41,134 @@ class SamanAssistantResponse extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = SamanChatTokens.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
       children: [
         // 1. Identity row: Small S monogram + "Saman"
-        const Row(
+        Row(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            SamanMonogram.chat(),
-            SizedBox(width: 8.0),
+            const SamanMonogram.chat(),
+            const SizedBox(width: 8.0),
             Text(
               'Saman',
-              style: SamanChatTokens.assistantName,
+              style: t.assistantName,
             ),
           ],
         ),
 
         const SizedBox(height: 8.0),
 
-        // 2. Editorial response rendered directly on obsidian canvas
+        // 2. Editorial response rendered directly on canvas
         MarkdownBody(
           data: message.content,
           selectable: true,
           styleSheet: MarkdownStyleSheet(
-            p: const TextStyle(
+            p: TextStyle(
               fontSize: 14.5,
               fontWeight: FontWeight.w400,
-              color: SamanChatTokens.textWhite,
+              color: t.textWhite,
               height: 1.55,
               letterSpacing: -0.1,
             ),
             pPadding: const EdgeInsets.only(bottom: 10.0),
-            strong: const TextStyle(
+            strong: TextStyle(
               fontSize: 14.5,
               fontWeight: FontWeight.w600,
-              color: Color(0xFFFFFFFF),
+              color: t.isDark ? const Color(0xFFFFFFFF) : t.textPrimary,
               height: 1.55,
             ),
-            em: const TextStyle(
+            em: TextStyle(
               fontSize: 14.5,
               fontStyle: FontStyle.italic,
-              color: SamanChatTokens.textWhite,
+              color: t.textWhite,
               height: 1.55,
             ),
-            h1: const TextStyle(
+            h1: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w600,
-              color: SamanChatTokens.textWhite,
+              color: t.textWhite,
               height: 1.4,
               letterSpacing: -0.2,
             ),
             h1Padding: const EdgeInsets.only(top: 14.0, bottom: 6.0),
-            h2: const TextStyle(
+            h2: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w600,
-              color: SamanChatTokens.textWhite,
+              color: t.textWhite,
               height: 1.4,
               letterSpacing: -0.2,
             ),
             h2Padding: const EdgeInsets.only(top: 14.0, bottom: 6.0),
-            h3: const TextStyle(
+            h3: TextStyle(
               fontSize: 15,
               fontWeight: FontWeight.w600,
-              color: SamanChatTokens.textWhite,
+              color: t.textWhite,
               height: 1.4,
             ),
             h3Padding: const EdgeInsets.only(top: 12.0, bottom: 6.0),
-            h4: const TextStyle(
+            h4: TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.w600,
-              color: SamanChatTokens.textWhite,
+              color: t.textWhite,
               height: 1.4,
             ),
             h4Padding: const EdgeInsets.only(top: 10.0, bottom: 4.0),
-            listBullet: const TextStyle(
+            listBullet: TextStyle(
               fontSize: 14,
-              color: SamanChatTokens.textSecondary,
+              color: t.textSecondary,
               height: 1.55,
             ),
             listIndent: 22.0,
             listBulletPadding: const EdgeInsets.only(right: 6.0),
-            a: const TextStyle(
+            a: TextStyle(
               fontSize: 14,
-              color: SamanChatTokens.greenAccent,
+              color: t.greenAccent,
               decoration: TextDecoration.underline,
             ),
-            code: const TextStyle(
+            code: TextStyle(
               fontSize: 13,
               fontFamily: 'monospace',
-              color: SamanChatTokens.textWhite,
-              backgroundColor: Color(0xFF1E2024),
+              color: t.textWhite,
+              backgroundColor: t.isDark ? const Color(0xFF1E2024) : t.surfaceElevated,
             ),
             codeblockDecoration: BoxDecoration(
-              color: const Color(0xFF16171B),
+              color: t.isDark ? const Color(0xFF16171B) : t.surfaceElevated,
               borderRadius: BorderRadius.circular(8.0),
-              border: Border.all(color: SamanChatTokens.borderSubtle),
+              border: Border.all(color: t.borderSubtle),
             ),
             codeblockPadding: const EdgeInsets.all(12.0),
             tableBorder: TableBorder.all(
-              color: SamanChatTokens.borderSubtle,
+              color: t.borderSubtle,
               width: 1.0,
             ),
-            tableHead: const TextStyle(
+            tableHead: TextStyle(
               fontSize: 12.5,
               fontWeight: FontWeight.w600,
-              color: SamanChatTokens.textWhite,
+              color: t.textWhite,
             ),
-            tableBody: const TextStyle(
+            tableBody: TextStyle(
               fontSize: 12.5,
               fontWeight: FontWeight.w400,
-              color: SamanChatTokens.textSecondary,
+              color: t.textSecondary,
             ),
             tableHeadAlign: TextAlign.left,
             tableCellsPadding:
                 const EdgeInsets.symmetric(horizontal: 8.0, vertical: 7.0),
-            tableCellsDecoration: const BoxDecoration(
-              color: Color(0xFF16171B),
+            tableCellsDecoration: BoxDecoration(
+              color: t.isDark ? const Color(0xFF16171B) : t.surface,
             ),
             blockquotePadding:
                 const EdgeInsets.symmetric(horizontal: 12.0, vertical: 6.0),
             blockquoteDecoration: BoxDecoration(
-              color: SamanChatTokens.surface,
+              color: t.surface,
               borderRadius: BorderRadius.circular(6.0),
-              border: const Border(
+              border: Border(
                 left: BorderSide(
-                  color: SamanChatTokens.greenAccent,
+                  color: t.greenAccent,
                   width: 3.0,
                 ),
               ),
@@ -200,9 +201,9 @@ class _ActionPill extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = SamanChatTokens.of(context);
     final isPrimary = action.isPrimary;
-    final accentColor =
-        isPrimary ? SamanChatTokens.greenAccent : SamanChatTokens.textSecondary;
+    final accentColor = isPrimary ? t.greenAccent : t.textSecondary;
 
     return Material(
       color: Colors.transparent,
@@ -213,13 +214,13 @@ class _ActionPill extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 14.0, vertical: 11.0),
           decoration: BoxDecoration(
             color: isPrimary
-                ? SamanChatTokens.surface
-                : SamanChatTokens.surface.withOpacity(0.5),
+                ? t.surface
+                : t.surface.withOpacity(t.isDark ? 0.5 : 0.85),
             borderRadius: BorderRadius.circular(12.0),
             border: Border.all(
               color: isPrimary
-                  ? SamanChatTokens.greenAccent.withOpacity(0.35)
-                  : SamanChatTokens.borderSubtle,
+                  ? t.greenAccent.withOpacity(0.35)
+                  : t.borderSubtle,
               width: 1.0,
             ),
           ),
@@ -239,9 +240,7 @@ class _ActionPill extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w500,
-                    color: isPrimary
-                        ? SamanChatTokens.textWhite
-                        : SamanChatTokens.textSecondary,
+                    color: isPrimary ? t.textWhite : t.textSecondary,
                   ),
                 ),
               ),

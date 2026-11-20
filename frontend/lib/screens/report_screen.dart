@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../config/app_theme.dart';
 import '../features/report/presentation/providers/report_provider.dart';
 import '../features/report/domain/entities/weekly_report_entity.dart';
 import '../features/report/presentation/widgets/report_header.dart';
@@ -67,6 +68,7 @@ class _ReportScreenState extends ConsumerState<ReportScreen> {
   }
 
   Future<void> _onPickDate() async {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final picked = await showDatePicker(
       context: context,
       initialDate: _selectedDate,
@@ -75,13 +77,21 @@ class _ReportScreenState extends ConsumerState<ReportScreen> {
       builder: (context, child) {
         return Theme(
           data: Theme.of(context).copyWith(
-            colorScheme: const ColorScheme.dark(
-              primary: Color(0xFF10B981),
-              onPrimary: Color(0xFF0C0D0E),
-              surface: Color(0xFF16171A),
-              onSurface: Color(0xFFF3F4F6),
-            ),
-            dialogBackgroundColor: const Color(0xFF16171A),
+            colorScheme: isDark
+                ? const ColorScheme.dark(
+                    primary: Color(0xFF10B981),
+                    onPrimary: Color(0xFF0C0D0E),
+                    surface: Color(0xFF16171A),
+                    onSurface: Color(0xFFF3F4F6),
+                  )
+                : const ColorScheme.light(
+                    primary: Color(0xFF059669),
+                    onPrimary: Color(0xFFFFFFFF),
+                    surface: Color(0xFFFFFFFF),
+                    onSurface: Color(0xFF0F172A),
+                  ),
+            dialogBackgroundColor:
+                isDark ? const Color(0xFF16171A) : const Color(0xFFFFFFFF),
           ),
           child: child!,
         );
@@ -114,10 +124,20 @@ class _ReportScreenState extends ConsumerState<ReportScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final palette = SamanPalette.of(context);
+    final isDark = palette.isDark;
+    final bg = isDark ? const Color(0xFF0C0D0E) : palette.canvas;
+    final accent = isDark ? const Color(0xFF10B981) : palette.accent;
+    final surfaceRefresh = isDark ? const Color(0xFF16171A) : palette.surface;
+    final errIcon = isDark ? const Color(0xFF71717A) : palette.textMuted;
+    final errText = isDark ? const Color(0xFFA1A1AA) : palette.textSecondary;
+    final retryBg = isDark ? const Color(0xFF26282F) : palette.surfaceElevated;
+    final retryFg = isDark ? Colors.white : palette.textPrimary;
+
     final reportAsync = ref.watch(weeklyReportProvider(_selectedDate));
 
     return Scaffold(
-      backgroundColor: const Color(0xFF0C0D0E),
+      backgroundColor: bg,
       body: SafeArea(
         child: Center(
           child: ConstrainedBox(
@@ -150,9 +170,9 @@ class _ReportScreenState extends ConsumerState<ReportScreen> {
                 // Main Tab Content
                 Expanded(
                   child: reportAsync.when(
-                    loading: () => const Center(
+                    loading: () => Center(
                       child: CircularProgressIndicator(
-                        color: Color(0xFF10B981),
+                        color: accent,
                         strokeWidth: 2.5,
                       ),
                     ),
@@ -162,25 +182,25 @@ class _ReportScreenState extends ConsumerState<ReportScreen> {
                         child: Column(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            const Icon(
+                            Icon(
                               Icons.cloud_off_rounded,
                               size: 36,
-                              color: Color(0xFF71717A),
+                              color: errIcon,
                             ),
                             const SizedBox(height: 12),
-                            const Text(
+                            Text(
                               'Could not load weekly report data.',
                               textAlign: TextAlign.center,
                               style: TextStyle(
                                 fontSize: 13,
-                                color: Color(0xFFA1A1AA),
+                                color: errText,
                               ),
                             ),
                             const SizedBox(height: 16),
                             ElevatedButton(
                               style: ElevatedButton.styleFrom(
-                                backgroundColor: const Color(0xFF26282F),
-                                foregroundColor: Colors.white,
+                                backgroundColor: retryBg,
+                                foregroundColor: retryFg,
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(10),
                                 ),
@@ -196,8 +216,8 @@ class _ReportScreenState extends ConsumerState<ReportScreen> {
                     ),
                     data: (report) {
                       return RefreshIndicator(
-                        color: const Color(0xFF10B981),
-                        backgroundColor: const Color(0xFF16171A),
+                        color: accent,
+                        backgroundColor: surfaceRefresh,
                         onRefresh: () async {
                           ref.invalidate(weeklyReportProvider(_selectedDate));
                         },
@@ -247,6 +267,9 @@ class _ReportScreenState extends ConsumerState<ReportScreen> {
   }
 
   Widget _buildOverviewTab(WeeklyReportEntity report) {
+    final palette = SamanPalette.of(context);
+    final linkColor =
+        palette.isDark ? const Color(0xFFD1D5DB) : palette.textPrimary;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -307,7 +330,7 @@ class _ReportScreenState extends ConsumerState<ReportScreen> {
         Center(
           child: TextButton(
             style: TextButton.styleFrom(
-              foregroundColor: const Color(0xFFD1D5DB),
+              foregroundColor: linkColor,
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(10),

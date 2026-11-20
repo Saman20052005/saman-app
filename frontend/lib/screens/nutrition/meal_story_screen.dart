@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
+import '../../config/app_theme.dart';
 import 'widgets/story_timeline.dart';
 
 /// Dedicated screen for Meal Story flow matching Calm Athleticism spec:
@@ -15,40 +16,49 @@ class MealStoryScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final palette = SamanPalette.of(context);
+    final isDark = palette.isDark;
+    final bg = isDark ? const Color(0xFF0C0D0E) : theme.scaffoldBackgroundColor;
+    final backIconCol =
+        isDark ? const Color(0xFFF3F4F6) : theme.colorScheme.onSurface;
+    final titleCol =
+        isDark ? const Color(0xFFF9FAFB) : theme.colorScheme.onSurface;
+    final subtitleCol = isDark ? const Color(0xFF9CA3AF) : palette.textSecondary;
     final dateStr = DateFormat('EEEE, MMM d').format(date);
 
     return Scaffold(
-      backgroundColor: const Color(0xFF0C0D0E),
+      backgroundColor: bg,
       appBar: AppBar(
-        backgroundColor: const Color(0xFF0C0D0E),
+        backgroundColor: bg,
         elevation: 0,
         surfaceTintColor: Colors.transparent,
         leading: IconButton(
-          icon: const Icon(
+          icon: Icon(
             Icons.arrow_back_ios_new,
             size: 20,
-            color: Color(0xFFF3F4F6),
+            color: backIconCol,
           ),
           onPressed: () => Navigator.pop(context),
         ),
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
+            Text(
               'Meal Story',
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w700,
-                color: Color(0xFFF9FAFB),
+                color: titleCol,
                 letterSpacing: -0.3,
               ),
             ),
             Text(
               dateStr,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.w400,
-                color: Color(0xFF9CA3AF),
+                color: subtitleCol,
               ),
             ),
           ],

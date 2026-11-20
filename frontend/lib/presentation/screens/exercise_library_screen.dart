@@ -137,12 +137,13 @@ class _ExerciseLibraryScreenState extends ConsumerState<ExerciseLibraryScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final t = SamanWorkoutTokens.of(context);
     final exercisesAsync = ref.watch(exerciseLibraryListProvider);
 
     return Scaffold(
-      backgroundColor: SamanWorkoutTokens.canvas,
+      backgroundColor: t.canvas,
       appBar: AppBar(
-        backgroundColor: SamanWorkoutTokens.canvas,
+        backgroundColor: t.canvas,
         elevation: 0,
         scrolledUnderElevation: 0,
         leadingWidth: 56,
@@ -160,23 +161,23 @@ class _ExerciseLibraryScreenState extends ConsumerState<ExerciseLibraryScreen> {
                 width: 36,
                 height: 36,
                 decoration: BoxDecoration(
-                  color: SamanWorkoutTokens.surfaceElevated,
+                  color: t.surfaceElevated,
                   borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: SamanWorkoutTokens.border),
+                  border: Border.all(color: t.border),
                 ),
-                child: const Icon(
+                child: Icon(
                   Icons.chevron_left,
                   size: 20,
-                  color: SamanWorkoutTokens.textSecondary,
+                  color: t.textSecondary,
                 ),
               ),
             ),
           ),
         ),
-        title: const Text(
+        title: Text(
           'Exercise Library',
           style: TextStyle(
-            color: SamanWorkoutTokens.textPrimary,
+            color: t.textPrimary,
             fontSize: 20,
             fontWeight: FontWeight.w600,
             letterSpacing: -0.3,
@@ -204,14 +205,14 @@ class _ExerciseLibraryScreenState extends ConsumerState<ExerciseLibraryScreen> {
                   width: 36,
                   height: 36,
                   decoration: BoxDecoration(
-                    color: SamanWorkoutTokens.surfaceElevated,
+                    color: t.surfaceElevated,
                     borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: SamanWorkoutTokens.border),
+                    border: Border.all(color: t.border),
                   ),
-                  child: const Icon(
+                  child: Icon(
                     Icons.bookmarks_outlined,
                     size: 18,
-                    color: SamanWorkoutTokens.textSecondary,
+                    color: t.textSecondary,
                   ),
                 ),
               ),
@@ -230,16 +231,15 @@ class _ExerciseLibraryScreenState extends ConsumerState<ExerciseLibraryScreen> {
             child: Container(
               height: 44,
               decoration: BoxDecoration(
-                color: SamanWorkoutTokens.cardSurface,
+                color: t.cardSurface,
                 borderRadius:
                     BorderRadius.circular(SamanWorkoutTokens.radiusMd),
-                border: Border.all(color: SamanWorkoutTokens.border),
+                border: Border.all(color: t.border),
               ),
               child: Row(
                 children: [
                   const SizedBox(width: SamanWorkoutTokens.spacingMd),
-                  const Icon(Icons.search,
-                      size: 20, color: SamanWorkoutTokens.textSecondary),
+                  Icon(Icons.search, size: 20, color: t.textSecondary),
                   const SizedBox(width: SamanWorkoutTokens.spacingSm),
                   Expanded(
                     child: Theme(
@@ -254,16 +254,16 @@ class _ExerciseLibraryScreenState extends ConsumerState<ExerciseLibraryScreen> {
                       ),
                       child: TextField(
                         controller: _searchController,
-                        cursorColor: SamanWorkoutTokens.emeraldAccent,
-                        style: const TextStyle(
-                          color: SamanWorkoutTokens.textPrimary,
+                        cursorColor: t.emeraldAccent,
+                        style: TextStyle(
+                          color: t.textPrimary,
                           fontSize: 14,
                         ),
                         onChanged: (_) => setState(() {}),
-                        decoration: const InputDecoration(
+                        decoration: InputDecoration(
                           hintText: 'Search exercises',
                           hintStyle: TextStyle(
-                            color: SamanWorkoutTokens.textSecondary,
+                            color: t.textSecondary,
                             fontSize: 14,
                           ),
                           filled: false,
@@ -279,16 +279,16 @@ class _ExerciseLibraryScreenState extends ConsumerState<ExerciseLibraryScreen> {
                   ),
                   if (_searchController.text.isNotEmpty)
                     IconButton(
-                      icon: const Icon(Icons.close,
-                          size: 16, color: SamanWorkoutTokens.textSecondary),
+                      icon: Icon(Icons.close,
+                          size: 16, color: t.textSecondary),
                       onPressed: () {
                         _searchController.clear();
                         setState(() {});
                       },
                     ),
                   IconButton(
-                    icon: const Icon(Icons.tune,
-                        size: 18, color: SamanWorkoutTokens.textSecondary),
+                    icon: Icon(Icons.tune,
+                        size: 18, color: t.textSecondary),
                     onPressed: () {},
                   ),
                 ],
@@ -317,13 +317,13 @@ class _ExerciseLibraryScreenState extends ConsumerState<ExerciseLibraryScreen> {
                           horizontal: 14, vertical: 7),
                       decoration: BoxDecoration(
                         color: isSelected
-                            ? SamanWorkoutTokens.surfaceElevated
+                            ? t.surfaceElevated
                             : Colors.transparent,
                         borderRadius:
                             BorderRadius.circular(SamanWorkoutTokens.radiusSm),
                         border: Border.all(
                           color: isSelected
-                              ? SamanWorkoutTokens.borderHover
+                              ? t.borderHover
                               : Colors.transparent,
                         ),
                       ),
@@ -334,8 +334,8 @@ class _ExerciseLibraryScreenState extends ConsumerState<ExerciseLibraryScreen> {
                             Container(
                               width: 6,
                               height: 6,
-                              decoration: const BoxDecoration(
-                                color: SamanWorkoutTokens.emeraldAccent,
+                              decoration: BoxDecoration(
+                                color: t.emeraldAccent,
                                 shape: BoxShape.circle,
                               ),
                             ),
@@ -345,8 +345,8 @@ class _ExerciseLibraryScreenState extends ConsumerState<ExerciseLibraryScreen> {
                             category,
                             style: TextStyle(
                               color: isSelected
-                                  ? SamanWorkoutTokens.textPrimary
-                                  : SamanWorkoutTokens.textSecondary,
+                                  ? t.textPrimary
+                                  : t.textSecondary,
                               fontWeight: isSelected
                                   ? FontWeight.w600
                                   : FontWeight.w400,
@@ -385,22 +385,22 @@ class _ExerciseLibraryScreenState extends ConsumerState<ExerciseLibraryScreen> {
                             horizontal: 12, vertical: 5),
                         decoration: BoxDecoration(
                           color: isSelected
-                              ? SamanWorkoutTokens.cardSurface
-                              : SamanWorkoutTokens.canvas,
+                              ? t.cardSurface
+                              : t.canvas,
                           borderRadius:
                               BorderRadius.circular(SamanWorkoutTokens.radiusSm),
                           border: Border.all(
                             color: isSelected
-                                ? SamanWorkoutTokens.borderHover
-                                : SamanWorkoutTokens.borderSubtle,
+                                ? t.borderHover
+                                : t.borderSubtle,
                           ),
                         ),
                         child: Text(
                           filter,
                           style: TextStyle(
                             color: isSelected
-                                ? SamanWorkoutTokens.textPrimary
-                                : SamanWorkoutTokens.textSecondary,
+                                ? t.textPrimary
+                                : t.textSecondary,
                             fontSize: 12,
                             fontWeight: isSelected
                                 ? FontWeight.w500
@@ -415,24 +415,24 @@ class _ExerciseLibraryScreenState extends ConsumerState<ExerciseLibraryScreen> {
                   padding:
                       const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                   decoration: BoxDecoration(
-                    color: SamanWorkoutTokens.canvas,
+                    color: t.canvas,
                     borderRadius:
                         BorderRadius.circular(SamanWorkoutTokens.radiusSm),
-                    border: Border.all(color: SamanWorkoutTokens.borderSubtle),
+                    border: Border.all(color: t.borderSubtle),
                   ),
-                  child: const Row(
+                  child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(
                         'Equipment',
                         style: TextStyle(
-                          color: SamanWorkoutTokens.textSecondary,
+                          color: t.textSecondary,
                           fontSize: 12,
                         ),
                       ),
-                      SizedBox(width: 4),
+                      const SizedBox(width: 4),
                       Icon(Icons.keyboard_arrow_down,
-                          size: 14, color: SamanWorkoutTokens.textSecondary),
+                          size: 14, color: t.textSecondary),
                     ],
                   ),
                 ),
@@ -443,8 +443,8 @@ class _ExerciseLibraryScreenState extends ConsumerState<ExerciseLibraryScreen> {
           const SizedBox(height: 8),
 
           // 4. Movements Header
-          const Padding(
-            padding: EdgeInsets.symmetric(
+          Padding(
+            padding: const EdgeInsets.symmetric(
               horizontal: SamanWorkoutTokens.spacingLg,
               vertical: SamanWorkoutTokens.spacingSm,
             ),
@@ -457,7 +457,7 @@ class _ExerciseLibraryScreenState extends ConsumerState<ExerciseLibraryScreen> {
                     fontSize: 11,
                     fontWeight: FontWeight.w600,
                     letterSpacing: 1.2,
-                    color: SamanWorkoutTokens.textMuted,
+                    color: t.textMuted,
                   ),
                 ),
               ],
@@ -517,13 +517,13 @@ class _ExerciseLibraryScreenState extends ConsumerState<ExerciseLibraryScreen> {
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          const Icon(Icons.fitness_center_outlined,
-                              size: 40, color: SamanWorkoutTokens.textMuted),
+                          Icon(Icons.fitness_center_outlined,
+                              size: 40, color: t.textMuted),
                           const SizedBox(height: 12),
                           Text(
                             emptyTitle,
-                            style: const TextStyle(
-                              color: SamanWorkoutTokens.textPrimary,
+                            style: TextStyle(
+                              color: t.textPrimary,
                               fontSize: 16,
                               fontWeight: FontWeight.w600,
                             ),
@@ -532,8 +532,8 @@ class _ExerciseLibraryScreenState extends ConsumerState<ExerciseLibraryScreen> {
                           Text(
                             emptySubtitle,
                             textAlign: TextAlign.center,
-                            style: const TextStyle(
-                              color: SamanWorkoutTokens.textSecondary,
+                            style: TextStyle(
+                              color: t.textSecondary,
                               fontSize: 13,
                             ),
                           ),
@@ -576,17 +576,16 @@ class _ExerciseLibraryScreenState extends ConsumerState<ExerciseLibraryScreen> {
                   },
                 );
               },
-              loading: () => const Center(
+              loading: () => Center(
                 child: CircularProgressIndicator(
                   strokeWidth: 2,
-                  color: SamanWorkoutTokens.emeraldAccent,
+                  color: t.emeraldAccent,
                 ),
               ),
               error: (err, _) => Center(
                 child: Text(
                   'Error loading exercises: $err',
-                  style: const TextStyle(
-                      color: SamanWorkoutTokens.textSecondary),
+                  style: TextStyle(color: t.textSecondary),
                 ),
               ),
             ),
@@ -648,6 +647,7 @@ class _ExerciseMovementRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = SamanWorkoutTokens.of(context);
     final equipmentStr =
         exercise.equipment.isNotEmpty ? exercise.equipment.first : 'Bodyweight';
     final subtitle = '${exercise.muscleGroup} • $equipmentStr';
@@ -658,9 +658,9 @@ class _ExerciseMovementRow extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(SamanWorkoutTokens.spacingSm),
         decoration: BoxDecoration(
-          color: SamanWorkoutTokens.cardSurface,
+          color: t.cardSurface,
           borderRadius: BorderRadius.circular(SamanWorkoutTokens.radiusLg),
-          border: Border.all(color: SamanWorkoutTokens.border),
+          border: Border.all(color: t.border),
         ),
         child: Row(
           children: [
@@ -684,8 +684,8 @@ class _ExerciseMovementRow extends StatelessWidget {
                     exercise.name,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: SamanWorkoutTokens.textPrimary,
+                    style: TextStyle(
+                      color: t.textPrimary,
                       fontWeight: FontWeight.w600,
                       fontSize: 14,
                       letterSpacing: -0.2,
@@ -696,8 +696,8 @@ class _ExerciseMovementRow extends StatelessWidget {
                     subtitle,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: SamanWorkoutTokens.textSub,
+                    style: TextStyle(
+                      color: t.textSub,
                       fontSize: 12,
                     ),
                   ),
@@ -706,12 +706,12 @@ class _ExerciseMovementRow extends StatelessWidget {
             ),
 
             // Chevron
-            const Padding(
-              padding: EdgeInsets.only(right: 4),
+            Padding(
+              padding: const EdgeInsets.only(right: 4),
               child: Icon(
                 Icons.chevron_right,
                 size: 20,
-                color: SamanWorkoutTokens.textSecondary,
+                color: t.textSecondary,
               ),
             ),
           ],

@@ -91,13 +91,14 @@ class SamanChatContextCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = SamanChatTokens.of(context);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14.0, vertical: 14.0),
       decoration: BoxDecoration(
-        color: SamanChatTokens.contextCardBg,
+        color: t.contextCardBg,
         borderRadius: BorderRadius.circular(12.0),
         border: Border.all(
-          color: SamanChatTokens.contextCardBorder,
+          color: t.contextCardBorder,
           width: 1.0,
         ),
       ),
@@ -112,19 +113,19 @@ class SamanChatContextCard extends StatelessWidget {
               children: [
                 Text(
                   data.overline,
-                  style: SamanChatTokens.contextCardOverline,
+                  style: t.contextCardOverline,
                 ),
                 const SizedBox(height: 2.0),
                 Text(
                   data.title,
-                  style: SamanChatTokens.contextCardTitle,
+                  style: t.contextCardTitle,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
                 const SizedBox(height: 2.0),
                 Text(
                   data.subtitle,
-                  style: SamanChatTokens.contextCardSubtitle,
+                  style: t.contextCardSubtitle,
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -152,18 +153,18 @@ class SamanChatContextCard extends StatelessWidget {
                 children: [
                   Text(
                     data.actionLabel,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.w500,
-                      color: SamanChatTokens.greenAccent,
+                      color: t.greenAccent,
                       letterSpacing: -0.1,
                     ),
                   ),
                   const SizedBox(width: 4.0),
-                  const Icon(
+                  Icon(
                     Icons.arrow_forward_rounded,
                     size: 15,
-                    color: SamanChatTokens.greenAccent,
+                    color: t.greenAccent,
                   ),
                 ],
               ),

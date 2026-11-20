@@ -182,4 +182,184 @@ class ShopTheme {
         letterSpacing: 0.2,
         color: ctaText,
       );
+
+  /// Adaptive Light / Dark palette resolved from the active [ThemeData.brightness].
+  static ShopPalette of(BuildContext context) {
+    return Theme.of(context).brightness == Brightness.dark
+        ? ShopPalette.dark
+        : ShopPalette.light;
+  }
+}
+
+/// Adaptive token snapshot for Saman Shop screens (1-to-1 Light / Dark parity).
+@immutable
+class ShopPalette {
+  const ShopPalette({
+    required this.isDark,
+    required this.canvas,
+    required this.surfaceCard,
+    required this.surfaceElevated,
+    required this.surfaceModal,
+    required this.borderSubtle,
+    required this.borderDivider,
+    required this.textPrimary,
+    required this.textSecondary,
+    required this.textMuted,
+    required this.emerald,
+    required this.ctaSurface,
+    required this.ctaText,
+    required this.warningAmber,
+    required this.errorRed,
+  });
+
+  final bool isDark;
+  final Color canvas;
+  final Color surfaceCard;
+  final Color surfaceElevated;
+  final Color surfaceModal;
+  final Color borderSubtle;
+  final Color borderDivider;
+  final Color textPrimary;
+  final Color textSecondary;
+  final Color textMuted;
+  final Color emerald;
+  final Color ctaSurface;
+  final Color ctaText;
+  final Color warningAmber;
+  final Color errorRed;
+
+  static const ShopPalette dark = ShopPalette(
+    isDark: true,
+    canvas: ShopTheme.canvas,
+    surfaceCard: ShopTheme.surfaceCard,
+    surfaceElevated: ShopTheme.surfaceElevated,
+    surfaceModal: ShopTheme.surfaceModal,
+    borderSubtle: ShopTheme.borderSubtle,
+    borderDivider: ShopTheme.borderDivider,
+    textPrimary: ShopTheme.textPrimary,
+    textSecondary: ShopTheme.textSecondary,
+    textMuted: ShopTheme.textMuted,
+    emerald: ShopTheme.emerald,
+    ctaSurface: ShopTheme.ctaSurface,
+    ctaText: ShopTheme.ctaText,
+    warningAmber: ShopTheme.warningAmber,
+    errorRed: ShopTheme.errorRed,
+  );
+
+  static const ShopPalette light = ShopPalette(
+    isDark: false,
+    canvas: Color(0xFFF8FAFC),
+    surfaceCard: Color(0xFFFFFFFF),
+    surfaceElevated: Color(0xFFF1F5F9),
+    surfaceModal: Color(0xFFFFFFFF),
+    borderSubtle: Color(0xFFE2E8F0),
+    borderDivider: Color(0xFFE2E8F0),
+    textPrimary: Color(0xFF0F172A),
+    textSecondary: Color(0xFF475569),
+    textMuted: Color(0xFF64748B),
+    emerald: Color(0xFF059669),
+    ctaSurface: Color(0xFF0F172A),
+    ctaText: Color(0xFFFFFFFF),
+    warningAmber: Color(0xFFD97706),
+    errorRed: Color(0xFFDC2626),
+  );
+
+  TextStyle get headerTitle => ShopTheme.fontManrope(
+        fontSize: 20,
+        fontWeight: FontWeight.w600,
+        letterSpacing: -0.3,
+        color: textPrimary,
+      );
+
+  TextStyle get heroTitle => ShopTheme.fontManrope(
+        fontSize: 17,
+        fontWeight: FontWeight.w600,
+        height: 1.25,
+        color: textPrimary,
+      );
+
+  TextStyle get heroSubtitle => ShopTheme.fontManrope(
+        fontSize: 11.5,
+        fontWeight: FontWeight.w400,
+        height: 1.35,
+        color: textSecondary,
+      );
+
+  TextStyle get heroAction => ShopTheme.fontManrope(
+        fontSize: 12,
+        fontWeight: FontWeight.w500,
+        color: textPrimary,
+      );
+
+  TextStyle get tabActive => ShopTheme.fontManrope(
+        fontSize: 13,
+        fontWeight: FontWeight.w600,
+        color: textPrimary,
+      );
+
+  TextStyle get tabInactive => ShopTheme.fontManrope(
+        fontSize: 13,
+        fontWeight: FontWeight.w500,
+        color: textSecondary,
+      );
+
+  TextStyle get sectionHeaderCaps => ShopTheme.fontManrope(
+        fontSize: 11,
+        fontWeight: FontWeight.w600,
+        letterSpacing: 1.2,
+        color: textSecondary,
+      );
+
+  TextStyle get sectionCount => ShopTheme.fontManrope(
+        fontSize: 11,
+        fontWeight: FontWeight.w400,
+        color: textMuted,
+      );
+
+  TextStyle get productTitle => ShopTheme.fontManrope(
+        fontSize: 13.5,
+        fontWeight: FontWeight.w500,
+        height: 1.25,
+        color: textPrimary,
+      );
+
+  TextStyle get productPrice => ShopTheme.fontManrope(
+        fontSize: 15,
+        fontWeight: FontWeight.w600,
+        letterSpacing: -0.2,
+        color: textPrimary,
+      );
+
+  TextStyle get demoBadge => ShopTheme.fontManrope(
+        fontSize: 10,
+        fontWeight: FontWeight.w500,
+        letterSpacing: 0.3,
+        color: textMuted,
+      );
+
+  TextStyle get collectionBadge => ShopTheme.fontManrope(
+        fontSize: 10,
+        fontWeight: FontWeight.w600,
+        letterSpacing: 1.0,
+        color: textSecondary,
+      );
+
+  TextStyle get collectionTitle => ShopTheme.fontManrope(
+        fontSize: 14,
+        fontWeight: FontWeight.w600,
+        color: textPrimary,
+      );
+
+  TextStyle get collectionSubtitle => ShopTheme.fontManrope(
+        fontSize: 11.5,
+        fontWeight: FontWeight.w400,
+        color: textSecondary,
+      );
+
+  TextStyle get ctaButtonText => ShopTheme.fontManrope(
+        fontSize: 14,
+        fontWeight: FontWeight.w600,
+        letterSpacing: 0.2,
+        color: ctaText,
+      );
 }

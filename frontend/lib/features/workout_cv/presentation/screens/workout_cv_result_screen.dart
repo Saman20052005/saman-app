@@ -12,29 +12,82 @@ import '../../domain/services/lat_pulldown_baseline.dart';
 import '../controllers/workout_cv_controller.dart';
 import '../widgets/pose_skeleton_painter.dart';
 
-/// Calm Athleticism (Dark Mode Obsidian) tokens for CV Report Screen.
+/// Calm Athleticism adaptive tokens for CV Report Screen (Light + Dark).
 class _CalmAthleticismReportTokens {
-  _CalmAthleticismReportTokens._();
+  const _CalmAthleticismReportTokens({
+    required this.canvas,
+    required this.cardSurface,
+    required this.cardHover,
+    required this.border,
+    required this.iconContainer,
+    required this.videoBackdrop,
+    required this.textPrimary,
+    required this.textHeadline,
+    required this.textSecondary,
+    required this.textSubtle,
+    required this.statusValid,
+    required this.statusWarning,
+    required this.ctaBackground,
+    required this.ctaForeground,
+  });
 
-  static const Color canvas = Color(0xFF0C0D0E);
-  static const Color cardSurface = Color(0xFF16171B);
-  static const Color cardHover = Color(0xFF1F2126);
-  static const Color border = Color(0xFF26282F);
-  static const Color iconContainer = Color(0xFF212328);
-  static const Color videoBackdrop = Color(0xFF000000);
+  final Color canvas;
+  final Color cardSurface;
+  final Color cardHover;
+  final Color border;
+  final Color iconContainer;
+  final Color videoBackdrop;
+  final Color textPrimary;
+  final Color textHeadline;
+  final Color textSecondary;
+  final Color textSubtle;
+  final Color statusValid;
+  final Color statusWarning;
+  final Color ctaBackground;
+  final Color ctaForeground;
 
-  static const Color textPrimary = Color(0xFFF9FAFB);
-  static const Color textHeadline = Color(0xFFF3F4F6);
-  static const Color textSecondary = Color(0xFF94979E);
-  static const Color textSubtle = Color(0xFFCBD5E1);
+  static const _CalmAthleticismReportTokens dark = _CalmAthleticismReportTokens(
+    canvas: Color(0xFF0C0D0E),
+    cardSurface: Color(0xFF16171B),
+    cardHover: Color(0xFF1F2126),
+    border: Color(0xFF26282F),
+    iconContainer: Color(0xFF212328),
+    videoBackdrop: Color(0xFF000000),
+    textPrimary: Color(0xFFF9FAFB),
+    textHeadline: Color(0xFFF3F4F6),
+    textSecondary: Color(0xFF94979E),
+    textSubtle: Color(0xFFCBD5E1),
+    statusValid: Color(0xFF10B981),
+    statusWarning: Color(0xFFF59E0B),
+    ctaBackground: Color(0xFFF9FAFB),
+    ctaForeground: Color(0xFF0C0D0E),
+  );
 
-  static const Color statusValid = Color(0xFF10B981);
-  static const Color statusWarning = Color(0xFFF59E0B);
+  static const _CalmAthleticismReportTokens light = _CalmAthleticismReportTokens(
+    canvas: Color(0xFFF8FAFC),
+    cardSurface: Color(0xFFFFFFFF),
+    cardHover: Color(0xFFF1F5F9),
+    border: Color(0xFFE2E8F0),
+    iconContainer: Color(0xFFF1F5F9),
+    videoBackdrop: Color(0xFF000000),
+    textPrimary: Color(0xFF0F172A),
+    textHeadline: Color(0xFF0F172A),
+    textSecondary: Color(0xFF475569),
+    textSubtle: Color(0xFF334155),
+    statusValid: Color(0xFF059669),
+    statusWarning: Color(0xFFD97706),
+    ctaBackground: Color(0xFF059669),
+    ctaForeground: Color(0xFFFFFFFF),
+  );
+
+  static _CalmAthleticismReportTokens of(BuildContext context) {
+    return Theme.of(context).brightness == Brightness.dark ? dark : light;
+  }
 
   static TextStyle headline({
     required double fontSize,
     FontWeight fontWeight = FontWeight.w600,
-    Color color = textHeadline,
+    required Color color,
     double? height,
     double? letterSpacing,
   }) {
@@ -53,7 +106,7 @@ class _CalmAthleticismReportTokens {
   static TextStyle body({
     required double fontSize,
     FontWeight fontWeight = FontWeight.w400,
-    Color color = textPrimary,
+    required Color color,
     double? height,
     double? letterSpacing,
   }) {
@@ -72,7 +125,7 @@ class _CalmAthleticismReportTokens {
   static TextStyle mono({
     required double fontSize,
     FontWeight fontWeight = FontWeight.w500,
-    Color color = textSecondary,
+    required Color color,
     double? height,
     double? letterSpacing,
   }) {
@@ -342,6 +395,7 @@ class _WorkoutCvResultScreenState extends ConsumerState<WorkoutCvResultScreen>
 
   @override
   Widget build(BuildContext context) {
+    final t = _CalmAthleticismReportTokens.of(context);
     final cvState = _hasScope
         ? ref.watch(workoutCvControllerProvider)
         : const ExerciseCvState();
@@ -355,7 +409,7 @@ class _WorkoutCvResultScreenState extends ConsumerState<WorkoutCvResultScreen>
     final isPlaying = _isPlayingNow(cvState);
 
     return Scaffold(
-      backgroundColor: _CalmAthleticismReportTokens.canvas,
+      backgroundColor: t.canvas,
       body: SafeArea(
         bottom: false,
         child: Center(
@@ -435,6 +489,7 @@ class _TopHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = _CalmAthleticismReportTokens.of(context);
     final trimmedName = exerciseName?.trim() ?? '';
     final hasExerciseName = trimmedName.isNotEmpty;
 
@@ -446,11 +501,11 @@ class _TopHeader extends StatelessWidget {
             width: 36,
             height: 36,
             child: Material(
-              color: _CalmAthleticismReportTokens.cardSurface,
+              color: t.cardSurface,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
-                side: const BorderSide(
-                  color: _CalmAthleticismReportTokens.border,
+                side: BorderSide(
+                  color: t.border,
                   width: 1,
                 ),
               ),
@@ -458,11 +513,11 @@ class _TopHeader extends StatelessWidget {
               child: InkWell(
                 key: const ValueKey('workout_cv_result_back_button'),
                 onTap: onBack,
-                child: const Center(
+                child: Center(
                   child: Icon(
                     Icons.arrow_back,
                     size: 20,
-                    color: _CalmAthleticismReportTokens.textSecondary,
+                    color: t.textSecondary,
                   ),
                 ),
               ),
@@ -480,7 +535,7 @@ class _TopHeader extends StatelessWidget {
                     style: _CalmAthleticismReportTokens.headline(
                       fontSize: 19,
                       fontWeight: FontWeight.w600,
-                      color: _CalmAthleticismReportTokens.textPrimary,
+                      color: t.textPrimary,
                       height: 1.2,
                       letterSpacing: -0.3,
                     ),
@@ -491,7 +546,7 @@ class _TopHeader extends StatelessWidget {
                           style: _CalmAthleticismReportTokens.headline(
                             fontSize: 19,
                             fontWeight: FontWeight.w400,
-                            color: _CalmAthleticismReportTokens.textSecondary,
+                            color: t.textSecondary,
                             height: 1.2,
                             letterSpacing: -0.3,
                           ),
@@ -509,7 +564,7 @@ class _TopHeader extends StatelessWidget {
                   style: _CalmAthleticismReportTokens.mono(
                     fontSize: 11,
                     fontWeight: FontWeight.w500,
-                    color: _CalmAthleticismReportTokens.textSecondary,
+                    color: t.textSecondary,
                     letterSpacing: 0.8,
                   ),
                 ),
@@ -517,8 +572,8 @@ class _TopHeader extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 8),
-          const _NeutralStatusBadge(
-            dotColor: _CalmAthleticismReportTokens.statusValid,
+          _NeutralStatusBadge(
+            dotColor: t.statusValid,
             label: 'AI VERIFIED',
           ),
         ],
@@ -572,6 +627,7 @@ class _SessionReplayVideoCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    const dark = _CalmAthleticismReportTokens.dark;
     final hasError = cvState.trackingStatus == TrackingStatus.error;
     final canRenderNativeView =
         supportsNativeVideoView && cvState.isCameraActive && !hasError;
@@ -590,10 +646,10 @@ class _SessionReplayVideoCard extends StatelessWidget {
       height: _cardHeight,
       child: Container(
         decoration: BoxDecoration(
-          color: _CalmAthleticismReportTokens.videoBackdrop,
+          color: dark.videoBackdrop,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: _CalmAthleticismReportTokens.border,
+            color: _CalmAthleticismReportTokens.of(context).border,
             width: 1,
           ),
         ),
@@ -672,8 +728,7 @@ class _SessionReplayVideoCard extends StatelessWidget {
                                 begin: Alignment.bottomCenter,
                                 end: Alignment.topCenter,
                                 colors: [
-                                  _CalmAthleticismReportTokens.canvas
-                                      .withOpacity(0.80),
+                                  dark.canvas.withOpacity(0.80),
                                   Colors.transparent,
                                 ],
                               ),
@@ -695,12 +750,10 @@ class _SessionReplayVideoCard extends StatelessWidget {
                                   vertical: 4,
                                 ),
                                 decoration: BoxDecoration(
-                                  color: _CalmAthleticismReportTokens
-                                      .iconContainer
-                                      .withOpacity(0.85),
+                                  color: dark.iconContainer.withOpacity(0.85),
                                   borderRadius: BorderRadius.circular(6),
                                   border: Border.all(
-                                    color: _CalmAthleticismReportTokens.border,
+                                    color: dark.border,
                                     width: 1,
                                   ),
                                 ),
@@ -715,8 +768,7 @@ class _SessionReplayVideoCard extends StatelessWidget {
                                   style: _CalmAthleticismReportTokens.mono(
                                     fontSize: 10,
                                     fontWeight: FontWeight.w600,
-                                    color:
-                                        _CalmAthleticismReportTokens.textSubtle,
+                                    color: dark.textSubtle,
                                     letterSpacing: 0.6,
                                   ),
                                 ),
@@ -724,12 +776,11 @@ class _SessionReplayVideoCard extends StatelessWidget {
                             ),
                             const SizedBox(width: 8),
                             Material(
-                              color: _CalmAthleticismReportTokens.iconContainer
-                                  .withOpacity(0.85),
+                              color: dark.iconContainer.withOpacity(0.85),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(6),
-                                side: const BorderSide(
-                                  color: _CalmAthleticismReportTokens.border,
+                                side: BorderSide(
+                                  color: dark.border,
                                   width: 1,
                                 ),
                               ),
@@ -751,10 +802,8 @@ class _SessionReplayVideoCard extends StatelessWidget {
                                         Icons.accessibility_new_rounded,
                                         size: 13,
                                         color: showSkeletonOverlay
-                                            ? _CalmAthleticismReportTokens
-                                                .statusValid
-                                            : _CalmAthleticismReportTokens
-                                                .textSecondary,
+                                            ? dark.statusValid
+                                            : dark.textSecondary,
                                       ),
                                       const SizedBox(width: 4),
                                       Text(
@@ -765,8 +814,7 @@ class _SessionReplayVideoCard extends StatelessWidget {
                                             _CalmAthleticismReportTokens.mono(
                                           fontSize: 10,
                                           fontWeight: FontWeight.w600,
-                                          color: _CalmAthleticismReportTokens
-                                              .textSubtle,
+                                          color: dark.textSubtle,
                                           letterSpacing: 0.5,
                                         ),
                                       ),
@@ -787,12 +835,10 @@ class _SessionReplayVideoCard extends StatelessWidget {
                                 width: 56,
                                 height: 56,
                                 child: Material(
-                                  color: _CalmAthleticismReportTokens
-                                      .iconContainer
-                                      .withOpacity(0.80),
-                                  shape: const CircleBorder(
+                                  color: dark.iconContainer.withOpacity(0.80),
+                                  shape: CircleBorder(
                                     side: BorderSide(
-                                      color: _CalmAthleticismReportTokens.border,
+                                      color: dark.border,
                                       width: 1,
                                     ),
                                   ),
@@ -808,8 +854,7 @@ class _SessionReplayVideoCard extends StatelessWidget {
                                             ? Icons.pause_rounded
                                             : Icons.play_arrow_rounded,
                                         size: 28,
-                                        color: _CalmAthleticismReportTokens
-                                            .textHeadline,
+                                        color: dark.textHeadline,
                                       ),
                                     ),
                                   ),
@@ -838,8 +883,7 @@ class _SessionReplayVideoCard extends StatelessWidget {
                                   style: _CalmAthleticismReportTokens.mono(
                                     fontSize: 11,
                                     fontWeight: FontWeight.w400,
-                                    color: _CalmAthleticismReportTokens
-                                        .textSecondary,
+                                    color: dark.textSecondary,
                                   ),
                                 ),
                               ),
@@ -850,8 +894,7 @@ class _SessionReplayVideoCard extends StatelessWidget {
                                   style: _CalmAthleticismReportTokens.mono(
                                     fontSize: 11,
                                     fontWeight: FontWeight.w500,
-                                    color:
-                                        _CalmAthleticismReportTokens.textSubtle,
+                                    color: dark.textSubtle,
                                   ),
                                 ),
                               ],
@@ -901,8 +944,9 @@ class _MinimalReplaySurfaceFallback extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    const dark = _CalmAthleticismReportTokens.dark;
     return ColoredBox(
-      color: _CalmAthleticismReportTokens.cardSurface,
+      color: dark.cardSurface,
       child: CustomPaint(
         painter: _TelemetryFrameGuidePainter(),
         child: Center(
@@ -916,7 +960,7 @@ class _MinimalReplaySurfaceFallback extends StatelessWidget {
               style: _CalmAthleticismReportTokens.body(
                 fontSize: 12,
                 fontWeight: FontWeight.w400,
-                color: _CalmAthleticismReportTokens.textSecondary,
+                color: dark.textSecondary,
               ),
             ),
           ),
@@ -930,7 +974,7 @@ class _TelemetryFrameGuidePainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
-      ..color = _CalmAthleticismReportTokens.border.withOpacity(0.65)
+      ..color = _CalmAthleticismReportTokens.dark.border.withOpacity(0.65)
       ..strokeWidth = 1.2
       ..style = PaintingStyle.stroke;
 
@@ -1005,6 +1049,7 @@ class _HeroSummaryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = _CalmAthleticismReportTokens.of(context);
     final needsImprovementReps = (totalReps - standardReps).clamp(0, totalReps);
     final standardPct =
         totalReps > 0 ? ((standardReps * 100) / totalReps).round() : 0;
@@ -1013,10 +1058,10 @@ class _HeroSummaryCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: _CalmAthleticismReportTokens.cardSurface,
+        color: t.cardSurface,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: _CalmAthleticismReportTokens.border,
+          color: t.border,
           width: 1,
         ),
       ),
@@ -1029,18 +1074,18 @@ class _HeroSummaryCard extends StatelessWidget {
                 width: 32,
                 height: 32,
                 decoration: BoxDecoration(
-                  color: _CalmAthleticismReportTokens.iconContainer,
+                  color: t.iconContainer,
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(
-                    color: _CalmAthleticismReportTokens.border,
+                    color: t.border,
                     width: 1,
                   ),
                 ),
-                child: const Center(
+                child: Center(
                   child: Icon(
                     Icons.fitness_center,
                     size: 18,
-                    color: _CalmAthleticismReportTokens.statusValid,
+                    color: t.statusValid,
                   ),
                 ),
               ),
@@ -1053,14 +1098,14 @@ class _HeroSummaryCard extends StatelessWidget {
                   style: _CalmAthleticismReportTokens.mono(
                     fontSize: 11,
                     fontWeight: FontWeight.w600,
-                    color: _CalmAthleticismReportTokens.textSecondary,
+                    color: t.textSecondary,
                     letterSpacing: 0.7,
                   ),
                 ),
               ),
               const SizedBox(width: 8),
               _NeutralStatusBadge(
-                dotColor: _CalmAthleticismReportTokens.statusValid,
+                dotColor: t.statusValid,
                 label: 'ĐẠT CHUẨN: $standardReps/$totalReps REP',
               ),
             ],
@@ -1076,7 +1121,7 @@ class _HeroSummaryCard extends StatelessWidget {
                 style: _CalmAthleticismReportTokens.headline(
                   fontSize: 58,
                   fontWeight: FontWeight.w600,
-                  color: _CalmAthleticismReportTokens.textHeadline,
+                  color: t.textHeadline,
                   height: 1.0,
                   letterSpacing: -1.5,
                 ),
@@ -1087,23 +1132,23 @@ class _HeroSummaryCard extends StatelessWidget {
                 style: _CalmAthleticismReportTokens.body(
                   fontSize: 18,
                   fontWeight: FontWeight.w400,
-                  color: _CalmAthleticismReportTokens.textSecondary,
+                  color: t.textSecondary,
                   height: 1.0,
                 ),
               ),
               const Spacer(),
               _NeutralStatusBadge(
-                dotColor: _CalmAthleticismReportTokens.statusValid,
+                dotColor: t.statusValid,
                 label: '$standardPct%',
                 isBoldLabel: true,
               ),
             ],
           ),
           const SizedBox(height: 12),
-          const Divider(
+          Divider(
             height: 1,
             thickness: 1,
-            color: _CalmAthleticismReportTokens.border,
+            color: t.border,
           ),
           const SizedBox(height: 12),
           ClipRRect(
@@ -1112,23 +1157,22 @@ class _HeroSummaryCard extends StatelessWidget {
               height: 4,
               width: double.infinity,
               child: ColoredBox(
-                color: _CalmAthleticismReportTokens.iconContainer,
+                color: t.iconContainer,
                 child: totalReps > 0
                     ? Row(
                         children: [
                           if (standardReps > 0)
                             Expanded(
                               flex: standardReps,
-                              child: const ColoredBox(
-                                color: _CalmAthleticismReportTokens.statusValid,
+                              child: ColoredBox(
+                                color: t.statusValid,
                               ),
                             ),
                           if (needsImprovementReps > 0)
                             Expanded(
                               flex: needsImprovementReps,
-                              child: const ColoredBox(
-                                color:
-                                    _CalmAthleticismReportTokens.statusWarning,
+                              child: ColoredBox(
+                                color: t.statusWarning,
                               ),
                             ),
                         ],
@@ -1144,11 +1188,11 @@ class _HeroSummaryCard extends StatelessWidget {
             spacing: 12,
             children: [
               _ProgressLegendItem(
-                dotColor: _CalmAthleticismReportTokens.statusValid,
+                dotColor: t.statusValid,
                 label: '$standardReps Rep đạt chuẩn ($standardPct%)',
               ),
               _ProgressLegendItem(
-                dotColor: _CalmAthleticismReportTokens.statusWarning,
+                dotColor: t.statusWarning,
                 label: '$needsImprovementReps Cần cải thiện ($improvementPct%)',
               ),
             ],
@@ -1170,6 +1214,7 @@ class _ProgressLegendItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = _CalmAthleticismReportTokens.of(context);
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -1187,7 +1232,7 @@ class _ProgressLegendItem extends StatelessWidget {
           style: _CalmAthleticismReportTokens.mono(
             fontSize: 12,
             fontWeight: FontWeight.w400,
-            color: _CalmAthleticismReportTokens.textSecondary,
+            color: t.textSecondary,
           ),
         ),
       ],
@@ -1200,13 +1245,14 @@ class _CriteriaBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = _CalmAthleticismReportTokens.of(context);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
       decoration: BoxDecoration(
-        color: _CalmAthleticismReportTokens.cardSurface,
+        color: t.cardSurface,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: _CalmAthleticismReportTokens.border,
+          color: t.border,
           width: 1,
         ),
       ),
@@ -1216,18 +1262,18 @@ class _CriteriaBanner extends StatelessWidget {
             width: 24,
             height: 24,
             decoration: BoxDecoration(
-              color: _CalmAthleticismReportTokens.iconContainer,
+              color: t.iconContainer,
               borderRadius: BorderRadius.circular(8),
               border: Border.all(
-                color: _CalmAthleticismReportTokens.border,
+                color: t.border,
                 width: 1,
               ),
             ),
-            child: const Center(
+            child: Center(
               child: Icon(
                 Icons.info_outline,
                 size: 14,
-                color: _CalmAthleticismReportTokens.textSecondary,
+                color: t.textSecondary,
               ),
             ),
           ),
@@ -1240,7 +1286,7 @@ class _CriteriaBanner extends StatelessWidget {
               style: _CalmAthleticismReportTokens.mono(
                 fontSize: 11,
                 fontWeight: FontWeight.w500,
-                color: _CalmAthleticismReportTokens.textSecondary,
+                color: t.textSecondary,
                 letterSpacing: 0.7,
               ),
             ),
@@ -1254,7 +1300,7 @@ class _CriteriaBanner extends StatelessWidget {
                 style: _CalmAthleticismReportTokens.mono(
                   fontSize: 12,
                   fontWeight: FontWeight.w500,
-                  color: _CalmAthleticismReportTokens.textHeadline,
+                  color: t.textHeadline,
                 ),
               ),
               Padding(
@@ -1264,7 +1310,7 @@ class _CriteriaBanner extends StatelessWidget {
                   style: _CalmAthleticismReportTokens.mono(
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
-                    color: _CalmAthleticismReportTokens.textSecondary,
+                    color: t.textSecondary,
                   ),
                 ),
               ),
@@ -1273,7 +1319,7 @@ class _CriteriaBanner extends StatelessWidget {
                 style: _CalmAthleticismReportTokens.mono(
                   fontSize: 12,
                   fontWeight: FontWeight.w500,
-                  color: _CalmAthleticismReportTokens.textHeadline,
+                  color: t.textHeadline,
                 ),
               ),
             ],
@@ -1297,6 +1343,7 @@ class _RepBreakdownSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = _CalmAthleticismReportTokens.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -1310,7 +1357,7 @@ class _RepBreakdownSection extends StatelessWidget {
                 style: _CalmAthleticismReportTokens.mono(
                   fontSize: 12,
                   fontWeight: FontWeight.w600,
-                  color: _CalmAthleticismReportTokens.textSecondary,
+                  color: t.textSecondary,
                   letterSpacing: 0.7,
                 ),
               ),
@@ -1319,7 +1366,7 @@ class _RepBreakdownSection extends StatelessWidget {
                 style: _CalmAthleticismReportTokens.mono(
                   fontSize: 11,
                   fontWeight: FontWeight.w400,
-                  color: _CalmAthleticismReportTokens.textSecondary,
+                  color: t.textSecondary,
                 ),
               ),
             ],
@@ -1328,10 +1375,10 @@ class _RepBreakdownSection extends StatelessWidget {
         const SizedBox(height: 10),
         Container(
           decoration: BoxDecoration(
-            color: _CalmAthleticismReportTokens.cardSurface,
+            color: t.cardSurface,
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
-              color: _CalmAthleticismReportTokens.border,
+              color: t.border,
               width: 1,
             ),
           ),
@@ -1342,10 +1389,10 @@ class _RepBreakdownSection extends StatelessWidget {
                   children: [
                     for (int index = 0; index < repHistory.length; index++) ...[
                       if (index > 0)
-                        const Divider(
+                        Divider(
                           height: 1,
                           thickness: 1,
-                          color: _CalmAthleticismReportTokens.border,
+                          color: t.border,
                         ),
                       _RepResultRow(
                         key: ValueKey(
@@ -1391,19 +1438,16 @@ class _RepResultRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = _CalmAthleticismReportTokens.of(context);
     final durationSec = rep.durationMs / 1000.0;
     final isStandardMet = WorkoutCvResultScreen.isRepStandardMet(rep);
-    final statusColor = isStandardMet
-        ? _CalmAthleticismReportTokens.statusValid
-        : _CalmAthleticismReportTokens.statusWarning;
+    final statusColor = isStandardMet ? t.statusValid : t.statusWarning;
 
     final durationText = durationSec.toStringAsFixed(1);
     final angleText = rep.minElbowAngleDeg.toStringAsFixed(1);
 
     return Material(
-      color: isSelected
-          ? _CalmAthleticismReportTokens.cardHover
-          : Colors.transparent,
+      color: isSelected ? t.cardHover : Colors.transparent,
       child: InkWell(
         onTap: onTap,
         child: Padding(
@@ -1414,10 +1458,10 @@ class _RepResultRow extends StatelessWidget {
                 width: 48,
                 height: 48,
                 decoration: BoxDecoration(
-                  color: _CalmAthleticismReportTokens.iconContainer,
+                  color: t.iconContainer,
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(
-                    color: _CalmAthleticismReportTokens.border,
+                    color: t.border,
                     width: 1,
                   ),
                 ),
@@ -1444,7 +1488,7 @@ class _RepResultRow extends StatelessWidget {
                       style: _CalmAthleticismReportTokens.body(
                         fontSize: 14,
                         fontWeight: FontWeight.w500,
-                        color: _CalmAthleticismReportTokens.textHeadline,
+                        color: t.textHeadline,
                       ),
                     ),
                     const SizedBox(height: 2),
@@ -1454,7 +1498,7 @@ class _RepResultRow extends StatelessWidget {
                         style: _CalmAthleticismReportTokens.mono(
                           fontSize: 13,
                           fontWeight: FontWeight.w400,
-                          color: _CalmAthleticismReportTokens.textSubtle,
+                          color: t.textSubtle,
                         ),
                         children: [
                           TextSpan(
@@ -1462,7 +1506,7 @@ class _RepResultRow extends StatelessWidget {
                             style: _CalmAthleticismReportTokens.mono(
                               fontSize: 13,
                               fontWeight: FontWeight.w400,
-                              color: _CalmAthleticismReportTokens.textSecondary,
+                              color: t.textSecondary,
                             ),
                           ),
                           TextSpan(
@@ -1470,7 +1514,7 @@ class _RepResultRow extends StatelessWidget {
                             style: _CalmAthleticismReportTokens.mono(
                               fontSize: 13,
                               fontWeight: FontWeight.w400,
-                              color: _CalmAthleticismReportTokens.textSubtle,
+                              color: t.textSubtle,
                             ),
                           ),
                         ],
@@ -1506,13 +1550,14 @@ class _NeutralStatusBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = _CalmAthleticismReportTokens.of(context);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
-        color: _CalmAthleticismReportTokens.iconContainer,
+        color: t.iconContainer,
         borderRadius: BorderRadius.circular(6),
         border: Border.all(
-          color: _CalmAthleticismReportTokens.border,
+          color: t.border,
           width: 1,
         ),
       ),
@@ -1533,7 +1578,7 @@ class _NeutralStatusBadge extends StatelessWidget {
             style: _CalmAthleticismReportTokens.mono(
               fontSize: 11,
               fontWeight: isBoldLabel ? FontWeight.w700 : FontWeight.w500,
-              color: _CalmAthleticismReportTokens.textSubtle,
+              color: t.textSubtle,
               letterSpacing: 0.5,
             ),
           ),
@@ -1548,6 +1593,7 @@ class _EmptyRepHistoryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = _CalmAthleticismReportTokens.of(context);
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
       child: Column(
@@ -1557,17 +1603,17 @@ class _EmptyRepHistoryCard extends StatelessWidget {
             width: 48,
             height: 48,
             decoration: BoxDecoration(
-              color: _CalmAthleticismReportTokens.iconContainer,
+              color: t.iconContainer,
               borderRadius: BorderRadius.circular(12),
               border: Border.all(
-                color: _CalmAthleticismReportTokens.border,
+                color: t.border,
                 width: 1,
               ),
             ),
-            child: const Center(
+            child: Center(
               child: Icon(
                 Icons.info_outline,
-                color: _CalmAthleticismReportTokens.statusWarning,
+                color: t.statusWarning,
                 size: 26,
               ),
             ),
@@ -1579,7 +1625,7 @@ class _EmptyRepHistoryCard extends StatelessWidget {
             style: _CalmAthleticismReportTokens.body(
               fontSize: 14,
               fontWeight: FontWeight.w400,
-              color: _CalmAthleticismReportTokens.textSecondary,
+              color: t.textSecondary,
             ),
           ),
         ],
@@ -1597,12 +1643,13 @@ class _StickyBottomCta extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = _CalmAthleticismReportTokens.of(context);
     return Container(
-      decoration: const BoxDecoration(
-        color: _CalmAthleticismReportTokens.canvas,
+      decoration: BoxDecoration(
+        color: t.canvas,
         border: Border(
           top: BorderSide(
-            color: _CalmAthleticismReportTokens.border,
+            color: t.border,
             width: 1,
           ),
         ),
@@ -1621,22 +1668,22 @@ class _StickyBottomCta extends StatelessWidget {
                 child: ElevatedButton.icon(
                   key: const ValueKey('workout_cv_result_done_button'),
                   onPressed: onDone,
-                  icon: const Icon(
+                  icon: Icon(
                     Icons.check_circle_outline_rounded,
                     size: 20,
-                    color: _CalmAthleticismReportTokens.canvas,
+                    color: t.ctaForeground,
                   ),
                   label: Text(
                     'Hoàn thành',
                     style: _CalmAthleticismReportTokens.body(
                       fontSize: 15,
                       fontWeight: FontWeight.w600,
-                      color: _CalmAthleticismReportTokens.canvas,
+                      color: t.ctaForeground,
                     ),
                   ),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: _CalmAthleticismReportTokens.textPrimary,
-                    foregroundColor: _CalmAthleticismReportTokens.canvas,
+                    backgroundColor: t.ctaBackground,
+                    foregroundColor: t.ctaForeground,
                     elevation: 0,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),

@@ -19,6 +19,7 @@ class QuickActionDock extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = SamanHomeTokens.of(context);
     return Padding(
       padding: const EdgeInsets.symmetric(
         horizontal: SamanHomeTokens.spacingLg,
@@ -28,7 +29,7 @@ class QuickActionDock extends StatelessWidget {
           Expanded(
             child: _QuickActionButton(
               icon: Icons.add_rounded,
-              iconColor: SamanHomeTokens.textSecondary,
+              iconColor: tokens.textSecondary,
               label: 'Log meal',
               tooltip: 'Log meal',
               onTap: onLogMealTap,
@@ -38,7 +39,7 @@ class QuickActionDock extends StatelessWidget {
           Expanded(
             child: _QuickActionButton(
               icon: Icons.water_drop_rounded,
-              iconColor: SamanHomeTokens.waterCyan,
+              iconColor: tokens.waterCyan,
               label: 'Add water',
               tooltip: 'Add 250ml water',
               onTap: onAddWaterTap,
@@ -67,6 +68,7 @@ class _QuickActionButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = SamanHomeTokens.of(context);
     final button = Material(
       color: Colors.transparent,
       child: InkWell(
@@ -78,10 +80,10 @@ class _QuickActionButton extends StatelessWidget {
             vertical: 10,
           ),
           decoration: BoxDecoration(
-            color: SamanHomeTokens.secondarySurface,
+            color: tokens.secondarySurface,
             borderRadius: BorderRadius.circular(SamanHomeTokens.radiusMd),
             border: Border.all(
-              color: SamanHomeTokens.border,
+              color: tokens.border,
               width: 1,
             ),
           ),
@@ -91,10 +93,10 @@ class _QuickActionButton extends StatelessWidget {
                 width: 28,
                 height: 28,
                 decoration: BoxDecoration(
-                  color: SamanHomeTokens.cardSurface,
+                  color: tokens.cardSurface,
                   borderRadius: BorderRadius.circular(SamanHomeTokens.radiusSm),
                   border: Border.all(
-                    color: SamanHomeTokens.border,
+                    color: tokens.border,
                     width: 0.8,
                   ),
                 ),
@@ -102,7 +104,7 @@ class _QuickActionButton extends StatelessWidget {
                 child: Icon(
                   icon,
                   size: 16,
-                  color: iconColor ?? SamanHomeTokens.textSecondary,
+                  color: iconColor ?? tokens.textSecondary,
                 ),
               ),
               const SizedBox(width: 10),
@@ -111,11 +113,11 @@ class _QuickActionButton extends StatelessWidget {
                   label,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w500,
                     letterSpacing: 0.2,
-                    color: SamanHomeTokens.textSecondary,
+                    color: tokens.textSecondary,
                   ),
                 ),
               ),

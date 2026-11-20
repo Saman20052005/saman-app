@@ -127,29 +127,30 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final t = SamanWorkoutTokens.of(context);
     final session = ref.watch(activeWorkoutSessionProvider);
     final notifier = ref.read(activeWorkoutSessionProvider.notifier);
     final currentEx = session.currentExercise;
 
     if (currentEx == null) {
-      return const Scaffold(
-        backgroundColor: SamanWorkoutTokens.canvas,
+      return Scaffold(
+        backgroundColor: t.canvas,
         body: Center(
           child: CircularProgressIndicator(
-            color: SamanWorkoutTokens.emeraldAccent,
+            color: t.emeraldAccent,
           ),
         ),
       );
     }
 
     return Scaffold(
-      backgroundColor: SamanWorkoutTokens.canvas,
+      backgroundColor: t.canvas,
       body: SafeArea(
         bottom: false,
         child: Column(
           children: [
             // Sticky In-Session Top Chrome
-            _buildTopChrome(session, notifier),
+            _buildTopChrome(session, notifier, t),
 
             // Scrollable workout content
             Expanded(
@@ -159,25 +160,25 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     // Horizon Progress
-                    _buildHorizonProgress(session, currentEx),
+                    _buildHorizonProgress(session, currentEx, t),
                     const SizedBox(height: 16),
 
                     // Current Exercise Anchor Card
-                    _buildCurrentExerciseAnchor(currentEx),
+                    _buildCurrentExerciseAnchor(currentEx, t),
                     const SizedBox(height: 16),
 
                     // Compact Rest Strip (Only when resting)
                     if (session.isResting) ...[
-                      _buildRestStrip(session, notifier),
+                      _buildRestStrip(session, notifier, t),
                       const SizedBox(height: 16),
                     ],
 
                     // Scannable Set List Table
-                    _buildSetListTable(currentEx, notifier),
+                    _buildSetListTable(currentEx, notifier, t),
                     const SizedBox(height: 20),
 
                     // Secondary Up Next Queue
-                    _buildUpNextQueue(session),
+                    _buildUpNextQueue(session, t),
                   ],
                 ),
               ),
@@ -185,21 +186,22 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
           ],
         ),
       ),
-      bottomSheet: _buildFooterDock(session, currentEx, notifier),
+      bottomSheet: _buildFooterDock(session, currentEx, notifier, t),
     );
   }
 
   Widget _buildTopChrome(
     ActiveWorkoutSessionState session,
     ActiveWorkoutSessionNotifier notifier,
+    SamanWorkoutPalette t,
   ) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-      decoration: const BoxDecoration(
-        color: SamanWorkoutTokens.canvas,
+      decoration: BoxDecoration(
+        color: t.canvas,
         border: Border(
           bottom: BorderSide(
-            color: SamanWorkoutTokens.borderSubtle,
+            color: t.borderSubtle,
             width: 1,
           ),
         ),
@@ -216,13 +218,13 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
               width: 36,
               height: 36,
               decoration: BoxDecoration(
-                color: SamanWorkoutTokens.cardSurface,
+                color: t.cardSurface,
                 shape: BoxShape.circle,
-                border: Border.all(color: SamanWorkoutTokens.borderSubtle),
+                border: Border.all(color: t.borderSubtle),
               ),
-              child: const Icon(
+              child: Icon(
                 Icons.keyboard_arrow_down,
-                color: SamanWorkoutTokens.textSecondary,
+                color: t.textSecondary,
                 size: 20,
               ),
             ),
@@ -235,10 +237,10 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
               children: [
                 Text(
                   session.title,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
-                    color: SamanWorkoutTokens.textPrimary,
+                    color: t.textPrimary,
                     letterSpacing: -0.2,
                   ),
                   maxLines: 1,
@@ -253,8 +255,8 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
                     height: 6,
                     decoration: BoxDecoration(
                       color: session.isPaused
-                          ? SamanWorkoutTokens.amberAccent
-                          : SamanWorkoutTokens.emeraldAccent,
+                          ? t.amberAccent
+                          : t.emeraldAccent,
                       shape: BoxShape.circle,
                     ),
                   ),
@@ -262,11 +264,11 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
                   Text(
                     _formatTime(session.elapsedSeconds),
                     key: const ValueKey('active_workout_timer_text'),
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w500,
                       fontFamily: 'monospace',
-                      color: SamanWorkoutTokens.emeraldAccent,
+                      color: t.emeraldAccent,
                       letterSpacing: 0.5,
                     ),
                   ),
@@ -276,19 +278,18 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
                       padding: const EdgeInsets.symmetric(
                           horizontal: 5, vertical: 1),
                       decoration: BoxDecoration(
-                        color: SamanWorkoutTokens.amberAccent.withOpacity(0.15),
+                        color: t.amberAccent.withOpacity(0.15),
                         borderRadius: BorderRadius.circular(4),
                         border: Border.all(
-                          color:
-                              SamanWorkoutTokens.amberAccent.withOpacity(0.4),
+                          color: t.amberAccent.withOpacity(0.4),
                         ),
                       ),
-                      child: const Text(
+                      child: Text(
                         'PAUSED',
                         style: TextStyle(
                           fontSize: 10,
                           fontWeight: FontWeight.bold,
-                          color: SamanWorkoutTokens.amberAccent,
+                          color: t.amberAccent,
                           fontFamily: 'monospace',
                         ),
                       ),
@@ -308,17 +309,17 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
               decoration: BoxDecoration(
-                color: SamanWorkoutTokens.cardSurface,
+                color: t.cardSurface,
                 borderRadius:
                     BorderRadius.circular(SamanWorkoutTokens.radiusPill),
-                border: Border.all(color: SamanWorkoutTokens.borderSubtle),
+                border: Border.all(color: t.borderSubtle),
               ),
-              child: const Text(
+              child: Text(
                 'Finish',
                 style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w500,
-                  color: SamanWorkoutTokens.textPrimary,
+                  color: t.textPrimary,
                   letterSpacing: 0.3,
                 ),
               ),
@@ -332,6 +333,7 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
   Widget _buildHorizonProgress(
     ActiveWorkoutSessionState session,
     ActiveExerciseInfo currentEx,
+    SamanWorkoutPalette t,
   ) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -342,9 +344,9 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
             Flexible(
               child: Text(
                 'Exercise ${session.currentExerciseNumber} of ${session.exerciseCount}',
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 12,
-                  color: SamanWorkoutTokens.textSecondary,
+                  color: t.textSecondary,
                   fontWeight: FontWeight.w500,
                 ),
                 maxLines: 1,
@@ -355,9 +357,9 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
             Flexible(
               child: Text(
                 '${currentEx.completedSetsCount} of ${currentEx.totalSetsCount} sets completed',
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 12,
-                  color: SamanWorkoutTokens.emeraldAccent,
+                  color: t.emeraldAccent,
                   fontWeight: FontWeight.w500,
                 ),
                 textAlign: TextAlign.right,
@@ -378,7 +380,7 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
                 height: 4,
                 margin: EdgeInsets.only(right: index < session.exerciseCount - 1 ? 6.0 : 0.0),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF262930),
+                  color: t.isDark ? const Color(0xFF262930) : t.border,
                   borderRadius: BorderRadius.circular(2),
                 ),
                 alignment: Alignment.centerLeft,
@@ -386,7 +388,7 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
                   widthFactor: fillFraction.clamp(0.0, 1.0),
                   child: Container(
                     decoration: BoxDecoration(
-                      color: SamanWorkoutTokens.emeraldAccent,
+                      color: t.emeraldAccent,
                       borderRadius: BorderRadius.circular(2),
                     ),
                   ),
@@ -399,7 +401,8 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
     );
   }
 
-  Widget _buildCurrentExerciseAnchor(ActiveExerciseInfo currentEx) {
+  Widget _buildCurrentExerciseAnchor(
+      ActiveExerciseInfo currentEx, SamanWorkoutPalette t) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -408,9 +411,9 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
           width: double.infinity,
           height: 176,
           decoration: BoxDecoration(
-            color: SamanWorkoutTokens.cardSurface,
+            color: t.cardSurface,
             borderRadius: BorderRadius.circular(SamanWorkoutTokens.radiusLg),
-            border: Border.all(color: SamanWorkoutTokens.borderSubtle),
+            border: Border.all(color: t.borderSubtle),
           ),
           clipBehavior: Clip.antiAlias,
           child: Stack(
@@ -421,20 +424,20 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
                 fit: BoxFit.contain,
                 showUnavailableLabel: true,
               ),
-              // Bottom gradient
+              // Bottom gradient (keeps contrast behind floating dark pills)
               Container(
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
                     begin: Alignment.bottomCenter,
                     end: Alignment.topCenter,
                     colors: [
-                      SamanWorkoutTokens.canvas.withOpacity(0.8),
+                      const Color(0xFF0C0D0E).withOpacity(0.8),
                       Colors.transparent,
                     ],
                   ),
                 ),
               ),
-              // Floating Buttons on Image
+              // Floating Buttons on Image (dark translucent pills preserved across Light/Dark)
               Positioned(
                 left: 10,
                 bottom: 10,
@@ -519,19 +522,19 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
         const SizedBox(height: 12),
         Text(
           currentEx.name,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 20,
             fontWeight: FontWeight.w600,
-            color: SamanWorkoutTokens.textPrimary,
+            color: t.textPrimary,
             letterSpacing: -0.3,
           ),
         ),
         const SizedBox(height: 4),
         Text(
           currentEx.subtitle,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 12,
-            color: SamanWorkoutTokens.textSecondary,
+            color: t.textSecondary,
           ),
         ),
       ],
@@ -541,14 +544,15 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
   Widget _buildRestStrip(
     ActiveWorkoutSessionState session,
     ActiveWorkoutSessionNotifier notifier,
+    SamanWorkoutPalette t,
   ) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       decoration: BoxDecoration(
-        color: SamanWorkoutTokens.cardSurface,
+        color: t.cardSurface,
         borderRadius: BorderRadius.circular(SamanWorkoutTokens.radiusMd),
         border: Border.all(
-          color: SamanWorkoutTokens.emeraldAccent.withOpacity(0.35),
+          color: t.emeraldAccent.withOpacity(0.35),
         ),
       ),
       child: Row(
@@ -569,16 +573,17 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
                               session.currentExercise!.restSeconds
                           : 0.0,
                       strokeWidth: 3,
-                      valueColor: const AlwaysStoppedAnimation<Color>(
-                        SamanWorkoutTokens.emeraldAccent,
+                      valueColor: AlwaysStoppedAnimation<Color>(
+                        t.emeraldAccent,
                       ),
-                      backgroundColor: const Color(0xFF262930),
+                      backgroundColor:
+                          t.isDark ? const Color(0xFF262930) : t.border,
                     ),
                     Container(
                       width: 5,
                       height: 5,
-                      decoration: const BoxDecoration(
-                        color: SamanWorkoutTokens.emeraldAccent,
+                      decoration: BoxDecoration(
+                        color: t.emeraldAccent,
                         shape: BoxShape.circle,
                       ),
                     ),
@@ -590,24 +595,24 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Text(
+                  Text(
                     'REST',
                     style: TextStyle(
                       fontSize: 10,
                       fontWeight: FontWeight.w600,
                       fontFamily: 'monospace',
-                      color: SamanWorkoutTokens.textMuted,
+                      color: t.textMuted,
                       letterSpacing: 1.0,
                     ),
                   ),
                   Text(
                     _formatTime(session.restSecondsLeft),
                     key: const ValueKey('active_workout_rest_timer_text'),
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
                       fontFamily: 'monospace',
-                      color: SamanWorkoutTokens.textPrimary,
+                      color: t.textPrimary,
                     ),
                   ),
                 ],
@@ -624,16 +629,16 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
                   padding:
                       const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                   decoration: BoxDecoration(
-                    color: SamanWorkoutTokens.surfaceElevated,
+                    color: t.surfaceElevated,
                     borderRadius: BorderRadius.circular(6),
-                    border: Border.all(color: SamanWorkoutTokens.borderSubtle),
+                    border: Border.all(color: t.borderSubtle),
                   ),
-                  child: const Text(
+                  child: Text(
                     '+30s',
                     style: TextStyle(
                       fontSize: 12,
                       fontFamily: 'monospace',
-                      color: SamanWorkoutTokens.textPrimary,
+                      color: t.textPrimary,
                     ),
                   ),
                 ),
@@ -647,18 +652,18 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
                   padding:
                       const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                   decoration: BoxDecoration(
-                    color: SamanWorkoutTokens.emeraldBadgeBg,
+                    color: t.emeraldBadgeBg,
                     borderRadius: BorderRadius.circular(6),
                     border: Border.all(
-                      color: SamanWorkoutTokens.emeraldBadgeBorder,
+                      color: t.emeraldBadgeBorder,
                     ),
                   ),
-                  child: const Text(
+                  child: Text(
                     'Skip',
                     style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w600,
-                      color: SamanWorkoutTokens.emeraldAccent,
+                      color: t.emeraldAccent,
                     ),
                   ),
                 ),
@@ -673,6 +678,7 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
   Widget _buildSetListTable(
     ActiveExerciseInfo currentEx,
     ActiveWorkoutSessionNotifier notifier,
+    SamanWorkoutPalette t,
   ) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -680,8 +686,8 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
         // Column headers
         if (currentEx.unit == SetUnit.seconds)
           const _TimedSetHeader()
-        else const Padding(
-          padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        else Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
           child: Row(
             children: [
               Expanded(
@@ -691,7 +697,7 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
                   style: TextStyle(
                     fontSize: 11,
                     fontFamily: 'monospace',
-                    color: SamanWorkoutTokens.textMuted,
+                    color: t.textMuted,
                     letterSpacing: 0.8,
                   ),
                 ),
@@ -704,7 +710,7 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
                   style: TextStyle(
                     fontSize: 11,
                     fontFamily: 'monospace',
-                    color: SamanWorkoutTokens.textMuted,
+                    color: t.textMuted,
                     letterSpacing: 0.8,
                   ),
                 ),
@@ -717,7 +723,7 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
                   style: TextStyle(
                     fontSize: 11,
                     fontFamily: 'monospace',
-                    color: SamanWorkoutTokens.textMuted,
+                    color: t.textMuted,
                     letterSpacing: 0.8,
                   ),
                 ),
@@ -730,7 +736,7 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
                   style: TextStyle(
                     fontSize: 11,
                     fontFamily: 'monospace',
-                    color: SamanWorkoutTokens.textMuted,
+                    color: t.textMuted,
                     letterSpacing: 0.8,
                   ),
                 ),
@@ -751,11 +757,11 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
             );
           }
           if (set.isCompleted) {
-            return _buildCompletedSetRow(set);
+            return _buildCompletedSetRow(set, t);
           } else if (set.isActive) {
-            return _buildActiveSetCard(set, currentEx, notifier);
+            return _buildActiveSetCard(set, currentEx, notifier, t);
           } else {
-            return _buildUpcomingSetRow(set);
+            return _buildUpcomingSetRow(set, t);
           }
         }),
 
@@ -772,25 +778,25 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(SamanWorkoutTokens.radiusMd),
               border: Border.all(
-                color: SamanWorkoutTokens.borderSubtle,
+                color: t.borderSubtle,
                 style: BorderStyle.solid,
               ),
             ),
-            child: const Row(
+            child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Icon(
                   Icons.add,
                   size: 15,
-                  color: SamanWorkoutTokens.textSecondary,
+                  color: t.textSecondary,
                 ),
-                SizedBox(width: 6),
+                const SizedBox(width: 6),
                 Text(
                   'Add set',
                   style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w500,
-                    color: SamanWorkoutTokens.textSecondary,
+                    color: t.textSecondary,
                   ),
                 ),
               ],
@@ -801,14 +807,15 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
     );
   }
 
-  Widget _buildCompletedSetRow(ActiveWorkoutSetInfo set) {
+  Widget _buildCompletedSetRow(
+      ActiveWorkoutSetInfo set, SamanWorkoutPalette t) {
     return Container(
       margin: const EdgeInsets.only(bottom: 6),
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
-        color: SamanWorkoutTokens.cardSurface.withOpacity(0.5),
+        color: t.cardSurface.withOpacity(0.5),
         borderRadius: BorderRadius.circular(SamanWorkoutTokens.radiusMd),
-        border: Border.all(color: SamanWorkoutTokens.borderSubtle),
+        border: Border.all(color: t.borderSubtle),
       ),
       child: Row(
         children: [
@@ -816,11 +823,11 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
             flex: 2,
             child: Text(
               set.setNumber.toString(),
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 13,
                 fontFamily: 'monospace',
                 fontWeight: FontWeight.w600,
-                color: SamanWorkoutTokens.textSecondary,
+                color: t.textSecondary,
               ),
             ),
           ),
@@ -831,19 +838,19 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
               children: [
                 Text(
                   _formatWeight(set.weightKg ?? set.targetWeightKg),
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 14,
                     fontFamily: 'monospace',
                     fontWeight: FontWeight.w500,
-                    color: SamanWorkoutTokens.textPrimary,
+                    color: t.textPrimary,
                   ),
                 ),
                 const SizedBox(width: 3),
-                const Text(
+                Text(
                   'kg',
                   style: TextStyle(
                     fontSize: 11,
-                    color: SamanWorkoutTokens.textMuted,
+                    color: t.textMuted,
                   ),
                 ),
               ],
@@ -854,11 +861,11 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
             child: Text(
               '${set.reps ?? set.targetReps}',
               textAlign: TextAlign.center,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 14,
                 fontFamily: 'monospace',
                 fontWeight: FontWeight.w500,
-                color: SamanWorkoutTokens.textPrimary,
+                color: t.textPrimary,
               ),
             ),
           ),
@@ -870,16 +877,16 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
                 width: 22,
                 height: 22,
                 decoration: BoxDecoration(
-                  color: SamanWorkoutTokens.emeraldBadgeBg,
+                  color: t.emeraldBadgeBg,
                   shape: BoxShape.circle,
                   border: Border.all(
-                    color: SamanWorkoutTokens.emeraldBadgeBorder,
+                    color: t.emeraldBadgeBorder,
                   ),
                 ),
-                child: const Icon(
+                child: Icon(
                   Icons.check,
                   size: 13,
-                  color: SamanWorkoutTokens.emeraldAccent,
+                  color: t.emeraldAccent,
                 ),
               ),
             ),
@@ -893,6 +900,7 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
     ActiveExerciseInfo currentEx,
     LastExercisePerformance hint,
     ActiveWorkoutSessionNotifier notifier,
+    SamanWorkoutPalette t,
   ) {
     return Material(
       color: Colors.transparent,
@@ -907,16 +915,16 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
           decoration: BoxDecoration(
-            color: const Color(0xFF16171B),
-            border: Border.all(color: const Color(0xFF26282F)),
+            color: t.cardSurface,
+            border: Border.all(color: t.border),
             borderRadius: BorderRadius.circular(8),
           ),
           child: Text.rich(
             TextSpan(
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 11,
                 fontFamily: 'monospace',
-                color: SamanWorkoutTokens.textSecondary,
+                color: t.textSecondary,
               ),
               children: [
                 TextSpan(
@@ -925,7 +933,7 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
                 ),
                 TextSpan(
                   text: 'Gợi ý: ${_formatWeight(hint.suggestedWeightKg)}kg',
-                  style: const TextStyle(color: Color(0xFF10B981)),
+                  style: TextStyle(color: t.emeraldAccent),
                 ),
               ],
             ),
@@ -941,14 +949,16 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
     ActiveWorkoutSetInfo set,
     ActiveExerciseInfo currentEx,
     ActiveWorkoutSessionNotifier notifier,
+    SamanWorkoutPalette t,
   ) {
+    final stepperBg = t.isDark ? t.border : t.cardSurface;
     return Container(
       margin: const EdgeInsets.only(bottom: 6),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: const Color(0xFF1E2026),
+        color: t.surfaceElevated,
         borderRadius: BorderRadius.circular(SamanWorkoutTokens.radiusLg),
-        border: Border.all(color: const Color(0xFF2E323A)),
+        border: Border.all(color: t.borderHover),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -962,18 +972,18 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
                   Container(
                     width: 7,
                     height: 7,
-                    decoration: const BoxDecoration(
-                      color: SamanWorkoutTokens.emeraldAccent,
+                    decoration: BoxDecoration(
+                      color: t.emeraldAccent,
                       shape: BoxShape.circle,
                     ),
                   ),
                   const SizedBox(width: 8),
                   Text(
                     'SET ' + set.setNumber.toString() + ' (ACTIVE)',
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.bold,
-                      color: Colors.white,
+                      color: t.textPrimary,
                       letterSpacing: 0.5,
                     ),
                   ),
@@ -983,10 +993,10 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
               Expanded(
                 child: Text(
                   'TARGET: ' + _formatWeight(set.targetWeightKg) + ' KG × ' + set.targetReps.toString(),
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 11,
                     fontFamily: 'monospace',
-                    color: SamanWorkoutTokens.textSecondary,
+                    color: t.textSecondary,
                     letterSpacing: 0.5,
                   ),
                   textAlign: TextAlign.right,
@@ -999,7 +1009,7 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
           if (currentEx.lastPerformance != null) ...[
             const SizedBox(height: 8),
             _buildLastPerformancePill(
-                currentEx, currentEx.lastPerformance!, notifier),
+                currentEx, currentEx.lastPerformance!, notifier, t),
           ],
           const SizedBox(height: 12),
 
@@ -1012,10 +1022,10 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
                   height: 46,
                   padding: const EdgeInsets.symmetric(horizontal: 4),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF262930),
+                    color: stepperBg,
                     borderRadius:
                         BorderRadius.circular(SamanWorkoutTokens.radiusMd),
-                    border: Border.all(color: SamanWorkoutTokens.borderSubtle),
+                    border: Border.all(color: t.borderSubtle),
                   ),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -1024,14 +1034,15 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
                         key: const ValueKey('active_workout_weight_minus'),
                         onTap: () => notifier.adjustDraftWeight(-1),
                         borderRadius: BorderRadius.circular(6),
-                        child: const Padding(
-                          padding: EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 8, vertical: 8),
                           child: Text(
                             '−',
                             style: TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.bold,
-                              color: SamanWorkoutTokens.textSecondary,
+                              color: t.textSecondary,
                             ),
                           ),
                         ),
@@ -1047,19 +1058,19 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
                               children: [
                                 Text(
                                   _formatWeight(currentEx.draftWeightKg),
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                     fontSize: 17,
                                     fontWeight: FontWeight.bold,
                                     fontFamily: 'monospace',
-                                    color: Colors.white,
+                                    color: t.textPrimary,
                                   ),
                                 ),
                                 const SizedBox(width: 2),
-                                const Text(
+                                Text(
                                   'kg',
                                   style: TextStyle(
                                     fontSize: 11,
-                                    color: SamanWorkoutTokens.textSecondary,
+                                    color: t.textSecondary,
                                   ),
                                 ),
                               ],
@@ -1071,14 +1082,15 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
                         key: const ValueKey('active_workout_weight_plus'),
                         onTap: () => notifier.adjustDraftWeight(1),
                         borderRadius: BorderRadius.circular(6),
-                        child: const Padding(
-                          padding: EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 8, vertical: 8),
                           child: Text(
                             '+',
                             style: TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.bold,
-                              color: SamanWorkoutTokens.textSecondary,
+                              color: t.textSecondary,
                             ),
                           ),
                         ),
@@ -1095,10 +1107,10 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
                   height: 46,
                   padding: const EdgeInsets.symmetric(horizontal: 4),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF262930),
+                    color: stepperBg,
                     borderRadius:
                         BorderRadius.circular(SamanWorkoutTokens.radiusMd),
-                    border: Border.all(color: SamanWorkoutTokens.borderSubtle),
+                    border: Border.all(color: t.borderSubtle),
                   ),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -1107,14 +1119,15 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
                         key: const ValueKey('active_workout_reps_minus'),
                         onTap: () => notifier.adjustDraftReps(-1),
                         borderRadius: BorderRadius.circular(6),
-                        child: const Padding(
-                          padding: EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 8, vertical: 8),
                           child: Text(
                             '−',
                             style: TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.bold,
-                              color: SamanWorkoutTokens.textSecondary,
+                              color: t.textSecondary,
                             ),
                           ),
                         ),
@@ -1130,19 +1143,19 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
                           Text(
                             '${currentEx.draftReps}',
                             key: const ValueKey('active_workout_draft_reps'),
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 17,
                               fontWeight: FontWeight.bold,
                               fontFamily: 'monospace',
-                              color: Colors.white,
+                              color: t.textPrimary,
                             ),
                           ),
                           const SizedBox(width: 2),
-                          const Text(
+                          Text(
                             'reps',
                             style: TextStyle(
                               fontSize: 11,
-                              color: SamanWorkoutTokens.textSecondary,
+                              color: t.textSecondary,
                             ),
                           ),
                         ],
@@ -1154,14 +1167,15 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
                         key: const ValueKey('active_workout_reps_plus'),
                         onTap: () => notifier.adjustDraftReps(1),
                         borderRadius: BorderRadius.circular(6),
-                        child: const Padding(
-                          padding: EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 8, vertical: 8),
                           child: Text(
                             '+',
                             style: TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.bold,
-                              color: SamanWorkoutTokens.textSecondary,
+                              color: t.textSecondary,
                             ),
                           ),
                         ),
@@ -1177,15 +1191,16 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
     );
   }
 
-  Widget _buildUpcomingSetRow(ActiveWorkoutSetInfo set) {
+  Widget _buildUpcomingSetRow(
+      ActiveWorkoutSetInfo set, SamanWorkoutPalette t) {
     return Container(
       margin: const EdgeInsets.only(bottom: 6),
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
-        color: SamanWorkoutTokens.cardSurface.withOpacity(0.55),
+        color: t.cardSurface.withOpacity(0.55),
         borderRadius: BorderRadius.circular(SamanWorkoutTokens.radiusMd),
         border: Border.all(
-          color: SamanWorkoutTokens.borderSubtle,
+          color: t.borderSubtle,
         ),
       ),
       child: Row(
@@ -1194,10 +1209,10 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
             flex: 2,
             child: Text(
               set.setNumber.toString(),
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 13,
                 fontFamily: 'monospace',
-                color: SamanWorkoutTokens.textMuted,
+                color: t.textMuted,
               ),
             ),
           ),
@@ -1208,18 +1223,18 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
               children: [
                 Text(
                   _formatWeight(set.targetWeightKg),
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 14,
                     fontFamily: 'monospace',
-                    color: SamanWorkoutTokens.textMuted,
+                    color: t.textMuted,
                   ),
                 ),
                 const SizedBox(width: 3),
-                const Text(
+                Text(
                   'kg',
                   style: TextStyle(
                     fontSize: 11,
-                    color: SamanWorkoutTokens.textMuted,
+                    color: t.textMuted,
                   ),
                 ),
               ],
@@ -1230,14 +1245,14 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
             child: Text(
               '${set.targetReps}',
               textAlign: TextAlign.center,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 14,
                 fontFamily: 'monospace',
-                color: SamanWorkoutTokens.textMuted,
+                color: t.textMuted,
               ),
             ),
           ),
-          const Expanded(
+          Expanded(
             flex: 3,
             child: Align(
               alignment: Alignment.centerRight,
@@ -1245,7 +1260,7 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
                 '—',
                 style: TextStyle(
                   fontSize: 14,
-                  color: SamanWorkoutTokens.textMuted,
+                  color: t.textMuted,
                 ),
               ),
             ),
@@ -1255,7 +1270,8 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
     );
   }
 
-  Widget _buildUpNextQueue(ActiveWorkoutSessionState session) {
+  Widget _buildUpNextQueue(
+      ActiveWorkoutSessionState session, SamanWorkoutPalette t) {
     final next = session.nextExercise;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1263,12 +1279,12 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            const Text(
+            Text(
               'UP NEXT',
               style: TextStyle(
                 fontSize: 11,
                 fontFamily: 'monospace',
-                color: SamanWorkoutTokens.textMuted,
+                color: t.textMuted,
                 letterSpacing: 0.8,
               ),
             ),
@@ -1278,9 +1294,9 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
                 onTap: () => _showExerciseQueue(context, session),
                 child: Text(
                 'View all ${session.exerciseCount} exercises →',
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 12,
-                  color: SamanWorkoutTokens.textSecondary,
+                  color: t.textSecondary,
                   fontWeight: FontWeight.w500,
                 ),
                 textAlign: TextAlign.right,
@@ -1294,9 +1310,9 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
         Container(
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
-            color: SamanWorkoutTokens.cardSurface,
+            color: t.cardSurface,
             borderRadius: BorderRadius.circular(SamanWorkoutTokens.radiusMd),
-            border: Border.all(color: SamanWorkoutTokens.borderSubtle),
+            border: Border.all(color: t.borderSubtle),
           ),
           child: Row(
             children: [
@@ -1304,14 +1320,14 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
                 width: 36,
                 height: 36,
                 decoration: BoxDecoration(
-                  color: SamanWorkoutTokens.surfaceElevated,
+                  color: t.surfaceElevated,
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: SamanWorkoutTokens.borderSubtle),
+                  border: Border.all(color: t.borderSubtle),
                 ),
-                child: const Icon(
+                child: Icon(
                   Icons.fitness_center,
                   size: 18,
-                  color: SamanWorkoutTokens.textMuted,
+                  color: t.textMuted,
                 ),
               ),
               const SizedBox(width: 12),
@@ -1321,10 +1337,10 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
                   children: [
                     Text(
                       next?.name ?? 'No upcoming exercise',
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.w600,
-                        color: SamanWorkoutTokens.textPrimary,
+                        color: t.textPrimary,
                       ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
@@ -1332,18 +1348,18 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
                     const SizedBox(height: 2),
                     Text(
                       next?.subtitle ?? 'All exercises completed',
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 11,
-                        color: SamanWorkoutTokens.textMuted,
+                        color: t.textMuted,
                       ),
                     ),
                   ],
                 ),
               ),
-              const Icon(
+              Icon(
                 Icons.chevron_right,
                 size: 18,
-                color: SamanWorkoutTokens.textMuted,
+                color: t.textMuted,
               ),
             ],
           ),
@@ -1356,15 +1372,16 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
     ActiveWorkoutSessionState session,
     ActiveExerciseInfo currentEx,
     ActiveWorkoutSessionNotifier notifier,
+    SamanWorkoutPalette t,
   ) {
     final activeSetNumber =
         currentEx.activeSet?.setNumber ?? (currentEx.completedSetsCount + 1);
 
     return Container(
-      decoration: const BoxDecoration(
-        color: SamanWorkoutTokens.canvas,
+      decoration: BoxDecoration(
+        color: t.canvas,
         border: Border(
-          top: BorderSide(color: SamanWorkoutTokens.borderSubtle, width: 1),
+          top: BorderSide(color: t.borderSubtle, width: 1),
         ),
       ),
       padding: EdgeInsets.fromLTRB(
@@ -1387,23 +1404,23 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
                   : session.nextExercise != null
                       ? notifier.nextExercise
                       : () => _showReviewScreen(context),
-              icon: const Icon(
+              icon: Icon(
                 Icons.check,
                 size: 18,
-                color: SamanWorkoutTokens.buttonPrimaryText,
+                color: t.buttonPrimaryText,
               ),
               label: Text(
                 currentEx.activeSet != null ? 'Log Set $activeSetNumber'
                     : session.nextExercise != null ? 'Next exercise' : 'Review session',
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.bold,
-                  color: SamanWorkoutTokens.buttonPrimaryText,
+                  color: t.buttonPrimaryText,
                   letterSpacing: 0.3,
                 ),
               ),
               style: ElevatedButton.styleFrom(
-                backgroundColor: SamanWorkoutTokens.buttonPrimary,
+                backgroundColor: t.buttonPrimary,
                 shape: RoundedRectangleBorder(
                   borderRadius:
                       BorderRadius.circular(SamanWorkoutTokens.radiusMd),
@@ -1420,23 +1437,24 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
               key: const ValueKey('active_workout_pause_button'),
               onTap: () => notifier.pauseWorkout(),
               borderRadius: BorderRadius.circular(6),
-              child: const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              child: Padding(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Icon(
                       Icons.pause,
                       size: 15,
-                      color: SamanWorkoutTokens.textSecondary,
+                      color: t.textSecondary,
                     ),
-                    SizedBox(width: 5),
+                    const SizedBox(width: 5),
                     Text(
                       'Pause workout',
                       style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w500,
-                        color: SamanWorkoutTokens.textSecondary,
+                        color: t.textSecondary,
                       ),
                     ),
                   ],
@@ -1448,23 +1466,24 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
               key: const ValueKey('active_workout_resume_button'),
               onTap: () => notifier.resumeWorkout(),
               borderRadius: BorderRadius.circular(6),
-              child: const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              child: Padding(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Icon(
                       Icons.play_arrow,
                       size: 16,
-                      color: SamanWorkoutTokens.emeraldAccent,
+                      color: t.emeraldAccent,
                     ),
-                    SizedBox(width: 5),
+                    const SizedBox(width: 5),
                     Text(
                       'Resume workout',
                       style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w600,
-                        color: SamanWorkoutTokens.emeraldAccent,
+                        color: t.emeraldAccent,
                       ),
                     ),
                   ],
@@ -1477,15 +1496,16 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
   }
 
   void _showExerciseQueue(BuildContext context, ActiveWorkoutSessionState session) {
+    final t = SamanWorkoutTokens.of(context);
     showModalBottomSheet<void>(
       context: context,
-      backgroundColor: SamanWorkoutTokens.cardSurface,
+      backgroundColor: t.cardSurface,
       builder: (sheetContext) => SafeArea(child: ListView.builder(
         shrinkWrap: true,
         itemCount: session.exerciseCount,
         itemBuilder: (_, index) => ListTile(
-          textColor: SamanWorkoutTokens.textPrimary,
-          selectedColor: SamanWorkoutTokens.emeraldAccent,
+          textColor: t.textPrimary,
+          selectedColor: t.emeraldAccent,
           title: Text(session.exercises[index].name),
           selected: index == session.currentExerciseIndex,
           onTap: () {
@@ -1526,10 +1546,11 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
     BuildContext context,
     ActiveExerciseInfo currentEx,
   ) {
+    final t = SamanWorkoutTokens.of(context);
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: SamanWorkoutTokens.cardSurface,
+      backgroundColor: t.cardSurface,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -1542,71 +1563,71 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
             children: [
               Text(
                 '${currentEx.name} — Video Guide',
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 17,
                   fontWeight: FontWeight.bold,
-                  color: SamanWorkoutTokens.textPrimary,
+                  color: t.textPrimary,
                 ),
               ),
               const SizedBox(height: 6),
-              const Text(
+              Text(
                 'Video Demo in Preparation · Verified Form Cues Active',
                 style: TextStyle(
                   fontSize: 12,
-                  color: SamanWorkoutTokens.emeraldAccent,
+                  color: t.emeraldAccent,
                   fontWeight: FontWeight.w500,
                 ),
               ),
               const SizedBox(height: 16),
-              const Text(
+              Text(
                 'Key Movement Cues:',
                 style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w600,
-                  color: SamanWorkoutTokens.textPrimary,
+                  color: t.textPrimary,
                 ),
               ),
               const SizedBox(height: 10),
-              const Padding(
-                padding: EdgeInsets.only(bottom: 8),
+              Padding(
+                padding: const EdgeInsets.only(bottom: 8),
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('• ', style: TextStyle(color: SamanWorkoutTokens.emeraldAccent, fontSize: 14)),
+                    Text('• ', style: TextStyle(color: t.emeraldAccent, fontSize: 14)),
                     Expanded(
                       child: Text(
                         'Keep your feet firmly planted on the floor',
-                        style: TextStyle(fontSize: 13, color: SamanWorkoutTokens.textSecondary, height: 1.4),
+                        style: TextStyle(fontSize: 13, color: t.textSecondary, height: 1.4),
                       ),
                     ),
                   ],
                 ),
               ),
-              const Padding(
-                padding: EdgeInsets.only(bottom: 8),
+              Padding(
+                padding: const EdgeInsets.only(bottom: 8),
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('• ', style: TextStyle(color: SamanWorkoutTokens.emeraldAccent, fontSize: 14)),
+                    Text('• ', style: TextStyle(color: t.emeraldAccent, fontSize: 14)),
                     Expanded(
                       child: Text(
                         'Retract your shoulder blades and maintain a slight natural arch',
-                        style: TextStyle(fontSize: 13, color: SamanWorkoutTokens.textSecondary, height: 1.4),
+                        style: TextStyle(fontSize: 13, color: t.textSecondary, height: 1.4),
                       ),
                     ),
                   ],
                 ),
               ),
-              const Padding(
-                padding: EdgeInsets.only(bottom: 8),
+              Padding(
+                padding: const EdgeInsets.only(bottom: 8),
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('• ', style: TextStyle(color: SamanWorkoutTokens.emeraldAccent, fontSize: 14)),
+                    Text('• ', style: TextStyle(color: t.emeraldAccent, fontSize: 14)),
                     Expanded(
                       child: Text(
                         'Control the eccentric descent down to chest level',
-                        style: TextStyle(fontSize: 13, color: SamanWorkoutTokens.textSecondary, height: 1.4),
+                        style: TextStyle(fontSize: 13, color: t.textSecondary, height: 1.4),
                       ),
                     ),
                   ],
@@ -1621,13 +1642,12 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
                       'active_workout_video_guide_close_button'),
                   onPressed: () => Navigator.of(modalCtx).pop(),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: SamanWorkoutTokens.surfaceElevated,
-                    foregroundColor: SamanWorkoutTokens.textPrimary,
+                    backgroundColor: t.surfaceElevated,
+                    foregroundColor: t.textPrimary,
                     shape: RoundedRectangleBorder(
                       borderRadius:
                           BorderRadius.circular(SamanWorkoutTokens.radiusMd),
-                      side: const BorderSide(
-                          color: SamanWorkoutTokens.borderSubtle),
+                      side: BorderSide(color: t.borderSubtle),
                     ),
                     elevation: 0,
                   ),
@@ -1645,6 +1665,7 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
     BuildContext context,
     ActiveExerciseInfo currentEx,
   ) async {
+    final t = SamanWorkoutTokens.of(context);
     // 1. Strictly verify exercise ID or slug (not display name, not ex_1/ex_2, not slug || cvSupported)
     final id = currentEx.id.toLowerCase().trim();
     final slug = currentEx.slug.toLowerCase().trim();
@@ -1675,7 +1696,7 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text('Failed to pick video: $e'),
-              backgroundColor: SamanWorkoutTokens.surfaceElevated,
+              backgroundColor: t.surfaceElevated,
             ),
           );
         }
@@ -1726,13 +1747,14 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
   }
 
   Future<String?> _showFormCheckSourceSheet(BuildContext context) {
+    final t = SamanWorkoutTokens.of(context);
     return showModalBottomSheet<String>(
       context: context,
       isScrollControlled: true,
-      backgroundColor: const Color(0xFF0C0D0E),
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-        side: BorderSide(color: Color(0xFF26282F), width: 1),
+      backgroundColor: t.canvas,
+      shape: RoundedRectangleBorder(
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        side: BorderSide(color: t.border, width: 1),
       ),
       builder: (modalCtx) {
         return SafeArea(
@@ -1742,13 +1764,13 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                // 1. Drag handle (36x4, #26282F)
+                // 1. Drag handle
                 Center(
                   child: Container(
                     width: 36,
                     height: 4,
                     decoration: BoxDecoration(
-                      color: const Color(0xFF26282F),
+                      color: t.border,
                       borderRadius: BorderRadius.circular(2),
                     ),
                   ),
@@ -1767,18 +1789,18 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
                           width: 36,
                           height: 36,
                           decoration: BoxDecoration(
-                            color: const Color(0xFF16171B),
+                            color: t.cardSurface,
                             borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: const Color(0xFF26282F)),
+                            border: Border.all(color: t.border),
                           ),
-                          child: const Icon(
+                          child: Icon(
                             Icons.videocam_outlined,
                             size: 20,
-                            color: Color(0xFF10B981),
+                            color: t.emeraldAccent,
                           ),
                         ),
                         const SizedBox(width: 12),
-                        const Column(
+                        Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           mainAxisSize: MainAxisSize.min,
                           children: [
@@ -1787,26 +1809,26 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
                               style: TextStyle(
                                 fontSize: 19,
                                 fontWeight: FontWeight.w600,
-                                color: Color(0xFFF9FAFB),
+                                color: t.textPrimary,
                                 letterSpacing: -0.2,
                                 fontFamily: 'Space Grotesk',
-                                fontFamilyFallback: [
+                                fontFamilyFallback: const [
                                   'Manrope',
                                   'Inter',
                                   'sans-serif',
                                 ],
                               ),
                             ),
-                            SizedBox(height: 2),
+                            const SizedBox(height: 2),
                             Text(
                               'COMPUTER VISION ANALYSIS',
                               style: TextStyle(
                                 fontSize: 11,
                                 fontWeight: FontWeight.w500,
-                                color: Color(0xFF94979E),
+                                color: t.textSecondary,
                                 letterSpacing: 1.0,
                                 fontFamily: 'JetBrains Mono',
-                                fontFamilyFallback: [
+                                fontFamilyFallback: const [
                                   'monospace',
                                   'Courier New',
                                 ],
@@ -1822,9 +1844,9 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
                         vertical: 4,
                       ),
                       decoration: BoxDecoration(
-                        color: const Color(0xFF212328),
+                        color: t.surfaceElevated,
                         borderRadius: BorderRadius.circular(6),
-                        border: Border.all(color: const Color(0xFF26282F)),
+                        border: Border.all(color: t.border),
                       ),
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
@@ -1832,21 +1854,21 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
                           Container(
                             width: 6,
                             height: 6,
-                            decoration: const BoxDecoration(
-                              color: Color(0xFF10B981),
+                            decoration: BoxDecoration(
+                              color: t.emeraldAccent,
                               shape: BoxShape.circle,
                             ),
                           ),
                           const SizedBox(width: 6),
-                          const Text(
+                          Text(
                             'AI VERIFIED',
                             style: TextStyle(
                               fontSize: 11,
                               fontWeight: FontWeight.w500,
-                              color: Color(0xFFCBD5E1),
+                              color: t.textSub,
                               letterSpacing: 1.0,
                               fontFamily: 'JetBrains Mono',
-                              fontFamilyFallback: [
+                              fontFamilyFallback: const [
                                 'monospace',
                                 'Courier New',
                               ],
@@ -1866,9 +1888,9 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
                     vertical: 10,
                   ),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF16171B),
+                    color: t.cardSurface,
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: const Color(0xFF26282F)),
+                    border: Border.all(color: t.border),
                   ),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -1880,26 +1902,26 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
                             width: 24,
                             height: 24,
                             decoration: BoxDecoration(
-                              color: const Color(0xFF212328),
+                              color: t.surfaceElevated,
                               borderRadius: BorderRadius.circular(8),
-                              border: Border.all(color: const Color(0xFF26282F)),
+                              border: Border.all(color: t.border),
                             ),
-                            child: const Icon(
+                            child: Icon(
                               Icons.info_outline,
                               size: 14,
-                              color: Color(0xFF94979E),
+                              color: t.textSecondary,
                             ),
                           ),
                           const SizedBox(width: 8),
-                          const Text(
+                          Text(
                             'SELECT INPUT SOURCE',
                             style: TextStyle(
                               fontSize: 11,
                               fontWeight: FontWeight.w500,
-                              color: Color(0xFF94979E),
+                              color: t.textSecondary,
                               letterSpacing: 1.0,
                               fontFamily: 'JetBrains Mono',
-                              fontFamilyFallback: [
+                              fontFamilyFallback: const [
                                 'monospace',
                                 'Courier New',
                               ],
@@ -1907,14 +1929,14 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
                           ),
                         ],
                       ),
-                      const Text(
+                      Text(
                         'Pose AI · 30 FPS',
                         style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w500,
-                          color: Color(0xFFF3F4F6),
+                          color: t.textPrimary,
                           fontFamily: 'JetBrains Mono',
-                          fontFamilyFallback: [
+                          fontFamilyFallback: const [
                             'monospace',
                             'Courier New',
                           ],
@@ -1928,9 +1950,9 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
                 // 4. Mode Selection Container (2 options)
                 Container(
                   decoration: BoxDecoration(
-                    color: const Color(0xFF16171B),
+                    color: t.cardSurface,
                     borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: const Color(0xFF26282F)),
+                    border: Border.all(color: t.border),
                   ),
                   clipBehavior: Clip.antiAlias,
                   child: Column(
@@ -1942,8 +1964,8 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
                         child: InkWell(
                           key: const ValueKey('form_check_mode_realtime'),
                           onTap: () => Navigator.of(modalCtx).pop('realtime'),
-                          splashColor: const Color(0x33212328),
-                          highlightColor: const Color(0x1F212328),
+                          splashColor: t.surfaceElevated.withOpacity(0.2),
+                          highlightColor: t.surfaceElevated.withOpacity(0.12),
                           child: Padding(
                             padding: const EdgeInsets.symmetric(
                               horizontal: 14,
@@ -1955,20 +1977,20 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
                                   width: 48,
                                   height: 48,
                                   decoration: BoxDecoration(
-                                    color: const Color(0xFF212328),
+                                    color: t.surfaceElevated,
                                     borderRadius: BorderRadius.circular(12),
                                     border: Border.all(
-                                      color: const Color(0xFF26282F),
+                                      color: t.border,
                                     ),
                                   ),
-                                  child: const Icon(
+                                  child: Icon(
                                     Icons.videocam_outlined,
                                     size: 24,
-                                    color: Color(0xFF10B981),
+                                    color: t.emeraldAccent,
                                   ),
                                 ),
                                 const SizedBox(width: 14),
-                                const Expanded(
+                                Expanded(
                                   child: Column(
                                     crossAxisAlignment:
                                         CrossAxisAlignment.start,
@@ -1978,23 +2000,23 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
                                         style: TextStyle(
                                           fontSize: 15,
                                           fontWeight: FontWeight.w600,
-                                          color: Color(0xFFF3F4F6),
+                                          color: t.textPrimary,
                                           fontFamily: 'Inter',
-                                          fontFamilyFallback: [
+                                          fontFamilyFallback: const [
                                             'Manrope',
                                             'sans-serif',
                                           ],
                                         ),
                                       ),
-                                      SizedBox(height: 3),
+                                      const SizedBox(height: 3),
                                       Text(
                                         'Use camera for live pose & rep tracking',
                                         style: TextStyle(
                                           fontSize: 12.5,
                                           fontWeight: FontWeight.w400,
-                                          color: Color(0xFF94979E),
+                                          color: t.textSecondary,
                                           fontFamily: 'Inter',
-                                          fontFamilyFallback: [
+                                          fontFamilyFallback: const [
                                             'Manrope',
                                             'sans-serif',
                                           ],
@@ -2013,10 +2035,10 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
                                         vertical: 3.5,
                                       ),
                                       decoration: BoxDecoration(
-                                        color: const Color(0xFF212328),
+                                        color: t.surfaceElevated,
                                         borderRadius: BorderRadius.circular(6),
                                         border: Border.all(
-                                          color: const Color(0xFF26282F),
+                                          color: t.border,
                                         ),
                                       ),
                                       child: Row(
@@ -2025,21 +2047,21 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
                                           Container(
                                             width: 6,
                                             height: 6,
-                                            decoration: const BoxDecoration(
-                                              color: Color(0xFF10B981),
+                                            decoration: BoxDecoration(
+                                              color: t.emeraldAccent,
                                               shape: BoxShape.circle,
                                             ),
                                           ),
                                           const SizedBox(width: 5),
-                                          const Text(
+                                          Text(
                                             'LIVE',
                                             style: TextStyle(
                                               fontSize: 11,
                                               fontWeight: FontWeight.w500,
-                                              color: Color(0xFFCBD5E1),
+                                              color: t.textSub,
                                               letterSpacing: 0.8,
                                               fontFamily: 'JetBrains Mono',
-                                              fontFamilyFallback: [
+                                              fontFamilyFallback: const [
                                                 'monospace',
                                                 'Courier New',
                                               ],
@@ -2049,10 +2071,10 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
                                       ),
                                     ),
                                     const SizedBox(width: 6),
-                                    const Icon(
+                                    Icon(
                                       Icons.chevron_right,
                                       size: 18,
-                                      color: Color(0xFF94979E),
+                                      color: t.textSecondary,
                                     ),
                                   ],
                                 ),
@@ -2061,10 +2083,10 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
                           ),
                         ),
                       ),
-                      const Divider(
+                      Divider(
                         height: 1,
                         thickness: 1,
-                        color: Color(0xFF26282F),
+                        color: t.border,
                       ),
                       // Option 2 — Upload from Device
                       Material(
@@ -2072,8 +2094,8 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
                         child: InkWell(
                           key: const ValueKey('form_check_mode_upload'),
                           onTap: () => Navigator.of(modalCtx).pop('upload'),
-                          splashColor: const Color(0x33212328),
-                          highlightColor: const Color(0x1F212328),
+                          splashColor: t.surfaceElevated.withOpacity(0.2),
+                          highlightColor: t.surfaceElevated.withOpacity(0.12),
                           child: Padding(
                             padding: const EdgeInsets.symmetric(
                               horizontal: 14,
@@ -2085,20 +2107,20 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
                                   width: 48,
                                   height: 48,
                                   decoration: BoxDecoration(
-                                    color: const Color(0xFF212328),
+                                    color: t.surfaceElevated,
                                     borderRadius: BorderRadius.circular(12),
                                     border: Border.all(
-                                      color: const Color(0xFF26282F),
+                                      color: t.border,
                                     ),
                                   ),
-                                  child: const Icon(
+                                  child: Icon(
                                     Icons.video_library_outlined,
                                     size: 24,
-                                    color: Color(0xFFCBD5E1),
+                                    color: t.textSub,
                                   ),
                                 ),
                                 const SizedBox(width: 14),
-                                const Expanded(
+                                Expanded(
                                   child: Column(
                                     crossAxisAlignment:
                                         CrossAxisAlignment.start,
@@ -2108,23 +2130,23 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
                                         style: TextStyle(
                                           fontSize: 15,
                                           fontWeight: FontWeight.w600,
-                                          color: Color(0xFFF3F4F6),
+                                          color: t.textPrimary,
                                           fontFamily: 'Inter',
-                                          fontFamilyFallback: [
+                                          fontFamilyFallback: const [
                                             'Manrope',
                                             'sans-serif',
                                           ],
                                         ),
                                       ),
-                                      SizedBox(height: 3),
+                                      const SizedBox(height: 3),
                                       Text(
                                         'Select an .mp4 workout video from gallery',
                                         style: TextStyle(
                                           fontSize: 12.5,
                                           fontWeight: FontWeight.w400,
-                                          color: Color(0xFF94979E),
+                                          color: t.textSecondary,
                                           fontFamily: 'Inter',
-                                          fontFamilyFallback: [
+                                          fontFamilyFallback: const [
                                             'Manrope',
                                             'sans-serif',
                                           ],
@@ -2143,21 +2165,21 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
                                         vertical: 3.5,
                                       ),
                                       decoration: BoxDecoration(
-                                        color: const Color(0xFF212328),
+                                        color: t.surfaceElevated,
                                         borderRadius: BorderRadius.circular(6),
                                         border: Border.all(
-                                          color: const Color(0xFF26282F),
+                                          color: t.border,
                                         ),
                                       ),
-                                      child: const Text(
+                                      child: Text(
                                         'MP4',
                                         style: TextStyle(
                                           fontSize: 11,
                                           fontWeight: FontWeight.w500,
-                                          color: Color(0xFFCBD5E1),
+                                          color: t.textSub,
                                           letterSpacing: 0.8,
                                           fontFamily: 'JetBrains Mono',
-                                          fontFamilyFallback: [
+                                          fontFamilyFallback: const [
                                             'monospace',
                                             'Courier New',
                                           ],
@@ -2165,10 +2187,10 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
                                       ),
                                     ),
                                     const SizedBox(width: 6),
-                                    const Icon(
+                                    Icon(
                                       Icons.chevron_right,
                                       size: 18,
-                                      color: Color(0xFF94979E),
+                                      color: t.textSecondary,
                                     ),
                                   ],
                                 ),
@@ -2186,9 +2208,9 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
                 Container(
                   height: 48,
                   decoration: BoxDecoration(
-                    color: const Color(0xFF16171B),
+                    color: t.cardSurface,
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: const Color(0xFF26282F)),
+                    border: Border.all(color: t.border),
                   ),
                   clipBehavior: Clip.antiAlias,
                   child: Material(
@@ -2196,17 +2218,17 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
                     child: InkWell(
                       key: const ValueKey('form_check_mode_cancel_button'),
                       onTap: () => Navigator.of(modalCtx).pop(),
-                      splashColor: const Color(0x33212328),
-                      highlightColor: const Color(0x1F212328),
-                      child: const Center(
+                      splashColor: t.surfaceElevated.withOpacity(0.2),
+                      highlightColor: t.surfaceElevated.withOpacity(0.12),
+                      child: Center(
                         child: Text(
                           'Cancel',
                           style: TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.w600,
-                            color: Color(0xFFCBD5E1),
+                            color: t.textSub,
                             fontFamily: 'Inter',
-                            fontFamilyFallback: ['Manrope', 'sans-serif'],
+                            fontFamilyFallback: const ['Manrope', 'sans-serif'],
                           ),
                         ),
                       ),
@@ -2222,10 +2244,11 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
   }
 
   void _showFormCheckModal(BuildContext context, {bool cameraUnavailable = false}) {
+    final t = SamanWorkoutTokens.of(context);
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: SamanWorkoutTokens.cardSurface,
+      backgroundColor: t.cardSurface,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -2236,20 +2259,20 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Row(
+              Row(
                 children: [
                   Icon(
                     Icons.info_outline,
                     size: 20,
-                    color: SamanWorkoutTokens.amberAccent,
+                    color: t.amberAccent,
                   ),
-                  SizedBox(width: 8),
+                  const SizedBox(width: 8),
                   Text(
                     'Live Form Check (Deferred)',
                     style: TextStyle(
                       fontSize: 17,
                       fontWeight: FontWeight.bold,
-                      color: SamanWorkoutTokens.textPrimary,
+                      color: t.textPrimary,
                     ),
                   ),
                 ],
@@ -2259,9 +2282,9 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
                 cameraUnavailable
                     ? 'Camera CV chỉ hỗ trợ Android. Web/iOS chưa có replay landmarks được đóng gói để demo. Không gọi camera native, không tự ghi rep vào buổi tập.'
                     : 'Computer Vision Form Check is planned for a future release (deferred checkpoint). No camera feed has been activated and no reps will be auto-logged.',
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 13,
-                  color: SamanWorkoutTokens.textSecondary,
+                  color: t.textSecondary,
                   height: 1.4,
                 ),
               ),
@@ -2274,13 +2297,12 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
                       'active_workout_form_check_close_button'),
                   onPressed: () => Navigator.of(modalCtx).pop(),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: SamanWorkoutTokens.surfaceElevated,
-                    foregroundColor: SamanWorkoutTokens.textPrimary,
+                    backgroundColor: t.surfaceElevated,
+                    foregroundColor: t.textPrimary,
                     shape: RoundedRectangleBorder(
                       borderRadius:
                           BorderRadius.circular(SamanWorkoutTokens.radiusMd),
-                      side: const BorderSide(
-                          color: SamanWorkoutTokens.borderSubtle),
+                      side: BorderSide(color: t.borderSubtle),
                     ),
                     elevation: 0,
                   ),
@@ -2299,14 +2321,17 @@ class _TimedSetHeader extends StatelessWidget {
   const _TimedSetHeader();
 
   @override
-  Widget build(BuildContext context) => const Padding(
-    padding: EdgeInsetsDirectional.symmetric(horizontal: 12, vertical: 6),
-    child: Row(children: [
-      Expanded(child: Text('SET', style: TextStyle(color: SamanWorkoutTokens.textMuted))),
-      Expanded(flex: 3, child: Text('SECONDS', style: TextStyle(color: SamanWorkoutTokens.textMuted))),
-      Text('STATUS', style: TextStyle(color: SamanWorkoutTokens.textMuted)),
-    ]),
-  );
+  Widget build(BuildContext context) {
+    final t = SamanWorkoutTokens.of(context);
+    return Padding(
+      padding: const EdgeInsetsDirectional.symmetric(horizontal: 12, vertical: 6),
+      child: Row(children: [
+        Expanded(child: Text('SET', style: TextStyle(color: t.textMuted))),
+        Expanded(flex: 3, child: Text('SECONDS', style: TextStyle(color: t.textMuted))),
+        Text('STATUS', style: TextStyle(color: t.textMuted)),
+      ]),
+    );
+  }
 }
 
 class _TimedSetRow extends StatelessWidget {
@@ -2321,57 +2346,59 @@ class _TimedSetRow extends StatelessWidget {
   final ValueChanged<int?> onSecondsChanged;
 
   @override
-  Widget build(BuildContext context) => Container(
-    margin: const EdgeInsetsDirectional.only(bottom: 6),
-    padding: const EdgeInsetsDirectional.all(12),
-    decoration: BoxDecoration(
-      color: SamanWorkoutTokens.cardSurface,
-      borderRadius: BorderRadius.circular(SamanWorkoutTokens.radiusMd),
-      border: Border.all(color: isActive
-          ? SamanWorkoutTokens.emeraldAccent : SamanWorkoutTokens.borderSubtle),
-    ),
-    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Row(children: [
-        Expanded(child: Text(
-          isActive ? 'SET ${set.setNumber} (ACTIVE)' : 'SET ${set.setNumber}',
-          style: const TextStyle(color: SamanWorkoutTokens.textSecondary),
-        )),
-        Text(isActive ? 'TARGET: ${set.targetSeconds} s'
-            : '${set.isCompleted ? set.seconds : set.targetSeconds} s',
-          style: const TextStyle(color: SamanWorkoutTokens.textPrimary)),
-        const SizedBox(width: 8),
-        if (set.isCompleted) const Icon(Icons.check,
-          color: SamanWorkoutTokens.emeraldAccent, size: 18),
-      ]),
-      if (isActive) ...[
-        const SizedBox(height: 12),
-        TextFormField(
-          key: const ValueKey('active_workout_seconds_input'),
-          initialValue: draftSeconds?.toString() ?? '',
-          keyboardType: TextInputType.number,
-          style: const TextStyle(color: SamanWorkoutTokens.textPrimary),
-          cursorColor: SamanWorkoutTokens.emeraldAccent,
-          decoration: const InputDecoration(
-            labelText: 'Seconds', suffixText: 's', helperText: 'Enter 1-999 seconds',
-            filled: true,
-            fillColor: SamanWorkoutTokens.surfaceElevated,
-            labelStyle: TextStyle(color: SamanWorkoutTokens.textSecondary),
-            floatingLabelStyle: TextStyle(color: SamanWorkoutTokens.emeraldAccent),
-            helperStyle: TextStyle(color: SamanWorkoutTokens.textSecondary),
-            suffixStyle: TextStyle(color: SamanWorkoutTokens.textSecondary),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.all(Radius.circular(SamanWorkoutTokens.radiusMd)),
-              borderSide: BorderSide(color: SamanWorkoutTokens.textSecondary),
+  Widget build(BuildContext context) {
+    final t = SamanWorkoutTokens.of(context);
+    return Container(
+      margin: const EdgeInsetsDirectional.only(bottom: 6),
+      padding: const EdgeInsetsDirectional.all(12),
+      decoration: BoxDecoration(
+        color: t.cardSurface,
+        borderRadius: BorderRadius.circular(SamanWorkoutTokens.radiusMd),
+        border: Border.all(color: isActive ? t.emeraldAccent : t.borderSubtle),
+      ),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Row(children: [
+          Expanded(child: Text(
+            isActive ? 'SET ${set.setNumber} (ACTIVE)' : 'SET ${set.setNumber}',
+            style: TextStyle(color: t.textSecondary),
+          )),
+          Text(isActive ? 'TARGET: ${set.targetSeconds} s'
+              : '${set.isCompleted ? set.seconds : set.targetSeconds} s',
+            style: TextStyle(color: t.textPrimary)),
+          const SizedBox(width: 8),
+          if (set.isCompleted) Icon(Icons.check,
+            color: t.emeraldAccent, size: 18),
+        ]),
+        if (isActive) ...[
+          const SizedBox(height: 12),
+          TextFormField(
+            key: const ValueKey('active_workout_seconds_input'),
+            initialValue: draftSeconds?.toString() ?? '',
+            keyboardType: TextInputType.number,
+            style: TextStyle(color: t.textPrimary),
+            cursorColor: t.emeraldAccent,
+            decoration: InputDecoration(
+              labelText: 'Seconds', suffixText: 's', helperText: 'Enter 1-999 seconds',
+              filled: true,
+              fillColor: t.surfaceElevated,
+              labelStyle: TextStyle(color: t.textSecondary),
+              floatingLabelStyle: TextStyle(color: t.emeraldAccent),
+              helperStyle: TextStyle(color: t.textSecondary),
+              suffixStyle: TextStyle(color: t.textSecondary),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: const BorderRadius.all(Radius.circular(SamanWorkoutTokens.radiusMd)),
+                borderSide: BorderSide(color: t.textSecondary),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: const BorderRadius.all(Radius.circular(SamanWorkoutTokens.radiusMd)),
+                borderSide: BorderSide(color: t.emeraldAccent, width: 1.5),
+              ),
             ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.all(Radius.circular(SamanWorkoutTokens.radiusMd)),
-              borderSide: BorderSide(color: SamanWorkoutTokens.emeraldAccent, width: 1.5),
-            ),
+            onChanged: (value) => onSecondsChanged(
+              RegExp(r'^\d+$').hasMatch(value) ? int.tryParse(value) : null),
           ),
-          onChanged: (value) => onSecondsChanged(
-            RegExp(r'^\d+$').hasMatch(value) ? int.tryParse(value) : null),
-        ),
-      ],
-    ]),
-  );
+        ],
+      ]),
+    );
+  }
 }

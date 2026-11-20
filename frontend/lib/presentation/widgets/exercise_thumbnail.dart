@@ -64,30 +64,31 @@ class _ExerciseImageFallback extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = SamanWorkoutTokens.of(context);
     return ColoredBox(
-      color: SamanWorkoutTokens.surfaceElevated,
+      color: t.surfaceElevated,
       child: Center(
         child: isLoading
-            ? const SizedBox.square(
+            ? SizedBox.square(
                 dimension: 24,
                 child: CircularProgressIndicator(
                   strokeWidth: 2,
-                  color: SamanWorkoutTokens.emeraldAccent,
+                  color: t.emeraldAccent,
                 ),
               )
             : Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Icon(
+                  Icon(
                     Icons.fitness_center_outlined,
-                    color: SamanWorkoutTokens.textMuted,
+                    color: t.textMuted,
                   ),
                   if (showLabel) ...[
                     const SizedBox(height: SamanWorkoutTokens.spacingSm),
                     Text(
                       'Exercise image unavailable',
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: SamanWorkoutTokens.textSecondary,
+                            color: t.textSecondary,
                           ),
                     ),
                   ],

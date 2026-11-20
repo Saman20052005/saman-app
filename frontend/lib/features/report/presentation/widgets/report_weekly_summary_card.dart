@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../../config/app_theme.dart';
 
 class ReportWeeklySummaryCard extends StatelessWidget {
   final int daysLogged;
@@ -20,6 +21,24 @@ class ReportWeeklySummaryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final p = SamanPalette.of(context);
+    final isDark = p.isDark;
+    final cardBg = isDark ? const Color(0xFF16171A) : p.surface;
+    final borderCol = isDark ? const Color(0xFF26282F) : p.border;
+    final tileBg = isDark ? const Color(0xFF101114) : p.surfaceElevated;
+    final tileBorder = isDark ? const Color(0xFF23252A) : p.border;
+    final pillBg = isDark ? const Color(0xFF1F2228) : p.surfaceElevated;
+    final pillBorder = isDark ? Colors.white.withOpacity(0.06) : p.border;
+    final headingCol = isDark ? const Color(0xFFD1D5DB) : p.textPrimary;
+    final titleValueCol = isDark ? Colors.white : p.textPrimary;
+    final subCol = isDark ? const Color(0xFFA1A1AA) : p.textSecondary;
+    final mutedCol = isDark ? const Color(0xFF9CA3AF) : p.textSecondary;
+    final emerald = isDark ? const Color(0xFF10B981) : p.accent;
+    final planPillBg =
+        isDark ? Colors.white.withOpacity(0.05) : p.surface;
+    final planPillBorder =
+        isDark ? Colors.white.withOpacity(0.1) : p.border;
+
     final proteinPct = targetProtein > 0
         ? (avgProtein / targetProtein * 100).round()
         : 0;
@@ -36,9 +55,9 @@ class ReportWeeklySummaryCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFF16171A),
+        color: cardBg,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFF26282F)),
+        border: Border.all(color: borderCol),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -47,7 +66,7 @@ class ReportWeeklySummaryCard extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Expanded(
+              Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -57,16 +76,16 @@ class ReportWeeklySummaryCard extends StatelessWidget {
                         fontSize: 11,
                         fontWeight: FontWeight.w700,
                         letterSpacing: 0.8,
-                        color: Color(0xFFD1D5DB),
+                        color: headingCol,
                       ),
                     ),
-                    SizedBox(height: 2),
+                    const SizedBox(height: 2),
                     Text(
                       'High consistency with nutrition & training',
                       style: TextStyle(
                         fontSize: 11,
                         fontWeight: FontWeight.w400,
-                        color: Color(0xFFA1A1AA),
+                        color: subCol,
                       ),
                     ),
                   ],
@@ -76,9 +95,9 @@ class ReportWeeklySummaryCard extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF1F2228),
+                  color: pillBg,
                   borderRadius: BorderRadius.circular(999),
-                  border: Border.all(color: Colors.white.withOpacity(0.06)),
+                  border: Border.all(color: pillBorder),
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
@@ -86,18 +105,18 @@ class ReportWeeklySummaryCard extends StatelessWidget {
                     Container(
                       width: 6,
                       height: 6,
-                      decoration: const BoxDecoration(
-                        color: Color(0xFF10B981),
+                      decoration: BoxDecoration(
+                        color: emerald,
                         shape: BoxShape.circle,
                       ),
                     ),
                     const SizedBox(width: 6),
                     Text(
                       '$daysLogged / 7 days recorded',
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 10.5,
                         fontWeight: FontWeight.w500,
-                        color: Color(0xFFD1D5DB),
+                        color: headingCol,
                       ),
                     ),
                   ],
@@ -115,9 +134,9 @@ class ReportWeeklySummaryCard extends StatelessWidget {
                 child: Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF101114),
+                    color: tileBg,
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: const Color(0xFF23252A)),
+                    border: Border.all(color: tileBorder),
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -128,31 +147,31 @@ class ReportWeeklySummaryCard extends StatelessWidget {
                         spacing: 4,
                         runSpacing: 4,
                         children: [
-                          const Text(
+                          Text(
                             'AVG PROTEIN',
                             style: TextStyle(
                               fontSize: 10,
                               fontWeight: FontWeight.w600,
                               letterSpacing: 0.6,
-                              color: Color(0xFFA1A1AA),
+                              color: subCol,
                             ),
                           ),
                           Container(
                             padding: const EdgeInsets.symmetric(
                                 horizontal: 5, vertical: 2),
                             decoration: BoxDecoration(
-                              color: const Color(0xFF10B981).withOpacity(0.1),
+                              color: emerald.withOpacity(0.1),
                               borderRadius: BorderRadius.circular(4),
                               border: Border.all(
-                                color: const Color(0xFF10B981).withOpacity(0.2),
+                                color: emerald.withOpacity(0.2),
                               ),
                             ),
                             child: Text(
                               'Target ${targetProtein}g',
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 9.5,
                                 fontWeight: FontWeight.w600,
-                                color: Color(0xFF10B981),
+                                color: emerald,
                               ),
                             ),
                           ),
@@ -165,15 +184,15 @@ class ReportWeeklySummaryCard extends StatelessWidget {
                         children: [
                           Text(
                             '${avgProtein.round()}',
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 22,
                               fontWeight: FontWeight.w700,
                               letterSpacing: -0.5,
-                              color: Colors.white,
+                              color: titleValueCol,
                             ),
                           ),
                           const SizedBox(width: 4),
-                          const Flexible(
+                          Flexible(
                             child: Text(
                               'g / day',
                               maxLines: 1,
@@ -181,7 +200,7 @@ class ReportWeeklySummaryCard extends StatelessWidget {
                               style: TextStyle(
                                 fontSize: 12,
                                 fontWeight: FontWeight.w400,
-                                color: Color(0xFFA1A1AA),
+                                color: subCol,
                               ),
                             ),
                           ),
@@ -192,9 +211,9 @@ class ReportWeeklySummaryCard extends StatelessWidget {
                         targetProtein > 0
                             ? '$proteinPct% of target met'
                             : 'No target set',
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 10.5,
-                          color: Color(0xFF9CA3AF),
+                          color: mutedCol,
                         ),
                       ),
                     ],
@@ -208,9 +227,9 @@ class ReportWeeklySummaryCard extends StatelessWidget {
                 child: Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF101114),
+                    color: tileBg,
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: const Color(0xFF23252A)),
+                    border: Border.all(color: tileBorder),
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -221,31 +240,31 @@ class ReportWeeklySummaryCard extends StatelessWidget {
                         spacing: 4,
                         runSpacing: 4,
                         children: [
-                          const Text(
+                          Text(
                             'ACTIVE DAYS',
                             style: TextStyle(
                               fontSize: 10,
                               fontWeight: FontWeight.w600,
                               letterSpacing: 0.6,
-                              color: Color(0xFFA1A1AA),
+                              color: subCol,
                             ),
                           ),
                           Container(
                             padding: const EdgeInsets.symmetric(
                                 horizontal: 5, vertical: 2),
                             decoration: BoxDecoration(
-                              color: Colors.white.withOpacity(0.05),
+                              color: planPillBg,
                               borderRadius: BorderRadius.circular(4),
                               border: Border.all(
-                                color: Colors.white.withOpacity(0.1),
+                                color: planPillBorder,
                               ),
                             ),
                             child: Text(
                               'Plan: $targetActiveDays days',
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 9.5,
                                 fontWeight: FontWeight.w600,
-                                color: Color(0xFFD1D5DB),
+                                color: headingCol,
                               ),
                             ),
                           ),
@@ -258,15 +277,15 @@ class ReportWeeklySummaryCard extends StatelessWidget {
                         children: [
                           Text(
                             '$activeDays',
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 22,
                               fontWeight: FontWeight.w700,
                               letterSpacing: -0.5,
-                              color: Colors.white,
+                              color: titleValueCol,
                             ),
                           ),
                           const SizedBox(width: 4),
-                          const Flexible(
+                          Flexible(
                             child: Text(
                               '/ 7 days',
                               maxLines: 1,
@@ -274,7 +293,7 @@ class ReportWeeklySummaryCard extends StatelessWidget {
                               style: TextStyle(
                                 fontSize: 12,
                                 fontWeight: FontWeight.w400,
-                                color: Color(0xFFA1A1AA),
+                                color: subCol,
                               ),
                             ),
                           ),
@@ -289,8 +308,8 @@ class ReportWeeklySummaryCard extends StatelessWidget {
                           fontSize: 10.5,
                           fontWeight: FontWeight.w500,
                           color: activeDays >= targetActiveDays
-                              ? const Color(0xFF10B981)
-                              : const Color(0xFF9CA3AF),
+                              ? emerald
+                              : mutedCol,
                         ),
                       ),
                     ],

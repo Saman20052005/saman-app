@@ -10,6 +10,7 @@ import '../../../features/membership/presentation/screens/plan_detail_screen.dar
 import '../../../features/membership/presentation/widgets/upgrade_bottom_sheet.dart';
 import '../../../presentation/providers/workout_history_providers.dart';
 import '../../../services/analytics_service.dart';
+import '../tokens/saman_chat_tokens.dart';
 
 const bool _kEnableAiPaywall =
     bool.fromEnvironment('ENABLE_AI_PAYWALL', defaultValue: false);
@@ -34,12 +35,14 @@ class HistoryAnalyticsSheet extends ConsumerStatefulWidget {
     AnalyticsService? service,
     bool isDemo = false,
   }) {
+    final t = SamanChatTokens.of(context);
     return showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
       useSafeArea: true,
       backgroundColor: Colors.transparent,
-      barrierColor: const Color(0xBF000000),
+      barrierColor:
+          t.isDark ? const Color(0xBF000000) : const Color(0x660F172A),
       builder: builder ??
           (_) => HistoryAnalyticsSheet(
                 service: service,
@@ -203,23 +206,26 @@ class _HistoryAnalyticsSheetState extends ConsumerState<HistoryAnalyticsSheet> {
         !_paywallBlocked &&
         (!widget.isDemo ? true : hasData);
 
+    final t = SamanChatTokens.of(context);
     return Align(
       alignment: Alignment.bottomCenter,
       child: ConstrainedBox(
         constraints: BoxConstraints(maxWidth: width > 600 ? 560 : width),
         child: Container(
           decoration: BoxDecoration(
-            color: const Color(0xFF131922),
+            color: t.isDark ? const Color(0xFF131922) : t.surface,
             borderRadius:
                 const BorderRadius.vertical(top: Radius.circular(28.0)),
             border: Border.all(
-              color: const Color(0x14FFFFFF),
+              color: t.isDark ? const Color(0x14FFFFFF) : t.border,
               width: 1.0,
             ),
-            boxShadow: const [
+            boxShadow: [
               BoxShadow(
-                color: Color(0xD9000000),
-                offset: Offset(0, -12),
+                color: t.isDark
+                    ? const Color(0xD9000000)
+                    : const Color(0x1F0F172A),
+                offset: const Offset(0, -12),
                 blurRadius: 40.0,
               ),
             ],
@@ -243,7 +249,7 @@ class _HistoryAnalyticsSheetState extends ConsumerState<HistoryAnalyticsSheet> {
                       width: 40.0,
                       height: 4.0,
                       decoration: BoxDecoration(
-                        color: const Color(0x40808080),
+                        color: t.isDark ? const Color(0x40808080) : t.border,
                         borderRadius: BorderRadius.circular(2.0),
                       ),
                     ),
@@ -254,12 +260,14 @@ class _HistoryAnalyticsSheetState extends ConsumerState<HistoryAnalyticsSheet> {
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Padding(
-                        padding: EdgeInsets.only(top: 2.0),
+                      Padding(
+                        padding: const EdgeInsets.only(top: 2.0),
                         child: Icon(
                           Icons.trending_up_rounded,
                           size: 22.0,
-                          color: Color(0xFFCBD5E1),
+                          color: t.isDark
+                              ? const Color(0xFFCBD5E1)
+                              : t.textSecondary,
                         ),
                       ),
                       const SizedBox(width: 12.0),
@@ -269,19 +277,19 @@ class _HistoryAnalyticsSheetState extends ConsumerState<HistoryAnalyticsSheet> {
                           children: [
                             Text(
                               context.tr('trend_analytics_title'),
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 16.0,
                                 fontWeight: FontWeight.w600,
-                                color: Colors.white,
+                                color: t.textWhite,
                                 letterSpacing: -0.2,
                               ),
                             ),
                             const SizedBox(height: 4.0),
                             Text(
                               context.tr('trend_analytics_desc'),
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 12.0,
-                                color: Color(0xFF94A3B8),
+                                color: t.textMuted,
                                 height: 1.3,
                               ),
                             ),
@@ -292,10 +300,10 @@ class _HistoryAnalyticsSheetState extends ConsumerState<HistoryAnalyticsSheet> {
                         onPressed: _executing
                             ? null
                             : () => Navigator.of(context).pop(),
-                        icon: const Icon(
+                        icon: Icon(
                           Icons.close_rounded,
                           size: 20.0,
-                          color: Color(0xFF94A3B8),
+                          color: t.textMuted,
                         ),
                         splashRadius: 20.0,
                         padding: EdgeInsets.zero,
@@ -312,11 +320,11 @@ class _HistoryAnalyticsSheetState extends ConsumerState<HistoryAnalyticsSheet> {
                   // 3. Time Range Section
                   Text(
                     context.tr('time_range_header'),
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 11.0,
                       fontWeight: FontWeight.w600,
                       letterSpacing: 0.8,
-                      color: Color(0xFF94A3B8),
+                      color: t.textMuted,
                     ),
                   ),
                   const SizedBox(height: 8.0),
@@ -326,10 +334,12 @@ class _HistoryAnalyticsSheetState extends ConsumerState<HistoryAnalyticsSheet> {
                     height: 44.0,
                     padding: const EdgeInsets.all(3.0),
                     decoration: BoxDecoration(
-                      color: const Color(0xFF161D26),
+                      color: t.isDark
+                          ? const Color(0xFF161D26)
+                          : t.surfaceElevated,
                       borderRadius: BorderRadius.circular(24.0),
                       border: Border.all(
-                        color: const Color(0x0DFFFFFF),
+                        color: t.isDark ? const Color(0x0DFFFFFF) : t.border,
                         width: 1.0,
                       ),
                     ),
@@ -358,18 +368,18 @@ class _HistoryAnalyticsSheetState extends ConsumerState<HistoryAnalyticsSheet> {
                         const EdgeInsets.symmetric(horizontal: 4.0, vertical: 2.0),
                     child: Row(
                       children: [
-                        const Icon(
+                        Icon(
                           Icons.lock_outline_rounded,
                           size: 14.0,
-                          color: Color(0xFF94A3B8),
+                          color: t.textMuted,
                         ),
                         const SizedBox(width: 6.0),
                         Text(
                           context.tr('since_registration'),
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 12.0,
                             fontWeight: FontWeight.w500,
-                            color: Color(0xFF94A3B8),
+                            color: t.textMuted,
                           ),
                         ),
                         const SizedBox(width: 8.0),
@@ -379,9 +389,9 @@ class _HistoryAnalyticsSheetState extends ConsumerState<HistoryAnalyticsSheet> {
                             textAlign: TextAlign.end,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 11.0,
-                              color: Color(0xFF94A3B8),
+                              color: t.textMuted,
                             ),
                           ),
                         ),
@@ -428,28 +438,34 @@ class _HistoryAnalyticsSheetState extends ConsumerState<HistoryAnalyticsSheet> {
                         children: [
                           Text(
                             context.tr('saman_will_analyze_header'),
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 11.0,
                               fontWeight: FontWeight.w500,
                               letterSpacing: 0.8,
-                              color: Color(0xFFA3A3A3),
+                              color: t.isDark
+                                  ? const Color(0xFFA3A3A3)
+                                  : t.textMuted,
                             ),
                           ),
                           const SizedBox(height: 4.0),
                           Text(
                             context.tr('saman_analyze_scope_desc'),
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 12.0,
-                              color: Color(0xFFE2E8F0),
+                              color: t.isDark
+                                  ? const Color(0xFFE2E8F0)
+                                  : t.textPrimary,
                               height: 1.4,
                             ),
                           ),
                           const SizedBox(height: 8.0),
                           Text(
                             context.tr('analytics_result_destination'),
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 12.0,
-                              color: Color(0xFFA3A3A3),
+                              color: t.isDark
+                                  ? const Color(0xFFA3A3A3)
+                                  : t.textMuted,
                               height: 1.4,
                             ),
                           ),
@@ -467,21 +483,31 @@ class _HistoryAnalyticsSheetState extends ConsumerState<HistoryAnalyticsSheet> {
                     child: FilledButton(
                       onPressed: canConfirm ? _confirm : null,
                       style: FilledButton.styleFrom(
-                        backgroundColor: const Color(0xFF262F3D),
-                        disabledBackgroundColor: Colors.white.withOpacity(0.05),
+                        backgroundColor: t.isDark
+                            ? const Color(0xFF262F3D)
+                            : t.greenAccent,
+                        disabledBackgroundColor: t.isDark
+                            ? Colors.white.withOpacity(0.05)
+                            : t.composerSendDisabledBg,
                         foregroundColor: Colors.white,
-                        disabledForegroundColor: const Color(0xFF94A3B8),
+                        disabledForegroundColor: t.isDark
+                            ? const Color(0xFF94A3B8)
+                            : t.composerSendDisabledIcon,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(24.0),
                           side: BorderSide(
-                            color: canConfirm
-                                ? const Color(0x0FFFFFFF)
-                                : const Color(0x0DFFFFFF),
+                            color: t.isDark
+                                ? (canConfirm
+                                    ? const Color(0x0FFFFFFF)
+                                    : const Color(0x0DFFFFFF))
+                                : Colors.transparent,
                             width: 1.0,
                           ),
                         ),
                         elevation: canConfirm ? 1 : 0,
-                        shadowColor: const Color(0x1F000000),
+                        shadowColor: t.isDark
+                            ? const Color(0x1F000000)
+                            : const Color(0x140F172A),
                         padding: EdgeInsets.zero,
                       ),
                       child: _executing
@@ -501,7 +527,9 @@ class _HistoryAnalyticsSheetState extends ConsumerState<HistoryAnalyticsSheet> {
                                 fontWeight: FontWeight.w600,
                                 color: canConfirm
                                     ? Colors.white
-                                    : const Color(0xFF94A3B8),
+                                    : (t.isDark
+                                        ? const Color(0xFF94A3B8)
+                                        : t.composerSendDisabledIcon),
                               ),
                             ),
                     ),
@@ -516,17 +544,17 @@ class _HistoryAnalyticsSheetState extends ConsumerState<HistoryAnalyticsSheet> {
                       onPressed:
                           _executing ? null : () => Navigator.of(context).pop(),
                       style: TextButton.styleFrom(
-                        foregroundColor: const Color(0xFF94A3B8),
+                        foregroundColor: t.textMuted,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(22.0),
                         ),
                       ),
                       child: Text(
                         context.tr('cancel_action'),
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 13.0,
                           fontWeight: FontWeight.w500,
-                          color: Color(0xFF94A3B8),
+                          color: t.textMuted,
                         ),
                       ),
                     ),
@@ -558,6 +586,7 @@ class _TimeRangeTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = SamanChatTokens.of(context);
     return Semantics(
       button: true,
       selected: isSelected,
@@ -571,13 +600,17 @@ class _TimeRangeTab extends StatelessWidget {
             duration: const Duration(milliseconds: 140),
             height: 38.0,
             decoration: BoxDecoration(
-              color: isSelected ? const Color(0xFF262F3D) : Colors.transparent,
+              color: isSelected
+                  ? (t.isDark ? const Color(0xFF262F3D) : t.surface)
+                  : Colors.transparent,
               borderRadius: BorderRadius.circular(20.0),
               boxShadow: isSelected
-                  ? const [
+                  ? [
                       BoxShadow(
-                        color: Color(0x1A000000),
-                        offset: Offset(0, 1),
+                        color: t.isDark
+                            ? const Color(0x1A000000)
+                            : const Color(0x140F172A),
+                        offset: const Offset(0, 1),
                         blurRadius: 2.0,
                       ),
                     ]
@@ -590,10 +623,10 @@ class _TimeRangeTab extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   if (isSelected) ...[
-                    const Icon(
+                    Icon(
                       Icons.check_rounded,
                       size: 14.0,
-                      color: Color(0xFFE2E8F0),
+                      color: t.isDark ? const Color(0xFFE2E8F0) : t.greenAccent,
                     ),
                     const SizedBox(width: 4.0),
                   ],
@@ -603,17 +636,15 @@ class _TimeRangeTab extends StatelessWidget {
                       fontSize: isSelected ? 12.5 : 12.0,
                       fontWeight:
                           isSelected ? FontWeight.w600 : FontWeight.w400,
-                      color: isSelected
-                          ? const Color(0xFF10B981)
-                          : const Color(0xFF94A3B8),
+                      color: isSelected ? t.greenAccent : t.textMuted,
                     ),
                   ),
                   if (showLock) ...[
                     const SizedBox(width: 4.0),
-                    const Icon(
+                    Icon(
                       Icons.lock_outline,
                       size: 13.0,
-                      color: Color(0xFF94979E),
+                      color: t.textMuted,
                     ),
                   ],
                 ],
@@ -645,18 +676,20 @@ class _PreviewDataCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = SamanChatTokens.of(context);
     final isMatching = quote != null && quote!.rangeDays == rangeDays;
     final meals = isMatching ? (quote?.rawNutritionCount ?? 0) : 0;
     final workouts = isMatching ? (quote?.workoutSessions ?? 0) : 0;
     final hasData = isMatching && (meals > 0 || workouts > 0);
+    final dividerColor = t.isDark ? const Color(0x0FFFFFFF) : t.border;
 
     return Container(
       padding: const EdgeInsets.all(16.0),
       decoration: BoxDecoration(
-        color: const Color(0xFF17202B),
+        color: t.isDark ? const Color(0xFF17202B) : t.surfaceElevated,
         borderRadius: BorderRadius.circular(16.0),
         border: Border.all(
-          color: const Color(0x12FFFFFF),
+          color: t.isDark ? const Color(0x12FFFFFF) : t.border,
           width: 1.0,
         ),
       ),
@@ -669,10 +702,10 @@ class _PreviewDataCard extends StatelessWidget {
               Expanded(
                 child: Text(
                   context.tr('data_in_past_days_format').replaceAll('{days}', '$rangeDays'),
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 12.5,
                     fontWeight: FontWeight.w500,
-                    color: Color(0xFFE2E8F0),
+                    color: t.isDark ? const Color(0xFFE2E8F0) : t.textPrimary,
                   ),
                 ),
               ),
@@ -681,18 +714,18 @@ class _PreviewDataCard extends StatelessWidget {
                   padding: const EdgeInsets.symmetric(
                       horizontal: 8.0, vertical: 2.0),
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.05),
+                    color: t.isDark ? Colors.white.withOpacity(0.05) : t.surface,
                     borderRadius: BorderRadius.circular(12.0),
                     border: Border.all(
-                      color: Colors.white.withOpacity(0.1),
+                      color: t.isDark ? Colors.white.withOpacity(0.1) : t.border,
                       width: 1.0,
                     ),
                   ),
                   child: Text(
                     context.tr('sample_data_badge'),
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 10.5,
-                      color: Color(0xFFA3A3A3),
+                      color: t.isDark ? const Color(0xFFA3A3A3) : t.textMuted,
                     ),
                   ),
                 ),
@@ -708,19 +741,19 @@ class _PreviewDataCard extends StatelessWidget {
                   children: [
                     Text(
                       '$meals',
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 26.0,
                         fontWeight: FontWeight.bold,
-                        color: Colors.white,
+                        color: t.textWhite,
                         height: 1.1,
                       ),
                     ),
                     const SizedBox(height: 2.0),
                     Text(
                       context.tr('unit_meals'),
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 12.0,
-                        color: Color(0xFF94A3B8),
+                        color: t.textMuted,
                       ),
                     ),
                   ],
@@ -729,26 +762,26 @@ class _PreviewDataCard extends StatelessWidget {
               Container(
                 width: 1.0,
                 height: 42.0,
-                color: const Color(0x14FFFFFF),
+                color: t.isDark ? const Color(0x14FFFFFF) : t.border,
               ),
               Expanded(
                 child: Column(
                   children: [
                     Text(
                       '$workouts',
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 26.0,
                         fontWeight: FontWeight.bold,
-                        color: Colors.white,
+                        color: t.textWhite,
                         height: 1.1,
                       ),
                     ),
                     const SizedBox(height: 2.0),
                     Text(
                       context.tr('unit_workouts'),
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 12.0,
-                        color: Color(0xFF94A3B8),
+                        color: t.textMuted,
                       ),
                     ),
                   ],
@@ -759,12 +792,12 @@ class _PreviewDataCard extends StatelessWidget {
 
           if (loading) ...[
             const SizedBox(height: 14.0),
-            const Center(
+            Center(
               child: SizedBox.square(
                 dimension: 20.0,
                 child: CircularProgressIndicator(
                   strokeWidth: 2.0,
-                  color: Color(0xFF10B981),
+                  color: t.greenAccent,
                 ),
               ),
             ),
@@ -772,14 +805,19 @@ class _PreviewDataCard extends StatelessWidget {
             const SizedBox(height: 10.0),
             Text(
               context.tr(error!),
-              style: const TextStyle(fontSize: 12.0, color: Color(0xFFEF4444)),
+              style: TextStyle(
+                fontSize: 12.0,
+                color: t.isDark
+                    ? const Color(0xFFEF4444)
+                    : const Color(0xFFDC2626),
+              ),
               textAlign: TextAlign.center,
             ),
             TextButton(
               onPressed: onRetry,
               child: Text(
                 context.tr('retry_fetch_quote'),
-                style: const TextStyle(fontSize: 12.0, color: Color(0xFF10B981)),
+                style: TextStyle(fontSize: 12.0, color: t.greenAccent),
               ),
             ),
           ] else if (hasData) ...[
@@ -790,15 +828,15 @@ class _PreviewDataCard extends StatelessWidget {
                 context.tr('logged_days_format')
                     .replaceAll('{active}', '${quote!.activeDays}')
                     .replaceAll('{total}', '${quote!.rangeDays}'),
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 12.0,
-                  color: Color(0xFF94A3B8),
+                  color: t.textMuted,
                 ),
                 textAlign: TextAlign.center,
               ),
             const SizedBox(height: 10.0),
-            const Divider(
-              color: Color(0x0FFFFFFF),
+            Divider(
+              color: dividerColor,
               height: 1.0,
               thickness: 1.0,
             ),
@@ -809,18 +847,18 @@ class _PreviewDataCard extends StatelessWidget {
                 Expanded(
                   child: Text(
                     context.tr('estimated_tokens'),
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 12.0,
-                      color: Color(0xFF94A3B8),
+                      color: t.textMuted,
                     ),
                   ),
                 ),
                 Text(
                   context.tr('tokens_format').replaceAll('{count}', '${quote!.estimatedTokens}'),
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 12.0,
                     fontWeight: FontWeight.w600,
-                    color: Color(0xFF10B981),
+                    color: t.greenAccent,
                   ),
                 ),
               ],
@@ -835,17 +873,17 @@ class _PreviewDataCard extends StatelessWidget {
                     ? context.tr('no_logs_range_7')
                     : context.tr('no_logs_range_other'),
                 textAlign: TextAlign.center,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 13.0,
-                  color: Color(0xFFA3A3A3),
+                  color: t.isDark ? const Color(0xFFA3A3A3) : t.textSecondary,
                   height: 1.4,
                 ),
               ),
             ),
             if (isMatching && quote != null && !isDemo) ...[
               const SizedBox(height: 10.0),
-              const Divider(
-                color: Color(0x0FFFFFFF),
+              Divider(
+                color: dividerColor,
                 height: 1.0,
                 thickness: 1.0,
               ),
@@ -855,18 +893,18 @@ class _PreviewDataCard extends StatelessWidget {
                   Expanded(
                     child: Text(
                       context.tr('estimated_tokens'),
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 12.0,
-                        color: Color(0xFF94A3B8),
+                        color: t.textMuted,
                       ),
                     ),
                   ),
                   Text(
                     context.tr('tokens_format').replaceAll('{count}', '${quote!.estimatedTokens}'),
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 12.0,
                       fontWeight: FontWeight.w600,
-                      color: Color(0xFF10B981),
+                      color: t.greenAccent,
                     ),
                   ),
                 ],
@@ -888,13 +926,14 @@ class _PaywallBlockedCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = SamanChatTokens.of(context);
     return Container(
       padding: const EdgeInsets.all(16.0),
       decoration: BoxDecoration(
-        color: const Color(0xFF17202B),
+        color: t.isDark ? const Color(0xFF17202B) : t.surfaceElevated,
         borderRadius: BorderRadius.circular(16.0),
         border: Border.all(
-          color: const Color(0xFF10B981).withOpacity(0.35),
+          color: t.greenAccent.withOpacity(0.35),
           width: 1.0,
         ),
       ),
@@ -907,23 +946,23 @@ class _PaywallBlockedCard extends StatelessWidget {
                 width: 36.0,
                 height: 36.0,
                 decoration: BoxDecoration(
-                  color: const Color(0xFF10B981).withOpacity(0.12),
+                  color: t.greenAccent.withOpacity(0.12),
                   borderRadius: BorderRadius.circular(10.0),
                 ),
-                child: const Icon(
+                child: Icon(
                   Icons.lock_outline,
                   size: 18.0,
-                  color: Color(0xFF10B981),
+                  color: t.greenAccent,
                 ),
               ),
               const SizedBox(width: 12.0),
-              const Expanded(
+              Expanded(
                 child: Text(
                   'Phân tích lịch sử 30 ngày dành cho hội viên nâng cao',
                   style: TextStyle(
                     fontSize: 13.5,
                     fontWeight: FontWeight.w500,
-                    color: Color(0xFFE2E8F0),
+                    color: t.isDark ? const Color(0xFFE2E8F0) : t.textPrimary,
                     height: 1.35,
                   ),
                 ),
@@ -936,8 +975,9 @@ class _PaywallBlockedCard extends StatelessWidget {
             child: FilledButton(
               onPressed: onUpgradeTap,
               style: FilledButton.styleFrom(
-                backgroundColor: const Color(0xFF10B981),
-                foregroundColor: const Color(0xFF0B1117),
+                backgroundColor: t.greenAccent,
+                foregroundColor:
+                    t.isDark ? const Color(0xFF0B1117) : Colors.white,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(22.0),
                 ),

@@ -46,6 +46,7 @@ class ShopProductCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final t = ShopTheme.of(context);
     final isSaved = ref.watch(isProductSavedProvider(product.id));
 
     return GestureDetector(
@@ -58,10 +59,10 @@ class ShopProductCard extends ConsumerWidget {
           Expanded(
             child: Container(
               decoration: BoxDecoration(
-                color: ShopTheme.surfaceElevated,
+                color: t.surfaceElevated,
                 borderRadius: BorderRadius.circular(ShopTheme.radiusMd),
                 border: Border.all(
-                  color: ShopTheme.borderSubtle,
+                  color: t.borderSubtle,
                   width: 1,
                 ),
               ),
@@ -95,7 +96,7 @@ class ShopProductCard extends ConsumerWidget {
                       ),
                     ),
 
-                  // Floating Bookmark Action
+                  // Floating Bookmark Action (over photo: keep dark scrim & bright icon)
                   Positioned(
                     top: 8,
                     right: 8,
@@ -112,7 +113,7 @@ class ShopProductCard extends ConsumerWidget {
                           width: 28,
                           height: 28,
                           decoration: BoxDecoration(
-                            color: Colors.black.withOpacity(0.45),
+                            color: Colors.black.withOpacity(0.55),
                             shape: BoxShape.circle,
                           ),
                           alignment: Alignment.center,
@@ -122,8 +123,8 @@ class ShopProductCard extends ConsumerWidget {
                                 : Icons.bookmark_outline_rounded,
                             size: 15,
                             color: isSaved
-                                ? ShopTheme.emerald
-                                : Colors.white.withOpacity(0.85),
+                                ? const Color(0xFF10B981)
+                                : Colors.white.withOpacity(0.9),
                           ),
                         ),
                       ),
@@ -168,7 +169,7 @@ class ShopProductCard extends ConsumerWidget {
             product.title,
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
-            style: ShopTheme.productTitle,
+            style: t.productTitle,
           ),
           const SizedBox(height: 4),
 
@@ -176,11 +177,11 @@ class ShopProductCard extends ConsumerWidget {
           Text(
             _formatPrice(context, product.priceVnd),
             style: product.priceVnd != null
-                ? ShopTheme.productPrice
+                ? t.productPrice
                 : ShopTheme.fontManrope(
                     fontSize: 12,
                     fontWeight: FontWeight.w500,
-                    color: ShopTheme.textSecondary,
+                    color: t.textSecondary,
                   ),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
@@ -211,7 +212,7 @@ class _ProductImageView extends StatelessWidget {
       return Image.asset(
         imagePath,
         fit: BoxFit.cover,
-        errorBuilder: (_, __, ___) => _fallbackContainer(),
+        errorBuilder: (_, __, ___) => _fallbackContainer(context),
       );
     }
 
@@ -219,21 +220,22 @@ class _ProductImageView extends StatelessWidget {
       return Image.network(
         imagePath,
         fit: BoxFit.cover,
-        errorBuilder: (_, __, ___) => _fallbackContainer(),
+        errorBuilder: (_, __, ___) => _fallbackContainer(context),
       );
     }
 
-    return _fallbackContainer();
+    return _fallbackContainer(context);
   }
 
-  Widget _fallbackContainer() {
+  Widget _fallbackContainer(BuildContext context) {
+    final t = ShopTheme.of(context);
     return Container(
-      color: ShopTheme.surfaceElevated,
+      color: t.surfaceElevated,
       alignment: Alignment.center,
-      child: const Icon(
+      child: Icon(
         Icons.inventory_2_outlined,
         size: 26,
-        color: ShopTheme.textMuted,
+        color: t.textMuted,
       ),
     );
   }

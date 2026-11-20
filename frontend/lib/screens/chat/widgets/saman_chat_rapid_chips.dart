@@ -105,6 +105,7 @@ class SamanChatRapidChips extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = SamanChatTokens.of(context);
     return SizedBox(
       height: 44.0, // Minimum touch target height
       child: ListView.separated(
@@ -121,18 +122,18 @@ class SamanChatRapidChips extends StatelessWidget {
               child: InkWell(
                 borderRadius: BorderRadius.circular(18.0),
                 onTap: () => onChipSelected(chip.prompt),
-                hoverColor: SamanChatTokens.actionRowHoverBg,
-                focusColor: SamanChatTokens.actionRowFocusBg,
-                splashColor: SamanChatTokens.actionRowPressedBg,
-                highlightColor: SamanChatTokens.actionRowPressedBg,
+                hoverColor: t.actionRowHoverBg,
+                focusColor: t.actionRowFocusBg,
+                splashColor: t.actionRowPressedBg,
+                highlightColor: t.actionRowPressedBg,
                 child: Ink(
                   height: 34.0,
                   padding: const EdgeInsets.symmetric(horizontal: 12.0),
                   decoration: BoxDecoration(
-                    color: SamanChatTokens.rapidChipBg,
+                    color: t.rapidChipBg,
                     borderRadius: BorderRadius.circular(18.0),
                     border: Border.all(
-                      color: SamanChatTokens.rapidChipBorder,
+                      color: t.rapidChipBorder,
                       width: 1.0,
                     ),
                   ),
@@ -144,13 +145,13 @@ class SamanChatRapidChips extends StatelessWidget {
                         Icon(
                           chip.icon,
                           size: 15.0,
-                          color: SamanChatTokens.rapidChipIconColor,
+                          color: t.rapidChipIconColor,
                         ),
                         const SizedBox(width: 6.0),
                       ],
                       Text(
                         chip.label,
-                        style: SamanChatTokens.chipLabel,
+                        style: t.chipLabel,
                       ),
                     ],
                   ),

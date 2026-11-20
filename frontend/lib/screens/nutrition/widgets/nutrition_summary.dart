@@ -74,13 +74,13 @@ class NutritionSummary extends ConsumerWidget {
           ? 'REST DAY ($delta kcal)'
           : 'REST DAY';
     }
+    final style = NutritionHomeStyle.of(context);
     final Color dotColor = isTraining
-        ? const Color(0xFF10B981)
-        : const Color(0xFF94979E);
+        ? (style.isDark ? const Color(0xFF10B981) : const Color(0xFF059669))
+        : (style.isDark ? const Color(0xFF94979E) : style.muted);
 
     final numberFormat = NumberFormat('#,###');
 
-    final style = NutritionHomeStyle.of(context);
     return DecoratedBox(
       decoration: BoxDecoration(
           color: style.surface,
@@ -102,9 +102,15 @@ class NutritionSummary extends ConsumerWidget {
                       padding: const EdgeInsets.symmetric(
                           horizontal: 8, vertical: 3),
                       decoration: BoxDecoration(
-                        color: const Color(0xFF212328),
+                        color: style.isDark
+                            ? const Color(0xFF212328)
+                            : style.track,
                         borderRadius: BorderRadius.circular(999),
-                        border: Border.all(color: const Color(0xFF26282F)),
+                        border: Border.all(
+                          color: style.isDark
+                              ? const Color(0xFF26282F)
+                              : style.border,
+                        ),
                       ),
                       child: Row(
                         mainAxisSize: MainAxisSize.min,

@@ -17,6 +17,7 @@ class PrimaryMembershipButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = MembershipTokens.of(context);
     return Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -27,8 +28,8 @@ class PrimaryMembershipButton extends StatelessWidget {
             onPressed: onPressed,
             style: ElevatedButton.styleFrom(
               elevation: 0,
-              backgroundColor: MembershipTokens.primaryCtaBg,
-              foregroundColor: MembershipTokens.primaryCtaText,
+              backgroundColor: t.primaryCtaBg,
+              foregroundColor: t.primaryCtaText,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(
                   MembershipTokens.buttonRadius,
@@ -38,7 +39,7 @@ class PrimaryMembershipButton extends StatelessWidget {
             ).copyWith(
               overlayColor: WidgetStateProperty.resolveWith((states) {
                 if (states.contains(WidgetState.pressed)) {
-                  return MembershipTokens.primaryCtaPressed;
+                  return t.primaryCtaPressed;
                 }
                 return null;
               }),
@@ -48,10 +49,10 @@ class PrimaryMembershipButton extends StatelessWidget {
               children: [
                 Text(
                   text,
-                  style: MembershipTokens.body(
+                  style: t.body(
                     fontSize: 15,
                     fontWeight: FontWeight.w600,
-                    color: MembershipTokens.primaryCtaText,
+                    color: t.primaryCtaText,
                   ),
                 ),
                 if (icon != null) ...[
@@ -59,7 +60,7 @@ class PrimaryMembershipButton extends StatelessWidget {
                   Icon(
                     icon,
                     size: 18,
-                    color: MembershipTokens.primaryCtaText,
+                    color: t.primaryCtaText,
                   ),
                 ],
               ],
@@ -71,10 +72,10 @@ class PrimaryMembershipButton extends StatelessWidget {
           Center(
             child: Text(
               subtext!,
-              style: MembershipTokens.mono(
+              style: t.mono(
                 fontSize: 11,
                 fontWeight: FontWeight.w400,
-                color: MembershipTokens.textMuted,
+                color: t.textMuted,
               ),
               textAlign: TextAlign.center,
             ),

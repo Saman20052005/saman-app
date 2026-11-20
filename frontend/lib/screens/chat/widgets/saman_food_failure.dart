@@ -23,6 +23,7 @@ class SamanFoodFailure extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = SamanChatTokens.of(context);
     return Align(
       alignment: Alignment.centerLeft,
       child: Padding(
@@ -32,14 +33,14 @@ class SamanFoodFailure extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             // Assistant identity header
-            const Row(
+            Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                SamanMonogram.chat(),
-                SizedBox(width: 8.0),
+                const SamanMonogram.chat(),
+                const SizedBox(width: 8.0),
                 Text(
                   'Saman',
-                  style: SamanChatTokens.assistantName,
+                  style: t.assistantName,
                 ),
               ],
             ),
@@ -50,10 +51,10 @@ class SamanFoodFailure extends StatelessWidget {
               width: double.infinity,
               constraints: const BoxConstraints(maxWidth: 380.0),
               decoration: BoxDecoration(
-                color: SamanChatTokens.surface,
+                color: t.surface,
                 borderRadius: BorderRadius.circular(14.0),
                 border: Border.all(
-                  color: SamanChatTokens.borderSubtle,
+                  color: t.borderSubtle,
                   width: 1.0,
                 ),
               ),
@@ -62,12 +63,12 @@ class SamanFoodFailure extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Text(
+                  Text(
                     "I couldn't estimate this meal confidently from the photo.",
                     style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w400,
-                      color: SamanChatTokens.textWhite,
+                      color: t.textWhite,
                       height: 1.4,
                     ),
                   ),
@@ -79,14 +80,14 @@ class SamanFoodFailure extends StatelessWidget {
                     width: double.infinity,
                     padding: const EdgeInsets.all(12.0),
                     decoration: BoxDecoration(
-                      color: SamanChatTokens.canvas,
+                      color: t.canvas,
                       borderRadius: BorderRadius.circular(10.0),
                       border: Border.all(
-                        color: SamanChatTokens.borderSubtle,
+                        color: t.borderSubtle,
                         width: 1.0,
                       ),
                     ),
-                    child: const Column(
+                    child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
@@ -94,11 +95,11 @@ class SamanFoodFailure extends StatelessWidget {
                           style: TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.w500,
-                            color: SamanChatTokens.textSecondary,
+                            color: t.textSecondary,
                           ),
                         ),
-                        SizedBox(height: 6.0),
-                        Padding(
+                        const SizedBox(height: 6.0),
+                        const Padding(
                           padding: EdgeInsets.only(left: 4.0),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
@@ -125,30 +126,30 @@ class SamanFoodFailure extends StatelessWidget {
                       InkWell(
                         borderRadius: BorderRadius.circular(8.0),
                         onTap: onRetake,
-                        child: const Padding(
-                          padding: EdgeInsets.symmetric(vertical: 4.0, horizontal: 2.0),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 4.0, horizontal: 2.0),
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               Icon(
                                 Icons.photo_camera_rounded,
                                 size: 16,
-                                color: SamanChatTokens.greenAccent,
+                                color: t.greenAccent,
                               ),
-                              SizedBox(width: 6.0),
+                              const SizedBox(width: 6.0),
                               Text(
                                 'Retake photo',
                                 style: TextStyle(
                                   fontSize: 13,
                                   fontWeight: FontWeight.w600,
-                                  color: SamanChatTokens.greenAccent,
+                                  color: t.greenAccent,
                                 ),
                               ),
-                              SizedBox(width: 4.0),
+                              const SizedBox(width: 4.0),
                               Icon(
                                 Icons.arrow_forward_rounded,
                                 size: 14,
-                                color: SamanChatTokens.greenAccent,
+                                color: t.greenAccent,
                               ),
                             ],
                           ),
@@ -157,30 +158,30 @@ class SamanFoodFailure extends StatelessWidget {
                       InkWell(
                         borderRadius: BorderRadius.circular(8.0),
                         onTap: onManualEntry,
-                        child: const Padding(
-                          padding: EdgeInsets.symmetric(vertical: 4.0, horizontal: 2.0),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 4.0, horizontal: 2.0),
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               Icon(
                                 Icons.edit_note_rounded,
                                 size: 16,
-                                color: SamanChatTokens.textSecondary,
+                                color: t.textSecondary,
                               ),
-                              SizedBox(width: 6.0),
+                              const SizedBox(width: 6.0),
                               Text(
                                 'Enter meal manually',
                                 style: TextStyle(
                                   fontSize: 13,
                                   fontWeight: FontWeight.w500,
-                                  color: SamanChatTokens.textSecondary,
+                                  color: t.textSecondary,
                                 ),
                               ),
-                              SizedBox(width: 4.0),
+                              const SizedBox(width: 4.0),
                               Icon(
                                 Icons.arrow_forward_rounded,
                                 size: 14,
-                                color: SamanChatTokens.textSecondary,
+                                color: t.textSecondary,
                               ),
                             ],
                           ),
@@ -205,23 +206,24 @@ class _GuidanceBullet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = SamanChatTokens.of(context);
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
+        Text(
           '• ',
           style: TextStyle(
             fontSize: 12,
-            color: SamanChatTokens.textMuted,
+            color: t.textMuted,
             height: 1.3,
           ),
         ),
         Expanded(
           child: Text(
             text,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 12,
-              color: SamanChatTokens.textMuted,
+              color: t.textMuted,
               height: 1.3,
             ),
           ),

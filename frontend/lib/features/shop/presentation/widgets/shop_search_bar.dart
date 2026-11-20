@@ -70,24 +70,25 @@ class _ShopSearchBarState extends State<ShopSearchBar> {
 
   @override
   Widget build(BuildContext context) {
+    final t = ShopTheme.of(context);
     return Container(
       height: 44,
       padding: const EdgeInsets.symmetric(horizontal: 14),
       decoration: BoxDecoration(
-        color: ShopTheme.surfaceCard,
+        color: t.surfaceCard,
         borderRadius: BorderRadius.circular(ShopTheme.radiusPill),
         border: Border.all(
-          color: _hasContent ? ShopTheme.textMuted : ShopTheme.borderSubtle,
+          color: _hasContent ? t.textMuted : t.borderSubtle,
           width: 1,
         ),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          const Icon(
+          Icon(
             Icons.search_rounded,
             size: 18,
-            color: ShopTheme.textSecondary,
+            color: t.textSecondary,
           ),
           const SizedBox(width: 10),
           Expanded(
@@ -97,15 +98,15 @@ class _ShopSearchBarState extends State<ShopSearchBar> {
               style: ShopTheme.fontManrope(
                 fontSize: 13,
                 fontWeight: FontWeight.w400,
-                color: ShopTheme.textPrimary,
+                color: t.textPrimary,
               ),
-              cursorColor: ShopTheme.textPrimary,
+              cursorColor: t.textPrimary,
               decoration: InputDecoration(
                 hintText: ShopTranslations.of(context, 'search_placeholder'),
                 hintStyle: ShopTheme.fontManrope(
                   fontSize: 13,
                   fontWeight: FontWeight.w400,
-                  color: ShopTheme.textMuted,
+                  color: t.textMuted,
                 ),
                 filled: false,
                 border: InputBorder.none,
@@ -121,12 +122,12 @@ class _ShopSearchBarState extends State<ShopSearchBar> {
             GestureDetector(
               onTap: _clear,
               behavior: HitTestBehavior.opaque,
-              child: const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
                 child: Icon(
                   Icons.close_rounded,
                   size: 16,
-                  color: ShopTheme.textSecondary,
+                  color: t.textSecondary,
                 ),
               ),
             ),

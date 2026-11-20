@@ -40,6 +40,7 @@ class WeeklyChart extends StatelessWidget {
     final labelColor = isDark && colorScheme.secondary == Colors.tealAccent[200]
         ? const Color(0xFF9CA3AF)
         : colorScheme.secondary;
+    final goalColor = isDark ? Colors.red.shade300 : const Color(0xFFDC2626);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -59,7 +60,7 @@ class WeeklyChart extends StatelessWidget {
             Row(
               children: [
                 _buildLegend(
-                  Colors.red.shade300,
+                  goalColor,
                   "Goal",
                   isDashed: true,
                   textColor: labelColor,
@@ -89,6 +90,7 @@ class WeeklyChart extends StatelessWidget {
               color: color,
               labelType: label.contains("Calories") ? "kcal" : "g",
               labelColor: labelColor,
+              goalColor: goalColor,
             ),
           ),
         ),
@@ -138,6 +140,7 @@ class LineChartPainter extends CustomPainter {
   final Color color;
   final String labelType;
   final Color labelColor;
+  final Color goalColor;
 
   LineChartPainter({
     required this.data,
@@ -146,6 +149,7 @@ class LineChartPainter extends CustomPainter {
     required this.color,
     required this.labelType,
     this.labelColor = const Color(0xFF9CA3AF),
+    this.goalColor = const Color(0xFFE57373),
   });
 
   @override
@@ -155,7 +159,7 @@ class LineChartPainter extends CustomPainter {
 
     // Dùng .withValues cho Flutter mới
     final Paint targetPaint = Paint()
-      ..color = Colors.red.withOpacity(0.5)
+      ..color = goalColor.withOpacity(0.6)
       ..strokeWidth = 1.5
       ..style = PaintingStyle.stroke;
 
@@ -182,7 +186,7 @@ class LineChartPainter extends CustomPainter {
           canvas, targetPaint, Offset(0, targetY), Offset(w, targetY));
 
       final TextSpan span = TextSpan(
-          style: TextStyle(color: Colors.red.shade300, fontSize: 10),
+          style: TextStyle(color: goalColor, fontSize: 10),
           text: "$targetValue");
 
       final TextPainter tp = TextPainter(

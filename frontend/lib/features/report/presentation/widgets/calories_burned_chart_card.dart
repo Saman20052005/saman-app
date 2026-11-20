@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:health_ai_app/features/report/domain/entities/weekly_report_entity.dart';
+import '../../../../config/app_theme.dart';
 import 'calories_consumed_chart_card.dart';
 
 class CaloriesBurnedChartCard extends StatelessWidget {
@@ -69,14 +70,33 @@ class CaloriesBurnedChartCard extends StatelessWidget {
       }
     }
 
+    final p = SamanPalette.of(context);
+    final isDark = p.isDark;
+    final cardBg = isDark ? const Color(0xFF16171A) : p.surface;
+    final borderCol = isDark ? const Color(0xFF26282F) : p.border;
+    final gridCol = isDark ? const Color(0xFF23252A) : p.border;
+    final baseLineCol = isDark ? const Color(0xFF2D3039) : const Color(0xFFCBD5E1);
+    final amber = isDark ? const Color(0xFFF59E0B) : p.amber;
+    final headingCol = isDark ? const Color(0xFFD1D5DB) : p.textPrimary;
+    final valueCol = isDark ? Colors.white : p.textPrimary;
+    final subCol = isDark ? const Color(0xFFA1A1AA) : p.textSecondary;
+    final mutedCol = isDark ? const Color(0xFF71717A) : p.textMuted;
+    final futureCol = isDark ? const Color(0xFF52525B) : const Color(0xFF94A3B8);
+    final restBarCol = isDark ? const Color(0xFF4B3B22) : const Color(0xFFE2E8F0);
+    final activeBorderCol = isDark ? Colors.white : const Color(0xFF0F172A);
+    final activeDayPillBg = isDark
+        ? Colors.white.withOpacity(0.1)
+        : const Color(0xFF0F172A).withOpacity(0.08);
+    final activeDayTextCol = isDark ? Colors.white : p.textPrimary;
+
     final dayLabels = ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'];
 
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFF16171A),
+        color: cardBg,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFF26282F)),
+        border: Border.all(color: borderCol),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -95,13 +115,13 @@ class CaloriesBurnedChartCard extends StatelessWidget {
                         Container(
                           width: 8,
                           height: 8,
-                          decoration: const BoxDecoration(
-                            color: Color(0xFFF59E0B),
+                          decoration: BoxDecoration(
+                            color: amber,
                             shape: BoxShape.circle,
                           ),
                         ),
                         const SizedBox(width: 6),
-                        const Flexible(
+                        Flexible(
                           child: Text(
                             'CALORIES BURNED',
                             maxLines: 1,
@@ -110,7 +130,7 @@ class CaloriesBurnedChartCard extends StatelessWidget {
                               fontSize: 11,
                               fontWeight: FontWeight.w700,
                               letterSpacing: 0.8,
-                              color: Color(0xFFD1D5DB),
+                              color: headingCol,
                             ),
                           ),
                         ),
@@ -122,20 +142,20 @@ class CaloriesBurnedChartCard extends StatelessWidget {
                       children: [
                         Text(
                           NumberFormat('#,###').format(avgCaloriesBurned.round()),
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 26,
                             fontWeight: FontWeight.w700,
                             letterSpacing: -0.5,
-                            color: Colors.white,
+                            color: valueCol,
                           ),
                         ),
                         const SizedBox(width: 6),
-                        const Text(
+                        Text(
                           'kcal / day avg',
                           style: TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.w400,
-                            color: Color(0xFFA1A1AA),
+                            color: subCol,
                           ),
                         ),
                       ],
@@ -147,13 +167,13 @@ class CaloriesBurnedChartCard extends StatelessWidget {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
-                  const Text(
+                  Text(
                     'DAILY GOAL',
                     style: TextStyle(
                       fontSize: 10,
                       fontWeight: FontWeight.w600,
                       letterSpacing: 0.6,
-                      color: Color(0xFF71717A),
+                      color: mutedCol,
                     ),
                   ),
                   const SizedBox(height: 3),
@@ -161,20 +181,20 @@ class CaloriesBurnedChartCard extends StatelessWidget {
                     padding:
                         const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFF59E0B).withOpacity(0.1),
+                      color: amber.withOpacity(0.1),
                       borderRadius: BorderRadius.circular(6),
                       border: Border.all(
-                        color: const Color(0xFFF59E0B).withOpacity(0.2),
+                        color: amber.withOpacity(0.2),
                       ),
                     ),
                     child: Text(
                       targetBurned > 0
                           ? '${NumberFormat('#,###').format(targetBurned)} kcal'
                           : 'No goal set',
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 11.5,
                         fontWeight: FontWeight.w600,
-                        color: Color(0xFFF59E0B),
+                        color: amber,
                       ),
                     ),
                   ),
@@ -217,10 +237,10 @@ class CaloriesBurnedChartCard extends StatelessWidget {
                                   child: Text(
                                     val == 0 ? '0' : val.toInt().toString(),
                                     maxLines: 1,
-                                    style: const TextStyle(
+                                    style: TextStyle(
                                       fontSize: 9.5,
                                       fontFamily: 'monospace',
-                                      color: Color(0xFF71717A),
+                                      color: mutedCol,
                                     ),
                                   ),
                                 ),
@@ -229,9 +249,7 @@ class CaloriesBurnedChartCard extends StatelessWidget {
                               Expanded(
                                 child: Container(
                                   height: 1,
-                                  color: val == 0
-                                      ? const Color(0xFF2D3039)
-                                      : const Color(0xFF23252A),
+                                  color: val == 0 ? baseLineCol : gridCol,
                                 ),
                               ),
                             ],
@@ -249,7 +267,7 @@ class CaloriesBurnedChartCard extends StatelessWidget {
                         child: CustomPaint(
                           size: Size(plotWidth, 1),
                           painter: DashedLinePainter(
-                            color: const Color(0xFFF59E0B).withOpacity(0.6),
+                            color: amber.withOpacity(0.6),
                           ),
                         ),
                       ),
@@ -288,21 +306,20 @@ class CaloriesBurnedChartCard extends StatelessWidget {
                                       height: barHeight,
                                       decoration: BoxDecoration(
                                         color: isSelected
-                                            ? const Color(0xFFF59E0B)
-                                            : const Color(0xFFF59E0B)
-                                                .withOpacity(0.85),
+                                            ? amber
+                                            : amber.withOpacity(0.85),
                                         borderRadius: const BorderRadius.vertical(
                                           top: Radius.circular(4),
                                         ),
                                         border: isSelected
                                             ? Border.all(
-                                                color: Colors.white, width: 1)
+                                                color: activeBorderCol, width: 1)
                                             : null,
                                         boxShadow: isSelected
                                             ? [
                                                 BoxShadow(
-                                                  color: const Color(0xFFF59E0B)
-                                                      .withOpacity(0.4),
+                                                  color: amber
+                                                      .withOpacity(isDark ? 0.4 : 0.25),
                                                   blurRadius: 8,
                                                 )
                                               ]
@@ -315,14 +332,19 @@ class CaloriesBurnedChartCard extends StatelessWidget {
                                       height: 4,
                                       margin: const EdgeInsets.only(bottom: 1),
                                       decoration: BoxDecoration(
-                                        color: const Color(0xFF4B3B22),
+                                        color: restBarCol,
                                         borderRadius: BorderRadius.circular(2),
                                         border: isSelected
                                             ? Border.all(
-                                                color: const Color(0xFFF59E0B),
+                                                color: amber,
                                                 width: 1,
                                               )
-                                            : null,
+                                            : (isDark
+                                                ? null
+                                                : Border.all(
+                                                    color: const Color(0xFFCBD5E1),
+                                                    width: 0.5,
+                                                  )),
                                       ),
                                     )
                                   else
@@ -335,8 +357,8 @@ class CaloriesBurnedChartCard extends StatelessWidget {
                                           fontSize: 13,
                                           fontFamily: 'monospace',
                                           color: day != null && day.isFuture
-                                              ? const Color(0xFF52525B)
-                                              : const Color(0xFF71717A),
+                                              ? futureCol
+                                              : mutedCol,
                                         ),
                                       ),
                                     ),
@@ -367,7 +389,7 @@ class CaloriesBurnedChartCard extends StatelessWidget {
                                 alignment: Alignment.center,
                                 decoration: isSelected
                                     ? BoxDecoration(
-                                        color: Colors.white.withOpacity(0.1),
+                                        color: activeDayPillBg,
                                         borderRadius: BorderRadius.circular(4),
                                       )
                                     : null,
@@ -379,10 +401,8 @@ class CaloriesBurnedChartCard extends StatelessWidget {
                                         ? FontWeight.w700
                                         : FontWeight.w400,
                                     color: isSelected
-                                        ? Colors.white
-                                        : (isFuture
-                                            ? const Color(0xFF52525B)
-                                            : const Color(0xFFA1A1AA)),
+                                        ? activeDayTextCol
+                                        : (isFuture ? futureCol : subCol),
                                   ),
                                 ),
                               ),
@@ -401,9 +421,9 @@ class CaloriesBurnedChartCard extends StatelessWidget {
           // Clarifying Legend (0 vs Missing)
           Container(
             padding: const EdgeInsets.only(top: 10, bottom: 4),
-            decoration: const BoxDecoration(
+            decoration: BoxDecoration(
               border: Border(
-                top: BorderSide(color: Color(0xFF23252A), width: 1),
+                top: BorderSide(color: gridCol, width: 1),
               ),
             ),
             child: Wrap(
@@ -419,21 +439,21 @@ class CaloriesBurnedChartCard extends StatelessWidget {
                       width: 10,
                       height: 4,
                       decoration: BoxDecoration(
-                        color: const Color(0xFF4B3B22),
+                        color: restBarCol,
                         borderRadius: BorderRadius.circular(2),
                       ),
                     ),
                     const SizedBox(width: 6),
-                    const Text(
+                    Text(
                       'Rest (0 kcal)',
                       style: TextStyle(
                         fontSize: 10.5,
-                        color: Color(0xFFA1A1AA),
+                        color: subCol,
                       ),
                     ),
                   ],
                 ),
-                const Row(
+                Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(
@@ -441,15 +461,15 @@ class CaloriesBurnedChartCard extends StatelessWidget {
                       style: TextStyle(
                         fontSize: 11,
                         fontFamily: 'monospace',
-                        color: Color(0xFF71717A),
+                        color: mutedCol,
                       ),
                     ),
-                    SizedBox(width: 6),
+                    const SizedBox(width: 6),
                     Text(
                       'Unlogged',
                       style: TextStyle(
                         fontSize: 10.5,
-                        color: Color(0xFFA1A1AA),
+                        color: subCol,
                       ),
                     ),
                   ],
@@ -473,18 +493,18 @@ class CaloriesBurnedChartCard extends StatelessWidget {
                     Container(
                       width: 6,
                       height: 6,
-                      decoration: const BoxDecoration(
-                        color: Color(0xFFF59E0B),
+                      decoration: BoxDecoration(
+                        color: amber,
                         shape: BoxShape.circle,
                       ),
                     ),
                     const SizedBox(width: 8),
                     Text(
                       selectedDateLabel,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 11.5,
                         fontWeight: FontWeight.w500,
-                        color: Color(0xFFD1D5DB),
+                        color: headingCol,
                       ),
                     ),
                   ],
@@ -495,19 +515,19 @@ class CaloriesBurnedChartCard extends StatelessWidget {
                   children: [
                     Text(
                       selectedValLabel,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w700,
-                        color: Color(0xFFF59E0B),
+                        color: amber,
                       ),
                     ),
                     if (deltaLabel.isNotEmpty)
                       Text(
                         deltaLabel,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 10,
                           fontWeight: FontWeight.w400,
-                          color: Color(0xFFA1A1AA),
+                          color: subCol,
                         ),
                       ),
                   ],

@@ -131,37 +131,40 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     if (_isLoggingOut) return;
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: SamanHomeTokens.cardSurface,
-        title: Text(
-          context.tr('logout_confirm_title'),
-          style: const TextStyle(
-            color: SamanHomeTokens.textWhite,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        content: Text(
-          context.tr('logout_confirm_msg'),
-          style: const TextStyle(color: SamanHomeTokens.textSecondary),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: Text(
-              context.tr('cancel'),
-              style: const TextStyle(color: SamanHomeTokens.textSecondary),
+      builder: (context) {
+        final tokens = SamanHomeTokens.of(context);
+        return AlertDialog(
+          backgroundColor: tokens.cardSurface,
+          title: Text(
+            context.tr('logout_confirm_title'),
+            style: TextStyle(
+              color: tokens.textWhite,
+              fontWeight: FontWeight.bold,
             ),
           ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(context, true),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: SamanHomeTokens.actionButtonSurface,
-              foregroundColor: SamanHomeTokens.textWhite,
-            ),
-            child: Text(context.tr('logout')),
+          content: Text(
+            context.tr('logout_confirm_msg'),
+            style: TextStyle(color: tokens.textSecondary),
           ),
-        ],
-      ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: Text(
+                context.tr('cancel'),
+                style: TextStyle(color: tokens.textSecondary),
+              ),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.pop(context, true),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: tokens.actionButtonSurface,
+                foregroundColor: tokens.textWhite,
+              ),
+              child: Text(context.tr('logout')),
+            ),
+          ],
+        );
+      },
     );
 
     if (confirmed == true && mounted) {
@@ -202,7 +205,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               type: FeedbackType.error,
               action: SnackBarAction(
                 label: 'Thử lại',
-                textColor: const Color(0xFF10B981),
+                textColor: SamanHomeTokens.of(context).isDark
+                    ? const Color(0xFF10B981)
+                    : SamanHomeTokens.of(context).greenAccent,
                 onPressed: _logout,
               ),
             );
@@ -225,62 +230,68 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   }
 
   void _handleSettingsTap() {
+    final tokens = SamanHomeTokens.of(context);
     showModalBottomSheet<void>(
       context: context,
-      backgroundColor: SamanHomeTokens.cardSurface,
+      backgroundColor: tokens.cardSurface,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      builder: (ctx) => SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 16),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              ListTile(
-                leading: const Icon(
-                  Icons.person_outline_rounded,
-                  color: SamanHomeTokens.textWhite,
+      builder: (ctx) {
+        final sheetTokens = SamanHomeTokens.of(ctx);
+        final logoutColor =
+            sheetTokens.isDark ? Colors.redAccent : const Color(0xFFDC2626);
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                ListTile(
+                  leading: Icon(
+                    Icons.person_outline_rounded,
+                    color: sheetTokens.textWhite,
+                  ),
+                  title: Text(
+                    context.tr('profile_health_details'),
+                    style: TextStyle(color: sheetTokens.textWhite),
+                  ),
+                  trailing: Icon(
+                    Icons.chevron_right,
+                    color: sheetTokens.textSecondary,
+                  ),
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    if (widget.onOpenProfile != null) {
+                      widget.onOpenProfile!();
+                    } else {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const ProfileScreen()),
+                      );
+                    }
+                  },
                 ),
-                title: Text(
-                  context.tr('profile_health_details'),
-                  style: const TextStyle(color: SamanHomeTokens.textWhite),
+                Divider(color: sheetTokens.borderSubtle),
+                ListTile(
+                  leading: Icon(
+                    Icons.logout_rounded,
+                    color: logoutColor,
+                  ),
+                  title: Text(
+                    context.tr('logout'),
+                    style: TextStyle(color: logoutColor),
+                  ),
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    _logout();
+                  },
                 ),
-                trailing: const Icon(
-                  Icons.chevron_right,
-                  color: SamanHomeTokens.textSecondary,
-                ),
-                onTap: () {
-                  Navigator.pop(ctx);
-                  if (widget.onOpenProfile != null) {
-                    widget.onOpenProfile!();
-                  } else {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (_) => const ProfileScreen()),
-                    );
-                  }
-                },
-              ),
-              const Divider(color: SamanHomeTokens.borderSubtle),
-              ListTile(
-                leading: const Icon(
-                  Icons.logout_rounded,
-                  color: Colors.redAccent,
-                ),
-                title: Text(
-                  context.tr('logout'),
-                  style: const TextStyle(color: Colors.redAccent),
-                ),
-                onTap: () {
-                  Navigator.pop(ctx);
-                  _logout();
-                },
-              ),
-            ],
+              ],
+            ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 
@@ -338,7 +349,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           type: FeedbackType.error,
           action: SnackBarAction(
             label: 'Retry',
-            textColor: const Color(0xFF10B981),
+            textColor: SamanHomeTokens.of(context).isDark
+                ? const Color(0xFF10B981)
+                : SamanHomeTokens.of(context).greenAccent,
             onPressed: () => _handleAddWater(
               retryKey: _pendingWaterRetryKey,
               retryDate: _pendingWaterRetryDate,
@@ -537,17 +550,19 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     : null))
             : chatState.dailyNudge;
 
+    final tokens = SamanHomeTokens.of(context);
+
     return Scaffold(
-      backgroundColor: SamanHomeTokens.canvas,
+      backgroundColor: tokens.canvas,
       body: _isLoading
-          ? const Center(
+          ? Center(
               child: CircularProgressIndicator(
-                color: SamanHomeTokens.greenAccent,
+                color: tokens.greenAccent,
               ),
             )
           : RefreshIndicator(
-              color: SamanHomeTokens.greenAccent,
-              backgroundColor: SamanHomeTokens.cardSurface,
+              color: tokens.greenAccent,
+              backgroundColor: tokens.cardSurface,
               onRefresh: _onRefresh,
               child: Stack(
                 children: [
@@ -559,16 +574,22 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     height: 440,
                     child: IgnorePointer(
                       child: Container(
-                        decoration: const BoxDecoration(
+                        decoration: BoxDecoration(
                           gradient: RadialGradient(
-                            center: Alignment(0.0, -0.6),
+                            center: const Alignment(0.0, -0.6),
                             radius: 1.0,
-                            colors: [
-                              Color(0x3320362D),
-                              Color(0x1420362D),
-                              Colors.transparent,
-                            ],
-                            stops: [0.0, 0.45, 1.0],
+                            colors: tokens.isDark
+                                ? const [
+                                    Color(0x3320362D),
+                                    Color(0x1420362D),
+                                    Colors.transparent,
+                                  ]
+                                : [
+                                    tokens.greenAccent.withOpacity(0.06),
+                                    tokens.greenAccent.withOpacity(0.02),
+                                    Colors.transparent,
+                                  ],
+                            stops: const [0.0, 0.45, 1.0],
                           ),
                         ),
                       ),

@@ -197,10 +197,11 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       },
     );
 
+    final t = SamanChatTokens.of(context);
     return Scaffold(
       key: _scaffoldKey,
-      backgroundColor: SamanAuroraTokens.baseBackground,
-      drawerScrimColor: SamanChatTokens.drawerScrim,
+      backgroundColor: t.isDark ? SamanAuroraTokens.baseBackground : t.canvas,
+      drawerScrimColor: t.drawerScrim,
       drawer: isDesktop ? null : sidebarWidget,
       appBar: SamanChatHeader(
         showLeadingMenu: !isDesktop,
@@ -293,41 +294,43 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                                 child: InkWell(
                                   onTap: _scrollToNewest,
                                   borderRadius: BorderRadius.circular(20.0),
-                                  hoverColor: SamanChatTokens.actionRowHoverBg,
-                                  focusColor: SamanChatTokens.actionRowFocusBg,
-                                  highlightColor: SamanChatTokens.actionRowPressedBg,
+                                  hoverColor: t.actionRowHoverBg,
+                                  focusColor: t.actionRowFocusBg,
+                                  highlightColor: t.actionRowPressedBg,
                                   child: Container(
                                     padding: const EdgeInsets.symmetric(horizontal: 11.0, vertical: 7.0),
                                     decoration: BoxDecoration(
-                                      color: SamanChatTokens.surfaceElevated,
+                                      color: t.surfaceElevated,
                                       borderRadius: BorderRadius.circular(20.0),
                                       border: Border.all(
-                                        color: SamanChatTokens.borderSubtle,
+                                        color: t.borderSubtle,
                                         width: 1.0,
                                       ),
-                                      boxShadow: const [
+                                      boxShadow: [
                                         BoxShadow(
-                                          color: Color(0x4D000000),
+                                          color: t.isDark
+                                              ? const Color(0x4D000000)
+                                              : const Color(0x140F172A),
                                           blurRadius: 8.0,
-                                          offset: Offset(0, 2),
+                                          offset: const Offset(0, 2),
                                         ),
                                       ],
                                     ),
                                     child: Row(
                                       mainAxisSize: MainAxisSize.min,
                                       children: [
-                                        const Icon(
+                                        Icon(
                                           Icons.arrow_downward_rounded,
                                           size: 14.0,
-                                          color: SamanChatTokens.textWhite,
+                                          color: t.textWhite,
                                         ),
                                         const SizedBox(width: 4.0),
                                         Text(
                                           context.tr('newest_label'),
-                                          style: const TextStyle(
+                                          style: TextStyle(
                                             fontSize: 12.0,
                                             fontWeight: FontWeight.w600,
-                                            color: SamanChatTokens.textWhite,
+                                            color: t.textWhite,
                                           ),
                                         ),
                                       ],
@@ -757,24 +760,25 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     showDialog<bool>(
       context: context,
       builder: (dialogCtx) {
+        final t = SamanChatTokens.of(dialogCtx);
         return AlertDialog(
-          backgroundColor: SamanChatTokens.surface,
+          backgroundColor: t.surface,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
-            side: const BorderSide(color: SamanChatTokens.borderSubtle),
+            side: BorderSide(color: t.borderSubtle),
           ),
           title: Text(
             context.tr('ongoing_workout_title'),
-            style: const TextStyle(
-              color: SamanChatTokens.textWhite,
+            style: TextStyle(
+              color: t.textWhite,
               fontSize: 18,
               fontWeight: FontWeight.bold,
             ),
           ),
           content: Text(
             context.tr('ongoing_workout_content'),
-            style: const TextStyle(
-              color: SamanChatTokens.textSecondary,
+            style: TextStyle(
+              color: t.textSecondary,
               fontSize: 14,
             ),
           ),
@@ -783,13 +787,13 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
               onPressed: () => Navigator.of(dialogCtx).pop(false),
               child: Text(
                 context.tr('cancel_action'),
-                style: const TextStyle(color: SamanChatTokens.textSecondary),
+                style: TextStyle(color: t.textSecondary),
               ),
             ),
             ElevatedButton(
               style: ElevatedButton.styleFrom(
-                backgroundColor: SamanChatTokens.greenAccent,
-                foregroundColor: Colors.black,
+                backgroundColor: t.greenAccent,
+                foregroundColor: t.isDark ? Colors.black : Colors.white,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(8),
                 ),
@@ -825,13 +829,15 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   }
 
   void _showWorkoutPreviewModal(List<Exercise> exercises) {
+    final t = SamanChatTokens.of(context);
     showModalBottomSheet(
       context: context,
-      backgroundColor: SamanChatTokens.surface,
+      backgroundColor: t.surface,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       builder: (modalContext) {
+        final mt = SamanChatTokens.of(modalContext);
         return SafeArea(
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
@@ -844,7 +850,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                     width: 40,
                     height: 4,
                     decoration: BoxDecoration(
-                      color: SamanChatTokens.borderSubtle,
+                      color: mt.borderSubtle,
                       borderRadius: BorderRadius.circular(2),
                     ),
                   ),
@@ -852,19 +858,19 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                 const SizedBox(height: 16),
                 Row(
                   children: [
-                    const Icon(
+                    Icon(
                       Icons.fitness_center_rounded,
-                      color: SamanChatTokens.greenAccent,
+                      color: mt.greenAccent,
                       size: 22,
                     ),
                     const SizedBox(width: 10),
                     Expanded(
                       child: Text(
                         context.tr('preview_workout_title_format').replaceAll('{count}', '${exercises.length}'),
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
-                          color: SamanChatTokens.textWhite,
+                          color: mt.textWhite,
                         ),
                       ),
                     ),
@@ -873,9 +879,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                 const SizedBox(height: 8),
                 Text(
                   context.tr('preview_workout_description'),
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 13,
-                    color: SamanChatTokens.textSecondary,
+                    color: mt.textSecondary,
                   ),
                 ),
                 const SizedBox(height: 16),
@@ -883,8 +889,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                   child: ListView.separated(
                     shrinkWrap: true,
                     itemCount: exercises.length,
-                    separatorBuilder: (_, __) => const Divider(
-                      color: SamanChatTokens.borderSubtle,
+                    separatorBuilder: (_, __) => Divider(
+                      color: mt.borderSubtle,
                       height: 12,
                     ),
                     itemBuilder: (ctx, index) {
@@ -895,11 +901,11 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                         contentPadding: EdgeInsets.zero,
                         leading: CircleAvatar(
                           radius: 14,
-                          backgroundColor: SamanChatTokens.greenAccent.withOpacity(0.15),
+                          backgroundColor: mt.greenAccent.withOpacity(0.15),
                           child: Text(
                             '${index + 1}',
-                            style: const TextStyle(
-                              color: SamanChatTokens.greenAccent,
+                            style: TextStyle(
+                              color: mt.greenAccent,
                               fontSize: 12,
                               fontWeight: FontWeight.bold,
                             ),
@@ -907,16 +913,16 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                         ),
                         title: Text(
                           name,
-                          style: const TextStyle(
-                            color: SamanChatTokens.textWhite,
+                          style: TextStyle(
+                            color: mt.textWhite,
                             fontWeight: FontWeight.w600,
                             fontSize: 14,
                           ),
                         ),
                         subtitle: Text(
                           '${ex.muscleGroup} • ${ex.defaultSets} ${context.tr('unit_sets')} × ${ex.defaultReps}',
-                          style: const TextStyle(
-                            color: SamanChatTokens.textSecondary,
+                          style: TextStyle(
+                            color: mt.textSecondary,
                             fontSize: 12,
                           ),
                         ),
@@ -930,8 +936,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                   height: 48,
                   child: ElevatedButton(
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: SamanChatTokens.greenAccent,
-                      foregroundColor: Colors.black,
+                      backgroundColor: mt.greenAccent,
+                      foregroundColor: mt.isDark ? Colors.black : Colors.white,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
@@ -996,9 +1002,10 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     required AIMode activeMode,
   }) {
     final isBusy = isLoading || isAnalyzingFood;
+    final t = SamanChatTokens.of(context);
 
     return Container(
-      color: SamanAuroraTokens.baseBackground,
+      color: t.isDark ? SamanAuroraTokens.baseBackground : t.canvas,
       padding: const EdgeInsets.fromLTRB(16.0, 4.0, 16.0, 12.0),
       child: SafeArea(
         top: false,
@@ -1088,28 +1095,31 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     if (currentDraft.isNotEmpty && currentDraft != failedText) {
       final confirmed = await showDialog<bool>(
         context: context,
-        builder: (dialogCtx) => AlertDialog(
-          backgroundColor: SamanChatTokens.surface,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16.0)),
-          title: Text(
-            context.tr('replace_draft_title'),
-            style: const TextStyle(color: SamanChatTokens.textWhite, fontSize: 16.0, fontWeight: FontWeight.w600),
-          ),
-          content: Text(
-            context.tr('replace_draft_content'),
-            style: const TextStyle(color: SamanChatTokens.textSecondary, fontSize: 14.0),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(dialogCtx).pop(false),
-              child: Text(context.tr('keep_draft_btn'), style: const TextStyle(color: SamanChatTokens.textMuted)),
+        builder: (dialogCtx) {
+          final dt = SamanChatTokens.of(dialogCtx);
+          return AlertDialog(
+            backgroundColor: dt.surface,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16.0)),
+            title: Text(
+              context.tr('replace_draft_title'),
+              style: TextStyle(color: dt.textWhite, fontSize: 16.0, fontWeight: FontWeight.w600),
             ),
-            TextButton(
-              onPressed: () => Navigator.of(dialogCtx).pop(true),
-              child: Text(context.tr('replace_btn'), style: const TextStyle(color: SamanChatTokens.greenAccent)),
+            content: Text(
+              context.tr('replace_draft_content'),
+              style: TextStyle(color: dt.textSecondary, fontSize: 14.0),
             ),
-          ],
-        ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(dialogCtx).pop(false),
+                child: Text(context.tr('keep_draft_btn'), style: TextStyle(color: dt.textMuted)),
+              ),
+              TextButton(
+                onPressed: () => Navigator.of(dialogCtx).pop(true),
+                child: Text(context.tr('replace_btn'), style: TextStyle(color: dt.greenAccent)),
+              ),
+            ],
+          );
+        },
       );
       if (confirmed != true) return;
     }

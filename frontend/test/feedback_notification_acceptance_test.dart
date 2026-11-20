@@ -125,7 +125,7 @@ void main() {
       );
     });
 
-    testWidgets('2. Ca mẫu Strict PT in Light Mode: #F2F3F5 background, #DADCE0 border, green check icon', (tester) async {
+    testWidgets('2. Ca mẫu Strict PT in Light Mode: #FFFFFF background, #E2E8F0 border, green check icon', (tester) async {
       tester.view.physicalSize = const Size(400, 700);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(() => tester.view.resetPhysicalSize());
@@ -155,10 +155,10 @@ void main() {
       expect(find.byIcon(Icons.check_circle_rounded), findsOneWidget);
 
       final snackBar = tester.widget<SnackBar>(find.byType(SnackBar));
-      expect(snackBar.backgroundColor, equals(const Color(0xFFF2F3F5)));
+      expect(snackBar.backgroundColor, equals(const Color(0xFFFFFFFF)));
 
       final shape = snackBar.shape as RoundedRectangleBorder;
-      expect(shape.side.color, equals(const Color(0xFFDADCE0)));
+      expect(shape.side.color, equals(const Color(0xFFE2E8F0)));
 
       await _captureScreenPng(
         tester,

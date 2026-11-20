@@ -7,6 +7,7 @@ class ComparisonMatrixTable extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = MembershipTokens.of(context);
     final featuresByGroup = <FeatureGroup, List<MatrixFeature>>{};
     for (final feature in MembershipCatalog.matrixFeatures) {
       featuresByGroup.putIfAbsent(feature.group, () => []).add(feature);
@@ -27,10 +28,10 @@ class ComparisonMatrixTable extends StatelessWidget {
             children: [
               Text(
                 'FEATURE MATRIX',
-                style: MembershipTokens.mono(
+                style: t.mono(
                   fontSize: 11,
                   fontWeight: FontWeight.w600,
-                  color: MembershipTokens.textMuted,
+                  color: t.textMuted,
                   letterSpacing: 0.5,
                 ),
               ),
@@ -40,10 +41,10 @@ class ComparisonMatrixTable extends StatelessWidget {
                   vertical: 4,
                 ),
                 decoration: BoxDecoration(
-                  color: MembershipTokens.accentBg,
+                  color: t.accentBg,
                   borderRadius: BorderRadius.circular(4),
                   border: Border.all(
-                    color: MembershipTokens.accentBorder,
+                    color: t.accentBorder,
                     width: 1.0,
                   ),
                 ),
@@ -53,18 +54,18 @@ class ComparisonMatrixTable extends StatelessWidget {
                     Container(
                       width: 6,
                       height: 6,
-                      decoration: const BoxDecoration(
-                        color: MembershipTokens.accent,
+                      decoration: BoxDecoration(
+                        color: t.accent,
                         shape: BoxShape.circle,
                       ),
                     ),
                     const SizedBox(width: 5),
                     Text(
                       'Recommended: Pro',
-                      style: MembershipTokens.mono(
+                      style: t.mono(
                         fontSize: 11,
                         fontWeight: FontWeight.w500,
-                        color: MembershipTokens.accent,
+                        color: t.accent,
                       ),
                     ),
                   ],
@@ -78,10 +79,10 @@ class ComparisonMatrixTable extends StatelessWidget {
         // Main Matrix Card
         Container(
           decoration: BoxDecoration(
-            color: MembershipTokens.card,
+            color: t.card,
             borderRadius: BorderRadius.circular(MembershipTokens.cardRadius),
             border: Border.all(
-              color: MembershipTokens.border,
+              color: t.border,
               width: 1.0,
             ),
           ),
@@ -95,11 +96,11 @@ class ComparisonMatrixTable extends StatelessWidget {
                   horizontal: 12.0,
                   vertical: 10.0,
                 ),
-                decoration: const BoxDecoration(
-                  color: MembershipTokens.card,
+                decoration: BoxDecoration(
+                  color: t.card,
                   border: Border(
                     bottom: BorderSide(
-                      color: MembershipTokens.border,
+                      color: t.border,
                       width: 1.0,
                     ),
                   ),
@@ -110,10 +111,10 @@ class ComparisonMatrixTable extends StatelessWidget {
                       width: 118,
                       child: Text(
                         'Feature',
-                        style: MembershipTokens.mono(
+                        style: t.mono(
                           fontSize: 11,
                           fontWeight: FontWeight.w600,
-                          color: MembershipTokens.textMuted,
+                          color: t.textMuted,
                           letterSpacing: 0.5,
                         ),
                       ),
@@ -121,10 +122,10 @@ class ComparisonMatrixTable extends StatelessWidget {
                     Expanded(
                       child: Row(
                         children: [
-                          _buildTierHeader('Free', isRecommended: false),
-                          _buildTierHeader('Plus', isRecommended: false),
-                          _buildTierHeader('Pro', isRecommended: true),
-                          _buildTierHeader('Ultra', isRecommended: false),
+                          _buildTierHeader(t, 'Free', isRecommended: false),
+                          _buildTierHeader(t, 'Plus', isRecommended: false),
+                          _buildTierHeader(t, 'Pro', isRecommended: true),
+                          _buildTierHeader(t, 'Ultra', isRecommended: false),
                         ],
                       ),
                     ),
@@ -141,24 +142,24 @@ class ComparisonMatrixTable extends StatelessWidget {
                     vertical: 6.0,
                   ),
                   decoration: BoxDecoration(
-                    color: MembershipTokens.surfaceHigh.withOpacity(0.5),
-                    border: const Border(
+                    color: t.surfaceHigh.withOpacity(t.isDark ? 0.5 : 0.9),
+                    border: Border(
                       top: BorderSide(
-                        color: MembershipTokens.border,
+                        color: t.border,
                         width: 1.0,
                       ),
                       bottom: BorderSide(
-                        color: MembershipTokens.border,
+                        color: t.border,
                         width: 1.0,
                       ),
                     ),
                   ),
                   child: Text(
                     group.title,
-                    style: MembershipTokens.mono(
+                    style: t.mono(
                       fontSize: 10,
                       fontWeight: FontWeight.w600,
-                      color: MembershipTokens.textMuted,
+                      color: t.textMuted,
                       letterSpacing: 0.5,
                     ),
                   ),
@@ -167,7 +168,7 @@ class ComparisonMatrixTable extends StatelessWidget {
                 // Feature rows in group
                 if (featuresByGroup[group] != null)
                   for (final feature in featuresByGroup[group]!)
-                    _buildFeatureRow(feature),
+                    _buildFeatureRow(t, feature),
               ],
             ],
           ),
@@ -179,10 +180,10 @@ class ComparisonMatrixTable extends StatelessWidget {
         Container(
           padding: const EdgeInsets.all(12.0),
           decoration: BoxDecoration(
-            color: MembershipTokens.card,
+            color: t.card,
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
-              color: MembershipTokens.border,
+              color: t.border,
               width: 1.0,
             ),
           ),
@@ -191,28 +192,28 @@ class ComparisonMatrixTable extends StatelessWidget {
             children: [
               Text(
                 '• AI and Workout CV limits will be announced.',
-                style: MembershipTokens.body(
+                style: t.body(
                   fontSize: 12,
                   fontWeight: FontWeight.w400,
-                  color: MembershipTokens.textMuted,
+                  color: t.textMuted,
                 ),
               ),
               const SizedBox(height: 4),
               Text(
                 "• Ultra's planned AI allowance is 5× Pro.",
-                style: MembershipTokens.body(
+                style: t.body(
                   fontSize: 12,
                   fontWeight: FontWeight.w400,
-                  color: MembershipTokens.textMuted,
+                  color: t.textMuted,
                 ),
               ),
               const SizedBox(height: 4),
               Text(
                 'Note: Workout CV uses a separate allowance model.',
-                style: MembershipTokens.body(
+                style: t.body(
                   fontSize: 11,
                   fontWeight: FontWeight.w400,
-                  color: MembershipTokens.textMuted.withOpacity(0.8),
+                  color: t.textMuted.withOpacity(0.8),
                 ),
               ),
             ],
@@ -222,19 +223,21 @@ class ComparisonMatrixTable extends StatelessWidget {
     );
   }
 
-  Widget _buildTierHeader(String name, {required bool isRecommended}) {
+  Widget _buildTierHeader(
+    MembershipPalette t,
+    String name, {
+    required bool isRecommended,
+  }) {
     return Expanded(
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           Text(
             name,
-            style: MembershipTokens.headline(
+            style: t.headline(
               fontSize: 13,
               fontWeight: FontWeight.w600,
-              color: isRecommended
-                  ? MembershipTokens.accent
-                  : MembershipTokens.textMuted,
+              color: isRecommended ? t.accent : t.textMuted,
             ),
             textAlign: TextAlign.center,
           ),
@@ -244,7 +247,7 @@ class ComparisonMatrixTable extends StatelessWidget {
               height: 2,
               width: 16,
               decoration: BoxDecoration(
-                color: MembershipTokens.accent,
+                color: t.accent,
                 borderRadius: BorderRadius.circular(1),
               ),
             ),
@@ -254,12 +257,12 @@ class ComparisonMatrixTable extends StatelessWidget {
     );
   }
 
-  Widget _buildFeatureRow(MatrixFeature feature) {
+  Widget _buildFeatureRow(MembershipPalette t, MatrixFeature feature) {
     return Container(
       decoration: BoxDecoration(
         border: Border(
           bottom: BorderSide(
-            color: MembershipTokens.border.withOpacity(0.6),
+            color: t.border.withOpacity(0.6),
             width: 1.0,
           ),
         ),
@@ -278,10 +281,10 @@ class ComparisonMatrixTable extends StatelessWidget {
               padding: const EdgeInsets.only(right: 8.0),
               child: Text(
                 feature.title,
-                style: MembershipTokens.body(
+                style: t.body(
                   fontSize: 14,
                   fontWeight: FontWeight.w400,
-                  color: MembershipTokens.textPrimary,
+                  color: t.textPrimary,
                   height: 1.25,
                 ),
               ),
@@ -292,18 +295,22 @@ class ComparisonMatrixTable extends StatelessWidget {
             child: Row(
               children: [
                 _buildCell(
+                  t,
                   feature.statusFor(MembershipTier.free),
                   isPro: false,
                 ),
                 _buildCell(
+                  t,
                   feature.statusFor(MembershipTier.plus),
                   isPro: false,
                 ),
                 _buildCell(
+                  t,
                   feature.statusFor(MembershipTier.pro),
                   isPro: true,
                 ),
                 _buildCell(
+                  t,
                   feature.statusFor(MembershipTier.ultra),
                   isPro: false,
                 ),
@@ -315,30 +322,34 @@ class ComparisonMatrixTable extends StatelessWidget {
     );
   }
 
-  Widget _buildCell(InclusionStatus status, {required bool isPro}) {
+  Widget _buildCell(
+    MembershipPalette t,
+    InclusionStatus status, {
+    required bool isPro,
+  }) {
     Widget iconWidget;
     switch (status) {
       case InclusionStatus.included:
         iconWidget = Icon(
           Icons.check,
           size: 17,
-          color: isPro ? MembershipTokens.accent : MembershipTokens.textPrimary,
+          color: isPro ? t.accent : t.textPrimary,
         );
         break;
       case InclusionStatus.planned:
-        iconWidget = const Icon(
+        iconWidget = Icon(
           Icons.schedule,
           size: 17,
-          color: MembershipTokens.accent,
+          color: t.accent,
         );
         break;
       case InclusionStatus.notIncluded:
         iconWidget = Text(
           '—',
-          style: MembershipTokens.mono(
+          style: t.mono(
             fontSize: 14,
             fontWeight: FontWeight.bold,
-            color: MembershipTokens.textMuted,
+            color: t.textMuted,
           ),
           textAlign: TextAlign.center,
         );
