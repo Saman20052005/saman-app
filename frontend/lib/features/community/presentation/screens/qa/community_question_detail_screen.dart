@@ -56,51 +56,52 @@ class _CommunityQuestionDetailScreenState
         ? (ref.watch(useRemoteCommunityProvider) ? state.question : widget.initialPost ?? state.question)
         : null;
 
+    final tokens = SamanHomeTokens.of(context);
     return Scaffold(
-      backgroundColor: const Color(0xFF121314),
+      backgroundColor: tokens.canvas,
       body: SafeArea(
         child: Column(
           children: [
-            _buildAppBar(context),
+            _buildAppBar(context, tokens),
             Expanded(
               child: SingleChildScrollView(
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    if (post != null) _buildQuestionCard(post),
+                    if (post != null) _buildQuestionCard(post, tokens),
                     const SizedBox(height: 20),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const Expanded(
+                        Expanded(
                           child: Text(
                             'Câu trả lời từ cộng đồng',
                             overflow: TextOverflow.ellipsis,
                             style: TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.w700,
-                              color: SamanHomeTokens.textWhite,
+                              color: tokens.textPrimary,
                             ),
                           ),
                         ),
                         const SizedBox(width: 8),
                         Text(
                           '${state.answerCount} câu trả lời',
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 12,
-                            color: Color(0xFFBBCAAF),
+                            color: tokens.textSecondary,
                           ),
                         ),
                       ],
                     ),
                     const SizedBox(height: 12),
                     if (state.isLoading)
-                      const Center(
+                      Center(
                         child: Padding(
-                          padding: EdgeInsets.all(24),
+                          padding: const EdgeInsets.all(24),
                           child: CircularProgressIndicator(
-                            color: SamanHomeTokens.greenAccent,
+                            color: tokens.greenAccent,
                           ),
                         ),
                       )
@@ -113,8 +114,10 @@ class _CommunityQuestionDetailScreenState
                             children: [
                               Text(
                                 context.tr(state.errorMessage!),
-                                style: const TextStyle(
-                                  color: Color(0xFFEF4444),
+                                style: TextStyle(
+                                  color: tokens.isDark
+                                      ? const Color(0xFFEF4444)
+                                      : const Color(0xFFDC2626),
                                   fontSize: 13,
                                 ),
                               ),
@@ -122,8 +125,10 @@ class _CommunityQuestionDetailScreenState
                               ElevatedButton(
                                 onPressed: () => notifier.refresh(),
                                 style: ElevatedButton.styleFrom(
-                                  backgroundColor: SamanHomeTokens.greenAccent,
-                                  foregroundColor: const Color(0xFF003824),
+                                  backgroundColor: tokens.greenAccent,
+                                  foregroundColor: tokens.isDark
+                                      ? const Color(0xFF003824)
+                                      : const Color(0xFFFFFFFF),
                                 ),
                                 child: const Text('Thử lại'),
                               ),
@@ -132,9 +137,9 @@ class _CommunityQuestionDetailScreenState
                         ),
                       )
                     else if (state.answers.isEmpty)
-                      _buildNoAnswersCard()
+                      _buildNoAnswersCard(tokens)
                     else
-                      ...state.answers.map((ans) => _buildAnswerCard(ans, notifier)),
+                      ...state.answers.map((ans) => _buildAnswerCard(ans, notifier, tokens)),
                     if (state.cursor != null && state.accessible)
                       TextButton(onPressed: state.isLoading ? null : () => notifier.loadAnswers(more: true),
                           child: Text(context.tr('community_answers_more'))),
@@ -152,38 +157,38 @@ class _CommunityQuestionDetailScreenState
     );
   }
 
-  Widget _buildAppBar(BuildContext context) {
+  Widget _buildAppBar(BuildContext context, SamanHomePalette tokens) {
     return Container(
       height: 52,
       padding: const EdgeInsets.symmetric(horizontal: 16),
-      decoration: const BoxDecoration(
-        color: Color(0xFF121314),
-        border: Border(bottom: BorderSide(color: Color(0xFF1F2021), width: 1)),
+      decoration: BoxDecoration(
+        color: tokens.canvas,
+        border: Border(bottom: BorderSide(color: tokens.border, width: 1)),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           IconButton(
             onPressed: () => Navigator.pop(context),
-            icon: const Icon(
+            icon: Icon(
               Icons.arrow_back_rounded,
-              color: SamanHomeTokens.textWhite,
+              color: tokens.textPrimary,
               size: 22,
             ),
           ),
-          const Text(
+          Text(
             'Chi tiết câu hỏi',
             style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w700,
-              color: SamanHomeTokens.textWhite,
+              color: tokens.textPrimary,
             ),
           ),
           IconButton(
             onPressed: () {},
-            icon: const Icon(
+            icon: Icon(
               Icons.share_outlined,
-              color: SamanHomeTokens.textWhite,
+              color: tokens.textPrimary,
               size: 20,
             ),
           ),
@@ -192,15 +197,15 @@ class _CommunityQuestionDetailScreenState
     );
   }
 
-  Widget _buildQuestionCard(CommunityPost post) {
+  Widget _buildQuestionCard(CommunityPost post, SamanHomePalette tokens) {
     final qa = post.qaInfo;
 
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFF1E1F21),
+        color: tokens.cardSurface,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFF292A2B)),
+        border: Border.all(color: tokens.border),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -210,17 +215,17 @@ class _CommunityQuestionDetailScreenState
               Container(
                 width: 38,
                 height: 38,
-                decoration: const BoxDecoration(
+                decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: Color(0xFF292A2B),
+                  color: tokens.secondarySurface,
                 ),
                 child: Center(
                   child: Text(
                     post.author.name.isNotEmpty ? post.author.name[0] : 'S',
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 15,
                       fontWeight: FontWeight.w700,
-                      color: SamanHomeTokens.greenAccent,
+                      color: tokens.greenAccent,
                     ),
                   ),
                 ),
@@ -232,17 +237,17 @@ class _CommunityQuestionDetailScreenState
                   children: [
                     Text(
                       post.author.name,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.w600,
-                        color: SamanHomeTokens.textWhite,
+                        color: tokens.textPrimary,
                       ),
                     ),
                     Text(
                       post.timeAgo,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 11,
-                        color: Color(0xFF71767B),
+                        color: tokens.textMuted,
                       ),
                     ),
                   ],
@@ -253,18 +258,18 @@ class _CommunityQuestionDetailScreenState
                   padding:
                       const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                   decoration: BoxDecoration(
-                    color: SamanHomeTokens.greenAccent.withOpacity(0.12),
+                    color: tokens.greenAccent.withOpacity(0.12),
                     borderRadius: BorderRadius.circular(6),
                     border: Border.all(
-                      color: SamanHomeTokens.greenAccent.withOpacity(0.3),
+                      color: tokens.greenAccent.withOpacity(0.3),
                     ),
                   ),
                   child: Text(
                     qa!.categoryTag,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 10,
                       fontWeight: FontWeight.w700,
-                      color: SamanHomeTokens.greenAccent,
+                      color: tokens.greenAccent,
                     ),
                   ),
                 ),
@@ -273,10 +278,10 @@ class _CommunityQuestionDetailScreenState
           const SizedBox(height: 12),
           Text(
             qa?.question ?? post.caption,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w700,
-              color: SamanHomeTokens.textWhite,
+              color: tokens.textPrimary,
               height: 1.35,
             ),
           ),
@@ -284,9 +289,9 @@ class _CommunityQuestionDetailScreenState
             const SizedBox(height: 8),
             Text(
               qa.details!,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 13,
-                color: Color(0xFFBBCAAF),
+                color: tokens.textSecondary,
                 height: 1.45,
               ),
             ),
@@ -296,30 +301,30 @@ class _CommunityQuestionDetailScreenState
     );
   }
 
-  Widget _buildNoAnswersCard() {
+  Widget _buildNoAnswersCard(SamanHomePalette tokens) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: const Color(0xFF1E1F21),
+        color: tokens.cardSurface,
         borderRadius: BorderRadius.circular(14),
       ),
-      child: const Column(
+      child: Column(
         children: [
-          Icon(Icons.forum_outlined, size: 36, color: Color(0xFFBBCAAF)),
-          SizedBox(height: 10),
+          Icon(Icons.forum_outlined, size: 36, color: tokens.textSecondary),
+          const SizedBox(height: 10),
           Text(
             'Chưa có câu trả lời nào',
             style: TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.w600,
-              color: SamanHomeTokens.textWhite,
+              color: tokens.textPrimary,
             ),
           ),
-          SizedBox(height: 4),
+          const SizedBox(height: 4),
           Text(
             'Hãy là người đầu tiên chia sẻ kinh nghiệm của bạn!',
-            style: TextStyle(fontSize: 12, color: Color(0xFF71767B)),
+            style: TextStyle(fontSize: 12, color: tokens.textMuted),
           ),
         ],
       ),
@@ -329,17 +334,18 @@ class _CommunityQuestionDetailScreenState
   Widget _buildAnswerCard(
     QuestionAnswer ans,
     CommunityQuestionDetailNotifier notifier,
+    SamanHomePalette tokens,
   ) {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: const Color(0xFF1E1F21),
+        color: tokens.cardSurface,
         borderRadius: BorderRadius.circular(14),
         border: Border.all(
           color: ans.isPinnedBest
-              ? SamanHomeTokens.greenAccent.withOpacity(0.4)
-              : const Color(0xFF292A2B),
+              ? tokens.greenAccent.withOpacity(0.4)
+              : tokens.border,
         ),
       ),
       child: Column(
@@ -350,24 +356,24 @@ class _CommunityQuestionDetailScreenState
               margin: const EdgeInsets.only(bottom: 8),
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
               decoration: BoxDecoration(
-                color: SamanHomeTokens.greenAccent.withOpacity(0.15),
+                color: tokens.greenAccent.withOpacity(0.15),
                 borderRadius: BorderRadius.circular(6),
               ),
-              child: const Row(
+              child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Icon(
                     Icons.star_rounded,
                     size: 13,
-                    color: SamanHomeTokens.greenAccent,
+                    color: tokens.greenAccent,
                   ),
-                  SizedBox(width: 4),
+                  const SizedBox(width: 4),
                   Text(
                     'Câu trả lời hữu ích nhất',
                     style: TextStyle(
                       fontSize: 10,
                       fontWeight: FontWeight.w700,
-                      color: SamanHomeTokens.greenAccent,
+                      color: tokens.greenAccent,
                     ),
                   ),
                 ],
@@ -379,17 +385,17 @@ class _CommunityQuestionDetailScreenState
               Container(
                 width: 32,
                 height: 32,
-                decoration: const BoxDecoration(
+                decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: Color(0xFF292A2B),
+                  color: tokens.secondarySurface,
                 ),
                 child: Center(
                   child: Text(
                     ans.author.name.isNotEmpty ? ans.author.name[0] : 'S',
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.w700,
-                      color: SamanHomeTokens.greenAccent,
+                      color: tokens.greenAccent,
                     ),
                   ),
                 ),
@@ -401,17 +407,17 @@ class _CommunityQuestionDetailScreenState
                   children: [
                     Text(
                       ans.author.name,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.w600,
-                        color: SamanHomeTokens.textWhite,
+                        color: tokens.textPrimary,
                       ),
                     ),
                     Text(
                       ans.timeAgo,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 11,
-                        color: Color(0xFF71767B),
+                        color: tokens.textMuted,
                       ),
                     ),
                   ],
@@ -426,12 +432,12 @@ class _CommunityQuestionDetailScreenState
                       const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
                     color: ans.isUpvoted
-                        ? SamanHomeTokens.greenAccent.withOpacity(0.15)
-                        : const Color(0xFF292A2B),
+                        ? tokens.greenAccent.withOpacity(0.15)
+                        : tokens.secondarySurface,
                     borderRadius: BorderRadius.circular(8),
                     border: Border.all(
                       color: ans.isUpvoted
-                          ? SamanHomeTokens.greenAccent
+                          ? tokens.greenAccent
                           : Colors.transparent,
                     ),
                   ),
@@ -441,8 +447,8 @@ class _CommunityQuestionDetailScreenState
                         Icons.thumb_up_alt_rounded,
                         size: 13,
                         color: ans.isUpvoted
-                            ? SamanHomeTokens.greenAccent
-                            : const Color(0xFFBBCAAF),
+                            ? tokens.greenAccent
+                            : tokens.textSecondary,
                       ),
                       const SizedBox(width: 4),
                       Text(
@@ -451,8 +457,8 @@ class _CommunityQuestionDetailScreenState
                           fontSize: 11,
                           fontWeight: FontWeight.w700,
                           color: ans.isUpvoted
-                              ? SamanHomeTokens.greenAccent
-                              : const Color(0xFFBBCAAF),
+                              ? tokens.greenAccent
+                              : tokens.textSecondary,
                         ),
                       ),
                     ],
@@ -464,9 +470,9 @@ class _CommunityQuestionDetailScreenState
           const SizedBox(height: 10),
           Text(
             ans.content,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 13,
-              color: SamanHomeTokens.textWhite,
+              color: tokens.textPrimary,
               height: 1.4,
             ),
           ),

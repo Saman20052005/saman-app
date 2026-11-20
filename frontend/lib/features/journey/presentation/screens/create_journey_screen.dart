@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../../screens/home/tokens/saman_home_tokens.dart';
 import '../../domain/models/journey_models.dart';
 import '../providers/journey_providers.dart';
 import '../../../../widgets/saman_feedback_snackbar.dart';
@@ -57,19 +58,29 @@ class _CreateJourneyScreenState extends ConsumerState<CreateJourneyScreen> {
   }
 
   Future<void> _selectReminderTime() async {
+    final tokens = SamanHomeTokens.of(context);
     final picked = await showTimePicker(
       context: context,
       initialTime: _reminderTime,
       builder: (context, child) {
         return Theme(
-          data: ThemeData.dark().copyWith(
-            colorScheme: const ColorScheme.dark(
-              primary: Color(0xFF10B981),
-              onPrimary: Color(0xFF0C0D0E),
-              surface: Color(0xFF16171B),
-              onSurface: Color(0xFFF3F4F6),
-            ),
-          ),
+          data: tokens.isDark
+              ? ThemeData.dark().copyWith(
+                  colorScheme: const ColorScheme.dark(
+                    primary: Color(0xFF10B981),
+                    onPrimary: Color(0xFF0C0D0E),
+                    surface: Color(0xFF16171B),
+                    onSurface: Color(0xFFF3F4F6),
+                  ),
+                )
+              : ThemeData.light().copyWith(
+                  colorScheme: const ColorScheme.light(
+                    primary: Color(0xFF059669),
+                    onPrimary: Colors.white,
+                    surface: Colors.white,
+                    onSurface: Color(0xFF0F172A),
+                  ),
+                ),
           child: child!,
         );
       },
@@ -115,10 +126,29 @@ class _CreateJourneyScreenState extends ConsumerState<CreateJourneyScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = SamanHomeTokens.of(context);
     final bottomInset = MediaQuery.paddingOf(context).bottom;
+    final scaffoldBg =
+        tokens.isDark ? const Color(0xFF0C0D0E) : tokens.canvas;
+    final cardBg =
+        tokens.isDark ? const Color(0xFF16171B) : tokens.cardSurface;
+    final borderColor =
+        tokens.isDark ? const Color(0xFF26282F) : tokens.border;
+    final textPrimary =
+        tokens.isDark ? const Color(0xFFF3F4F6) : tokens.textPrimary;
+    final textSecondary =
+        tokens.isDark ? const Color(0xFF94979E) : tokens.textSecondary;
+    final emerald =
+        tokens.isDark ? const Color(0xFF10B981) : tokens.greenAccent;
+    final trackInactive =
+        tokens.isDark ? const Color(0xFF212328) : tokens.progressTrack;
+    final ctaBg =
+        tokens.isDark ? const Color(0xFFF9FAFB) : const Color(0xFF059669);
+    final ctaFg =
+        tokens.isDark ? const Color(0xFF0C0D0E) : Colors.white;
 
     return Scaffold(
-      backgroundColor: const Color(0xFF0C0D0E),
+      backgroundColor: scaffoldBg,
       body: SafeArea(
         bottom: false,
         child: Column(
@@ -130,7 +160,7 @@ class _CreateJourneyScreenState extends ConsumerState<CreateJourneyScreen> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   IconButton(
-                    icon: const Icon(Icons.arrow_back, color: Color(0xFF94979E)),
+                    icon: Icon(Icons.arrow_back, color: textSecondary),
                     onPressed: () {
                       if (widget.onDismiss != null) {
                         widget.onDismiss!();
@@ -142,10 +172,10 @@ class _CreateJourneyScreenState extends ConsumerState<CreateJourneyScreen> {
                   if (widget.onDismiss != null)
                     TextButton(
                       onPressed: widget.onDismiss,
-                      child: const Text(
+                      child: Text(
                         'Để sau',
                         style: TextStyle(
-                          color: Color(0xFF94979E),
+                          color: textSecondary,
                           fontSize: 14,
                           fontWeight: FontWeight.w500,
                         ),
@@ -162,33 +192,33 @@ class _CreateJourneyScreenState extends ConsumerState<CreateJourneyScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
+                    Text(
                       'Tạo hành trình',
                       style: TextStyle(
                         fontFamily: 'Manrope',
                         fontSize: 28,
                         fontWeight: FontWeight.w600,
-                        color: Color(0xFFF3F4F6),
+                        color: textPrimary,
                         letterSpacing: -0.5,
                       ),
                     ),
                     const SizedBox(height: 4),
-                    const Text(
+                    Text(
                       'Thói quen nhỏ, thay đổi bền lâu.',
                       style: TextStyle(
                         fontSize: 14,
-                        color: Color(0xFF94979E),
+                        color: textSecondary,
                       ),
                     ),
                     const SizedBox(height: 28),
 
                     // SECTION 1: FOCUS SELECTION
-                    const Text(
+                    Text(
                       'Bạn muốn tập trung vào điều gì?',
                       style: TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.w500,
-                        color: Color(0xFFF3F4F6),
+                        color: textPrimary,
                       ),
                     ),
                     const SizedBox(height: 12),
@@ -212,21 +242,21 @@ class _CreateJourneyScreenState extends ConsumerState<CreateJourneyScreen> {
                     const SizedBox(height: 28),
 
                     // SECTION 2: DURATION SELECTION
-                    const Text(
+                    Text(
                       'Thời gian cam kết?',
                       style: TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.w500,
-                        color: Color(0xFFF3F4F6),
+                        color: textPrimary,
                       ),
                     ),
                     const SizedBox(height: 12),
                     Container(
                       padding: const EdgeInsets.all(4),
                       decoration: BoxDecoration(
-                        color: const Color(0xFF16171B),
+                        color: cardBg,
                         borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: const Color(0xFF26282F), width: 1),
+                        border: Border.all(color: borderColor, width: 1),
                       ),
                       child: Row(
                         children: [
@@ -239,60 +269,60 @@ class _CreateJourneyScreenState extends ConsumerState<CreateJourneyScreen> {
                     const SizedBox(height: 8),
                     Text(
                       _getDurationHelperText(_selectedDays),
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 13,
-                        color: Color(0xFF94979E),
+                        color: textSecondary,
                       ),
                     ),
                     const SizedBox(height: 28),
 
                     // SECTION 3: DAILY REMINDER
-                    const Text(
+                    Text(
                       'Nhắc nhở hàng ngày',
                       style: TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.w500,
-                        color: Color(0xFFF3F4F6),
+                        color: textPrimary,
                       ),
                     ),
                     const SizedBox(height: 12),
                     Container(
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
-                        color: const Color(0xFF16171B),
+                        color: cardBg,
                         borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: const Color(0xFF26282F), width: 1),
+                        border: Border.all(color: borderColor, width: 1),
                       ),
                       child: Column(
                         children: [
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              const Row(
+                              Row(
                                 children: [
-                                  Icon(Icons.notifications_none_rounded, color: Color(0xFF94979E), size: 20),
-                                  SizedBox(width: 12),
+                                  Icon(Icons.notifications_none_rounded, color: textSecondary, size: 20),
+                                  const SizedBox(width: 12),
                                   Text(
                                     'Bật nhắc nhở',
                                     style: TextStyle(
                                       fontSize: 14,
                                       fontWeight: FontWeight.w500,
-                                      color: Color(0xFFF3F4F6),
+                                      color: textPrimary,
                                     ),
                                   ),
                                 ],
                               ),
                               Switch.adaptive(
                                 value: _enableReminder,
-                                activeColor: const Color(0xFF10B981),
-                                activeTrackColor: const Color(0xFF10B981).withOpacity(0.4),
-                                inactiveTrackColor: const Color(0xFF212328),
+                                activeColor: emerald,
+                                activeTrackColor: emerald.withOpacity(0.4),
+                                inactiveTrackColor: trackInactive,
                                 onChanged: (val) => setState(() => _enableReminder = val),
                               ),
                             ],
                           ),
                           if (_enableReminder) ...[
-                            const Divider(color: Color(0xFF26282F), height: 24),
+                            Divider(color: borderColor, height: 24),
                             InkWell(
                               onTap: _selectReminderTime,
                               borderRadius: BorderRadius.circular(8),
@@ -301,15 +331,15 @@ class _CreateJourneyScreenState extends ConsumerState<CreateJourneyScreen> {
                                 child: Row(
                                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                   children: [
-                                    const Row(
+                                    Row(
                                       children: [
-                                        Icon(Icons.schedule_rounded, color: Color(0xFF94979E), size: 20),
-                                        SizedBox(width: 12),
+                                        Icon(Icons.schedule_rounded, color: textSecondary, size: 20),
+                                        const SizedBox(width: 12),
                                         Text(
                                           'Giờ nhắc',
                                           style: TextStyle(
                                             fontSize: 14,
-                                            color: Color(0xFF94979E),
+                                            color: textSecondary,
                                           ),
                                         ),
                                       ],
@@ -318,14 +348,14 @@ class _CreateJourneyScreenState extends ConsumerState<CreateJourneyScreen> {
                                       children: [
                                         Text(
                                           '${_reminderTime.hour.toString().padLeft(2, '0')}:${_reminderTime.minute.toString().padLeft(2, '0')}',
-                                          style: const TextStyle(
+                                          style: TextStyle(
                                             fontSize: 14,
                                             fontWeight: FontWeight.w600,
-                                            color: Color(0xFFF3F4F6),
+                                            color: textPrimary,
                                           ),
                                         ),
                                         const SizedBox(width: 4),
-                                        const Icon(Icons.chevron_right, color: Color(0xFF94979E), size: 18),
+                                        Icon(Icons.chevron_right, color: textSecondary, size: 18),
                                       ],
                                     ),
                                   ],
@@ -345,9 +375,9 @@ class _CreateJourneyScreenState extends ConsumerState<CreateJourneyScreen> {
             // STICKY BOTTOM ACTION BAR
             Container(
               padding: EdgeInsets.fromLTRB(20, 12, 20, 16 + bottomInset),
-              decoration: const BoxDecoration(
-                color: Color(0xFF0C0D0E),
-                border: Border(top: BorderSide(color: Color(0xFF26282F), width: 1)),
+              decoration: BoxDecoration(
+                color: scaffoldBg,
+                border: Border(top: BorderSide(color: borderColor, width: 1)),
               ),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -358,20 +388,20 @@ class _CreateJourneyScreenState extends ConsumerState<CreateJourneyScreen> {
                     child: ElevatedButton(
                       onPressed: _isSubmitting ? null : _submit,
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFFF9FAFB),
-                        foregroundColor: const Color(0xFF0C0D0E),
+                        backgroundColor: ctaBg,
+                        foregroundColor: ctaFg,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(16),
                         ),
                         elevation: 0,
                       ),
                       child: _isSubmitting
-                          ? const SizedBox(
+                          ? SizedBox(
                               width: 20,
                               height: 20,
                               child: CircularProgressIndicator(
                                 strokeWidth: 2,
-                                color: Color(0xFF0C0D0E),
+                                color: ctaFg,
                               ),
                             )
                           : const Text(
@@ -384,11 +414,11 @@ class _CreateJourneyScreenState extends ConsumerState<CreateJourneyScreen> {
                     ),
                   ),
                   const SizedBox(height: 8),
-                  const Text(
+                  Text(
                     'Bạn có thể điều chỉnh giờ nhắc bất kỳ lúc nào.',
                     style: TextStyle(
                       fontSize: 12,
-                      color: Color(0xFF94979E),
+                      color: textSecondary,
                     ),
                     textAlign: TextAlign.center,
                   ),
@@ -406,7 +436,22 @@ class _CreateJourneyScreenState extends ConsumerState<CreateJourneyScreen> {
     required String title,
     required IconData icon,
   }) {
+    final tokens = SamanHomeTokens.of(context);
     final isSelected = _selectedFocus == focus;
+    final cardBg =
+        tokens.isDark ? const Color(0xFF16171B) : tokens.cardSurface;
+    final borderDefault =
+        tokens.isDark ? const Color(0xFF26282F) : tokens.border;
+    final emerald =
+        tokens.isDark ? const Color(0xFF10B981) : tokens.greenAccent;
+    final textPrimary =
+        tokens.isDark ? const Color(0xFFF3F4F6) : tokens.textPrimary;
+    final textSecondary =
+        tokens.isDark ? const Color(0xFF94979E) : tokens.textSecondary;
+    final unselectedRadioBorder =
+        tokens.isDark ? const Color(0xFF383A42) : tokens.borderHigh;
+    final checkFg =
+        tokens.isDark ? const Color(0xFF0C0D0E) : Colors.white;
 
     return InkWell(
       onTap: () => setState(() => _selectedFocus = focus),
@@ -414,10 +459,10 @@ class _CreateJourneyScreenState extends ConsumerState<CreateJourneyScreen> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         decoration: BoxDecoration(
-          color: const Color(0xFF16171B),
+          color: cardBg,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: isSelected ? const Color(0xFF10B981) : const Color(0xFF26282F),
+            color: isSelected ? emerald : borderDefault,
             width: isSelected ? 1.5 : 1.0,
           ),
         ),
@@ -425,17 +470,17 @@ class _CreateJourneyScreenState extends ConsumerState<CreateJourneyScreen> {
           children: [
             Icon(
               icon,
-              color: isSelected ? const Color(0xFF10B981) : const Color(0xFF94979E),
+              color: isSelected ? emerald : textSecondary,
               size: 20,
             ),
             const SizedBox(width: 14),
             Expanded(
               child: Text(
                 title,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 15,
                   fontWeight: FontWeight.w500,
-                  color: Color(0xFFF3F4F6),
+                  color: textPrimary,
                 ),
               ),
             ),
@@ -444,17 +489,17 @@ class _CreateJourneyScreenState extends ConsumerState<CreateJourneyScreen> {
               height: 20,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: isSelected ? const Color(0xFF10B981) : Colors.transparent,
+                color: isSelected ? emerald : Colors.transparent,
                 border: Border.all(
-                  color: isSelected ? const Color(0xFF10B981) : const Color(0xFF383A42),
+                  color: isSelected ? emerald : unselectedRadioBorder,
                   width: 1.5,
                 ),
               ),
               child: isSelected
-                  ? const Icon(
+                  ? Icon(
                       Icons.check,
                       size: 14,
-                      color: Color(0xFF0C0D0E),
+                      color: checkFg,
                     )
                   : null,
             ),
@@ -465,7 +510,14 @@ class _CreateJourneyScreenState extends ConsumerState<CreateJourneyScreen> {
   }
 
   Widget _buildDurationTab(int days, String label) {
+    final tokens = SamanHomeTokens.of(context);
     final isSelected = _selectedDays == days;
+    final activeBg =
+        tokens.isDark ? const Color(0xFFF9FAFB) : const Color(0xFF059669);
+    final activeFg =
+        tokens.isDark ? const Color(0xFF0C0D0E) : Colors.white;
+    final inactiveFg =
+        tokens.isDark ? const Color(0xFF94979E) : tokens.textSecondary;
 
     return Expanded(
       child: InkWell(
@@ -474,7 +526,7 @@ class _CreateJourneyScreenState extends ConsumerState<CreateJourneyScreen> {
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: 8),
           decoration: BoxDecoration(
-            color: isSelected ? const Color(0xFFF9FAFB) : Colors.transparent,
+            color: isSelected ? activeBg : Colors.transparent,
             borderRadius: BorderRadius.circular(8),
           ),
           alignment: Alignment.center,
@@ -483,7 +535,7 @@ class _CreateJourneyScreenState extends ConsumerState<CreateJourneyScreen> {
             style: TextStyle(
               fontSize: 13,
               fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-              color: isSelected ? const Color(0xFF0C0D0E) : const Color(0xFF94979E),
+              color: isSelected ? activeFg : inactiveFg,
             ),
           ),
         ),

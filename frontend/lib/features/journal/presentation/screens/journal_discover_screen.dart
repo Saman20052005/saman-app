@@ -38,28 +38,30 @@ class _JournalDiscoverScreenState extends ConsumerState<JournalDiscoverScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = SamanHomeTokens.of(context);
     final state = ref.watch(journalDiscoverProvider);
     final notifier = ref.read(journalDiscoverProvider.notifier);
 
     return Scaffold(
-      backgroundColor: SamanHomeTokens.canvas,
+      backgroundColor: tokens.canvas,
       body: SafeArea(
         top: true,
         bottom: false,
         child: Column(
           children: [
             // ─── Header ──────────────────────────────────────────────
-            _buildHeader(context),
+            _buildHeader(context, tokens),
 
             // ─── Minimal Internal Tabs ───────────────────────────────
-            _buildInternalTabs(),
+            _buildInternalTabs(tokens),
 
             // ─── Body Stream or Backlog Notice Tab ────────────────────
             Expanded(
               child: _selectedTabIndex == 0
-                  ? _buildKhamPhaContent(state, notifier)
+                  ? _buildKhamPhaContent(state, notifier, tokens)
                   : _buildBacklogTabPlaceholder(
                       _selectedTabIndex == 1 ? 'Thư viện' : 'Cẩm nang',
+                      tokens,
                     ),
             ),
           ],
@@ -68,14 +70,14 @@ class _JournalDiscoverScreenState extends ConsumerState<JournalDiscoverScreen> {
     );
   }
 
-  Widget _buildHeader(BuildContext context) {
+  Widget _buildHeader(BuildContext context, SamanHomePalette tokens) {
     return Container(
       height: 56,
       padding: const EdgeInsets.symmetric(horizontal: 16),
-      decoration: const BoxDecoration(
-        color: SamanHomeTokens.canvas,
+      decoration: BoxDecoration(
+        color: tokens.canvas,
         border: Border(
-          bottom: BorderSide(color: SamanHomeTokens.borderSubtle, width: 0.5),
+          bottom: BorderSide(color: tokens.borderSubtle, width: 0.5),
         ),
       ),
       child: Row(
@@ -86,9 +88,9 @@ class _JournalDiscoverScreenState extends ConsumerState<JournalDiscoverScreen> {
               children: [
                 IconButton(
                   key: const ValueKey('journal_back_button'),
-                  icon: const Icon(
+                  icon: Icon(
                     Icons.arrow_back_rounded,
-                    color: SamanHomeTokens.textWhite,
+                    color: tokens.textWhite,
                     size: 22,
                   ),
                   padding: EdgeInsets.zero,
@@ -97,7 +99,7 @@ class _JournalDiscoverScreenState extends ConsumerState<JournalDiscoverScreen> {
                   tooltip: 'Quay lại',
                 ),
                 const SizedBox(width: 8),
-                const Flexible(
+                Flexible(
                   child: Text(
                     'Saman Journal',
                     maxLines: 1,
@@ -105,7 +107,7 @@ class _JournalDiscoverScreenState extends ConsumerState<JournalDiscoverScreen> {
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.w700,
-                      color: SamanHomeTokens.textWhite,
+                      color: tokens.textWhite,
                       letterSpacing: -0.3,
                     ),
                   ),
@@ -117,9 +119,9 @@ class _JournalDiscoverScreenState extends ConsumerState<JournalDiscoverScreen> {
             mainAxisSize: MainAxisSize.min,
             children: [
               IconButton(
-                icon: const Icon(
+                icon: Icon(
                   Icons.bookmark_border_rounded,
-                  color: SamanHomeTokens.textSecondary,
+                  color: tokens.textSecondary,
                   size: 22,
                 ),
                 padding: EdgeInsets.zero,
@@ -141,15 +143,17 @@ class _JournalDiscoverScreenState extends ConsumerState<JournalDiscoverScreen> {
               Container(
                 width: 30,
                 height: 30,
-                decoration: const BoxDecoration(
-                  color: SamanHomeTokens.greenAccent,
+                decoration: BoxDecoration(
+                  color: tokens.greenAccent,
                   shape: BoxShape.circle,
                 ),
-                child: const Center(
+                child: Center(
                   child: Icon(
                     Icons.person_rounded,
                     size: 17,
-                    color: Color(0xFF003824),
+                    color: tokens.isDark
+                        ? const Color(0xFF003824)
+                        : const Color(0xFFFFFFFF),
                   ),
                 ),
               ),
@@ -160,12 +164,12 @@ class _JournalDiscoverScreenState extends ConsumerState<JournalDiscoverScreen> {
     );
   }
 
-  Widget _buildInternalTabs() {
+  Widget _buildInternalTabs(SamanHomePalette tokens) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      decoration: const BoxDecoration(
-        color: SamanHomeTokens.canvas,
+      decoration: BoxDecoration(
+        color: tokens.canvas,
       ),
       child: SingleChildScrollView(
         scrollDirection: Axis.horizontal,
@@ -173,18 +177,22 @@ class _JournalDiscoverScreenState extends ConsumerState<JournalDiscoverScreen> {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            _buildTabItem(label: 'Khám phá', index: 0),
+            _buildTabItem(label: 'Khám phá', index: 0, tokens: tokens),
             const SizedBox(width: 20),
-            _buildTabItem(label: 'Thư viện', index: 1),
+            _buildTabItem(label: 'Thư viện', index: 1, tokens: tokens),
             const SizedBox(width: 20),
-            _buildTabItem(label: 'Cẩm nang', index: 2),
+            _buildTabItem(label: 'Cẩm nang', index: 2, tokens: tokens),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildTabItem({required String label, required int index}) {
+  Widget _buildTabItem({
+    required String label,
+    required int index,
+    required SamanHomePalette tokens,
+  }) {
     final isSelected = _selectedTabIndex == index;
 
     return GestureDetector(
@@ -202,8 +210,8 @@ class _JournalDiscoverScreenState extends ConsumerState<JournalDiscoverScreen> {
               fontSize: 16.5,
               fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
               color: isSelected
-                  ? SamanHomeTokens.greenAccent
-                  : SamanHomeTokens.textSecondary,
+                  ? tokens.greenAccent
+                  : tokens.textSecondary,
             ),
           ),
           const SizedBox(height: 6),
@@ -212,7 +220,7 @@ class _JournalDiscoverScreenState extends ConsumerState<JournalDiscoverScreen> {
             width: isSelected ? 48 : 0,
             decoration: BoxDecoration(
               color: isSelected
-                  ? SamanHomeTokens.greenAccent
+                  ? tokens.greenAccent
                   : Colors.transparent,
               borderRadius: BorderRadius.circular(2),
             ),
@@ -225,11 +233,12 @@ class _JournalDiscoverScreenState extends ConsumerState<JournalDiscoverScreen> {
   Widget _buildKhamPhaContent(
     JournalDiscoverState state,
     JournalDiscoverNotifier notifier,
+    SamanHomePalette tokens,
   ) {
     if (state.isLoading) {
-      return const Center(
+      return Center(
         child: CircularProgressIndicator(
-          valueColor: AlwaysStoppedAnimation<Color>(SamanHomeTokens.greenAccent),
+          valueColor: AlwaysStoppedAnimation<Color>(tokens.greenAccent),
         ),
       );
     }
@@ -241,35 +250,35 @@ class _JournalDiscoverScreenState extends ConsumerState<JournalDiscoverScreen> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(
+              Icon(
                 Icons.cloud_off_rounded,
                 size: 48,
-                color: SamanHomeTokens.textSecondary,
+                color: tokens.textSecondary,
               ),
               const SizedBox(height: 12),
-              const Text(
+              Text(
                 'Không thể tải nội dung',
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w600,
-                  color: SamanHomeTokens.textWhite,
+                  color: tokens.textWhite,
                 ),
               ),
               const SizedBox(height: 6),
               Text(
                 state.error!,
                 textAlign: TextAlign.center,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 13,
-                  color: SamanHomeTokens.textSecondary,
+                  color: tokens.textSecondary,
                 ),
               ),
               const SizedBox(height: 16),
               ElevatedButton(
                 onPressed: notifier.retry,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: SamanHomeTokens.actionButtonSurface,
-                  foregroundColor: SamanHomeTokens.textWhite,
+                  backgroundColor: tokens.actionButtonSurface,
+                  foregroundColor: tokens.textWhite,
                 ),
                 child: const Text('Thử lại'),
               ),
@@ -289,7 +298,7 @@ class _JournalDiscoverScreenState extends ConsumerState<JournalDiscoverScreen> {
       ),
       children: [
         // ─── Search Bar Trigger ──────────────────────────────────────
-        _buildSearchTriggerBar(),
+        _buildSearchTriggerBar(tokens),
         const SizedBox(height: 16),
 
         // ─── A. Featured Editorial Story ─────────────────────────────
@@ -318,7 +327,7 @@ class _JournalDiscoverScreenState extends ConsumerState<JournalDiscoverScreen> {
 
         // ─── E. Bắt đầu cùng Saman (Guided series) ───────────────────
         if (state.guidedSeries != null) ...[
-          _buildGuidedSeriesCard(state.guidedSeries!),
+          _buildGuidedSeriesCard(state.guidedSeries!, tokens),
           const SizedBox(height: 18),
         ],
 
@@ -328,7 +337,7 @@ class _JournalDiscoverScreenState extends ConsumerState<JournalDiscoverScreen> {
     );
   }
 
-  Widget _buildSearchTriggerBar() {
+  Widget _buildSearchTriggerBar(SamanHomePalette tokens) {
     return Material(
       color: Colors.transparent,
       child: InkWell(
@@ -339,27 +348,27 @@ class _JournalDiscoverScreenState extends ConsumerState<JournalDiscoverScreen> {
           height: 48,
           padding: const EdgeInsets.symmetric(horizontal: 14),
           decoration: BoxDecoration(
-            color: SamanHomeTokens.cardSurfaceElevated,
+            color: tokens.cardSurfaceElevated,
             borderRadius: BorderRadius.circular(SamanHomeTokens.radiusLg),
             border: Border.all(
-              color: SamanHomeTokens.borderSubtle,
+              color: tokens.borderSubtle,
               width: 1,
             ),
           ),
-          child: const Row(
+          child: Row(
             children: [
               Icon(
                 Icons.search_rounded,
-                color: SamanHomeTokens.textSecondary,
+                color: tokens.textSecondary,
                 size: 20,
               ),
-              SizedBox(width: 10),
+              const SizedBox(width: 10),
               Expanded(
                 child: Text(
                   'Tìm kiến thức, bài tập, món ăn…',
                   style: TextStyle(
                     fontSize: 13.5,
-                    color: SamanHomeTokens.textSecondary,
+                    color: tokens.textSecondary,
                     fontWeight: FontWeight.w400,
                   ),
                 ),
@@ -371,7 +380,7 @@ class _JournalDiscoverScreenState extends ConsumerState<JournalDiscoverScreen> {
     );
   }
 
-  Widget _buildGuidedSeriesCard(dynamic series) {
+  Widget _buildGuidedSeriesCard(dynamic series, SamanHomePalette tokens) {
     return Material(
       color: Colors.transparent,
       child: InkWell(
@@ -389,10 +398,10 @@ class _JournalDiscoverScreenState extends ConsumerState<JournalDiscoverScreen> {
         child: Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: SamanHomeTokens.cardSurface,
+            color: tokens.cardSurface,
             borderRadius: BorderRadius.circular(SamanHomeTokens.radiusLg),
             border: Border.all(
-              color: SamanHomeTokens.borderSubtle,
+              color: tokens.borderSubtle,
               width: 1,
             ),
           ),
@@ -407,18 +416,18 @@ class _JournalDiscoverScreenState extends ConsumerState<JournalDiscoverScreen> {
                         Container(
                           width: 7,
                           height: 7,
-                          decoration: const BoxDecoration(
-                            color: SamanHomeTokens.greenAccent,
+                          decoration: BoxDecoration(
+                            color: tokens.greenAccent,
                             shape: BoxShape.circle,
                           ),
                         ),
                         const SizedBox(width: 6),
                         Text(
                           series.badgeLabel.toUpperCase(),
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 10.5,
                             fontWeight: FontWeight.w700,
-                            color: SamanHomeTokens.greenAccent,
+                            color: tokens.greenAccent,
                             letterSpacing: 0.8,
                           ),
                         ),
@@ -427,19 +436,19 @@ class _JournalDiscoverScreenState extends ConsumerState<JournalDiscoverScreen> {
                     const SizedBox(height: 6),
                     Text(
                       series.title,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 15.5,
                         fontWeight: FontWeight.w700,
-                        color: SamanHomeTokens.textWhite,
+                        color: tokens.textWhite,
                         height: 1.25,
                       ),
                     ),
                     const SizedBox(height: 4),
                     Text(
                       series.subtitle,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 12.5,
-                        color: SamanHomeTokens.textSecondary,
+                        color: tokens.textSecondary,
                       ),
                     ),
                   ],
@@ -455,10 +464,10 @@ class _JournalDiscoverScreenState extends ConsumerState<JournalDiscoverScreen> {
                     series.coverImageAsset,
                     fit: BoxFit.cover,
                     errorBuilder: (_, __, ___) => Container(
-                      color: SamanHomeTokens.cardSurfaceElevated,
-                      child: const Icon(
+                      color: tokens.cardSurfaceElevated,
+                      child: Icon(
                         Icons.school_outlined,
-                        color: SamanHomeTokens.textSecondary,
+                        color: tokens.textSecondary,
                       ),
                     ),
                   ),
@@ -471,7 +480,7 @@ class _JournalDiscoverScreenState extends ConsumerState<JournalDiscoverScreen> {
     );
   }
 
-  Widget _buildBacklogTabPlaceholder(String tabName) {
+  Widget _buildBacklogTabPlaceholder(String tabName, SamanHomePalette tokens) {
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(32),
@@ -481,32 +490,32 @@ class _JournalDiscoverScreenState extends ConsumerState<JournalDiscoverScreen> {
             Container(
               width: 56,
               height: 56,
-              decoration: const BoxDecoration(
-                color: SamanHomeTokens.cardSurface,
+              decoration: BoxDecoration(
+                color: tokens.cardSurface,
                 shape: BoxShape.circle,
               ),
-              child: const Icon(
+              child: Icon(
                 Icons.auto_stories_outlined,
                 size: 28,
-                color: SamanHomeTokens.greenAccent,
+                color: tokens.greenAccent,
               ),
             ),
             const SizedBox(height: 16),
             Text(
               'Mục "$tabName" đang được xây dựng',
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w700,
-                color: SamanHomeTokens.textWhite,
+                color: tokens.textWhite,
               ),
             ),
             const SizedBox(height: 8),
-            const Text(
+            Text(
               'Các màn chuyên sâu của Thư viện và Cẩm nang thuộc danh mục backlog chưa duyệt. Vui lòng quay lại tab Khám phá.',
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 13,
-                color: SamanHomeTokens.textSecondary,
+                color: tokens.textSecondary,
                 height: 1.45,
               ),
             ),
@@ -520,8 +529,8 @@ class _JournalDiscoverScreenState extends ConsumerState<JournalDiscoverScreen> {
               icon: const Icon(Icons.arrow_back_rounded, size: 16),
               label: const Text('Quay lại Khám phá'),
               style: ElevatedButton.styleFrom(
-                backgroundColor: SamanHomeTokens.actionButtonSurface,
-                foregroundColor: SamanHomeTokens.textWhite,
+                backgroundColor: tokens.actionButtonSurface,
+                foregroundColor: tokens.textWhite,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(10),
                 ),

@@ -17,6 +17,7 @@ class JournalReadingProgressCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = SamanHomeTokens.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -27,30 +28,30 @@ class JournalReadingProgressCard extends StatelessWidget {
           children: [
             Text(
               context.tr('journal_continue_reading').toUpperCase(),
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 11,
                 fontWeight: FontWeight.w700,
                 letterSpacing: 1.1,
-                color: SamanHomeTokens.textSecondary,
+                color: tokens.textSecondary,
               ),
             ),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1.5),
               decoration: BoxDecoration(
-                color: SamanHomeTokens.cardSurfaceElevated,
+                color: tokens.cardSurfaceElevated,
                 borderRadius: BorderRadius.circular(4),
                 border: Border.all(
-                  color: SamanHomeTokens.borderSubtle,
+                  color: tokens.borderSubtle,
                   width: 0.8,
                 ),
               ),
               child: Text(
                 context.tr('journal_sample_badge'),
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 9,
                   fontWeight: FontWeight.w600,
                   letterSpacing: 0.5,
-                  color: SamanHomeTokens.greenAccent,
+                  color: tokens.greenAccent,
                 ),
               ),
             ),
@@ -77,10 +78,10 @@ class JournalReadingProgressCard extends StatelessWidget {
             child: Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: SamanHomeTokens.cardSurface,
+                color: tokens.cardSurface,
                 borderRadius: BorderRadius.circular(SamanHomeTokens.radiusLg),
                 border: Border.all(
-                  color: SamanHomeTokens.borderSubtle,
+                  color: tokens.borderSubtle,
                   width: 1,
                 ),
               ),
@@ -98,11 +99,11 @@ class JournalReadingProgressCard extends StatelessWidget {
                             progress.coverImageAsset,
                             fit: BoxFit.cover,
                             errorBuilder: (_, __, ___) => Container(
-                              color: SamanHomeTokens.cardSurfaceElevated,
-                              child: const Icon(
+                              color: tokens.cardSurfaceElevated,
+                              child: Icon(
                                 Icons.menu_book_rounded,
                                 size: 24,
-                                color: SamanHomeTokens.textSecondary,
+                                color: tokens.textSecondary,
                               ),
                             ),
                           ),
@@ -119,10 +120,10 @@ class JournalReadingProgressCard extends StatelessWidget {
                               progress.title,
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 14.5,
                                 fontWeight: FontWeight.w600,
-                                color: SamanHomeTokens.textWhite,
+                                color: tokens.textWhite,
                               ),
                             ),
                             const SizedBox(height: 4),
@@ -131,28 +132,28 @@ class JournalReadingProgressCard extends StatelessWidget {
                               children: [
                                 Text(
                                   'Đã đọc ${progress.percentDisplay}%',
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                     fontSize: 12,
                                     fontWeight: FontWeight.w400,
-                                    color: SamanHomeTokens.textSecondary,
+                                    color: tokens.textSecondary,
                                   ),
                                 ),
-                                const Padding(
-                                  padding: EdgeInsets.symmetric(horizontal: 6),
+                                Padding(
+                                  padding: const EdgeInsets.symmetric(horizontal: 6),
                                   child: Text(
                                     '•',
                                     style: TextStyle(
-                                      color: SamanHomeTokens.textTertiary,
+                                      color: tokens.textTertiary,
                                       fontSize: 12,
                                     ),
                                   ),
                                 ),
                                 Text(
                                   'Còn ${progress.remainingMinutes} phút',
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                     fontSize: 12,
                                     fontWeight: FontWeight.w400,
-                                    color: SamanHomeTokens.textSecondary,
+                                    color: tokens.textSecondary,
                                   ),
                                 ),
                               ],
@@ -169,9 +170,9 @@ class JournalReadingProgressCard extends StatelessWidget {
                     borderRadius: BorderRadius.circular(999),
                     child: LinearProgressIndicator(
                       value: progress.progressPercent,
-                      backgroundColor: SamanHomeTokens.cardSurfaceElevated,
-                      valueColor: const AlwaysStoppedAnimation<Color>(
-                        SamanHomeTokens.greenAccent,
+                      backgroundColor: tokens.cardSurfaceElevated,
+                      valueColor: AlwaysStoppedAnimation<Color>(
+                        tokens.greenAccent,
                       ),
                       minHeight: 3.5,
                     ),

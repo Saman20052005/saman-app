@@ -38,25 +38,26 @@ class _JournalSearchScreenState extends ConsumerState<JournalSearchScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = SamanHomeTokens.of(context);
     final searchState = ref.watch(journalSearchProvider);
     final searchNotifier = ref.read(journalSearchProvider.notifier);
 
     return Scaffold(
-      backgroundColor: SamanHomeTokens.canvas,
+      backgroundColor: tokens.canvas,
       body: SafeArea(
         top: true,
         bottom: false,
         child: Column(
           children: [
             // ─── Header & Search Input Bar ───────────────────────────
-            _buildSearchHeader(searchState, searchNotifier),
+            _buildSearchHeader(searchState, searchNotifier, tokens),
 
             // ─── Filter Chips (No Community Filter) ──────────────────
-            _buildCategoryFilterChips(searchState, searchNotifier),
+            _buildCategoryFilterChips(searchState, searchNotifier, tokens),
 
             // ─── Results Content Stream ──────────────────────────────
             Expanded(
-              child: _buildResultsStream(searchState, searchNotifier),
+              child: _buildResultsStream(searchState, searchNotifier, tokens),
             ),
           ],
         ),
@@ -67,20 +68,21 @@ class _JournalSearchScreenState extends ConsumerState<JournalSearchScreen> {
   Widget _buildSearchHeader(
     JournalSearchState state,
     JournalSearchNotifier notifier,
+    SamanHomePalette tokens,
   ) {
     return Container(
       padding: const EdgeInsets.fromLTRB(8, 8, 16, 12),
-      decoration: const BoxDecoration(
-        color: SamanHomeTokens.canvas,
+      decoration: BoxDecoration(
+        color: tokens.canvas,
       ),
       child: Row(
         children: [
           // Back button to R01
           IconButton(
             key: const ValueKey('search_back_button'),
-            icon: const Icon(
+            icon: Icon(
               Icons.arrow_back_rounded,
-              color: SamanHomeTokens.textWhite,
+              color: tokens.textWhite,
               size: 22,
             ),
             padding: EdgeInsets.zero,
@@ -96,18 +98,18 @@ class _JournalSearchScreenState extends ConsumerState<JournalSearchScreen> {
               height: 46,
               padding: const EdgeInsets.symmetric(horizontal: 12),
               decoration: BoxDecoration(
-                color: SamanHomeTokens.cardSurfaceElevated,
+                color: tokens.cardSurfaceElevated,
                 borderRadius: BorderRadius.circular(SamanHomeTokens.radiusLg),
                 border: Border.all(
-                  color: SamanHomeTokens.border,
+                  color: tokens.border,
                   width: 1,
                 ),
               ),
               child: Row(
                 children: [
-                  const Icon(
+                  Icon(
                     Icons.search_rounded,
-                    color: SamanHomeTokens.greenAccent,
+                    color: tokens.greenAccent,
                     size: 20,
                   ),
                   const SizedBox(width: 8),
@@ -116,17 +118,17 @@ class _JournalSearchScreenState extends ConsumerState<JournalSearchScreen> {
                       key: const ValueKey('journal_search_input_field'),
                       controller: _searchController,
                       focusNode: _focusNode,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 14,
-                        color: SamanHomeTokens.textWhite,
+                        color: tokens.textWhite,
                         fontWeight: FontWeight.w400,
                       ),
-                      cursorColor: SamanHomeTokens.greenAccent,
-                      decoration: const InputDecoration(
+                      cursorColor: tokens.greenAccent,
+                      decoration: InputDecoration(
                         hintText: 'Tìm kiếm bài viết, thực phẩm, bài tập...',
                         hintStyle: TextStyle(
                           fontSize: 13.5,
-                          color: SamanHomeTokens.textSecondary,
+                          color: tokens.textSecondary,
                         ),
                         border: InputBorder.none,
                         focusedBorder: InputBorder.none,
@@ -141,9 +143,9 @@ class _JournalSearchScreenState extends ConsumerState<JournalSearchScreen> {
                   if (_searchController.text.isNotEmpty)
                     IconButton(
                       key: const ValueKey('clear_search_button'),
-                      icon: const Icon(
+                      icon: Icon(
                         Icons.cancel_rounded,
-                        color: SamanHomeTokens.textSecondary,
+                        color: tokens.textSecondary,
                         size: 18,
                       ),
                       padding: EdgeInsets.zero,
@@ -165,17 +167,17 @@ class _JournalSearchScreenState extends ConsumerState<JournalSearchScreen> {
             width: 46,
             height: 46,
             decoration: BoxDecoration(
-              color: SamanHomeTokens.cardSurfaceElevated,
+              color: tokens.cardSurfaceElevated,
               borderRadius: BorderRadius.circular(SamanHomeTokens.radiusLg),
               border: Border.all(
-                color: SamanHomeTokens.border,
+                color: tokens.border,
                 width: 1,
               ),
             ),
             child: IconButton(
-              icon: const Icon(
+              icon: Icon(
                 Icons.tune_rounded,
-                color: SamanHomeTokens.textSecondary,
+                color: tokens.textSecondary,
                 size: 20,
               ),
               onPressed: () {
@@ -200,6 +202,7 @@ class _JournalSearchScreenState extends ConsumerState<JournalSearchScreen> {
   Widget _buildCategoryFilterChips(
     JournalSearchState state,
     JournalSearchNotifier notifier,
+    SamanHomePalette tokens,
   ) {
     const categories = [
       JournalSearchCategory.all,
@@ -240,13 +243,13 @@ class _JournalSearchScreenState extends ConsumerState<JournalSearchScreen> {
                 padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
                 decoration: BoxDecoration(
                   color: isSelected
-                      ? SamanHomeTokens.greenAccent
-                      : SamanHomeTokens.cardSurfaceElevated,
+                      ? tokens.greenAccent
+                      : tokens.cardSurfaceElevated,
                   borderRadius: BorderRadius.circular(SamanHomeTokens.radiusSm),
                   border: Border.all(
                     color: isSelected
-                        ? SamanHomeTokens.greenAccent
-                        : SamanHomeTokens.borderSubtle,
+                        ? tokens.greenAccent
+                        : tokens.borderSubtle,
                     width: 1,
                   ),
                 ),
@@ -257,8 +260,10 @@ class _JournalSearchScreenState extends ConsumerState<JournalSearchScreen> {
                       fontSize: 12.5,
                       fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
                       color: isSelected
-                          ? const Color(0xFF003824)
-                          : SamanHomeTokens.textSecondary,
+                          ? (tokens.isDark
+                              ? const Color(0xFF003824)
+                              : const Color(0xFFFFFFFF))
+                          : tokens.textSecondary,
                     ),
                   ),
                 ),
@@ -273,11 +278,12 @@ class _JournalSearchScreenState extends ConsumerState<JournalSearchScreen> {
   Widget _buildResultsStream(
     JournalSearchState state,
     JournalSearchNotifier notifier,
+    SamanHomePalette tokens,
   ) {
     if (state.isLoading) {
-      return const Center(
+      return Center(
         child: CircularProgressIndicator(
-          valueColor: AlwaysStoppedAnimation<Color>(SamanHomeTokens.greenAccent),
+          valueColor: AlwaysStoppedAnimation<Color>(tokens.greenAccent),
         ),
       );
     }
@@ -289,35 +295,35 @@ class _JournalSearchScreenState extends ConsumerState<JournalSearchScreen> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(
+              Icon(
                 Icons.search_off_rounded,
                 size: 48,
-                color: SamanHomeTokens.textSecondary,
+                color: tokens.textSecondary,
               ),
               const SizedBox(height: 12),
-              const Text(
+              Text(
                 'Lỗi tìm kiếm',
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w600,
-                  color: SamanHomeTokens.textWhite,
+                  color: tokens.textWhite,
                 ),
               ),
               const SizedBox(height: 6),
               Text(
                 state.error!,
                 textAlign: TextAlign.center,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 13,
-                  color: SamanHomeTokens.textSecondary,
+                  color: tokens.textSecondary,
                 ),
               ),
               const SizedBox(height: 16),
               ElevatedButton(
                 onPressed: notifier.retry,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: SamanHomeTokens.actionButtonSurface,
-                  foregroundColor: SamanHomeTokens.textWhite,
+                  backgroundColor: tokens.actionButtonSurface,
+                  foregroundColor: tokens.textWhite,
                 ),
                 child: const Text('Thử lại'),
               ),
@@ -337,33 +343,33 @@ class _JournalSearchScreenState extends ConsumerState<JournalSearchScreen> {
               Container(
                 width: 56,
                 height: 56,
-                decoration: const BoxDecoration(
-                  color: SamanHomeTokens.cardSurface,
+                decoration: BoxDecoration(
+                  color: tokens.cardSurface,
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(
+                child: Icon(
                   Icons.search_rounded,
                   size: 28,
-                  color: SamanHomeTokens.textSecondary,
+                  color: tokens.textSecondary,
                 ),
               ),
               const SizedBox(height: 16),
               Text(
                 'Không tìm thấy kết quả phù hợp cho "${state.query}"',
                 textAlign: TextAlign.center,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 15,
                   fontWeight: FontWeight.w600,
-                  color: SamanHomeTokens.textWhite,
+                  color: tokens.textWhite,
                 ),
               ),
               const SizedBox(height: 6),
-              const Text(
+              Text(
                 'Hãy thử tìm bằng từ khóa khác như "protein", "ức gà", "squat" hoặc thay đổi bộ lọc.',
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontSize: 13,
-                  color: SamanHomeTokens.textSecondary,
+                  color: tokens.textSecondary,
                   height: 1.4,
                 ),
               ),
@@ -389,6 +395,7 @@ class _JournalSearchScreenState extends ConsumerState<JournalSearchScreen> {
             items: state.results
                 .where((i) => i.category == JournalSearchCategory.articles)
                 .toList(),
+            tokens: tokens,
           ),
           _buildGroupedSection(
             categoryTitle: 'THỰC PHẨM',
@@ -396,6 +403,7 @@ class _JournalSearchScreenState extends ConsumerState<JournalSearchScreen> {
             items: state.results
                 .where((i) => i.category == JournalSearchCategory.foods)
                 .toList(),
+            tokens: tokens,
           ),
           _buildGroupedSection(
             categoryTitle: 'CÔNG THỨC',
@@ -403,6 +411,7 @@ class _JournalSearchScreenState extends ConsumerState<JournalSearchScreen> {
             items: state.results
                 .where((i) => i.category == JournalSearchCategory.recipes)
                 .toList(),
+            tokens: tokens,
           ),
           _buildGroupedSection(
             categoryTitle: 'BÀI TẬP',
@@ -410,19 +419,20 @@ class _JournalSearchScreenState extends ConsumerState<JournalSearchScreen> {
             items: state.results
                 .where((i) => i.category == JournalSearchCategory.exercises)
                 .toList(),
+            tokens: tokens,
           ),
         ] else ...[
           // Specific category list
           ...state.results.map((item) => Padding(
                 padding: const EdgeInsets.only(bottom: 12),
-                child: _buildItemCard(item),
+                child: _buildItemCard(item, tokens),
               )),
         ],
 
         // Advice Tip Footer Card
         if (state.adviceTip != null) ...[
           const SizedBox(height: 8),
-          _buildAdviceTipCard(state.adviceTip!),
+          _buildAdviceTipCard(state.adviceTip!, tokens),
         ],
       ],
     );
@@ -432,6 +442,7 @@ class _JournalSearchScreenState extends ConsumerState<JournalSearchScreen> {
     required String categoryTitle,
     required String actionTitle,
     required List<JournalSearchResultItem> items,
+    required SamanHomePalette tokens,
   }) {
     if (items.isEmpty) return const SizedBox.shrink();
 
@@ -445,19 +456,19 @@ class _JournalSearchScreenState extends ConsumerState<JournalSearchScreen> {
             children: [
               Text(
                 categoryTitle,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 11,
                   fontWeight: FontWeight.w700,
                   letterSpacing: 1.1,
-                  color: SamanHomeTokens.textSecondary,
+                  color: tokens.textSecondary,
                 ),
               ),
               Text(
                 actionTitle,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 11.5,
                   fontWeight: FontWeight.w600,
-                  color: SamanHomeTokens.greenAccent,
+                  color: tokens.greenAccent,
                 ),
               ),
             ],
@@ -465,14 +476,17 @@ class _JournalSearchScreenState extends ConsumerState<JournalSearchScreen> {
         ),
         ...items.map((item) => Padding(
               padding: const EdgeInsets.only(bottom: 12),
-              child: _buildItemCard(item),
+              child: _buildItemCard(item, tokens),
             )),
         const SizedBox(height: 6),
       ],
     );
   }
 
-  Widget _buildItemCard(JournalSearchResultItem item) {
+  Widget _buildItemCard(
+    JournalSearchResultItem item,
+    SamanHomePalette tokens,
+  ) {
     return Material(
       color: Colors.transparent,
       child: InkWell(
@@ -493,10 +507,10 @@ class _JournalSearchScreenState extends ConsumerState<JournalSearchScreen> {
         child: Container(
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
-            color: SamanHomeTokens.cardSurface,
+            color: tokens.cardSurface,
             borderRadius: BorderRadius.circular(SamanHomeTokens.radiusLg),
             border: Border.all(
-              color: SamanHomeTokens.borderSubtle,
+              color: tokens.borderSubtle,
               width: 1,
             ),
           ),
@@ -514,11 +528,11 @@ class _JournalSearchScreenState extends ConsumerState<JournalSearchScreen> {
                       item.imageAsset!,
                       fit: BoxFit.cover,
                       errorBuilder: (_, __, ___) => Container(
-                        color: SamanHomeTokens.cardSurfaceElevated,
-                        child: const Icon(
+                        color: tokens.cardSurfaceElevated,
+                        child: Icon(
                           Icons.image_outlined,
                           size: 24,
-                          color: SamanHomeTokens.textSecondary,
+                          color: tokens.textSecondary,
                         ),
                       ),
                     ),
@@ -529,13 +543,13 @@ class _JournalSearchScreenState extends ConsumerState<JournalSearchScreen> {
                   width: 52,
                   height: 52,
                   decoration: BoxDecoration(
-                    color: SamanHomeTokens.cardSurfaceElevated,
+                    color: tokens.cardSurfaceElevated,
                     borderRadius: BorderRadius.circular(SamanHomeTokens.radiusSm),
                   ),
                   child: Icon(
                     item.icon,
                     size: 24,
-                    color: SamanHomeTokens.greenAccent,
+                    color: tokens.greenAccent,
                   ),
                 ),
               const SizedBox(width: 12),
@@ -555,15 +569,15 @@ class _JournalSearchScreenState extends ConsumerState<JournalSearchScreen> {
                               vertical: 2,
                             ),
                             decoration: BoxDecoration(
-                              color: SamanHomeTokens.cardSurfaceElevated,
+                              color: tokens.cardSurfaceElevated,
                               borderRadius: BorderRadius.circular(4),
                             ),
                             child: Text(
                               item.badgeText!,
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 10,
                                 fontWeight: FontWeight.w600,
-                                color: SamanHomeTokens.greenAccent,
+                                color: tokens.greenAccent,
                               ),
                             ),
                           ),
@@ -571,9 +585,9 @@ class _JournalSearchScreenState extends ConsumerState<JournalSearchScreen> {
                             const SizedBox(width: 6),
                             Text(
                               '${item.readTimeMinutes} phút đọc',
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 11,
-                                color: SamanHomeTokens.textSecondary,
+                                color: tokens.textSecondary,
                               ),
                             ),
                           ],
@@ -588,19 +602,19 @@ class _JournalSearchScreenState extends ConsumerState<JournalSearchScreen> {
                             item.title,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 14.5,
                               fontWeight: FontWeight.w600,
-                              color: SamanHomeTokens.textWhite,
+                              color: tokens.textWhite,
                             ),
                           ),
                         ),
                         if (item.isVerified) ...[
                           const SizedBox(width: 4),
-                          const Icon(
+                          Icon(
                             Icons.verified_rounded,
                             size: 14,
-                            color: SamanHomeTokens.greenAccent,
+                            color: tokens.greenAccent,
                           ),
                         ],
                       ],
@@ -610,9 +624,9 @@ class _JournalSearchScreenState extends ConsumerState<JournalSearchScreen> {
                       item.subtitle,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 12,
-                        color: SamanHomeTokens.textSecondary,
+                        color: tokens.textSecondary,
                       ),
                     ),
                     if (item.metricText != null &&
@@ -620,10 +634,10 @@ class _JournalSearchScreenState extends ConsumerState<JournalSearchScreen> {
                       const SizedBox(height: 4),
                       Text(
                         item.metricText!,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 11,
                           fontWeight: FontWeight.w500,
-                          color: SamanHomeTokens.greenAccent,
+                          color: tokens.greenAccent,
                         ),
                       ),
                     ],
@@ -634,7 +648,7 @@ class _JournalSearchScreenState extends ConsumerState<JournalSearchScreen> {
               // Action trailing
               if (item.category == JournalSearchCategory.foods)
                 IconButton(
-                  icon: const Icon(Icons.add_rounded, color: SamanHomeTokens.textWhite),
+                  icon: Icon(Icons.add_rounded, color: tokens.textWhite),
                   tooltip: 'Xem thông tin khẩu phần',
                   onPressed: () {
                     JournalPreviewSheet.show(
@@ -649,9 +663,9 @@ class _JournalSearchScreenState extends ConsumerState<JournalSearchScreen> {
                 )
               else if (item.category == JournalSearchCategory.recipes)
                 IconButton(
-                  icon: const Icon(
+                  icon: Icon(
                     Icons.bookmark_border_rounded,
-                    color: SamanHomeTokens.textSecondary,
+                    color: tokens.textSecondary,
                   ),
                   tooltip: 'Lưu công thức',
                   onPressed: () {
@@ -665,9 +679,9 @@ class _JournalSearchScreenState extends ConsumerState<JournalSearchScreen> {
                   },
                 )
               else
-                const Icon(
+                Icon(
                   Icons.chevron_right_rounded,
-                  color: SamanHomeTokens.textSecondary,
+                  color: tokens.textSecondary,
                   size: 20,
                 ),
             ],
@@ -677,14 +691,14 @@ class _JournalSearchScreenState extends ConsumerState<JournalSearchScreen> {
     );
   }
 
-  Widget _buildAdviceTipCard(JournalAdviceTip tip) {
+  Widget _buildAdviceTipCard(JournalAdviceTip tip, SamanHomePalette tokens) {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: SamanHomeTokens.cardSurfaceElevated,
+        color: tokens.cardSurfaceElevated,
         borderRadius: BorderRadius.circular(SamanHomeTokens.radiusLg),
         border: Border.all(
-          color: SamanHomeTokens.borderSubtle,
+          color: tokens.borderSubtle,
           width: 1,
         ),
       ),
@@ -695,14 +709,14 @@ class _JournalSearchScreenState extends ConsumerState<JournalSearchScreen> {
             width: 32,
             height: 32,
             decoration: BoxDecoration(
-              color: SamanHomeTokens.greenBadgeBg,
+              color: tokens.greenBadgeBg,
               shape: BoxShape.circle,
-              border: Border.all(color: SamanHomeTokens.greenBadgeBorder),
+              border: Border.all(color: tokens.greenBadgeBorder),
             ),
             child: Icon(
               tip.icon,
               size: 16,
-              color: SamanHomeTokens.greenAccent,
+              color: tokens.greenAccent,
             ),
           ),
           const SizedBox(width: 12),
@@ -712,18 +726,18 @@ class _JournalSearchScreenState extends ConsumerState<JournalSearchScreen> {
               children: [
                 Text(
                   tip.title,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w700,
-                    color: SamanHomeTokens.textWhite,
+                    color: tokens.textWhite,
                   ),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   tip.content,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 12.5,
-                    color: SamanHomeTokens.textSecondary,
+                    color: tokens.textSecondary,
                     height: 1.4,
                   ),
                 ),

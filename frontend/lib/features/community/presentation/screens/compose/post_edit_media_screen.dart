@@ -35,6 +35,7 @@ class _PostEditMediaScreenState extends ConsumerState<PostEditMediaScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = SamanHomeTokens.of(context);
     final composer = ref.watch(communityComposerProvider);
     final notifier = ref.read(communityComposerProvider.notifier);
 
@@ -48,13 +49,13 @@ class _PostEditMediaScreenState extends ConsumerState<PostEditMediaScreen> {
         : (composer.aspectRatio == 'orig' ? 1.2 : 1.0);
 
     return Scaffold(
-      backgroundColor: const Color(0xFF121314),
+      backgroundColor: tokens.canvas,
       body: SafeArea(
         bottom: false,
         child: Column(
           children: [
             // Header
-            _buildAppBar(context),
+            _buildAppBar(context, tokens),
 
             // Main Preview Frame
             Expanded(
@@ -84,13 +85,13 @@ class _PostEditMediaScreenState extends ConsumerState<PostEditMediaScreen> {
                                     activeUrl,
                                     fit: BoxFit.cover,
                                     errorBuilder: (_, __, ___) => Container(
-                                      color: const Color(0xFF1E1F21),
+                                      color: tokens.cardSurface,
                                     ),
                                   ),
                                 ),
                               ),
                               if (composer.isGridOverlayVisible)
-                                _buildGridOverlay(),
+                                _buildGridOverlay(tokens),
                             ],
                           ),
                         ),
@@ -100,40 +101,40 @@ class _PostEditMediaScreenState extends ConsumerState<PostEditMediaScreen> {
 
                     // Thumbnail Strip (if multiple photos)
                     if (selectedUrls.length > 1) ...[
-                      _buildThumbnailStrip(composer, notifier),
+                      _buildThumbnailStrip(composer, notifier, tokens),
                       const SizedBox(height: 12),
                     ],
 
                     // Ratio & Rotate Controls
-                    _buildRatioAndRotateBar(composer, notifier),
+                    _buildRatioAndRotateBar(composer, notifier, tokens),
                     const SizedBox(height: 12),
 
                     // Lighting Tools
-                    _buildLightingControls(composer, notifier),
+                    _buildLightingControls(composer, notifier, tokens),
                     const SizedBox(height: 12),
 
                     // Data Honesty Notice: Media Adjustments Preview Only
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                       decoration: BoxDecoration(
-                        color: const Color(0xFF1E1F21),
+                        color: tokens.cardSurface,
                         borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: const Color(0xFF2E3033)),
+                        border: Border.all(color: tokens.border),
                       ),
-                      child: const Row(
+                      child: Row(
                         children: [
                           Icon(
                             Icons.info_outline_rounded,
                             size: 15,
-                            color: Color(0xFFBBCAAF),
+                            color: tokens.textSecondary,
                           ),
-                          SizedBox(width: 8),
+                          const SizedBox(width: 8),
                           Expanded(
                             child: Text(
                               'Bộ lọc và xoay ảnh hiển thị trực quan trong trình soạn thảo; tệp gốc không bị can thiệp biến đổi.',
                               style: TextStyle(
                                 fontSize: 11,
-                                color: Color(0xFFBBCAAF),
+                                color: tokens.textSecondary,
                                 height: 1.3,
                               ),
                             ),
@@ -144,7 +145,7 @@ class _PostEditMediaScreenState extends ConsumerState<PostEditMediaScreen> {
                     const SizedBox(height: 12),
 
                     // Footer utility
-                    _buildFooterUtility(composer, notifier),
+                    _buildFooterUtility(composer, notifier, tokens),
                     const SizedBox(height: 24),
                   ],
                 ),
@@ -156,14 +157,14 @@ class _PostEditMediaScreenState extends ConsumerState<PostEditMediaScreen> {
     );
   }
 
-  Widget _buildAppBar(BuildContext context) {
+  Widget _buildAppBar(BuildContext context, SamanHomePalette tokens) {
     return Container(
       height: 52,
       padding: const EdgeInsets.symmetric(horizontal: 16),
-      decoration: const BoxDecoration(
-        color: Color(0xFF121314),
+      decoration: BoxDecoration(
+        color: tokens.canvas,
         border: Border(
-          bottom: BorderSide(color: Color(0xFF1F2021), width: 1),
+          bottom: BorderSide(color: tokens.border, width: 1),
         ),
       ),
       child: Row(
@@ -171,28 +172,28 @@ class _PostEditMediaScreenState extends ConsumerState<PostEditMediaScreen> {
         children: [
           IconButton(
             onPressed: () => Navigator.pop(context),
-            icon: const Icon(
+            icon: Icon(
               Icons.arrow_back_rounded,
-              color: SamanHomeTokens.textWhite,
+              color: tokens.textPrimary,
               size: 22,
             ),
           ),
-          const Text(
+          Text(
             'Chỉnh ảnh',
             style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w700,
-              color: SamanHomeTokens.textWhite,
+              color: tokens.textPrimary,
             ),
           ),
           TextButton(
             onPressed: _onNext,
-            child: const Text(
+            child: Text(
               'Tiếp',
               style: TextStyle(
                 fontSize: 15,
                 fontWeight: FontWeight.w600,
-                color: SamanHomeTokens.greenAccent,
+                color: tokens.greenAccent,
               ),
             ),
           ),
@@ -201,12 +202,12 @@ class _PostEditMediaScreenState extends ConsumerState<PostEditMediaScreen> {
     );
   }
 
-  Widget _buildGridOverlay() {
+  Widget _buildGridOverlay(SamanHomePalette tokens) {
     return IgnorePointer(
       child: Container(
         decoration: BoxDecoration(
           border: Border.all(
-            color: SamanHomeTokens.greenAccent.withOpacity(0.3),
+            color: tokens.greenAccent.withOpacity(0.3),
             width: 1,
           ),
         ),
@@ -220,10 +221,10 @@ class _PostEditMediaScreenState extends ConsumerState<PostEditMediaScreen> {
                       decoration: BoxDecoration(
                         border: Border(
                           right: BorderSide(
-                            color: SamanHomeTokens.greenAccent.withOpacity(0.25),
+                            color: tokens.greenAccent.withOpacity(0.25),
                           ),
                           bottom: BorderSide(
-                            color: SamanHomeTokens.greenAccent.withOpacity(0.25),
+                            color: tokens.greenAccent.withOpacity(0.25),
                           ),
                         ),
                       ),
@@ -234,10 +235,10 @@ class _PostEditMediaScreenState extends ConsumerState<PostEditMediaScreen> {
                       decoration: BoxDecoration(
                         border: Border(
                           right: BorderSide(
-                            color: SamanHomeTokens.greenAccent.withOpacity(0.25),
+                            color: tokens.greenAccent.withOpacity(0.25),
                           ),
                           bottom: BorderSide(
-                            color: SamanHomeTokens.greenAccent.withOpacity(0.25),
+                            color: tokens.greenAccent.withOpacity(0.25),
                           ),
                         ),
                       ),
@@ -248,7 +249,7 @@ class _PostEditMediaScreenState extends ConsumerState<PostEditMediaScreen> {
                       decoration: BoxDecoration(
                         border: Border(
                           bottom: BorderSide(
-                            color: SamanHomeTokens.greenAccent.withOpacity(0.25),
+                            color: tokens.greenAccent.withOpacity(0.25),
                           ),
                         ),
                       ),
@@ -265,10 +266,10 @@ class _PostEditMediaScreenState extends ConsumerState<PostEditMediaScreen> {
                       decoration: BoxDecoration(
                         border: Border(
                           right: BorderSide(
-                            color: SamanHomeTokens.greenAccent.withOpacity(0.25),
+                            color: tokens.greenAccent.withOpacity(0.25),
                           ),
                           bottom: BorderSide(
-                            color: SamanHomeTokens.greenAccent.withOpacity(0.25),
+                            color: tokens.greenAccent.withOpacity(0.25),
                           ),
                         ),
                       ),
@@ -279,10 +280,10 @@ class _PostEditMediaScreenState extends ConsumerState<PostEditMediaScreen> {
                       decoration: BoxDecoration(
                         border: Border(
                           right: BorderSide(
-                            color: SamanHomeTokens.greenAccent.withOpacity(0.25),
+                            color: tokens.greenAccent.withOpacity(0.25),
                           ),
                           bottom: BorderSide(
-                            color: SamanHomeTokens.greenAccent.withOpacity(0.25),
+                            color: tokens.greenAccent.withOpacity(0.25),
                           ),
                         ),
                       ),
@@ -293,7 +294,7 @@ class _PostEditMediaScreenState extends ConsumerState<PostEditMediaScreen> {
                       decoration: BoxDecoration(
                         border: Border(
                           bottom: BorderSide(
-                            color: SamanHomeTokens.greenAccent.withOpacity(0.25),
+                            color: tokens.greenAccent.withOpacity(0.25),
                           ),
                         ),
                       ),
@@ -310,7 +311,7 @@ class _PostEditMediaScreenState extends ConsumerState<PostEditMediaScreen> {
                       decoration: BoxDecoration(
                         border: Border(
                           right: BorderSide(
-                            color: SamanHomeTokens.greenAccent.withOpacity(0.25),
+                            color: tokens.greenAccent.withOpacity(0.25),
                           ),
                         ),
                       ),
@@ -321,7 +322,7 @@ class _PostEditMediaScreenState extends ConsumerState<PostEditMediaScreen> {
                       decoration: BoxDecoration(
                         border: Border(
                           right: BorderSide(
-                            color: SamanHomeTokens.greenAccent.withOpacity(0.25),
+                            color: tokens.greenAccent.withOpacity(0.25),
                           ),
                         ),
                       ),
@@ -340,11 +341,12 @@ class _PostEditMediaScreenState extends ConsumerState<PostEditMediaScreen> {
   Widget _buildThumbnailStrip(
     CommunityComposerState composer,
     CommunityComposerNotifier notifier,
+    SamanHomePalette tokens,
   ) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
       decoration: BoxDecoration(
-        color: const Color(0xFF1F2021),
+        color: tokens.cardSurface,
         borderRadius: BorderRadius.circular(12),
       ),
       child: Row(
@@ -365,7 +367,7 @@ class _PostEditMediaScreenState extends ConsumerState<PostEditMediaScreen> {
                         borderRadius: BorderRadius.circular(8),
                         border: Border.all(
                           color: isCurrent
-                              ? SamanHomeTokens.greenAccent
+                              ? tokens.greenAccent
                               : Colors.transparent,
                           width: 2,
                         ),
@@ -385,10 +387,10 @@ class _PostEditMediaScreenState extends ConsumerState<PostEditMediaScreen> {
           ),
           Text(
             '${composer.activeMediaIndex + 1}/${composer.selectedMediaUrls.length}',
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w600,
-              color: SamanHomeTokens.greenAccent,
+              color: tokens.greenAccent,
             ),
           ),
         ],
@@ -399,11 +401,12 @@ class _PostEditMediaScreenState extends ConsumerState<PostEditMediaScreen> {
   Widget _buildRatioAndRotateBar(
     CommunityComposerState composer,
     CommunityComposerNotifier notifier,
+    SamanHomePalette tokens,
   ) {
     return Container(
       padding: const EdgeInsets.all(6),
       decoration: BoxDecoration(
-        color: const Color(0xFF1F2021),
+        color: tokens.cardSurface,
         borderRadius: BorderRadius.circular(12),
       ),
       child: Row(
@@ -415,25 +418,28 @@ class _PostEditMediaScreenState extends ConsumerState<PostEditMediaScreen> {
                   label: 'Gốc',
                   isActive: composer.aspectRatio == 'orig',
                   onTap: () => notifier.setAspectRatio('orig'),
+                  tokens: tokens,
                 ),
                 _buildRatioButton(
                   label: 'Vuông',
                   isActive: composer.aspectRatio == '1:1',
                   onTap: () => notifier.setAspectRatio('1:1'),
+                  tokens: tokens,
                 ),
                 _buildRatioButton(
                   label: 'Dọc (4:5)',
                   isActive: composer.aspectRatio == '4:5',
                   onTap: () => notifier.setAspectRatio('4:5'),
+                  tokens: tokens,
                 ),
               ],
             ),
           ),
           IconButton(
             onPressed: () => notifier.rotate(),
-            icon: const Icon(
+            icon: Icon(
               Icons.rotate_90_degrees_cw_rounded,
-              color: Color(0xFFBBCAAF),
+              color: tokens.textSecondary,
               size: 20,
             ),
             tooltip: 'Xoay 90°',
@@ -447,6 +453,7 @@ class _PostEditMediaScreenState extends ConsumerState<PostEditMediaScreen> {
     required String label,
     required bool isActive,
     required VoidCallback onTap,
+    required SamanHomePalette tokens,
   }) {
     return Expanded(
       child: InkWell(
@@ -455,11 +462,11 @@ class _PostEditMediaScreenState extends ConsumerState<PostEditMediaScreen> {
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: 8),
           decoration: BoxDecoration(
-            color: isActive ? const Color(0xFF292A2B) : Colors.transparent,
+            color: isActive ? tokens.secondarySurface : Colors.transparent,
             borderRadius: BorderRadius.circular(8),
             border: Border.all(
               color: isActive
-                  ? SamanHomeTokens.greenAccent.withOpacity(0.4)
+                  ? tokens.greenAccent.withOpacity(0.4)
                   : Colors.transparent,
             ),
           ),
@@ -470,8 +477,8 @@ class _PostEditMediaScreenState extends ConsumerState<PostEditMediaScreen> {
               fontSize: 12,
               fontWeight: isActive ? FontWeight.w600 : FontWeight.w400,
               color: isActive
-                  ? SamanHomeTokens.greenAccent
-                  : const Color(0xFFBBCAAF),
+                  ? tokens.greenAccent
+                  : tokens.textSecondary,
             ),
           ),
         ),
@@ -482,17 +489,18 @@ class _PostEditMediaScreenState extends ConsumerState<PostEditMediaScreen> {
   Widget _buildLightingControls(
     CommunityComposerState composer,
     CommunityComposerNotifier notifier,
+    SamanHomePalette tokens,
   ) {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: const Color(0xFF1F2021),
+        color: tokens.cardSurface,
         borderRadius: BorderRadius.circular(14),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Row(
+          Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Expanded(
@@ -502,7 +510,7 @@ class _PostEditMediaScreenState extends ConsumerState<PostEditMediaScreen> {
                   style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w600,
-                    color: SamanHomeTokens.textWhite,
+                    color: tokens.textPrimary,
                   ),
                 ),
               ),
@@ -510,7 +518,7 @@ class _PostEditMediaScreenState extends ConsumerState<PostEditMediaScreen> {
                 'Tự nhiên',
                 style: TextStyle(
                   fontSize: 11,
-                  color: Color(0xFFBBCAAF),
+                  color: tokens.textSecondary,
                 ),
               ),
             ],
@@ -519,17 +527,17 @@ class _PostEditMediaScreenState extends ConsumerState<PostEditMediaScreen> {
           // Brightness slider
           Row(
             children: [
-              const Icon(
+              Icon(
                 Icons.light_mode_rounded,
                 size: 16,
-                color: Color(0xFFBBCAAF),
+                color: tokens.textSecondary,
               ),
               const SizedBox(width: 6),
-              const SizedBox(
+              SizedBox(
                 width: 65,
                 child: Text(
                   'Độ sáng',
-                  style: TextStyle(fontSize: 12, color: Color(0xFFBBCAAF)),
+                  style: TextStyle(fontSize: 12, color: tokens.textSecondary),
                 ),
               ),
               Expanded(
@@ -545,8 +553,8 @@ class _PostEditMediaScreenState extends ConsumerState<PostEditMediaScreen> {
                     value: composer.brightness,
                     min: -50,
                     max: 50,
-                    activeColor: SamanHomeTokens.greenAccent,
-                    inactiveColor: const Color(0xFF343536),
+                    activeColor: tokens.greenAccent,
+                    inactiveColor: tokens.secondarySurface,
                     onChanged: (v) => notifier.setBrightness(v),
                   ),
                 ),
@@ -556,9 +564,9 @@ class _PostEditMediaScreenState extends ConsumerState<PostEditMediaScreen> {
                 child: Text(
                   '${composer.brightness.round()}',
                   textAlign: TextAlign.end,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 11,
-                    color: Color(0xFFBBCAAF),
+                    color: tokens.textSecondary,
                   ),
                 ),
               ),
@@ -567,17 +575,17 @@ class _PostEditMediaScreenState extends ConsumerState<PostEditMediaScreen> {
           // Contrast slider
           Row(
             children: [
-              const Icon(
+              Icon(
                 Icons.contrast_rounded,
                 size: 16,
-                color: Color(0xFFBBCAAF),
+                color: tokens.textSecondary,
               ),
               const SizedBox(width: 6),
-              const SizedBox(
+              SizedBox(
                 width: 65,
                 child: Text(
                   'Tương phản',
-                  style: TextStyle(fontSize: 12, color: Color(0xFFBBCAAF)),
+                  style: TextStyle(fontSize: 12, color: tokens.textSecondary),
                 ),
               ),
               Expanded(
@@ -593,8 +601,8 @@ class _PostEditMediaScreenState extends ConsumerState<PostEditMediaScreen> {
                     value: composer.contrast,
                     min: -50,
                     max: 50,
-                    activeColor: SamanHomeTokens.greenAccent,
-                    inactiveColor: const Color(0xFF343536),
+                    activeColor: tokens.greenAccent,
+                    inactiveColor: tokens.secondarySurface,
                     onChanged: (v) => notifier.setContrast(v),
                   ),
                 ),
@@ -604,9 +612,9 @@ class _PostEditMediaScreenState extends ConsumerState<PostEditMediaScreen> {
                 child: Text(
                   '${composer.contrast.round()}',
                   textAlign: TextAlign.end,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 11,
-                    color: Color(0xFFBBCAAF),
+                    color: tokens.textSecondary,
                   ),
                 ),
               ),
@@ -620,20 +628,21 @@ class _PostEditMediaScreenState extends ConsumerState<PostEditMediaScreen> {
   Widget _buildFooterUtility(
     CommunityComposerState composer,
     CommunityComposerNotifier notifier,
+    SamanHomePalette tokens,
   ) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         TextButton.icon(
           onPressed: () => notifier.resetAdjustments(),
-          icon: const Icon(
+          icon: Icon(
             Icons.restart_alt_rounded,
             size: 16,
-            color: Color(0xFFBBCAAF),
+            color: tokens.textSecondary,
           ),
-          label: const Text(
+          label: Text(
             'Đặt lại',
-            style: TextStyle(fontSize: 12, color: Color(0xFFBBCAAF)),
+            style: TextStyle(fontSize: 12, color: tokens.textSecondary),
           ),
         ),
         TextButton.icon(
@@ -644,16 +653,16 @@ class _PostEditMediaScreenState extends ConsumerState<PostEditMediaScreen> {
                 : Icons.grid_off_rounded,
             size: 16,
             color: composer.isGridOverlayVisible
-                ? SamanHomeTokens.greenAccent
-                : const Color(0xFFBBCAAF),
+                ? tokens.greenAccent
+                : tokens.textSecondary,
           ),
           label: Text(
             'Lưới căn chỉnh',
             style: TextStyle(
               fontSize: 12,
               color: composer.isGridOverlayVisible
-                  ? SamanHomeTokens.greenAccent
-                  : const Color(0xFFBBCAAF),
+                  ? tokens.greenAccent
+                  : tokens.textSecondary,
             ),
           ),
         ),

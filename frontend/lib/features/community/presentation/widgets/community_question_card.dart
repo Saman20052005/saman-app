@@ -14,13 +14,14 @@ class CommunityQuestionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = SamanHomeTokens.of(context);
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFF1F2021),
+        color: tokens.cardSurface,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: const Color(0xFF343536),
+          color: tokens.border,
         ),
       ),
       child: Column(
@@ -29,21 +30,21 @@ class CommunityQuestionCard extends StatelessWidget {
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Padding(
-                padding: EdgeInsets.only(top: 2, right: 8),
+              Padding(
+                padding: const EdgeInsets.only(top: 2, right: 8),
                 child: Icon(
                   Icons.help_outline_rounded,
                   size: 22,
-                  color: SamanHomeTokens.greenAccent,
+                  color: tokens.greenAccent,
                 ),
               ),
               Expanded(
                 child: Text(
                   qaInfo.question,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 17,
                     fontWeight: FontWeight.w700,
-                    color: SamanHomeTokens.textWhite,
+                    color: tokens.textPrimary,
                     height: 1.3,
                   ),
                 ),
@@ -54,9 +55,9 @@ class CommunityQuestionCard extends StatelessWidget {
             const SizedBox(height: 8),
             Text(
               qaInfo.details!,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 14,
-                color: Color(0xFFBBCAAF),
+                color: tokens.textSecondary,
                 height: 1.45,
               ),
             ),
@@ -66,19 +67,19 @@ class CommunityQuestionCard extends StatelessWidget {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
             decoration: BoxDecoration(
-              color: const Color(0xFF292A2B).withOpacity(0.6),
+              color: tokens.secondarySurface.withOpacity(0.6),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Row(
               children: [
-                _buildAvatarStack(qaInfo.respondentInitials),
+                _buildAvatarStack(qaInfo.respondentInitials, tokens),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
                     qaInfo.respondentsSummary,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 12,
-                      color: Color(0xFFBBCAAF),
+                      color: tokens.textSecondary,
                     ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
@@ -92,7 +93,7 @@ class CommunityQuestionCard extends StatelessWidget {
     );
   }
 
-  Widget _buildAvatarStack(List<String> initials) {
+  Widget _buildAvatarStack(List<String> initials, SamanHomePalette tokens) {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: initials.take(3).map((initial) {
@@ -103,10 +104,10 @@ class CommunityQuestionCard extends StatelessWidget {
           decoration: BoxDecoration(
             shape: BoxShape.circle,
             color: initial.startsWith('+')
-                ? const Color(0xFF39393A)
-                : const Color(0xFF10B981).withOpacity(0.2),
+                ? tokens.secondarySurface
+                : tokens.greenAccent.withOpacity(0.2),
             border: Border.all(
-              color: const Color(0xFF121314),
+              color: tokens.canvas,
               width: 1.5,
             ),
           ),
@@ -117,8 +118,8 @@ class CommunityQuestionCard extends StatelessWidget {
                 fontSize: 9,
                 fontWeight: FontWeight.bold,
                 color: initial.startsWith('+')
-                    ? Colors.white
-                    : SamanHomeTokens.greenAccent,
+                    ? tokens.textPrimary
+                    : tokens.greenAccent,
               ),
             ),
           ),

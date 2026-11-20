@@ -16,6 +16,7 @@ class JournalTopicChips extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = SamanHomeTokens.of(context);
     const topics = [
       JournalTopic.workout,
       JournalTopic.nutrition,
@@ -41,13 +42,17 @@ class JournalTopicChips extends StatelessWidget {
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                   decoration: BoxDecoration(
                     color: isSelected
-                        ? const Color(0xFF1F2021)
-                        : SamanHomeTokens.cardSurface,
+                        ? (tokens.isDark
+                            ? const Color(0xFF1F2021)
+                            : tokens.greenAccent)
+                        : tokens.cardSurface,
                     borderRadius: BorderRadius.circular(SamanHomeTokens.radiusSm),
                     border: Border.all(
                       color: isSelected
-                          ? SamanHomeTokens.greenAccent.withOpacity(0.5)
-                          : SamanHomeTokens.borderSubtle,
+                          ? (tokens.isDark
+                              ? tokens.greenAccent.withOpacity(0.5)
+                              : tokens.greenAccent)
+                          : tokens.borderSubtle,
                       width: 1,
                     ),
                   ),
@@ -57,8 +62,10 @@ class JournalTopicChips extends StatelessWidget {
                       fontSize: 12.5,
                       fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
                       color: isSelected
-                          ? SamanHomeTokens.greenAccent
-                          : SamanHomeTokens.textSecondary,
+                          ? (tokens.isDark
+                              ? tokens.greenAccent
+                              : const Color(0xFFFFFFFF))
+                          : tokens.textSecondary,
                     ),
                   ),
                 ),

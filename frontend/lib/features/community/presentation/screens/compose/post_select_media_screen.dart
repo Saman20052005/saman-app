@@ -141,51 +141,52 @@ class _PostSelectMediaScreenState extends ConsumerState<PostSelectMediaScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = SamanHomeTokens.of(context);
     return Scaffold(
-      backgroundColor: const Color(0xFF121314),
+      backgroundColor: tokens.canvas,
       body: SafeArea(
         bottom: false,
         child: Column(
           children: [
             // Top Navigation Bar
-            _buildAppBar(context),
+            _buildAppBar(context, tokens),
 
             // Honest Preview Notice Banner
-            _buildPreviewNoticeBanner(),
+            _buildPreviewNoticeBanner(tokens),
 
             // Top Viewport: Large Media Preview
-            _buildMainPreview(),
+            _buildMainPreview(tokens),
 
             // Control Strip (Album & Multi-select)
-            _buildControlStrip(),
+            _buildControlStrip(tokens),
 
             // 3-Column Media Grid
             Expanded(
-              child: _buildMediaGrid(),
+              child: _buildMediaGrid(tokens),
             ),
 
             // Bottom Tray: Text-only post affordance
-            _buildBottomTray(context),
+            _buildBottomTray(context, tokens),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildPreviewNoticeBanner() {
+  Widget _buildPreviewNoticeBanner(SamanHomePalette tokens) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-      color: const Color(0xFF1B1C1D),
-      child: const Row(
+      color: tokens.cardSurface,
+      child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Icon(
             Icons.info_outline_rounded,
             size: 13,
-            color: SamanHomeTokens.greenAccent,
+            color: tokens.greenAccent,
           ),
-          SizedBox(width: 6),
+          const SizedBox(width: 6),
           Flexible(
             child: Text(
               'Bản xem trước giao diện • Thư viện ảnh mẫu',
@@ -193,7 +194,7 @@ class _PostSelectMediaScreenState extends ConsumerState<PostSelectMediaScreen> {
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
                 fontSize: 11,
-                color: Color(0xFFBBCAAF),
+                color: tokens.textSecondary,
                 fontWeight: FontWeight.w500,
               ),
             ),
@@ -203,14 +204,14 @@ class _PostSelectMediaScreenState extends ConsumerState<PostSelectMediaScreen> {
     );
   }
 
-  Widget _buildAppBar(BuildContext context) {
+  Widget _buildAppBar(BuildContext context, SamanHomePalette tokens) {
     return Container(
       height: 54,
       padding: const EdgeInsets.symmetric(horizontal: 16),
-      decoration: const BoxDecoration(
-        color: Color(0xFF121314),
+      decoration: BoxDecoration(
+        color: tokens.canvas,
         border: Border(
-          bottom: BorderSide(color: Color(0xFF1F2021), width: 1),
+          bottom: BorderSide(color: tokens.border, width: 1),
         ),
       ),
       child: Row(
@@ -218,9 +219,9 @@ class _PostSelectMediaScreenState extends ConsumerState<PostSelectMediaScreen> {
         children: [
           IconButton(
             onPressed: _handleClose,
-            icon: const Icon(
+            icon: Icon(
               Icons.close_rounded,
-              color: SamanHomeTokens.textWhite,
+              color: tokens.textPrimary,
               size: 24,
             ),
           ),
@@ -240,10 +241,10 @@ class _PostSelectMediaScreenState extends ConsumerState<PostSelectMediaScreen> {
               ),
               Text(
                 context.tr('select_media_title'),
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w700,
-                  color: SamanHomeTokens.textWhite,
+                  color: tokens.textPrimary,
                   letterSpacing: -0.2,
                 ),
               ),
@@ -253,10 +254,10 @@ class _PostSelectMediaScreenState extends ConsumerState<PostSelectMediaScreen> {
             onPressed: _onNext,
             child: Text(
               Localizations.maybeLocaleOf(context)?.languageCode == 'en' ? 'Next' : 'Tiếp',
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 15,
                 fontWeight: FontWeight.w600,
-                color: SamanHomeTokens.greenAccent,
+                color: tokens.greenAccent,
               ),
             ),
           ),
@@ -265,33 +266,33 @@ class _PostSelectMediaScreenState extends ConsumerState<PostSelectMediaScreen> {
     );
   }
 
-  Widget _buildPreviewImageWidget(String url) {
+  Widget _buildPreviewImageWidget(String url, SamanHomePalette tokens) {
     if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('/static/')) {
       return Image.network(
         url,
         fit: BoxFit.cover,
-        errorBuilder: (_, __, ___) => _buildImagePlaceholder(),
+        errorBuilder: (_, __, ___) => _buildImagePlaceholder(tokens),
       );
     }
     final file = File(url);
     if (file.existsSync()) {
       return Image.file(file, fit: BoxFit.cover);
     }
-    return _buildImagePlaceholder();
+    return _buildImagePlaceholder(tokens);
   }
 
-  Widget _buildImagePlaceholder() {
+  Widget _buildImagePlaceholder(SamanHomePalette tokens) {
     return Container(
-      color: const Color(0xFF1E1F21),
-      child: const Icon(
+      color: tokens.cardSurface,
+      child: Icon(
         Icons.image_outlined,
         size: 48,
-        color: Color(0xFFBBCAAF),
+        color: tokens.textSecondary,
       ),
     );
   }
 
-  Widget _buildMainPreview() {
+  Widget _buildMainPreview(SamanHomePalette tokens) {
     final double aspectRatioValue = _aspectRatio == '4:5' ? (4 / 5) : 1.0;
 
     return AspectRatio(
@@ -299,7 +300,7 @@ class _PostSelectMediaScreenState extends ConsumerState<PostSelectMediaScreen> {
       child: Stack(
         fit: StackFit.expand,
         children: [
-          _buildPreviewImageWidget(_activePreviewUrl),
+          _buildPreviewImageWidget(_activePreviewUrl, tokens),
           // Gradient shadow
           Positioned(
             bottom: 0,
@@ -319,7 +320,7 @@ class _PostSelectMediaScreenState extends ConsumerState<PostSelectMediaScreen> {
               ),
             ),
           ),
-          // Aspect Ratio Toggle Pill
+          // Aspect Ratio Toggle Pill (dark translucent overlay kept for image contrast)
           Positioned(
             bottom: 12,
             left: 12,
@@ -343,7 +344,7 @@ class _PostSelectMediaScreenState extends ConsumerState<PostSelectMediaScreen> {
                     const Icon(
                       Icons.crop_rounded,
                       size: 14,
-                      color: SamanHomeTokens.greenAccent,
+                      color: Color(0xFF5BBFA0),
                     ),
                     const SizedBox(width: 4),
                     Text(
@@ -351,7 +352,7 @@ class _PostSelectMediaScreenState extends ConsumerState<PostSelectMediaScreen> {
                       style: const TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w600,
-                        color: SamanHomeTokens.textWhite,
+                        color: Colors.white,
                       ),
                     ),
                   ],
@@ -364,29 +365,29 @@ class _PostSelectMediaScreenState extends ConsumerState<PostSelectMediaScreen> {
     );
   }
 
-  Widget _buildControlStrip() {
+  Widget _buildControlStrip(SamanHomePalette tokens) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      color: const Color(0xFF1A1B1C),
+      color: tokens.cardSurface,
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Row(
             children: [
-              const Text(
+              Text(
                 'Gần đây',
                 style: TextStyle(
                   fontSize: 15,
                   fontWeight: FontWeight.w700,
-                  color: SamanHomeTokens.textWhite,
+                  color: tokens.textPrimary,
                 ),
               ),
               const SizedBox(width: 4),
               IconButton(
                 key: const ValueKey('gallery-picker-button'),
-                icon: const Icon(
+                icon: Icon(
                   Icons.photo_library_outlined,
-                  color: Color(0xFFBBCAAF),
+                  color: tokens.textSecondary,
                   size: 20,
                 ),
                 padding: EdgeInsets.zero,
@@ -412,27 +413,27 @@ class _PostSelectMediaScreenState extends ConsumerState<PostSelectMediaScreen> {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
               decoration: BoxDecoration(
-                color: const Color(0xFF292A2B),
+                color: tokens.secondarySurface,
                 borderRadius: BorderRadius.circular(16),
                 border: Border.all(
-                  color: const Color(0xFF343536),
+                  color: tokens.border,
                 ),
               ),
-              child: const Row(
+              child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Icon(
                     Icons.photo_library_outlined,
                     size: 14,
-                    color: Color(0xFFBBCAAF),
+                    color: tokens.textSecondary,
                   ),
-                  SizedBox(width: 6),
+                  const SizedBox(width: 6),
                   Text(
                     'Chọn nhiều',
                     style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w600,
-                      color: Color(0xFFBBCAAF),
+                      color: tokens.textSecondary,
                     ),
                   ),
                 ],
@@ -444,7 +445,7 @@ class _PostSelectMediaScreenState extends ConsumerState<PostSelectMediaScreen> {
     );
   }
 
-  Widget _buildMediaGrid() {
+  Widget _buildMediaGrid(SamanHomePalette tokens) {
     return GridView.builder(
       padding: const EdgeInsets.all(2),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
@@ -468,21 +469,21 @@ class _PostSelectMediaScreenState extends ConsumerState<PostSelectMediaScreen> {
               );
             },
             child: Container(
-              color: const Color(0xFF1E1F21),
-              child: const Column(
+              color: tokens.cardSurface,
+              child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Icon(
                     Icons.photo_camera_rounded,
-                    color: SamanHomeTokens.greenAccent,
+                    color: tokens.greenAccent,
                     size: 26,
                   ),
-                  SizedBox(height: 4),
+                  const SizedBox(height: 4),
                   Text(
                     'Chụp ảnh',
                     style: TextStyle(
                       fontSize: 11,
-                      color: Color(0xFFBBCAAF),
+                      color: tokens.textSecondary,
                       fontWeight: FontWeight.w500,
                     ),
                   ),
@@ -505,12 +506,12 @@ class _PostSelectMediaScreenState extends ConsumerState<PostSelectMediaScreen> {
                 url,
                 fit: BoxFit.cover,
                 errorBuilder: (_, __, ___) => Container(
-                  color: const Color(0xFF292A2B),
+                  color: tokens.secondarySurface,
                 ),
               ),
               if (isSelected)
                 Container(
-                  color: SamanHomeTokens.greenAccent.withOpacity(0.25),
+                  color: tokens.greenAccent.withOpacity(0.25),
                 ),
               Positioned(
                 top: 6,
@@ -521,7 +522,7 @@ class _PostSelectMediaScreenState extends ConsumerState<PostSelectMediaScreen> {
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     color: isSelected
-                        ? SamanHomeTokens.greenAccent
+                        ? tokens.greenAccent
                         : Colors.black.withOpacity(0.4),
                     border: Border.all(
                       color: isSelected
@@ -534,10 +535,12 @@ class _PostSelectMediaScreenState extends ConsumerState<PostSelectMediaScreen> {
                       ? Center(
                           child: Text(
                             '$selectionIndex',
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 11,
                               fontWeight: FontWeight.w700,
-                              color: Color(0xFF003824),
+                              color: tokens.isDark
+                                  ? const Color(0xFF003824)
+                                  : const Color(0xFFFFFFFF),
                             ),
                           ),
                         )
@@ -551,7 +554,7 @@ class _PostSelectMediaScreenState extends ConsumerState<PostSelectMediaScreen> {
     );
   }
 
-  Widget _buildBottomTray(BuildContext context) {
+  Widget _buildBottomTray(BuildContext context, SamanHomePalette tokens) {
     return Container(
       padding: EdgeInsets.fromLTRB(
         16,
@@ -559,23 +562,23 @@ class _PostSelectMediaScreenState extends ConsumerState<PostSelectMediaScreen> {
         16,
         12 + MediaQuery.paddingOf(context).bottom,
       ),
-      color: const Color(0xFF121314),
+      color: tokens.canvas,
       child: Center(
         child: TextButton.icon(
           onPressed: _onTextOnly,
-          icon: const Icon(
+          icon: Icon(
             Icons.edit_note_rounded,
             size: 18,
-            color: Color(0xFFBBCAAF),
+            color: tokens.textSecondary,
           ),
           label: Text(
             Localizations.maybeLocaleOf(context)?.languageCode == 'en'
                 ? 'Post text-only content'
                 : 'Đăng chỉ với nội dung văn bản',
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 13,
               fontWeight: FontWeight.w500,
-              color: Color(0xFFBBCAAF),
+              color: tokens.textSecondary,
             ),
           ),
         ),

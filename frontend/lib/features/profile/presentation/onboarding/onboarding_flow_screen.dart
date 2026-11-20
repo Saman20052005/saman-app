@@ -198,35 +198,36 @@ class _OnboardingFlowScreenState extends ConsumerState<OnboardingFlowScreen> {
   }
 
   void _showLogoutDialog() {
+    final p = OnboardingTokens.of(context);
     showDialog<void>(
       context: context,
       builder: (dialogContext) {
         return AlertDialog(
-          backgroundColor: OnboardingTokens.surface,
+          backgroundColor: p.surface,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(OnboardingTokens.radiusCard),
-            side: const BorderSide(color: OnboardingTokens.borderDefault),
+            side: BorderSide(color: p.borderDefault),
           ),
-          title: const Text(
+          title: Text(
             'Đăng xuất',
             style: TextStyle(
-              color: OnboardingTokens.textPrimary,
+              color: p.textPrimary,
               fontWeight: FontWeight.w600,
             ),
           ),
-          content: const Text(
+          content: Text(
             'Bạn có chắc chắn muốn đăng xuất không? Bản nháp hiện tại sẽ được lưu trên thiết bị này.',
             style: TextStyle(
-              color: OnboardingTokens.textSecondary,
+              color: p.textSecondary,
               fontSize: 14,
             ),
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(dialogContext).pop(),
-              child: const Text(
+              child: Text(
                 'Hủy',
-                style: TextStyle(color: OnboardingTokens.textSecondary),
+                style: TextStyle(color: p.textSecondary),
               ),
             ),
             ElevatedButton(
@@ -236,8 +237,8 @@ class _OnboardingFlowScreenState extends ConsumerState<OnboardingFlowScreen> {
                 widget.onLogout();
               },
               style: ElevatedButton.styleFrom(
-                backgroundColor: OnboardingTokens.ctaBackground,
-                foregroundColor: Colors.white,
+                backgroundColor: p.ctaBackground,
+                foregroundColor: p.ctaText,
               ),
               child: const Text('Đăng xuất'),
             ),
@@ -288,11 +289,15 @@ class _OnboardingFlowScreenState extends ConsumerState<OnboardingFlowScreen> {
 
       if (widget.onConfirmIntegration != null) {
         widget.onConfirmIntegration!(validatedDraft);
+        final p = OnboardingTokens.of(context);
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Chưa thể lưu lúc này.'),
-            duration: Duration(seconds: 2),
-            backgroundColor: OnboardingTokens.surface,
+          SnackBar(
+            content: Text(
+              'Chưa thể lưu lúc này.',
+              style: TextStyle(color: p.textPrimary),
+            ),
+            duration: const Duration(seconds: 2),
+            backgroundColor: p.surface,
           ),
         );
         return;

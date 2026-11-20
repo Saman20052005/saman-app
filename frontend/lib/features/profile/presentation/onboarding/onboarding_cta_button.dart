@@ -18,18 +18,19 @@ class OnboardingCtaButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final p = OnboardingTokens.of(context);
     return Container(
       width: double.infinity,
       height: OnboardingTokens.ctaHeight,
       decoration: BoxDecoration(
         color: isEnabled
-            ? OnboardingTokens.ctaBackground
-            : OnboardingTokens.ctaDisabledBg.withOpacity(0.6),
+            ? p.ctaBackground
+            : p.ctaDisabledBg.withOpacity(0.6),
         borderRadius: BorderRadius.circular(OnboardingTokens.radiusButton),
         border: Border.all(
           color: isEnabled
-              ? OnboardingTokens.ctaBorder
-              : OnboardingTokens.ctaDisabledBorder,
+              ? p.ctaBorder
+              : p.ctaDisabledBorder,
           width: 1.0,
         ),
       ),
@@ -50,8 +51,8 @@ class OnboardingCtaButton extends StatelessWidget {
                     fontSize: 15,
                     fontWeight: FontWeight.w600,
                     color: isEnabled
-                        ? OnboardingTokens.textPrimary
-                        : OnboardingTokens.textMuted,
+                        ? p.ctaText
+                        : p.textMuted,
                   ),
                 ),
                 const SizedBox(width: 8),
@@ -59,8 +60,8 @@ class OnboardingCtaButton extends StatelessWidget {
                   Icons.arrow_forward,
                   size: 18,
                   color: isEnabled
-                      ? OnboardingTokens.textPrimary
-                      : OnboardingTokens.textMuted,
+                      ? p.ctaText
+                      : p.textMuted,
                 ),
               ],
             ),

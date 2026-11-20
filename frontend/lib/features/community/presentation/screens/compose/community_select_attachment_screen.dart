@@ -121,28 +121,29 @@ class _CommunitySelectAttachmentScreenState
     ref.listen(communityIdentityRevisionProvider, (previous, next) {
       if (previous != null && previous != next) _loadActivities();
     });
+    final tokens = SamanHomeTokens.of(context);
     final activeList = _currentTab == AttachmentType.workout ? _workouts : _meals;
 
     return Scaffold(
-      backgroundColor: const Color(0xFF121314),
+      backgroundColor: tokens.canvas,
       body: SafeArea(
         bottom: false,
         child: Column(
           children: [
             // Header
-            _buildAppBar(context),
+            _buildAppBar(context, tokens),
 
             if (_error != null) ...[
-              Text(context.tr(_error!),style: SamanHomeTokens.headerSubtitle),
-              TextButton(onPressed:_loadActivities,child:Text(context.tr('community_attachment_retry'),style:SamanHomeTokens.linkText)),
+              Text(context.tr(_error!),style: tokens.headerSubtitle),
+              TextButton(onPressed:_loadActivities,child:Text(context.tr('community_attachment_retry'),style: tokens.linkText)),
             ],
             if (_previewLoading) const LinearProgressIndicator(),
             // Main Content Scroll
             Expanded(
               child: _isLoading
-                  ? const Center(
+                  ? Center(
                       child: CircularProgressIndicator(
-                        color: SamanHomeTokens.greenAccent,
+                        color: tokens.greenAccent,
                       ),
                     )
                   : SingleChildScrollView(
@@ -154,20 +155,20 @@ class _CommunitySelectAttachmentScreenState
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           // Tab Switcher
-                          _buildTabSwitcher(),
+                          _buildTabSwitcher(tokens),
                           const SizedBox(height: 16),
 
                           // Activity Selection List
-                          _buildActivityList(activeList),
+                          _buildActivityList(activeList, tokens),
                           const SizedBox(height: 16),
 
                           // Selected Item Preview
                           if (_selectedAttachment != null) ...[
-                            _buildAttachmentPreview(),
+                            _buildAttachmentPreview(tokens),
                             const SizedBox(height: 16),
 
                             // Privacy Settings Accordion
-                            _buildPrivacySettingsAccordion(),
+                            _buildPrivacySettingsAccordion(tokens),
                             const SizedBox(height: 16),
                           ],
                         ],
@@ -176,21 +177,21 @@ class _CommunitySelectAttachmentScreenState
             ),
 
             // Bottom CTA
-            _buildBottomCta(context),
+            _buildBottomCta(context, tokens),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildAppBar(BuildContext context) {
+  Widget _buildAppBar(BuildContext context, SamanHomePalette tokens) {
     return Container(
       height: 52,
       padding: const EdgeInsets.symmetric(horizontal: 16),
-      decoration: const BoxDecoration(
-        color: Color(0xFF121314),
+      decoration: BoxDecoration(
+        color: tokens.canvas,
         border: Border(
-          bottom: BorderSide(color: Color(0xFF1F2021), width: 1),
+          bottom: BorderSide(color: tokens.border, width: 1),
         ),
       ),
       child: Row(
@@ -198,13 +199,13 @@ class _CommunitySelectAttachmentScreenState
         children: [
           IconButton(
             onPressed: () => Navigator.pop(context),
-            icon: const Icon(
+            icon: Icon(
               Icons.arrow_back_rounded,
-              color: SamanHomeTokens.textWhite,
+              color: tokens.textPrimary,
               size: 22,
             ),
           ),
-          const Expanded(
+          Expanded(
             child: Text(
               'Đính kèm hoạt động',
               textAlign: TextAlign.center,
@@ -212,7 +213,7 @@ class _CommunitySelectAttachmentScreenState
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w700,
-                color: SamanHomeTokens.textWhite,
+                color: tokens.textPrimary,
               ),
             ),
           ),
@@ -222,11 +223,11 @@ class _CommunitySelectAttachmentScreenState
     );
   }
 
-  Widget _buildTabSwitcher() {
+  Widget _buildTabSwitcher(SamanHomePalette tokens) {
     return Container(
       padding: const EdgeInsets.all(4),
       decoration: BoxDecoration(
-        color: const Color(0xFF1F2021),
+        color: tokens.cardSurface,
         borderRadius: BorderRadius.circular(12),
       ),
       child: Row(
@@ -237,6 +238,7 @@ class _CommunitySelectAttachmentScreenState
               icon: Icons.fitness_center_rounded,
               isActive: _currentTab == AttachmentType.workout,
               onTap: () => _onTabChanged(AttachmentType.workout),
+              tokens: tokens,
             ),
           ),
           Expanded(
@@ -245,6 +247,7 @@ class _CommunitySelectAttachmentScreenState
               icon: Icons.restaurant_rounded,
               isActive: _currentTab == AttachmentType.meal,
               onTap: () => _onTabChanged(AttachmentType.meal),
+              tokens: tokens,
             ),
           ),
         ],
@@ -257,6 +260,7 @@ class _CommunitySelectAttachmentScreenState
     required IconData icon,
     required bool isActive,
     required VoidCallback onTap,
+    required SamanHomePalette tokens,
   }) {
     return InkWell(
       onTap: onTap,
@@ -264,11 +268,11 @@ class _CommunitySelectAttachmentScreenState
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 9),
         decoration: BoxDecoration(
-          color: isActive ? const Color(0xFF292A2B) : Colors.transparent,
+          color: isActive ? tokens.secondarySurface : Colors.transparent,
           borderRadius: BorderRadius.circular(9),
           border: Border.all(
             color: isActive
-                ? SamanHomeTokens.greenAccent.withOpacity(0.3)
+                ? tokens.greenAccent.withOpacity(0.3)
                 : Colors.transparent,
           ),
         ),
@@ -279,8 +283,8 @@ class _CommunitySelectAttachmentScreenState
               icon,
               size: 16,
               color: isActive
-                  ? SamanHomeTokens.greenAccent
-                  : const Color(0xFFBBCAAF),
+                  ? tokens.greenAccent
+                  : tokens.textSecondary,
             ),
             const SizedBox(width: 6),
             Text(
@@ -289,8 +293,8 @@ class _CommunitySelectAttachmentScreenState
                 fontSize: 13,
                 fontWeight: isActive ? FontWeight.w600 : FontWeight.w500,
                 color: isActive
-                    ? SamanHomeTokens.greenAccent
-                    : const Color(0xFFBBCAAF),
+                    ? tokens.greenAccent
+                    : tokens.textSecondary,
               ),
             ),
           ],
@@ -299,14 +303,17 @@ class _CommunitySelectAttachmentScreenState
     );
   }
 
-  Widget _buildActivityList(List<PostAttachmentSnapshot> list) {
+  Widget _buildActivityList(
+    List<PostAttachmentSnapshot> list,
+    SamanHomePalette tokens,
+  ) {
     if (list.isEmpty) {
       return Container(
         padding: const EdgeInsets.all(24),
-        child: const Center(
+        child: Center(
           child: Text(
             'Chưa có dữ liệu hoạt động gần đây.',
-            style: TextStyle(color: Color(0xFFBBCAAF)),
+            style: TextStyle(color: tokens.textSecondary),
           ),
         ),
       );
@@ -315,14 +322,14 @@ class _CommunitySelectAttachmentScreenState
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Padding(
-          padding: EdgeInsets.only(left: 4, bottom: 8),
+        Padding(
+          padding: const EdgeInsets.only(left: 4, bottom: 8),
           child: Text(
             'Gần đây',
             style: TextStyle(
               fontSize: 13,
               fontWeight: FontWeight.w700,
-              color: Color(0xFFBBCAAF),
+              color: tokens.textSecondary,
               letterSpacing: 0.5,
             ),
           ),
@@ -333,13 +340,13 @@ class _CommunitySelectAttachmentScreenState
             margin: const EdgeInsets.only(bottom: 8),
             decoration: BoxDecoration(
               color: isSelected
-                  ? const Color(0xFF292A2B)
-                  : const Color(0xFF1E1F21),
+                  ? tokens.secondarySurface
+                  : tokens.cardSurface,
               borderRadius: BorderRadius.circular(14),
               border: Border.all(
                 color: isSelected
-                    ? SamanHomeTokens.greenAccent.withOpacity(0.6)
-                    : const Color(0xFF2E3033),
+                    ? tokens.greenAccent.withOpacity(0.6)
+                    : tokens.border,
               ),
             ),
             child: InkWell(
@@ -362,7 +369,7 @@ class _CommunitySelectAttachmentScreenState
                           errorBuilder: (_, __, ___) => Container(
                             width: 48,
                             height: 48,
-                            color: const Color(0xFF343536),
+                            color: tokens.secondarySurface,
                           ),
                         ),
                       )
@@ -371,14 +378,14 @@ class _CommunitySelectAttachmentScreenState
                         width: 48,
                         height: 48,
                         decoration: BoxDecoration(
-                          color: const Color(0xFF343536),
+                          color: tokens.secondarySurface,
                           borderRadius: BorderRadius.circular(10),
                         ),
                         child: Icon(
                           item.type == AttachmentType.workout
                               ? Icons.fitness_center_rounded
                               : Icons.restaurant_rounded,
-                          color: SamanHomeTokens.greenAccent,
+                          color: tokens.greenAccent,
                         ),
                       ),
                     const SizedBox(width: 12),
@@ -388,18 +395,18 @@ class _CommunitySelectAttachmentScreenState
                         children: [
                           Text(
                             item.title,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 14,
                               fontWeight: FontWeight.w600,
-                              color: SamanHomeTokens.textWhite,
+                              color: tokens.textPrimary,
                             ),
                           ),
                           const SizedBox(height: 3),
                           Text(
                             '${item.dateFormatted} • ${item.durationFormatted ?? item.category}',
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 12,
-                              color: Color(0xFFBBCAAF),
+                              color: tokens.textSecondary,
                             ),
                           ),
                         ],
@@ -408,7 +415,7 @@ class _CommunitySelectAttachmentScreenState
                     Radio<String>(
                       value: item.id,
                       groupValue: _selectedAttachment?.id,
-                      activeColor: SamanHomeTokens.greenAccent,
+                      activeColor: tokens.greenAccent,
                       onChanged: (val) {
                         if (!_previewLoading) _selectAttachment(item);
                       },
@@ -423,21 +430,21 @@ class _CommunitySelectAttachmentScreenState
     );
   }
 
-  Widget _buildAttachmentPreview() {
+  Widget _buildAttachmentPreview(SamanHomePalette tokens) {
     final item = _selectedAttachment!;
     if (item.sharedSnapshot != null) return CommunityActivitySnapshotCard(snapshot:item);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Padding(
-          padding: EdgeInsets.only(left: 4, bottom: 8),
+        Padding(
+          padding: const EdgeInsets.only(left: 4, bottom: 8),
           child: Text(
             'Xem trước thẻ trong bài viết',
             style: TextStyle(
               fontSize: 13,
               fontWeight: FontWeight.w700,
-              color: Color(0xFFBBCAAF),
+              color: tokens.textSecondary,
               letterSpacing: 0.5,
             ),
           ),
@@ -445,9 +452,9 @@ class _CommunitySelectAttachmentScreenState
         Container(
           padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
-            color: const Color(0xFF1E1F21),
+            color: tokens.cardSurface,
             borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: const Color(0xFF2E3033)),
+            border: Border.all(color: tokens.border),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -459,15 +466,15 @@ class _CommunitySelectAttachmentScreenState
                         ? Icons.fitness_center_rounded
                         : Icons.restaurant_rounded,
                     size: 16,
-                    color: SamanHomeTokens.greenAccent,
+                    color: tokens.greenAccent,
                   ),
                   const SizedBox(width: 6),
                   Text(
                     item.category,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w600,
-                      color: SamanHomeTokens.greenAccent,
+                      color: tokens.greenAccent,
                     ),
                   ),
                 ],
@@ -475,10 +482,10 @@ class _CommunitySelectAttachmentScreenState
               const SizedBox(height: 6),
               Text(
                 item.title,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 15,
                   fontWeight: FontWeight.w700,
-                  color: SamanHomeTokens.textWhite,
+                  color: tokens.textPrimary,
                 ),
               ),
               const SizedBox(height: 8),
@@ -490,22 +497,26 @@ class _CommunitySelectAttachmentScreenState
                     _buildPreviewChip(
                       Icons.schedule_rounded,
                       item.durationFormatted!,
+                      tokens,
                     ),
                   if (_includeExercises && item.exercises.isNotEmpty)
                     _buildPreviewChip(
                       Icons.format_list_bulleted_rounded,
                       '${item.exercises.length} động tác',
+                      tokens,
                     ),
                   if (_includeLoadOrMacros && item.loadSummaryFormatted != null)
                     _buildPreviewChip(
                       Icons.scale_rounded,
                       item.loadSummaryFormatted!,
+                      tokens,
                     ),
                   if (_includeLoadOrMacros &&
                       item.macrosSummaryFormatted != null)
                     _buildPreviewChip(
                       Icons.pie_chart_outline_rounded,
                       item.macrosSummaryFormatted!,
+                      tokens,
                     ),
                 ],
               ),
@@ -516,23 +527,27 @@ class _CommunitySelectAttachmentScreenState
     );
   }
 
-  Widget _buildPreviewChip(IconData icon, String label) {
+  Widget _buildPreviewChip(
+    IconData icon,
+    String label,
+    SamanHomePalette tokens,
+  ) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: const Color(0xFF292A2B),
+        color: tokens.secondarySurface,
         borderRadius: BorderRadius.circular(8),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 12, color: SamanHomeTokens.greenAccent),
+          Icon(icon, size: 12, color: tokens.greenAccent),
           const SizedBox(width: 4),
           Text(
             label,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 11,
-              color: SamanHomeTokens.textWhite,
+              color: tokens.textPrimary,
               fontWeight: FontWeight.w500,
             ),
           ),
@@ -541,25 +556,25 @@ class _CommunitySelectAttachmentScreenState
     );
   }
 
-  Widget _buildPrivacySettingsAccordion() {
+  Widget _buildPrivacySettingsAccordion(SamanHomePalette tokens) {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: const Color(0xFF1E1F21),
+        color: tokens.cardSurface,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(0xFF2E3033)),
+        border: Border.all(color: tokens.border),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Row(
+          Row(
             children: [
               Icon(
                 Icons.shield_outlined,
                 size: 18,
-                color: SamanHomeTokens.greenAccent,
+                color: tokens.greenAccent,
               ),
-              SizedBox(width: 8),
+              const SizedBox(width: 8),
               Expanded(
                 child: Text(
                   'Thông tin hiển thị & Quyền riêng tư',
@@ -567,7 +582,7 @@ class _CommunitySelectAttachmentScreenState
                   style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w700,
-                    color: SamanHomeTokens.textWhite,
+                    color: tokens.textPrimary,
                   ),
                 ),
               ),
@@ -580,8 +595,9 @@ class _CommunitySelectAttachmentScreenState
             subtitle: _currentTab == AttachmentType.meal ? context.tr('community_attachment_no_meal_duration') : 'Bật hiển thị số phút trên bài viết',
             value: _includeDuration,
             onChanged: (v) => _updatePrivacy(duration:v),
+            tokens: tokens,
           ),
-          const Divider(color: Color(0xFF2E3033), height: 16),
+          Divider(color: tokens.border, height: 16),
           // Exercises / Items switch
           _buildSwitchRow(
             title: _currentTab == AttachmentType.workout
@@ -590,8 +606,9 @@ class _CommunitySelectAttachmentScreenState
             subtitle: 'Hiển thị các bài tập/món ăn đã thực hiện',
             value: _includeExercises,
             onChanged: (v) => _updatePrivacy(items:v),
+            tokens: tokens,
           ),
-          const Divider(color: Color(0xFF2E3033), height: 16),
+          Divider(color: tokens.border, height: 16),
           // Load & Sets / Macros switch (DEFAULT OFF)
           _buildSwitchRow(
             title: _currentTab == AttachmentType.workout
@@ -601,6 +618,7 @@ class _CommunitySelectAttachmentScreenState
             value: _includeLoadOrMacros,
             isSensitive: true,
             onChanged: (v) => _updatePrivacy(sensitive:v),
+            tokens: tokens,
           ),
         ],
       ),
@@ -613,6 +631,7 @@ class _CommunitySelectAttachmentScreenState
     required bool value,
     bool isSensitive = false,
     required ValueChanged<bool> onChanged,
+    required SamanHomePalette tokens,
   }) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -623,10 +642,10 @@ class _CommunitySelectAttachmentScreenState
             children: [
               Text(
                 title,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w600,
-                  color: SamanHomeTokens.textWhite,
+                  color: tokens.textPrimary,
                 ),
               ),
               const SizedBox(height: 2),
@@ -635,8 +654,8 @@ class _CommunitySelectAttachmentScreenState
                 style: TextStyle(
                   fontSize: 11,
                   color: isSensitive
-                      ? const Color(0xFF10B981)
-                      : const Color(0xFFBBCAAF),
+                      ? tokens.greenAccent
+                      : tokens.textSecondary,
                 ),
               ),
             ],
@@ -644,14 +663,14 @@ class _CommunitySelectAttachmentScreenState
         ),
         Switch(
           value: value,
-          activeColor: SamanHomeTokens.greenAccent,
+          activeColor: tokens.greenAccent,
           onChanged: _previewLoading || (_currentTab == AttachmentType.meal && title == 'Thời lượng hoạt động') ? null : onChanged,
         ),
       ],
     );
   }
 
-  Widget _buildBottomCta(BuildContext context) {
+  Widget _buildBottomCta(BuildContext context, SamanHomePalette tokens) {
     return Container(
       padding: EdgeInsets.fromLTRB(
         16,
@@ -659,15 +678,17 @@ class _CommunitySelectAttachmentScreenState
         16,
         12 + MediaQuery.paddingOf(context).bottom,
       ),
-      color: const Color(0xFF121314),
+      color: tokens.canvas,
       child: SizedBox(
         width: double.infinity,
         height: 48,
         child: ElevatedButton(
           onPressed: _selectedAttachment != null && !_isLoading && !_previewLoading && _error == null ? _onAttach : null,
           style: ElevatedButton.styleFrom(
-            backgroundColor: SamanHomeTokens.greenAccent,
-            foregroundColor: const Color(0xFF003824),
+            backgroundColor: tokens.greenAccent,
+            foregroundColor: tokens.isDark
+                ? const Color(0xFF003824)
+                : const Color(0xFFFFFFFF),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(12),
             ),

@@ -19,31 +19,37 @@ class CommunityCommentComposer extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final tokens = SamanHomeTokens.of(context);
     return Material(
-      color: SamanHomeTokens.companionSurface,
+      color: tokens.companionSurface,
       child: SafeArea(top: false, child: Padding(
         padding: const EdgeInsetsDirectional.fromSTEB(16, 8, 16, 8),
         child: Column(mainAxisSize: MainAxisSize.min, children: [
           if (state.replyToAuthorName != null)
             Row(children: [
-              const Icon(Icons.reply_rounded, color: SamanHomeTokens.greenAccent),
+              Icon(Icons.reply_rounded, color: tokens.greenAccent),
               Expanded(child: Text('${context.tr('community_replying_to')} ${state.replyToAuthorName}',
-                  style: theme.textTheme.bodySmall?.copyWith(color: SamanHomeTokens.greenAccent),
+                  style: theme.textTheme.bodySmall?.copyWith(color: tokens.greenAccent),
                   maxLines: 1, overflow: TextOverflow.ellipsis)),
               IconButton(onPressed: state.hasPendingSubmission ? null : onCancelReply,
                   tooltip: context.tr('community_cancel_reply'), icon: const Icon(Icons.close)),
             ]),
           if (state.commentErrorKey != null)
             Row(children: [
-              const Icon(Icons.info_outline, color: SamanHomeTokens.textSecondary),
+              Icon(Icons.info_outline, color: tokens.textSecondary),
               Expanded(child: Text(context.tr(state.commentErrorKey!),
-                  style: theme.textTheme.bodySmall?.copyWith(color: SamanHomeTokens.textPrimary))),
+                  style: theme.textTheme.bodySmall?.copyWith(color: tokens.textPrimary))),
               if (!state.isSubmitting && state.post != null)
                 TextButton(onPressed: onRetry, child: Text(context.tr('community_comment_retry'))),
             ]),
           Row(key: const ValueKey('community-comment-input-row'), children: [
-            const CircleAvatar(backgroundColor: SamanHomeTokens.greenAccent,
-                foregroundColor: SamanHomeTokens.canvas, child: Icon(Icons.person_outline)),
+            CircleAvatar(
+              backgroundColor: tokens.greenAccent,
+              foregroundColor: tokens.isDark
+                  ? const Color(0xFF003824)
+                  : const Color(0xFFFFFFFF),
+              child: const Icon(Icons.person_outline),
+            ),
             const SizedBox(width: 10),
             Expanded(child: TextField(
               key: const ValueKey('community-comment-input'),
@@ -51,21 +57,25 @@ class CommunityCommentComposer extends StatelessWidget {
               enabled: state.post != null,
               readOnly: state.hasPendingSubmission,
               maxLength: 2000, minLines: 1, maxLines: 3,
-              style: theme.textTheme.bodyMedium?.copyWith(color: SamanHomeTokens.textWhite),
+              style: theme.textTheme.bodyMedium?.copyWith(color: tokens.textPrimary),
               onChanged: onChanged,
               textInputAction: TextInputAction.send,
               onSubmitted: (_) { if (!state.isSubmitting) onSubmit(); },
               decoration: InputDecoration(hintText: context.tr('community_write_comment'), counterText: '',
-                  filled: true, fillColor: SamanHomeTokens.cardSurfaceElevated,
-                  hintStyle: theme.textTheme.bodyMedium?.copyWith(color: SamanHomeTokens.textSecondary),
+                  filled: true, fillColor: tokens.cardSurfaceElevated,
+                  hintStyle: theme.textTheme.bodyMedium?.copyWith(color: tokens.textSecondary),
                   border: OutlineInputBorder(borderSide: BorderSide.none,
                       borderRadius: BorderRadius.circular(SamanHomeTokens.radiusPill))),
             )),
             IconButton(
               key: const ValueKey('community-comment-send'),
               tooltip: context.tr('community_comment_send'),
-              style: IconButton.styleFrom(backgroundColor: SamanHomeTokens.greenAccent,
-                  foregroundColor: SamanHomeTokens.canvas),
+              style: IconButton.styleFrom(
+                backgroundColor: tokens.greenAccent,
+                foregroundColor: tokens.isDark
+                    ? const Color(0xFF003824)
+                    : const Color(0xFFFFFFFF),
+              ),
               onPressed: state.isSubmitting || state.post == null ? null : onSubmit,
               icon: state.isSubmitting ? const CircularProgressIndicator() : const Icon(Icons.send_rounded),
             ),

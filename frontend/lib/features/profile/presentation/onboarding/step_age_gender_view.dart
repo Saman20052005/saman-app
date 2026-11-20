@@ -89,8 +89,9 @@ class _StepAgeGenderViewState extends State<StepAgeGenderView> {
 
   @override
   Widget build(BuildContext context) {
+    final p = OnboardingTokens.of(context);
     return Scaffold(
-      backgroundColor: OnboardingTokens.canvas,
+      backgroundColor: p.canvas,
       body: SafeArea(
         child: Stack(
           children: [
@@ -116,9 +117,9 @@ class _StepAgeGenderViewState extends State<StepAgeGenderView> {
                           begin: Alignment.topCenter,
                           end: Alignment.bottomCenter,
                           colors: [
-                            OnboardingTokens.canvas.withOpacity(0.3),
-                            OnboardingTokens.canvas.withOpacity(0.7),
-                            OnboardingTokens.canvas,
+                            p.canvas.withOpacity(0.3),
+                            p.canvas.withOpacity(0.7),
+                            p.canvas,
                           ],
                         ),
                       ),
@@ -130,8 +131,8 @@ class _StepAgeGenderViewState extends State<StepAgeGenderView> {
                           end: Alignment.centerLeft,
                           colors: [
                             Colors.transparent,
-                            OnboardingTokens.canvas.withOpacity(0.6),
-                            OnboardingTokens.canvas,
+                            p.canvas.withOpacity(0.6),
+                            p.canvas,
                           ],
                         ),
                       ),
@@ -158,35 +159,35 @@ class _StepAgeGenderViewState extends State<StepAgeGenderView> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         const SizedBox(height: 16),
-                        const Text(
+                        Text(
                           'A little about you',
                           style: TextStyle(
                             fontSize: 30,
                             fontWeight: FontWeight.w700,
-                            color: OnboardingTokens.textPrimary,
+                            color: p.textPrimary,
                             height: 1.15,
                             letterSpacing: -0.5,
                           ),
                         ),
                         const SizedBox(height: 8),
-                        const Text(
+                        Text(
                           'Enter your age and select your gender.',
                           style: TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.w400,
-                            color: OnboardingTokens.textSecondary,
+                            color: p.textSecondary,
                             height: 1.4,
                           ),
                         ),
                         const SizedBox(height: 28),
 
                         // Age Field Module
-                        const Text(
+                        Text(
                           'AGE',
                           style: TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.w600,
-                            color: OnboardingTokens.textSecondary,
+                            color: p.textSecondary,
                             letterSpacing: 0.8,
                           ),
                         ),
@@ -195,10 +196,10 @@ class _StepAgeGenderViewState extends State<StepAgeGenderView> {
                           height: 60,
                           padding: const EdgeInsets.symmetric(horizontal: 16),
                           decoration: BoxDecoration(
-                            color: OnboardingTokens.surface,
+                            color: p.surface,
                             borderRadius:
                                 BorderRadius.circular(OnboardingTokens.radiusCard),
-                            border: Border.all(color: OnboardingTokens.borderDefault),
+                            border: Border.all(color: p.borderDefault),
                           ),
                           child: Row(
                             crossAxisAlignment: CrossAxisAlignment.center,
@@ -215,13 +216,13 @@ class _StepAgeGenderViewState extends State<StepAgeGenderView> {
                                     FilteringTextInputFormatter.digitsOnly,
                                     LengthLimitingTextInputFormatter(3),
                                   ],
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                     fontSize: 22,
                                     fontWeight: FontWeight.w600,
-                                    color: OnboardingTokens.textPrimary,
+                                    color: p.textPrimary,
                                     letterSpacing: -0.2,
                                   ),
-                                  cursorColor: OnboardingTokens.textPrimary,
+                                  cursorColor: p.textPrimary,
                                   decoration: InputDecoration(
                                     filled: true,
                                     fillColor: Colors.transparent,
@@ -233,10 +234,10 @@ class _StepAgeGenderViewState extends State<StepAgeGenderView> {
                                     hintText: _ageFocusNode.hasFocus
                                         ? null
                                         : 'Enter your age',
-                                    hintStyle: const TextStyle(
+                                    hintStyle: TextStyle(
                                       fontSize: 15,
                                       fontWeight: FontWeight.w400,
-                                      color: OnboardingTokens.textDisabled,
+                                      color: p.textDisabled,
                                     ),
                                     isDense: true,
                                     contentPadding:
@@ -244,12 +245,12 @@ class _StepAgeGenderViewState extends State<StepAgeGenderView> {
                                   ),
                                 ),
                               ),
-                              const Text(
+                              Text(
                                 'YEARS',
                                 style: TextStyle(
                                   fontSize: 12,
                                   fontWeight: FontWeight.w600,
-                                  color: OnboardingTokens.textSecondary,
+                                  color: p.textSecondary,
                                   letterSpacing: 0.8,
                                 ),
                               ),
@@ -259,12 +260,12 @@ class _StepAgeGenderViewState extends State<StepAgeGenderView> {
                         const SizedBox(height: 28),
 
                         // Gender Field Module
-                        const Text(
+                        Text(
                           'GENDER',
                           style: TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.w600,
-                            color: OnboardingTokens.textSecondary,
+                            color: p.textSecondary,
                             letterSpacing: 0.8,
                           ),
                         ),
@@ -334,6 +335,15 @@ class _GenderCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final p = OnboardingTokens.of(context);
+    final iconBoxBg = p.isDark ? const Color(0xFF212328) : p.surfaceSelected;
+    final radioSelectedBg = p.isDark ? Colors.white : const Color(0xFF059669);
+    final radioSelectedDot = p.isDark ? p.canvas : Colors.white;
+    final radioUnselectedBg =
+        p.isDark ? const Color(0xFF131417) : p.surface;
+    final radioUnselectedBorder =
+        p.isDark ? const Color(0xFF525252) : p.textDisabled;
+
     return Material(
       color: Colors.transparent,
       child: InkWell(
@@ -344,14 +354,10 @@ class _GenderCard extends StatelessWidget {
           height: 110,
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: isSelected
-                ? OnboardingTokens.surfaceSelected
-                : OnboardingTokens.surface,
+            color: isSelected ? p.surfaceSelected : p.surface,
             borderRadius: BorderRadius.circular(OnboardingTokens.radiusCard),
             border: Border.all(
-              color: isSelected
-                  ? OnboardingTokens.borderSelected
-                  : OnboardingTokens.borderDefault,
+              color: isSelected ? p.borderSelected : p.borderDefault,
               width: isSelected ? 1.5 : 1.0,
             ),
           ),
@@ -366,15 +372,17 @@ class _GenderCard extends StatelessWidget {
                     width: 32,
                     height: 32,
                     decoration: BoxDecoration(
-                      color: const Color(0xFF212328),
+                      color: iconBoxBg,
                       borderRadius: BorderRadius.circular(OnboardingTokens.radiusTag),
-                      border: Border.all(color: OnboardingTokens.borderDefault),
+                      border: Border.all(color: p.borderDefault),
                     ),
                     alignment: Alignment.center,
                     child: Icon(
                       icon,
                       size: 20,
-                      color: isSelected ? Colors.white : OnboardingTokens.textSecondary,
+                      color: isSelected
+                          ? (p.isDark ? Colors.white : p.textPrimary)
+                          : p.textSecondary,
                     ),
                   ),
                   Container(
@@ -382,11 +390,11 @@ class _GenderCard extends StatelessWidget {
                     height: 20,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      color: isSelected ? Colors.white : const Color(0xFF131417),
+                      color: isSelected ? radioSelectedBg : radioUnselectedBg,
                       border: Border.all(
                         color: isSelected
-                            ? Colors.white
-                            : const Color(0xFF525252),
+                            ? radioSelectedBg
+                            : radioUnselectedBorder,
                         width: 1.5,
                       ),
                     ),
@@ -395,9 +403,9 @@ class _GenderCard extends StatelessWidget {
                         ? Container(
                             width: 8,
                             height: 8,
-                            decoration: const BoxDecoration(
+                            decoration: BoxDecoration(
                               shape: BoxShape.circle,
-                              color: OnboardingTokens.canvas,
+                              color: radioSelectedDot,
                             ),
                           )
                         : null,
@@ -406,10 +414,10 @@ class _GenderCard extends StatelessWidget {
               ),
               Text(
                 title,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
-                  color: OnboardingTokens.textPrimary,
+                  color: p.textPrimary,
                 ),
               ),
             ],

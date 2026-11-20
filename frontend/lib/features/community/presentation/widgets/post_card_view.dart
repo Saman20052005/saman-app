@@ -35,13 +35,14 @@ class PostCardView extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final tokens = SamanHomeTokens.of(context);
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
-      decoration: const BoxDecoration(
-        color: Color(0xFF1B1C1D),
+      decoration: BoxDecoration(
+        color: tokens.cardSurface,
         border: Border(
           bottom: BorderSide(
-            color: Color(0xFF292A2B),
+            color: tokens.border,
             width: 1,
           ),
         ),
@@ -71,7 +72,7 @@ class PostCardView extends ConsumerWidget {
                         },
                     child: Row(
                       children: [
-                        _buildAuthorAvatar(),
+                        _buildAuthorAvatar(tokens),
                         const SizedBox(width: 10),
                         Flexible(
                           child: Column(
@@ -84,19 +85,19 @@ class PostCardView extends ConsumerWidget {
                                       post.author.name,
                                       maxLines: 1,
                                       overflow: TextOverflow.ellipsis,
-                                      style: const TextStyle(
+                                      style: TextStyle(
                                         fontSize: 15,
                                         fontWeight: FontWeight.w600,
-                                        color: SamanHomeTokens.textWhite,
+                                        color: tokens.textPrimary,
                                       ),
                                     ),
                                   ),
                                   if (post.author.isVerified) ...[
                                     const SizedBox(width: 4),
-                                    const Icon(
+                                    Icon(
                                       Icons.verified_rounded,
                                       size: 15,
-                                      color: SamanHomeTokens.greenAccent,
+                                      color: tokens.greenAccent,
                                     ),
                                   ],
                                   if (post.type == CommunityPostType.qa &&
@@ -108,15 +109,15 @@ class PostCardView extends ConsumerWidget {
                                         vertical: 2,
                                       ),
                                       decoration: BoxDecoration(
-                                        color: const Color(0xFF343536),
+                                        color: tokens.secondarySurface,
                                         borderRadius: BorderRadius.circular(4),
                                       ),
                                       child: Text(
                                         post.qaInfo!.categoryTag,
-                                        style: const TextStyle(
+                                        style: TextStyle(
                                           fontSize: 10,
                                           fontWeight: FontWeight.w600,
-                                          color: SamanHomeTokens.greenAccent,
+                                          color: tokens.greenAccent,
                                         ),
                                       ),
                                     ),
@@ -126,9 +127,9 @@ class PostCardView extends ConsumerWidget {
                               const SizedBox(height: 2),
                               Text(
                                 post.timeAgo,
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontSize: 12,
-                                  color: Color(0xFFBBCAAF),
+                                  color: tokens.textSecondary,
                                 ),
                               ),
                             ],
@@ -139,9 +140,9 @@ class PostCardView extends ConsumerWidget {
                   ),
                 ),
                 IconButton(
-                  icon: const Icon(
+                  icon: Icon(
                     Icons.more_horiz_rounded,
-                    color: Color(0xFFBBCAAF),
+                    color: tokens.textSecondary,
                     size: 20,
                   ),
                   onPressed: () {
@@ -158,10 +159,10 @@ class PostCardView extends ConsumerWidget {
               padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
               child: Text(
                 post.caption,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 14,
                   height: 1.45,
-                  color: SamanHomeTokens.textWhite,
+                  color: tokens.textPrimary,
                 ),
               ),
             ),
@@ -172,7 +173,7 @@ class PostCardView extends ConsumerWidget {
           // Content archetype
           if (post.type == CommunityPostType.photo &&
               post.photoUrls.isNotEmpty) ...[
-            _buildPhotoAttachment(context),
+            _buildPhotoAttachment(context, tokens),
             const SizedBox(height: 10),
           ] else if (post.type == CommunityPostType.workout &&
               post.workoutAttachment != null) ...[
@@ -223,16 +224,16 @@ class PostCardView extends ConsumerWidget {
                                   : Icons.favorite_border_rounded,
                               size: 22,
                               color: post.isLiked
-                                  ? const Color(0xFFFC7C78)
-                                  : const Color(0xFFBBCAAF),
+                                  ? (tokens.isDark ? const Color(0xFFFC7C78) : tokens.fatRose)
+                                  : tokens.textSecondary,
                             ),
                             const SizedBox(width: 5),
                             Text(
                               '${post.likeCount}',
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 13,
                                 fontWeight: FontWeight.w600,
-                                color: SamanHomeTokens.textWhite,
+                                color: tokens.textPrimary,
                               ),
                             ),
                           ],
@@ -250,18 +251,18 @@ class PostCardView extends ConsumerWidget {
                             horizontal: 6, vertical: 4),
                         child: Row(
                           children: [
-                            const Icon(
+                            Icon(
                               Icons.mode_comment_outlined,
                               size: 21,
-                              color: Color(0xFFBBCAAF),
+                              color: tokens.textSecondary,
                             ),
                             const SizedBox(width: 5),
                             Text(
                               '${post.commentCount}',
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 13,
                                 fontWeight: FontWeight.w600,
-                                color: SamanHomeTokens.textWhite,
+                                color: tokens.textPrimary,
                               ),
                             ),
                           ],
@@ -272,10 +273,10 @@ class PostCardView extends ConsumerWidget {
 
                     // Share button
                     IconButton(
-                      icon: const Icon(
+                      icon: Icon(
                         Icons.send_rounded,
                         size: 20,
-                        color: Color(0xFFBBCAAF),
+                        color: tokens.textSecondary,
                       ),
                       onPressed: onShare ?? () => _showShareToast(context),
                       padding: EdgeInsets.zero,
@@ -289,8 +290,10 @@ class PostCardView extends ConsumerWidget {
                   ElevatedButton(
                     onPressed: onOpenDetail,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: SamanHomeTokens.greenAccent,
-                      foregroundColor: const Color(0xFF003824),
+                      backgroundColor: tokens.greenAccent,
+                      foregroundColor: tokens.isDark
+                          ? const Color(0xFF003824)
+                          : const Color(0xFFFFFFFF),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(10),
                       ),
@@ -323,8 +326,8 @@ class PostCardView extends ConsumerWidget {
                           : Icons.bookmark_border_rounded,
                       size: 22,
                       color: post.isBookmarked
-                          ? SamanHomeTokens.greenAccent
-                          : const Color(0xFFBBCAAF),
+                          ? tokens.greenAccent
+                          : tokens.textSecondary,
                     ),
                     onPressed: onBookmarkToggle,
                   ),
@@ -342,9 +345,9 @@ class PostCardView extends ConsumerWidget {
                   if (post.likedBySummary.isNotEmpty)
                     Text(
                       post.likedBySummary,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 12,
-                        color: Color(0xFFBBCAAF),
+                        color: tokens.textSecondary,
                       ),
                     ),
                   const SizedBox(height: 4),
@@ -355,7 +358,7 @@ class PostCardView extends ConsumerWidget {
                       style: TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.w500,
-                        color: SamanHomeTokens.greenAccent.withOpacity(0.9),
+                        color: tokens.greenAccent.withOpacity(0.9),
                       ),
                     ),
                   ),
@@ -368,34 +371,34 @@ class PostCardView extends ConsumerWidget {
     );
   }
 
-  Widget _buildAuthorAvatar() {
+  Widget _buildAuthorAvatar(SamanHomePalette tokens) {
     return Container(
       width: 40,
       height: 40,
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         shape: BoxShape.circle,
-        color: Color(0xFF343536),
+        color: tokens.secondarySurface,
       ),
       child: Center(
         child: Text(
           post.author.name.isNotEmpty ? post.author.name[0] : 'S',
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 16,
             fontWeight: FontWeight.w700,
-            color: SamanHomeTokens.greenAccent,
+            color: tokens.greenAccent,
           ),
         ),
       ),
     );
   }
 
-  Widget _buildPhotoView(String path) {
+  Widget _buildPhotoView(String path, SamanHomePalette tokens) {
     if (path.startsWith('http://') || path.startsWith('https://') || path.startsWith('/static/')) {
       return Image.network(
         path,
         fit: BoxFit.cover,
-        errorBuilder: (_, __, ___) => const Center(
-          child: Icon(Icons.broken_image, size: 48, color: Color(0xFFBBCAAF)),
+        errorBuilder: (_, __, ___) => Center(
+          child: Icon(Icons.broken_image, size: 48, color: tokens.textSecondary),
         ),
       );
     }
@@ -403,12 +406,12 @@ class PostCardView extends ConsumerWidget {
     if (file.existsSync()) {
       return Image.file(file, fit: BoxFit.cover);
     }
-    return const Center(
-      child: Icon(Icons.image, size: 48, color: Color(0xFFBBCAAF)),
+    return Center(
+      child: Icon(Icons.image, size: 48, color: tokens.textSecondary),
     );
   }
 
-  Widget _buildPhotoAttachment(BuildContext context) {
+  Widget _buildPhotoAttachment(BuildContext context, SamanHomePalette tokens) {
     return InkWell(
       onTap: onOpenDetail,
       child: AspectRatio(
@@ -419,20 +422,20 @@ class PostCardView extends ConsumerWidget {
             if (post.photoUrls.isNotEmpty)
               ClipRRect(
                 borderRadius: BorderRadius.circular(12),
-                child: _buildPhotoView(post.photoUrls.first),
+                child: _buildPhotoView(post.photoUrls.first, tokens),
               )
             else
               Container(
-                color: const Color(0xFF292A2B),
-                child: const Center(
+                color: tokens.secondarySurface,
+                child: Center(
                   child: Icon(
                     Icons.restaurant_rounded,
                     size: 48,
-                    color: SamanHomeTokens.greenAccent,
+                    color: tokens.greenAccent,
                   ),
                 ),
               ),
-            // Floating nutrition badge
+            // Floating nutrition badge (dark translucent overlay kept for image contrast)
             if (post.nutritionInfo != null)
               Positioned(
                 bottom: 12,
@@ -453,7 +456,7 @@ class PostCardView extends ConsumerWidget {
                       const Icon(
                         Icons.local_fire_department_rounded,
                         size: 14,
-                        color: SamanHomeTokens.greenAccent,
+                        color: Color(0xFF5BBFA0),
                       ),
                       const SizedBox(width: 5),
                       Text(
@@ -461,7 +464,7 @@ class PostCardView extends ConsumerWidget {
                         style: const TextStyle(
                           fontSize: 11,
                           fontWeight: FontWeight.w600,
-                          color: SamanHomeTokens.textWhite,
+                          color: Colors.white,
                         ),
                       ),
                     ],
@@ -475,17 +478,22 @@ class PostCardView extends ConsumerWidget {
   }
 
   void _showPostOptionsSheet(BuildContext context, WidgetRef ref) {
+    final sheetBg = SamanHomeTokens.of(context).cardSurface;
     final effectiveUserId = currentUserId ?? ref.read(communityRepositoryProvider).activeUserId;
     final isAuthor = effectiveUserId != null && (post.author.id == effectiveUserId || effectiveUserId == 'me');
     final canDelete = isAuthor || onDelete != null;
 
     showModalBottomSheet(
       context: context,
-      backgroundColor: const Color(0xFF1B1C1D),
+      backgroundColor: sheetBg,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       builder: (ctx) {
+        final tokens = SamanHomeTokens.of(ctx);
+        final dangerColor = tokens.isDark
+            ? Colors.redAccent
+            : const Color(0xFFDC2626);
         return SafeArea(
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -493,7 +501,7 @@ class PostCardView extends ConsumerWidget {
               if (canDelete)
                 ListTile(
                   key: const ValueKey('post-options-delete-tile'),
-                  leading: const Icon(Icons.delete_outline, color: Colors.redAccent),
+                  leading: Icon(Icons.delete_outline, color: dangerColor),
                   title: Stack(
                     children: [
                       if (Localizations.maybeLocaleOf(context)?.languageCode != 'vi')
@@ -510,7 +518,7 @@ class PostCardView extends ConsumerWidget {
                         ),
                       Text(
                         context.tr('post_action_delete'),
-                        style: const TextStyle(color: Colors.redAccent),
+                        style: TextStyle(color: dangerColor),
                       ),
                     ],
                   ),
@@ -520,10 +528,10 @@ class PostCardView extends ConsumerWidget {
                   },
                 ),
               ListTile(
-                leading: const Icon(Icons.bookmark_outline, color: Colors.white),
+                leading: Icon(Icons.bookmark_outline, color: tokens.textPrimary),
                 title: Text(
                   context.tr('post_action_save'),
-                  style: const TextStyle(color: Colors.white),
+                  style: TextStyle(color: tokens.textPrimary),
                 ),
                 onTap: () {
                   Navigator.pop(ctx);
@@ -531,10 +539,10 @@ class PostCardView extends ConsumerWidget {
                 },
               ),
               ListTile(
-                leading: const Icon(Icons.share_outlined, color: Colors.white),
+                leading: Icon(Icons.share_outlined, color: tokens.textPrimary),
                 title: Text(
                   context.tr('post_action_share'),
-                  style: const TextStyle(color: Colors.white),
+                  style: TextStyle(color: tokens.textPrimary),
                 ),
                 onTap: () {
                   Navigator.pop(ctx);
@@ -542,10 +550,10 @@ class PostCardView extends ConsumerWidget {
                 },
               ),
               ListTile(
-                leading: const Icon(Icons.flag_outlined, color: Colors.redAccent),
+                leading: Icon(Icons.flag_outlined, color: dangerColor),
                 title: Text(
                   context.tr('post_action_report'),
-                  style: const TextStyle(color: Colors.redAccent),
+                  style: TextStyle(color: dangerColor),
                 ),
                 onTap: () {
                   Navigator.pop(ctx);
@@ -570,51 +578,57 @@ class PostCardView extends ConsumerWidget {
   Future<void> _showDeleteConfirmationDialog(BuildContext context, WidgetRef ref) async {
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (dialogCtx) => AlertDialog(
-        backgroundColor: const Color(0xFF1F2021),
-        title: Text(
-          context.tr('delete_post_confirm_title'),
-          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-        ),
-        content: Stack(
-          children: [
-            if (Localizations.maybeLocaleOf(context)?.languageCode != 'vi')
-              const SizedBox(
-                width: 0,
-                height: 0,
-                child: OverflowBox(
-                  minWidth: 0,
-                  minHeight: 0,
-                  maxWidth: 0,
-                  maxHeight: 0,
-                  child: Text('Bạn có chắc chắn muốn xóa bài viết này?'),
+      builder: (dialogCtx) {
+        final tokens = SamanHomeTokens.of(dialogCtx);
+        final dangerColor = tokens.isDark
+            ? Colors.redAccent
+            : const Color(0xFFDC2626);
+        return AlertDialog(
+          backgroundColor: tokens.cardSurface,
+          title: Text(
+            context.tr('delete_post_confirm_title'),
+            style: TextStyle(color: tokens.textPrimary, fontWeight: FontWeight.bold),
+          ),
+          content: Stack(
+            children: [
+              if (Localizations.maybeLocaleOf(context)?.languageCode != 'vi')
+                const SizedBox(
+                  width: 0,
+                  height: 0,
+                  child: OverflowBox(
+                    minWidth: 0,
+                    minHeight: 0,
+                    maxWidth: 0,
+                    maxHeight: 0,
+                    child: Text('Bạn có chắc chắn muốn xóa bài viết này?'),
+                  ),
                 ),
+              Text(
+                context.tr('delete_post_confirm_msg'),
+                style: TextStyle(color: tokens.textSecondary),
               ),
-            Text(
-              context.tr('delete_post_confirm_msg'),
-              style: const TextStyle(color: Color(0xFFE5E7EB)),
+            ],
+          ),
+          actions: [
+            TextButton(
+              key: const ValueKey('cancel-delete-post-button'),
+              onPressed: () => Navigator.pop(dialogCtx, false),
+              child: Text(
+                context.tr('compose_discard'),
+                style: TextStyle(color: tokens.textMuted),
+              ),
+            ),
+            TextButton(
+              key: const ValueKey('confirm-delete-post-button'),
+              onPressed: () => Navigator.pop(dialogCtx, true),
+              child: Text(
+                context.tr('post_action_delete'),
+                style: TextStyle(color: dangerColor),
+              ),
             ),
           ],
-        ),
-        actions: [
-          TextButton(
-            key: const ValueKey('cancel-delete-post-button'),
-            onPressed: () => Navigator.pop(dialogCtx, false),
-            child: Text(
-              context.tr('compose_discard'),
-              style: const TextStyle(color: Colors.grey),
-            ),
-          ),
-          TextButton(
-            key: const ValueKey('confirm-delete-post-button'),
-            onPressed: () => Navigator.pop(dialogCtx, true),
-            child: Text(
-              context.tr('post_action_delete'),
-              style: const TextStyle(color: Colors.redAccent),
-            ),
-          ),
-        ],
-      ),
+        );
+      },
     );
 
     if (confirmed == true && context.mounted) {

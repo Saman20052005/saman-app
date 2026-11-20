@@ -127,6 +127,7 @@ class _CommunityProfileScreenState
 
   @override
   Widget build(BuildContext context) {
+    final tokens = SamanHomeTokens.of(context);
     final author = _author ??
         const CommunityAuthor(
           id: 'me',
@@ -137,13 +138,13 @@ class _CommunityProfileScreenState
     final feedState = ref.watch(communityFeedProvider);
 
     return Scaffold(
-      backgroundColor: const Color(0xFF121314),
+      backgroundColor: tokens.canvas,
       body: SafeArea(
         bottom: false,
         child: Column(
           children: [
-            _buildAppBar(context, author),
-            _buildPreviewNoticeBanner(),
+            _buildAppBar(context, author, tokens),
+            _buildPreviewNoticeBanner(tokens),
             Expanded(
               child: NestedScrollView(
                 headerSliverBuilder: (context, innerBoxIsScrolled) {
@@ -152,11 +153,11 @@ class _CommunityProfileScreenState
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          _buildProfileHeader(context, author),
+                          _buildProfileHeader(context, author, tokens),
                           const SizedBox(height: 12),
-                          _buildActionStrip(context, author),
+                          _buildActionStrip(context, author, tokens),
                           const SizedBox(height: 16),
-                          _buildStatsStrip(),
+                          _buildStatsStrip(tokens),
                           const SizedBox(height: 16),
                         ],
                       ),
@@ -166,9 +167,9 @@ class _CommunityProfileScreenState
                       delegate: _SliverTabBarDelegate(
                         TabBar(
                           controller: _tabController,
-                          indicatorColor: SamanHomeTokens.greenAccent,
-                          labelColor: SamanHomeTokens.greenAccent,
-                          unselectedLabelColor: const Color(0xFFBBCAAF),
+                          indicatorColor: tokens.greenAccent,
+                          labelColor: tokens.greenAccent,
+                          unselectedLabelColor: tokens.textSecondary,
                           tabs: const [
                             Tab(text: 'Bài viết'),
                             Tab(text: 'Buổi tập'),
@@ -182,16 +183,18 @@ class _CommunityProfileScreenState
                 body: TabBarView(
                   controller: _tabController,
                   children: [
-                    _buildPostGrid(feedState.posts),
+                    _buildPostGrid(feedState.posts, tokens),
                     _buildPostGrid(
                       feedState.posts
                           .where((p) => p.type == CommunityPostType.workout)
                           .toList(),
+                      tokens,
                     ),
                     _buildPostGrid(
                       feedState.posts
                           .where((p) => p.nutritionInfo != null)
                           .toList(),
+                      tokens,
                     ),
                   ],
                 ),
@@ -223,20 +226,20 @@ class _CommunityProfileScreenState
     );
   }
 
-  Widget _buildPreviewNoticeBanner() {
+  Widget _buildPreviewNoticeBanner(SamanHomePalette tokens) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-      color: const Color(0xFF1B1C1D),
-      child: const Row(
+      color: tokens.cardSurface,
+      child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Icon(
             Icons.info_outline_rounded,
             size: 13,
-            color: SamanHomeTokens.greenAccent,
+            color: tokens.greenAccent,
           ),
-          SizedBox(width: 6),
+          const SizedBox(width: 6),
           Flexible(
             child: Text(
               'Bản xem trước giao diện • Dữ liệu mẫu thử nghiệm',
@@ -244,7 +247,7 @@ class _CommunityProfileScreenState
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
                 fontSize: 11,
-                color: Color(0xFFBBCAAF),
+                color: tokens.textSecondary,
                 fontWeight: FontWeight.w500,
               ),
             ),
@@ -254,22 +257,26 @@ class _CommunityProfileScreenState
     );
   }
 
-  Widget _buildAppBar(BuildContext context, CommunityAuthor author) {
+  Widget _buildAppBar(
+    BuildContext context,
+    CommunityAuthor author,
+    SamanHomePalette tokens,
+  ) {
     return Container(
       height: 52,
       padding: const EdgeInsets.symmetric(horizontal: 16),
-      decoration: const BoxDecoration(
-        color: Color(0xFF121314),
-        border: Border(bottom: BorderSide(color: Color(0xFF1F2021), width: 1)),
+      decoration: BoxDecoration(
+        color: tokens.canvas,
+        border: Border(bottom: BorderSide(color: tokens.border, width: 1)),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           IconButton(
             onPressed: () => Navigator.pop(context),
-            icon: const Icon(
+            icon: Icon(
               Icons.arrow_back_rounded,
-              color: SamanHomeTokens.textWhite,
+              color: tokens.textPrimary,
               size: 22,
             ),
           ),
@@ -278,18 +285,18 @@ class _CommunityProfileScreenState
               '@${author.name.toLowerCase().replaceAll(' ', '.')}',
               textAlign: TextAlign.center,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w700,
-                color: SamanHomeTokens.textWhite,
+                color: tokens.textPrimary,
               ),
             ),
           ),
           IconButton(
             onPressed: () {},
-            icon: const Icon(
+            icon: Icon(
               Icons.share_outlined,
-              color: SamanHomeTokens.textWhite,
+              color: tokens.textPrimary,
               size: 20,
             ),
           ),
@@ -298,7 +305,11 @@ class _CommunityProfileScreenState
     );
   }
 
-  Widget _buildProfileHeader(BuildContext context, CommunityAuthor author) {
+  Widget _buildProfileHeader(
+    BuildContext context,
+    CommunityAuthor author,
+    SamanHomePalette tokens,
+  ) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       child: Column(
@@ -312,18 +323,18 @@ class _CommunityProfileScreenState
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   border: Border.all(
-                    color: SamanHomeTokens.greenAccent,
+                    color: tokens.greenAccent,
                     width: 2,
                   ),
-                  color: const Color(0xFF292A2B),
+                  color: tokens.secondarySurface,
                 ),
                 child: Center(
                   child: Text(
                     author.name.isNotEmpty ? author.name[0] : 'S',
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 28,
                       fontWeight: FontWeight.w700,
-                      color: SamanHomeTokens.greenAccent,
+                      color: tokens.greenAccent,
                     ),
                   ),
                 ),
@@ -339,19 +350,19 @@ class _CommunityProfileScreenState
                           child: Text(
                             author.name,
                             overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.w700,
-                              color: SamanHomeTokens.textWhite,
+                              color: tokens.textPrimary,
                             ),
                           ),
                         ),
                         if (author.isVerified) ...[
                           const SizedBox(width: 4),
-                          const Icon(
+                          Icon(
                             Icons.verified_rounded,
                             size: 16,
-                            color: SamanHomeTokens.greenAccent,
+                            color: tokens.greenAccent,
                           ),
                         ],
                       ],
@@ -359,9 +370,9 @@ class _CommunityProfileScreenState
                     const SizedBox(height: 2),
                     Text(
                       author.title ?? '',
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 12,
-                        color: Color(0xFFBBCAAF),
+                        color: tokens.textSecondary,
                       ),
                     ),
                     const SizedBox(height: 8),
@@ -387,16 +398,16 @@ class _CommunityProfileScreenState
                               children: [
                                 TextSpan(
                                   text: '${author.followingCount} ',
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                     fontWeight: FontWeight.w700,
-                                    color: SamanHomeTokens.textWhite,
+                                    color: tokens.textPrimary,
                                     fontSize: 13,
                                   ),
                                 ),
-                                const TextSpan(
+                                TextSpan(
                                   text: 'Đang theo dõi  •  ',
                                   style: TextStyle(
-                                    color: Color(0xFFBBCAAF),
+                                    color: tokens.textSecondary,
                                     fontSize: 12,
                                   ),
                                 ),
@@ -423,16 +434,16 @@ class _CommunityProfileScreenState
                               children: [
                                 TextSpan(
                                   text: '${author.followerCount} ',
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                     fontWeight: FontWeight.w700,
-                                    color: SamanHomeTokens.textWhite,
+                                    color: tokens.textPrimary,
                                     fontSize: 13,
                                   ),
                                 ),
-                                const TextSpan(
+                                TextSpan(
                                   text: 'Người theo dõi',
                                   style: TextStyle(
-                                    color: Color(0xFFBBCAAF),
+                                    color: tokens.textSecondary,
                                     fontSize: 12,
                                   ),
                                 ),
@@ -450,9 +461,9 @@ class _CommunityProfileScreenState
           const SizedBox(height: 12),
           Text(
             _bio,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 13,
-              color: SamanHomeTokens.textWhite,
+              color: tokens.textPrimary,
               height: 1.4,
             ),
           ),
@@ -461,7 +472,11 @@ class _CommunityProfileScreenState
     );
   }
 
-  Widget _buildActionStrip(BuildContext context, CommunityAuthor author) {
+  Widget _buildActionStrip(
+    BuildContext context,
+    CommunityAuthor author,
+    SamanHomePalette tokens,
+  ) {
     if (!_isMe) {
       final isFollowing = author.isFollowing;
       return Padding(
@@ -473,8 +488,8 @@ class _CommunityProfileScreenState
               ? OutlinedButton(
                   onPressed: () => _handleToggleFollow(author),
                   style: OutlinedButton.styleFrom(
-                    foregroundColor: const Color(0xFFBBCAAF),
-                    side: const BorderSide(color: Color(0xFF343536)),
+                    foregroundColor: tokens.textSecondary,
+                    side: BorderSide(color: tokens.border),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(10),
                     ),
@@ -487,8 +502,10 @@ class _CommunityProfileScreenState
               : ElevatedButton(
                   onPressed: () => _handleToggleFollow(author),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: SamanHomeTokens.greenAccent,
-                    foregroundColor: const Color(0xFF003824),
+                    backgroundColor: tokens.greenAccent,
+                    foregroundColor: tokens.isDark
+                        ? const Color(0xFF003824)
+                        : const Color(0xFFFFFFFF),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(10),
                     ),
@@ -542,8 +559,8 @@ class _CommunityProfileScreenState
                   }
                 },
                 style: OutlinedButton.styleFrom(
-                  foregroundColor: SamanHomeTokens.textWhite,
-                  side: const BorderSide(color: Color(0xFF343536)),
+                  foregroundColor: tokens.textPrimary,
+                  side: BorderSide(color: tokens.border),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(10),
                   ),
@@ -570,8 +587,8 @@ class _CommunityProfileScreenState
               icon: const Icon(Icons.bookmark_border_rounded, size: 16),
               label: const Text('Đã lưu', style: TextStyle(fontSize: 12)),
               style: OutlinedButton.styleFrom(
-                foregroundColor: const Color(0xFFBBCAAF),
-                side: const BorderSide(color: Color(0xFF343536)),
+                foregroundColor: tokens.textSecondary,
+                side: BorderSide(color: tokens.border),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(10),
                 ),
@@ -593,8 +610,8 @@ class _CommunityProfileScreenState
               icon: const Icon(Icons.edit_note_rounded, size: 16),
               label: const Text('Bản nháp', style: TextStyle(fontSize: 12)),
               style: OutlinedButton.styleFrom(
-                foregroundColor: const Color(0xFFBBCAAF),
-                side: const BorderSide(color: Color(0xFF343536)),
+                foregroundColor: tokens.textSecondary,
+                side: BorderSide(color: tokens.border),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(10),
                 ),
@@ -606,38 +623,42 @@ class _CommunityProfileScreenState
     );
   }
 
-  Widget _buildStatsStrip() {
+  Widget _buildStatsStrip(SamanHomePalette tokens) {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
       decoration: BoxDecoration(
-        color: const Color(0xFF1E1F21),
+        color: tokens.cardSurface,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(0xFF292A2B)),
+        border: Border.all(color: tokens.border),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
-          _buildStatItem('42', 'Buổi tập chia sẻ'),
-          Container(width: 1, height: 24, color: const Color(0xFF2E3033)),
-          _buildStatItem('18', 'Bữa ăn dinh dưỡng'),
-          Container(width: 1, height: 24, color: const Color(0xFF2E3033)),
-          _buildStatItem('1.2k', 'Lượt thích nhận'),
+          _buildStatItem('42', 'Buổi tập chia sẻ', tokens),
+          Container(width: 1, height: 24, color: tokens.border),
+          _buildStatItem('18', 'Bữa ăn dinh dưỡng', tokens),
+          Container(width: 1, height: 24, color: tokens.border),
+          _buildStatItem('1.2k', 'Lượt thích nhận', tokens),
         ],
       ),
     );
   }
 
-  Widget _buildStatItem(String value, String label) {
+  Widget _buildStatItem(
+    String value,
+    String label,
+    SamanHomePalette tokens,
+  ) {
     return Expanded(
       child: Column(
         children: [
           Text(
             value,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w700,
-              color: SamanHomeTokens.greenAccent,
+              color: tokens.greenAccent,
             ),
           ),
           const SizedBox(height: 2),
@@ -646,9 +667,9 @@ class _CommunityProfileScreenState
             textAlign: TextAlign.center,
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 11,
-              color: Color(0xFFBBCAAF),
+              color: tokens.textSecondary,
             ),
           ),
         ],
@@ -656,12 +677,15 @@ class _CommunityProfileScreenState
     );
   }
 
-  Widget _buildPostGrid(List<CommunityPost> posts) {
+  Widget _buildPostGrid(
+    List<CommunityPost> posts,
+    SamanHomePalette tokens,
+  ) {
     if (posts.isEmpty) {
-      return const Center(
+      return Center(
         child: Text(
           'Chưa có bài viết nào trong mục này.',
-          style: TextStyle(color: Color(0xFF71767B), fontSize: 13),
+          style: TextStyle(color: tokens.textMuted, fontSize: 13),
         ),
       );
     }
@@ -689,7 +713,7 @@ class _CommunityProfileScreenState
             );
           },
           child: Container(
-            color: const Color(0xFF1F2021),
+            color: tokens.cardSurface,
             child: Stack(
               fit: StackFit.expand,
               children: [
@@ -697,21 +721,21 @@ class _CommunityProfileScreenState
                   img,
                   fit: BoxFit.cover,
                   errorBuilder: (_, __, ___) => Container(
-                    color: const Color(0xFF292A2B),
-                    child: const Icon(
+                    color: tokens.secondarySurface,
+                    child: Icon(
                       Icons.fitness_center_rounded,
-                      color: Color(0xFF55585C),
+                      color: tokens.textMuted,
                       size: 24,
                     ),
                   ),
                 ),
                 if (post.type == CommunityPostType.workout)
-                  const Positioned(
+                  Positioned(
                     top: 4,
                     right: 4,
                     child: Icon(
                       Icons.bolt_rounded,
-                      color: SamanHomeTokens.greenAccent,
+                      color: tokens.greenAccent,
                       size: 16,
                     ),
                   ),
@@ -736,14 +760,15 @@ class _SliverTabBarDelegate extends SliverPersistentHeaderDelegate {
   @override
   Widget build(
       BuildContext context, double shrinkOffset, bool overlapsContent) {
+    final tokens = SamanHomeTokens.of(context);
     return Container(
-      color: const Color(0xFF121314),
+      color: tokens.canvas,
       child: _tabBar,
     );
   }
 
   @override
   bool shouldRebuild(_SliverTabBarDelegate oldDelegate) {
-    return false;
+    return true;
   }
 }

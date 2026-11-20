@@ -27,30 +27,31 @@ class _CommunityDiscoverScreenState
 
   @override
   Widget build(BuildContext context) {
+    final tokens = SamanHomeTokens.of(context);
     final discoverState = ref.watch(communityDiscoverProvider);
     final discoverNotifier = ref.read(communityDiscoverProvider.notifier);
 
     return Scaffold(
-      backgroundColor: const Color(0xFF121314),
+      backgroundColor: tokens.canvas,
       body: SafeArea(
         bottom: false,
         child: Column(
           children: [
             // Header
-            _buildHeader(context),
+            _buildHeader(context, tokens),
 
             // Honest Preview Notice Banner
-            _buildPreviewNoticeBanner(),
+            _buildPreviewNoticeBanner(tokens),
 
             // Search Bar
-            _buildSearchBar(discoverNotifier),
+            _buildSearchBar(discoverNotifier, tokens),
 
             // Content Scroll
             Expanded(
               child: discoverState.isLoading
-                  ? const Center(
+                  ? Center(
                       child: CircularProgressIndicator(
-                        color: SamanHomeTokens.greenAccent,
+                        color: tokens.greenAccent,
                       ),
                     )
                   : SingleChildScrollView(
@@ -63,6 +64,7 @@ class _CommunityDiscoverScreenState
                             discoverState.data.topicChips,
                             discoverState.activeTopic,
                             (topic) => discoverNotifier.setTopic(topic),
+                            tokens,
                           ),
                           const SizedBox(height: 16),
 
@@ -70,12 +72,14 @@ class _CommunityDiscoverScreenState
                           _buildVisualGridSection(
                             context,
                             discoverState.data.gridItems,
+                            tokens,
                           ),
                           const SizedBox(height: 24),
 
                           // Section 2: Trending Topics
                           _buildTrendingTopicsSection(
                             discoverState.data.trendingTopics,
+                            tokens,
                           ),
                           const SizedBox(height: 24),
 
@@ -84,6 +88,7 @@ class _CommunityDiscoverScreenState
                             discoverState.data.recommendedCreators,
                             (authorId) =>
                                 discoverNotifier.toggleFollow(authorId),
+                            tokens,
                           ),
                         ],
                       ),
@@ -98,20 +103,20 @@ class _CommunityDiscoverScreenState
     );
   }
 
-  Widget _buildPreviewNoticeBanner() {
+  Widget _buildPreviewNoticeBanner(SamanHomePalette tokens) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-      color: const Color(0xFF1B1C1D),
-      child: const Row(
+      color: tokens.cardSurface,
+      child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Icon(
             Icons.info_outline_rounded,
             size: 13,
-            color: SamanHomeTokens.greenAccent,
+            color: tokens.greenAccent,
           ),
-          SizedBox(width: 6),
+          const SizedBox(width: 6),
           Flexible(
             child: Text(
               'Bản xem trước giao diện • Dữ liệu mẫu thử nghiệm',
@@ -119,7 +124,7 @@ class _CommunityDiscoverScreenState
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
                 fontSize: 11,
-                color: Color(0xFFBBCAAF),
+                color: tokens.textSecondary,
                 fontWeight: FontWeight.w500,
               ),
             ),
@@ -129,7 +134,7 @@ class _CommunityDiscoverScreenState
     );
   }
 
-  Widget _buildHeader(BuildContext context) {
+  Widget _buildHeader(BuildContext context, SamanHomePalette tokens) {
     return Container(
       padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
       child: Row(
@@ -141,17 +146,17 @@ class _CommunityDiscoverScreenState
                 InkWell(
                   onTap: () => Navigator.pop(context),
                   borderRadius: BorderRadius.circular(12),
-                  child: const Padding(
-                    padding: EdgeInsets.all(4),
+                  child: Padding(
+                    padding: const EdgeInsets.all(4),
                     child: Icon(
                       Icons.arrow_back_rounded,
-                      color: SamanHomeTokens.textWhite,
+                      color: tokens.textPrimary,
                       size: 24,
                     ),
                   ),
                 ),
                 const SizedBox(width: 8),
-                const Expanded(
+                Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -162,7 +167,7 @@ class _CommunityDiscoverScreenState
                         style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.w700,
-                          color: SamanHomeTokens.textWhite,
+                          color: tokens.textPrimary,
                           letterSpacing: -0.3,
                         ),
                       ),
@@ -173,7 +178,7 @@ class _CommunityDiscoverScreenState
                         style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w500,
-                          color: SamanHomeTokens.greenAccent,
+                          color: tokens.greenAccent,
                         ),
                       ),
                     ],
@@ -183,9 +188,9 @@ class _CommunityDiscoverScreenState
             ),
           ),
           IconButton(
-            icon: const Icon(
+            icon: Icon(
               Icons.tune_rounded,
-              color: Color(0xFFBBCAAF),
+              color: tokens.textSecondary,
               size: 20,
             ),
             onPressed: () {
@@ -202,24 +207,27 @@ class _CommunityDiscoverScreenState
     );
   }
 
-  Widget _buildSearchBar(CommunityDiscoverNotifier notifier) {
+  Widget _buildSearchBar(
+    CommunityDiscoverNotifier notifier,
+    SamanHomePalette tokens,
+  ) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
       child: Container(
         height: 48,
         decoration: BoxDecoration(
-          color: const Color(0xFF1F2021),
+          color: tokens.cardSurface,
           borderRadius: BorderRadius.circular(14),
           border: Border.all(
-            color: const Color(0xFF292A2B),
+            color: tokens.border,
           ),
         ),
         padding: const EdgeInsets.symmetric(horizontal: 14),
         child: Row(
           children: [
-            const Icon(
+            Icon(
               Icons.search_rounded,
-              color: Color(0xFF86948A),
+              color: tokens.textMuted,
               size: 20,
             ),
             const SizedBox(width: 10),
@@ -227,14 +235,14 @@ class _CommunityDiscoverScreenState
               child: TextField(
                 controller: _searchController,
                 onChanged: (val) => notifier.setSearchQuery(val),
-                style: const TextStyle(
-                  color: SamanHomeTokens.textWhite,
+                style: TextStyle(
+                  color: tokens.textPrimary,
                   fontSize: 14,
                 ),
-                decoration: const InputDecoration(
+                decoration: InputDecoration(
                   hintText: 'Tìm bài viết, chủ đề, thành viên…',
                   hintStyle: TextStyle(
-                    color: Color(0xFF86948A),
+                    color: tokens.textMuted,
                     fontSize: 14,
                   ),
                   border: InputBorder.none,
@@ -242,9 +250,9 @@ class _CommunityDiscoverScreenState
                 ),
               ),
             ),
-            const Icon(
+            Icon(
               Icons.mic_none_rounded,
-              color: Color(0xFF86948A),
+              color: tokens.textMuted,
               size: 20,
             ),
           ],
@@ -257,6 +265,7 @@ class _CommunityDiscoverScreenState
     List<String> chips,
     String activeTopic,
     ValueChanged<String> onSelected,
+    SamanHomePalette tokens,
   ) {
     final Map<String, (String, IconData)> topicMeta = {
       'all': ('Tất cả', Icons.apps_rounded),
@@ -286,13 +295,13 @@ class _CommunityDiscoverScreenState
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               decoration: BoxDecoration(
                 color: isActive
-                    ? const Color(0xFF343536)
-                    : const Color(0xFF1F2021),
+                    ? tokens.secondarySurface
+                    : tokens.cardSurface,
                 borderRadius: BorderRadius.circular(10),
                 border: Border.all(
                   color: isActive
-                      ? SamanHomeTokens.greenAccent.withOpacity(0.5)
-                      : Colors.transparent,
+                      ? tokens.greenAccent.withOpacity(0.5)
+                      : tokens.border,
                 ),
               ),
               child: Row(
@@ -302,8 +311,8 @@ class _CommunityDiscoverScreenState
                     meta.$2,
                     size: 15,
                     color: isActive
-                        ? SamanHomeTokens.greenAccent
-                        : const Color(0xFFBBCAAF),
+                        ? tokens.greenAccent
+                        : tokens.textSecondary,
                   ),
                   const SizedBox(width: 6),
                   Text(
@@ -312,8 +321,8 @@ class _CommunityDiscoverScreenState
                       fontSize: 12,
                       fontWeight: isActive ? FontWeight.w600 : FontWeight.w500,
                       color: isActive
-                          ? SamanHomeTokens.greenAccent
-                          : const Color(0xFFBBCAAF),
+                          ? tokens.greenAccent
+                          : tokens.textSecondary,
                     ),
                   ),
                 ],
@@ -328,6 +337,7 @@ class _CommunityDiscoverScreenState
   Widget _buildVisualGridSection(
     BuildContext context,
     List<CommunityVisualGridItem> items,
+    SamanHomePalette tokens,
   ) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -337,15 +347,15 @@ class _CommunityDiscoverScreenState
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Expanded(
+              Expanded(
                 child: Row(
                   children: [
                     Icon(
                       Icons.grid_view_rounded,
                       size: 18,
-                      color: SamanHomeTokens.greenAccent,
+                      color: tokens.greenAccent,
                     ),
-                    SizedBox(width: 6),
+                    const SizedBox(width: 6),
                     Flexible(
                       child: Text(
                         'Khoảnh khắc tiêu biểu',
@@ -354,7 +364,7 @@ class _CommunityDiscoverScreenState
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w700,
-                          color: SamanHomeTokens.textWhite,
+                          color: tokens.textPrimary,
                         ),
                       ),
                     ),
@@ -367,7 +377,7 @@ class _CommunityDiscoverScreenState
                 style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w600,
-                  color: SamanHomeTokens.greenAccent.withOpacity(0.9),
+                  color: tokens.greenAccent.withOpacity(0.9),
                 ),
               ),
             ],
@@ -376,7 +386,9 @@ class _CommunityDiscoverScreenState
           Container(
             padding: const EdgeInsets.all(4),
             decoration: BoxDecoration(
-              color: const Color(0xFF0D0E0F),
+              color: tokens.isDark
+                  ? const Color(0xFF0D0E0F)
+                  : tokens.border,
               borderRadius: BorderRadius.circular(16),
             ),
             child: GridView.builder(
@@ -411,18 +423,18 @@ class _CommunityDiscoverScreenState
                       fit: StackFit.expand,
                       children: [
                         Container(
-                          color: const Color(0xFF1F2021),
+                          color: tokens.cardSurface,
                           child: Center(
                             child: Icon(
                               item.hasVideo
                                   ? Icons.play_circle_fill_rounded
                                   : Icons.image_rounded,
                               size: 28,
-                              color: const Color(0xFF343536),
+                              color: tokens.secondarySurface,
                             ),
                           ),
                         ),
-                        // Top badge
+                        // Top badge (dark translucent overlay kept for media contrast)
                         if (item.hasMultiPhoto || item.hasVideo)
                           Positioned(
                             top: 4,
@@ -442,7 +454,7 @@ class _CommunityDiscoverScreenState
                               ),
                             ),
                           ),
-                        // Bottom gradient & likes
+                        // Bottom gradient & likes (dark scrim kept for media contrast)
                         Positioned(
                           left: 0,
                           right: 0,
@@ -467,7 +479,7 @@ class _CommunityDiscoverScreenState
                                 const Icon(
                                   Icons.favorite_rounded,
                                   size: 11,
-                                  color: SamanHomeTokens.greenAccent,
+                                  color: Color(0xFF5BBFA0),
                                 ),
                                 const SizedBox(width: 3),
                                 Text(
@@ -494,13 +506,16 @@ class _CommunityDiscoverScreenState
     );
   }
 
-  Widget _buildTrendingTopicsSection(List<CommunityTrendingTopic> topics) {
+  Widget _buildTrendingTopicsSection(
+    List<CommunityTrendingTopic> topics,
+    SamanHomePalette tokens,
+  ) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Row(
+          Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Expanded(
@@ -509,9 +524,9 @@ class _CommunityDiscoverScreenState
                     Icon(
                       Icons.trending_up_rounded,
                       size: 19,
-                      color: SamanHomeTokens.greenAccent,
+                      color: tokens.greenAccent,
                     ),
-                    SizedBox(width: 6),
+                    const SizedBox(width: 6),
                     Flexible(
                       child: Text(
                         'Chủ đề đang được quan tâm',
@@ -520,19 +535,19 @@ class _CommunityDiscoverScreenState
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w700,
-                          color: SamanHomeTokens.textWhite,
+                          color: tokens.textPrimary,
                         ),
                       ),
                     ),
                   ],
                 ),
               ),
-              SizedBox(width: 8),
+              const SizedBox(width: 8),
               Text(
                 'Thịnh hành',
                 style: TextStyle(
                   fontSize: 11,
-                  color: Color(0xFFBBCAAF),
+                  color: tokens.textSecondary,
                 ),
               ),
             ],
@@ -548,10 +563,10 @@ class _CommunityDiscoverScreenState
               return Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF1F2021),
+                  color: tokens.cardSurface,
                   borderRadius: BorderRadius.circular(14),
                   border: Border.all(
-                    color: const Color(0xFF292A2B),
+                    color: tokens.border,
                   ),
                 ),
                 child: Row(
@@ -564,12 +579,12 @@ class _CommunityDiscoverScreenState
                             width: 40,
                             height: 40,
                             decoration: BoxDecoration(
-                              color: const Color(0xFF292A2B),
+                              color: tokens.secondarySurface,
                               borderRadius: BorderRadius.circular(10),
                             ),
-                            child: const Icon(
+                            child: Icon(
                               Icons.tag_rounded,
-                              color: SamanHomeTokens.greenAccent,
+                              color: tokens.greenAccent,
                               size: 20,
                             ),
                           ),
@@ -582,10 +597,10 @@ class _CommunityDiscoverScreenState
                                   topic.hashtag,
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                     fontSize: 14,
                                     fontWeight: FontWeight.w600,
-                                    color: SamanHomeTokens.textWhite,
+                                    color: tokens.textPrimary,
                                   ),
                                 ),
                                 const SizedBox(height: 2),
@@ -594,9 +609,9 @@ class _CommunityDiscoverScreenState
                                     Container(
                                       width: 5,
                                       height: 5,
-                                      decoration: const BoxDecoration(
+                                      decoration: BoxDecoration(
                                         shape: BoxShape.circle,
-                                        color: SamanHomeTokens.greenAccent,
+                                        color: tokens.greenAccent,
                                       ),
                                     ),
                                     const SizedBox(width: 5),
@@ -605,9 +620,9 @@ class _CommunityDiscoverScreenState
                                         topic.postCountFormatted,
                                         maxLines: 1,
                                         overflow: TextOverflow.ellipsis,
-                                        style: const TextStyle(
+                                        style: TextStyle(
                                           fontSize: 11,
-                                          color: Color(0xFFBBCAAF),
+                                          color: tokens.textSecondary,
                                         ),
                                       ),
                                     ),
@@ -628,7 +643,7 @@ class _CommunityDiscoverScreenState
                             vertical: 3,
                           ),
                           decoration: BoxDecoration(
-                            color: const Color(0xFF343536),
+                            color: tokens.secondarySurface,
                             borderRadius: BorderRadius.circular(6),
                           ),
                           child: Text(
@@ -637,16 +652,16 @@ class _CommunityDiscoverScreenState
                               fontSize: 11,
                               fontWeight: FontWeight.w600,
                               color: topic.isStable
-                                  ? const Color(0xFFBBCAAF)
-                                  : SamanHomeTokens.greenAccent,
+                                  ? tokens.textSecondary
+                                  : tokens.greenAccent,
                             ),
                           ),
                         ),
                         const SizedBox(width: 6),
-                        const Icon(
+                        Icon(
                           Icons.chevron_right_rounded,
                           size: 18,
-                          color: Color(0xFF86948A),
+                          color: tokens.textMuted,
                         ),
                       ],
                     ),
@@ -663,13 +678,14 @@ class _CommunityDiscoverScreenState
   Widget _buildRecommendedCreatorsSection(
     List<CommunityAuthor> creators,
     ValueChanged<String> onFollowToggle,
+    SamanHomePalette tokens,
   ) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Row(
+          Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Expanded(
@@ -678,9 +694,9 @@ class _CommunityDiscoverScreenState
                     Icon(
                       Icons.person_add_alt_1_rounded,
                       size: 19,
-                      color: SamanHomeTokens.greenAccent,
+                      color: tokens.greenAccent,
                     ),
-                    SizedBox(width: 6),
+                    const SizedBox(width: 6),
                     Flexible(
                       child: Text(
                         'Có thể bạn muốn theo dõi',
@@ -689,19 +705,19 @@ class _CommunityDiscoverScreenState
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w700,
-                          color: SamanHomeTokens.textWhite,
+                          color: tokens.textPrimary,
                         ),
                       ),
                     ),
                   ],
                 ),
               ),
-              SizedBox(width: 8),
+              const SizedBox(width: 8),
               Text(
                 'Xem tất cả',
                 style: TextStyle(
                   fontSize: 12,
-                  color: Color(0xFFBBCAAF),
+                  color: tokens.textSecondary,
                 ),
               ),
             ],
@@ -719,10 +735,10 @@ class _CommunityDiscoverScreenState
               return Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF1F2021),
+                  color: tokens.cardSurface,
                   borderRadius: BorderRadius.circular(16),
                   border: Border.all(
-                    color: const Color(0xFF292A2B),
+                    color: tokens.border,
                   ),
                 ),
                 child: Row(
@@ -736,19 +752,19 @@ class _CommunityDiscoverScreenState
                             height: 44,
                             decoration: BoxDecoration(
                               shape: BoxShape.circle,
-                              color: const Color(0xFF343536),
+                              color: tokens.secondarySurface,
                               border: Border.all(
-                                color: SamanHomeTokens.greenAccent.withOpacity(0.3),
+                                color: tokens.greenAccent.withOpacity(0.3),
                                 width: 1.5,
                               ),
                             ),
                             child: Center(
                               child: Text(
                                 creator.name.isNotEmpty ? creator.name[0] : 'S',
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontSize: 18,
                                   fontWeight: FontWeight.bold,
-                                  color: SamanHomeTokens.greenAccent,
+                                  color: tokens.greenAccent,
                                 ),
                               ),
                             ),
@@ -765,19 +781,19 @@ class _CommunityDiscoverScreenState
                                         creator.name,
                                         maxLines: 1,
                                         overflow: TextOverflow.ellipsis,
-                                        style: const TextStyle(
+                                        style: TextStyle(
                                           fontSize: 14,
                                           fontWeight: FontWeight.w600,
-                                          color: SamanHomeTokens.textWhite,
+                                          color: tokens.textPrimary,
                                         ),
                                       ),
                                     ),
                                     if (creator.isVerified) ...[
                                       const SizedBox(width: 4),
-                                      const Icon(
+                                      Icon(
                                         Icons.verified_rounded,
                                         size: 14,
-                                        color: SamanHomeTokens.greenAccent,
+                                        color: tokens.greenAccent,
                                       ),
                                     ],
                                   ],
@@ -787,17 +803,17 @@ class _CommunityDiscoverScreenState
                                   creator.title ?? 'Thành viên Saman',
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                     fontSize: 12,
-                                    color: Color(0xFFBBCAAF),
+                                    color: tokens.textSecondary,
                                   ),
                                 ),
                                 const SizedBox(height: 2),
                                 Text(
                                   '${(creator.followerCount / 1000).toStringAsFixed(1)}k người theo dõi',
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                     fontSize: 10,
-                                    color: Color(0xFF86948A),
+                                    color: tokens.textMuted,
                                   ),
                                 ),
                               ],
@@ -811,11 +827,13 @@ class _CommunityDiscoverScreenState
                       onPressed: () => onFollowToggle(creator.id),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: isFollowing
-                            ? const Color(0xFF292A2B)
-                            : SamanHomeTokens.greenAccent,
+                            ? tokens.secondarySurface
+                            : tokens.greenAccent,
                         foregroundColor: isFollowing
-                            ? const Color(0xFFBBCAAF)
-                            : const Color(0xFF003824),
+                            ? tokens.textSecondary
+                            : (tokens.isDark
+                                ? const Color(0xFF003824)
+                                : const Color(0xFFFFFFFF)),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(10),
                         ),
@@ -834,8 +852,10 @@ class _CommunityDiscoverScreenState
                                 : Icons.add_rounded,
                             size: 15,
                             color: isFollowing
-                                ? SamanHomeTokens.greenAccent
-                                : const Color(0xFF003824),
+                                ? tokens.greenAccent
+                                : (tokens.isDark
+                                    ? const Color(0xFF003824)
+                                    : const Color(0xFFFFFFFF)),
                           ),
                           const SizedBox(width: 4),
                           Text(

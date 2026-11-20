@@ -84,24 +84,26 @@ class _CommunityEditProfileScreenState
 
   @override
   Widget build(BuildContext context) {
+    final tokens = SamanHomeTokens.of(context);
     return Scaffold(
-      backgroundColor: const Color(0xFF121314),
+      backgroundColor: tokens.canvas,
       body: SafeArea(
         child: Column(
           children: [
-            _buildAppBar(context),
+            _buildAppBar(context, tokens),
             Expanded(
               child: SingleChildScrollView(
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _buildAvatarEdit(),
+                    _buildAvatarEdit(tokens),
                     const SizedBox(height: 24),
                     _buildTextField(
                       label: 'Tên hiển thị *',
                       controller: _nameController,
                       hint: 'Nhập họ và tên...',
+                      tokens: tokens,
                     ),
                     const SizedBox(height: 16),
                     _buildTextField(
@@ -109,17 +111,19 @@ class _CommunityEditProfileScreenState
                       controller: _handleController,
                       prefixText: '@',
                       hint: 'username',
+                      tokens: tokens,
                     ),
                     const SizedBox(height: 16),
                     _buildTextField(
                       label: 'Chức danh / Danh hiệu',
                       controller: _titleController,
                       hint: 'Ví dụ: HLV thể hình, Người tập luyện...',
+                      tokens: tokens,
                     ),
                     const SizedBox(height: 16),
-                    _buildBioField(),
+                    _buildBioField(tokens),
                     const SizedBox(height: 20),
-                    _buildGoalsSelector(),
+                    _buildGoalsSelector(tokens),
                     const SizedBox(height: 32),
                   ],
                 ),
@@ -131,26 +135,26 @@ class _CommunityEditProfileScreenState
     );
   }
 
-  Widget _buildAppBar(BuildContext context) {
+  Widget _buildAppBar(BuildContext context, SamanHomePalette tokens) {
     return Container(
       height: 52,
       padding: const EdgeInsets.symmetric(horizontal: 16),
-      decoration: const BoxDecoration(
-        color: Color(0xFF121314),
-        border: Border(bottom: BorderSide(color: Color(0xFF1F2021), width: 1)),
+      decoration: BoxDecoration(
+        color: tokens.canvas,
+        border: Border(bottom: BorderSide(color: tokens.border, width: 1)),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           IconButton(
             onPressed: () => Navigator.pop(context),
-            icon: const Icon(
+            icon: Icon(
               Icons.close_rounded,
-              color: SamanHomeTokens.textWhite,
+              color: tokens.textPrimary,
               size: 22,
             ),
           ),
-          const Expanded(
+          Expanded(
             child: Text(
               'Chỉnh sửa hồ sơ',
               textAlign: TextAlign.center,
@@ -158,27 +162,27 @@ class _CommunityEditProfileScreenState
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w700,
-                color: SamanHomeTokens.textWhite,
+                color: tokens.textPrimary,
               ),
             ),
           ),
           _isSaving
-              ? const SizedBox(
+              ? SizedBox(
                   width: 20,
                   height: 20,
                   child: CircularProgressIndicator(
                     strokeWidth: 2,
-                    color: SamanHomeTokens.greenAccent,
+                    color: tokens.greenAccent,
                   ),
                 )
               : TextButton(
                   onPressed: _handleSave,
-                  child: const Text(
+                  child: Text(
                     'Lưu',
                     style: TextStyle(
                       fontSize: 15,
                       fontWeight: FontWeight.w700,
-                      color: SamanHomeTokens.greenAccent,
+                      color: tokens.greenAccent,
                     ),
                   ),
                 ),
@@ -187,7 +191,7 @@ class _CommunityEditProfileScreenState
     );
   }
 
-  Widget _buildAvatarEdit() {
+  Widget _buildAvatarEdit(SamanHomePalette tokens) {
     return Center(
       child: Column(
         children: [
@@ -196,17 +200,17 @@ class _CommunityEditProfileScreenState
               Container(
                 width: 84,
                 height: 84,
-                decoration: const BoxDecoration(
+                decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: Color(0xFF292A2B),
+                  color: tokens.secondarySurface,
                 ),
-                child: const Center(
+                child: Center(
                   child: Text(
                     'L',
                     style: TextStyle(
                       fontSize: 32,
                       fontWeight: FontWeight.w700,
-                      color: SamanHomeTokens.greenAccent,
+                      color: tokens.greenAccent,
                     ),
                   ),
                 ),
@@ -217,26 +221,28 @@ class _CommunityEditProfileScreenState
                 child: Container(
                   width: 28,
                   height: 28,
-                  decoration: const BoxDecoration(
+                  decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    color: SamanHomeTokens.greenAccent,
+                    color: tokens.greenAccent,
                   ),
-                  child: const Icon(
+                  child: Icon(
                     Icons.camera_alt_rounded,
                     size: 16,
-                    color: Color(0xFF003824),
+                    color: tokens.isDark
+                        ? const Color(0xFF003824)
+                        : const Color(0xFFFFFFFF),
                   ),
                 ),
               ),
             ],
           ),
           const SizedBox(height: 8),
-          const Text(
+          Text(
             'Đổi ảnh đại diện',
             style: TextStyle(
               fontSize: 13,
               fontWeight: FontWeight.w600,
-              color: SamanHomeTokens.greenAccent,
+              color: tokens.greenAccent,
             ),
           ),
         ],
@@ -247,6 +253,7 @@ class _CommunityEditProfileScreenState
   Widget _buildTextField({
     required String label,
     required TextEditingController controller,
+    required SamanHomePalette tokens,
     String? hint,
     String? prefixText,
   }) {
@@ -255,28 +262,28 @@ class _CommunityEditProfileScreenState
       children: [
         Text(
           label,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 13,
             fontWeight: FontWeight.w600,
-            color: Color(0xFFBBCAAF),
+            color: tokens.textSecondary,
           ),
         ),
         const SizedBox(height: 6),
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 14),
           decoration: BoxDecoration(
-            color: const Color(0xFF1E1F21),
+            color: tokens.cardSurface,
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: const Color(0xFF2E3033)),
+            border: Border.all(color: tokens.border),
           ),
           child: Row(
             children: [
               if (prefixText != null) ...[
                 Text(
                   prefixText,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 14,
-                    color: SamanHomeTokens.greenAccent,
+                    color: tokens.greenAccent,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
@@ -285,15 +292,15 @@ class _CommunityEditProfileScreenState
               Expanded(
                 child: TextField(
                   controller: controller,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 14,
-                    color: SamanHomeTokens.textWhite,
+                    color: tokens.textPrimary,
                   ),
                   decoration: InputDecoration(
                     hintText: hint,
-                    hintStyle: const TextStyle(
+                    hintStyle: TextStyle(
                       fontSize: 14,
-                      color: Color(0xFF71767B),
+                      color: tokens.textMuted,
                     ),
                     border: InputBorder.none,
                   ),
@@ -306,27 +313,27 @@ class _CommunityEditProfileScreenState
     );
   }
 
-  Widget _buildBioField() {
+  Widget _buildBioField(SamanHomePalette tokens) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            const Expanded(
+            Expanded(
               child: Text(
                 'Tiểu sử cá nhân',
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w600,
-                  color: Color(0xFFBBCAAF),
+                  color: tokens.textSecondary,
                 ),
               ),
             ),
             Text(
               '${_bioController.text.length}/150',
-              style: const TextStyle(fontSize: 11, color: Color(0xFFBBCAAF)),
+              style: TextStyle(fontSize: 11, color: tokens.textSecondary),
             ),
           ],
         ),
@@ -334,9 +341,9 @@ class _CommunityEditProfileScreenState
         Container(
           padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
-            color: const Color(0xFF1E1F21),
+            color: tokens.cardSurface,
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: const Color(0xFF2E3033)),
+            border: Border.all(color: tokens.border),
           ),
           child: TextField(
             controller: _bioController,
@@ -345,14 +352,14 @@ class _CommunityEditProfileScreenState
             buildCounter: (_, {required currentLength, required isFocused, maxLength}) =>
                 null,
             onChanged: (_) => setState(() {}),
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 14,
-              color: SamanHomeTokens.textWhite,
+              color: tokens.textPrimary,
               height: 1.4,
             ),
-            decoration: const InputDecoration(
+            decoration: InputDecoration(
               hintText: 'Giới thiệu ngắn về mục tiêu, kinh nghiệm tập luyện...',
-              hintStyle: TextStyle(fontSize: 13, color: Color(0xFF71767B)),
+              hintStyle: TextStyle(fontSize: 13, color: tokens.textMuted),
               border: InputBorder.none,
             ),
           ),
@@ -361,16 +368,16 @@ class _CommunityEditProfileScreenState
     );
   }
 
-  Widget _buildGoalsSelector() {
+  Widget _buildGoalsSelector(SamanHomePalette tokens) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
+        Text(
           'Mục tiêu thể chất & dinh dưỡng',
           style: TextStyle(
             fontSize: 13,
             fontWeight: FontWeight.w600,
-            color: Color(0xFFBBCAAF),
+            color: tokens.textSecondary,
           ),
         ),
         const SizedBox(height: 8),
@@ -391,19 +398,21 @@ class _CommunityEditProfileScreenState
                   }
                 });
               },
-              selectedColor: SamanHomeTokens.greenAccent,
-              backgroundColor: const Color(0xFF1E1F21),
+              selectedColor: tokens.greenAccent,
+              backgroundColor: tokens.cardSurface,
               labelStyle: TextStyle(
                 fontSize: 12,
                 fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
                 color: isSelected
-                    ? const Color(0xFF003824)
-                    : SamanHomeTokens.textWhite,
+                    ? (tokens.isDark
+                        ? const Color(0xFF003824)
+                        : const Color(0xFFFFFFFF))
+                    : tokens.textPrimary,
               ),
               side: BorderSide(
                 color: isSelected
-                    ? SamanHomeTokens.greenAccent
-                    : const Color(0xFF2E3033),
+                    ? tokens.greenAccent
+                    : tokens.border,
               ),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(20),

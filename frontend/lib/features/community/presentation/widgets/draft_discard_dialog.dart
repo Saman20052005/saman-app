@@ -16,10 +16,11 @@ class DraftDiscardDialog extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = SamanHomeTokens.of(context);
     return Container(
-      decoration: const BoxDecoration(
-        color: Color(0xFF1E1F21),
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      decoration: BoxDecoration(
+        color: tokens.cardSurface,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
       ),
       padding: EdgeInsets.fromLTRB(
         20,
@@ -34,26 +35,26 @@ class DraftDiscardDialog extends StatelessWidget {
             width: 36,
             height: 4,
             decoration: BoxDecoration(
-              color: const Color(0xFF343536),
+              color: tokens.secondarySurface,
               borderRadius: BorderRadius.circular(2),
             ),
           ),
           const SizedBox(height: 16),
-          const Text(
+          Text(
             'Lưu bản nháp bài viết?',
             style: TextStyle(
               fontSize: 17,
               fontWeight: FontWeight.w700,
-              color: SamanHomeTokens.textWhite,
+              color: tokens.textPrimary,
             ),
           ),
           const SizedBox(height: 8),
-          const Text(
+          Text(
             'Bạn có thể tiếp tục chỉnh sửa nội dung này bất kỳ lúc nào từ mục Bản nháp.',
             textAlign: TextAlign.center,
             style: TextStyle(
               fontSize: 13,
-              color: Color(0xFFBBCAAF),
+              color: tokens.textSecondary,
               height: 1.4,
             ),
           ),
@@ -65,8 +66,10 @@ class DraftDiscardDialog extends StatelessWidget {
               onPressed: () =>
                   Navigator.pop(context, DraftDiscardAction.saveDraft),
               style: ElevatedButton.styleFrom(
-                backgroundColor: SamanHomeTokens.greenAccent,
-                foregroundColor: const Color(0xFF003824),
+                backgroundColor: tokens.greenAccent,
+                foregroundColor: tokens.isDark
+                    ? const Color(0xFF003824)
+                    : const Color(0xFFFFFFFF),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),
@@ -89,8 +92,14 @@ class DraftDiscardDialog extends StatelessWidget {
               onPressed: () =>
                   Navigator.pop(context, DraftDiscardAction.discard),
               style: OutlinedButton.styleFrom(
-                foregroundColor: const Color(0xFFFFB4AB),
-                side: const BorderSide(color: Color(0xFF93000A)),
+                foregroundColor: tokens.isDark
+                    ? const Color(0xFFFFB4AB)
+                    : const Color(0xFFDC2626),
+                side: BorderSide(
+                  color: tokens.isDark
+                      ? const Color(0xFF93000A)
+                      : const Color(0xFFDC2626),
+                ),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),
@@ -107,11 +116,11 @@ class DraftDiscardDialog extends StatelessWidget {
           const SizedBox(height: 8),
           TextButton(
             onPressed: () => Navigator.pop(context, DraftDiscardAction.cancel),
-            child: const Text(
+            child: Text(
               'Tiếp tục chỉnh sửa',
               style: TextStyle(
                 fontSize: 13,
-                color: Color(0xFFBBCAAF),
+                color: tokens.textSecondary,
               ),
             ),
           ),

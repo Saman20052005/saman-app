@@ -54,12 +54,13 @@ class JournalPreviewSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = SamanHomeTokens.of(context);
     return Container(
-      decoration: const BoxDecoration(
-        color: SamanHomeTokens.cardSurface,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      decoration: BoxDecoration(
+        color: tokens.cardSurface,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
         border: Border(
-          top: BorderSide(color: SamanHomeTokens.border, width: 1),
+          top: BorderSide(color: tokens.border, width: 1),
         ),
       ),
       padding: EdgeInsets.only(
@@ -78,7 +79,7 @@ class JournalPreviewSheet extends StatelessWidget {
               width: 36,
               height: 4,
               decoration: BoxDecoration(
-                color: SamanHomeTokens.borderHigh,
+                color: tokens.borderHigh,
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
@@ -91,16 +92,16 @@ class JournalPreviewSheet extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                 decoration: BoxDecoration(
-                  color: SamanHomeTokens.greenBadgeBg,
+                  color: tokens.greenBadgeBg,
                   borderRadius: BorderRadius.circular(4),
-                  border: Border.all(color: SamanHomeTokens.greenBadgeBorder),
+                  border: Border.all(color: tokens.greenBadgeBorder),
                 ),
                 child: Text(
                   categoryLabel.toUpperCase(),
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 10,
                     fontWeight: FontWeight.w700,
-                    color: SamanHomeTokens.greenAccent,
+                    color: tokens.greenAccent,
                     letterSpacing: 0.8,
                   ),
                 ),
@@ -109,10 +110,10 @@ class JournalPreviewSheet extends StatelessWidget {
                 const SizedBox(width: 8),
                 Text(
                   metricLabel!,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w500,
-                    color: SamanHomeTokens.textSecondary,
+                    color: tokens.textSecondary,
                   ),
                 ),
               ],
@@ -123,10 +124,10 @@ class JournalPreviewSheet extends StatelessWidget {
           // Title
           Text(
             title,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.w700,
-              color: SamanHomeTokens.textWhite,
+              color: tokens.textWhite,
               height: 1.3,
             ),
           ),
@@ -135,10 +136,10 @@ class JournalPreviewSheet extends StatelessWidget {
           // Description
           Text(
             description,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 13.5,
               fontWeight: FontWeight.w400,
-              color: SamanHomeTokens.textSecondary,
+              color: tokens.textSecondary,
               height: 1.45,
             ),
           ),
@@ -149,24 +150,24 @@ class JournalPreviewSheet extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: SamanHomeTokens.canvas,
+                color: tokens.canvas,
                 borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: SamanHomeTokens.borderSubtle),
+                border: Border.all(color: tokens.borderSubtle),
               ),
               child: Row(
                 children: [
-                  const Icon(
+                  Icon(
                     Icons.info_outline_rounded,
                     size: 16,
-                    color: SamanHomeTokens.greenAccent,
+                    color: tokens.greenAccent,
                   ),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
                       notice!,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 12,
-                        color: SamanHomeTokens.textSecondary,
+                        color: tokens.textSecondary,
                       ),
                     ),
                   ),
@@ -181,11 +182,11 @@ class JournalPreviewSheet extends StatelessWidget {
             child: ElevatedButton(
               onPressed: () => Navigator.of(context).pop(),
               style: ElevatedButton.styleFrom(
-                backgroundColor: SamanHomeTokens.actionButtonSurface,
-                foregroundColor: SamanHomeTokens.textWhite,
+                backgroundColor: tokens.actionButtonSurface,
+                foregroundColor: tokens.textWhite,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
-                  side: const BorderSide(color: SamanHomeTokens.border),
+                  side: BorderSide(color: tokens.border),
                 ),
                 padding: const EdgeInsets.symmetric(vertical: 14),
               ),

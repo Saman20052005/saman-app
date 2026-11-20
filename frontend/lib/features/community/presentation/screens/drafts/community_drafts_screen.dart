@@ -11,25 +11,26 @@ class CommunityDraftsScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final tokens = SamanHomeTokens.of(context);
     final state = ref.watch(communityDraftsProvider);
     final notifier = ref.read(communityDraftsProvider.notifier);
 
     return Scaffold(
-      backgroundColor: const Color(0xFF121314),
+      backgroundColor: tokens.canvas,
       body: SafeArea(
         child: Column(
           children: [
-            _buildAppBar(context, state.drafts.length),
+            _buildAppBar(context, state.drafts.length, tokens),
             Expanded(
               child: state.isLoading
-                  ? const Center(
+                  ? Center(
                       child: CircularProgressIndicator(
-                        color: SamanHomeTokens.greenAccent,
+                        color: tokens.greenAccent,
                       ),
                     )
                   : state.drafts.isEmpty
-                      ? _buildEmptyState()
-                      : _buildDraftsList(context, ref, state.drafts, notifier),
+                      ? _buildEmptyState(tokens)
+                      : _buildDraftsList(context, ref, state.drafts, notifier, tokens),
             ),
           ],
         ),
@@ -37,21 +38,25 @@ class CommunityDraftsScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildAppBar(BuildContext context, int count) {
+  Widget _buildAppBar(
+    BuildContext context,
+    int count,
+    SamanHomePalette tokens,
+  ) {
     return Container(
       height: 52,
       padding: const EdgeInsets.symmetric(horizontal: 16),
-      decoration: const BoxDecoration(
-        color: Color(0xFF121314),
-        border: Border(bottom: BorderSide(color: Color(0xFF1F2021), width: 1)),
+      decoration: BoxDecoration(
+        color: tokens.canvas,
+        border: Border(bottom: BorderSide(color: tokens.border, width: 1)),
       ),
       child: Row(
         children: [
           IconButton(
             onPressed: () => Navigator.pop(context),
-            icon: const Icon(
+            icon: Icon(
               Icons.arrow_back_rounded,
-              color: SamanHomeTokens.textWhite,
+              color: tokens.textPrimary,
               size: 22,
             ),
           ),
@@ -60,14 +65,14 @@ class CommunityDraftsScreen extends ConsumerWidget {
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Flexible(
+                Flexible(
                   child: Text(
                     'Bản nháp bài viết',
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w700,
-                      color: SamanHomeTokens.textWhite,
+                      color: tokens.textPrimary,
                     ),
                   ),
                 ),
@@ -75,16 +80,16 @@ class CommunityDraftsScreen extends ConsumerWidget {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF1E1F21),
+                    color: tokens.cardSurface,
                     borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: const Color(0xFF2E3033)),
+                    border: Border.all(color: tokens.border),
                   ),
                   child: Text(
                     '$count',
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 11,
                       fontWeight: FontWeight.w700,
-                      color: Color(0xFFBBCAAF),
+                      color: tokens.textSecondary,
                     ),
                   ),
                 ),
@@ -96,7 +101,7 @@ class CommunityDraftsScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildEmptyState() {
+  Widget _buildEmptyState(SamanHomePalette tokens) {
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(32),
@@ -106,32 +111,32 @@ class CommunityDraftsScreen extends ConsumerWidget {
             Container(
               width: 64,
               height: 64,
-              decoration: const BoxDecoration(
+              decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: Color(0xFF1E1F21),
+                color: tokens.cardSurface,
               ),
-              child: const Icon(
+              child: Icon(
                 Icons.edit_note_rounded,
                 size: 32,
-                color: Color(0xFFBBCAAF),
+                color: tokens.textSecondary,
               ),
             ),
             const SizedBox(height: 16),
-            const Text(
+            Text(
               'Chưa có bản nháp nào',
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w700,
-                color: SamanHomeTokens.textWhite,
+                color: tokens.textPrimary,
               ),
             ),
             const SizedBox(height: 6),
-            const Text(
+            Text(
               'Khi bạn bắt đầu viết bài và lưu lại trước khi đăng, bài viết sẽ hiển thị tại đây.',
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 13,
-                color: Color(0xFF71767B),
+                color: tokens.textMuted,
                 height: 1.4,
               ),
             ),
@@ -146,6 +151,7 @@ class CommunityDraftsScreen extends ConsumerWidget {
     WidgetRef ref,
     List<DraftPost> drafts,
     CommunityDraftsNotifier notifier,
+    SamanHomePalette tokens,
   ) {
     return ListView.separated(
       padding: const EdgeInsets.all(16),
@@ -169,9 +175,9 @@ class CommunityDraftsScreen extends ConsumerWidget {
           child: Container(
             padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
-              color: const Color(0xFF1E1F21),
+              color: tokens.cardSurface,
               borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: const Color(0xFF292A2B)),
+              border: Border.all(color: tokens.border),
             ),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -185,15 +191,15 @@ class CommunityDraftsScreen extends ConsumerWidget {
                           padding: const EdgeInsets.symmetric(
                               horizontal: 8, vertical: 3),
                           decoration: BoxDecoration(
-                            color: const Color(0xFF292A2B),
+                            color: tokens.secondarySurface,
                             borderRadius: BorderRadius.circular(6),
                           ),
                           child: Text(
                             draft.topic,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 11,
                               fontWeight: FontWeight.w600,
-                              color: SamanHomeTokens.greenAccent,
+                              color: tokens.greenAccent,
                             ),
                           ),
                         ),
@@ -205,10 +211,10 @@ class CommunityDraftsScreen extends ConsumerWidget {
                             : 'Bản nháp không có tiêu đề',
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.w600,
-                          color: SamanHomeTokens.textWhite,
+                          color: tokens.textPrimary,
                           height: 1.3,
                         ),
                       ),
@@ -216,31 +222,31 @@ class CommunityDraftsScreen extends ConsumerWidget {
                       Row(
                         children: [
                           if (draft.mediaUrls.isNotEmpty) ...[
-                            const Icon(
+                            Icon(
                               Icons.image_outlined,
                               size: 14,
-                              color: Color(0xFFBBCAAF),
+                              color: tokens.textSecondary,
                             ),
                             const SizedBox(width: 4),
                             Text(
                               '${draft.mediaUrls.length} ảnh  •  ',
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 11,
-                                color: Color(0xFFBBCAAF),
+                                color: tokens.textSecondary,
                               ),
                             ),
                           ],
-                          const Icon(
+                          Icon(
                             Icons.access_time_rounded,
                             size: 13,
-                            color: Color(0xFF71767B),
+                            color: tokens.textMuted,
                           ),
                           const SizedBox(width: 4),
-                          const Text(
+                          Text(
                             'Đã lưu gần đây',
                             style: TextStyle(
                               fontSize: 11,
-                              color: Color(0xFF71767B),
+                              color: tokens.textMuted,
                             ),
                           ),
                         ],
@@ -250,10 +256,12 @@ class CommunityDraftsScreen extends ConsumerWidget {
                 ),
                 IconButton(
                   onPressed: () => notifier.deleteDraft(draft.id),
-                  icon: const Icon(
+                  icon: Icon(
                     Icons.delete_outline_rounded,
                     size: 20,
-                    color: Color(0xFFFFB4AB),
+                    color: tokens.isDark
+                        ? const Color(0xFFFFB4AB)
+                        : const Color(0xFFDC2626),
                   ),
                 ),
               ],

@@ -14,13 +14,14 @@ class KineticWorkoutAttachmentCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = SamanHomeTokens.of(context);
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFF292A2B),
+        color: tokens.secondarySurface,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: const Color(0xFF3C4A42).withOpacity(0.5),
+          color: tokens.border,
         ),
       ),
       child: Column(
@@ -33,18 +34,18 @@ class KineticWorkoutAttachmentCard extends StatelessWidget {
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                   decoration: BoxDecoration(
-                    color: SamanHomeTokens.greenAccent.withOpacity(0.15),
+                    color: tokens.greenAccent.withOpacity(0.15),
                     borderRadius: BorderRadius.circular(6),
                   ),
-                  child: const Row(
+                  child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Icon(
                         Icons.check_circle_rounded,
                         size: 14,
-                        color: SamanHomeTokens.greenAccent,
+                        color: tokens.greenAccent,
                       ),
-                      SizedBox(width: 5),
+                      const SizedBox(width: 5),
                       Flexible(
                         child: Text(
                           'BUỔI TẬP ĐÃ HOÀN THÀNH',
@@ -53,7 +54,7 @@ class KineticWorkoutAttachmentCard extends StatelessWidget {
                           style: TextStyle(
                             fontSize: 11,
                             fontWeight: FontWeight.w600,
-                            color: SamanHomeTokens.greenAccent,
+                            color: tokens.greenAccent,
                             letterSpacing: 0.5,
                           ),
                         ),
@@ -65,9 +66,9 @@ class KineticWorkoutAttachmentCard extends StatelessWidget {
               const SizedBox(width: 8),
               Text(
                 attachment.category,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 12,
-                  color: Color(0xFFBBCAAF),
+                  color: tokens.textSecondary,
                 ),
               ),
             ],
@@ -75,20 +76,20 @@ class KineticWorkoutAttachmentCard extends StatelessWidget {
           const SizedBox(height: 12),
           Text(
             attachment.title,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.w700,
-              color: SamanHomeTokens.textWhite,
+              color: tokens.textPrimary,
               letterSpacing: -0.3,
             ),
           ),
           const SizedBox(height: 3),
           Text(
             attachment.summaryFormatted,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 13,
               fontWeight: FontWeight.w500,
-              color: SamanHomeTokens.greenAccent,
+              color: tokens.greenAccent,
             ),
           ),
           const SizedBox(height: 14),
@@ -104,14 +105,15 @@ class KineticWorkoutAttachmentCard extends StatelessWidget {
                       Container(
                         height: 64,
                         decoration: BoxDecoration(
-                          color: const Color(0xFF343536),
+                          color: tokens.cardSurface,
                           borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: tokens.border),
                         ),
-                        child: const Center(
+                        child: Center(
                           child: Icon(
                             Icons.fitness_center_rounded,
                             size: 26,
-                            color: SamanHomeTokens.greenAccent,
+                            color: tokens.greenAccent,
                           ),
                         ),
                       ),
@@ -120,9 +122,9 @@ class KineticWorkoutAttachmentCard extends StatelessWidget {
                         exercise.title,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 11,
-                          color: Color(0xFFE3E2E3),
+                          color: tokens.textPrimary,
                         ),
                       ),
                     ],
@@ -140,13 +142,13 @@ class KineticWorkoutAttachmentCard extends StatelessWidget {
               width: double.infinity,
               height: 44,
               decoration: BoxDecoration(
-                color: const Color(0xFF0D0E0F),
+                color: tokens.canvas,
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(
-                  color: const Color(0xFF343536),
+                  color: tokens.border,
                 ),
               ),
-              child: const Row(
+              child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Text(
@@ -154,14 +156,14 @@ class KineticWorkoutAttachmentCard extends StatelessWidget {
                     style: TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.w600,
-                      color: SamanHomeTokens.greenAccent,
+                      color: tokens.greenAccent,
                     ),
                   ),
-                  SizedBox(width: 6),
+                  const SizedBox(width: 6),
                   Icon(
                     Icons.arrow_forward_rounded,
                     size: 16,
-                    color: SamanHomeTokens.greenAccent,
+                    color: tokens.greenAccent,
                   ),
                 ],
               ),

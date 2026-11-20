@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../../screens/home/tokens/saman_home_tokens.dart';
 
 class JourneyFeedback {
   /// Feedback 1 & 2: Meal Saved / Meal Saved + Task Completed
@@ -8,16 +9,28 @@ class JourneyFeedback {
     bool taskCompleted = false,
     VoidCallback? onViewJourney,
   }) {
+    final tokens = SamanHomeTokens.of(context);
+    final bg = tokens.isDark ? const Color(0xFF212328) : Colors.white;
+    final borderColor = taskCompleted
+        ? (tokens.isDark ? const Color(0x4D10B981) : const Color(0x4D059669))
+        : (tokens.isDark ? const Color(0xFF26282F) : const Color(0xFFE2E8F0));
+    final accent =
+        tokens.isDark ? const Color(0xFF10B981) : const Color(0xFF059669);
+    final textColor =
+        tokens.isDark ? const Color(0xFFF3F4F6) : const Color(0xFF0F172A);
+    final subtextColor =
+        tokens.isDark ? const Color(0xFF94979E) : const Color(0xFF475569);
+
     final messenger = ScaffoldMessenger.of(context);
     messenger.hideCurrentSnackBar();
     messenger.showSnackBar(
       SnackBar(
-        backgroundColor: const Color(0xFF212328),
+        backgroundColor: bg,
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(12),
           side: BorderSide(
-            color: taskCompleted ? const Color(0x4D10B981) : const Color(0xFF26282F),
+            color: borderColor,
             width: 1,
           ),
         ),
@@ -26,7 +39,7 @@ class JourneyFeedback {
           children: [
             Icon(
               taskCompleted ? Icons.task_alt_rounded : Icons.check_circle_rounded,
-              color: const Color(0xFF10B981),
+              color: accent,
               size: 20,
             ),
             const SizedBox(width: 10),
@@ -35,19 +48,19 @@ class JourneyFeedback {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
+                  Text(
                     'Đã lưu bữa ăn.',
                     style: TextStyle(
-                      color: Color(0xFFF3F4F6),
+                      color: textColor,
                       fontSize: 14,
                       fontWeight: FontWeight.w500,
                     ),
                   ),
                   if (taskCompleted)
-                    const Text(
+                    Text(
                       'Hoàn thành nhiệm vụ dinh dưỡng.',
                       style: TextStyle(
-                        color: Color(0xFF94979E),
+                        color: subtextColor,
                         fontSize: 12,
                       ),
                     ),
@@ -57,8 +70,8 @@ class JourneyFeedback {
             if (calories != null && !taskCompleted)
               Text(
                 '$calories kcal',
-                style: const TextStyle(
-                  color: Color(0xFF94979E),
+                style: TextStyle(
+                  color: subtextColor,
                   fontSize: 12,
                 ),
               ),
@@ -68,20 +81,20 @@ class JourneyFeedback {
                   messenger.hideCurrentSnackBar();
                   onViewJourney();
                 },
-                child: const Row(
+                child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(
                       'Xem',
                       style: TextStyle(
-                        color: Color(0xFF10B981),
+                        color: accent,
                         fontSize: 12,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
                     Icon(
                       Icons.arrow_forward_rounded,
-                      color: Color(0xFF10B981),
+                      color: accent,
                       size: 14,
                     ),
                   ],
@@ -99,25 +112,37 @@ class JourneyFeedback {
     bool taskCompleted = false,
     VoidCallback? onViewJourney,
   }) {
+    final tokens = SamanHomeTokens.of(context);
+    final bg = tokens.isDark ? const Color(0xFF212328) : Colors.white;
+    final borderColor = taskCompleted
+        ? (tokens.isDark ? const Color(0x4D10B981) : const Color(0x4D059669))
+        : (tokens.isDark ? const Color(0xFF26282F) : const Color(0xFFE2E8F0));
+    final accent =
+        tokens.isDark ? const Color(0xFF10B981) : const Color(0xFF059669);
+    final textColor =
+        tokens.isDark ? const Color(0xFFF3F4F6) : const Color(0xFF0F172A);
+    final subtextColor =
+        tokens.isDark ? const Color(0xFF94979E) : const Color(0xFF475569);
+
     final messenger = ScaffoldMessenger.of(context);
     messenger.hideCurrentSnackBar();
     messenger.showSnackBar(
       SnackBar(
-        backgroundColor: const Color(0xFF212328),
+        backgroundColor: bg,
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(12),
           side: BorderSide(
-            color: taskCompleted ? const Color(0x4D10B981) : const Color(0xFF26282F),
+            color: borderColor,
             width: 1,
           ),
         ),
         margin: const EdgeInsets.all(16),
         content: Row(
           children: [
-            const Icon(
+            Icon(
               Icons.fitness_center_rounded,
-              color: Color(0xFF10B981),
+              color: accent,
               size: 20,
             ),
             const SizedBox(width: 10),
@@ -126,19 +151,19 @@ class JourneyFeedback {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
+                  Text(
                     'Đã lưu buổi tập.',
                     style: TextStyle(
-                      color: Color(0xFFF3F4F6),
+                      color: textColor,
                       fontSize: 14,
                       fontWeight: FontWeight.w500,
                     ),
                   ),
                   if (taskCompleted)
-                    const Text(
+                    Text(
                       'Hoàn thành nhiệm vụ rèn luyện.',
                       style: TextStyle(
-                        color: Color(0xFF94979E),
+                        color: subtextColor,
                         fontSize: 12,
                       ),
                     ),
@@ -151,20 +176,20 @@ class JourneyFeedback {
                   messenger.hideCurrentSnackBar();
                   onViewJourney();
                 },
-                child: const Row(
+                child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(
                       'Xem',
                       style: TextStyle(
-                        color: Color(0xFF10B981),
+                        color: accent,
                         fontSize: 12,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
                     Icon(
                       Icons.arrow_forward_rounded,
-                      color: Color(0xFF10B981),
+                      color: accent,
                       size: 14,
                     ),
                   ],
@@ -181,16 +206,29 @@ class JourneyFeedback {
     BuildContext context, {
     VoidCallback? onClaim,
   }) {
+    final tokens = SamanHomeTokens.of(context);
+    final bg = tokens.isDark ? const Color(0xFF16171B) : Colors.white;
+    final borderColor =
+        tokens.isDark ? const Color(0x4D10B981) : const Color(0x4D059669);
+    final accent =
+        tokens.isDark ? const Color(0xFF10B981) : const Color(0xFF059669);
+    final badgeBg =
+        tokens.isDark ? const Color(0x3310B981) : const Color(0x1A059669);
+    final textColor =
+        tokens.isDark ? const Color(0xFFF3F4F6) : const Color(0xFF0F172A);
+    final subtextColor =
+        tokens.isDark ? const Color(0xFF94979E) : const Color(0xFF475569);
+
     final messenger = ScaffoldMessenger.of(context);
     messenger.hideCurrentSnackBar();
     messenger.showSnackBar(
       SnackBar(
-        backgroundColor: const Color(0xFF16171B),
+        backgroundColor: bg,
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(12),
-          side: const BorderSide(
-            color: Color(0x4D10B981),
+          side: BorderSide(
+            color: borderColor,
             width: 1,
           ),
         ),
@@ -200,17 +238,17 @@ class JourneyFeedback {
             Container(
               padding: const EdgeInsets.all(6),
               decoration: BoxDecoration(
-                color: const Color(0x3310B981),
+                color: badgeBg,
                 borderRadius: BorderRadius.circular(8),
               ),
-              child: const Icon(
+              child: Icon(
                 Icons.verified_rounded,
-                color: Color(0xFF10B981),
+                color: accent,
                 size: 20,
               ),
             ),
             const SizedBox(width: 10),
-            const Expanded(
+            Expanded(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -218,7 +256,7 @@ class JourneyFeedback {
                   Text(
                     'Đã hoàn thành hôm nay!',
                     style: TextStyle(
-                      color: Color(0xFFF3F4F6),
+                      color: textColor,
                       fontSize: 13,
                       fontWeight: FontWeight.w600,
                     ),
@@ -226,7 +264,7 @@ class JourneyFeedback {
                   Text(
                     '20 điểm thưởng sẵn sàng để nhận',
                     style: TextStyle(
-                      color: Color(0xFF94979E),
+                      color: subtextColor,
                       fontSize: 11,
                     ),
                   ),
@@ -239,10 +277,10 @@ class JourneyFeedback {
                   messenger.hideCurrentSnackBar();
                   onClaim();
                 },
-                child: const Text(
+                child: Text(
                   'Nhận thưởng',
                   style: TextStyle(
-                    color: Color(0xFF10B981),
+                    color: accent,
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
                   ),
@@ -256,21 +294,32 @@ class JourneyFeedback {
 
   /// Feedback 6: Missed Day Supportive Message
   static void showMissedDaySupport(BuildContext context) {
+    final tokens = SamanHomeTokens.of(context);
+    final bg = tokens.isDark ? const Color(0xFF212328) : Colors.white;
+    final borderColor =
+        tokens.isDark ? const Color(0xFF26282F) : const Color(0xFFE2E8F0);
+    final sunColor =
+        tokens.isDark ? const Color(0xFFFFB95F) : tokens.carbsAmber;
+    final textColor =
+        tokens.isDark ? const Color(0xFFF3F4F6) : const Color(0xFF0F172A);
+    final subtextColor =
+        tokens.isDark ? const Color(0xFF94979E) : const Color(0xFF475569);
+
     final messenger = ScaffoldMessenger.of(context);
     messenger.hideCurrentSnackBar();
     messenger.showSnackBar(
       SnackBar(
-        backgroundColor: const Color(0xFF212328),
+        backgroundColor: bg,
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(12),
-          side: const BorderSide(color: Color(0xFF26282F), width: 1),
+          side: BorderSide(color: borderColor, width: 1),
         ),
         margin: const EdgeInsets.all(16),
-        content: const Row(
+        content: Row(
           children: [
-            Icon(Icons.wb_sunny_rounded, color: Color(0xFFFFB95F), size: 20),
-            SizedBox(width: 10),
+            Icon(Icons.wb_sunny_rounded, color: sunColor, size: 20),
+            const SizedBox(width: 10),
             Expanded(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -279,14 +328,14 @@ class JourneyFeedback {
                   Text(
                     'Khởi động lại tràn đầy năng lượng hôm nay.',
                     style: TextStyle(
-                      color: Color(0xFFF3F4F6),
+                      color: textColor,
                       fontSize: 13,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
                   Text(
                     'Kỷ luật bền bỉ được xây dựng qua thời gian.',
-                    style: TextStyle(color: Color(0xFF94979E), fontSize: 11),
+                    style: TextStyle(color: subtextColor, fontSize: 11),
                   ),
                 ],
               ),

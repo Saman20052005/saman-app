@@ -52,6 +52,7 @@ class _CommunityPostDetailScreenState
             selection: TextSelection.collapsed(offset: next.draft.length));
       }
     });
+    final tokens = SamanHomeTokens.of(context);
     final detailState =
         ref.watch(communityPostDetailProvider(widget.postId));
     final detailNotifier =
@@ -59,60 +60,61 @@ class _CommunityPostDetailScreenState
     final displayPost = detailState.post ?? widget.initialPost;
 
     return Scaffold(
-      backgroundColor: const Color(0xFF121314),
+      backgroundColor: tokens.canvas,
       body: SafeArea(
         bottom: false,
         child: Column(
           children: [
             // Top App Bar
-            _buildAppBar(displayPost, detailNotifier),
+            _buildAppBar(displayPost, detailNotifier, tokens),
 
             // Honest Preview Notice Banner
-            _buildPreviewNoticeBanner(),
+            _buildPreviewNoticeBanner(tokens),
 
             // Main Content Scroll
             Expanded(
               child: (detailState.isLoading && displayPost == null)
-                  ? const Center(
+                  ? Center(
                       child: CircularProgressIndicator(
-                        color: SamanHomeTokens.greenAccent,
+                        color: tokens.greenAccent,
                       ),
                     )
                   : displayPost == null
                       ? _buildNotFoundState(context, () {
                           detailNotifier.loadPost();
-                        })
+                        }, tokens)
                       : SingleChildScrollView(
                           padding: const EdgeInsets.only(bottom: 110),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               // Author Section
-                              _buildAuthorSection(displayPost),
+                              _buildAuthorSection(displayPost, tokens),
 
                               // Post Body
-                              _buildPostBody(displayPost),
+                              _buildPostBody(displayPost, tokens),
 
                               // Photo / Workout Attachment
-                              _buildPostAttachment(displayPost),
+                              _buildPostAttachment(displayPost, tokens),
 
                               // Engagement Action Bar
                               _buildActionBar(
                                 displayPost,
                                 detailNotifier,
+                                tokens,
                               ),
 
                               // Social Likes Preview
-                              _buildSocialLikes(displayPost),
+                              _buildSocialLikes(displayPost, tokens),
 
                               const SizedBox(height: 16),
-                              const Divider(
-                                color: Color(0xFF292A2B),
+                              Divider(
+                                color: tokens.border,
                                 height: 1,
                               ),
 
                               // Discussion & Comments List
-                              _buildDiscussionSection(displayPost, detailNotifier),
+                              _buildDiscussionSection(displayPost, detailNotifier, tokens),
                               if (detailState.commentsCursor != null || detailState.commentErrorKey == 'community_comments_load_error')
                                 TextButton(
                                   onPressed: detailState.isLoadingComments ? null
@@ -136,19 +138,19 @@ class _CommunityPostDetailScreenState
     );
   }
 
-  Widget _buildPreviewNoticeBanner() {
+  Widget _buildPreviewNoticeBanner(SamanHomePalette tokens) {
     final isRemote = ref.watch(useRemoteCommunityProvider);
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-      color: const Color(0xFF1B1C1D),
+      color: tokens.cardSurface,
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Icon(
+          Icon(
             Icons.info_outline_rounded,
             size: 13,
-            color: SamanHomeTokens.greenAccent,
+            color: tokens.greenAccent,
           ),
           const SizedBox(width: 6),
           Flexible(
@@ -158,9 +160,9 @@ class _CommunityPostDetailScreenState
                   : 'Bản xem trước giao diện • Dữ liệu mẫu thử nghiệm',
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 11,
-                color: Color(0xFFBBCAAF),
+                color: tokens.textSecondary,
                 fontWeight: FontWeight.w500,
               ),
             ),
@@ -170,7 +172,11 @@ class _CommunityPostDetailScreenState
     );
   }
 
-  Widget _buildNotFoundState(BuildContext context, VoidCallback onRetry) {
+  Widget _buildNotFoundState(
+    BuildContext context,
+    VoidCallback onRetry,
+    SamanHomePalette tokens,
+  ) {
     return Center(
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 32),
@@ -180,14 +186,14 @@ class _CommunityPostDetailScreenState
             Container(
               width: 56,
               height: 56,
-              decoration: const BoxDecoration(
-                color: Color(0xFF1F2021),
+              decoration: BoxDecoration(
+                color: tokens.cardSurface,
                 shape: BoxShape.circle,
               ),
-              child: const Icon(
+              child: Icon(
                 Icons.article_outlined,
                 size: 28,
-                color: Color(0xFFBBCAAF),
+                color: tokens.textSecondary,
               ),
             ),
             const SizedBox(height: 16),
@@ -208,10 +214,10 @@ class _CommunityPostDetailScreenState
                   ),
                 Text(
                   context.tr('post_not_found_title'),
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
-                    color: SamanHomeTokens.textWhite,
+                    color: tokens.textPrimary,
                   ),
                 ),
               ],
@@ -222,9 +228,9 @@ class _CommunityPostDetailScreenState
                   ? 'This post may have been removed or does not exist in this preview.'
                   : 'Bài viết này có thể đã bị gỡ hoặc không tồn tại trong phiên xem trước này.',
               textAlign: TextAlign.center,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 13,
-                color: Color(0xFFBBCAAF),
+                color: tokens.textSecondary,
               ),
             ),
             const SizedBox(height: 20),
@@ -237,8 +243,10 @@ class _CommunityPostDetailScreenState
                   key: const ValueKey('back-to-feed-button'),
                   onPressed: () => Navigator.pop(context),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: SamanHomeTokens.greenAccent,
-                    foregroundColor: const Color(0xFF003824),
+                    backgroundColor: tokens.greenAccent,
+                    foregroundColor: tokens.isDark
+                        ? const Color(0xFF003824)
+                        : const Color(0xFFFFFFFF),
                   ),
                   child: Stack(
                     alignment: Alignment.center,
@@ -262,8 +270,8 @@ class _CommunityPostDetailScreenState
                 OutlinedButton(
                   onPressed: onRetry,
                   style: OutlinedButton.styleFrom(
-                    foregroundColor: SamanHomeTokens.textWhite,
-                    side: const BorderSide(color: Color(0xFF343536)),
+                    foregroundColor: tokens.textPrimary,
+                    side: BorderSide(color: tokens.border),
                   ),
                   child: Text(
                     Localizations.maybeLocaleOf(context)?.languageCode == 'en'
@@ -282,14 +290,15 @@ class _CommunityPostDetailScreenState
   Widget _buildAppBar(
     CommunityPost? post,
     CommunityPostDetailNotifier notifier,
+    SamanHomePalette tokens,
   ) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      decoration: const BoxDecoration(
-        color: Color(0xFF121314),
+      decoration: BoxDecoration(
+        color: tokens.canvas,
         border: Border(
           bottom: BorderSide(
-            color: Color(0xFF1F2021),
+            color: tokens.border,
             width: 1,
           ),
         ),
@@ -301,9 +310,9 @@ class _CommunityPostDetailScreenState
             child: Row(
               children: [
                 IconButton(
-                  icon: const Icon(
+                  icon: Icon(
                     Icons.arrow_back_rounded,
-                    color: SamanHomeTokens.textWhite,
+                    color: tokens.textPrimary,
                     size: 22,
                   ),
                   onPressed: () => Navigator.pop(context),
@@ -328,10 +337,10 @@ class _CommunityPostDetailScreenState
                         context.tr('post_detail_title'),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.w700,
-                          color: SamanHomeTokens.textWhite,
+                          color: tokens.textPrimary,
                         ),
                       ),
                     ],
@@ -345,9 +354,9 @@ class _CommunityPostDetailScreenState
               if (post != null)
                 IconButton(
                   key: const ValueKey('app-bar-post-options-button'),
-                  icon: const Icon(
+                  icon: Icon(
                     Icons.more_horiz_rounded,
-                    color: Color(0xFFBBCAAF),
+                    color: tokens.textSecondary,
                     size: 22,
                   ),
                   onPressed: () {
@@ -361,8 +370,8 @@ class _CommunityPostDetailScreenState
                         ? Icons.bookmark_rounded
                         : Icons.bookmark_border_rounded,
                     color: post.isBookmarked
-                        ? SamanHomeTokens.greenAccent
-                        : const Color(0xFFBBCAAF),
+                        ? tokens.greenAccent
+                        : tokens.textSecondary,
                     size: 22,
                   ),
                   onPressed: () async {
@@ -383,14 +392,16 @@ class _CommunityPostDetailScreenState
               Container(
                 width: 32,
                 height: 32,
-                decoration: const BoxDecoration(
+                decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: SamanHomeTokens.greenAccent,
+                  color: tokens.greenAccent,
                 ),
-                child: const Icon(
+                child: Icon(
                   Icons.person_rounded,
                   size: 18,
-                  color: Color(0xFF003824),
+                  color: tokens.isDark
+                      ? const Color(0xFF003824)
+                      : const Color(0xFFFFFFFF),
                 ),
               ),
             ],
@@ -400,7 +411,7 @@ class _CommunityPostDetailScreenState
     );
   }
 
-  Widget _buildAuthorSection(CommunityPost post) {
+  Widget _buildAuthorSection(CommunityPost post, SamanHomePalette tokens) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 10),
       child: Row(
@@ -412,17 +423,17 @@ class _CommunityPostDetailScreenState
                 Container(
                   width: 46,
                   height: 46,
-                  decoration: const BoxDecoration(
+                  decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    color: Color(0xFF343536),
+                    color: tokens.secondarySurface,
                   ),
                   child: Center(
                     child: Text(
                       post.author.name.isNotEmpty ? post.author.name[0] : 'S',
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
-                        color: SamanHomeTokens.greenAccent,
+                        color: tokens.greenAccent,
                       ),
                     ),
                   ),
@@ -439,10 +450,10 @@ class _CommunityPostDetailScreenState
                         children: [
                           Text(
                             post.author.name,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.w700,
-                              color: SamanHomeTokens.textWhite,
+                              color: tokens.textPrimary,
                             ),
                           ),
                           Container(
@@ -451,25 +462,24 @@ class _CommunityPostDetailScreenState
                               vertical: 2,
                             ),
                             decoration: BoxDecoration(
-                              color:
-                                  SamanHomeTokens.greenAccent.withOpacity(0.15),
+                              color: tokens.greenAccent.withOpacity(0.15),
                               borderRadius: BorderRadius.circular(12),
                             ),
-                            child: const Row(
+                            child: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
                                 Icon(
                                   Icons.verified_rounded,
                                   size: 13,
-                                  color: SamanHomeTokens.greenAccent,
+                                  color: tokens.greenAccent,
                                 ),
-                                SizedBox(width: 4),
+                                const SizedBox(width: 4),
                                 Text(
                                   'Thành viên Saman',
                                   style: TextStyle(
                                     fontSize: 11,
                                     fontWeight: FontWeight.w600,
-                                    color: SamanHomeTokens.greenAccent,
+                                    color: tokens.greenAccent,
                                   ),
                                 ),
                               ],
@@ -482,25 +492,25 @@ class _CommunityPostDetailScreenState
                         children: [
                           Text(
                             post.timeAgo,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 12,
-                              color: Color(0xFFBBCAAF),
+                              color: tokens.textSecondary,
                             ),
                           ),
                           const SizedBox(width: 6),
                           Container(
                             width: 3,
                             height: 3,
-                            decoration: const BoxDecoration(
+                            decoration: BoxDecoration(
                               shape: BoxShape.circle,
-                              color: Color(0xFF86948A),
+                              color: tokens.textMuted,
                             ),
                           ),
                           const SizedBox(width: 6),
-                          const Icon(
+                          Icon(
                             Icons.public_rounded,
                             size: 13,
-                            color: Color(0xFF86948A),
+                            color: tokens.textMuted,
                           ),
                         ],
                       ),
@@ -511,9 +521,9 @@ class _CommunityPostDetailScreenState
             ),
           ),
           IconButton(
-            icon: const Icon(
+            icon: Icon(
               Icons.more_vert_rounded,
-              color: Color(0xFFBBCAAF),
+              color: tokens.textSecondary,
               size: 20,
             ),
             key: const ValueKey('post-detail-options-button'),
@@ -526,7 +536,7 @@ class _CommunityPostDetailScreenState
     );
   }
 
-  Widget _buildPostBody(CommunityPost post) {
+  Widget _buildPostBody(CommunityPost post, SamanHomePalette tokens) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: Column(
@@ -535,21 +545,21 @@ class _CommunityPostDetailScreenState
           if (post.type == CommunityPostType.qa && post.qaInfo != null) ...[
             Text(
               post.qaInfo!.question,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
                 height: 1.4,
-                color: SamanHomeTokens.textWhite,
+                color: tokens.textPrimary,
               ),
             ),
             if (post.qaInfo!.details != null && post.qaInfo!.details!.isNotEmpty) ...[
               const SizedBox(height: 8),
               Text(
                 post.qaInfo!.details!,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 14,
                   height: 1.5,
-                  color: Color(0xFFC5C6CF),
+                  color: tokens.textSecondary,
                 ),
               ),
             ],
@@ -558,10 +568,10 @@ class _CommunityPostDetailScreenState
           if (post.caption.isNotEmpty)
             Text(
               post.caption,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 15,
                 height: 1.5,
-                color: SamanHomeTokens.textWhite,
+                color: tokens.textPrimary,
               ),
             ),
           if (post.nutritionInfo?.proTip != null) ...[
@@ -569,27 +579,27 @@ class _CommunityPostDetailScreenState
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: const Color(0xFF1B1C1D),
+                color: tokens.cardSurface,
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(
-                  color: const Color(0xFF292A2B),
+                  color: tokens.border,
                 ),
               ),
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Icon(
+                  Icon(
                     Icons.lightbulb_outline_rounded,
-                    color: SamanHomeTokens.greenAccent,
+                    color: tokens.greenAccent,
                     size: 20,
                   ),
                   const SizedBox(width: 10),
                   Expanded(
                     child: Text(
                       post.nutritionInfo!.proTip!,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 13,
-                        color: Color(0xFFE3E2E3),
+                        color: tokens.textPrimary,
                         height: 1.4,
                       ),
                     ),
@@ -606,22 +616,26 @@ class _CommunityPostDetailScreenState
                 children: [
                   _buildMacroTag(
                     '${post.nutritionInfo!.proteinGrams.toStringAsFixed(0)}g Protein',
-                    SamanHomeTokens.greenAccent,
+                    tokens.greenAccent,
+                    tokens,
                   ),
                   const SizedBox(width: 8),
                   _buildMacroTag(
                     '${post.nutritionInfo!.calories} kcal',
-                    const Color(0xFFFC7C78),
+                    tokens.fatRose,
+                    tokens,
                   ),
                   const SizedBox(width: 8),
                   _buildMacroTag(
                     '${post.nutritionInfo!.carbsGrams.toStringAsFixed(0)}g Carbs',
-                    const Color(0xFFC5C6CF),
+                    tokens.textSecondary,
+                    tokens,
                   ),
                   const SizedBox(width: 8),
                   _buildMacroTag(
                     '${post.nutritionInfo!.fatGrams.toStringAsFixed(0)}g Fat',
-                    const Color(0xFF86948A),
+                    tokens.textMuted,
+                    tokens,
                   ),
                 ],
               ),
@@ -632,11 +646,15 @@ class _CommunityPostDetailScreenState
     );
   }
 
-  Widget _buildMacroTag(String label, Color dotColor) {
+  Widget _buildMacroTag(
+    String label,
+    Color dotColor,
+    SamanHomePalette tokens,
+  ) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
-        color: const Color(0xFF1F2021),
+        color: tokens.cardSurface,
         borderRadius: BorderRadius.circular(8),
       ),
       child: Row(
@@ -653,10 +671,10 @@ class _CommunityPostDetailScreenState
           const SizedBox(width: 6),
           Text(
             label,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w500,
-              color: SamanHomeTokens.textWhite,
+              color: tokens.textPrimary,
             ),
           ),
         ],
@@ -664,13 +682,13 @@ class _CommunityPostDetailScreenState
     );
   }
 
-  Widget _buildPhotoView(String path) {
+  Widget _buildPhotoView(String path, SamanHomePalette tokens) {
     if (path.startsWith('http://') || path.startsWith('https://') || path.startsWith('/static/')) {
       return Image.network(
         path,
         fit: BoxFit.cover,
-        errorBuilder: (_, __, ___) => const Center(
-          child: Icon(Icons.broken_image, size: 48, color: Color(0xFFBBCAAF)),
+        errorBuilder: (_, __, ___) => Center(
+          child: Icon(Icons.broken_image, size: 48, color: tokens.textSecondary),
         ),
       );
     }
@@ -678,12 +696,12 @@ class _CommunityPostDetailScreenState
     if (file.existsSync()) {
       return Image.file(file, fit: BoxFit.cover);
     }
-    return const Center(
-      child: Icon(Icons.image, size: 48, color: Color(0xFFBBCAAF)),
+    return Center(
+      child: Icon(Icons.image, size: 48, color: tokens.textSecondary),
     );
   }
 
-  Widget _buildPostAttachment(CommunityPost post) {
+  Widget _buildPostAttachment(CommunityPost post, SamanHomePalette tokens) {
     if (post.activitySnapshot != null) return CommunityActivitySnapshotCard(snapshot: post.activitySnapshot!);
 
     if (post.type == CommunityPostType.photo && post.photoUrls.isNotEmpty) {
@@ -695,8 +713,8 @@ class _CommunityPostDetailScreenState
           child: ClipRRect(
             borderRadius: BorderRadius.circular(16),
             child: Container(
-              color: const Color(0xFF292A2B),
-              child: _buildPhotoView(photoUrl),
+              color: tokens.secondarySurface,
+              child: _buildPhotoView(photoUrl, tokens),
             ),
           ),
         ),
@@ -716,6 +734,7 @@ class _CommunityPostDetailScreenState
   Widget _buildActionBar(
     CommunityPost post,
     CommunityPostDetailNotifier notifier,
+    SamanHomePalette tokens,
   ) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
@@ -744,7 +763,7 @@ class _CommunityPostDetailScreenState
                   padding:
                       const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF1B1C1D),
+                    color: tokens.cardSurface,
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Row(
@@ -755,16 +774,16 @@ class _CommunityPostDetailScreenState
                             : Icons.favorite_border_rounded,
                         size: 20,
                         color: post.isLiked
-                            ? const Color(0xFFFC7C78)
-                            : const Color(0xFFBBCAAF),
+                            ? (tokens.isDark ? const Color(0xFFFC7C78) : tokens.fatRose)
+                            : tokens.textSecondary,
                       ),
                       const SizedBox(width: 6),
                       Text(
                         '${post.likeCount}',
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.w600,
-                          color: SamanHomeTokens.textWhite,
+                          color: tokens.textPrimary,
                         ),
                       ),
                     ],
@@ -776,23 +795,23 @@ class _CommunityPostDetailScreenState
                 padding:
                     const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF1B1C1D),
+                  color: tokens.cardSurface,
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Row(
                   children: [
-                    const Icon(
+                    Icon(
                       Icons.chat_bubble_rounded,
                       size: 18,
-                      color: Color(0xFFBBCAAF),
+                      color: tokens.textSecondary,
                     ),
                     const SizedBox(width: 6),
                     Text(
                       '${post.commentCount}',
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.w600,
-                        color: SamanHomeTokens.textWhite,
+                        color: tokens.textPrimary,
                       ),
                     ),
                   ],
@@ -802,14 +821,14 @@ class _CommunityPostDetailScreenState
               Container(
                 width: 36,
                 height: 36,
-                decoration: const BoxDecoration(
+                decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: Color(0xFF1B1C1D),
+                  color: tokens.cardSurface,
                 ),
-                child: const Icon(
+                child: Icon(
                   Icons.share_rounded,
                   size: 18,
-                  color: Color(0xFFBBCAAF),
+                  color: tokens.textSecondary,
                 ),
               ),
             ],
@@ -820,8 +839,8 @@ class _CommunityPostDetailScreenState
                   ? Icons.bookmark_rounded
                   : Icons.bookmark_border_rounded,
               color: post.isBookmarked
-                  ? SamanHomeTokens.greenAccent
-                  : const Color(0xFFBBCAAF),
+                  ? tokens.greenAccent
+                  : tokens.textSecondary,
               size: 22,
             ),
             onPressed: () async {
@@ -844,25 +863,29 @@ class _CommunityPostDetailScreenState
     );
   }
 
-  Widget _buildSocialLikes(CommunityPost post) {
+  Widget _buildSocialLikes(CommunityPost post, SamanHomePalette tokens) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
       child: Row(
         children: [
           Row(
             children: [
-              _buildSmallAvatar('MK', const Color(0xFF10B981)),
-              _buildSmallAvatar('TH', const Color(0xFFFC7C78)),
-              _buildSmallAvatar('HL', const Color(0xFF39393A)),
+              _buildSmallAvatar('MK', tokens.greenAccent, tokens),
+              _buildSmallAvatar(
+                'TH',
+                tokens.isDark ? const Color(0xFFFC7C78) : tokens.fatRose,
+                tokens,
+              ),
+              _buildSmallAvatar('HL', tokens.textMuted, tokens),
             ],
           ),
           const SizedBox(width: 8),
           Expanded(
             child: Text(
               post.likedBySummary,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 12,
-                color: Color(0xFFBBCAAF),
+                color: tokens.textSecondary,
               ),
             ),
           ),
@@ -871,7 +894,11 @@ class _CommunityPostDetailScreenState
     );
   }
 
-  Widget _buildSmallAvatar(String initials, Color color) {
+  Widget _buildSmallAvatar(
+    String initials,
+    Color color,
+    SamanHomePalette tokens,
+  ) {
     return Container(
       width: 22,
       height: 22,
@@ -880,7 +907,7 @@ class _CommunityPostDetailScreenState
         shape: BoxShape.circle,
         color: color.withOpacity(0.2),
         border: Border.all(
-          color: const Color(0xFF121314),
+          color: tokens.canvas,
           width: 1.5,
         ),
       ),
@@ -900,6 +927,7 @@ class _CommunityPostDetailScreenState
   Widget _buildDiscussionSection(
     CommunityPost post,
     CommunityPostDetailNotifier notifier,
+    SamanHomePalette tokens,
   ) {
     return Padding(
       padding: const EdgeInsets.all(16),
@@ -917,10 +945,10 @@ class _CommunityPostDetailScreenState
                         context.tr('post_detail_comments_header'),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w700,
-                          color: SamanHomeTokens.textWhite,
+                          color: tokens.textPrimary,
                         ),
                       ),
                     ),
@@ -931,14 +959,14 @@ class _CommunityPostDetailScreenState
                         vertical: 2,
                       ),
                       decoration: BoxDecoration(
-                        color: const Color(0xFF292A2B),
+                        color: tokens.secondarySurface,
                         borderRadius: BorderRadius.circular(10),
                       ),
                       child: Text(
                         '${post.commentCount}',
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 11,
-                          color: Color(0xFFBBCAAF),
+                          color: tokens.textSecondary,
                         ),
                       ),
                     ),
@@ -950,15 +978,15 @@ class _CommunityPostDetailScreenState
                 children: [
                   Text(
                     context.tr('community_comments_order'),
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 12,
-                      color: Color(0xFFBBCAAF),
+                      color: tokens.textSecondary,
                     ),
                   ),
-                  const Icon(
+                  Icon(
                     Icons.expand_more_rounded,
                     size: 16,
-                    color: Color(0xFFBBCAAF),
+                    color: tokens.textSecondary,
                   ),
                 ],
               ),
@@ -972,9 +1000,9 @@ class _CommunityPostDetailScreenState
                 child: Text(
                   context.tr('post_detail_empty_comments'),
                   textAlign: TextAlign.center,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 13,
-                    color: Color(0xFFBBCAAF),
+                    color: tokens.textSecondary,
                   ),
                 ),
               ),
@@ -986,7 +1014,7 @@ class _CommunityPostDetailScreenState
             separatorBuilder: (_, __) => const SizedBox(height: 14),
             itemBuilder: (context, index) {
               final comment = post.comments[index];
-              return _buildCommentThread(comment, notifier);
+              return _buildCommentThread(comment, notifier, tokens);
             },
           ),
         ],
@@ -997,11 +1025,12 @@ class _CommunityPostDetailScreenState
   Widget _buildCommentThread(
     CommunityComment comment,
     CommunityPostDetailNotifier notifier,
+    SamanHomePalette tokens,
   ) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _buildSingleCommentBubble(comment, notifier),
+        _buildSingleCommentBubble(comment, notifier, tokens),
         if (comment.replies.isNotEmpty) ...[
           const SizedBox(height: 8),
           Padding(
@@ -1013,6 +1042,7 @@ class _CommunityPostDetailScreenState
                   child: _buildSingleCommentBubble(
                     reply,
                     notifier,
+                    tokens,
                     isNested: true,
                   ),
                 );
@@ -1026,7 +1056,8 @@ class _CommunityPostDetailScreenState
 
   Widget _buildSingleCommentBubble(
     CommunityComment comment,
-    CommunityPostDetailNotifier notifier, {
+    CommunityPostDetailNotifier notifier,
+    SamanHomePalette tokens, {
     bool isNested = false,
   }) {
     return Row(
@@ -1035,9 +1066,9 @@ class _CommunityPostDetailScreenState
         Container(
           width: isNested ? 32 : 38,
           height: isNested ? 32 : 38,
-          decoration: const BoxDecoration(
+          decoration: BoxDecoration(
             shape: BoxShape.circle,
-            color: Color(0xFF292A2B),
+            color: tokens.secondarySurface,
           ),
           child: Center(
             child: Text(
@@ -1045,7 +1076,7 @@ class _CommunityPostDetailScreenState
               style: TextStyle(
                 fontSize: isNested ? 13 : 15,
                 fontWeight: FontWeight.bold,
-                color: SamanHomeTokens.greenAccent,
+                color: tokens.greenAccent,
               ),
             ),
           ),
@@ -1055,12 +1086,10 @@ class _CommunityPostDetailScreenState
           child: Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: isNested
-                  ? const Color(0xFF1F2021)
-                  : const Color(0xFF1B1C1D),
+              color: tokens.cardSurface,
               borderRadius: BorderRadius.circular(14),
               border: Border.all(
-                color: const Color(0xFF292A2B),
+                color: tokens.border,
               ),
             ),
             child: Column(
@@ -1077,10 +1106,10 @@ class _CommunityPostDetailScreenState
                               comment.author.name,
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 13,
                                 fontWeight: FontWeight.w600,
-                                color: SamanHomeTokens.textWhite,
+                                color: tokens.textPrimary,
                               ),
                             ),
                           ),
@@ -1092,15 +1121,17 @@ class _CommunityPostDetailScreenState
                                 vertical: 1.5,
                               ),
                               decoration: BoxDecoration(
-                                color: const Color(0xFF10B981),
+                                color: tokens.greenAccent,
                                 borderRadius: BorderRadius.circular(4),
                               ),
-                              child: const Text(
+                              child: Text(
                                 'Tác giả',
                                 style: TextStyle(
                                   fontSize: 10,
                                   fontWeight: FontWeight.w600,
-                                  color: Color(0xFF003824),
+                                  color: tokens.isDark
+                                      ? const Color(0xFF003824)
+                                      : const Color(0xFFFFFFFF),
                                 ),
                               ),
                             ),
@@ -1111,9 +1142,9 @@ class _CommunityPostDetailScreenState
                     const SizedBox(width: 8),
                     Text(
                       comment.timeAgo,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 11,
-                        color: Color(0xFF86948A),
+                        color: tokens.textMuted,
                       ),
                     ),
                   ],
@@ -1121,10 +1152,10 @@ class _CommunityPostDetailScreenState
                 const SizedBox(height: 6),
                 Text(
                   comment.content,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 13,
                     height: 1.4,
-                    color: Color(0xFFE3E2E3),
+                    color: tokens.textPrimary,
                   ),
                 ),
                 const SizedBox(height: 8),
@@ -1132,17 +1163,17 @@ class _CommunityPostDetailScreenState
                   children: [
                     Row(
                       children: [
-                        const Icon(
+                        Icon(
                           Icons.thumb_up_alt_rounded,
                           size: 13,
-                          color: Color(0xFF86948A),
+                          color: tokens.textMuted,
                         ),
                         const SizedBox(width: 4),
                         Text(
                           '${comment.likeCount}',
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 11,
-                            color: Color(0xFF86948A),
+                            color: tokens.textMuted,
                           ),
                         ),
                       ],
@@ -1156,12 +1187,12 @@ class _CommunityPostDetailScreenState
                         );
                         _commentFocusNode.requestFocus();
                       },
-                      child: const Text(
+                      child: Text(
                         'Trả lời',
                         style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w600,
-                          color: SamanHomeTokens.greenAccent,
+                          color: tokens.greenAccent,
                         ),
                       ),
                     ),
@@ -1177,16 +1208,21 @@ class _CommunityPostDetailScreenState
 
 
   void _showPostOptionsSheet(BuildContext context, CommunityPost post) {
+    final tokens = SamanHomeTokens.of(context);
     final activeUserId = ref.read(communityRepositoryProvider).activeUserId;
     final isAuthor = activeUserId != null && (post.author.id == activeUserId || activeUserId == 'me');
 
     showModalBottomSheet(
       context: context,
-      backgroundColor: const Color(0xFF1B1C1D),
+      backgroundColor: tokens.cardSurface,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       builder: (ctx) {
+        final sheetTokens = SamanHomeTokens.of(ctx);
+        final dangerColor = sheetTokens.isDark
+            ? Colors.redAccent
+            : const Color(0xFFDC2626);
         return SafeArea(
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -1194,7 +1230,7 @@ class _CommunityPostDetailScreenState
               if (isAuthor)
                 ListTile(
                   key: const ValueKey('post-detail-delete-tile'),
-                  leading: const Icon(Icons.delete_outline, color: Colors.redAccent),
+                  leading: Icon(Icons.delete_outline, color: dangerColor),
                   title: Stack(
                     children: [
                       if (Localizations.maybeLocaleOf(context)?.languageCode != 'vi')
@@ -1211,7 +1247,7 @@ class _CommunityPostDetailScreenState
                         ),
                       Text(
                         context.tr('post_action_delete'),
-                        style: const TextStyle(color: Colors.redAccent),
+                        style: TextStyle(color: dangerColor),
                       ),
                     ],
                   ),
@@ -1221,10 +1257,10 @@ class _CommunityPostDetailScreenState
                   },
                 ),
               ListTile(
-                leading: const Icon(Icons.bookmark_outline, color: Colors.white),
+                leading: Icon(Icons.bookmark_outline, color: sheetTokens.textPrimary),
                 title: Text(
                   context.tr('post_action_save'),
-                  style: const TextStyle(color: Colors.white),
+                  style: TextStyle(color: sheetTokens.textPrimary),
                 ),
                 onTap: () {
                   Navigator.pop(ctx);
@@ -1232,10 +1268,10 @@ class _CommunityPostDetailScreenState
                 },
               ),
               ListTile(
-                leading: const Icon(Icons.share_outlined, color: Colors.white),
+                leading: Icon(Icons.share_outlined, color: sheetTokens.textPrimary),
                 title: Text(
                   context.tr('post_action_share'),
-                  style: const TextStyle(color: Colors.white),
+                  style: TextStyle(color: sheetTokens.textPrimary),
                 ),
                 onTap: () {
                   Navigator.pop(ctx);
@@ -1252,51 +1288,57 @@ class _CommunityPostDetailScreenState
   Future<void> _showDeleteConfirmationDialog(BuildContext context, CommunityPost post) async {
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (dialogCtx) => AlertDialog(
-        backgroundColor: const Color(0xFF1F2021),
-        title: Text(
-          context.tr('delete_post_confirm_title'),
-          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-        ),
-        content: Stack(
-          children: [
-            if (Localizations.maybeLocaleOf(context)?.languageCode != 'vi')
-              const SizedBox(
-                width: 0,
-                height: 0,
-                child: OverflowBox(
-                  minWidth: 0,
-                  minHeight: 0,
-                  maxWidth: 0,
-                  maxHeight: 0,
-                  child: Text('Bạn có chắc chắn muốn xóa bài viết này?'),
+      builder: (dialogCtx) {
+        final tokens = SamanHomeTokens.of(dialogCtx);
+        final dangerColor = tokens.isDark
+            ? Colors.redAccent
+            : const Color(0xFFDC2626);
+        return AlertDialog(
+          backgroundColor: tokens.cardSurface,
+          title: Text(
+            context.tr('delete_post_confirm_title'),
+            style: TextStyle(color: tokens.textPrimary, fontWeight: FontWeight.bold),
+          ),
+          content: Stack(
+            children: [
+              if (Localizations.maybeLocaleOf(context)?.languageCode != 'vi')
+                const SizedBox(
+                  width: 0,
+                  height: 0,
+                  child: OverflowBox(
+                    minWidth: 0,
+                    minHeight: 0,
+                    maxWidth: 0,
+                    maxHeight: 0,
+                    child: Text('Bạn có chắc chắn muốn xóa bài viết này?'),
+                  ),
                 ),
+              Text(
+                context.tr('delete_post_confirm_msg'),
+                style: TextStyle(color: tokens.textSecondary),
               ),
-            Text(
-              context.tr('delete_post_confirm_msg'),
-              style: const TextStyle(color: Color(0xFFE5E7EB)),
+            ],
+          ),
+          actions: [
+            TextButton(
+              key: const ValueKey('cancel-delete-post-button'),
+              onPressed: () => Navigator.pop(dialogCtx, false),
+              child: Text(
+                context.tr('compose_discard'),
+                style: TextStyle(color: tokens.textMuted),
+              ),
+            ),
+            TextButton(
+              key: const ValueKey('confirm-delete-post-button'),
+              onPressed: () => Navigator.pop(dialogCtx, true),
+              child: Text(
+                context.tr('post_action_delete'),
+                style: TextStyle(color: dangerColor),
+              ),
             ),
           ],
-        ),
-        actions: [
-          TextButton(
-            key: const ValueKey('cancel-delete-post-button'),
-            onPressed: () => Navigator.pop(dialogCtx, false),
-            child: Text(
-              context.tr('compose_discard'),
-              style: const TextStyle(color: Colors.grey),
-            ),
-          ),
-          TextButton(
-            key: const ValueKey('confirm-delete-post-button'),
-            onPressed: () => Navigator.pop(dialogCtx, true),
-            child: Text(
-              context.tr('post_action_delete'),
-              style: const TextStyle(color: Colors.redAccent),
-            ),
-          ),
-        ],
-      ),
+        );
+      },
     );
 
     if (confirmed == true && context.mounted) {
@@ -1359,14 +1401,15 @@ class _CommunityPostDetailScreenState
   }
 
   void _showShareToast(BuildContext context) {
+    final tokens = SamanHomeTokens.of(context);
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        backgroundColor: Color(0xFF1F2021),
+      SnackBar(
+        backgroundColor: tokens.cardSurface,
         content: Text(
           'Đã sao chép liên kết bài viết vào clipboard.',
-          style: TextStyle(color: Colors.white),
+          style: TextStyle(color: tokens.textPrimary),
         ),
-        duration: Duration(seconds: 2),
+        duration: const Duration(seconds: 2),
       ),
     );
   }
