@@ -16,9 +16,14 @@ try:
         build_bounded_history_context,
         claim_preflight_quote,
         complete_preflight_quote,
+        ensure_history_analytics_indexes,
         fail_preflight_quote,
         preflight_estimate,
         render_history_analytics_prompt,
+    )
+    from backend.app.services.revenue_guard import (
+        evaluate_ai_feature_access,
+        is_ai_paywall_enabled,
     )
     from backend.auth_utils import get_current_user
 except ImportError:
@@ -30,9 +35,14 @@ except ImportError:
         build_bounded_history_context,
         claim_preflight_quote,
         complete_preflight_quote,
+        ensure_history_analytics_indexes,
         fail_preflight_quote,
         preflight_estimate,
         render_history_analytics_prompt,
+    )
+    from app.services.revenue_guard import (
+        evaluate_ai_feature_access,
+        is_ai_paywall_enabled,
     )
     from auth_utils import get_current_user
 
@@ -84,6 +94,92 @@ def _principal_identity(user):
     return user_id, user_email
 
 
+def _normalize_range_days(range_days: int | str) -> Optional[int]:
+    if isinstance(range_days, bool):
+        return None
+    if isinstance(range_days, int):
+        return range_days
+    if isinstance(range_days, str):
+        clean = range_days.strip()
+        if clean.isdigit():
+            return int(clean)
+    return None
+
+
+def _enforce_analytics_range_paywall(current_user: dict, range_days: int | str) -> None:
+    days = _normalize_range_days(range_days)
+    if days != 30 or not is_ai_paywall_enabled():
+        return
+
+    decision = evaluate_ai_feature_access(
+        benefit_id="ai.extended_memory",
+        user_id=str(current_user.get("_id") or current_user.get("user_id") or ""),
+        email=str(current_user.get("email") or ""),
+        account_id=current_user.get("account_id"),
+    )
+
+    if isinstance(decision, bool):
+        if not decision:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail={
+                    "code": "entitlement_required",
+                    "benefit_id": "ai.extended_memory",
+                },
+            )
+        return
+
+    if isinstance(decision, dict):
+        if decision.get("allowed") is True or str(decision.get("status") or "").lower() == "allowed":
+            return
+        if str(decision.get("status") or "").lower() == "storage_unavailable":
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail={
+                    "code": "entitlement_unavailable",
+                    "benefit_id": "ai.extended_memory",
+                    "message": "Entitlement service is unavailable",
+                },
+            )
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail={
+                "code": "entitlement_required",
+                "benefit_id": "ai.extended_memory",
+                "reason": decision.get("reason"),
+                "tier": decision.get("tier"),
+            },
+        )
+
+    decision_status = getattr(decision, "status", None)
+    status_value = (
+        decision_status.value
+        if hasattr(decision_status, "value")
+        else str(decision_status or "").lower()
+    )
+    if status_value == "storage_unavailable":
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail={
+                "code": "entitlement_unavailable",
+                "benefit_id": "ai.extended_memory",
+                "message": "Entitlement service is unavailable",
+            },
+        )
+    if status_value != "allowed":
+        tier = getattr(decision, "tier", None)
+        tier_value = tier.value if hasattr(tier, "value") else tier
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail={
+                "code": "entitlement_required",
+                "benefit_id": "ai.extended_memory",
+                "reason": getattr(decision, "reason", None),
+                "tier": tier_value,
+            },
+        )
+
+
 @router.post("/preflight")
 async def history_analytics_preflight(
     request: PreflightRequest,
@@ -91,6 +187,7 @@ async def history_analytics_preflight(
     database=Depends(get_history_analytics_db),
 ):
     user_id, user_email = _principal_identity(current_user)
+    _enforce_analytics_range_paywall(current_user, request.range_days)
     try:
         return await run_in_threadpool(
             preflight_estimate,
@@ -104,10 +201,20 @@ async def history_analytics_preflight(
     except ValueError:
         raise _invalid_range_http_error()
     except PyMongoError:
-        raise HTTPException(
-            status_code=503,
-            detail="History analytics database indexes or storage are unavailable",
-        )
+        try:
+            await run_in_threadpool(ensure_history_analytics_indexes, database)
+            return await run_in_threadpool(
+                preflight_estimate,
+                database,
+                user_id,
+                user_email,
+                request.range_days,
+            )
+        except PyMongoError:
+            raise HTTPException(
+                status_code=503,
+                detail="History analytics database indexes or storage are unavailable",
+            )
     except RuntimeError:
         raise HTTPException(status_code=503, detail="History analytics database is unavailable")
 
@@ -126,6 +233,7 @@ async def execute_history_analytics(
         )
 
     user_id, user_email = _principal_identity(current_user)
+    _enforce_analytics_range_paywall(current_user, request.range_days)
     try:
         quote, cached_response = claim_preflight_quote(
             request.quote_id,

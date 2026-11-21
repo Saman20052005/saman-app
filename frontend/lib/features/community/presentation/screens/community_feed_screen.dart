@@ -29,7 +29,7 @@ class CommunityFeedScreen extends ConsumerWidget {
             _buildTopAppBar(context, tokens),
 
             // Honest Preview Notice Banner
-            _buildPreviewNoticeBanner(context, isRemote, tokens),
+            if (!isRemote) _buildPreviewNoticeBanner(context, isRemote, tokens),
 
             // Feed Category Tabs
             _buildCategoryTabs(context, feedState.activeFilter, (filter) {

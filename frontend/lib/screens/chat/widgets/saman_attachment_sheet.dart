@@ -20,18 +20,21 @@ class SamanAttachmentResult {
 class SamanAttachmentSheet extends StatefulWidget {
   final ValueChanged<ImageSource>? onSelectSource;
   final ValueChanged<SamanAttachmentResult>? onSelect;
+  final VoidCallback? onAttachLatestWorkout;
   final String initialMode;
 
   const SamanAttachmentSheet({
     super.key,
     this.onSelectSource,
     this.onSelect,
-    this.initialMode = 'standard',
+    this.onAttachLatestWorkout,
+    this.initialMode = 'advanced',
   });
 
   static Future<SamanAttachmentResult?> show(
     BuildContext context, {
-    String initialMode = 'standard',
+    String initialMode = 'advanced',
+    VoidCallback? onAttachLatestWorkout,
   }) {
     final t = SamanChatTokens.of(context);
     return showModalBottomSheet<SamanAttachmentResult>(
@@ -42,6 +45,7 @@ class SamanAttachmentSheet extends StatefulWidget {
       ),
       builder: (context) => SamanAttachmentSheet(
         initialMode: initialMode,
+        onAttachLatestWorkout: onAttachLatestWorkout,
         onSelect: (result) => Navigator.pop(context, result),
       ),
     );
@@ -234,6 +238,22 @@ class _SamanAttachmentSheetState extends State<SamanAttachmentSheet> {
               iconColor: t.textSecondary,
               onTap: () => _handleSelect(ImageSource.gallery),
             ),
+
+            if (widget.onAttachLatestWorkout != null) ...[
+              const SizedBox(height: 6.0),
+              _AttachmentOptionRow(
+                icon: Icons.fitness_center_outlined,
+                title: 'Đính kèm buổi tập gần nhất',
+                subtitle: 'Gửi ngữ cảnh buổi tập vào hội thoại',
+                iconColor: t.greenAccent,
+                onTap: () {
+                  if (Navigator.canPop(context)) {
+                    Navigator.pop(context);
+                  }
+                  widget.onAttachLatestWorkout!();
+                },
+              ),
+            ],
           ],
         ),
       ),

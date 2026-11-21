@@ -53,9 +53,11 @@ class CommunityRepositoryImpl implements CommunityRepository {
     CommunityFakeDatasource? datasource,
     CommunityRemoteDatasource? remoteDatasource,
     bool useRemote = false,
+    String? activeUserId,
   })  : _fakeDatasource = fakeDatasource ?? datasource ?? CommunityFakeDatasource(),
         _remoteDatasource = remoteDatasource,
-        _useRemote = useRemote;
+        _useRemote = useRemote,
+        _activeUserId = activeUserId;
 
   bool get isRemote => _useRemote && _remoteDatasource != null;
   int get generation => _generation;

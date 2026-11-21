@@ -33,6 +33,11 @@ class ApiConfig {
   /// Food AI analysis — backend/routers/food_analysis.py
   static const String analyzeFoodImageEndpoint = '$baseUrl/api/food/analyze';
 
+  /// Barcode lookup & AI nutrition label analysis
+  static const String barcodeLookupEndpoint = '$baseUrl/api/nutrition/barcode';
+  static const String barcodeAnalyzeLabelEndpoint =
+      '$baseUrl/api/nutrition/barcode/analyze-label';
+
   // ==================== AUTH ENDPOINTS ====================
   static const String registerEndpoint = '$baseUrl/api/auth/register';
   static const String loginEndpoint = '$baseUrl/api/auth/login';

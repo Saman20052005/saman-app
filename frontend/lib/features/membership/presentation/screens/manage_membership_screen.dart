@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../../config/app_translations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../domain/models/membership_plan.dart';
 import '../tokens/membership_tokens.dart';
 import '../widgets/membership_app_bar.dart';
 import 'membership_overview_screen.dart';
@@ -55,6 +56,12 @@ class _ManageMembershipScreenState
     final t = MembershipTokens.of(context);
     final accountMembership =
         ref.watch(accountMembershipProvider);
+    final plans = ref.watch(membershipCatalogProvider);
+    final hasPurchasable = plans.any((p) => p.purchasable);
+    final activePlan = plans.firstWhere(
+      (p) => p.tier == accountMembership.tier,
+      orElse: () => MembershipCatalog.getPlan(accountMembership.tier),
+    );
 
     return Scaffold(
       backgroundColor: t.canvas,
@@ -93,7 +100,7 @@ class _ManageMembershipScreenState
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               // 1. Current Plan Card
-              _buildCurrentPlanCard(context, accountMembership),
+              _buildCurrentPlanCard(context, accountMembership, activePlan),
               const SizedBox(height: 20),
 
               // 2. Your Free Benefits
@@ -101,7 +108,7 @@ class _ManageMembershipScreenState
               const SizedBox(height: 20),
 
               // 3. Membership Discovery Card
-              _buildDiscoveryCard(context),
+              _buildDiscoveryCard(context, hasPurchasable: hasPurchasable),
               const SizedBox(height: 20),
 
               // 4. Membership FAQ
@@ -118,8 +125,15 @@ class _ManageMembershipScreenState
     );
   }
 
-  Widget _buildCurrentPlanCard(BuildContext context, [dynamic account]) {
+  Widget _buildCurrentPlanCard(
+    BuildContext context, [
+    dynamic account,
+    MembershipPlan? activePlan,
+  ]) {
     final t = MembershipTokens.of(context);
+    final planPriceText =
+        (activePlan ?? MembershipCatalog.getPlan(MembershipTier.free))
+            .priceDisplay(BillingPeriod.monthly);
     return Container(
       padding: const EdgeInsets.all(16.0),
       decoration: BoxDecoration(
@@ -224,7 +238,7 @@ class _ManageMembershipScreenState
                         ),
                         const SizedBox(width: 8),
                         Text(
-                          '· \$0',
+                          '· $planPriceText',
                           style: t.mono(
                             fontSize: 12,
                             fontWeight: FontWeight.w500,
@@ -470,7 +484,10 @@ class _ManageMembershipScreenState
     );
   }
 
-  Widget _buildDiscoveryCard(BuildContext context) {
+  Widget _buildDiscoveryCard(
+    BuildContext context, {
+    bool hasPurchasable = false,
+  }) {
     final t = MembershipTokens.of(context);
     return Container(
       padding: const EdgeInsets.all(16.0),
@@ -485,27 +502,29 @@ class _ManageMembershipScreenState
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-            decoration: BoxDecoration(
-              color: t.surfaceHigh,
-              borderRadius: BorderRadius.circular(4),
-              border: Border.all(
-                color: t.border,
-                width: 1.0,
+          if (!hasPurchasable) ...[
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+              decoration: BoxDecoration(
+                color: t.surfaceHigh,
+                borderRadius: BorderRadius.circular(4),
+                border: Border.all(
+                  color: t.border,
+                  width: 1.0,
+                ),
+              ),
+              child: Text(
+                context.tr('coming_soon_badge'),
+                style: t.mono(
+                  fontSize: 10,
+                  fontWeight: FontWeight.w600,
+                  color: t.textMuted,
+                  letterSpacing: 0.5,
+                ),
               ),
             ),
-            child: Text(
-              context.tr('coming_soon_badge'),
-              style: t.mono(
-                fontSize: 10,
-                fontWeight: FontWeight.w600,
-                color: t.textMuted,
-                letterSpacing: 0.5,
-              ),
-            ),
-          ),
-          const SizedBox(height: 12),
+            const SizedBox(height: 12),
+          ],
           Text(
             context.tr('explore_whats_next'),
             style: t.headline(

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../features/membership/presentation/screens/membership_overview_screen.dart';
 import '../../home/tokens/saman_home_tokens.dart';
 
 /// Understated premium membership opportunity card for Saman+.
@@ -16,8 +17,8 @@ import '../../home/tokens/saman_home_tokens.dart';
 class SamanPlusCard extends StatelessWidget {
   const SamanPlusCard({
     super.key,
-    this.actionLabel = 'Coming soon',
-    this.isComingSoon = true,
+    this.actionLabel = 'Khám phá Saman+',
+    this.isComingSoon = false,
     this.onExploreTap,
   });
 
@@ -105,11 +106,21 @@ class SamanPlusCard extends StatelessWidget {
           const SizedBox(height: SamanHomeTokens.spacingMd),
 
           // CTA / Coming soon indicator
-          if (!isComingSoon && onExploreTap != null)
+          if (!isComingSoon)
             Material(
               color: Colors.transparent,
               child: InkWell(
-                onTap: onExploreTap,
+                onTap: onExploreTap ??
+                    () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          settings: const RouteSettings(
+                            name: MembershipOverviewScreen.routeName,
+                          ),
+                          builder: (_) => const MembershipOverviewScreen(),
+                        ),
+                      );
+                    },
                 borderRadius: BorderRadius.circular(SamanHomeTokens.radiusXs),
                 child: Padding(
                   padding: const EdgeInsets.symmetric(vertical: 2, horizontal: 2),

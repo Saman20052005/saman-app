@@ -37,6 +37,7 @@ class UserHealthStats(BaseModel):
 
 class UserDB(BaseModel):
     id: str
+    user_id: Optional[str] = None
     email: EmailStr
     full_name: str
     age: int
@@ -53,6 +54,16 @@ class UserDB(BaseModel):
     custom_avatar: Optional[str] = None
     google_avatar: Optional[str] = None
     preferences: Optional[Dict[str, Any]] = Field(default_factory=dict)
+
+class UserProfileResponse(BaseModel):
+    user_id: str
+    email: str
+    full_name: Optional[str] = None
+    avatar: Optional[str] = None
+    avatar_source: str = "none"
+    can_use_google_avatar: bool = False
+    profile: Optional[Dict[str, Any]] = None
+    health_stats: Optional[Dict[str, Any]] = None
 
 class UserAuth(BaseModel):
     email: EmailStr

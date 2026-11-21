@@ -71,6 +71,12 @@ except ImportError as e:
     print(f"Warning: Failed to import community router: {e}")
     community_router = None
 
+try:
+    from .payment import router as payment_router
+except ImportError as e:
+    print(f"Warning: Failed to import payment router: {e}")
+    payment_router = None
+
 __all__ = [
     "auth_router",
     "user_router", 
@@ -84,4 +90,5 @@ __all__ = [
     "shop_router",
     "journal_router",
     "community_router",
+    "payment_router",
 ]

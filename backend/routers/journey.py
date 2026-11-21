@@ -19,6 +19,7 @@ from pydantic import BaseModel, Field
 
 from backend.auth_utils import get_current_user
 from backend.app.database import db
+from backend.app.services.quota_service import QuotaService
 
 router = APIRouter(prefix="/api", tags=["journey"])
 
@@ -105,8 +106,8 @@ DEFAULT_REWARDS = [
         "ai_credits": 1,
         "category": "ai_credit",
         "icon_name": "smart_toy",
-        "is_available": False,
-        "status_note": "Chưa khả dụng · Đang kết nối hạ tầng AI quota",
+        "is_available": True,
+        "status_note": "Khả dụng · Cộng trực tiếp vào hạn mức AI hôm nay",
     },
     {
         "id": "rew_ai_credit_3",
@@ -116,8 +117,8 @@ DEFAULT_REWARDS = [
         "ai_credits": 3,
         "category": "ai_credit",
         "icon_name": "smart_toy",
-        "is_available": False,
-        "status_note": "Chưa khả dụng · Đang kết nối hạ tầng AI quota",
+        "is_available": True,
+        "status_note": "Khả dụng · Cộng trực tiếp vào hạn mức AI hôm nay",
     },
     {
         "id": "rew_champion_badge",
@@ -725,9 +726,39 @@ async def redeem_reward(req: RedeemRewardRequest, current_user: dict = Depends(g
         "granted_at": datetime.now(timezone.utc),
     })
 
+    quota_bonus_applied = False
+    if credits_to_grant > 0:
+        canonical_uid = str(
+            current_user.get("account_id")
+            or current_user.get("_id")
+            or current_user.get("id")
+            or user_email
+        ).strip()
+        q_svc = QuotaService(db=db)
+        applied_core3 = q_svc.add_bonus_quota(
+            user_id=canonical_uid,
+            benefit_id="ai.chat.core3",
+            bonus_units=credits_to_grant,
+            period_type="daily",
+        )
+        applied_pro3 = q_svc.add_bonus_quota(
+            user_id=canonical_uid,
+            benefit_id="ai.chat.pro3",
+            bonus_units=credits_to_grant,
+            period_type="daily",
+        )
+        applied_fv = q_svc.add_bonus_quota(
+            user_id=user_email.strip().lower(),
+            benefit_id="ai.nutrition_gemini",
+            bonus_units=credits_to_grant,
+            period_type="daily",
+        )
+        quota_bonus_applied = bool(applied_core3 and applied_pro3 and applied_fv)
+
     return {
         "status": "success",
         "message": f"Đổi thành công {reward['title']}",
         "new_balance": updated_user.get("saman_points", 0),
         "ai_credits": updated_user.get("ai_credits", 0),
+        "quota_bonus_applied": quota_bonus_applied,
     }

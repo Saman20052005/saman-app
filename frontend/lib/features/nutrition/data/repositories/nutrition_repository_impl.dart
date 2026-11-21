@@ -367,4 +367,76 @@ class NutritionRepositoryImpl implements INutritionRepository {
       servingsConsumed: servingsConsumed,
     );
   }
+
+  @override
+  Future<BarcodeLookupResult> lookupBarcode(String barcode) async {
+    final cleanBarcode = barcode.trim();
+    final data = await _remoteDataSource.lookupBarcode(cleanBarcode);
+    return _parseBarcodeLookupResult(
+      data,
+      fallbackBarcode: cleanBarcode,
+      defaultSource: 'open_food_facts',
+    );
+  }
+
+  @override
+  Future<BarcodeLookupResult> analyzeNutritionLabel({
+    required String barcode,
+    required XFile imageFile,
+    String? productName,
+    String? idempotencyKey,
+  }) async {
+    final cleanBarcode = barcode.trim();
+    final data = await _remoteDataSource.analyzeNutritionLabel(
+      barcode: cleanBarcode,
+      imageFile: imageFile,
+      productName: productName,
+      idempotencyKey: idempotencyKey,
+    );
+    return _parseBarcodeLookupResult(
+      data,
+      fallbackBarcode: cleanBarcode,
+      defaultSource: 'ai_label',
+    );
+  }
+
+  BarcodeLookupResult _parseBarcodeLookupResult(
+    Map<String, dynamic> data, {
+    required String fallbackBarcode,
+    required String defaultSource,
+  }) {
+    final Map<String, dynamic> foodJson = data['food'] is Map
+        ? Map<String, dynamic>.from(data['food'] as Map)
+        : Map<String, dynamic>.from(data);
+    if ((foodJson['id'] == null || foodJson['id'].toString().isEmpty) &&
+        (foodJson['_id'] == null || foodJson['_id'].toString().isEmpty) &&
+        data['food_id'] != null) {
+      foodJson['id'] = data['food_id'].toString();
+    }
+    final food = FoodDto.fromJson(foodJson).toEntity();
+    final rawGrams = data['suggested_grams'] ?? data['suggestedGrams'];
+    int suggestedGrams = 100;
+    if (rawGrams is num && rawGrams > 0) {
+      suggestedGrams = rawGrams.round();
+    } else if (rawGrams is String) {
+      final parsed = double.tryParse(rawGrams);
+      if (parsed != null && parsed > 0) {
+        suggestedGrams = parsed.round();
+      }
+    }
+    final rawBarcode = data['barcode']?.toString().trim();
+    final rawSource = data['source']?.toString().trim();
+    return BarcodeLookupResult(
+      food: food,
+      barcode: (rawBarcode != null && rawBarcode.isNotEmpty)
+          ? rawBarcode
+          : fallbackBarcode,
+      brand: data['brand']?.toString(),
+      servingSize: (data['serving_size'] ?? data['servingSize'])?.toString(),
+      suggestedGrams: suggestedGrams,
+      source: (rawSource != null && rawSource.isNotEmpty)
+          ? rawSource
+          : defaultSource,
+    );
+  }
 }

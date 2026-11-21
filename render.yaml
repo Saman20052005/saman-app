@@ -4,43 +4,60 @@ services:
     name: health-ai-backend
     runtime: python
     plan: free
-    buildCommand: pip install -r requirements.txt
-    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
-    healthCheckPath: /
-    
-    # Environment variables (set these in Render dashboard)
+    buildCommand: pip install -r backend/requirements.txt
+    startCommand: uvicorn backend.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+
+    # Environment variables (set sync: false secrets in Render dashboard)
     envVars:
       - key: ENVIRONMENT
         value: production
+      - key: ENABLE_AI_PAYWALL
+        value: "true"
+      - key: ENABLE_GEMINI_FOOD_ANALYSIS
+        value: "true"
+      - key: FOOD_ANALYSIS_PROVIDER
+        value: gemini
       - key: FOOD_CLASSIFIER_PROVIDER
-        value: mock  # Use mock to avoid model loading issues
+        value: mock
       - key: MOCK_CLASSIFIER_MODE
         value: normal
-      - key: MONGO_URI
-        sync: false  # Set in Render dashboard
       - key: DB_NAME
         value: saman_fitness
+      - key: MONGO_URI
+        sync: false
       - key: JWT_SECRET
-        sync: false  # Set in Render dashboard
+        sync: false
       - key: GEMINI_API_KEY
-        sync: false  # Set in Render dashboard
-        
+        sync: false
+      - key: PAYOS_CLIENT_ID
+        sync: false
+      - key: PAYOS_API_KEY
+        sync: false
+      - key: PAYOS_CHECKSUM_KEY
+        sync: false
+      - key: CLOUDINARY_CLOUD_NAME
+        sync: false
+      - key: CLOUDINARY_API_KEY
+        sync: false
+      - key: CLOUDINARY_API_SECRET
+        sync: false
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: CORS_ORIGINS
+        sync: false
+
     # Auto-deploy configuration
     autoDeploy: true
-    
+
     # Build optimization
     buildFilter:
       paths:
-        - ./**
+        - backend/**
+        - render.yaml
       ignoredPaths:
         - .git/**
         - .venv/**
-        - __pycache__/**
-        - "*.pyc"
+        - "**/__pycache__/**"
+        - "**/*.pyc"
         - .DS_Store
-        
-    # Resource limits for free tier
-    disk:
-      name: health-ai-backend-disk
-      mountPath: /opt/render/project/src
-      sizeGB: 1

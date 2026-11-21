@@ -8,14 +8,28 @@ import string
 import logging
 import sys
 import smtplib
-import requests # Cần request để verify Facebook/Apple
+try:
+    import requests # Cần request để verify Facebook/Apple
+except ImportError:
+    requests = None
+try:
+    import httpx
+except ImportError:
+    httpx = None
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 
 # Thư viện verify token Google & Apple
-from google.oauth2 import id_token
-from google.auth.transport import requests as google_requests
-from jwt.algorithms import RSAAlgorithm # Cho Apple Sign In
+try:
+    from google.oauth2 import id_token
+    from google.auth.transport import requests as google_requests
+except ImportError:
+    id_token = None
+    google_requests = None
+try:
+    from jwt.algorithms import RSAAlgorithm # Cho Apple Sign In
+except ImportError:
+    RSAAlgorithm = None
 
 from backend.app.database import users_collection, db
 from backend.app.models.user import UserAuth
@@ -145,21 +159,65 @@ def verify_facebook(token: str) -> dict:
         url = "https://graph.facebook.com/me"
         params = {
             "access_token": token,
-            "fields": "id,name,email,picture"
+            "fields": "id,name,email,picture.type(large)"
         }
-        response = requests.get(url, params=params)
+        http_client = requests if requests is not None else httpx
+        if http_client is None:
+            raise RuntimeError("No HTTP client available for Facebook verification")
+        response = http_client.get(url, params=params)
         data = response.json()
-        
-        if "error" in data:
+
+        if getattr(response, "status_code", 200) >= 400 or "error" in data:
             raise HTTPException(status_code=401, detail="Invalid Facebook Token")
-            
+
+        fb_id = data.get("id")
+        email = data.get("email")
+        if not email and fb_id is not None and str(fb_id).strip():
+            email = f"fb_{str(fb_id).strip()}@facebook.saman.local"
+
+        picture_data = data.get("picture")
+        picture_url = None
+        if isinstance(picture_data, dict):
+            inner_data = picture_data.get("data")
+            if isinstance(inner_data, dict):
+                picture_url = inner_data.get("url")
+
         return {
-            "email": data.get('email'), 
-            "name": data.get('name'),
-            "picture": data.get('picture', {}).get('data', {}).get('url')
+            "id": fb_id,
+            "email": email,
+            "name": data.get("name"),
+            "picture": picture_url,
         }
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=401, detail=f"Facebook Error: {str(e)}")
+
+
+def _sync_facebook_avatar(collection, user: dict, picture: str) -> dict:
+    """Sync Facebook avatar while preserving any existing custom or explicit Google avatar."""
+    changes = {"facebook_avatar": picture}
+    source = user.get("avatar_source")
+    legacy = user.get("avatar")
+    custom_avatar = user.get("custom_avatar")
+    prev_facebook = user.get("facebook_avatar")
+
+    if custom_avatar:
+        pass
+    elif source == "google" and user.get("google_avatar"):
+        pass
+    elif legacy and legacy != prev_facebook:
+        changes["custom_avatar"] = legacy
+        changes["avatar_source"] = "custom"
+    else:
+        changes["avatar"] = picture
+        if source in (None, "none"):
+            changes["avatar_source"] = "custom"
+
+    if collection is not None and hasattr(collection, "update_one"):
+        user_filter = {"_id": user["_id"]} if "_id" in user else {"email": user["email"]}
+        collection.update_one(user_filter, {"$set": changes})
+    return {**user, **changes}
 
 def verify_apple(token: str) -> dict:
     try:
@@ -222,7 +280,8 @@ def social_login(req: SocialLoginRequest):
             "avatar": picture,
             "avatar_source": "google" if (req.provider == 'google' and picture) else ("custom" if picture else "none"),
             "google_avatar": picture if req.provider == 'google' else None,
-            "custom_avatar": None if req.provider == 'google' else picture,
+            "facebook_avatar": picture if req.provider == 'facebook' else None,
+            "custom_avatar": None if req.provider in ('google', 'facebook') else picture,
             "custom_avatar_public_id": None,
             "created_at": datetime.datetime.utcnow(),
             "password": None
@@ -235,6 +294,8 @@ def social_login(req: SocialLoginRequest):
                 user = sync_google_avatar(users_collection, user, picture)
             else:
                 user.setdefault("google_avatar", picture)
+        elif req.provider == 'facebook' and picture:
+            user = _sync_facebook_avatar(users_collection, user, picture)
 
     resolved_avatar = resolve_avatar_state(user)
 

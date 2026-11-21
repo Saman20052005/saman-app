@@ -609,8 +609,8 @@ class TestRevenueCatR02A(unittest.TestCase):
             self.assertEqual(m.quota_limits, {})
 
         me = self.client.get("/api/revenue/membership/me").json()
-        self.assertIsNone(me["usage"]["ai.nutrition_gemini"]["limit_units"])
-        self.assertIsNone(me["usage"]["ai.nutrition_gemini"]["remaining_units"])
+        self.assertEqual(me["usage"]["ai.nutrition_gemini"]["limit_units"], 1)
+        self.assertEqual(me["usage"]["ai.nutrition_gemini"]["remaining_units"], 1)
         rc_id = me["opaque_app_user_id"]
 
         self._set_subscriber_http_response(app_user_id=rc_id, product_id="saman_pro_monthly")
@@ -631,7 +631,7 @@ class TestRevenueCatR02A(unittest.TestCase):
 
         me_after = self.client.get("/api/revenue/membership/me").json()
         self.assertEqual(me_after["tier"], "pro")
-        self.assertIsNone(me_after["usage"]["ai.nutrition_gemini"]["limit_units"])
+        self.assertEqual(me_after["usage"]["ai.nutrition_gemini"]["limit_units"], 10)
 
     def test_3b_billing_issue_grace_period_and_cancellation_reasons(self):
         """

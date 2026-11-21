@@ -15,6 +15,7 @@ import '../tokens/saman_workout_tokens.dart';
 import '../providers/exercise_providers.dart';
 import '../providers/workout_history_providers.dart';
 import '../../features/workout_cv/domain/services/cv_form_summary_calculator.dart';
+import '../../features/workout_cv/domain/services/workout_cv_exercise_registry.dart';
 import '../widgets/exercise_thumbnail.dart';
 import 'workout_review_screen.dart';
 import 'workout_complete_screen.dart';
@@ -1669,15 +1670,17 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
     // 1. Strictly verify exercise ID or slug (not display name, not ex_1/ex_2, not slug || cvSupported)
     final id = currentEx.id.toLowerCase().trim();
     final slug = currentEx.slug.toLowerCase().trim();
-    final isSupported = id == 'pull-up' ||
-        slug == 'pull-up' ||
-        id == 'lat-pulldown' ||
-        slug == 'lat-pulldown';
+    final isSupported = WorkoutCvExerciseRegistry.isSupported(
+      id: id,
+      slug: slug,
+    );
 
-    // 2. Bypass platform & exercise check for live camera workout-cv
+    // 2. Only active on Android platform for supported exercises
+    final isAndroid =
+        !kIsWeb && defaultTargetPlatform == TargetPlatform.android;
     const bypassCheck = bool.fromEnvironment('BYPASS_CV_CHECK', defaultValue: false);
-    if (bypassCheck) {
-      _showFormCheckModal(context, cameraUnavailable: isSupported);
+    if (!bypassCheck && (!isSupported || !isAndroid)) {
+      _showFormCheckModal(context, cameraUnavailable: isSupported && !isAndroid);
       return;
     }
 

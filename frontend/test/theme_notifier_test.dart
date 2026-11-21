@@ -52,5 +52,36 @@ void main() {
         expect(prefsAfterSecondToggle.getBool('is_dark_mode'), isTrue);
       },
     );
+
+    test(
+      'setThemeMode persists light, dark, and system and restores from theme_mode',
+      () async {
+        SharedPreferences.setMockInitialValues({});
+
+        final notifier = ThemeNotifier();
+        await Future<void>.delayed(Duration.zero);
+
+        await notifier.setThemeMode(ThemeMode.light);
+        expect(notifier.state, ThemeMode.light);
+        var prefs = await SharedPreferences.getInstance();
+        expect(prefs.getString('theme_mode'), 'light');
+        expect(prefs.getBool('is_dark_mode'), isFalse);
+
+        await notifier.setThemeMode(ThemeMode.system);
+        expect(notifier.state, ThemeMode.system);
+        prefs = await SharedPreferences.getInstance();
+        expect(prefs.getString('theme_mode'), 'system');
+
+        final restoredSystem = ThemeNotifier();
+        await Future<void>.delayed(Duration.zero);
+        expect(restoredSystem.state, ThemeMode.system);
+
+        await notifier.setThemeMode(ThemeMode.dark);
+        expect(notifier.state, ThemeMode.dark);
+        prefs = await SharedPreferences.getInstance();
+        expect(prefs.getString('theme_mode'), 'dark');
+        expect(prefs.getBool('is_dark_mode'), isTrue);
+      },
+    );
   });
 }

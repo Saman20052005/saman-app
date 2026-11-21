@@ -7,6 +7,7 @@ import '../../../../presentation/tokens/saman_workout_tokens.dart';
 import '../../domain/entities/exercise_cv_state.dart';
 import '../../domain/services/cv_form_summary_calculator.dart';
 import '../../domain/services/lat_pulldown_baseline.dart';
+import '../../domain/services/workout_cv_exercise_registry.dart';
 import '../controllers/workout_cv_controller.dart';
 import '../widgets/pose_skeleton_painter.dart';
 import '../workout_cv_replay_trial.dart';
@@ -351,8 +352,10 @@ class _WorkoutCvScreenState extends ConsumerState<WorkoutCvScreen>
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          if (cvState.exerciseSlug == 'lat-pulldown' ||
-              cvState.exerciseSlug == 'pull-up')
+          if (WorkoutCvExerciseRegistry.isSupported(
+            id: cvState.exerciseId,
+            slug: cvState.exerciseSlug,
+          ))
             _ReplayRepSummary(
               countLabel: cvState.repCountLabel,
               statusLabel:

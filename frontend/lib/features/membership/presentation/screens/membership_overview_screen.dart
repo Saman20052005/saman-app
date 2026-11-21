@@ -123,17 +123,27 @@ class MembershipOverviewScreen extends ConsumerWidget {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               // 1. Introduction Header
-              _buildIntroSection(context, t),
+              _buildIntroSection(
+                context,
+                t,
+                hasPurchasable: plans.any((p) => p.purchasable),
+              ),
               const SizedBox(height: 16),
 
               // 2. Account Current Status Card
-              _buildCurrentAccountCard(context, t, accountMembership),
+              _buildCurrentAccountCard(
+                context,
+                t,
+                accountMembership,
+                plans: plans,
+                period: billingPeriod,
+              ),
               const SizedBox(height: 20),
 
               // 3. Billing Selector
-              const BillingPeriodSelector(
+              BillingPeriodSelector(
                 isInsideCard: false,
-                showDisclaimer: true,
+                showDisclaimer: !plans.any((p) => p.purchasable),
               ),
               const SizedBox(height: 20),
 
@@ -171,7 +181,11 @@ class MembershipOverviewScreen extends ConsumerWidget {
               const SizedBox(height: 24),
 
               // 6. Quiet Footer Disclaimers
-              _buildFooter(context, t),
+              _buildFooter(
+                context,
+                t,
+                hasPurchasable: plans.any((p) => p.purchasable),
+              ),
               const SizedBox(height: 16),
             ],
           ),
@@ -180,7 +194,11 @@ class MembershipOverviewScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildIntroSection(BuildContext context, MembershipPalette t) {
+  Widget _buildIntroSection(
+    BuildContext context,
+    MembershipPalette t, {
+    bool hasPurchasable = false,
+  }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -195,7 +213,9 @@ class MembershipOverviewScreen extends ConsumerWidget {
             ),
           ),
           child: Text(
-            context.tr('membership_preview_badge'),
+            hasPurchasable
+                ? 'SAMAN MEMBERSHIP'
+                : context.tr('membership_preview_badge'),
             style: t.mono(
               fontSize: 11,
               fontWeight: FontWeight.w600,
@@ -229,7 +249,12 @@ class MembershipOverviewScreen extends ConsumerWidget {
   }
 
   Widget _buildCurrentAccountCard(
-      BuildContext context, MembershipPalette t, [dynamic account]) {
+    BuildContext context,
+    MembershipPalette t,
+    dynamic account, {
+    List<MembershipPlan>? plans,
+    BillingPeriod period = BillingPeriod.monthly,
+  }) {
     final errorColor =
         t.isDark ? const Color(0xFFEF4444) : const Color(0xFFDC2626);
     if (account is AccountMembershipState && account.isUnknown) {
@@ -430,7 +455,12 @@ class MembershipOverviewScreen extends ConsumerWidget {
                     ),
                     const SizedBox(width: 6),
                     Text(
-                      '\$0',
+                      (plans ?? MembershipCatalog.plans)
+                          .firstWhere(
+                            (p) => p.tier == tier,
+                            orElse: () => MembershipCatalog.getPlan(tier),
+                          )
+                          .priceDisplay(period),
                       style: t.mono(
                         fontSize: 12,
                         fontWeight: FontWeight.w600,
@@ -530,7 +560,7 @@ class MembershipOverviewScreen extends ConsumerWidget {
             textBaseline: TextBaseline.alphabetic,
             children: [
               Text(
-                '\$0',
+                plan.priceDisplay(BillingPeriod.monthly),
                 style: t.mono(
                   fontSize: 24,
                   fontWeight: FontWeight.w700,
@@ -716,29 +746,30 @@ class MembershipOverviewScreen extends ConsumerWidget {
                     ),
                     const SizedBox(height: 4),
                   ],
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 4,
-                    ),
-                    decoration: BoxDecoration(
-                      color: t.surfaceHigh,
-                      borderRadius: BorderRadius.circular(6),
-                      border: Border.all(
-                        color: t.border,
-                        width: 1.0,
+                  if (!plan.purchasable)
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: t.surfaceHigh,
+                        borderRadius: BorderRadius.circular(6),
+                        border: Border.all(
+                          color: t.border,
+                          width: 1.0,
+                        ),
+                      ),
+                      child: Text(
+                        context.tr('coming_soon_badge'),
+                        style: t.mono(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w600,
+                          color: t.textMuted,
+                          letterSpacing: 0.5,
+                        ),
                       ),
                     ),
-                    child: Text(
-                      context.tr('coming_soon_badge'),
-                      style: t.mono(
-                        fontSize: 10,
-                        fontWeight: FontWeight.w600,
-                        color: t.textMuted,
-                        letterSpacing: 0.5,
-                      ),
-                    ),
-                  ),
                 ],
               ),
             ],
@@ -746,28 +777,32 @@ class MembershipOverviewScreen extends ConsumerWidget {
           const SizedBox(height: 14),
 
           // Price Tag
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.baseline,
-            textBaseline: TextBaseline.alphabetic,
-            children: [
-              Text(
-                priceText,
-                style: t.mono(
-                  fontSize: 24,
-                  fontWeight: FontWeight.w700,
-                  color: isRecommended ? t.accent : t.textPrimary,
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerLeft,
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.baseline,
+              textBaseline: TextBaseline.alphabetic,
+              children: [
+                Text(
+                  priceText,
+                  style: t.mono(
+                    fontSize: 24,
+                    fontWeight: FontWeight.w700,
+                    color: isRecommended ? t.accent : t.textPrimary,
+                  ),
                 ),
-              ),
-              const SizedBox(width: 4),
-              Text(
-                unitText,
-                style: t.body(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w400,
-                  color: t.textMuted,
+                const SizedBox(width: 4),
+                Text(
+                  unitText,
+                  style: t.body(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w400,
+                    color: t.textMuted,
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
           if (period.isYearly) ...[
             const SizedBox(height: 2),
@@ -802,7 +837,7 @@ class MembershipOverviewScreen extends ConsumerWidget {
               padding: const EdgeInsets.only(bottom: 8.0),
               child: _buildBenefitRow(
                 t: t,
-                icon: Icons.schedule,
+                icon: b.isPlanned ? Icons.schedule : Icons.check,
                 iconColor: t.accent,
                 text: b.title,
                 subtext: b.description,
@@ -1006,12 +1041,18 @@ class MembershipOverviewScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildFooter(BuildContext context, MembershipPalette t) {
+  Widget _buildFooter(
+    BuildContext context,
+    MembershipPalette t, {
+    bool hasPurchasable = false,
+  }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
         Text(
-          context.tr('demo_pricing_disclaimer'),
+          hasPurchasable
+              ? 'Giá niêm yết VNĐ · Thanh toán tự động qua VietQR / PayOS.'
+              : context.tr('demo_pricing_disclaimer'),
           style: t.mono(
             fontSize: 11,
             fontWeight: FontWeight.w400,
@@ -1019,17 +1060,19 @@ class MembershipOverviewScreen extends ConsumerWidget {
           ),
           textAlign: TextAlign.center,
         ),
-        const SizedBox(height: 6),
-        Text(
-          context.tr('paid_notice_footer'),
-          style: t.body(
-            fontSize: 12,
-            fontWeight: FontWeight.w400,
-            color: t.textMuted,
-            height: 1.35,
+        if (!hasPurchasable) ...[
+          const SizedBox(height: 6),
+          Text(
+            context.tr('paid_notice_footer'),
+            style: t.body(
+              fontSize: 12,
+              fontWeight: FontWeight.w400,
+              color: t.textMuted,
+              height: 1.35,
+            ),
+            textAlign: TextAlign.center,
           ),
-          textAlign: TextAlign.center,
-        ),
+        ],
       ],
     );
   }

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../presentation/screens/workout_history_screen.dart';
 import '../../home/tokens/saman_home_tokens.dart';
 
 /// Long-term athletic progress snapshot card.
@@ -9,7 +10,7 @@ import '../../home/tokens/saman_home_tokens.dart';
 ///   - Workouts count (e.g. 24)
 ///   - Current streak (e.g. 7d in Saman Green)
 ///   - Plan adherence (e.g. 82%)
-/// - Understated link: "View progress →"
+/// - Understated link: "Xem tiến trình →"
 class ProgressSnapshotCard extends StatelessWidget {
   const ProgressSnapshotCard({
     super.key,
@@ -101,49 +102,42 @@ class ProgressSnapshotCard extends StatelessWidget {
                 const SizedBox(height: SamanHomeTokens.spacingSm),
                 Align(
                   alignment: Alignment.centerLeft,
-                  child: onViewProgressTap != null
-                      ? Material(
-                          color: Colors.transparent,
-                          child: InkWell(
-                            onTap: onViewProgressTap,
-                            borderRadius: BorderRadius.circular(SamanHomeTokens.radiusXs),
-                            child: Padding(
-                              padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 2),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Text(
-                                    'View progress',
-                                    style: TextStyle(
-                                      fontSize: 13,
-                                      fontWeight: FontWeight.w500,
-                                      color: tokens.textSecondary,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 4),
-                                  Icon(
-                                    Icons.arrow_forward_rounded,
-                                    size: 14,
-                                    color: tokens.textSecondary,
-                                  ),
-                                ],
+                  child: Material(
+                    color: Colors.transparent,
+                    child: InkWell(
+                      onTap: onViewProgressTap ??
+                          () {
+                            Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (_) => const WorkoutHistoryScreen(),
+                              ),
+                            );
+                          },
+                      borderRadius: BorderRadius.circular(SamanHomeTokens.radiusXs),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 2),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              'Xem tiến trình',
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w500,
+                                color: tokens.textSecondary,
                               ),
                             ),
-                          ),
-                        )
-                      : Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 2),
-                          child: Text(
-                            'View progress · Coming soon',
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w400,
-                              color: tokens.textMuted,
+                            const SizedBox(width: 4),
+                            Icon(
+                              Icons.arrow_forward_rounded,
+                              size: 14,
+                              color: tokens.textSecondary,
                             ),
-                          ),
+                          ],
                         ),
+                      ),
+                    ),
+                  ),
                 ),
               ],
             ),

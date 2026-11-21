@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:health_ai_app/config/app_theme.dart';
+import 'package:health_ai_app/config/theme_provider.dart';
 import 'package:health_ai_app/features/membership/presentation/screens/manage_membership_screen.dart';
 import 'package:health_ai_app/features/profile/domain/entities/profile_entity.dart';
 import 'package:health_ai_app/features/profile/domain/entities/profile_snapshot.dart';
@@ -294,6 +295,80 @@ void main() {
             'Giới hạn sử dụng: Tính năng chưa khả dụng trong phiên bản thử nghiệm.'),
         findsOneWidget,
       );
+    });
+
+    testWidgets(
+        '7. Giao dien (Theme Switcher) doc va cap nhat themeProvider that (Dark / Light / System)',
+        (tester) async {
+      final container = ProviderContainer(
+        overrides: [
+          profileProvider.overrideWith(
+            (ref) => _FakeProfileNotifier(
+              ProfileState(
+                profile: const ProfileEntity(height: 175, weight: 70, age: 28),
+                snapshot: const ProfileSnapshot(
+                  profile: ProfileEntity(height: 175, weight: 70, age: 28),
+                  fullName: 'Saman Athlete',
+                  email: 'sa***@gmail.com',
+                ),
+                status: ProfileStatus.ready,
+              ),
+            ),
+          ),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      final drawer = SamanChatDrawer(
+        isDesktop: true,
+        onNewChat: () {},
+        onPromptSelected: (_) {},
+        onOpenPreferences: () {},
+      );
+
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: MaterialApp(
+            debugShowCheckedModeBanner: false,
+            theme: SamanTheme.dark(),
+            home: Scaffold(
+              body: SizedBox(
+                width: 1024,
+                height: 768,
+                child: drawer,
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(container.read(themeProvider), ThemeMode.dark);
+
+      await tester.tap(find.byTooltip('Tùy chọn Saman'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Giao diện'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Dark'), findsOneWidget);
+      expect(find.text('Light'), findsOneWidget);
+      expect(find.text('System'), findsOneWidget);
+      expect(find.textContaining('Coming soon'), findsNothing);
+      expect(find.textContaining('Sắp ra mắt'), findsNothing);
+      expect(find.byIcon(Icons.check_rounded), findsOneWidget);
+
+      await tester.tap(find.text('Light'));
+      await tester.pumpAndSettle();
+      expect(container.read(themeProvider), ThemeMode.light);
+
+      await tester.tap(find.byTooltip('Tùy chọn Saman'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Giao diện'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('System'));
+      await tester.pumpAndSettle();
+      expect(container.read(themeProvider), ThemeMode.system);
     });
   });
 }

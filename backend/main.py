@@ -21,6 +21,7 @@ from backend.routers import (
     shop_router,
     journal_router,
     community_router,
+    payment_router,
 )
 from backend.routers.analytics import router as analytics_router
 
@@ -98,6 +99,45 @@ async def lifespan(app: FastAPI):
                 ensure_history_analytics_indexes(application_db)
         except (PyMongoError, RuntimeError) as exc:
             logger.warning("History analytics index setup unavailable: %s", type(exc).__name__)
+
+        try:
+            from backend.app.database import db as application_db
+            from backend.app.database_community import ensure_community_indexes
+
+            if application_db is not None:
+                ensure_community_indexes(application_db)
+        except (PyMongoError, RuntimeError) as exc:
+            logger.warning("Community index setup unavailable: %s", type(exc).__name__)
+
+        try:
+            from backend.app.database import db as application_db
+            from backend.app.database_revenue import COLL_USAGE_BUCKETS
+
+            if application_db is not None:
+                application_db["food_barcodes"].create_index(
+                    [("barcode", 1)],
+                    unique=True,
+                    sparse=True,
+                    name="uniq_food_barcodes_barcode",
+                )
+                application_db["payment_orders"].create_index(
+                    [("order_code", 1)],
+                    unique=True,
+                    sparse=True,
+                    name="uniq_payment_orders_order_code",
+                )
+                application_db["payment_orders"].create_index(
+                    [("user_id", 1)],
+                    name="idx_payment_orders_user_id",
+                )
+                application_db[COLL_USAGE_BUCKETS].create_index(
+                    [("user_id", 1), ("bucket_key", 1), ("window_start", 1)],
+                    unique=True,
+                    name="uniq_bucket_user_key_window",
+                )
+                logger.info("Production indexes ensured (food_barcodes, payment_orders, %s)", COLL_USAGE_BUCKETS)
+        except (PyMongoError, RuntimeError) as exc:
+            logger.warning("Production index setup unavailable: %s", type(exc).__name__)
 
         from backend.app.services.classification_provider_factory import create_classification_service
         model_path = os.getenv("FOOD_MODEL_PATH", "models/checkpoint.pth")
@@ -214,6 +254,8 @@ if "journal_router" in globals() and journal_router:
     app.include_router(journal_router)
 if "community_router" in globals() and community_router:
     app.include_router(community_router)
+if "payment_router" in globals() and payment_router:
+    app.include_router(payment_router)
 app.include_router(analytics_router)
 
 # DEBUG: Print all registered routes

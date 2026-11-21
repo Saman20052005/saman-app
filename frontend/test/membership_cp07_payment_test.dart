@@ -123,8 +123,8 @@ void main() {
         membershipNotifier: membershipNotifier,
       );
 
-      // Preview plan from static catalog (previewMode: true, purchasable: false)
-      final previewPlan = MembershipCatalog.getPlan(MembershipTier.plus);
+      // Preview plan (purchasable: false) keeps state unavailable
+      final previewPlan = buildPurchasablePlusPlan(purchasable: false);
       final state1 = await purchaseNotifier.startPurchase(
         PurchaseIntent(
           accountId: 'user_a@saman.ai',

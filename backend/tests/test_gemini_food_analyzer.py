@@ -336,15 +336,15 @@ class GeminiFoodAnalyzerTests(unittest.TestCase):
     # -------------------------------------------------------------------------
     # 1. PROVIDER SELECTION & ISOLATION
     # -------------------------------------------------------------------------
-    def test_default_provider_is_food101(self):
-        """AC1: When FOOD_ANALYSIS_PROVIDER is unset or empty, default is food101."""
+    def test_default_provider_is_gemini(self):
+        """P0.3: When FOOD_ANALYSIS_PROVIDER is unset or empty, default is gemini."""
         with patch.dict(os.environ, {"FOOD_ANALYSIS_PROVIDER": ""}, clear=False):
             provider = self.router_mod.get_analysis_provider()
-            self.assertEqual(provider, "food101")
+            self.assertEqual(provider, "gemini")
 
         with patch.dict(os.environ, {}, clear=True):
             provider = self.router_mod.get_analysis_provider()
-            self.assertEqual(provider, "food101")
+            self.assertEqual(provider, "gemini")
 
     def test_invalid_provider_raises_500(self):
         """AC1: Invalid FOOD_ANALYSIS_PROVIDER must raise HTTP 500 and not silently fallback."""
@@ -427,8 +427,8 @@ class GeminiFoodAnalyzerTests(unittest.TestCase):
     # -------------------------------------------------------------------------
     # 2. CONFIGURATION VALIDATION
     # -------------------------------------------------------------------------
-    def test_missing_gemini_api_key_raises_500(self):
-        """AC6: When provider is gemini but GEMINI_API_KEY is missing, raise HTTP 500."""
+    def test_missing_gemini_api_key_raises_503(self):
+        """P0.3: When provider is gemini but GEMINI_API_KEY is missing, raise HTTP 503."""
         dummy_file = StubUploadFile()
         with patch.dict(os.environ, {"GEMINI_API_KEY": ""}):
             with self.assertRaises(HTTPException) as ctx:
@@ -439,8 +439,30 @@ class GeminiFoodAnalyzerTests(unittest.TestCase):
                         email="user@saman.test",
                     )
                 )
-            self.assertEqual(ctx.exception.status_code, 500)
-            self.assertIn("GEMINI_API_KEY", str(ctx.exception.detail))
+            self.assertEqual(ctx.exception.status_code, 503)
+            self.assertEqual(ctx.exception.detail["error"], "gemini_unavailable")
+            self.assertIn("GEMINI_API_KEY", ctx.exception.detail["message"])
+
+    def test_disabled_gemini_food_analysis_raises_503(self):
+        """P0.3: When ENABLE_GEMINI_FOOD_ANALYSIS is false/0/no, validate_configuration raises and API returns 503."""
+        dummy_file = StubUploadFile()
+        for disabled_val in ("false", "0", "no"):
+            with patch.dict(os.environ, {"ENABLE_GEMINI_FOOD_ANALYSIS": disabled_val}):
+                with self.assertRaises(GeminiConfigurationError) as cfg_ctx:
+                    GeminiFoodAnalyzer(api_key="test-key").validate_configuration()
+                self.assertIn("disabled", str(cfg_ctx.exception).lower())
+
+                with self.assertRaises(HTTPException) as ctx:
+                    asyncio.run(
+                        self.router_mod.analyze_food_image(
+                            image=dummy_file,
+                            grams=100.0,
+                            email="user@saman.test",
+                        )
+                    )
+                self.assertEqual(ctx.exception.status_code, 503)
+                self.assertEqual(ctx.exception.detail["error"], "gemini_unavailable")
+                self.assertIn("disabled", ctx.exception.detail["message"].lower())
 
     def test_missing_gemini_food_model_uses_safe_default(self):
         """When model config is absent, use the approved Gemini Flash default."""
@@ -968,9 +990,10 @@ class GeminiRequestRoutingAndPermissionTests(unittest.TestCase):
             mock_classifier.assert_not_called()
             mock_gemini_post.assert_called_once()
 
-    # 3. advanced + email không được phép trả 403, không gọi analyzer
-    def test_advanced_mode_with_unauthorized_email_raises_403_and_calls_no_analyzer(self):
+    # 3. P0.3: advanced không còn bị chặn bởi GEMINI_ALLOWED_EMAILS
+    def test_advanced_mode_with_any_authenticated_email_calls_gemini(self):
         dummy_file = StubUploadFile()
+        mock_resp = self._sample_gemini_resp("Phở Gà", "pho_ga")
 
         with patch.dict(os.environ, {
             "GEMINI_ALLOWED_EMAILS": "tester@saman.test",
@@ -978,20 +1001,44 @@ class GeminiRequestRoutingAndPermissionTests(unittest.TestCase):
             "GEMINI_FOOD_MODEL": "gemini-3.8-flash",
         }), \
         patch.object(self.router_mod, "get_classifier") as mock_classifier, \
-        patch("httpx.AsyncClient.post", new_callable=AsyncMock) as mock_gemini_post:
-            with self.assertRaises(HTTPException) as ctx:
-                asyncio.run(
-                    self.router_mod.analyze_food_image(
-                        image=dummy_file,
-                        grams=100.0,
-                        mode="advanced",
-                        email="unauthorized_hacker@saman.test",
-                    )
+        patch("httpx.AsyncClient.post", new_callable=AsyncMock, return_value=mock_resp) as mock_gemini_post:
+            resp = asyncio.run(
+                self.router_mod.analyze_food_image(
+                    image=dummy_file,
+                    grams=100.0,
+                    mode="advanced",
+                    email="any_authenticated_user@saman.test",
                 )
-            self.assertEqual(ctx.exception.status_code, 403)
-            self.assertIn("restricted", str(ctx.exception.detail).lower())
+            )
+            self.assertEqual(resp["food_name"], "Phở Gà")
+            self.assertEqual(resp["nutrition_source"], "gemini_estimate")
+            self.assertEqual(resp["user_email"], "any_authenticated_user@saman.test")
             mock_classifier.assert_not_called()
-            mock_gemini_post.assert_not_called()
+            mock_gemini_post.assert_called_once()
+
+    # 3b. P0.3: mode='standard' khi local model chưa ready tự chuyển sang Gemini
+    def test_standard_mode_falls_back_to_gemini_when_classifier_not_ready(self):
+        dummy_file = StubUploadFile()
+        mock_resp = self._sample_gemini_resp("Bánh Xèo", "banh_xeo")
+        unready_classifier = type("UnreadyClassifier", (), {"ready": False})()
+
+        with patch.dict(os.environ, {
+            "GEMINI_API_KEY": "valid_key",
+            "GEMINI_FOOD_MODEL": "gemini-3.8-flash",
+        }), \
+        patch.object(self.router_mod, "get_classifier", return_value=unready_classifier), \
+        patch("httpx.AsyncClient.post", new_callable=AsyncMock, return_value=mock_resp) as mock_gemini_post:
+            resp = asyncio.run(
+                self.router_mod.analyze_food_image(
+                    image=dummy_file,
+                    grams=100.0,
+                    mode="standard",
+                    email="standard_user@saman.test",
+                )
+            )
+            self.assertEqual(resp["food_name"], "Bánh Xèo")
+            self.assertEqual(resp["nutrition_source"], "gemini_estimate")
+            mock_gemini_post.assert_called_once()
 
     # 4. Không mode + mặc định food101 giữ pipeline cũ
     def test_no_mode_default_food101_preserves_old_pipeline(self):
@@ -1022,9 +1069,10 @@ class GeminiRequestRoutingAndPermissionTests(unittest.TestCase):
             self.assertEqual(resp["nutrition_source"], "openfoodfacts")
             mock_gemini_post.assert_not_called()
 
-    # 5. Không mode + mặc định gemini + không được phép trả 403 (không thể bỏ mode để vượt allowlist)
-    def test_no_mode_default_gemini_unauthorized_raises_403(self):
+    # 5. P0.3: Không mode + mặc định gemini cho phép mọi tài khoản đã xác thực
+    def test_no_mode_default_gemini_allows_authenticated_user_regardless_of_allowlist(self):
         dummy_file = StubUploadFile()
+        mock_resp = self._sample_gemini_resp("Phở Bò", "pho_bo")
 
         with patch.dict(os.environ, {
             "FOOD_ANALYSIS_PROVIDER": "gemini",
@@ -1032,18 +1080,18 @@ class GeminiRequestRoutingAndPermissionTests(unittest.TestCase):
             "GEMINI_API_KEY": "valid_key",
             "GEMINI_FOOD_MODEL": "gemini-3.8-flash",
         }), \
-        patch("httpx.AsyncClient.post", new_callable=AsyncMock) as mock_gemini_post:
-            with self.assertRaises(HTTPException) as ctx:
-                asyncio.run(
-                    self.router_mod.analyze_food_image(
-                        image=dummy_file,
-                        grams=100.0,
-                        mode=None,  # No mode passed!
-                        email="regular_user@saman.test",
-                    )
+        patch("httpx.AsyncClient.post", new_callable=AsyncMock, return_value=mock_resp) as mock_gemini_post:
+            resp = asyncio.run(
+                self.router_mod.analyze_food_image(
+                    image=dummy_file,
+                    grams=100.0,
+                    mode=None,
+                    email="regular_user@saman.test",
                 )
-            self.assertEqual(ctx.exception.status_code, 403)
-            mock_gemini_post.assert_not_called()
+            )
+            self.assertEqual(resp["food_name"], "Phở Bò")
+            self.assertEqual(resp["user_email"], "regular_user@saman.test")
+            mock_gemini_post.assert_called_once()
 
     # 6. Không mode + mặc định gemini + được phép gọi Gemini
     def test_no_mode_default_gemini_authorized_calls_gemini(self):
@@ -1069,9 +1117,10 @@ class GeminiRequestRoutingAndPermissionTests(unittest.TestCase):
             self.assertEqual(resp["nutrition_source"], "gemini_estimate")
             mock_gemini_post.assert_called_once()
 
-    # 7. Allowlist thiếu/rỗng từ chối Gemini
-    def test_empty_or_missing_allowlist_rejects_all_gemini(self):
+    # 7. P0.3: Allowlist thiếu/rỗng không còn chặn Gemini
+    def test_empty_or_missing_allowlist_still_allows_gemini(self):
         dummy_file = StubUploadFile()
+        mock_resp = self._sample_gemini_resp("Cơm Gà", "com_ga")
 
         for empty_val in ["", "   "]:
             with patch.dict(os.environ, {
@@ -1079,20 +1128,21 @@ class GeminiRequestRoutingAndPermissionTests(unittest.TestCase):
                 "GEMINI_ALLOWED_EMAILS": empty_val,
                 "GEMINI_API_KEY": "valid_key",
                 "GEMINI_FOOD_MODEL": "gemini-3.8-flash",
-            }):
-                with self.assertRaises(HTTPException) as ctx:
-                    asyncio.run(
-                        self.router_mod.analyze_food_image(
-                            image=dummy_file,
-                            grams=100.0,
-                            mode="advanced",
-                            email="admin@saman.test",
-                        )
+            }), \
+            patch("httpx.AsyncClient.post", new_callable=AsyncMock, return_value=mock_resp):
+                resp = asyncio.run(
+                    self.router_mod.analyze_food_image(
+                        image=dummy_file,
+                        grams=100.0,
+                        mode="advanced",
+                        email="admin@saman.test",
                     )
-                self.assertEqual(ctx.exception.status_code, 403)
+                )
+                self.assertEqual(resp["food_name"], "Cơm Gà")
 
-    # 8. Email gần giống hoặc chỉ chứa email được phép không được vượt quyền
-    def test_email_matching_exact_trimmed_lowercase_no_substring_no_wildcard(self):
+    # 8. Helper is_gemini_allowed giữ hành vi khớp chính xác nhưng không chặn orchestrate_nutrition_analysis
+    def test_is_gemini_allowed_helper_does_not_block_endpoint(self):
+        from backend.app.services.revenue_guard import is_gemini_allowed
         dummy_file = StubUploadFile()
         mock_resp = self._sample_gemini_resp()
 
@@ -1102,69 +1152,39 @@ class GeminiRequestRoutingAndPermissionTests(unittest.TestCase):
             "GEMINI_FOOD_MODEL": "gemini-3.8-flash",
         }), \
         patch("httpx.AsyncClient.post", new_callable=AsyncMock, return_value=mock_resp):
+            self.assertTrue(is_gemini_allowed(" ALLOWED@SAMAN.TEST "))
+            self.assertFalse(is_gemini_allowed("other@saman.test"))
 
-            # Trim and case-insensitive check -> PASS
-            resp1 = asyncio.run(
+            resp = asyncio.run(
                 self.router_mod.analyze_food_image(
                     image=dummy_file,
                     grams=100.0,
                     mode="advanced",
-                    email=" ALLOWED@SAMAN.TEST ",
+                    email="other@saman.test",
                 )
             )
-            self.assertEqual(resp1["food_name"], "Phở Bò")
+            self.assertEqual(resp["food_name"], "Phở Bò")
+            self.assertEqual(resp["user_email"], "other@saman.test")
 
-            resp2 = asyncio.run(
-                self.router_mod.analyze_food_image(
-                    image=dummy_file,
-                    grams=100.0,
-                    mode="advanced",
-                    email="vip@SAMAN.VN",
-                )
-            )
-            self.assertEqual(resp2["food_name"], "Phở Bò")
-
-            # Substring / Prefix / Suffix / Wildcard attempts -> MUST BE REJECTED 403
-            for spoofed in [
-                "allowed@saman.testing",
-                "sub_allowed@saman.test",
-                "allowed@saman",
-                "allowed@saman.test.attacker.com",
-                "vip@saman.vn.co",
-                "not_vip@saman.vn",
-            ]:
-                with self.assertRaises(HTTPException) as ctx:
-                    asyncio.run(
-                        self.router_mod.analyze_food_image(
-                            image=dummy_file,
-                            grams=100.0,
-                            mode="advanced",
-                            email=spoofed,
-                        )
-                    )
-                self.assertEqual(ctx.exception.status_code, 403)
-
-    # 9. Form email/user_id giả không thay được danh tính đã xác thực
-    def test_form_spoofing_email_cannot_override_authenticated_identity(self):
+    # 9. Danh tính trả về luôn bám theo email đã xác thực
+    def test_authenticated_identity_is_preserved_in_response(self):
         dummy_file = StubUploadFile()
-        # Even if someone injects a fake email parameter into form or client body,
-        # the route relies strictly on the `email` resolved from verify_token dependency.
+        mock_resp = self._sample_gemini_resp()
         with patch.dict(os.environ, {
             "GEMINI_ALLOWED_EMAILS": "admin@saman.test",
             "GEMINI_API_KEY": "valid_key",
             "GEMINI_FOOD_MODEL": "gemini-3.8-flash",
-        }):
-            # The authenticated user is 'attacker@saman.test'
-            with self.assertRaises(HTTPException) as ctx:
-                asyncio.run(
-                    self.router_mod.analyze_food_image(
-                        image=dummy_file,
-                        grams=100.0,
-                        mode="advanced",
-                        email="attacker@saman.test",
-                    )
+        }), \
+        patch("httpx.AsyncClient.post", new_callable=AsyncMock, return_value=mock_resp):
+            resp = asyncio.run(
+                self.router_mod.analyze_food_image(
+                    image=dummy_file,
+                    grams=100.0,
+                    mode="advanced",
+                    email="authenticated_user@saman.test",
                 )
-            self.assertEqual(ctx.exception.status_code, 403)
+            )
+            self.assertEqual(resp["user_email"], "authenticated_user@saman.test")
 
     # 10. Mode không hợp lệ trả 422
     def test_invalid_mode_returns_422(self):

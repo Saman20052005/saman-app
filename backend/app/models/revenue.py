@@ -12,7 +12,7 @@ Invariants:
 
 from datetime import datetime, timezone
 from enum import Enum
-from typing import Dict, List, Optional, Any
+from typing import Dict, List, Literal, Optional, Any
 from pydantic import BaseModel, Field, field_validator, model_validator, ConfigDict
 
 
@@ -107,6 +107,7 @@ class PaymentProviderName(str, Enum):
     GOOGLE_PLAY = "google_play"
     REVENUECAT = "revenuecat"
     STRIPE = "stripe"
+    PAYOS = "payos"
 
 
 class PaymentEnvironment(str, Enum):
@@ -859,5 +860,45 @@ class ManualGrantAuditRecord(BaseModel):
     request_hash: str = Field(..., min_length=10, description="SHA-256 hash of canonical request parameters.")
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+
+# ==============================================================================
+# PAYOS / VIETQR COMMERCIAL PAYMENT SCHEMAS (P0.5)
+# ==============================================================================
+
+class CreatePayosQrRequest(BaseModel):
+    """
+    Client request to initiate a PayOS / VietQR checkout order.
+    Monetary amount is NEVER accepted from the client; it is resolved
+    authoritatively from the active backend catalog.
+    """
+    plan_id: Literal["plan_plus", "plan_pro", "plan_ultra"]
+    billing_period: BillingPeriod = BillingPeriod.MONTHLY
+
+
+class CreatePayosQrResponse(BaseModel):
+    """Server response containing VietQR payload and PayOS checkout link."""
+    order_code: int
+    amount: int
+    currency: str = "VND"
+    description: str
+    qr_code: str
+    checkout_url: str
+    bin: Optional[str] = None
+    account_number: Optional[str] = None
+    account_name: Optional[str] = None
+    status: str = "pending"
+    expires_at: Optional[datetime] = None
+
+
+class PayosOrderStatusResponse(BaseModel):
+    """Authenticated order status inquiry response for PayOS VietQR polling."""
+    order_code: int
+    status: str
+    tier: MembershipTier
+    billing_period: BillingPeriod
+    amount: int
+    currency: str = "VND"
+    paid_at: Optional[datetime] = None
 
 

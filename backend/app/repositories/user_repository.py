@@ -1,22 +1,69 @@
+import re
+import sys
 from typing import Optional
-from backend.app.database import users_collection
 from backend.app.models.user import UserDB, UserProfileInput, UserHealthStats
 
 class UserRepository:
-    def __init__(self):
-        self.collection = users_collection
+    def __init__(self, collection=None):
+        self._collection = collection
+
+    @property
+    def collection(self):
+        if self._collection is not None:
+            return self._collection
+
+        mod = sys.modules.get("backend.app.database")
+        if mod is None:
+            import backend.app.database as mod
+
+        col = getattr(mod, "users_collection", None)
+        if col is not None:
+            return col
+
+        get_users_col = getattr(mod, "get_users_collection", None)
+        if callable(get_users_col):
+            col = get_users_col()
+            if col is not None:
+                return col
+
+        database = getattr(mod, "db", None)
+        if database is not None:
+            return database["users"]
+
+        return None
+
+    @collection.setter
+    def collection(self, value):
+        self._collection = value
+
+    @collection.deleter
+    def collection(self):
+        self._collection = None
 
     def get_by_email(self, email: str) -> Optional[dict]:
-        return self.collection.find_one({"email": email})
+        clean = (email or "").strip().lower()
+        if not clean:
+            return None
+        user = self.collection.find_one({"email": clean})
+        if user is not None:
+            return user
+        return self.collection.find_one(
+            {"email": {"$regex": f"^{re.escape(clean)}$", "$options": "i"}}
+        )
 
     def create_user(self, user_data: dict):
         return self.collection.insert_one(user_data)
 
     def update_password(self, email: str, new_password_hash: str):
-        return self.collection.update_one(
-            {"email": email},
-            {"$set": {"password": new_password_hash, "auth_provider": "local"}}
-        )
+        clean = (email or "").strip().lower()
+        update_doc = {"$set": {"password": new_password_hash, "auth_provider": "local"}}
+        result = self.collection.update_one({"email": clean}, update_doc)
+        if getattr(result, "matched_count", 0) == 0 and clean:
+            return self.collection.update_one(
+                {"email": {"$regex": f"^{re.escape(clean)}$", "$options": "i"}},
+                update_doc,
+            )
+        return result
 
     def update_profile_stats_cas(
         self,

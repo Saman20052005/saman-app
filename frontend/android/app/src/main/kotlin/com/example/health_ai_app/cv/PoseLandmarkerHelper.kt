@@ -67,24 +67,18 @@ class PoseLandmarkerHelper(
 
     fun setupPoseLandmarker() {
         if (poseLandmarker != null) return
+        // GPU delegate init can block the platform (main) thread forever in
+        // Graph.nativeWaitUntilGraphIdle on some devices (e.g. CPH2407/MediaTek),
+        // so it never throws and the CPU fallback is unreachable. Use CPU only.
         try {
             poseLandmarker = PoseLandmarker.createFromOptions(
                 context,
-                buildPoseLandmarkerOptions(Delegate.GPU)
+                buildPoseLandmarkerOptions(Delegate.CPU)
             )
-            Log.i(TAG, "MediaPipe initialized with GPU Delegate")
-        } catch (gpuEx: Exception) {
-            Log.w(TAG, "GPU Delegate init failed, falling back to CPU: ${gpuEx.message}")
-            try {
-                poseLandmarker = PoseLandmarker.createFromOptions(
-                    context,
-                    buildPoseLandmarkerOptions(Delegate.CPU)
-                )
-                Log.i(TAG, "MediaPipe initialized with CPU Delegate fallback")
-            } catch (cpuEx: Exception) {
-                poseLandmarker = null
-                poseLandmarkerListener.onError("PoseLandmarker init failed: ${cpuEx.message}")
-            }
+            Log.i(TAG, "MediaPipe initialized with CPU Delegate")
+        } catch (cpuEx: Exception) {
+            poseLandmarker = null
+            poseLandmarkerListener.onError("PoseLandmarker init failed: ${cpuEx.message}")
         }
     }
 

@@ -30,12 +30,22 @@ class _ExerciseLibraryScreenState extends ConsumerState<ExerciseLibraryScreen> {
   final TextEditingController _searchController = TextEditingController();
   late String _selectedCategory;
   String _selectedSubFilter = 'All';
+  String _selectedEquipment = 'All';
 
   static const List<String> _categories = [
     'All',
     'Upper Body',
     'Lower Body',
     'Core',
+  ];
+
+  static const List<String> _equipmentFilters = [
+    'All',
+    'Dumbbells',
+    'Barbell',
+    'Cable',
+    'Machine',
+    'Bodyweight',
   ];
 
   static const Map<String, List<String>> _categorySubFilters = {
@@ -127,6 +137,180 @@ class _ExerciseLibraryScreenState extends ConsumerState<ExerciseLibraryScreen> {
       default:
         return e.muscleGroup.toLowerCase() == category.toLowerCase();
     }
+  }
+
+  bool _matchesEquipment(Exercise e, String filter) {
+    if (filter == 'All') return true;
+    final lowerFilter = filter.toLowerCase();
+    if (lowerFilter == 'bodyweight') {
+      return e.equipment.isEmpty ||
+          e.equipment.any((item) => item.toLowerCase().contains('bodyweight'));
+    }
+    if (lowerFilter == 'dumbbells') {
+      return e.equipment.any((item) => item.toLowerCase().contains('dumbbell'));
+    }
+    if (lowerFilter == 'barbell') {
+      return e.equipment.any((item) => item.toLowerCase().contains('barbell'));
+    }
+    if (lowerFilter == 'cable') {
+      return e.equipment.any((item) => item.toLowerCase().contains('cable'));
+    }
+    if (lowerFilter == 'machine') {
+      return e.equipment.any((item) {
+        final lower = item.toLowerCase();
+        return lower.contains('machine') && !lower.contains('cable');
+      });
+    }
+    return e.equipment.any((item) => item.toLowerCase().contains(lowerFilter));
+  }
+
+  void _showEquipmentFilterSheet() {
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (sheetCtx) {
+        final t = SamanWorkoutTokens.of(sheetCtx);
+        return Container(
+          decoration: BoxDecoration(
+            color: t.cardSurface,
+            borderRadius: const BorderRadius.vertical(
+              top: Radius.circular(SamanWorkoutTokens.radiusXl),
+            ),
+            border: Border(
+              top: BorderSide(color: t.border),
+              left: BorderSide(color: t.border),
+              right: BorderSide(color: t.border),
+            ),
+          ),
+          child: SafeArea(
+            top: false,
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(
+                SamanWorkoutTokens.spacingLg,
+                SamanWorkoutTokens.spacingMd,
+                SamanWorkoutTokens.spacingLg,
+                SamanWorkoutTokens.spacingXl,
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Center(
+                    child: Container(
+                      width: 40,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: t.borderHover,
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: SamanWorkoutTokens.spacingMd),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Expanded(
+                        child: Text(
+                          'Filter by Equipment',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            color: t.textPrimary,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                      if (_selectedEquipment != 'All')
+                        TextButton(
+                          onPressed: () {
+                            setState(() => _selectedEquipment = 'All');
+                            Navigator.of(sheetCtx).pop();
+                          },
+                          child: Text(
+                            'Reset',
+                            style: TextStyle(
+                              color: t.emeraldAccent,
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: SamanWorkoutTokens.spacingSm),
+                  ..._equipmentFilters.map((equipment) {
+                    final isSelected = _selectedEquipment == equipment;
+                    return Padding(
+                      padding: const EdgeInsets.only(
+                        bottom: SamanWorkoutTokens.spacingSm,
+                      ),
+                      child: InkWell(
+                        key: ValueKey('equipment_option_$equipment'),
+                        borderRadius: BorderRadius.circular(
+                          SamanWorkoutTokens.radiusMd,
+                        ),
+                        onTap: () {
+                          setState(() => _selectedEquipment = equipment);
+                          Navigator.of(sheetCtx).pop();
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: SamanWorkoutTokens.spacingMd,
+                            vertical: 12,
+                          ),
+                          decoration: BoxDecoration(
+                            color: isSelected
+                                ? t.emeraldBadgeBg
+                                : t.surfaceElevated,
+                            borderRadius: BorderRadius.circular(
+                              SamanWorkoutTokens.radiusMd,
+                            ),
+                            border: Border.all(
+                              color: isSelected
+                                  ? t.emeraldBadgeBorder
+                                  : t.borderSubtle,
+                            ),
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  equipment,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                    color: isSelected
+                                        ? t.emeraldAccent
+                                        : t.textPrimary,
+                                    fontSize: 14,
+                                    fontWeight: isSelected
+                                        ? FontWeight.w600
+                                        : FontWeight.w500,
+                                  ),
+                                ),
+                              ),
+                              if (isSelected)
+                                Icon(
+                                  Icons.check_circle_rounded,
+                                  size: 18,
+                                  color: t.emeraldAccent,
+                                ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    );
+                  }),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
   }
 
   @override
@@ -287,9 +471,16 @@ class _ExerciseLibraryScreenState extends ConsumerState<ExerciseLibraryScreen> {
                       },
                     ),
                   IconButton(
-                    icon: Icon(Icons.tune,
-                        size: 18, color: t.textSecondary),
-                    onPressed: () {},
+                    key: const ValueKey('exercise_filter_tune_button'),
+                    tooltip: 'Filter by equipment',
+                    icon: Icon(
+                      Icons.tune,
+                      size: 18,
+                      color: _selectedEquipment != 'All'
+                          ? t.emeraldAccent
+                          : t.textSecondary,
+                    ),
+                    onPressed: _showEquipmentFilterSheet,
                   ),
                 ],
               ),
@@ -411,29 +602,53 @@ class _ExerciseLibraryScreenState extends ConsumerState<ExerciseLibraryScreen> {
                     ),
                   );
                 }),
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                  decoration: BoxDecoration(
-                    color: t.canvas,
-                    borderRadius:
-                        BorderRadius.circular(SamanWorkoutTokens.radiusSm),
-                    border: Border.all(color: t.borderSubtle),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        'Equipment',
-                        style: TextStyle(
-                          color: t.textSecondary,
-                          fontSize: 12,
-                        ),
+                InkWell(
+                  key: const ValueKey('exercise_equipment_chip'),
+                  borderRadius:
+                      BorderRadius.circular(SamanWorkoutTokens.radiusSm),
+                  onTap: _showEquipmentFilterSheet,
+                  child: Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                    decoration: BoxDecoration(
+                      color: _selectedEquipment != 'All'
+                          ? t.emeraldBadgeBg
+                          : t.canvas,
+                      borderRadius:
+                          BorderRadius.circular(SamanWorkoutTokens.radiusSm),
+                      border: Border.all(
+                        color: _selectedEquipment != 'All'
+                            ? t.emeraldBadgeBorder
+                            : t.borderSubtle,
                       ),
-                      const SizedBox(width: 4),
-                      Icon(Icons.keyboard_arrow_down,
-                          size: 14, color: t.textSecondary),
-                    ],
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          _selectedEquipment == 'All'
+                              ? 'Equipment'
+                              : _selectedEquipment,
+                          style: TextStyle(
+                            color: _selectedEquipment != 'All'
+                                ? t.emeraldAccent
+                                : t.textSecondary,
+                            fontSize: 12,
+                            fontWeight: _selectedEquipment != 'All'
+                                ? FontWeight.w600
+                                : FontWeight.w400,
+                          ),
+                        ),
+                        const SizedBox(width: 4),
+                        Icon(
+                          Icons.keyboard_arrow_down,
+                          size: 14,
+                          color: _selectedEquipment != 'All'
+                              ? t.emeraldAccent
+                              : t.textSecondary,
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ],
@@ -478,6 +693,7 @@ class _ExerciseLibraryScreenState extends ConsumerState<ExerciseLibraryScreen> {
                       e.targetMuscles.any((m) => m
                           .toLowerCase()
                           .contains(_selectedSubFilter.toLowerCase()));
+                  final matchEquip = _matchesEquipment(e, _selectedEquipment);
                   final matchQuery = query.isEmpty ||
                       e.name.toLowerCase().contains(query) ||
                       e.nameVi.toLowerCase().contains(query) ||
@@ -486,7 +702,7 @@ class _ExerciseLibraryScreenState extends ConsumerState<ExerciseLibraryScreen> {
                           .toLowerCase()
                           .contains(query));
 
-                  return matchCat && matchSub && matchQuery;
+                  return matchCat && matchSub && matchEquip && matchQuery;
                 }).toList();
 
                 if (filtered.isEmpty) {
@@ -495,19 +711,25 @@ class _ExerciseLibraryScreenState extends ConsumerState<ExerciseLibraryScreen> {
                   if (query.isNotEmpty) {
                     emptyTitle = 'No exercises found';
                     emptySubtitle = 'No exercises matching "$query"';
+                  } else if (_selectedEquipment != 'All') {
+                    emptyTitle = 'No exercises match this filter';
+                    emptySubtitle =
+                        'Try clearing your search or equipment filter.';
                   } else if (_selectedCategory == 'Lower Body') {
                     emptyTitle = 'No lower body exercises yet';
                     emptySubtitle =
-                        'Lower body exercise library is coming soon.';
+                        'Try clearing your search or equipment filter.';
                   } else if (_selectedCategory == 'Core') {
                     emptyTitle = 'No core exercises yet';
-                    emptySubtitle = 'Core exercise library is coming soon.';
+                    emptySubtitle =
+                        'Try clearing your search or equipment filter.';
                   } else if (_selectedSubFilter != 'All') {
                     emptyTitle = 'No $_selectedSubFilter exercises';
                     emptySubtitle = 'No exercises found for this muscle group.';
                   } else {
-                    emptyTitle = 'No exercises found';
-                    emptySubtitle = 'No exercises found matching criteria';
+                    emptyTitle = 'No exercises match this filter';
+                    emptySubtitle =
+                        'Try clearing your search or equipment filter.';
                   }
 
                   return Center(
@@ -537,6 +759,27 @@ class _ExerciseLibraryScreenState extends ConsumerState<ExerciseLibraryScreen> {
                               fontSize: 13,
                             ),
                           ),
+                          if (_selectedEquipment != 'All' ||
+                              _selectedSubFilter != 'All' ||
+                              query.isNotEmpty) ...[
+                            const SizedBox(height: 12),
+                            TextButton(
+                              onPressed: () {
+                                _searchController.clear();
+                                setState(() {
+                                  _selectedEquipment = 'All';
+                                  _selectedSubFilter = 'All';
+                                });
+                              },
+                              child: Text(
+                                'Clear filters',
+                                style: TextStyle(
+                                  color: t.emeraldAccent,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                          ],
                         ],
                       ),
                     ),
@@ -544,7 +787,8 @@ class _ExerciseLibraryScreenState extends ConsumerState<ExerciseLibraryScreen> {
                 }
 
                 return ListView.separated(
-                  key: ValueKey('exercise_list_${_selectedCategory}_$_selectedSubFilter'),
+                  key: ValueKey(
+                      'exercise_list_${_selectedCategory}_${_selectedSubFilter}_$_selectedEquipment'),
                   padding: const EdgeInsets.fromLTRB(
                     SamanWorkoutTokens.spacingLg,
                     0,

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../config/app_translations.dart';
 import '../../domain/models/membership_plan.dart';
+import '../providers/membership_providers.dart';
 import '../tokens/membership_tokens.dart';
 import 'primary_membership_button.dart';
 
@@ -29,7 +31,7 @@ Future<MembershipTier?> showUpgradeBottomSheet(
   );
 }
 
-class UpgradeBottomSheet extends StatelessWidget {
+class UpgradeBottomSheet extends ConsumerWidget {
   final MembershipTier tier;
   final VoidCallback? onClose;
   final VoidCallback? onExplore;
@@ -44,8 +46,10 @@ class UpgradeBottomSheet extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final t = MembershipTokens.of(context);
+    final plan = ref.watch(membershipPlanProvider(tier));
+    final period = ref.watch(billingPeriodProvider);
     final isPlus = tier == MembershipTier.plus;
     final title = isPlus
         ? context.tr('upgrade_sheet_plus_title')
@@ -165,7 +169,9 @@ class UpgradeBottomSheet extends StatelessWidget {
                           ),
                         ),
                         TextSpan(
-                          text: ' · ${context.tr('membership_card_badge_preview').toUpperCase()}',
+                          text: plan.purchasable
+                              ? ' · ${plan.priceDisplay(period)} ${plan.unitDisplay(period)}'
+                              : ' · ${context.tr('membership_card_badge_preview').toUpperCase()}',
                           style: t.mono(
                             fontSize: 10,
                             fontWeight: FontWeight.w600,
@@ -252,9 +258,11 @@ class UpgradeBottomSheet extends StatelessWidget {
                               border: Border.all(color: t.border),
                             ),
                             child: Icon(
-                              Icons.schedule,
+                              plan.purchasable
+                                  ? Icons.check_circle_outline
+                                  : Icons.schedule,
                               size: 16,
-                              color: t.textMuted,
+                              color: plan.purchasable ? t.accent : t.textMuted,
                             ),
                           ),
                           const SizedBox(width: 12),
@@ -282,10 +290,12 @@ class UpgradeBottomSheet extends StatelessWidget {
                       children: [
                         Expanded(
                           child: Text(
-                            context.tr('limits_tba'),
+                            plan.purchasable
+                                ? '${plan.priceDisplay(period)} ${plan.unitDisplay(period)}'
+                                : context.tr('limits_tba'),
                             style: t.mono(
                               fontSize: 11,
-                              color: t.textMuted,
+                              color: plan.purchasable ? t.textPrimary : t.textMuted,
                             ),
                           ),
                         ),
@@ -294,18 +304,22 @@ class UpgradeBottomSheet extends StatelessWidget {
                           padding: const EdgeInsets.symmetric(
                               horizontal: 6, vertical: 2),
                           decoration: BoxDecoration(
-                            color: t.card,
+                            color: plan.purchasable ? t.accentBg : t.card,
                             borderRadius: BorderRadius.circular(4),
                             border: Border.all(
-                              color: t.border.withOpacity(0.6),
+                              color: plan.purchasable
+                                  ? t.accentBorder
+                                  : t.border.withOpacity(0.6),
                             ),
                           ),
                           child: Text(
-                            context.tr('badge_planned').toUpperCase(),
+                            plan.purchasable
+                                ? 'VIETQR / PAYOS'
+                                : context.tr('badge_planned').toUpperCase(),
                             style: t.mono(
                               fontSize: 10,
                               fontWeight: FontWeight.w600,
-                              color: t.textMuted,
+                              color: plan.purchasable ? t.accent : t.textMuted,
                               letterSpacing: 0.5,
                             ),
                           ),
@@ -361,7 +375,9 @@ class UpgradeBottomSheet extends StatelessWidget {
               // Preview Only Notice
               Center(
                 child: Text(
-                  context.tr('sheet_preview_notice'),
+                  plan.purchasable
+                      ? 'Giá niêm yết VNĐ · Thanh toán tự động qua VietQR / PayOS.'
+                      : context.tr('sheet_preview_notice'),
                   style: t.body(
                     fontSize: 12,
                     color: t.textMuted,

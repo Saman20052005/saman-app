@@ -2,6 +2,7 @@ import 'dart:math';
 import 'community_composer_provider.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../../providers/profile_provider.dart';
 import '../../../../services/api_client.dart';
 import '../../domain/models/community_comment.dart';
 import '../../domain/models/community_discover_item.dart';
@@ -15,7 +16,7 @@ import '../../data/datasources/community_remote_datasource.dart';
 import '../../data/repositories/community_repository_impl.dart';
 
 final useRemoteCommunityProvider = StateProvider<bool>((ref) {
-  return const bool.fromEnvironment('USE_REMOTE_COMMUNITY', defaultValue: false);
+  return const bool.fromEnvironment('USE_REMOTE_COMMUNITY', defaultValue: true);
 });
 
 final communityFakeDatasourceProvider = Provider<CommunityFakeDatasource>((ref) {
@@ -30,9 +31,13 @@ final communityRepositoryProvider = Provider<CommunityRepository>((ref) {
   final useRemote = ref.watch(useRemoteCommunityProvider);
   if (useRemote) {
     final remoteDs = ref.watch(communityRemoteDatasourceProvider);
+    final activeUserId = ref.watch(
+      profileProvider.select((s) => s.confirmedUserId),
+    );
     return CommunityRepositoryImpl(
       remoteDatasource: remoteDs,
       useRemote: true,
+      activeUserId: activeUserId,
     );
   }
   final fakeDs = ref.watch(communityFakeDatasourceProvider);

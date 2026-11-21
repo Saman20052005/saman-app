@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../config/app_translations.dart';
+import '../../../config/theme_provider.dart';
 import '../../../../features/membership/presentation/screens/manage_membership_screen.dart';
 import '../tokens/saman_chat_tokens.dart';
 import 'saman_plans_comparison_screen.dart';
 
 /// Gemini-style floating account menu component for Saman AI Chat (Frame 1).
-class SamanAccountPopupMenu extends StatefulWidget {
+class SamanAccountPopupMenu extends ConsumerStatefulWidget {
   final VoidCallback onClose;
   final VoidCallback onOpenPreferences;
   final VoidCallback? onOpenReminders;
@@ -24,10 +26,11 @@ class SamanAccountPopupMenu extends StatefulWidget {
   });
 
   @override
-  State<SamanAccountPopupMenu> createState() => _SamanAccountPopupMenuState();
+  ConsumerState<SamanAccountPopupMenu> createState() =>
+      _SamanAccountPopupMenuState();
 }
 
-class _SamanAccountPopupMenuState extends State<SamanAccountPopupMenu>
+class _SamanAccountPopupMenuState extends ConsumerState<SamanAccountPopupMenu>
     with SingleTickerProviderStateMixin {
   late final AnimationController _animController;
   late final Animation<double> _fadeAnimation;
@@ -130,47 +133,70 @@ class _SamanAccountPopupMenuState extends State<SamanAccountPopupMenu>
       context: context,
       builder: (ctx) {
         final t = SamanChatTokens.of(ctx);
-        return AlertDialog(
-          backgroundColor: t.menuSurface,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16.0),
-            side: BorderSide(color: t.menuBorder),
-          ),
-          title: Text(
-            context.tr('theme_dialog_title'),
-            style: TextStyle(color: t.textWhite, fontSize: 16),
-          ),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              ListTile(
-                leading: Icon(Icons.dark_mode_outlined,
-                    color: t.textPrimary),
-                title: Text(context.tr('theme_dark_default'),
-                    style: TextStyle(
-                        color: t.textWhite, fontSize: 14)),
-                trailing:
-                    Icon(Icons.check_rounded, color: t.greenAccent),
-                onTap: () => Navigator.of(ctx).pop(),
+        return Consumer(
+          builder: (dialogContext, dialogRef, _) {
+            final currentMode = dialogRef.watch(themeProvider);
+            Widget buildThemeOption({
+              required ThemeMode mode,
+              required IconData icon,
+              required String titleKey,
+            }) {
+              final isSelected = currentMode == mode;
+              return ListTile(
+                leading: Icon(
+                  icon,
+                  color: isSelected ? t.textPrimary : t.textMuted,
+                ),
+                title: Text(
+                  dialogContext.tr(titleKey),
+                  style: TextStyle(
+                    color: isSelected ? t.textWhite : t.textMuted,
+                    fontSize: 14,
+                    fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+                  ),
+                ),
+                trailing: isSelected
+                    ? Icon(Icons.check_rounded, color: t.greenAccent)
+                    : null,
+                onTap: () {
+                  dialogRef.read(themeProvider.notifier).setThemeMode(mode);
+                  Navigator.of(ctx).pop();
+                },
+              );
+            }
+
+            return AlertDialog(
+              backgroundColor: t.menuSurface,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16.0),
+                side: BorderSide(color: t.menuBorder),
               ),
-              ListTile(
-                leading: Icon(Icons.light_mode_outlined,
-                    color: t.textMuted),
-                title: Text(context.tr('theme_light_coming_soon'),
-                    style: TextStyle(
-                        color: t.textMuted, fontSize: 14)),
-                onTap: () => Navigator.of(ctx).pop(),
+              title: Text(
+                dialogContext.tr('theme_dialog_title'),
+                style: TextStyle(color: t.textWhite, fontSize: 16),
               ),
-              ListTile(
-                leading: Icon(Icons.settings_system_daydream_outlined,
-                    color: t.textMuted),
-                title: Text(context.tr('theme_system_coming_soon'),
-                    style: TextStyle(
-                        color: t.textMuted, fontSize: 14)),
-                onTap: () => Navigator.of(ctx).pop(),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  buildThemeOption(
+                    mode: ThemeMode.dark,
+                    icon: Icons.dark_mode_outlined,
+                    titleKey: 'theme_dark',
+                  ),
+                  buildThemeOption(
+                    mode: ThemeMode.light,
+                    icon: Icons.light_mode_outlined,
+                    titleKey: 'theme_light',
+                  ),
+                  buildThemeOption(
+                    mode: ThemeMode.system,
+                    icon: Icons.settings_system_daydream_outlined,
+                    titleKey: 'theme_system',
+                  ),
+                ],
               ),
-            ],
-          ),
+            );
+          },
         );
       },
     );

@@ -29,6 +29,7 @@ class SamanChatComposer extends StatefulWidget {
   final VoidCallback? onVoiceTap;
   final VoidCallback? onAttachFoodPhoto;
   final VoidCallback? onOpenAnalytics;
+  final VoidCallback? onAttachLatestWorkout;
   final AIMode activeMode;
   final ValueChanged<AIMode>? onModeSelected;
   final String? hintText;
@@ -45,6 +46,7 @@ class SamanChatComposer extends StatefulWidget {
     this.onVoiceTap,
     this.onAttachFoodPhoto,
     this.onOpenAnalytics,
+    this.onAttachLatestWorkout,
     this.activeMode = AIMode.core3,
     this.onModeSelected,
   });
@@ -258,6 +260,33 @@ class _SamanChatComposerState extends State<SamanChatComposer> with WidgetsBindi
                                 widget.onOpenAnalytics?.call();
                               },
                             ),
+                            Divider(
+                              height: 1.0,
+                              thickness: 1.0,
+                              color: t.borderSubtle,
+                            ),
+                            _buildPopoverItem(
+                              palette: t,
+                              icon: Icons.fitness_center_outlined,
+                              title: 'Đính kèm buổi tập gần nhất',
+                              subtitle: 'Gửi ngữ cảnh buổi tập vào hội thoại',
+                              onTap: () {
+                                _closeAllPopovers();
+                                if (widget.onAttachLatestWorkout != null) {
+                                  widget.onAttachLatestWorkout!();
+                                } else {
+                                  const prompt =
+                                      'Hãy phân tích buổi tập gần nhất của tôi và gợi ý cách phục hồi / điều chỉnh tiếp theo.';
+                                  widget.controller.value = const TextEditingValue(
+                                    text: prompt,
+                                    selection: TextSelection.collapsed(
+                                      offset: prompt.length,
+                                    ),
+                                  );
+                                  _effectiveFocusNode.requestFocus();
+                                }
+                              },
+                            ),
                           ],
                         ),
                       ),
@@ -306,23 +335,8 @@ class _SamanChatComposerState extends State<SamanChatComposer> with WidgetsBindi
           targetSize: targetSize,
           opensUpward: opensUpward,
           onClose: _closeAllPopovers,
-          onSelectMedium: () {
-            _closeAllPopovers();
-          },
           activeMode: widget.activeMode,
           onModeSelected: widget.onModeSelected,
-          onLockedThinkingLevelTapped: (level) {
-            if (!mounted) return;
-            final messenger = ScaffoldMessenger.maybeOf(context);
-            messenger?.hideCurrentSnackBar();
-            messenger?.showSnackBar(
-              SnackBar(
-                content: Text(context.tr('badge_coming_soon')),
-                duration: const Duration(seconds: 2),
-                behavior: SnackBarBehavior.floating,
-              ),
-            );
-          },
           onRequestFocusComposer: () {
             _effectiveFocusNode.requestFocus();
           },
@@ -825,10 +839,8 @@ class _ModeMenuOverlay extends StatefulWidget {
   final Size targetSize;
   final bool opensUpward;
   final VoidCallback onClose;
-  final VoidCallback onSelectMedium;
   final AIMode activeMode;
   final ValueChanged<AIMode>? onModeSelected;
-  final ValueChanged<String> onLockedThinkingLevelTapped;
   final VoidCallback onRequestFocusComposer;
 
   const _ModeMenuOverlay({
@@ -837,10 +849,8 @@ class _ModeMenuOverlay extends StatefulWidget {
     required this.targetSize,
     required this.opensUpward,
     required this.onClose,
-    required this.onSelectMedium,
     required this.activeMode,
     this.onModeSelected,
-    required this.onLockedThinkingLevelTapped,
     required this.onRequestFocusComposer,
   });
 
@@ -1130,34 +1140,7 @@ class _ModeMenuOverlayState extends State<_ModeMenuOverlay> {
               ),
             ),
             Divider(height: 1.0, thickness: 1.0, color: t.borderSubtle),
-            _buildThinkingMenuItem(
-              title: 'Low',
-              subtitle: context.tr('thinking_low_sub'),
-              isActive: false,
-              isLocked: true,
-              badgeText: context.tr('badge_coming_soon'),
-              onTap: () => widget.onLockedThinkingLevelTapped('Low'),
-              minTouchTarget: true,
-            ),
-            Divider(height: 1.0, thickness: 1.0, color: t.borderSubtle),
-            _buildThinkingMenuItem(
-              title: 'Medium',
-              subtitle: context.tr('thinking_med_sub'),
-              isActive: true,
-              isLocked: false,
-              onTap: widget.onSelectMedium,
-              minTouchTarget: true,
-            ),
-            Divider(height: 1.0, thickness: 1.0, color: t.borderSubtle),
-            _buildThinkingMenuItem(
-              title: 'High',
-              subtitle: context.tr('thinking_high_sub'),
-              isActive: false,
-              isLocked: true,
-              badgeText: context.tr('badge_coming_soon'),
-              onTap: () => widget.onLockedThinkingLevelTapped('High'),
-              minTouchTarget: true,
-            ),
+            _buildThinkingItems(minTouchTarget: true),
           ],
         ),
       ),
@@ -1208,42 +1191,45 @@ class _ModeMenuOverlayState extends State<_ModeMenuOverlay> {
           ),
           child: ClipRRect(
             borderRadius: BorderRadius.circular(14.0),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                _buildThinkingMenuItem(
-                  title: 'Low',
-                  subtitle: context.tr('thinking_low_sub'),
-                  isActive: false,
-                  isLocked: true,
-                  badgeText: context.tr('badge_coming_soon'),
-                  onTap: () => widget.onLockedThinkingLevelTapped('Low'),
-                  minTouchTarget: isMobile,
-                ),
-                Divider(height: 1.0, thickness: 1.0, color: t.borderSubtle),
-                _buildThinkingMenuItem(
-                  title: 'Medium',
-                  subtitle: context.tr('thinking_med_sub'),
-                  isActive: true,
-                  isLocked: false,
-                  onTap: widget.onSelectMedium,
-                  minTouchTarget: isMobile,
-                ),
-                Divider(height: 1.0, thickness: 1.0, color: t.borderSubtle),
-                _buildThinkingMenuItem(
-                  title: 'High',
-                  subtitle: context.tr('thinking_high_sub'),
-                  isActive: false,
-                  isLocked: true,
-                  badgeText: context.tr('badge_coming_soon'),
-                  onTap: () => widget.onLockedThinkingLevelTapped('High'),
-                  minTouchTarget: isMobile,
-                ),
-              ],
-            ),
+            child: _buildThinkingItems(minTouchTarget: isMobile),
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildThinkingItems({required bool minTouchTarget}) {
+    final t = SamanChatTokens.of(context);
+    final entries = <(AIMode, String, String, IconData)>[
+      (AIMode.swift3, 'Low', 'thinking_low_sub', Icons.bolt_rounded),
+      (AIMode.core3, 'Medium', 'thinking_med_sub', Icons.balance_outlined),
+      (AIMode.pro3, 'High', 'thinking_high_sub', Icons.auto_awesome_rounded),
+    ];
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        for (var i = 0; i < entries.length; i++) ...[
+          if (i > 0)
+            Divider(height: 1.0, thickness: 1.0, color: t.borderSubtle),
+          Builder(builder: (context) {
+            final (mode, title, subKey, icon) = entries[i];
+            final isActive = mode == widget.activeMode;
+            return _buildThinkingMenuItem(
+              title: title,
+              subtitle: context.tr(subKey),
+              isActive: isActive,
+              isLocked: false,
+              icon: isActive ? Icons.check_rounded : icon,
+              iconColor: isActive ? t.greenAccent : t.textMuted,
+              onTap: () {
+                widget.onModeSelected?.call(mode);
+                widget.onClose();
+              },
+              minTouchTarget: minTouchTarget,
+            );
+          }),
+        ],
+      ],
     );
   }
 
@@ -1352,7 +1338,8 @@ class _ModeMenuOverlayState extends State<_ModeMenuOverlay> {
     required String subtitle,
     required bool isActive,
     required bool isLocked,
-    String? badgeText,
+    required IconData icon,
+    required Color iconColor,
     required VoidCallback onTap,
     bool minTouchTarget = false,
   }) {
@@ -1361,7 +1348,7 @@ class _ModeMenuOverlayState extends State<_ModeMenuOverlay> {
       button: true,
       label: isActive
           ? '$title: $subtitle. ${context.tr('badge_active_using')}'
-          : '$title: $subtitle. ${badgeText ?? "Đang khóa"} (giữ nguyên mức hiện tại)',
+          : '$title: $subtitle',
       selected: isActive,
       child: InkWell(
         canRequestFocus: false,
@@ -1379,18 +1366,11 @@ class _ModeMenuOverlayState extends State<_ModeMenuOverlay> {
           padding: const EdgeInsets.symmetric(horizontal: 14.0, vertical: 10.0),
           child: Row(
             children: [
-              if (isActive)
-                Icon(
-                  Icons.check_rounded,
-                  size: 18.0,
-                  color: t.greenAccent,
-                )
-              else
-                Icon(
-                  Icons.lock_outline_rounded,
-                  size: 16.0,
-                  color: t.textMuted,
-                ),
+              Icon(
+                icon,
+                size: 18.0,
+                color: iconColor,
+              ),
               const SizedBox(width: 12.0),
               Expanded(
                 child: Column(
@@ -1416,23 +1396,23 @@ class _ModeMenuOverlayState extends State<_ModeMenuOverlay> {
                   ],
                 ),
               ),
-              if (badgeText != null)
+              if (isActive)
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 7.0, vertical: 3.0),
                   decoration: BoxDecoration(
-                    color: t.isDark ? const Color(0x1FFFFFFF) : t.surfaceElevated,
+                    color: t.greenAccent.withOpacity(0.15),
                     borderRadius: BorderRadius.circular(10.0),
                     border: Border.all(
-                      color: t.isDark ? const Color(0x33FFFFFF) : t.borderSubtle,
+                      color: t.greenAccent.withOpacity(0.40),
                       width: 0.8,
                     ),
                   ),
                   child: Text(
-                    badgeText,
+                    context.tr('badge_active_using'),
                     style: TextStyle(
                       fontSize: 10.5,
                       fontWeight: FontWeight.w600,
-                      color: t.isDark ? const Color(0xFFD5D8E0) : t.textSecondary,
+                      color: t.greenAccent,
                     ),
                   ),
                 ),

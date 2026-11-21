@@ -104,6 +104,33 @@ class LatPulldownFrameFeatures {
       rightSide.wristRelY.isValid;
 }
 
+/// Extracted joint angles and spatial cues across supported multi-exercise CV modules.
+class MultiExerciseAngleFeatures {
+  final int frameIndex;
+  final int timestampMs;
+  final bool isGateDetecting;
+  final MotionMeasurement leftElbowAngleDeg;
+  final MotionMeasurement rightElbowAngleDeg;
+  final MotionMeasurement bestElbowAngleDeg;
+  final MotionMeasurement leftKneeAngleDeg;
+  final MotionMeasurement rightKneeAngleDeg;
+  final MotionMeasurement bestKneeAngleDeg;
+  final bool isWristAboveShoulder;
+
+  const MultiExerciseAngleFeatures({
+    required this.frameIndex,
+    required this.timestampMs,
+    required this.isGateDetecting,
+    required this.leftElbowAngleDeg,
+    required this.rightElbowAngleDeg,
+    required this.bestElbowAngleDeg,
+    required this.leftKneeAngleDeg,
+    required this.rightKneeAngleDeg,
+    required this.bestKneeAngleDeg,
+    required this.isWristAboveShoulder,
+  });
+}
+
 /// Pure Dart service to extract Lat Pulldown motion signals from pose landmarks.
 ///
 /// Designed for deterministic reuse in both live camera streams and offline replay benchmarks.
@@ -261,6 +288,228 @@ class WorkoutCvMotionFeatures {
       leftSide: leftSideFeatures,
       rightSide: rightSideFeatures,
     );
+  }
+
+  /// Extracts general pixel-space elbow/knee angles and wrist-above-shoulder state
+  /// for multi-exercise CV modules (Squat, Push-up, Overhead Press, Bicep Curl).
+  static MultiExerciseAngleFeatures extractMultiExerciseAngles({
+    required int frameIndex,
+    required int timestampMs,
+    required List<PoseLandmark> landmarks,
+    required double imageWidth,
+    required double imageHeight,
+    bool isGateDetecting = true,
+    double minVisibility = defaultMinVisibility,
+  }) {
+    if (!isGateDetecting) {
+      const inv = MotionMeasurement.invalid(
+        MotionMetricFailure.gateNotDetecting,
+        'Quality gate status is not detecting',
+      );
+      return MultiExerciseAngleFeatures(
+        frameIndex: frameIndex,
+        timestampMs: timestampMs,
+        isGateDetecting: false,
+        leftElbowAngleDeg: inv,
+        rightElbowAngleDeg: inv,
+        bestElbowAngleDeg: inv,
+        leftKneeAngleDeg: inv,
+        rightKneeAngleDeg: inv,
+        bestKneeAngleDeg: inv,
+        isWristAboveShoulder: false,
+      );
+    }
+
+    if (!imageWidth.isFinite ||
+        !imageHeight.isFinite ||
+        imageWidth <= 0 ||
+        imageHeight <= 0) {
+      const inv = MotionMeasurement.invalid(
+        MotionMetricFailure.invalidImageDimensions,
+        'Image width and height must be positive finite numbers',
+      );
+      return MultiExerciseAngleFeatures(
+        frameIndex: frameIndex,
+        timestampMs: timestampMs,
+        isGateDetecting: isGateDetecting,
+        leftElbowAngleDeg: inv,
+        rightElbowAngleDeg: inv,
+        bestElbowAngleDeg: inv,
+        leftKneeAngleDeg: inv,
+        rightKneeAngleDeg: inv,
+        bestKneeAngleDeg: inv,
+        isWristAboveShoulder: false,
+      );
+    }
+
+    final lShoulder = _findLandmark(landmarks, PoseLandmark.leftShoulder);
+    final rShoulder = _findLandmark(landmarks, PoseLandmark.rightShoulder);
+    final lElbow = _findLandmark(landmarks, PoseLandmark.leftElbow);
+    final rElbow = _findLandmark(landmarks, PoseLandmark.rightElbow);
+    final lWrist = _findLandmark(landmarks, PoseLandmark.leftWrist);
+    final rWrist = _findLandmark(landmarks, PoseLandmark.rightWrist);
+
+    final lHip = _findLandmark(landmarks, PoseLandmark.leftHip);
+    final rHip = _findLandmark(landmarks, PoseLandmark.rightHip);
+    final lKnee = _findLandmark(landmarks, PoseLandmark.leftKnee);
+    final rKnee = _findLandmark(landmarks, PoseLandmark.rightKnee);
+    final lAnkle = _findLandmark(landmarks, PoseLandmark.leftAnkle);
+    final rAnkle = _findLandmark(landmarks, PoseLandmark.rightAnkle);
+
+    final leftElbow = _measureTripletAngle(
+      p1: lShoulder,
+      vertex: lElbow,
+      p2: lWrist,
+      imageWidth: imageWidth,
+      imageHeight: imageHeight,
+      minVisibility: minVisibility,
+    );
+    final rightElbow = _measureTripletAngle(
+      p1: rShoulder,
+      vertex: rElbow,
+      p2: rWrist,
+      imageWidth: imageWidth,
+      imageHeight: imageHeight,
+      minVisibility: minVisibility,
+    );
+    final bestElbow = _selectBestMeasurement(
+      leftElbow.$1,
+      leftElbow.$2,
+      rightElbow.$1,
+      rightElbow.$2,
+    );
+
+    final leftKnee = _measureTripletAngle(
+      p1: lHip,
+      vertex: lKnee,
+      p2: lAnkle,
+      imageWidth: imageWidth,
+      imageHeight: imageHeight,
+      minVisibility: minVisibility,
+    );
+    final rightKnee = _measureTripletAngle(
+      p1: rHip,
+      vertex: rKnee,
+      p2: rAnkle,
+      imageWidth: imageWidth,
+      imageHeight: imageHeight,
+      minVisibility: minVisibility,
+    );
+    final bestKnee = _selectBestMeasurement(
+      leftKnee.$1,
+      leftKnee.$2,
+      rightKnee.$1,
+      rightKnee.$2,
+    );
+
+    final isWristAboveShoulder = _computeWristAboveShoulder(
+      lShoulder: lShoulder,
+      lWrist: lWrist,
+      rShoulder: rShoulder,
+      rWrist: rWrist,
+      imageWidth: imageWidth,
+      imageHeight: imageHeight,
+      minVisibility: minVisibility,
+    );
+
+    return MultiExerciseAngleFeatures(
+      frameIndex: frameIndex,
+      timestampMs: timestampMs,
+      isGateDetecting: isGateDetecting,
+      leftElbowAngleDeg: leftElbow.$1,
+      rightElbowAngleDeg: rightElbow.$1,
+      bestElbowAngleDeg: bestElbow,
+      leftKneeAngleDeg: leftKnee.$1,
+      rightKneeAngleDeg: rightKnee.$1,
+      bestKneeAngleDeg: bestKnee,
+      isWristAboveShoulder: isWristAboveShoulder,
+    );
+  }
+
+  static (MotionMeasurement, double) _measureTripletAngle({
+    required PoseLandmark? p1,
+    required PoseLandmark? vertex,
+    required PoseLandmark? p2,
+    required double imageWidth,
+    required double imageHeight,
+    required double minVisibility,
+  }) {
+    final c1 = _validateLandmark(p1, minVisibility);
+    if (c1 != MotionMetricFailure.none) {
+      return (MotionMeasurement.invalid(c1, 'First joint invalid: $c1'), -1.0);
+    }
+    final cv = _validateLandmark(vertex, minVisibility);
+    if (cv != MotionMetricFailure.none) {
+      return (MotionMeasurement.invalid(cv, 'Vertex joint invalid: $cv'), -1.0);
+    }
+    final c2 = _validateLandmark(p2, minVisibility);
+    if (c2 != MotionMetricFailure.none) {
+      return (MotionMeasurement.invalid(c2, 'Second joint invalid: $c2'), -1.0);
+    }
+
+    final angle = _calculateAngle2D(
+      _toPixelPoint(p1!, imageWidth, imageHeight),
+      _toPixelPoint(vertex!, imageWidth, imageHeight),
+      _toPixelPoint(p2!, imageWidth, imageHeight),
+    );
+    if (!angle.isValid) {
+      return (angle, -1.0);
+    }
+    final minVis = math.min(
+      p1.visibility,
+      math.min(vertex.visibility, p2.visibility),
+    );
+    final avgVis = (p1.visibility + vertex.visibility + p2.visibility) / 3.0;
+    // Prioritize bottleneck visibility, breaking ties by mean triplet visibility.
+    return (angle, minVis + avgVis * 1e-3);
+  }
+
+  static MotionMeasurement _selectBestMeasurement(
+    MotionMeasurement left,
+    double leftScore,
+    MotionMeasurement right,
+    double rightScore,
+  ) {
+    if (left.isValid && right.isValid) {
+      return leftScore >= rightScore ? left : right;
+    }
+    if (left.isValid) return left;
+    if (right.isValid) return right;
+    return left;
+  }
+
+  static bool _computeWristAboveShoulder({
+    required PoseLandmark? lShoulder,
+    required PoseLandmark? lWrist,
+    required PoseLandmark? rShoulder,
+    required PoseLandmark? rWrist,
+    required double imageWidth,
+    required double imageHeight,
+    required double minVisibility,
+  }) {
+    final lValid = _validateLandmark(lShoulder, minVisibility) ==
+            MotionMetricFailure.none &&
+        _validateLandmark(lWrist, minVisibility) == MotionMetricFailure.none;
+    final rValid = _validateLandmark(rShoulder, minVisibility) ==
+            MotionMetricFailure.none &&
+        _validateLandmark(rWrist, minVisibility) == MotionMetricFailure.none;
+
+    if (!lValid && !rValid) return false;
+
+    final lScore = lValid
+        ? math.min(lShoulder!.visibility, lWrist!.visibility)
+        : -1.0;
+    final rScore = rValid
+        ? math.min(rShoulder!.visibility, rWrist!.visibility)
+        : -1.0;
+
+    final useLeft = lValid && (!rValid || lScore >= rScore);
+    final sh = useLeft ? lShoulder! : rShoulder!;
+    final wr = useLeft ? lWrist! : rWrist!;
+
+    final pSh = _toPixelPoint(sh, imageWidth, imageHeight);
+    final pWr = _toPixelPoint(wr, imageWidth, imageHeight);
+    return pWr.y < pSh.y;
   }
 
   static LatPulldownSideFeatures _extractSide({

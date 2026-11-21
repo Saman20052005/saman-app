@@ -8,16 +8,26 @@ import 'package:intl/intl.dart';
 
 import '../../../models/meal_log.dart';
 import '../../../models/ai_analysis_result.dart';
+import '../../../models/food_model.dart';
+import '../../../features/nutrition/domain/repositories/nutrition_repository.dart';
 import '../../../providers/daily_story_provider.dart';
 import '../../../services/nutrition_service.dart';
 import '../../../config/app_theme.dart';
 import '../../../config/app_translations.dart';
 import '../../../widgets/saman_feedback_snackbar.dart';
+import '../../food_log_screen.dart';
+import '../barcode_scanner_screen.dart';
 import 'meal_review_dialog.dart' hide MealType;
 
 class LogMealSheet extends ConsumerStatefulWidget {
   final DateTime selectedDate;
-  const LogMealSheet({super.key, required this.selectedDate});
+  final Future<BarcodeLookupResult?> Function(BuildContext)? onScanBarcode;
+
+  const LogMealSheet({
+    super.key,
+    required this.selectedDate,
+    this.onScanBarcode,
+  });
 
   @override
   ConsumerState<LogMealSheet> createState() => _LogMealSheetState();
@@ -100,7 +110,7 @@ class _LogMealSheetState extends ConsumerState<LogMealSheet> {
   final _noteController = TextEditingController();
   MealType _selectedType = MealType.snack;
   bool _isAnalyzing = false;
-  String _mode = 'standard';
+  String _mode = 'advanced';
   NutritionRequestContext? _photoOwner;
 
   XFile? _pickedFile;
@@ -156,6 +166,51 @@ class _LogMealSheetState extends ConsumerState<LogMealSheet> {
       _photoOperationSeed = null;
       _dispatchedOperationKeys.clear();
     });
+  }
+
+  Future<void> _handleScanBarcode() async {
+    if (_isAnalyzing) return;
+    final result = await (widget.onScanBarcode != null
+        ? widget.onScanBarcode!(context)
+        : Navigator.of(context).push<BarcodeLookupResult>(
+            MaterialPageRoute(
+              builder: (_) => const BarcodeScannerScreen(),
+            ),
+          ));
+    if (!mounted || result == null) return;
+
+    final mealType = switch (_selectedType) {
+      MealType.breakfast => 'Breakfast',
+      MealType.lunch => 'Lunch',
+      MealType.dinner => 'Dinner',
+      MealType.snack => 'Snack',
+    };
+
+    final initialFood = FoodModel(
+      id: result.food.id,
+      name: result.food.name,
+      calories: result.food.calories,
+      protein: result.food.protein,
+      carbs: result.food.carbs,
+      fat: result.food.fat,
+      tags: result.food.tags,
+    );
+
+    final logged = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(
+        builder: (_) => FoodLogScreen(
+          selectedDate: widget.selectedDate,
+          initialMealType: mealType,
+          initialFood: initialFood,
+          initialGrams: result.suggestedGrams > 0 ? result.suggestedGrams : 100,
+          isInitialFoodVerified: true,
+        ),
+      ),
+    );
+    if (!mounted) return;
+    if (logged == true) {
+      Navigator.of(context).pop(true);
+    }
   }
 
   Future<void> _handleLogStory() async {
@@ -1040,6 +1095,29 @@ class _LogMealSheetState extends ConsumerState<LogMealSheet> {
                 ),
               ),
             ],
+          ),
+          const SizedBox(height: 10),
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              key: const Key('log_meal_sheet_barcode_btn'),
+              onPressed: _isAnalyzing ? null : _handleScanBarcode,
+              icon: Icon(
+                Icons.qr_code_scanner_rounded,
+                size: 16,
+                color: c.brandPrimary,
+              ),
+              label: const Text('Quét Barcode'),
+              style: OutlinedButton.styleFrom(
+                backgroundColor: c.bgCard,
+                foregroundColor: c.textPrimary,
+                side: BorderSide(color: c.borderSubtle),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                padding: const EdgeInsets.symmetric(vertical: 10),
+              ),
+            ),
           ),
         ],
       ),

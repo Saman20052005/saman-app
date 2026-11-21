@@ -87,6 +87,13 @@ abstract class INutritionRemoteDataSource {
     String mealType = 'snack',
     double servingsConsumed = 1.0,
   });
+  Future<Map<String, dynamic>> lookupBarcode(String barcode);
+  Future<Map<String, dynamic>> analyzeNutritionLabel({
+    required String barcode,
+    required XFile imageFile,
+    String? productName,
+    String? idempotencyKey,
+  });
 }
 
 class NutritionRemoteDataSourceImpl implements INutritionRemoteDataSource {
@@ -661,5 +668,108 @@ class NutritionRemoteDataSourceImpl implements INutritionRemoteDataSource {
       },
     );
     return response.statusCode == 200 || response.statusCode == 201;
+  }
+
+  dynamic _tryDecodeJson(String raw) {
+    try {
+      return jsonDecode(raw);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  @override
+  Future<Map<String, dynamic>> lookupBarcode(String barcode) async {
+    final cleanBarcode = barcode.trim();
+    try {
+      final response = await _dio.get(
+        '${ApiConfig.barcodeLookupEndpoint}/${Uri.encodeComponent(cleanBarcode)}',
+      );
+      if (response.statusCode == 200 &&
+          response.data != null &&
+          response.data != "null") {
+        final data = response.data is String
+            ? jsonDecode(response.data as String)
+            : response.data;
+        if (data is Map) {
+          return Map<String, dynamic>.from(data);
+        }
+      }
+      throw Exception('Failed to lookup barcode');
+    } on DioException catch (e) {
+      if (e.response?.statusCode == 404) {
+        final raw = e.response?.data;
+        final decoded = raw is String ? _tryDecodeJson(raw) : raw;
+        if (decoded is Map) {
+          final detail = decoded['detail'];
+          final code = (decoded['code'] ??
+                  decoded['error_code'] ??
+                  (detail is Map ? detail['code'] : null))
+              ?.toString();
+          if (code == 'barcode_not_found') {
+            final msg = (decoded['message'] ??
+                    (detail is Map ? detail['message'] : detail) ??
+                    'Sản phẩm chưa có trên Open Food Facts.')
+                .toString();
+            throw BarcodeNotFoundException(cleanBarcode, msg);
+          }
+        }
+      }
+      rethrow;
+    }
+  }
+
+  @override
+  Future<Map<String, dynamic>> analyzeNutritionLabel({
+    required String barcode,
+    required XFile imageFile,
+    String? productName,
+    String? idempotencyKey,
+  }) async {
+    final cleanBarcode = barcode.trim();
+    final bytes = await imageFile.readAsBytes();
+    final formData = FormData();
+    formData.fields.add(MapEntry('barcode', cleanBarcode));
+    if (productName != null && productName.trim().isNotEmpty) {
+      formData.fields.add(MapEntry('product_name', productName.trim()));
+    }
+    formData.files.add(MapEntry(
+      'image',
+      MultipartFile.fromBytes(
+        bytes,
+        filename: imageFile.name.isNotEmpty
+            ? imageFile.name
+            : 'nutrition_label.jpg',
+        contentType: MediaType('image', 'jpeg'),
+      ),
+    ));
+
+    final effectiveIdempotencyKey =
+        (idempotencyKey != null && idempotencyKey.trim().isNotEmpty)
+            ? idempotencyKey.trim()
+            : 'barcode_label_${cleanBarcode}_${bytes.length}_${imageFile.name.hashCode.abs()}';
+
+    final response = await _dio.post(
+      ApiConfig.barcodeAnalyzeLabelEndpoint,
+      data: formData,
+      options: Options(
+        contentType: 'multipart/form-data',
+        headers: {
+          'X-Idempotency-Key': effectiveIdempotencyKey,
+        },
+      ),
+    );
+
+    if ((response.statusCode == 200 || response.statusCode == 201) &&
+        response.data != null &&
+        response.data != "null") {
+      final data = response.data is String
+          ? jsonDecode(response.data as String)
+          : response.data;
+      if (data is Map) {
+        return Map<String, dynamic>.from(data);
+      }
+    }
+    throw Exception('Failed to analyze nutrition label');
   }
 }

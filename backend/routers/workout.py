@@ -13,6 +13,13 @@ from pymongo.errors import DuplicateKeyError
 from backend.auth_utils import verify_token, get_current_user
 from backend.app.repositories.user_repository import UserRepository
 from backend.app.database import workout_history_collection, custom_plans_collection, exercises_collection
+from backend.app.services.context_utils import (
+    build_user_query,
+    get_vn_date_str,
+    get_vn_day_range_utc,
+    normalize_email,
+    utc_to_vn_date_str,
+)
 
 try:
     from zoneinfo import ZoneInfo
@@ -101,6 +108,118 @@ def _safe_count(collection, query: dict) -> int:
         return 0
     return int(collection.count_documents(query))
 
+def _extract_weight_kg(item: dict) -> float:
+    for k in ("weight_kg", "weightKg", "weight"):
+        v = item.get(k)
+        if v is not None:
+            try:
+                return float(v)
+            except (ValueError, TypeError):
+                pass
+    return 0.0
+
+def _extract_reps(item: dict) -> int:
+    for k in ("reps_completed", "repsCompleted", "reps"):
+        v = item.get(k)
+        if v is not None:
+            try:
+                return int(v)
+            except (ValueError, TypeError):
+                pass
+    return 0
+
+def _extract_set_number(item: dict, default: int = 1) -> int:
+    for k in ("set_number", "setNumber"):
+        v = item.get(k)
+        if v is not None:
+            try:
+                return int(v)
+            except (ValueError, TypeError):
+                pass
+    return default
+
+def _is_set_completed(item: dict) -> bool:
+    for k in ("is_completed", "isCompleted"):
+        if k in item and item[k] is not None:
+            return bool(item[k])
+    return True
+
+def _extract_session_date(session: dict) -> Optional[str]:
+    d = session.get("date")
+    if isinstance(d, str) and len(d) >= 10:
+        return d[:10]
+    if isinstance(d, datetime):
+        return utc_to_vn_date_str(d)
+    dt = session.get("started_at") or session.get("created_at") or session.get("start_time")
+    if isinstance(dt, datetime):
+        return utc_to_vn_date_str(dt)
+    if isinstance(dt, str) and len(dt) >= 10:
+        return dt[:10]
+    return None
+
+def _find_last_performance_for_exercise(sessions: List[dict], target_id: str) -> Optional[dict]:
+    clean_target = target_id.strip()
+    if not clean_target:
+        return None
+
+    for session in sessions:
+        raw_logs = session.get("exercise_logs") or session.get("completed_exercises") or []
+        matching_logs = []
+        for idx, item in enumerate(raw_logs):
+            if not isinstance(item, dict):
+                continue
+            ex_id = str(item.get("exercise_id") or item.get("exerciseId") or "")
+            ex_slug = str(item.get("exercise_slug") or item.get("exerciseSlug") or "")
+            if ex_id == clean_target or ex_slug == clean_target:
+                matching_logs.append((idx + 1, item))
+
+        if not matching_logs:
+            continue
+
+        all_sets_completed = len(matching_logs) > 0 and all(
+            _is_set_completed(item) for _, item in matching_logs
+        )
+
+        completed_logs = [(idx, item) for idx, item in matching_logs if _is_set_completed(item)]
+        candidates = completed_logs if completed_logs else matching_logs
+
+        def _sort_key(entry):
+            idx, item = entry
+            s_num = _extract_set_number(item, default=idx)
+            return (_extract_weight_kg(item), _extract_reps(item), s_num)
+
+        _, best_set = max(candidates, key=_sort_key)
+        last_weight_kg = _extract_weight_kg(best_set)
+        last_reps = _extract_reps(best_set)
+
+        if all_sets_completed and last_reps >= 8:
+            if last_weight_kg > 0:
+                suggested_weight_kg = round(last_weight_kg + 2.5, 1)
+                suggested_reps = last_reps
+                suggestion_reason = "completed_target_add_weight"
+            else:
+                suggested_weight_kg = 0.0
+                suggested_reps = last_reps + 1
+                suggestion_reason = "completed_target_add_rep"
+        else:
+            suggested_weight_kg = last_weight_kg
+            suggested_reps = last_reps
+            suggestion_reason = "maintain_current_load"
+
+        last_date = _extract_session_date(session)
+
+        return {
+            "exercise_id": clean_target,
+            "last_weight_kg": last_weight_kg,
+            "last_reps": last_reps,
+            "suggested_weight_kg": suggested_weight_kg,
+            "suggested_reps": suggested_reps,
+            "suggestion_reason": suggestion_reason,
+            "last_date": last_date,
+        }
+
+    return None
+
 class ExerciseOut(pd.BaseModel):
     id: str
     slug: str
@@ -149,6 +268,7 @@ class ExerciseSetLogIn(pd.BaseModel):
     is_completed: bool = pd.Field(True, alias="isCompleted")
     rest_taken_seconds: Optional[int] = pd.Field(None, alias="restTakenSeconds")
     cv_detected: bool = pd.Field(False, alias="cvDetected")
+    cv_form_summary: Optional[Dict[str, Any]] = pd.Field(None, alias="cvFormSummary")
 
     class Config:
         allow_population_by_field_name = True
@@ -169,6 +289,7 @@ class WorkoutSession(pd.BaseModel):
     duration_minutes: Optional[int] = None
     total_volume_kg: int = pd.Field(0, alias="totalVolumeKg")
     calories_burned: Optional[int] = None
+    cv_form_summary: Optional[Dict[str, Any]] = pd.Field(None, alias="cvFormSummary")
 
     class Config:
         allow_population_by_field_name = True
@@ -222,6 +343,7 @@ def _session_fingerprint(doc: dict) -> tuple:
         doc.get("exercise_logs") or [],
         doc.get("total_duration_minutes"),
         doc.get("total_volume_kg"),
+        doc.get("cv_form_summary"),
     )
 
 
@@ -243,12 +365,13 @@ def _serialize_workout_session(doc: dict) -> dict:
             "isCompleted": bool(item.get("is_completed") if item.get("is_completed") is not None else item.get("isCompleted", True)),
             "restTakenSeconds": item.get("rest_taken_seconds") if item.get("rest_taken_seconds") is not None else item.get("restTakenSeconds"),
             "cvDetected": bool(item.get("cv_detected") if item.get("cv_detected") is not None else item.get("cvDetected", False)),
+            "cvFormSummary": item.get("cv_form_summary") or item.get("cvFormSummary"),
         })
 
     started_at = _format_utc_iso(doc.get("started_at") or doc.get("start_time") or doc.get("created_at"))
     finished_at = _format_utc_iso(doc.get("finished_at") or doc.get("end_time"))
 
-    return {
+    serialized = {
         "id": session_id,
         "planName": str(doc.get("plan_name") or doc.get("planName") or doc.get("name") or "Workout Session"),
         "startedAt": started_at or datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
@@ -257,6 +380,10 @@ def _serialize_workout_session(doc: dict) -> dict:
         "totalDurationMinutes": doc.get("total_duration_minutes") if doc.get("total_duration_minutes") is not None else doc.get("duration_minutes"),
         "totalVolumeKg": int(doc.get("total_volume_kg") if doc.get("total_volume_kg") is not None else 0),
     }
+    cv_form_summary = doc.get("cv_form_summary") or doc.get("cvFormSummary")
+    if cv_form_summary is not None:
+        serialized["cvFormSummary"] = cv_form_summary
+    return serialized
 
 @router.get("/plans")
 async def get_workout_plans(
@@ -271,21 +398,27 @@ async def get_workout_plans(
             raise HTTPException(status_code=404, detail="User not found")
 
         user_id = str(user.get("_id")) if user.get("_id") is not None else None
-        owner_query: dict = {"$or": [{"email": email}]}
-        if user_id:
-            owner_query["$or"].append({"user_id": user_id})
+        try:
+            owner_query = build_user_query(user_id, email)
+        except NameError:
+            from backend.app.services.context_utils import build_user_query as _buq
+            owner_query = _buq(user_id, email)
 
-        plan_query: dict = owner_query
+        clauses = [owner_query]
         if difficulty:
-            plan_query["difficulty"] = difficulty
+            clauses.append({"difficulty": difficulty})
         if target_muscle:
-            muscle_query = {
+            clauses.append({
                 "$or": [
                     {"target_muscles": target_muscle},
                     {"muscle_groups": target_muscle},
                 ]
-            }
-            plan_query = {"$and": [owner_query, muscle_query]}
+            })
+
+        if len(clauses) > 1:
+            plan_query: dict = {"$and": clauses}
+        else:
+            plan_query = owner_query
 
         plans = _safe_find(custom_plans_collection, plan_query)
         plans = [_serialize_mongo(p) for p in plans]
@@ -304,47 +437,66 @@ async def get_workout_plans(
 @router.get("/streak", response_model=dict)
 async def get_workout_streak(current_user: dict = Depends(get_current_user)):
     try:
+        user_id = str(current_user["_id"]) if current_user.get("_id") is not None else None
         email = current_user.get("email")
-        if not email:
+        if not email and not user_id:
             raise HTTPException(status_code=401, detail="Unauthorized")
 
-        today = datetime.now(timezone.utc).date()
+        today_str = get_vn_date_str()
+        thirty_days_ago_str = get_vn_date_str(-30)
+        start_30_utc, _ = get_vn_day_range_utc(thirty_days_ago_str)
 
-        # Lấy 30 ngày gần nhất để tính streak
-        thirty_days_ago = today - timedelta(days=30)
-        sessions = _safe_find(
-            workout_history_collection,
-            {
-                "email": email,
-                "date": {"$gte": thirty_days_ago.isoformat()},
-            },
-        )
+        streak_query = {
+            "$and": [
+                build_user_query(user_id, email),
+                {
+                    "$or": [
+                        {"date": {"$gte": thirty_days_ago_str}},
+                        {"started_at": {"$gte": start_30_utc}},
+                        {"created_at": {"$gte": start_30_utc}},
+                    ]
+                },
+            ]
+        }
+        sessions = _safe_find(workout_history_collection, streak_query)
 
         # Tập hợp các ngày đã tập (set để dedup)
         worked_out_dates = set()
         for s in sessions:
-            raw_date = s.get("date") or s.get("start_time") or s.get("created_at")
+            raw_date = s.get("date") or s.get("started_at") or s.get("start_time") or s.get("created_at")
             if not raw_date:
                 continue
             try:
                 if isinstance(raw_date, datetime):
-                    worked_out_dates.add(raw_date.date().isoformat())
-                else:
-                    # Chỉ lấy phần date nếu là string datetime
-                    worked_out_dates.add(str(raw_date)[:10])
+                    vn_str = utc_to_vn_date_str(raw_date)
+                    if vn_str:
+                        worked_out_dates.add(vn_str)
+                elif isinstance(raw_date, str):
+                    if "T" in raw_date:
+                        try:
+                            dt = datetime.fromisoformat(raw_date.replace("Z", "+00:00"))
+                            vn_str = utc_to_vn_date_str(dt)
+                            if vn_str:
+                                worked_out_dates.add(vn_str)
+                            else:
+                                worked_out_dates.add(raw_date[:10])
+                        except Exception:
+                            worked_out_dates.add(raw_date[:10])
+                    else:
+                        worked_out_dates.add(raw_date[:10])
             except Exception:
                 continue
 
-        # 7 ngày gần nhất — index 0 = hôm nay, index 6 = 6 ngày trước
+        # 7 ngày gần nhất — index 0 = 6 ngày trước, index 6 = hôm nay
         streak_days = []
         for i in range(6, -1, -1):
-            day = (today - timedelta(days=i)).isoformat()
+            day = get_vn_date_str(-i)
             streak_days.append(day in worked_out_dates)
 
         # Tính current streak (đếm ngược từ hôm nay)
         current_streak = 0
         for i in range(30):
-            day = (today - timedelta(days=i)).isoformat()
+            day = get_vn_date_str(-i)
             if day in worked_out_dates:
                 current_streak += 1
             else:
@@ -354,7 +506,7 @@ async def get_workout_streak(current_user: dict = Depends(get_current_user)):
         longest_streak = 0
         temp = 0
         for i in range(29, -1, -1):
-            day = (today - timedelta(days=i)).isoformat()
+            day = get_vn_date_str(-i)
             if day in worked_out_dates:
                 temp += 1
                 longest_streak = max(longest_streak, temp)
@@ -362,9 +514,10 @@ async def get_workout_streak(current_user: dict = Depends(get_current_user)):
                 temp = 0
 
         last_workout_date = max(worked_out_dates) if worked_out_dates else None
+        month_prefix = today_str[:7]
         total_this_month = sum(
             1 for d in worked_out_dates
-            if d.startswith(today.strftime("%Y-%m"))
+            if d.startswith(month_prefix)
         )
 
         return {
@@ -393,24 +546,24 @@ async def get_weekly_workout_report(
         user = user_repo.get_by_email(email)
         if not user:
             raise HTTPException(status_code=404, detail="User not found")
-        
+
         # Default to last 7 days if no start date provided
         if not start_date:
-            start_date = (date.today() - timedelta(days=7)).isoformat()
-        
+            start_date = get_vn_date_str(-7)
+
         start_d = date.fromisoformat(start_date)
         end_d = start_d + timedelta(days=6)
-        start_dt = datetime.combine(start_d, datetime.min.time())
-        end_dt = datetime.combine(end_d, datetime.max.time())
+        start_dt, _ = get_vn_day_range_utc(start_date)
+        _, end_dt = get_vn_day_range_utc(end_d.isoformat())
 
         user_id = str(user.get("_id")) if user.get("_id") is not None else None
-        base_user_query: dict = {"$or": [{"email": email}]}
-        if user_id:
-            base_user_query["$or"].append({"user_id": user_id})
+        base_user_query = build_user_query(user_id, email)
 
         time_query = {
             "$or": [
+                {"date": {"$gte": start_date, "$lte": end_d.isoformat()}},
                 {"date": {"$gte": start_dt, "$lte": end_dt}},
+                {"started_at": {"$gte": start_dt, "$lte": end_dt}},
                 {"created_at": {"$gte": start_dt, "$lte": end_dt}},
             ]
         }
@@ -418,7 +571,7 @@ async def get_weekly_workout_report(
         workouts = _safe_find(workout_history_collection, report_query, sort=[("date", 1), ("created_at", 1)], limit=1000)
 
         def _get_minutes(s: dict) -> int:
-            for k in ("duration_minutes", "duration", "duration_min", "minutes"):
+            for k in ("total_duration_minutes", "duration_minutes", "duration", "duration_min", "minutes"):
                 v = s.get(k)
                 if isinstance(v, (int, float)):
                     return int(v)
@@ -431,10 +584,16 @@ async def get_weekly_workout_report(
                     return int(v)
             return 0
 
+        worked_days = set()
+        for w in workouts:
+            d = _extract_session_date(w)
+            if d:
+                worked_days.add(d)
+        workout_days = len(worked_days)
+
         total_workouts = len(workouts)
         total_duration = sum(_get_minutes(w) for w in workouts)
         total_calories = sum(_get_calories(w) for w in workouts)
-        workout_days = len({(w.get("date") or w.get("created_at")).date() for w in workouts if isinstance((w.get("date") or w.get("created_at")), datetime)})
         avg_duration = int(total_duration / total_workouts) if total_workouts else 0
 
         return {
@@ -493,6 +652,7 @@ async def log_workout_session(
         logs_data = []
         if session.exercise_logs:
             for item in session.exercise_logs:
+                cv_summary = item.cv_form_summary if isinstance(item.cv_form_summary, dict) else None
                 logs_data.append({
                     "exercise_id": item.exercise_id,
                     "exercise_slug": item.exercise_slug,
@@ -504,16 +664,23 @@ async def log_workout_session(
                     "is_completed": item.is_completed,
                     "rest_taken_seconds": item.rest_taken_seconds,
                     "cv_detected": item.cv_detected,
+                    "cv_form_summary": cv_summary,
                 })
         elif session.completed_exercises:
-            logs_data = [dict(e) for e in session.completed_exercises]
+            for e in session.completed_exercises:
+                raw_item = dict(e)
+                cv_summary = raw_item.get("cv_form_summary") or raw_item.get("cvFormSummary")
+                if not isinstance(cv_summary, dict):
+                    cv_summary = None
+                raw_item["cv_form_summary"] = cv_summary
+                logs_data.append(raw_item)
 
         total_duration = session.total_duration_minutes if session.total_duration_minutes is not None else session.duration_minutes
         plan_title = session.plan_name or session.name or "Workout Session"
 
         doc = {
             "user_id": user_id,
-            "email": email,
+            "email": normalize_email(email),
             "client_id": session.id,
             "plan_id": session.plan_id,
             "plan_name": plan_title,
@@ -525,6 +692,8 @@ async def log_workout_session(
             "total_volume_kg": session.total_volume_kg,
             "created_at": now_utc,
         }
+        if session.cv_form_summary is not None:
+            doc["cv_form_summary"] = session.cv_form_summary
 
         idempotent_id = _idempotent_session_object_id(user_id, session.id)
         logged_at = now_utc
@@ -561,6 +730,7 @@ async def log_workout_session(
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+
 @router.post("/plans")
 async def create_workout_plan(
     plan: WorkoutPlan,
@@ -578,7 +748,7 @@ async def create_workout_plan(
         user_id = str(user.get("_id")) if user.get("_id") is not None else None
         now = datetime.utcnow()
         doc = plan.dict()
-        doc["email"] = email
+        doc["email"] = normalize_email(email)
         if user_id:
             doc["user_id"] = user_id
         doc["created_at"] = now
@@ -610,9 +780,11 @@ async def delete_workout_plan(
             raise HTTPException(status_code=503, detail="Database not connected")
 
         user_id = str(user.get("_id")) if user.get("_id") is not None else None
-        owner_query: dict = {"$or": [{"email": email}]}
-        if user_id:
-            owner_query["$or"].append({"user_id": user_id})
+        try:
+            owner_query = build_user_query(user_id, email)
+        except NameError:
+            from backend.app.services.context_utils import build_user_query as _buq
+            owner_query = _buq(user_id, email)
 
         try:
             oid = ObjectId(plan_id)
@@ -652,9 +824,11 @@ async def update_workout_plan(
             raise HTTPException(status_code=503, detail="Database not connected")
 
         user_id = str(user.get("_id")) if user.get("_id") is not None else None
-        owner_query: dict = {"$or": [{"email": email}]}
-        if user_id:
-            owner_query["$or"].append({"user_id": user_id})
+        try:
+            owner_query = build_user_query(user_id, email)
+        except NameError:
+            from backend.app.services.context_utils import build_user_query as _buq
+            owner_query = _buq(user_id, email)
 
         try:
             oid = ObjectId(plan_id)
@@ -726,8 +900,9 @@ async def get_workout_history(
 ):
     """Get workout history filtered strictly by authenticated user_id"""
     try:
-        user_id = str(current_user["_id"])
-        workout_query = {"user_id": user_id}
+        user_id = str(current_user["_id"]) if current_user.get("_id") is not None else None
+        email = current_user.get("email")
+        workout_query = build_user_query(user_id, email)
 
         total = _safe_count(workout_history_collection, workout_query)
         sessions = _safe_find(
@@ -756,8 +931,9 @@ async def get_workout_session_detail(
 ):
     """Get single workout session detail strictly owned by authenticated user_id"""
     try:
-        user_id = str(current_user["_id"])
-        owner_filter = {"user_id": user_id}
+        user_id = str(current_user["_id"]) if current_user.get("_id") is not None else None
+        email = current_user.get("email")
+        owner_filter = build_user_query(user_id, email)
 
         try:
             oid = ObjectId(session_id)
@@ -777,6 +953,69 @@ async def get_workout_session_detail(
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/last-performance", response_model=dict)
+async def get_workout_last_performance(
+    exercise_ids: str = Query(..., description="Comma-separated exercise IDs or slugs"),
+    current_user: dict = Depends(get_current_user),
+):
+    """Get last performance and progressive overload suggestions for multiple exercises"""
+    try:
+        user_id = str(current_user["_id"]) if current_user.get("_id") is not None else None
+        email = current_user.get("email")
+        owner_query = build_user_query(user_id, email)
+
+        ids = [i.strip() for i in exercise_ids.split(",") if i.strip()]
+        if not ids:
+            return {"items": {}}
+
+        sessions = _safe_find(
+            workout_history_collection,
+            owner_query,
+            sort=[("started_at", -1), ("created_at", -1)],
+            limit=30,
+        )
+
+        items = {}
+        for target_id in ids:
+            perf = _find_last_performance_for_exercise(sessions, target_id)
+            if perf is not None:
+                items[target_id] = perf
+
+        return {"items": items}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to fetch last performance: {str(e)}")
+
+
+@router.get("/exercises/{exercise_id}/last-performance")
+async def get_exercise_last_performance(
+    exercise_id: str,
+    current_user: dict = Depends(get_current_user),
+):
+    """Alias endpoint for single exercise last performance and progressive overload suggestion"""
+    try:
+        user_id = str(current_user["_id"]) if current_user.get("_id") is not None else None
+        email = current_user.get("email")
+        owner_query = build_user_query(user_id, email)
+
+        sessions = _safe_find(
+            workout_history_collection,
+            owner_query,
+            sort=[("started_at", -1), ("created_at", -1)],
+            limit=30,
+        )
+
+        perf = _find_last_performance_for_exercise(sessions, exercise_id)
+        if not perf:
+            return {"found": False}
+        return perf
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to fetch last performance: {str(e)}")
 
 
 # ─── MUSCLE GROUP ENDPOINTS ───────────────────────────────────────────────────

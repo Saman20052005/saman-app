@@ -15,17 +15,22 @@ import hashlib
 import json
 import logging
 import os
-from typing import Any, Callable, Dict, Optional
+from typing import Any, Callable, Dict, List, Optional
 
 from fastapi import Request, HTTPException, status
 
 from backend.app.models.revenue import (
+    EntitlementDecision,
     EntitlementDecisionStatus,
     ReservationStatus,
     ReservationResult,
 )
 from backend.app.services.entitlement_service import EntitlementService
-from backend.app.services.quota_service import QuotaService
+from backend.app.services.quota_service import (
+    QuotaService,
+    StorageUnavailableException,
+    resolve_user_tier_and_quota,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -84,6 +89,97 @@ def should_consume_quota_on_non_food() -> bool:
     Defaults to False (do not charge user for rejected non-food images).
     """
     return os.getenv("CONSUME_QUOTA_ON_NON_FOOD", "false").strip().lower() in ("true", "1", "yes")
+
+
+def is_ai_paywall_enabled() -> bool:
+    """
+    Checks if AI paywall is enabled.
+    Defaults to False during dev/demo stage, ready to be enabled in CP4.3.
+    """
+    return os.getenv("ENABLE_AI_PAYWALL", "false").strip().lower() in ("true", "1", "yes")
+
+
+def evaluate_ai_feature_access(
+    benefit_id: str,
+    user_id: Optional[str] = None,
+    email: Optional[str] = None,
+    account_id: Optional[str] = None,
+    entitlement_service: Optional[EntitlementService] = None,
+) -> None:
+    """
+    Evaluates whether an identity has entitlement to an AI feature under the CP4.3 paywall.
+    Fail-closed, safe, and backwards-compatible with default behavior.
+    """
+    if not is_ai_paywall_enabled():
+        return
+
+    normalized_email = email.strip().lower() if email and isinstance(email, str) and email.strip() else None
+    raw_candidates = [
+        account_id.strip() if account_id and isinstance(account_id, str) and account_id.strip() else (account_id if account_id else None),
+        user_id.strip() if user_id and isinstance(user_id, str) and user_id.strip() else (user_id if user_id else None),
+        normalized_email,
+    ]
+    candidates: List[str] = []
+    for c in raw_candidates:
+        if c and c not in candidates:
+            candidates.append(c)
+
+    if not candidates:
+        raise HTTPException(
+            status_code=403,
+            detail={"code": "entitlement_required", "benefit_id": benefit_id},
+        )
+
+    svc = entitlement_service or EntitlementService()
+    saw_storage_error = False
+
+    for candidate in candidates:
+        try:
+            decision = svc.evaluate_entitlement(candidate, benefit_id)
+        except Exception:
+            saw_storage_error = True
+            continue
+
+        if decision.status == EntitlementDecisionStatus.ALLOWED:
+            return
+        if decision.status == EntitlementDecisionStatus.STORAGE_UNAVAILABLE:
+            saw_storage_error = True
+
+    if saw_storage_error:
+        raise HTTPException(
+            status_code=503,
+            detail="Entitlement service unavailable",
+        )
+
+    raise HTTPException(
+        status_code=403,
+        detail={
+            "code": "entitlement_required",
+            "benefit_id": benefit_id,
+            "message": "Tính năng này yêu cầu gói hội viên trả phí.",
+        },
+    )
+
+
+def evaluate_ai_feature_access(
+    benefit_id: str,
+    user_id: str = "",
+    email: str = "",
+    account_id: Optional[str] = None,
+    as_of: Optional[datetime] = None,
+    db: Any = None,
+    entitlement_service: Optional[EntitlementService] = None,
+) -> EntitlementDecision:
+    """
+    Evaluates whether a user has entitlement access to a gated AI feature.
+    """
+    ent_svc = entitlement_service or EntitlementService(db=db)
+    effective_user_id = str(user_id or email or account_id or "").strip()
+    return ent_svc.evaluate_entitlement(
+        user_id=effective_user_id,
+        benefit_id=benefit_id,
+        as_of=as_of,
+    )
 
 
 def compute_payload_hash(payload: Any) -> str:
@@ -244,11 +340,10 @@ async def orchestrate_nutrition_analysis(
     Safely orchestrates Nutrition Advanced (Gemini) analysis.
     
     Invariants Enforced:
-    1. Enforcement OFF (default): Preserves existing behavior & allowlist check. 0 quota mutation.
+    1. Enforcement OFF (default): Any authenticated user may use Gemini Food Vision. 0 quota mutation.
     2. Shadow Mode: Evaluates entitlement & logs telemetry, but does NOT block or consume quota.
     3. Enforcement ON:
-       - User MUST pass existing Gemini rollout allowlist (is_gemini_allowed).
-       - Allowlist does NOT bypass entitlement: User MUST have ALLOWED entitlement.
+       - User MUST have ALLOWED entitlement.
        - Missing entitlement -> HTTP 403 (Zero dispatch).
        - Quota exhausted -> HTTP 429 (Zero dispatch).
        - Storage failure -> HTTP 503 (Zero dispatch: fail-closed).
@@ -256,20 +351,14 @@ async def orchestrate_nutrition_analysis(
        - Replaying identical completed request -> Returns cached payload (0 quota, 0 inference).
        - Provider call: Wrapped with mark_dispatched(), atomic commit, or mark_unknown() on timeout.
     """
+    paywall_on = is_ai_paywall_enabled()
     enforced = is_enforcement_enabled(email)
     shadow = is_shadow_mode_enabled()
 
     # --------------------------------------------------------------------------
     # CASE 1: ENFORCEMENT OFF (Default Production State)
     # --------------------------------------------------------------------------
-    if not enforced:
-        # Existing behavior: check allowlist
-        if not is_gemini_allowed(email):
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="Gemini food analysis is restricted to authorized test accounts",
-            )
-
+    if not paywall_on and not enforced:
         # Shadow evaluation telemetry (if enabled)
         if shadow:
             try:
@@ -296,7 +385,13 @@ async def orchestrate_nutrition_analysis(
                 mime_type=mime_type,
                 grams=grams,
             )
-        except (GeminiConfigurationError, GeminiAnalysisError) as exc:
+        except GeminiConfigurationError as exc:
+            logger.warning("Gemini food analysis unavailable: %s", exc)
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail={"error": "gemini_unavailable", "message": str(exc)},
+            )
+        except GeminiAnalysisError as exc:
             logger.exception("Gemini food analysis failed: %s", exc)
             raise HTTPException(status_code=500, detail=str(exc))
         except Exception as exc:
@@ -304,41 +399,63 @@ async def orchestrate_nutrition_analysis(
             raise HTTPException(status_code=500, detail="Gemini food analysis failed")
 
     # --------------------------------------------------------------------------
-    # CASE 2: ENFORCEMENT ON
+    # CASE 2: ENFORCEMENT OR PAYWALL ON
     # --------------------------------------------------------------------------
-    # Step A: Rollout Allowlist Check (Cannot bypass allowlist)
-    if not is_gemini_allowed(email):
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Gemini food analysis is restricted to authorized test accounts",
-        )
-
     ent_svc = entitlement_service or EntitlementService(db=db)
     q_svc = quota_service or QuotaService(db=db)
+    active_db = db if db is not None else q_svc._get_db()
 
-    # Step B: Entitlement Evaluation
-    decision = ent_svc.evaluate_entitlement(
-        user_id=email,
-        benefit_id="ai.nutrition_gemini",
-        as_of=as_of,
-    )
+    reserve_period_type = "monthly"
+    reserve_limit_units = 30
 
-    if decision.status == EntitlementDecisionStatus.STORAGE_UNAVAILABLE:
-        raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail={"error": "storage_unavailable", "message": f"Storage error evaluating entitlement: {decision.reason}"}
+    if paywall_on:
+        try:
+            _, reserve_period_type, reserve_limit_units = resolve_user_tier_and_quota(
+                active_db,
+                user_id=email,
+                email=email,
+                benefit_id="ai.nutrition_gemini",
+                as_of=as_of,
+            )
+        except StorageUnavailableException as exc:
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail={"error": "storage_unavailable", "message": str(exc)},
+            )
+
+        if reserve_limit_units == 0:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail={
+                    "error": "entitlement_required",
+                    "code": "entitlement_required",
+                    "benefit_id": "ai.nutrition_gemini",
+                },
+            )
+    else:
+        # Legacy enforcement path (REVENUE_ENFORCEMENT_ENABLED=true without AI paywall)
+        decision = ent_svc.evaluate_entitlement(
+            user_id=email,
+            benefit_id="ai.nutrition_gemini",
+            as_of=as_of,
         )
 
-    if decision.status != EntitlementDecisionStatus.ALLOWED:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail={
-                "error": "entitlement_required",
-                "benefit_id": "ai.nutrition_gemini",
-                "reason": decision.reason,
-                "tier": decision.tier.value if decision.tier else None,
-            }
-        )
+        if decision.status == EntitlementDecisionStatus.STORAGE_UNAVAILABLE:
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail={"error": "storage_unavailable", "message": f"Storage error evaluating entitlement: {decision.reason}"}
+            )
+
+        if decision.status != EntitlementDecisionStatus.ALLOWED:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail={
+                    "error": "entitlement_required",
+                    "benefit_id": "ai.nutrition_gemini",
+                    "reason": decision.reason,
+                    "tier": decision.tier.value if decision.tier else None,
+                }
+            )
 
     # Step C: Idempotency Key & Payload Fingerprint (includes mode, grams, mime_type, image_bytes)
     request_hash = compute_nutrition_request_hash(
@@ -349,13 +466,13 @@ async def orchestrate_nutrition_analysis(
     )
     effective_idemp_key = idempotency_key or client_request_id or f"img_{request_hash[:24]}"
 
-
     # Step D: Atomic Quota Reservation
     res = q_svc.reserve_quota(
         user_id=email,
         benefit_id="ai.nutrition_gemini",
         units=1,
-        limit_units=30,
+        limit_units=reserve_limit_units,
+        period_type=reserve_period_type,
         idempotency_key=effective_idemp_key,
         request_hash=request_hash,
         client_request_id=client_request_id,
@@ -373,6 +490,8 @@ async def orchestrate_nutrition_analysis(
             status_code=status.HTTP_429_TOO_MANY_REQUESTS,
             detail={
                 "error": "quota_exhausted",
+                "code": "quota_exceeded",
+                "benefit_id": "ai.nutrition_gemini",
                 "consumed_units": res.consumed_units,
                 "remaining_units": res.remaining_units,
                 "limit_units": res.limit_units,
@@ -430,7 +549,19 @@ async def orchestrate_nutrition_analysis(
                 q_svc.release_quota(operation_id=res.operation_id, lease_token=res.lease_token, reason="non_food_rejected", as_of=as_of)
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail={"error": "not_food", "message": str(exc)})
 
-        # Configuration or general provider error
+        # Configuration error (missing API key or Gemini disabled)
+        try:
+            from backend.services.gemini_food_analyzer import GeminiConfigurationError
+        except ImportError:
+            GeminiConfigurationError = ()  # type: ignore[misc,assignment]
+        if GeminiConfigurationError and isinstance(exc, GeminiConfigurationError):
+            q_svc.release_quota(operation_id=res.operation_id, lease_token=res.lease_token, reason=f"gemini_unavailable: {exc}", as_of=as_of)
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail={"error": "gemini_unavailable", "message": str(exc)},
+            )
+
+        # General provider error
         q_svc.release_quota(operation_id=res.operation_id, lease_token=res.lease_token, reason=f"provider_error: {exc}", as_of=as_of)
         raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail={"error": "provider_unavailable", "message": f"Gemini provider error: {exc}"})
 

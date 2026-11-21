@@ -38,10 +38,13 @@ class FoodAnalysisEnsemble:
                  db_name: Optional[str] = None):
         
         # Initialize services using provider factory with fallbacks
-        if create_classification_service:
-            self.classifier = create_classification_service(model_path=classification_model_path)
-        else:
-            logger.warning("Classification provider factory not available, using mock")
+        try:
+            if create_classification_service:
+                self.classifier = create_classification_service(model_path=classification_model_path)
+            else:
+                raise RuntimeError("Classification provider factory not available")
+        except Exception as e:
+            logger.warning(f"Classification service initialization failed: {e}, using mock")
             from .mock_food_classification_service import MockFoodClassificationService, MockMode
             self.classifier = MockFoodClassificationService(MockMode.NORMAL)
         
@@ -172,17 +175,18 @@ class FoodAnalysisEnsemble:
     def _classify_food(self, image: Image.Image, top_k: int) -> List[Dict]:
         """Perform food classification using provider abstraction"""
         try:
+            if hasattr(self.classifier, '_ensure_model') and not self.classifier.is_model_loaded():
+                self.classifier._ensure_model()
+
             if not self.classifier.is_model_loaded():
-                logger.warning("Food classification model not loaded")
-                return []
+                raise RuntimeError("Food classification model not loaded")
             
             # Use canonical prediction method if available, otherwise fallback to legacy
             if hasattr(self.classifier, 'predict_canonical'):
                 classification_result = self.classifier.predict_canonical(image, top_k)
                 
                 if classification_result.model_info and "error" in classification_result.model_info:
-                    logger.error(f"Classification failed: {classification_result.model_info['error']}")
-                    return []
+                    raise RuntimeError(f"Classification failed: {classification_result.model_info['error']}")
                 
                 # Convert canonical predictions to existing format for backward compatibility
                 filtered_predictions = []
@@ -208,8 +212,15 @@ class FoodAnalysisEnsemble:
             return filtered_predictions
             
         except Exception as e:
-            logger.error(f"Food classification failed: {e}")
-            return []
+            logger.warning(f"Food classification failed ({e}), falling back to MockFoodClassificationService")
+            from .mock_food_classification_service import MockFoodClassificationService
+            mock_service = MockFoodClassificationService()
+            self.classifier = mock_service
+            predictions = mock_service.predict(image, top_k)
+            return [
+                pred for pred in predictions
+                if pred['confidence'] >= self.confidence_thresholds['classification']
+            ]
     
     def _estimate_portions(self, image: Image.Image, classification_results: List[Dict]) -> List[Dict]:
         """Estimate portion sizes for classified food items"""

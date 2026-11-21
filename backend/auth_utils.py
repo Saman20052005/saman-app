@@ -1,5 +1,6 @@
 # [File: auth_utils.py]
 import os
+import re
 import jwt
 import bcrypt
 import random
@@ -10,6 +11,7 @@ from dotenv import load_dotenv
 
 # 1. Thêm import Database để lấy thông tin User
 from backend.app.database import users_collection
+from backend.app.services.context_utils import normalize_email
 from backend.auth.config import JWT_ALGORITHM, JWT_SECRET
 
 load_dotenv()
@@ -36,7 +38,12 @@ def verify_token(credentials: HTTPAuthorizationCredentials = Depends(security)) 
 # 🔥 [MỚI] Dependency: Lấy Full User Info từ Token
 # Hàm này sẽ được dùng trong Nutrition Routes
 def get_current_user(email: str = Depends(verify_token)):
-    user = users_collection.find_one({"email": email})
+    clean = normalize_email(email)
+    user = users_collection.find_one({"email": clean}) if clean else None
+    if not user and clean:
+        user = users_collection.find_one(
+            {"email": {"$regex": f"^{re.escape(clean)}$", "$options": "i"}}
+        )
     if not user:
         raise HTTPException(status_code=401, detail="User not found")
     return user

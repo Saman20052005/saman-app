@@ -26,6 +26,7 @@ Widget buildTestApp({
 
   return ProviderScope(
     overrides: [
+      useRemoteCommunityProvider.overrideWith((ref) => false),
       communityFakeDatasourceProvider.overrideWithValue(ds),
       communityRepositoryProvider.overrideWithValue(repo),
     ],

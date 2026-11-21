@@ -333,33 +333,36 @@ void main() {
 
       // Plus Plan
       final plus = plans.firstWhere((p) => p.tier == MembershipTier.plus);
-      expect(plus.monthlyPrice, 10);
-      expect(plus.yearlyPrice, 60);
-      expect(plus.yearlyEquivalentMonthlyPrice, 5);
+      expect(plus.monthlyPrice, 59000);
+      expect(plus.yearlyPrice, 588000);
+      expect(plus.yearlyEquivalentMonthlyPrice, 49000);
+      expect(plus.purchasable, isTrue);
       expect(plus.isRecommended, isFalse);
       expect(plus.plannedBenefits.length, 2);
-      expect(plus.aiAllowanceText, 'To be announced');
+      expect(plus.aiAllowanceText, '5 ảnh/ngày · 30 Swift 3 · 10 Core 3');
       expect(plus.workoutCvAllowanceText, isNull);
 
       // Pro Plan
       final pro = plans.firstWhere((p) => p.tier == MembershipTier.pro);
-      expect(pro.monthlyPrice, 15);
-      expect(pro.yearlyPrice, 120);
-      expect(pro.yearlyEquivalentMonthlyPrice, 10);
+      expect(pro.monthlyPrice, 119000);
+      expect(pro.yearlyPrice, 1188000);
+      expect(pro.yearlyEquivalentMonthlyPrice, 99000);
+      expect(pro.purchasable, isTrue);
       expect(pro.isRecommended, isTrue);
       expect(pro.plannedBenefits.length, 3);
-      expect(pro.aiAllowanceText, 'To be announced');
-      expect(pro.workoutCvAllowanceText, 'To be announced');
+      expect(pro.aiAllowanceText, '10 ảnh/ngày · 50 Swift 3 · 30 Core 3');
+      expect(pro.workoutCvAllowanceText, 'Không giới hạn');
 
       // Ultra Plan
       final ultra = plans.firstWhere((p) => p.tier == MembershipTier.ultra);
-      expect(ultra.monthlyPrice, 30);
-      expect(ultra.yearlyPrice, 240);
-      expect(ultra.yearlyEquivalentMonthlyPrice, 20);
+      expect(ultra.monthlyPrice, 199000);
+      expect(ultra.yearlyPrice, 2028000);
+      expect(ultra.yearlyEquivalentMonthlyPrice, 169000);
+      expect(ultra.purchasable, isTrue);
       expect(ultra.isRecommended, isFalse);
       expect(ultra.plannedBenefits.length, 3);
-      expect(ultra.aiAllowanceText, '5x Pro · Planned');
-      expect(ultra.workoutCvAllowanceText, 'To be announced');
+      expect(ultra.aiAllowanceText, '20 ảnh/ngày · 15 Pro 3/ngày');
+      expect(ultra.workoutCvAllowanceText, 'Không giới hạn');
     });
 
     test('Comparison Matrix features are correctly grouped and mapped', () {
@@ -383,9 +386,9 @@ void main() {
       expect(nutrition.length, 2);
       for (final f in nutrition) {
         expect(f.statusFor(MembershipTier.free), InclusionStatus.notIncluded);
-        expect(f.statusFor(MembershipTier.plus), InclusionStatus.planned);
-        expect(f.statusFor(MembershipTier.pro), InclusionStatus.planned);
-        expect(f.statusFor(MembershipTier.ultra), InclusionStatus.planned);
+        expect(f.statusFor(MembershipTier.plus), InclusionStatus.included);
+        expect(f.statusFor(MembershipTier.pro), InclusionStatus.included);
+        expect(f.statusFor(MembershipTier.ultra), InclusionStatus.included);
       }
 
       // Group 3: Workout CV (3 items)
@@ -394,8 +397,8 @@ void main() {
       for (final f in workout) {
         expect(f.statusFor(MembershipTier.free), InclusionStatus.notIncluded);
         expect(f.statusFor(MembershipTier.plus), InclusionStatus.notIncluded);
-        expect(f.statusFor(MembershipTier.pro), InclusionStatus.planned);
-        expect(f.statusFor(MembershipTier.ultra), InclusionStatus.planned);
+        expect(f.statusFor(MembershipTier.pro), InclusionStatus.included);
+        expect(f.statusFor(MembershipTier.ultra), InclusionStatus.included);
       }
 
       // Group 4: Advanced Intelligence (2 items)
@@ -406,7 +409,7 @@ void main() {
         expect(f.statusFor(MembershipTier.free), InclusionStatus.notIncluded);
         expect(f.statusFor(MembershipTier.plus), InclusionStatus.notIncluded);
         expect(f.statusFor(MembershipTier.pro), InclusionStatus.notIncluded);
-        expect(f.statusFor(MembershipTier.ultra), InclusionStatus.planned);
+        expect(f.statusFor(MembershipTier.ultra), InclusionStatus.included);
       }
     });
 
@@ -432,7 +435,7 @@ void main() {
 
       // App bar & Header
       expect(find.text('Membership'), findsOneWidget);
-      expect(find.text('MEMBERSHIP PREVIEW'), findsOneWidget);
+      expect(find.text('SAMAN MEMBERSHIP'), findsOneWidget);
       expect(find.text('Elevate your training.'), findsOneWidget);
       expect(find.text('CURRENT PLAN: FREE'), findsOneWidget);
 
@@ -445,14 +448,14 @@ void main() {
       // Badges
       expect(find.text('CURRENT'), findsOneWidget);
       expect(find.text('RECOMMENDED'), findsOneWidget);
-      expect(find.text('COMING SOON'), findsNWidgets(3)); // Plus, Pro, Ultra
+      expect(find.text('COMING SOON'), findsNothing);
       expect(find.text('Your Active Plan'), findsOneWidget);
 
       // Default Monthly prices
-      expect(find.text(r'$0'), findsNWidgets(2)); // Notice card + Free card
-      expect(find.text(r'$10'), findsOneWidget);
-      expect(find.text(r'$15'), findsOneWidget);
-      expect(find.text(r'$30'), findsOneWidget);
+      expect(find.text('0đ'), findsNWidgets(2)); // Notice card + Free card
+      expect(find.text('59.000đ'), findsOneWidget);
+      expect(find.text('119.000đ'), findsOneWidget);
+      expect(find.text('199.000đ'), findsOneWidget);
 
       // Buttons
       expect(find.text('Explore Plus'), findsOneWidget);
@@ -465,12 +468,12 @@ void main() {
       await tester.pumpAndSettle();
 
       // Yearly pricing verification
-      expect(find.text(r'$60'), findsOneWidget);
-      expect(find.text(r'$120'), findsOneWidget);
-      expect(find.text(r'$240'), findsOneWidget);
-      expect(find.text('Equivalent to \$5 / month'), findsOneWidget);
-      expect(find.text('Equivalent to \$10 / month'), findsOneWidget);
-      expect(find.text('Equivalent to \$20 / month'), findsOneWidget);
+      expect(find.text('588.000đ'), findsOneWidget);
+      expect(find.text('1.188.000đ'), findsOneWidget);
+      expect(find.text('2.028.000đ'), findsOneWidget);
+      expect(find.text('Tương đương 49.000đ / tháng'), findsOneWidget);
+      expect(find.text('Tương đương 99.000đ / tháng'), findsOneWidget);
+      expect(find.text('Tương đương 169.000đ / tháng'), findsOneWidget);
     });
   });
 
@@ -703,14 +706,16 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.text('WORKOUT INTELLIGENCE'), findsOneWidget);
 
-      // 3. From Detail, tap Coming Soon
-      await tester.scrollUntilVisible(find.text('Coming Soon'), 200);
-      await tester.tap(find.text('Coming Soon'));
-      await tester.pumpAndSettle();
-      expect(find.text('Saman Membership'), findsOneWidget);
-      expect(find.text("YOU'RE EXPLORING"), findsOneWidget);
+      // 3. From Detail, tap Upgrade CTA -> opens PayosCheckoutScreen
+      await tester.scrollUntilVisible(find.text('Nâng cấp ngay · 119.000đ'), 200);
+      await tester.tap(find.text('Nâng cấp ngay · 119.000đ'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 500));
+      expect(find.text('Thanh toán VietQR · Pro'), findsOneWidget);
 
-      // 4. Tap Back to Membership on Coming Soon screen
+      // 4. Pop back to Detail, then tap Back to Membership -> returns to Overview
+      await tester.tap(find.byIcon(Icons.arrow_back));
+      await tester.pumpAndSettle();
       await tester.scrollUntilVisible(find.text('Back to Membership'), 200);
       await tester.tap(find.text('Back to Membership'));
       await tester.pumpAndSettle();
@@ -786,14 +791,14 @@ void main() {
 
       // Check header and intro
       expect(find.text('Compare plans'), findsOneWidget);
-      expect(find.text('MEMBERSHIP PREVIEW'), findsOneWidget);
+      expect(find.text('SAMAN MEMBERSHIP'), findsOneWidget);
       expect(find.text('Find your fit.'), findsOneWidget);
 
       // Default Monthly pricing check
-      expect(find.text(r'$0'), findsOneWidget);
-      expect(find.text(r'$10'), findsOneWidget);
-      expect(find.text(r'$15'), findsOneWidget);
-      expect(find.text(r'$30'), findsOneWidget);
+      expect(find.text('0đ'), findsOneWidget);
+      expect(find.text('59.000đ'), findsOneWidget);
+      expect(find.text('119.000đ'), findsOneWidget);
+      expect(find.text('199.000đ'), findsOneWidget);
 
       // Legend
       expect(find.text('STATUS LEGEND'), findsOneWidget);
@@ -806,12 +811,12 @@ void main() {
       await tester.pumpAndSettle();
 
       // Verify Yearly pricing shown
-      expect(find.text(r'$60'), findsOneWidget);
-      expect(find.text(r'$120'), findsOneWidget);
-      expect(find.text(r'$240'), findsOneWidget);
-      expect(find.text('Equivalent to \$5 / month'), findsOneWidget);
-      expect(find.text('Equivalent to \$10 / month'), findsOneWidget);
-      expect(find.text('Equivalent to \$20 / month'), findsOneWidget);
+      expect(find.text('588.000đ'), findsOneWidget);
+      expect(find.text('1.188.000đ'), findsOneWidget);
+      expect(find.text('2.028.000đ'), findsOneWidget);
+      expect(find.text('Tương đương 49.000đ / tháng'), findsOneWidget);
+      expect(find.text('Tương đương 99.000đ / tháng'), findsOneWidget);
+      expect(find.text('Tương đương 169.000đ / tháng'), findsOneWidget);
     });
   });
 
@@ -831,7 +836,7 @@ void main() {
       // Switch to Yearly in Compare
       await tester.tap(find.text('Yearly'));
       await tester.pumpAndSettle();
-      expect(find.text(r'$60'), findsOneWidget);
+      expect(find.text('588.000đ'), findsOneWidget);
 
       // Scroll to and Tap Explore Plus
       await tester.scrollUntilVisible(find.text('Explore Plus'), 200);
@@ -842,9 +847,9 @@ void main() {
       expect(find.text('Plus'), findsWidgets);
       expect(find.text('NUTRITION AI'), findsOneWidget);
       // Yearly price should be preserved!
-      expect(find.text(r'$60'), findsOneWidget);
-      expect(find.text('/ year'), findsOneWidget);
-      expect(find.text('Equivalent to \$5 / month'), findsOneWidget);
+      expect(find.text('588.000đ'), findsOneWidget);
+      expect(find.text('/ năm'), findsOneWidget);
+      expect(find.text('Tương đương 49.000đ / tháng'), findsOneWidget);
 
       // Hit Back in AppBar
       await tester.tap(find.byIcon(Icons.arrow_back));
@@ -852,8 +857,8 @@ void main() {
 
       // Back on Compare screen, and Yearly is still active!
       expect(find.text('Compare plans'), findsOneWidget);
-      expect(find.text(r'$60'), findsOneWidget);
-      expect(find.text('Equivalent to \$5 / month'), findsOneWidget);
+      expect(find.text('588.000đ'), findsOneWidget);
+      expect(find.text('Tương đương 49.000đ / tháng'), findsOneWidget);
     });
 
     testWidgets('Opens Pro Detail with RECOMMENDED badge and correct benefits',
@@ -879,11 +884,11 @@ void main() {
       expect(find.text('WORKOUT INTELLIGENCE'), findsOneWidget);
       expect(find.text('Workout CV AI'), findsOneWidget);
       expect(find.text('Movement analysis and rep counting'), findsOneWidget);
-      expect(find.text('Separate Workout CV allowance'), findsOneWidget);
+      expect(find.text('Unlimited Workout CV allowance'), findsOneWidget);
     });
 
     testWidgets(
-        'Opens Ultra Detail with 5x Pro allowance and Advanced Thinking',
+        'Opens Ultra Detail with Pro 3 allowance and Advanced Thinking',
         (tester) async {
       await tester.binding.setSurfaceSize(const Size(390, 844));
       addTearDown(() => tester.binding.setSurfaceSize(null));
@@ -903,11 +908,11 @@ void main() {
       // Verify Ultra Screen details
       expect(find.text('Ultra'), findsWidgets);
       expect(find.text('PERSONALIZED INTELLIGENCE'), findsOneWidget);
-      expect(find.text('5x Pro AI allowance'), findsOneWidget);
+      expect(find.text('Pro 3 & 20 ảnh Nutrition AI/ngày'), findsOneWidget);
       expect(find.text('Advanced Thinking'), findsOneWidget);
       expect(find.text('Extended history and personalized memory'),
           findsOneWidget);
-      expect(find.text('5x Pro · Planned'), findsOneWidget);
+      expect(find.text('20 ảnh/ngày · 15 Pro 3/ngày'), findsOneWidget);
     });
   });
 
@@ -934,13 +939,14 @@ void main() {
       await tester.tap(find.text('Everything in Plus'));
       await tester.pumpAndSettle();
 
-      // Now expanded: shows Free essentials and planned Plus benefits
+      // Now expanded: shows Free essentials and Plus benefits
       expect(find.byIcon(Icons.expand_less), findsOneWidget);
       expect(find.text('Nutrition logging'), findsOneWidget);
       expect(find.text('Manual workout tracking'), findsOneWidget);
       expect(find.text('Free food photo analysis'), findsOneWidget);
-      expect(find.text('Gemini food photo analysis'), findsOneWidget);
-      expect(find.text('Monthly AI allowance'), findsOneWidget);
+      expect(find.text('Gemini food photo analysis (10/ngày)'), findsOneWidget);
+      expect(find.text('Daily AI allowance (50 Swift 3 · 30 Core 3)'),
+          findsOneWidget);
 
       // Tap again to collapse
       await tester.scrollUntilVisible(find.text('Everything in Plus'), 200);
@@ -951,26 +957,21 @@ void main() {
       expect(find.text('Nutrition logging'), findsNothing);
     });
 
-    testWidgets('Primary Coming Soon and Back to Membership trigger callbacks',
+    testWidgets('Primary Upgrade CTA and Back to Membership work for Plus',
         (tester) async {
-      bool comingSoonTriggered = false;
       bool backToMembershipTriggered = false;
 
       await tester.pumpWidget(
         _buildTestApp(
           child: PlanDetailScreen(
             tier: MembershipTier.plus,
-            onComingSoon: () => comingSoonTriggered = true,
             onBackToMembership: () => backToMembershipTriggered = true,
           ),
         ),
       );
       await tester.pumpAndSettle();
 
-      // Scroll to and Tap Coming Soon
-      await tester.scrollUntilVisible(find.text('Coming Soon'), 200);
-      await tester.tap(find.text('Coming Soon'));
-      expect(comingSoonTriggered, isTrue);
+      expect(find.text('Nâng cấp ngay · 59.000đ'), findsOneWidget);
 
       // Scroll to and Tap Back to Membership
       await tester.scrollUntilVisible(find.text('Back to Membership'), 200);
@@ -1123,7 +1124,7 @@ void main() {
       expect(find.text('CURRENT PLAN'), findsOneWidget);
       expect(find.text('CURRENT'), findsOneWidget);
       expect(find.text('Free'), findsOneWidget);
-      expect(find.text('· \$0'), findsOneWidget);
+      expect(find.text('· 0đ'), findsOneWidget);
       expect(find.text('Your everyday tracking essentials.'), findsOneWidget);
       expect(find.text('No paid membership activated.'), findsOneWidget);
 
@@ -1238,8 +1239,8 @@ void main() {
       );
 
       // Monthly price
-      expect(find.text(r'$10'), findsOneWidget);
-      expect(find.text('/ month'), findsOneWidget);
+      expect(find.text('59.000đ'), findsOneWidget);
+      expect(find.text('/ tháng'), findsOneWidget);
 
       // Reassurance card
       expect(find.text('Your account stays on Free.'), findsOneWidget);
@@ -1275,9 +1276,9 @@ void main() {
       );
 
       // Yearly price for Pro
-      expect(find.text(r'$120'), findsOneWidget);
-      expect(find.text('/ year'), findsOneWidget);
-      expect(find.text('Equivalent to \$10 / month'), findsOneWidget);
+      expect(find.text('1.188.000đ'), findsOneWidget);
+      expect(find.text('/ năm'), findsOneWidget);
+      expect(find.text('Tương đương 99.000đ / tháng'), findsOneWidget);
     });
 
     testWidgets('Back to Membership button calls callback', (tester) async {
@@ -1414,7 +1415,8 @@ void main() {
             findsWidgets);
         expect(
             find.byWidgetPredicate((w) =>
-                w is RichText && w.text.toPlainText().contains('PREVIEW')),
+                w is RichText &&
+                w.text.toPlainText().contains('59.000đ / tháng')),
             findsWidgets);
 
         // Headline and Subtitle
@@ -1430,14 +1432,14 @@ void main() {
         expect(find.text('Monthly AI allowance'), findsOneWidget);
 
         // Inset Card Footer
-        expect(find.text('Limits to be announced.'), findsOneWidget);
-        expect(find.text('PLANNED'), findsOneWidget);
+        expect(find.text('59.000đ / tháng'), findsOneWidget);
+        expect(find.text('VIETQR / PAYOS'), findsOneWidget);
 
         // Buttons & Footnote
         expect(find.text('Explore Plus'), findsOneWidget);
         expect(find.text('Continue with Free'), findsOneWidget);
         expect(
-          find.text('Preview only · Paid memberships are not available yet.'),
+          find.text('Giá niêm yết VNĐ · Thanh toán tự động qua VietQR / PayOS.'),
           findsOneWidget,
         );
       });
@@ -1464,7 +1466,8 @@ void main() {
             findsWidgets);
         expect(
             find.byWidgetPredicate((w) =>
-                w is RichText && w.text.toPlainText().contains('PREVIEW')),
+                w is RichText &&
+                w.text.toPlainText().contains('119.000đ / tháng')),
             findsWidgets);
 
         // Headline and Subtitle
@@ -1480,14 +1483,14 @@ void main() {
         expect(find.text('Separate Workout CV allowance'), findsOneWidget);
 
         // Inset Card Footer
-        expect(find.text('Limits to be announced.'), findsOneWidget);
-        expect(find.text('PLANNED'), findsOneWidget);
+        expect(find.text('119.000đ / tháng'), findsOneWidget);
+        expect(find.text('VIETQR / PAYOS'), findsOneWidget);
 
         // Buttons & Footnote
         expect(find.text('Explore Pro'), findsOneWidget);
         expect(find.text('Back to Workout'), findsOneWidget);
         expect(
-          find.text('Preview only · Paid memberships are not available yet.'),
+          find.text('Giá niêm yết VNĐ · Thanh toán tự động qua VietQR / PayOS.'),
           findsOneWidget,
         );
       });
@@ -1764,13 +1767,17 @@ void main() {
         await tester.pumpAndSettle();
         expect(find.text('NUTRITION AI'), findsOneWidget);
 
-        // 2. Open Coming Soon
-        await tester.scrollUntilVisible(find.text('Coming Soon'), 200);
-        await tester.tap(find.text('Coming Soon'));
-        await tester.pumpAndSettle();
-        expect(find.text("YOU'RE EXPLORING"), findsOneWidget);
+        // 2. Open PayOS Checkout
+        await tester.scrollUntilVisible(
+            find.text('Nâng cấp ngay · 59.000đ'), 200);
+        await tester.tap(find.text('Nâng cấp ngay · 59.000đ'));
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 500));
+        expect(find.text('Thanh toán VietQR · Plus'), findsOneWidget);
 
-        // 3. Tap Back to Membership on Coming Soon
+        // 3. Back to Detail, then tap Back to Membership
+        await tester.tap(find.byIcon(Icons.arrow_back));
+        await tester.pumpAndSettle();
         await tester.scrollUntilVisible(find.text('Back to Membership'), 200);
         await tester.tap(find.text('Back to Membership'));
         await tester.pumpAndSettle();

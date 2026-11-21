@@ -1,20 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fluttertoast/fluttertoast.dart';
-import 'package:flutter_animate/flutter_animate.dart';
 
+import '../../config/app_theme.dart';
 import '../../config/app_translations.dart';
+import '../../config/routes.dart';
 import '../../features/profile/domain/entities/profile_entity.dart';
 import '../../features/profile/domain/entities/profile_snapshot.dart';
+import '../../providers/profile_provider.dart';
 import '../../widgets/app_logo.dart';
 import 'login_controller.dart';
+import 'widgets/forgot_password_sheet.dart';
 import 'widgets/login_form.dart';
 import 'widgets/social_login_row.dart';
-import 'widgets/forgot_password_sheet.dart'; // Bạn cần tạo file này dựa trên code cũ (đã tách)
-import '../../config/routes.dart';
-
-import '../../providers/profile_provider.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -31,11 +31,15 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     if (!mounted) return;
     final messenger = ScaffoldMessenger.maybeOf(context);
     if (messenger == null) return;
+    final palette = SamanPalette.of(context);
     messenger.hideCurrentSnackBar();
     messenger.showSnackBar(
       SnackBar(
-        content: Text(message),
-        backgroundColor: const Color(0xFF26282D),
+        content: Text(
+          message,
+          style: TextStyle(color: palette.textPrimary),
+        ),
+        backgroundColor: palette.surfaceElevated,
         behavior: SnackBarBehavior.floating,
         duration: const Duration(seconds: 4),
       ),
@@ -117,6 +121,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final palette = SamanPalette.of(context);
+
     // Lắng nghe State từ Controller
     ref.listen<LoginState>(loginControllerProvider, (previous, next) {
       if (next.errorMessage != null) {
@@ -124,8 +130,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         try {
           Fluttertoast.showToast(
             msg: next.errorMessage!,
-            backgroundColor: const Color(0xFF26282D),
-            textColor: const Color(0xFFF3F4F6),
+            backgroundColor: palette.surfaceElevated,
+            textColor: palette.textPrimary,
           );
         } catch (_) {}
       }
@@ -135,8 +141,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         try {
           Fluttertoast.showToast(
             msg: next.successMessage!,
-            backgroundColor: const Color(0xFF26282D),
-            textColor: const Color(0xFFF3F4F6),
+            backgroundColor: palette.surfaceElevated,
+            textColor: palette.textPrimary,
           );
         } catch (_) {}
       }
@@ -166,45 +172,52 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     final loginState = ref.watch(loginControllerProvider);
     final controller = ref.read(loginControllerProvider.notifier);
 
-    const primaryBlack = Color(0xFF1E1E1E);
-    const bgGrey = Color(0xFFF8F9FA);
-
     return Scaffold(
-      backgroundColor: bgGrey,
+      backgroundColor: palette.canvas,
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppSpacing.xl,
+              vertical: AppSpacing.lg,
+            ),
             child: Column(
               children: [
-                _buildHeader(),
+                _LoginHeader(
+                  isLoginMode: _isLoginMode,
+                  palette: palette,
+                ),
                 const SizedBox(height: 20),
                 LoginForm(
                   isLoginMode: _isLoginMode,
                   isLoading: loginState.isLoading,
                   onSubmit: (email, pass, name, phone) {
                     controller.submitEmailAuth(
-                        isLoginMode: _isLoginMode,
-                        email: email,
-                        password: pass,
-                        fullName: name,
-                        phone: phone);
+                      isLoginMode: _isLoginMode,
+                      email: email,
+                      password: pass,
+                      fullName: name,
+                      phone: phone,
+                    );
                   },
                   onForgotPassword: () {
                     showModalBottomSheet(
                       context: context,
                       isScrollControlled: true,
                       backgroundColor: Colors.transparent,
-                      builder: (context) =>
-                          const ForgotPasswordSheet(), // Cần tách file này ra
+                      builder: (context) => const ForgotPasswordSheet(),
                     );
                   },
                 ),
-                const SizedBox(height: 24),
-                _buildSwitchModeButton(primaryBlack),
+                const SizedBox(height: AppSpacing.xl),
+                _SwitchModeButton(
+                  isLoginMode: _isLoginMode,
+                  palette: palette,
+                  onTap: () => setState(() => _isLoginMode = !_isLoginMode),
+                ),
                 const SizedBox(height: 30),
-                _buildDivider(),
-                const SizedBox(height: 24),
+                _SocialDivider(palette: palette),
+                const SizedBox(height: AppSpacing.xl),
                 SocialLoginRow(
                   isLoading: loginState.isLoading,
                   onGoogleTap: () =>
@@ -214,9 +227,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   onFacebookTap: () =>
                       _handleSocialLogin(controller.signInWithFacebook),
                 ),
-                const SizedBox(height: 16),
-                _buildGuestModeButton(
+                const SizedBox(height: AppSpacing.lg),
+                _GuestModeButton(
                   isLoading: loginState.isLoading,
+                  palette: palette,
                   onTap: () => _handleGuestLogin(controller),
                 ),
                 const SizedBox(height: 20),
@@ -227,109 +241,153 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       ),
     );
   }
+}
 
-  Widget _buildHeader() {
+class _LoginHeader extends StatelessWidget {
+  final bool isLoginMode;
+  final SamanPalette palette;
+
+  const _LoginHeader({
+    required this.isLoginMode,
+    required this.palette,
+  });
+
+  @override
+  Widget build(BuildContext context) {
     return Column(
       children: [
-        const AppLogo(size: 90, color: Color(0xFF1E1E1E))
+        AppLogo(size: 90, color: palette.textPrimary)
             .animate()
             .scale(duration: 600.ms, curve: Curves.easeOutBack),
         const SizedBox(height: 20),
-        const Text(
+        Text(
           'SAMAN',
           style: TextStyle(
-              fontSize: 36,
-              fontWeight: FontWeight.w900,
-              color: Color(0xFF1E1E1E),
-              letterSpacing: 3.0),
+            fontSize: 36,
+            fontWeight: FontWeight.w900,
+            color: palette.textPrimary,
+            letterSpacing: 3.0,
+          ),
         ).animate().fadeIn().slideY(begin: 0.2, end: 0),
-        const SizedBox(height: 8),
+        const SizedBox(height: AppSpacing.sm),
         Text(
           context.tr('login_tagline'),
           style: TextStyle(
-              fontSize: 14,
-              color: Colors.grey.shade600,
-              fontWeight: FontWeight.w500),
+            fontSize: 14,
+            color: palette.textSecondary,
+            fontWeight: FontWeight.w500,
+          ),
         ).animate().fadeIn(delay: 200.ms),
-        const SizedBox(height: 32),
+        const SizedBox(height: AppSpacing.xxl),
         Text(
-          _isLoginMode
+          isLoginMode
               ? context.tr('welcome_back')
               : context.tr('create_account'),
-          style: const TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-              color: Color(0xFF1E1E1E)),
+          style: TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+            color: palette.textPrimary,
+          ),
         ),
       ],
     );
   }
+}
 
-  Widget _buildSwitchModeButton(Color primaryColor) {
+class _SwitchModeButton extends StatelessWidget {
+  final bool isLoginMode;
+  final SamanPalette palette;
+  final VoidCallback onTap;
+
+  const _SwitchModeButton({
+    required this.isLoginMode,
+    required this.palette,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: () => setState(() => _isLoginMode = !_isLoginMode),
+      onTap: onTap,
       child: RichText(
         text: TextSpan(
-          text: _isLoginMode
+          text: isLoginMode
               ? context.tr('dont_have_account')
               : context.tr('already_have_account'),
-          style: TextStyle(color: Colors.grey.shade600, fontSize: 14),
+          style: TextStyle(color: palette.textSecondary, fontSize: 14),
           children: [
             TextSpan(
-                text: _isLoginMode
-                    ? context.tr('sign_up')
-                    : context.tr('log_in'),
-                style: TextStyle(
-                    color: primaryColor, fontWeight: FontWeight.bold)),
+              text: isLoginMode
+                  ? context.tr('sign_up')
+                  : context.tr('log_in'),
+              style: TextStyle(
+                color: palette.textPrimary,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
           ],
         ),
       ),
     );
   }
+}
 
-  Widget _buildDivider() {
-    return Row(children: [
-      Expanded(child: Divider(color: Colors.grey.shade300)),
-      Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: Text(context.tr('or_continue_with'),
-              style: TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.grey.shade400))),
-      Expanded(child: Divider(color: Colors.grey.shade300))
-    ]);
+class _SocialDivider extends StatelessWidget {
+  final SamanPalette palette;
+
+  const _SocialDivider({required this.palette});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Expanded(child: Divider(color: palette.border)),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+          child: Text(
+            context.tr('or_continue_with'),
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+              color: palette.textMuted,
+            ),
+          ),
+        ),
+        Expanded(child: Divider(color: palette.border)),
+      ],
+    );
   }
+}
 
-  Widget _buildGuestModeButton({
-    required bool isLoading,
-    required VoidCallback onTap,
-  }) {
-    return SizedBox(
-      width: double.infinity,
-      child: OutlinedButton.icon(
-        key: const Key('guest_login_button'),
-        onPressed: isLoading ? null : onTap,
-        icon: const Icon(
-          Icons.explore_outlined,
-          size: 18,
-          color: Color(0xFF1E1E1E),
+class _GuestModeButton extends StatelessWidget {
+  final bool isLoading;
+  final SamanPalette palette;
+  final VoidCallback onTap;
+
+  const _GuestModeButton({
+    required this.isLoading,
+    required this.palette,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return TextButton(
+      key: const Key('guest_login_button'),
+      onPressed: isLoading ? null : onTap,
+      style: TextButton.styleFrom(
+        foregroundColor: palette.textSecondary,
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.lg,
+          vertical: 10,
         ),
-        label: const Text(
-          'Bỏ qua / Trải nghiệm ngay (Guest Mode)',
-          style: TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.w600,
-            color: Color(0xFF1E1E1E),
-          ),
-        ),
-        style: OutlinedButton.styleFrom(
-          padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
-          side: BorderSide(color: Colors.grey.shade300, width: 1.2),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
-          backgroundColor: Colors.white,
+      ),
+      child: Text(
+        'Dùng thử không cần tài khoản',
+        style: TextStyle(
+          fontSize: 14,
+          fontWeight: FontWeight.w500,
+          color: palette.textSecondary,
         ),
       ),
     );

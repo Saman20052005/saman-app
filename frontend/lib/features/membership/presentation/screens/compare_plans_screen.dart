@@ -44,9 +44,11 @@ class ComparePlansScreen extends ConsumerWidget {
     final t = MembershipTokens.of(context);
     final billingPeriod = ref.watch(billingPeriodProvider);
     final plans = ref.watch(membershipCatalogProvider);
+    final freePlan = plans.firstWhere((p) => p.tier == MembershipTier.free);
     final plusPlan = plans.firstWhere((p) => p.tier == MembershipTier.plus);
     final proPlan = plans.firstWhere((p) => p.tier == MembershipTier.pro);
     final ultraPlan = plans.firstWhere((p) => p.tier == MembershipTier.ultra);
+    final hasPurchasable = plans.any((p) => p.purchasable);
 
     return Scaffold(
       backgroundColor: t.canvas,
@@ -65,13 +67,13 @@ class ComparePlansScreen extends ConsumerWidget {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               // 1. Introduction
-              _buildIntroSection(context, t),
+              _buildIntroSection(context, t, hasPurchasable: hasPurchasable),
               const SizedBox(height: 24),
 
               // 2. Billing Selector
-              const BillingPeriodSelector(
+              BillingPeriodSelector(
                 isInsideCard: false,
-                showDisclaimer: true,
+                showDisclaimer: !hasPurchasable,
               ),
               const SizedBox(height: 24),
 
@@ -80,6 +82,7 @@ class ComparePlansScreen extends ConsumerWidget {
                 context,
                 t,
                 billingPeriod,
+                freePlan,
                 plusPlan,
                 proPlan,
                 ultraPlan,
@@ -99,7 +102,7 @@ class ComparePlansScreen extends ConsumerWidget {
               const SizedBox(height: 24),
 
               // 7. Footer
-              _buildFooter(context, t),
+              _buildFooter(context, t, hasPurchasable: hasPurchasable),
               const SizedBox(height: 16),
             ],
           ),
@@ -108,7 +111,11 @@ class ComparePlansScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildIntroSection(BuildContext context, MembershipPalette t) {
+  Widget _buildIntroSection(
+    BuildContext context,
+    MembershipPalette t, {
+    bool hasPurchasable = false,
+  }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -123,7 +130,9 @@ class ComparePlansScreen extends ConsumerWidget {
             ),
           ),
           child: Text(
-            context.tr('membership_preview_badge'),
+            hasPurchasable
+                ? 'SAMAN MEMBERSHIP'
+                : context.tr('membership_preview_badge'),
             style: t.mono(
               fontSize: 11,
               fontWeight: FontWeight.w600,
@@ -160,6 +169,7 @@ class ComparePlansScreen extends ConsumerWidget {
     BuildContext context,
     MembershipPalette t,
     BillingPeriod period,
+    MembershipPlan free,
     MembershipPlan plus,
     MembershipPlan pro,
     MembershipPlan ultra,
@@ -188,7 +198,7 @@ class ComparePlansScreen extends ConsumerWidget {
                 badgeBorder: t.border,
                 badgeColor: t.textMuted,
                 priceContent: Text(
-                  '\$0',
+                  free.priceDisplay(period),
                   style: t.mono(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
@@ -247,18 +257,20 @@ class ComparePlansScreen extends ConsumerWidget {
             ],
           ),
         ),
-        const SizedBox(height: 8),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 4.0),
-          child: Text(
-            context.tr('paid_coming_soon_note'),
-            style: t.body(
-              fontSize: 12,
-              fontWeight: FontWeight.w400,
-              color: t.textMuted,
+        if (!plus.purchasable) ...[
+          const SizedBox(height: 8),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 4.0),
+            child: Text(
+              context.tr('paid_coming_soon_note'),
+              style: t.body(
+                fontSize: 12,
+                fontWeight: FontWeight.w400,
+                color: t.textMuted,
+              ),
             ),
           ),
-        ),
+        ],
       ],
     );
   }
@@ -291,6 +303,7 @@ class ComparePlansScreen extends ConsumerWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Expanded(
+            flex: 5,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -346,7 +359,17 @@ class ComparePlansScreen extends ConsumerWidget {
             ),
           ),
           const SizedBox(width: 12),
-          priceContent,
+          Flexible(
+            flex: 5,
+            child: Align(
+              alignment: Alignment.topRight,
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                alignment: Alignment.centerRight,
+                child: priceContent,
+              ),
+            ),
+          ),
         ],
       ),
     );
@@ -366,7 +389,7 @@ class ComparePlansScreen extends ConsumerWidget {
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
           Text(
-            '\$${plan.monthlyPrice}',
+            plan.priceDisplay(BillingPeriod.monthly),
             style: t.mono(
               fontSize: 16,
               fontWeight: FontWeight.w600,
@@ -374,7 +397,7 @@ class ComparePlansScreen extends ConsumerWidget {
             ),
           ),
           Text(
-            context.tr('per_month'),
+            plan.unitDisplay(BillingPeriod.monthly),
             style: t.body(
               fontSize: 12,
               fontWeight: FontWeight.w400,
@@ -393,7 +416,7 @@ class ComparePlansScreen extends ConsumerWidget {
             textBaseline: TextBaseline.alphabetic,
             children: [
               Text(
-                '\$${plan.yearlyPrice}',
+                plan.priceDisplay(BillingPeriod.yearly),
                 style: t.mono(
                   fontSize: 16,
                   fontWeight: FontWeight.w600,
@@ -402,7 +425,7 @@ class ComparePlansScreen extends ConsumerWidget {
               ),
               const SizedBox(width: 4),
               Text(
-                context.tr('per_year'),
+                plan.unitDisplay(BillingPeriod.yearly),
                 style: t.body(
                   fontSize: 12,
                   fontWeight: FontWeight.w400,
@@ -413,7 +436,7 @@ class ComparePlansScreen extends ConsumerWidget {
           ),
           const SizedBox(height: 2),
           Text(
-            '${context.tr('equiv_to')} \$${plan.yearlyEquivalentMonthlyPrice} ${context.tr('per_month')}',
+            plan.yearlyEquivalentText,
             style: t.body(
               fontSize: 11,
               fontWeight: FontWeight.w400,
@@ -700,12 +723,18 @@ class ComparePlansScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildFooter(BuildContext context, MembershipPalette t) {
+  Widget _buildFooter(
+    BuildContext context,
+    MembershipPalette t, {
+    bool hasPurchasable = false,
+  }) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 8.0),
       child: Center(
         child: Text(
-          context.tr('paid_notice_footer'),
+          hasPurchasable
+              ? 'Giá niêm yết VNĐ · Thanh toán tự động qua VietQR / PayOS.'
+              : context.tr('paid_notice_footer'),
           style: t.body(
             fontSize: 12,
             fontWeight: FontWeight.w400,

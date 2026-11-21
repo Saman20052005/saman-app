@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import '../../../../../config/app_translations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:image_picker/image_picker.dart';
 import '../../../../../screens/home/tokens/saman_home_tokens.dart';
 import '../../../domain/models/post_attachment_snapshot.dart';
 import '../../providers/community_composer_provider.dart';
@@ -76,6 +77,26 @@ class _PostComposePublishScreenState
       }
     } else {
       Navigator.pop(context);
+    }
+  }
+
+  Future<void> _pickMediaFromGallery() async {
+    final composer = ref.read(communityComposerProvider);
+    if (composer.hasPendingSubmission || composer.attachedActivity != null) {
+      return;
+    }
+    try {
+      final picker = ImagePicker();
+      final picked = await picker.pickImage(
+        source: ImageSource.gallery,
+        maxWidth: 1920,
+        maxHeight: 1920,
+        imageQuality: 90,
+      );
+      if (!mounted || picked == null) return;
+      ref.read(communityComposerProvider.notifier).setInitialMedia([picked.path]);
+    } catch (_) {
+      // Fallback in headless/unsupported environment
     }
   }
 
@@ -498,6 +519,19 @@ class _PostComposePublishScreenState
                             tokens: tokens,
                           ),
                           Divider(color: tokens.border, height: 1),
+                          _buildSettingTile(
+                            icon: Icons.photo_library_outlined,
+                            label: 'Thêm ảnh từ thiết bị',
+                            value: composer.selectedMediaUrls.isNotEmpty
+                                ? 'Đã chọn (${composer.selectedMediaUrls.length})'
+                                : 'Thư viện',
+                            onTap: (composer.hasPendingSubmission ||
+                                    composer.attachedActivity != null)
+                                ? null
+                                : _pickMediaFromGallery,
+                            tokens: tokens,
+                          ),
+                          Divider(color: tokens.border, height: 1),
                           Padding(
                             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                             child: Row(
@@ -750,9 +784,10 @@ class _PostComposePublishScreenState
     required IconData icon,
     required String label,
     required String value,
-    required VoidCallback onTap,
+    required VoidCallback? onTap,
     required SamanHomePalette tokens,
   }) {
+    final isDisabled = onTap == null;
     return InkWell(
       onTap: onTap,
       child: Padding(
@@ -763,7 +798,11 @@ class _PostComposePublishScreenState
             Expanded(
               child: Row(
                 children: [
-                  Icon(icon, size: 20, color: tokens.textSecondary),
+                  Icon(
+                    icon,
+                    size: 20,
+                    color: isDisabled ? tokens.textMuted : tokens.textSecondary,
+                  ),
                   const SizedBox(width: 12),
                   Flexible(
                     child: Text(
@@ -772,7 +811,7 @@ class _PostComposePublishScreenState
                       style: TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.w500,
-                        color: tokens.textPrimary,
+                        color: isDisabled ? tokens.textMuted : tokens.textPrimary,
                       ),
                     ),
                   ),
@@ -784,10 +823,17 @@ class _PostComposePublishScreenState
               children: [
                 Text(
                   value,
-                  style: TextStyle(fontSize: 12, color: tokens.greenAccent),
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: isDisabled ? tokens.textMuted : tokens.greenAccent,
+                  ),
                 ),
                 const SizedBox(width: 4),
-                Icon(Icons.chevron_right_rounded, size: 18, color: tokens.textSecondary),
+                Icon(
+                  Icons.chevron_right_rounded,
+                  size: 18,
+                  color: isDisabled ? tokens.textMuted : tokens.textSecondary,
+                ),
               ],
             ),
           ],

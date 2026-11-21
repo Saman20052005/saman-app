@@ -8,6 +8,7 @@ import '../config/app_theme.dart';
 import '../features/nutrition/data/food_image_attribution.dart';
 import '../features/nutrition/data/food_image_manifest.dart';
 import '../features/nutrition/domain/entities/food.dart';
+import '../features/nutrition/domain/repositories/nutrition_repository.dart';
 import '../features/nutrition/presentation/providers/nutrition_usual_foods_provider.dart';
 import '../features/nutrition/presentation/providers/recipes_supplements_provider.dart';
 import '../models/food_model.dart';
@@ -15,6 +16,7 @@ import '../models/nutrition_model.dart';
 import '../providers/nutrition_provider.dart';
 import '../providers/profile_provider.dart';
 import '../services/nutrition_service.dart';
+import 'nutrition/barcode_scanner_screen.dart';
 import 'nutrition/widgets/create_recipe_sheet.dart';
 
 class _FoodLogColors {
@@ -125,6 +127,9 @@ class FoodLogScreen extends ConsumerStatefulWidget {
   final String? initialMealType;
   final NutritionService? apiService;
   final FoodModel? initialFood;
+  final int? initialGrams;
+  final bool isInitialFoodVerified;
+  final Future<BarcodeLookupResult?> Function(BuildContext)? onScanBarcode;
 
   const FoodLogScreen({
     super.key,
@@ -133,6 +138,9 @@ class FoodLogScreen extends ConsumerStatefulWidget {
     this.initialMealType,
     this.apiService,
     this.initialFood,
+    this.initialGrams,
+    this.isInitialFoodVerified = false,
+    this.onScanBarcode,
   });
 
   @override
@@ -142,6 +150,10 @@ class FoodLogScreen extends ConsumerStatefulWidget {
 class FoodLogScreenState extends ConsumerState<FoodLogScreen> {
   @visibleForTesting
   void selectFood(FoodModel food) => _onSelectFood(food);
+
+  @visibleForTesting
+  void applyBarcodeResult(BarcodeLookupResult result) =>
+      _applyBarcodeResult(result);
 
   @visibleForTesting
   FoodLogStep get currentStep => _currentStep;
@@ -248,7 +260,10 @@ class FoodLogScreenState extends ConsumerState<FoodLogScreen> {
       if (widget.initialFood!.id.trim().isNotEmpty &&
           widget.initialFood!.name.trim().isNotEmpty) {
         _selectedFood = widget.initialFood;
-        _grams = 100;
+        _isCatalogVerified = widget.isInitialFoodVerified;
+        _grams = (widget.initialGrams != null && widget.initialGrams! > 0)
+            ? widget.initialGrams!
+            : 100;
         _currentStep = FoodLogStep.portionReview;
       } else {
         _errorMessage = 'Thông tin món ăn không hợp lệ.';
@@ -394,6 +409,25 @@ class FoodLogScreenState extends ConsumerState<FoodLogScreen> {
       _reselectNotice = null;
       _currentStep = FoodLogStep.portionReview;
     });
+  }
+
+  void _applyBarcodeResult(BarcodeLookupResult result) {
+    _onSelectFood(_toFoodModel(result.food));
+    setState(() {
+      _grams = result.suggestedGrams > 0 ? result.suggestedGrams : 100;
+    });
+  }
+
+  Future<void> _openBarcodeScanner() async {
+    final result = await (widget.onScanBarcode != null
+        ? widget.onScanBarcode!(context)
+        : Navigator.of(context).push<BarcodeLookupResult>(
+            MaterialPageRoute(
+              builder: (_) => const BarcodeScannerScreen(),
+            ),
+          ));
+    if (!mounted || result == null) return;
+    _applyBarcodeResult(result);
   }
 
   void _onBackToSearch() {
@@ -1046,6 +1080,18 @@ class FoodLogScreenState extends ConsumerState<FoodLogScreen> {
               onPressed: _onClearSearch,
               icon: Icon(Icons.cancel, size: 18, color: c.textMuted),
             ),
+          IconButton(
+            key: const Key('barcode_scan_button'),
+            tooltip: 'Quét mã vạch',
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+            onPressed: _openBarcodeScanner,
+            icon: Icon(
+              Icons.qr_code_scanner_rounded,
+              size: 20,
+              color: c.accent,
+            ),
+          ),
         ],
       ),
     );
@@ -1186,6 +1232,10 @@ class FoodLogScreenState extends ConsumerState<FoodLogScreen> {
         const SizedBox(height: 16),
 
         if (!_showMyRecipes) ...[
+          // Barcode Quick-Action Card
+          _buildBarcodeQuickActionCard(),
+          const SizedBox(height: 12),
+
           // Find Your Food Hero Card
           _buildFindYourFoodHeroCard(),
           const SizedBox(height: 18),
@@ -1614,6 +1664,70 @@ class FoodLogScreenState extends ConsumerState<FoodLogScreen> {
     if (confirmed == true && mounted) {
       await ref.read(recipesProvider.notifier).deleteRecipe(recipe.id);
     }
+  }
+
+  Widget _buildBarcodeQuickActionCard() {
+    final c = _FoodLogColors.of(context);
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        key: const Key('barcode_quick_action_button'),
+        onTap: _openBarcodeScanner,
+        borderRadius: BorderRadius.circular(16),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          decoration: BoxDecoration(
+            color: c.card,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: c.accent.withOpacity(0.35)),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: c.accent.withOpacity(0.12),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: c.accent.withOpacity(0.28)),
+                ),
+                child: Icon(
+                  Icons.qr_code_scanner_rounded,
+                  size: 20,
+                  color: c.accent,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Quét mã vạch sản phẩm',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                        color: c.textPrimary,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      'Tra cứu Open Food Facts hoặc chụp nhãn dinh dưỡng AI',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: c.textMuted,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              Icon(Icons.chevron_right, size: 20, color: c.accent),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   Widget _buildFindYourFoodHeroCard() {

@@ -141,6 +141,19 @@ class LifestyleAttributes(BaseModel):
     includedAccessories: List[str] = Field(default_factory=list)
 
 
+# Backward-compatible aliases used by shop_service and tests
+EquipmentAttributesModel = EquipmentAttributes
+ApparelColorSwatchModel = ApparelColorSwatch
+ApparelAttributesModel = ApparelAttributes
+AllergenStatusEnum = AllergenStatus
+MacroNutrientsModel = MacroNutrients
+FoodAttributesModel = FoodAttributes
+SupplementFormEnum = SupplementForm
+ActiveIngredientModel = ActiveIngredient
+SupplementAttributesModel = SupplementAttributes
+LifestyleAttributesModel = LifestyleAttributes
+
+
 # ─────────────────────────────────────────────────────────────────────────────
 # Taxonomy Schemas
 # ─────────────────────────────────────────────────────────────────────────────

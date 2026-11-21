@@ -35,6 +35,23 @@ android {
         
         versionCode = flutter.versionCode()
         versionName = flutter.versionName()
+
+        val fbAppId = (project.findProperty("FACEBOOK_APP_ID") as String?)
+            ?.takeIf { it.isNotBlank() }
+            ?: System.getenv("FACEBOOK_APP_ID")?.takeIf { it.isNotBlank() }
+        val fbClientToken = (project.findProperty("FACEBOOK_CLIENT_TOKEN") as String?)
+            ?.takeIf { it.isNotBlank() }
+            ?: System.getenv("FACEBOOK_CLIENT_TOKEN")?.takeIf { it.isNotBlank() }
+        val fbLoginProtocolScheme = (project.findProperty("FB_LOGIN_PROTOCOL_SCHEME") as String?)
+            ?.takeIf { it.isNotBlank() }
+            ?: System.getenv("FB_LOGIN_PROTOCOL_SCHEME")?.takeIf { it.isNotBlank() }
+            ?: fbAppId?.let { "fb$it" }
+
+        manifestPlaceholders["facebookAppId"] = fbAppId ?: "@string/facebook_app_id"
+        manifestPlaceholders["facebookClientToken"] =
+            fbClientToken ?: "@string/facebook_client_token"
+        manifestPlaceholders["fbLoginProtocolScheme"] =
+            fbLoginProtocolScheme ?: "@string/fb_login_protocol_scheme"
     }
 
     aaptOptions {
@@ -42,8 +59,14 @@ android {
     }
 
     buildTypes {
-        release {
+        getByName("release") {
             signingConfig = signingConfigs.getByName("debug")
+            isMinifyEnabled = true
+            isShrinkResources = true
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro"
+            )
         }
     }
 }

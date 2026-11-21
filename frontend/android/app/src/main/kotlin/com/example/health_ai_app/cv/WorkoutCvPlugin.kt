@@ -74,6 +74,9 @@ class WorkoutCvPlugin(private val activity: Activity) :
     var currentClipName: String = ""
         private set
 
+    @Volatile
+    private var currentReplayFile: File? = null
+
     var videoSourceFps: Double = 50.0
         private set
 
@@ -134,7 +137,11 @@ class WorkoutCvPlugin(private val activity: Activity) :
             activeCameraView = view
         }
         if (isSessionActive && currentSourceMode == "video_replay") {
-            resolveVideoFile(null)?.let { view.switchToVideoReplay(it, currentSessionGeneration) }
+            // The platform view is usually created after startVideoReplay already ran; replay the
+            // session's resolved file (e.g. an image_picker cache path), not the bundled test clip.
+            (currentReplayFile ?: resolveVideoFile(null))?.let {
+                view.switchToVideoReplay(it, currentSessionGeneration)
+            }
         }
     }
 
@@ -303,7 +310,7 @@ class WorkoutCvPlugin(private val activity: Activity) :
     }
 
     private fun startVideoReplaySession(videoPath: String?): Boolean {
-        val file = resolveVideoFile(videoPath)
+        val file = resolveVideoFile(videoPath ?: currentReplayFile?.absolutePath)
         if (file == null) {
             sendErrorEvent("Video file not found or cannot be read. Checked app internal & media storage.")
             return false
@@ -314,6 +321,7 @@ class WorkoutCvPlugin(private val activity: Activity) :
         isSessionActive = true
         currentSourceMode = "video_replay"
         currentClipName = file.name
+        currentReplayFile = file
         inFlightCount.set(0)
         resetSessionSyncState()
 

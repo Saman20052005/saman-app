@@ -122,7 +122,7 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   testWidgets(
-    'Nutrition Model Selector: Opens from NutritionScreen, Core 3 default, Pro 3 selection persists on note input, no overflow on narrow viewport',
+    'Nutrition Model Selector: Opens from NutritionScreen, Pro 3 default, Core 3 toggle and Pro 3 selection persists on note input, no overflow on narrow viewport',
     (tester) async {
       final h = FoodHarness();
       await tester.runAsync(h.start);
@@ -179,29 +179,35 @@ void main() {
       expect(find.text('Core 3'), findsOneWidget);
       expect(find.text('Pro 3'), findsOneWidget);
 
-      // 4. Verify Core 3 is selected by default (green background)
-      final core3Text = tester.widget<Text>(find.text('Core 3'));
-      expect(core3Text.style?.fontWeight, equals(FontWeight.w600));
-      expect(core3Text.style?.fontSize, equals(14.0));
-      expect(core3Text.style?.color, equals(Colors.white));
-
+      // 4. Verify Pro 3 is selected by default
       final pro3TextBefore = tester.widget<Text>(find.text('Pro 3'));
-      expect(pro3TextBefore.style?.fontWeight, equals(FontWeight.w500));
+      expect(pro3TextBefore.style?.fontWeight, equals(FontWeight.w600));
       expect(pro3TextBefore.style?.fontSize, equals(14.0));
-      expect(pro3TextBefore.style?.color, equals(const Color(0xFFAAAAAA)));
+      expect(pro3TextBefore.style?.color, equals(Colors.white));
+
+      final core3TextBefore = tester.widget<Text>(find.text('Core 3'));
+      expect(core3TextBefore.style?.fontWeight, equals(FontWeight.w500));
+      expect(core3TextBefore.style?.fontSize, equals(14.0));
+      expect(core3TextBefore.style?.color, equals(const Color(0xFFAAAAAA)));
 
       // Verify thin outline icons
       expect(find.byIcon(Icons.balance_outlined), findsOneWidget);
       expect(find.byIcon(Icons.auto_awesome_outlined), findsOneWidget);
 
-      // Capture screenshot 1: Core 3 default state in sheet
+      // Capture screenshot 1: Pro 3 default state in sheet
       await _captureRepaintBoundary(
         tester,
         rootKey,
         '01_nutrition_sheet_core3_default.png',
       );
 
-      // 5. Tap Pro 3 to switch to Pro 3
+      // 5. Tap Core 3, then tap Pro 3 to switch back to Pro 3
+      await tester.tap(find.text('Core 3'));
+      await tester.pumpAndSettle();
+
+      final core3TextSelected = tester.widget<Text>(find.text('Core 3'));
+      expect(core3TextSelected.style?.fontWeight, equals(FontWeight.w600));
+
       await tester.tap(find.text('Pro 3'));
       await tester.pumpAndSettle();
 

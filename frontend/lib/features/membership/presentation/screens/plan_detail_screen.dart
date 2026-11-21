@@ -9,6 +9,7 @@ import '../widgets/membership_app_bar.dart';
 import '../widgets/primary_membership_button.dart';
 import 'membership_coming_soon_screen.dart';
 import 'membership_overview_screen.dart';
+import 'payos_checkout_screen.dart';
 
 class PlanDetailScreen extends ConsumerStatefulWidget {
   final MembershipTier tier;
@@ -111,12 +112,31 @@ class _PlanDetailScreenState extends ConsumerState<PlanDetailScreen> {
               const SizedBox(height: 24),
 
               // 7. Primary Action Dock
-              PrimaryMembershipButton(
-                text: context.tr('coming_soon_btn'),
-                icon: Icons.arrow_forward,
-                subtext: context.tr('preview_only_notice'),
-                onPressed: _handleComingSoon,
-              ),
+              if (plan.purchasable)
+                _buildUpgradeCtaButton(
+                  t: t,
+                  text: 'Nâng cấp ngay · ${plan.priceDisplay(billingPeriod)}',
+                  subtext: 'Thanh toán tự động qua VietQR / PayOS',
+                  onPressed: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        settings: RouteSettings(
+                            name: '/membership/checkout/${widget.tier.name}'),
+                        builder: (_) => PayosCheckoutScreen(
+                          tier: widget.tier,
+                          billingPeriod: billingPeriod,
+                        ),
+                      ),
+                    );
+                  },
+                )
+              else
+                PrimaryMembershipButton(
+                  text: context.tr('coming_soon_btn'),
+                  icon: Icons.arrow_forward,
+                  subtext: context.tr('preview_only_notice'),
+                  onPressed: _handleComingSoon,
+                ),
               const SizedBox(height: 12),
 
               // 8. Secondary Navigation
@@ -181,26 +201,27 @@ class _PlanDetailScreenState extends ConsumerState<PlanDetailScreen> {
                 color: isPro ? t.accent : t.textMuted,
               ),
             ),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-              decoration: BoxDecoration(
-                color: t.card,
-                borderRadius: BorderRadius.circular(6),
-                border: Border.all(
-                  color: t.border,
-                  width: 1.0,
+            if (!plan.purchasable)
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: t.card,
+                  borderRadius: BorderRadius.circular(6),
+                  border: Border.all(
+                    color: t.border,
+                    width: 1.0,
+                  ),
+                ),
+                child: Text(
+                  context.tr('coming_soon_badge'),
+                  style: t.mono(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    color: t.textMuted,
+                    letterSpacing: 0.5,
+                  ),
                 ),
               ),
-              child: Text(
-                context.tr('coming_soon_badge'),
-                style: t.mono(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w600,
-                  color: t.textMuted,
-                  letterSpacing: 0.5,
-                ),
-              ),
-            ),
             if (plan.isRecommended)
               Container(
                 padding: const EdgeInsets.symmetric(
@@ -285,59 +306,67 @@ class _PlanDetailScreenState extends ConsumerState<PlanDetailScreen> {
 
           // Price Figure
           if (period.isMonthly)
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.baseline,
-              textBaseline: TextBaseline.alphabetic,
-              children: [
-                Text(
-                  '\$${plan.monthlyPrice}',
-                  style: t.mono(
-                    fontSize: 36,
-                    fontWeight: FontWeight.w600,
-                    color: t.textPrimary,
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.centerLeft,
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.baseline,
+                textBaseline: TextBaseline.alphabetic,
+                children: [
+                  Text(
+                    plan.priceDisplay(BillingPeriod.monthly),
+                    style: t.mono(
+                      fontSize: 36,
+                      fontWeight: FontWeight.w600,
+                      color: t.textPrimary,
+                    ),
                   ),
-                ),
-                const SizedBox(width: 4),
-                Text(
-                  '/ month',
-                  style: t.mono(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w400,
-                    color: t.textMuted,
+                  const SizedBox(width: 4),
+                  Text(
+                    plan.unitDisplay(BillingPeriod.monthly),
+                    style: t.mono(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w400,
+                      color: t.textMuted,
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             )
           else
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.baseline,
-                  textBaseline: TextBaseline.alphabetic,
-                  children: [
-                    Text(
-                      '\$${plan.yearlyPrice}',
-                      style: t.mono(
-                        fontSize: 36,
-                        fontWeight: FontWeight.w600,
-                        color: t.textPrimary,
+                FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerLeft,
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.baseline,
+                    textBaseline: TextBaseline.alphabetic,
+                    children: [
+                      Text(
+                        plan.priceDisplay(BillingPeriod.yearly),
+                        style: t.mono(
+                          fontSize: 36,
+                          fontWeight: FontWeight.w600,
+                          color: t.textPrimary,
+                        ),
                       ),
-                    ),
-                    const SizedBox(width: 4),
-                    Text(
-                      '/ year',
-                      style: t.mono(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w400,
-                        color: t.textMuted,
+                      const SizedBox(width: 4),
+                      Text(
+                        plan.unitDisplay(BillingPeriod.yearly),
+                        style: t.mono(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w400,
+                          color: t.textMuted,
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
                 const SizedBox(height: 6),
                 Text(
-                  'Equivalent to \$${plan.yearlyEquivalentMonthlyPrice} / month',
+                  plan.yearlyEquivalentText,
                   style: t.body(
                     fontSize: 12,
                     fontWeight: FontWeight.w500,
@@ -357,7 +386,9 @@ class _PlanDetailScreenState extends ConsumerState<PlanDetailScreen> {
 
           // Disclaimer Note
           Text(
-            context.tr('demo_pricing_disclaimer'),
+            plan.purchasable
+                ? 'Giá niêm yết VNĐ · Thanh toán tự động qua VietQR / PayOS.'
+                : context.tr('demo_pricing_disclaimer'),
             style: t.mono(
               fontSize: 12,
               fontWeight: FontWeight.w400,
@@ -382,7 +413,9 @@ class _PlanDetailScreenState extends ConsumerState<PlanDetailScreen> {
             runSpacing: 4,
             children: [
               Text(
-                '${context.tr('planned_with').toUpperCase()} ${plan.name.toUpperCase()}',
+                plan.purchasable
+                    ? 'INCLUDED WITH ${plan.name.toUpperCase()}'
+                    : '${context.tr('planned_with').toUpperCase()} ${plan.name.toUpperCase()}',
                 style: t.mono(
                   fontSize: 12,
                   fontWeight: FontWeight.w600,
@@ -396,19 +429,19 @@ class _PlanDetailScreenState extends ConsumerState<PlanDetailScreen> {
                   vertical: 2,
                 ),
                 decoration: BoxDecoration(
-                  color: t.surfaceHigh,
+                  color: plan.purchasable ? t.accentBg : t.surfaceHigh,
                   borderRadius: BorderRadius.circular(4),
                   border: Border.all(
-                    color: t.border,
+                    color: plan.purchasable ? t.accentBorder : t.border,
                     width: 1.0,
                   ),
                 ),
                 child: Text(
-                  context.tr('roadmap_badge'),
+                  plan.purchasable ? 'ACTIVE' : context.tr('roadmap_badge'),
                   style: t.mono(
                     fontSize: 11,
                     fontWeight: FontWeight.w500,
-                    color: t.textMuted,
+                    color: plan.purchasable ? t.accent : t.textMuted,
                   ),
                 ),
               ),
@@ -471,9 +504,13 @@ class _PlanDetailScreenState extends ConsumerState<PlanDetailScreen> {
                                   ),
                                 ),
                                 Icon(
-                                  Icons.schedule,
+                                  plan.plannedBenefits[i].isPlanned
+                                      ? Icons.schedule
+                                      : Icons.check_circle_outline,
                                   size: 16,
-                                  color: t.textMuted,
+                                  color: plan.plannedBenefits[i].isPlanned
+                                      ? t.textMuted
+                                      : t.accent,
                                 ),
                               ],
                             ),
@@ -522,63 +559,21 @@ class _PlanDetailScreenState extends ConsumerState<PlanDetailScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Row 1
-          Row(
-            children: [
-              Expanded(
-                child: Text(
+          SizedBox(
+            width: double.infinity,
+            child: Wrap(
+              alignment: WrapAlignment.spaceBetween,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                Text(
                   plan.tier.isPro ? 'NUTRITION AI' : 'AI ALLOWANCE',
                   style: t.mono(
                     fontSize: 12,
                     fontWeight: FontWeight.w500,
                     color: t.textMuted,
                     letterSpacing: 0.5,
-                  ),
-                ),
-              ),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 8,
-                  vertical: 3,
-                ),
-                decoration: BoxDecoration(
-                  color: t.surfaceHigh,
-                  borderRadius: BorderRadius.circular(6),
-                  border: Border.all(
-                    color: t.border,
-                    width: 1.0,
-                  ),
-                ),
-                child: Text(
-                  plan.aiAllowanceText,
-                  style: t.mono(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    color: t.textPrimary,
-                  ),
-                ),
-              ),
-            ],
-          ),
-
-          if (plan.workoutCvAllowanceText != null) ...[
-            const SizedBox(height: 12),
-            Divider(
-              color: t.border,
-              height: 1,
-              thickness: 1,
-            ),
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    'WORKOUT CV',
-                    style: t.mono(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w500,
-                      color: t.textMuted,
-                      letterSpacing: 0.5,
-                    ),
                   ),
                 ),
                 Container(
@@ -595,7 +590,7 @@ class _PlanDetailScreenState extends ConsumerState<PlanDetailScreen> {
                     ),
                   ),
                   child: Text(
-                    plan.workoutCvAllowanceText!,
+                    plan.aiAllowanceText,
                     style: t.mono(
                       fontSize: 12,
                       fontWeight: FontWeight.w600,
@@ -604,6 +599,58 @@ class _PlanDetailScreenState extends ConsumerState<PlanDetailScreen> {
                   ),
                 ),
               ],
+            ),
+          ),
+
+          if (plan.workoutCvAllowanceText != null) ...[
+            const SizedBox(height: 12),
+            Divider(
+              color: t.border,
+              height: 1,
+              thickness: 1,
+            ),
+            const SizedBox(height: 12),
+            SizedBox(
+              width: double.infinity,
+              child: Wrap(
+                alignment: WrapAlignment.spaceBetween,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  Text(
+                    'WORKOUT CV',
+                    style: t.mono(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                      color: t.textMuted,
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 3,
+                    ),
+                    decoration: BoxDecoration(
+                      color: t.surfaceHigh,
+                      borderRadius: BorderRadius.circular(6),
+                      border: Border.all(
+                        color: t.border,
+                        width: 1.0,
+                      ),
+                    ),
+                    child: Text(
+                      plan.workoutCvAllowanceText!,
+                      style: t.mono(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: t.textPrimary,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ],
 
@@ -834,6 +881,79 @@ class _PlanDetailScreenState extends ConsumerState<PlanDetailScreen> {
         ),
         textAlign: TextAlign.center,
       ),
+    );
+  }
+
+  Widget _buildUpgradeCtaButton({
+    required MembershipPalette t,
+    required String text,
+    required String subtext,
+    required VoidCallback onPressed,
+  }) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        SizedBox(
+          height: MembershipTokens.primaryCtaMinHeight,
+          child: ElevatedButton(
+            onPressed: onPressed,
+            style: ElevatedButton.styleFrom(
+              elevation: 0,
+              backgroundColor: t.primaryCtaBg,
+              foregroundColor: t.primaryCtaText,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(
+                  MembershipTokens.buttonRadius,
+                ),
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+            ).copyWith(
+              overlayColor: WidgetStateProperty.resolveWith((states) {
+                if (states.contains(WidgetState.pressed)) {
+                  return t.primaryCtaPressed;
+                }
+                return null;
+              }),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Flexible(
+                  child: Text(
+                    text,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: t.body(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                      color: t.primaryCtaText,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Icon(
+                  Icons.arrow_forward,
+                  size: 18,
+                  color: t.primaryCtaText,
+                ),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 8),
+        Center(
+          child: Text(
+            subtext,
+            style: t.mono(
+              fontSize: 11,
+              fontWeight: FontWeight.w400,
+              color: t.textMuted,
+            ),
+            textAlign: TextAlign.center,
+          ),
+        ),
+      ],
     );
   }
 }

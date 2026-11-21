@@ -121,6 +121,9 @@ class _AcceptanceChatNotifier extends StateNotifier<ChatState>
   Future<void> loadConversations({bool loadLatest = false}) async {}
 
   @override
+  Future<void> loadDailyBrief({bool force = false}) async {}
+
+  @override
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
 
@@ -362,9 +365,11 @@ void main() {
         await tester.pumpAndSettle();
         await tester.tap(find.text('Giao diện'));
         await tester.pumpAndSettle();
-        expect(find.text('Giao diện tối (Mặc định)'), findsOneWidget);
+        expect(find.text('Dark'), findsOneWidget);
+        expect(find.text('Light'), findsOneWidget);
+        expect(find.text('System'), findsOneWidget);
         expect(find.byIcon(Icons.check_rounded), findsOneWidget);
-        await tester.tap(find.text('Giao diện tối (Mặc định)'));
+        await tester.tap(find.text('Dark'));
         await tester.pumpAndSettle();
         expect(find.text('Bản nháp 123'), findsOneWidget);
 
@@ -487,9 +492,11 @@ void main() {
         await tester.pumpAndSettle();
         await tester.tap(find.text('Giao diện'));
         await tester.pumpAndSettle();
-        expect(find.text('Giao diện tối (Mặc định)'), findsOneWidget);
+        expect(find.text('Dark'), findsOneWidget);
+        expect(find.text('Light'), findsOneWidget);
+        expect(find.text('System'), findsOneWidget);
         expect(find.byIcon(Icons.check_rounded), findsOneWidget);
-        await tester.tap(find.text('Giao diện tối (Mặc định)'));
+        await tester.tap(find.text('Dark'));
         await tester.pumpAndSettle();
         expect(find.text('Bản nháp 123'), findsOneWidget);
 

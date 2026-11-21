@@ -2,6 +2,12 @@ import random
 from datetime import datetime
 from typing import List, Optional, Dict, Any
 
+from backend.app.services.context_utils import (
+    build_user_query,
+    get_vn_date_str,
+    normalize_email,
+)
+
 # Safe imports - remove dependency on app.models
 try:
     from bson import ObjectId
@@ -29,7 +35,7 @@ class MealGenerator:
                           allergies: List[str] = [], goal: str = "maintain") -> Dict[str, Any]:
         """Generate daily meal plan (mock implementation)"""
         return {
-            "date": datetime.utcnow().strftime("%Y-%m-%d"),
+            "date": get_vn_date_str(),
             "target_calories": target_calories,
             "meals": [
                 {
@@ -62,28 +68,8 @@ class MealGenerator:
             }
         }
 
-# Legacy class for backward compatibility
 class MealGeneratorService:
-    """Legacy MealGeneratorService for backward compatibility"""
-    
     def __init__(self, db_collection=None):
-        self.db = db_collection
-    
-    def generate_plan(self, request_data: dict) -> List[dict]:
-        """Generate meal plan (legacy implementation)"""
-        target_calories = request_data.get("target_calories", 2000)
-        allergies = request_data.get("allergies", [])
-        goal = request_data.get("goal", "maintain")
-        
-        # Use the new MealGenerator
-        generator = MealGenerator()
-        plan = generator.generate_daily_plan(target_calories, [], allergies, goal)
-        
-        # Convert to expected format
-        return plan.get("meals", [])
-
-class MealGeneratorService:
-    def __init__(self, db_collection):
         self.db = db_collection
         
         # Meal catalogs with Vietnamese names and macro bases
@@ -392,17 +378,18 @@ class MealGeneratorService:
     
     def _get_today_logs(self, user: dict) -> List[dict]:
         """Get today's nutrition logs for the user"""
-        from datetime import datetime
-        today = datetime.utcnow().strftime("%Y-%m-%d")
-        user_email = user.get("email", "")
+        user_id = str(user.get("_id") or user.get("user_id") or "")
+        user_email = normalize_email(user.get("email") or user.get("user_email"))
         
         try:
             from backend.app.database import nutrition_collection
             if nutrition_collection is not None:
                 logs = list(
                     nutrition_collection.find({
-                        "user_email": user_email,
-                        "date": today
+                        "$and": [
+                            build_user_query(user_id, user_email),
+                            {"date": get_vn_date_str()}
+                        ]
                     })
                 )
                 return logs
@@ -548,7 +535,7 @@ class MealGeneratorService:
             })
         
         return {
-            "date":            datetime.utcnow().strftime("%Y-%m-%d"),
+            "date":            get_vn_date_str(),
             "meals":           meals,
             "total_calories":  round(total_calories),
             "nutrition_summary": {

@@ -261,7 +261,7 @@ class _WalletRewardsScreenState extends ConsumerState<WalletRewardsScreen> {
                           title: Text('Thông tin đổi điểm', style: TextStyle(color: textPrimary, fontSize: 16)),
                           content: Text(
                             'Điểm Saman Points (SP) được tích lũy khi bạn hoàn thành đầy đủ nhiệm vụ mỗi ngày (+20 điểm/ngày). '
-                            'Hạ tầng quy đổi lượt AI đang trong giai đoạn kết nối và sẽ mở trong phiên bản tiếp theo.',
+                            'Khi đổi điểm lấy lượt AI, hệ thống sẽ cộng trực tiếp lượt bonus vào hạn mức AI hôm nay của bạn (Core 3, Pro 3, Food Vision).',
                             style: TextStyle(color: textSecondary, fontSize: 13, height: 1.4),
                           ),
                           actions: [
@@ -396,7 +396,7 @@ class _WalletRewardsScreenState extends ConsumerState<WalletRewardsScreen> {
                                         : () {
                                             SamanFeedbackSnackBar.show(
                                               context,
-                                              message: '${item.title}: Gói đổi sắp ra mắt (đang kết nối hạ tầng AI quota)',
+                                              message: '${item.title}: ${item.statusNote}',
                                               type: FeedbackType.info,
                                               duration: const Duration(seconds: 2),
                                             );
@@ -489,7 +489,7 @@ class _WalletRewardsScreenState extends ConsumerState<WalletRewardsScreen> {
                           ),
                           const SizedBox(height: 8),
                           Text(
-                            'Điểm thưởng Saman Points ghi nhận kỷ luật rèn luyện của bạn. Tính năng quy đổi lượt AI đang trong quá trình kết nối hạ tầng.',
+                            'Đổi điểm Saman Points để cộng trực tiếp lượt bonus vào hạn mức AI hôm nay (Core 3, Pro 3, Food Vision).',
                             style: TextStyle(fontSize: 11, color: textSecondary, height: 1.4),
                           ),
                         ],
@@ -642,7 +642,7 @@ class _WalletRewardsScreenState extends ConsumerState<WalletRewardsScreen> {
                       : Text(
                           selected != null && selected.isAvailable
                               ? 'Đổi ${selected.title} với ${selected.pointsCost} điểm'
-                              : 'Các gói đổi sắp ra mắt',
+                              : 'Chọn gói khả dụng để đổi',
                           style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
                         ),
                 ),

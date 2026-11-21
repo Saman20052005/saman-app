@@ -77,6 +77,41 @@ abstract class INutritionRepository {
     String mealType = 'snack',
     double servingsConsumed = 1.0,
   });
+  Future<BarcodeLookupResult> lookupBarcode(String barcode);
+  Future<BarcodeLookupResult> analyzeNutritionLabel({
+    required String barcode,
+    required XFile imageFile,
+    String? productName,
+    String? idempotencyKey,
+  });
+}
+
+class BarcodeLookupResult {
+  final Food food;
+  final String barcode;
+  final String? brand;
+  final String? servingSize;
+  final int suggestedGrams;
+  final String source;
+
+  const BarcodeLookupResult({
+    required this.food,
+    required this.barcode,
+    this.brand,
+    this.servingSize,
+    this.suggestedGrams = 100,
+    required this.source,
+  });
+}
+
+class BarcodeNotFoundException implements Exception {
+  final String barcode;
+  final String message;
+
+  const BarcodeNotFoundException(this.barcode, this.message);
+
+  @override
+  String toString() => message;
 }
 
 /// Raised when an operation lookup finds an in-progress or failed_unknown operation

@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:http_parser/http_parser.dart';
+import '../../../../config/api_config.dart';
 import '../../domain/models/community_author.dart';
 import '../../domain/models/community_comment.dart';
 import '../../domain/models/community_post.dart';
@@ -516,7 +517,10 @@ class CommunityRemoteDatasourceImpl implements CommunityRemoteDatasource {
       author: author,
       timeAgo: json['time_ago'] as String? ?? 'Hôm nay',
       caption: json['caption'] as String? ?? '',
-      photoUrls: List<String>.from(json['photo_urls'] as List<dynamic>? ?? []),
+      photoUrls: (json['photo_urls'] as List<dynamic>? ?? [])
+          .map((e) => _resolveMediaUrl(e as String?))
+          .whereType<String>()
+          .toList(),
       nutritionInfo: nutrition,
       workoutAttachment: workout,
       qaInfo: qa,
@@ -530,11 +534,25 @@ class CommunityRemoteDatasourceImpl implements CommunityRemoteDatasource {
     );
   }
 
+  String? _resolveMediaUrl(String? url) {
+    if (url == null || url.isEmpty) return url;
+    if (url.startsWith('http://') || url.startsWith('https://')) {
+      return url;
+    }
+    if (url.startsWith('/static/community/')) {
+      return '${ApiConfig.baseUrl}/api/community$url';
+    }
+    if (url.startsWith('/')) {
+      return '${ApiConfig.baseUrl}$url';
+    }
+    return url;
+  }
+
   CommunityAuthor _parseAuthor(Map<String, dynamic> json) {
     return CommunityAuthor(
       id: json['id'] as String? ?? '',
       name: json['name'] as String? ?? 'Saman Athlete',
-      avatarUrl: json['avatar_url'] as String?,
+      avatarUrl: _resolveMediaUrl(json['avatar_url'] as String?),
       title: json['title'] as String?,
       isVerified: json['is_verified'] as bool? ?? false,
       followerCount: json['follower_count'] as int? ?? 0,
