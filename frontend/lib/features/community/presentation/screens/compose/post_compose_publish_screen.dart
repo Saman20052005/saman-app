@@ -88,11 +88,7 @@ class _PostComposePublishScreenState
     if (composer.selectedMediaUrls.length >= 10) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(
-            Localizations.maybeLocaleOf(context)?.languageCode == 'en'
-                ? 'Maximum 10 photos allowed'
-                : 'Đã đạt tối đa 10 ảnh',
-          ),
+          content: Text(context.tr('compose_max_photos_reached')),
           duration: const Duration(seconds: 2),
         ),
       );
@@ -131,11 +127,7 @@ class _PostComposePublishScreenState
       if (composer.selectedMediaUrls.length + pickedFiles.length > 10) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(
-              Localizations.maybeLocaleOf(context)?.languageCode == 'en'
-                  ? 'Maximum 10 photos allowed'
-                  : 'Chỉ chọn tối đa 10 ảnh',
-            ),
+            content: Text(context.tr('compose_max_photos_limit')),
             duration: const Duration(seconds: 2),
           ),
         );
@@ -190,9 +182,7 @@ class _PostComposePublishScreenState
               ),
               const SizedBox(height: 16),
               Text(
-                Localizations.maybeLocaleOf(context)?.languageCode == 'en'
-                    ? 'Who can see this post?'
-                    : 'Ai có thể xem bài viết này?',
+                context.tr('compose_audience_sheet_title'),
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w700,
@@ -203,18 +193,14 @@ class _PostComposePublishScreenState
               _buildAudienceOption(
                 icon: Icons.public_rounded,
                 title: context.tr('compose_audience_public'),
-                subtitle: Localizations.maybeLocaleOf(context)?.languageCode == 'en'
-                    ? 'Anyone in Saman community can see'
-                    : 'Mọi người trong cộng đồng Saman đều có thể xem',
+                subtitle: context.tr('compose_audience_public_desc'),
                 value: 'Công khai',
                 tokens: tokens,
               ),
               _buildAudienceOption(
                 icon: Icons.group_rounded,
                 title: context.tr('compose_audience_followers'),
-                subtitle: Localizations.maybeLocaleOf(context)?.languageCode == 'en'
-                    ? 'Only your followers can see'
-                    : 'Chỉ những người đang theo dõi bạn mới có thể xem',
+                subtitle: context.tr('compose_audience_followers_desc'),
                 value: 'Người theo dõi',
                 tokens: tokens,
                 legacyVietnameseText: 'Người theo dõi',
@@ -222,9 +208,7 @@ class _PostComposePublishScreenState
               _buildAudienceOption(
                 icon: Icons.lock_outline_rounded,
                 title: context.tr('compose_audience_private'),
-                subtitle: Localizations.maybeLocaleOf(context)?.languageCode == 'en'
-                    ? 'Save as personal private journal'
-                    : 'Lưu dưới dạng nhật ký riêng tư cá nhân',
+                subtitle: context.tr('compose_audience_private_desc'),
                 value: 'Chỉ mình tôi',
                 tokens: tokens,
               ),
@@ -297,6 +281,43 @@ class _PostComposePublishScreenState
     );
   }
 
+  String _localizedAudience(BuildContext context, String audience) {
+    final isVi = Localizations.maybeLocaleOf(context)?.languageCode == 'vi';
+    switch (audience) {
+      case 'Công khai':
+      case 'public':
+        return context.tr('compose_audience_public');
+      case 'Người theo dõi':
+      case 'followers_only':
+        if (isVi && audience == 'Người theo dõi') return audience;
+        return context.tr('compose_audience_followers');
+      case 'Chỉ mình tôi':
+      case 'private':
+        return context.tr('compose_audience_private');
+      default:
+        return audience;
+    }
+  }
+
+  String _localizedTopic(BuildContext context, String topic) {
+    switch (topic) {
+      case '#BữaĂn':
+        return context.tr('compose_topic_meal');
+      case '#TậpLuyện':
+        return context.tr('compose_topic_workout');
+      case '#PhụcHồi':
+        return context.tr('compose_topic_recovery');
+      case '#ChiaSẻ':
+        return context.tr('compose_topic_share');
+      case '#KỷLuật':
+        return context.tr('compose_topic_discipline');
+      case '#Mẹo':
+        return context.tr('compose_topic_tips');
+      default:
+        return topic;
+    }
+  }
+
   void _showTopicSheet() {
     if (ref.read(communityComposerProvider).hasPendingSubmission) return;
     final topics = ['#BữaĂn', '#TậpLuyện', '#PhụcHồi', '#ChiaSẻ', '#KỷLuật', '#Mẹo'];
@@ -327,7 +348,7 @@ class _PostComposePublishScreenState
               ),
               const SizedBox(height: 16),
               Text(
-                'Chọn chủ đề bài viết',
+                context.tr('compose_topic_sheet_title'),
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w700,
@@ -353,7 +374,7 @@ class _PostComposePublishScreenState
                         borderRadius: BorderRadius.circular(10),
                       ),
                       child: Text(
-                        t,
+                        _localizedTopic(context, t),
                         style: TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.w600,
@@ -430,7 +451,7 @@ class _PostComposePublishScreenState
                             decoration: InputDecoration(
                               filled: false,
                               counterStyle: tokens.headerSubtitle,
-                              hintText: 'Viết chú thích cho bài tập hoặc bữa ăn hôm nay...',
+                              hintText: context.tr('compose_caption_hint'),
                               hintStyle: TextStyle(
                                 fontSize: 14,
                                 color: tokens.textMuted,
@@ -532,25 +553,25 @@ class _PostComposePublishScreenState
                           _buildSettingTile(
                             icon: Icons.public_rounded,
                             label: context.tr('community_publish_audience'),
-                            value: composer.audience,
+                            value: _localizedAudience(context, composer.audience),
                             onTap: _showAudienceSheet,
                             tokens: tokens,
                           ),
                           Divider(color: tokens.border, height: 1),
                           _buildSettingTile(
                             icon: Icons.tag_rounded,
-                            label: 'Chủ đề',
-                            value: composer.topic,
+                            label: context.tr('compose_topic_label'),
+                            value: _localizedTopic(context, composer.topic),
                             onTap: _showTopicSheet,
                             tokens: tokens,
                           ),
                           Divider(color: tokens.border, height: 1),
                           _buildSettingTile(
                             icon: Icons.fitness_center_rounded,
-                            label: 'Đính kèm hoạt động',
+                            label: context.tr('compose_attach_activity_label'),
                             value: composer.attachedActivity != null
-                                ? 'Đã đính kèm'
-                                : 'Chưa đính kèm',
+                                ? context.tr('compose_attached_status')
+                                : context.tr('compose_not_attached_status'),
                             onTap: () {
                               if (ref.read(communityComposerProvider).hasPendingSubmission) return;
                               Navigator.push(
@@ -566,10 +587,10 @@ class _PostComposePublishScreenState
                           Divider(color: tokens.border, height: 1),
                           _buildSettingTile(
                             icon: Icons.photo_library_outlined,
-                            label: 'Thêm ảnh từ thiết bị',
+                            label: context.tr('compose_add_photos_label'),
                             value: composer.selectedMediaUrls.isNotEmpty
-                                ? 'Đã chọn (${composer.selectedMediaUrls.length})'
-                                : 'Thư viện',
+                                ? '${context.tr('compose_photos_selected_prefix')} (${composer.selectedMediaUrls.length})'
+                                : context.tr('compose_gallery_label'),
                             onTap: (composer.hasPendingSubmission ||
                                     composer.attachedActivity != null)
                                 ? null
@@ -589,7 +610,7 @@ class _PostComposePublishScreenState
                                       const SizedBox(width: 12),
                                       Flexible(
                                         child: Text(
-                                          'Cho phép bình luận',
+                                          context.tr('compose_allow_comments'),
                                           overflow: TextOverflow.ellipsis,
                                           style: TextStyle(
                                             fontSize: 13,
@@ -755,7 +776,7 @@ class _PostComposePublishScreenState
               child: Row(
                 children: [
                   Text(
-                    composer.audience,
+                    _localizedAudience(context, composer.audience),
                     style: TextStyle(fontSize: 11, color: tokens.textSecondary),
                   ),
                   Icon(Icons.keyboard_arrow_down_rounded, size: 14, color: tokens.textSecondary),
