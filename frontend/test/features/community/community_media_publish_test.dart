@@ -116,7 +116,7 @@ void main() {
       expect(post.caption, 'Leg day triumph');
       expect(
         post.photoUrls,
-        ['${ApiConfig.baseUrl}/api/community/static/community/my_photo.jpg'],
+        ['${ApiConfig.baseUrl}/static/community/my_photo.jpg'],
       );
       expect(transport.postBodies.length, 1);
       expect(transport.postBodies.first['type'], 'photo');
@@ -229,6 +229,21 @@ void main() {
       // Ensure media is cleared in state
       expect(container.read(communityComposerProvider).selectedMediaUrls, isEmpty);
       expect(find.byKey(const ValueKey('remove-selected-media-button')), findsNothing);
+    });
+
+    test('5. _resolveMediaUrl resolves /static/community/abc.jpg without /api/community prefix', () async {
+      final transport = MockMediaTransport();
+      final datasource = CommunityRemoteDatasourceImpl(dio: transport.dio);
+
+      final post = await datasource.publishPost({
+        'type': 'photo',
+        'content': 'Static media URL check',
+        'photo_urls': ['/static/community/abc.jpg'],
+        'privacy': 'public',
+        'topic': '#TậpLuyện',
+      }, 'req_resolve_static_abc');
+
+      expect(post.photoUrls, ['${ApiConfig.baseUrl}/static/community/abc.jpg']);
     });
   });
 }

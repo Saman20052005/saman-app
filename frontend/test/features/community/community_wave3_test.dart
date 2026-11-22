@@ -264,7 +264,7 @@ void main() {
       expect(data.gridItems.length, 1);
       expect(
         data.gridItems.first.imageUrl,
-        '${ApiConfig.baseUrl}/api/community/static/community/grid_1.jpg',
+        '${ApiConfig.baseUrl}/static/community/grid_1.jpg',
       );
       expect(data.gridItems.first.hasMultiPhoto, isTrue);
       expect(data.trendingTopics.single.hashtag, '#TậpLuyện');

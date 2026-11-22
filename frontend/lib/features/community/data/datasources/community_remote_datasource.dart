@@ -631,9 +631,6 @@ class CommunityRemoteDatasourceImpl implements CommunityRemoteDatasource {
     if (url.startsWith('http://') || url.startsWith('https://')) {
       return url;
     }
-    if (url.startsWith('/static/community/')) {
-      return '${ApiConfig.baseUrl}/api/community$url';
-    }
     if (url.startsWith('/')) {
       return '${ApiConfig.baseUrl}$url';
     }
