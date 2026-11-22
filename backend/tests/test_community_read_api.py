@@ -307,11 +307,16 @@ class TestCommunityReadApiContract(unittest.TestCase):
         self.assertEqual(cmt_author["name"], "Athlete B")
         self.assertNotIn("email", cmt_author)
 
+    @patch("backend.routers.community._answer_votes")
     @patch("backend.routers.community.get_community_answers_collection")
     @patch("backend.routers.community.get_community_posts_collection")
-    def test_question_answers_ordered_and_projected_safely(self, mock_get_posts, mock_get_answers):
+    def test_question_answers_ordered_and_projected_safely(self, mock_get_posts, mock_get_answers, mock_answer_votes):
         mock_posts = MagicMock()
         mock_answers = MagicMock()
+        mock_votes = MagicMock()
+        mock_votes.count_documents.return_value = 0
+        mock_votes.find_one.return_value = None
+        mock_answer_votes.return_value = mock_votes
         mock_get_posts.return_value = mock_posts
         mock_get_answers.return_value = mock_answers
 

@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:health_ai_app/config/app_translations.dart';
+import 'package:health_ai_app/features/community/data/datasources/community_fake_datasource.dart';
 import 'package:health_ai_app/features/community/data/repositories/community_repository_impl.dart';
 import 'package:health_ai_app/features/community/domain/models/community_author.dart';
 import 'package:health_ai_app/features/community/domain/models/community_comment.dart';
@@ -144,8 +145,16 @@ void main() {
     testWidgets('Toggles Feed tabs and banner between EN and VI reactively', (tester) async {
       await tester.binding.setSurfaceSize(const Size(393, 852));
       addTearDown(() => tester.binding.setSurfaceSize(null));
+      CommunityFakeDatasource.resetStorage();
 
-      final container = ProviderContainer();
+      final container = ProviderContainer(
+        overrides: [
+          useRemoteCommunityProvider.overrideWith((ref) => false),
+          communityFakeDatasourceProvider.overrideWithValue(
+            CommunityFakeDatasource(currentUserId: 'loc_test_user'),
+          ),
+        ],
+      );
       addTearDown(container.dispose);
 
       await tester.pumpWidget(
@@ -154,7 +163,8 @@ void main() {
           child: const CommunityFeedScreen(),
         ),
       );
-      await tester.pumpAndSettle();
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
 
       // 1. Initial English State
       expect(find.text('All'), findsOneWidget);
@@ -164,7 +174,8 @@ void main() {
 
       // 2. Switch to Vietnamese
       await container.read(languageProvider.notifier).changeLanguage('vi');
-      await tester.pumpAndSettle();
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
 
       expect(find.text('Tất cả'), findsOneWidget);
       expect(find.text('Đang theo dõi'), findsOneWidget);
@@ -173,7 +184,8 @@ void main() {
 
       // 3. Switch back to English
       await container.read(languageProvider.notifier).changeLanguage('en');
-      await tester.pumpAndSettle();
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
 
       expect(find.text('All'), findsOneWidget);
       expect(find.text('Following'), findsOneWidget);

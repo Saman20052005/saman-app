@@ -190,9 +190,14 @@ class InMemoryPostsCol:
                         if not or_pass:
                             matches_and = False
                             break
-                    if "privacy" in sub and "$in" in sub["privacy"]:
+                    if "privacy" in sub:
+                        priv_cond = sub["privacy"]
                         p = d.get("privacy", "public")
-                        if p not in sub["privacy"]["$in"]:
+                        if isinstance(priv_cond, dict) and "$in" in priv_cond:
+                            if p not in priv_cond["$in"]:
+                                matches_and = False
+                                break
+                        elif p != priv_cond:
                             matches_and = False
                             break
                 if not matches_and:
@@ -214,6 +219,15 @@ class InMemoryPostsCol:
                         matched_or = True
                         break
                 if not matched_or:
+                    continue
+
+            if "privacy" in filter_query:
+                priv_cond = filter_query["privacy"]
+                p = d.get("privacy", "public")
+                if isinstance(priv_cond, dict) and "$in" in priv_cond:
+                    if p not in priv_cond["$in"]:
+                        continue
+                elif p != priv_cond:
                     continue
 
             results.append(dict(d))

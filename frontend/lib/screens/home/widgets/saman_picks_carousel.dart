@@ -300,12 +300,16 @@ class _SamanPickCard extends StatelessWidget {
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              Text(
-                                item.actionLabel,
-                                style: TextStyle(
-                                  fontSize: 11.5,
-                                  fontWeight: FontWeight.w500,
-                                  color: tokens.textSecondary,
+                              Flexible(
+                                child: Text(
+                                  item.actionLabel,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                    fontSize: 11.5,
+                                    fontWeight: FontWeight.w500,
+                                    color: tokens.textSecondary,
+                                  ),
                                 ),
                               ),
                               const SizedBox(width: 3),
