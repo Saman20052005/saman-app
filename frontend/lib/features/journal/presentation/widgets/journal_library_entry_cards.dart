@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import '../../../../screens/home/tokens/saman_home_tokens.dart';
 import '../../domain/models/journal_article.dart';
+import '../../domain/models/journal_search_result.dart';
+import '../screens/journal_search_screen.dart';
 import 'journal_preview_sheet.dart';
 
 /// 2-column knowledge library cards (Exercises, Foods) in R01.
@@ -95,17 +97,18 @@ class _LibraryCard extends StatelessWidget {
       color: Colors.transparent,
       child: InkWell(
         onTap: () {
-          JournalPreviewSheet.show(
-            context,
-            title: entry.title,
-            categoryLabel: 'Thư viện',
-            description: entry.routeDescription ??
-                'Dữ liệu chuẩn hóa với ${entry.itemCountLabel}.',
-            metricLabel: entry.itemCountLabel,
-            imageAsset: entry.coverImageAsset,
-            icon: entry.icon,
-            notice:
-                'Màn duyệt chi tiết của Thư viện đang được xây dựng theo lộ trình phát triển.',
+          final targetCategory = switch (entry.id) {
+            'library_exercises' => JournalSearchCategory.exercises,
+            'library_foods' => JournalSearchCategory.foods,
+            _ => JournalSearchCategory.all,
+          };
+          Navigator.of(context).push(
+            MaterialPageRoute<void>(
+              builder: (_) => JournalSearchScreen(
+                initialCategory: targetCategory,
+                initialQuery: '',
+              ),
+            ),
           );
         },
         borderRadius: BorderRadius.circular(SamanHomeTokens.radiusLg),

@@ -75,4 +75,105 @@ class DraftPost {
       updatedAt: updatedAt ?? this.updatedAt,
     );
   }
+
+  Map<String, dynamic> toJson() {
+    return {
+      if (id.isNotEmpty) 'id': id,
+      'caption': caption,
+      'media_urls': mediaUrls,
+      'aspect_ratio': aspectRatio,
+      'rotation': rotation,
+      'brightness': brightness,
+      'contrast': contrast,
+      'audience': audience,
+      'topic': topic,
+      'allow_comments': allowComments,
+      'attachment': _attachmentToJson(attachment),
+      if (questionTitle != null) 'question_title': questionTitle,
+      if (questionDetails != null) 'question_details': questionDetails,
+    };
+  }
+
+  factory DraftPost.fromJson(Map<String, dynamic> json) {
+    final rawAttachment = json['attachment'];
+    return DraftPost(
+      id: json['id'] as String? ?? '',
+      userId: json['user_id'] as String? ?? 'current_user',
+      caption: json['caption'] as String? ?? '',
+      mediaUrls: (json['media_urls'] as List<dynamic>? ?? [])
+          .map((e) => e.toString())
+          .toList(),
+      aspectRatio: json['aspect_ratio'] as String? ?? '1:1',
+      rotation: (json['rotation'] as num?)?.toInt() ?? 0,
+      brightness: (json['brightness'] as num?)?.toDouble() ?? 0.0,
+      contrast: (json['contrast'] as num?)?.toDouble() ?? 0.0,
+      audience: json['audience'] as String? ?? 'Công khai',
+      topic: json['topic'] as String? ?? '#BữaĂn',
+      allowComments: json['allow_comments'] as bool? ?? true,
+      attachment: rawAttachment is Map
+          ? _attachmentFromJson(Map<String, dynamic>.from(rawAttachment))
+          : null,
+      questionTitle: json['question_title'] as String?,
+      questionDetails: json['question_details'] as String?,
+      updatedAt:
+          DateTime.tryParse(json['updated_at'] as String? ?? '') ?? DateTime.now(),
+    );
+  }
+
+  static Map<String, dynamic>? _attachmentToJson(
+    PostAttachmentSnapshot? att,
+  ) {
+    if (att == null) return null;
+    return {
+      'type': att.type.name,
+      'id': att.id,
+      'title': att.title,
+      'date_formatted': att.dateFormatted,
+      'category': att.category,
+      'include_duration': att.includeDuration,
+      'include_exercises_or_foods': att.includeExercisesOrFoods,
+      'include_load_or_macros': att.includeLoadOrMacros,
+      if (att.durationFormatted != null)
+        'duration_formatted': att.durationFormatted,
+      if (att.exerciseCount != null) 'exercise_count': att.exerciseCount,
+      if (att.setCount != null) 'set_count': att.setCount,
+      if (att.loadSummaryFormatted != null)
+        'load_summary_formatted': att.loadSummaryFormatted,
+      if (att.calories != null) 'calories': att.calories,
+      if (att.macrosSummaryFormatted != null)
+        'macros_summary_formatted': att.macrosSummaryFormatted,
+      if (att.imageUrl != null) 'image_url': att.imageUrl,
+      if (att.previewHash != null) 'preview_hash': att.previewHash,
+      if (att.sharedSnapshot != null) 'shared_snapshot': att.sharedSnapshot,
+    };
+  }
+
+  static PostAttachmentSnapshot _attachmentFromJson(Map<String, dynamic> map) {
+    final typeStr = map['type'] as String? ?? 'workout';
+    final rawSnapshot = map['shared_snapshot'];
+    return PostAttachmentSnapshot(
+      type: typeStr == 'meal' ? AttachmentType.meal : AttachmentType.workout,
+      id: map['id'] as String? ?? '',
+      title: map['title'] as String? ?? '',
+      dateFormatted: map['date_formatted'] as String? ?? '',
+      category: map['category'] as String? ?? 'Saman Kinetic',
+      includeDuration: map['include_duration'] as bool? ?? true,
+      includeExercisesOrFoods:
+          map['include_exercises_or_foods'] as bool? ?? true,
+      includeLoadOrMacros: map['include_load_or_macros'] as bool? ?? false,
+      durationFormatted: map['duration_formatted'] as String?,
+      exerciseCount: (map['exercise_count'] as num?)?.toInt(),
+      setCount: (map['set_count'] as num?)?.toInt(),
+      loadSummaryFormatted: map['load_summary_formatted'] as String?,
+      calories: (map['calories'] as num?)?.toInt(),
+      macrosSummaryFormatted: map['macros_summary_formatted'] as String?,
+      imageUrl: map['image_url'] as String?,
+      previewHash: map['preview_hash'] as String?,
+      sharedSnapshot: rawSnapshot is Map
+          ? Map<String, dynamic>.unmodifiable(
+              Map<String, dynamic>.from(rawSnapshot),
+            )
+          : null,
+    );
+  }
 }

@@ -6,6 +6,7 @@ import '../../domain/models/community_discover_item.dart';
 import '../providers/community_providers.dart';
 import '../widgets/community_bottom_navigation_bar.dart';
 import 'community_post_detail_screen.dart';
+import 'profile/community_profile_screen.dart';
 
 class CommunityDiscoverScreen extends ConsumerStatefulWidget {
   const CommunityDiscoverScreen({super.key});
@@ -28,8 +29,15 @@ class _CommunityDiscoverScreenState
   @override
   Widget build(BuildContext context) {
     final tokens = SamanHomeTokens.of(context);
+    final isRemote = ref.watch(useRemoteCommunityProvider);
     final discoverState = ref.watch(communityDiscoverProvider);
     final discoverNotifier = ref.read(communityDiscoverProvider.notifier);
+
+    final hasNoResults = !discoverState.isLoading &&
+        discoverState.searchQuery.trim().isNotEmpty &&
+        discoverState.data.gridItems.isEmpty &&
+        discoverState.data.trendingTopics.isEmpty &&
+        discoverState.data.recommendedCreators.isEmpty;
 
     return Scaffold(
       backgroundColor: tokens.canvas,
@@ -40,8 +48,8 @@ class _CommunityDiscoverScreenState
             // Header
             _buildHeader(context, tokens),
 
-            // Honest Preview Notice Banner
-            _buildPreviewNoticeBanner(tokens),
+            // Honest Preview Notice Banner (hidden in remote mode)
+            if (!isRemote) _buildPreviewNoticeBanner(tokens),
 
             // Search Bar
             _buildSearchBar(discoverNotifier, tokens),
@@ -54,43 +62,56 @@ class _CommunityDiscoverScreenState
                         color: tokens.greenAccent,
                       ),
                     )
-                  : SingleChildScrollView(
-                      padding: const EdgeInsets.only(bottom: 32),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          // Topic Chips
-                          _buildTopicChips(
-                            discoverState.data.topicChips,
-                            discoverState.activeTopic,
-                            (topic) => discoverNotifier.setTopic(topic),
-                            tokens,
-                          ),
-                          const SizedBox(height: 16),
+                  : RefreshIndicator(
+                      color: tokens.greenAccent,
+                      onRefresh: () => discoverNotifier.refresh(),
+                      child: SingleChildScrollView(
+                        physics: const AlwaysScrollableScrollPhysics(),
+                        padding: const EdgeInsets.only(bottom: 32),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            // Topic Chips
+                            _buildTopicChips(
+                              discoverState.data.topicChips,
+                              discoverState.activeTopic,
+                              (topic) => discoverNotifier.setTopic(topic),
+                              tokens,
+                            ),
+                            const SizedBox(height: 16),
 
-                          // Section 1: Visual Grid (3x3)
-                          _buildVisualGridSection(
-                            context,
-                            discoverState.data.gridItems,
-                            tokens,
-                          ),
-                          const SizedBox(height: 24),
+                            if (hasNoResults)
+                              _buildSearchEmptyState(discoverNotifier, tokens)
+                            else ...[
+                              // Section 1: Visual Grid (3x3)
+                              _buildVisualGridSection(
+                                context,
+                                discoverState.data.gridItems,
+                                tokens,
+                              ),
+                              const SizedBox(height: 24),
 
-                          // Section 2: Trending Topics
-                          _buildTrendingTopicsSection(
-                            discoverState.data.trendingTopics,
-                            tokens,
-                          ),
-                          const SizedBox(height: 24),
+                              // Section 2: Trending Topics
+                              if (discoverState.data.trendingTopics.isNotEmpty) ...[
+                                _buildTrendingTopicsSection(
+                                  discoverState.data.trendingTopics,
+                                  discoverNotifier,
+                                  tokens,
+                                ),
+                                const SizedBox(height: 24),
+                              ],
 
-                          // Section 3: Recommended Creators to follow
-                          _buildRecommendedCreatorsSection(
-                            discoverState.data.recommendedCreators,
-                            (authorId) =>
-                                discoverNotifier.toggleFollow(authorId),
-                            tokens,
-                          ),
-                        ],
+                              // Section 3: Recommended Creators to follow
+                              if (discoverState.data.recommendedCreators.isNotEmpty)
+                                _buildRecommendedCreatorsSection(
+                                  discoverState.data.recommendedCreators,
+                                  (authorId) =>
+                                      discoverNotifier.toggleFollow(authorId),
+                                  tokens,
+                                ),
+                            ],
+                          ],
+                        ),
                       ),
                     ),
             ),
@@ -250,10 +271,33 @@ class _CommunityDiscoverScreenState
                 ),
               ),
             ),
-            Icon(
-              Icons.mic_none_rounded,
-              color: tokens.textMuted,
-              size: 20,
+            ValueListenableBuilder<TextEditingValue>(
+              valueListenable: _searchController,
+              builder: (context, value, _) {
+                if (value.text.isEmpty) {
+                  return Icon(
+                    Icons.mic_none_rounded,
+                    color: tokens.textMuted,
+                    size: 20,
+                  );
+                }
+                return InkWell(
+                  key: const ValueKey('discover-search-clear-button'),
+                  onTap: () {
+                    _searchController.clear();
+                    notifier.setSearchQuery('');
+                  },
+                  borderRadius: BorderRadius.circular(12),
+                  child: Padding(
+                    padding: const EdgeInsets.all(4),
+                    child: Icon(
+                      Icons.close_rounded,
+                      color: tokens.textSecondary,
+                      size: 18,
+                    ),
+                  ),
+                );
+              },
             ),
           ],
         ),
@@ -391,123 +435,224 @@ class _CommunityDiscoverScreenState
                   : tokens.border,
               borderRadius: BorderRadius.circular(16),
             ),
-            child: GridView.builder(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              itemCount: items.length,
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 3,
-                crossAxisSpacing: 4,
-                mainAxisSpacing: 4,
-                childAspectRatio: 1,
-              ),
-              itemBuilder: (context, index) {
-                final item = items[index];
-                return InkWell(
-                  onTap: () {
-                    if (item.postId != null) {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => CommunityPostDetailScreen(
-                            postId: item.postId!,
+            child: items.isEmpty
+                ? Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 28, horizontal: 16),
+                    child: Center(
+                      child: Column(
+                        children: [
+                          Icon(
+                            Icons.photo_library_outlined,
+                            size: 32,
+                            color: tokens.textMuted,
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            'Chưa có khoảnh khắc nào trong chủ đề này',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: tokens.textSecondary,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  )
+                : GridView.builder(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    itemCount: items.length,
+                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 3,
+                      crossAxisSpacing: 4,
+                      mainAxisSpacing: 4,
+                      childAspectRatio: 1,
+                    ),
+                    itemBuilder: (context, index) {
+                      final item = items[index];
+                      return InkWell(
+                        onTap: () {
+                          if (item.postId != null) {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => CommunityPostDetailScreen(
+                                  postId: item.postId!,
+                                ),
+                              ),
+                            );
+                          }
+                        },
+                        borderRadius: BorderRadius.circular(10),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(10),
+                          child: Stack(
+                            fit: StackFit.expand,
+                            children: [
+                              _buildGridMedia(item, tokens),
+                              // Top badge (dark translucent overlay kept for media contrast)
+                              if (item.hasMultiPhoto || item.hasVideo)
+                                Positioned(
+                                  top: 4,
+                                  right: 4,
+                                  child: Container(
+                                    padding: const EdgeInsets.all(3),
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFF121314).withOpacity(0.8),
+                                      borderRadius: BorderRadius.circular(5),
+                                    ),
+                                    child: Icon(
+                                      item.hasMultiPhoto
+                                          ? Icons.photo_library_rounded
+                                          : Icons.play_arrow_rounded,
+                                      size: 12,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                ),
+                              // Bottom gradient & likes (dark scrim kept for media contrast)
+                              Positioned(
+                                left: 0,
+                                right: 0,
+                                bottom: 0,
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 6,
+                                    vertical: 4,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    gradient: LinearGradient(
+                                      begin: Alignment.topCenter,
+                                      end: Alignment.bottomCenter,
+                                      colors: [
+                                        Colors.transparent,
+                                        Colors.black.withOpacity(0.85),
+                                      ],
+                                    ),
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      const Icon(
+                                        Icons.favorite_rounded,
+                                        size: 11,
+                                        color: Color(0xFF5BBFA0),
+                                      ),
+                                      const SizedBox(width: 3),
+                                      Text(
+                                        item.formattedLikes,
+                                        style: const TextStyle(
+                                          fontSize: 10,
+                                          fontWeight: FontWeight.w600,
+                                          color: Colors.white,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                       );
-                    }
-                  },
-                  borderRadius: BorderRadius.circular(10),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(10),
-                    child: Stack(
-                      fit: StackFit.expand,
-                      children: [
-                        Container(
-                          color: tokens.cardSurface,
-                          child: Center(
-                            child: Icon(
-                              item.hasVideo
-                                  ? Icons.play_circle_fill_rounded
-                                  : Icons.image_rounded,
-                              size: 28,
-                              color: tokens.secondarySurface,
-                            ),
-                          ),
-                        ),
-                        // Top badge (dark translucent overlay kept for media contrast)
-                        if (item.hasMultiPhoto || item.hasVideo)
-                          Positioned(
-                            top: 4,
-                            right: 4,
-                            child: Container(
-                              padding: const EdgeInsets.all(3),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFF121314).withOpacity(0.8),
-                                borderRadius: BorderRadius.circular(5),
-                              ),
-                              child: Icon(
-                                item.hasMultiPhoto
-                                    ? Icons.photo_library_rounded
-                                    : Icons.play_arrow_rounded,
-                                size: 12,
-                                color: Colors.white,
-                              ),
-                            ),
-                          ),
-                        // Bottom gradient & likes (dark scrim kept for media contrast)
-                        Positioned(
-                          left: 0,
-                          right: 0,
-                          bottom: 0,
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 6,
-                              vertical: 4,
-                            ),
-                            decoration: BoxDecoration(
-                              gradient: LinearGradient(
-                                begin: Alignment.topCenter,
-                                end: Alignment.bottomCenter,
-                                colors: [
-                                  Colors.transparent,
-                                  Colors.black.withOpacity(0.85),
-                                ],
-                              ),
-                            ),
-                            child: Row(
-                              children: [
-                                const Icon(
-                                  Icons.favorite_rounded,
-                                  size: 11,
-                                  color: Color(0xFF5BBFA0),
-                                ),
-                                const SizedBox(width: 3),
-                                Text(
-                                  item.formattedLikes,
-                                  style: const TextStyle(
-                                    fontSize: 10,
-                                    fontWeight: FontWeight.w600,
-                                    color: Colors.white,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
+                    },
                   ),
-                );
-              },
-            ),
           ),
         ],
       ),
     );
   }
 
+  Widget _buildGridMedia(
+    CommunityVisualGridItem item,
+    SamanHomePalette tokens,
+  ) {
+    final url = item.imageUrl.trim();
+    if (url.startsWith('http://') || url.startsWith('https://')) {
+      return Image.network(
+        url,
+        fit: BoxFit.cover,
+        errorBuilder: (_, __, ___) => _buildGridPlaceholder(item, tokens),
+      );
+    }
+    return _buildGridPlaceholder(item, tokens);
+  }
+
+  Widget _buildGridPlaceholder(
+    CommunityVisualGridItem item,
+    SamanHomePalette tokens,
+  ) {
+    return Container(
+      color: tokens.cardSurface,
+      child: Center(
+        child: Icon(
+          item.hasVideo
+              ? Icons.play_circle_fill_rounded
+              : Icons.image_rounded,
+          size: 28,
+          color: tokens.secondarySurface,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSearchEmptyState(
+    CommunityDiscoverNotifier notifier,
+    SamanHomePalette tokens,
+  ) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 36),
+      child: Center(
+        child: Column(
+          children: [
+            Icon(
+              Icons.search_off_rounded,
+              size: 40,
+              color: tokens.textMuted,
+            ),
+            const SizedBox(height: 10),
+            Text(
+              'Không tìm thấy kết quả phù hợp',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.w600,
+                color: tokens.textPrimary,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'Hãy thử từ khóa khác hoặc xóa bộ lọc tìm kiếm.',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 13,
+                color: tokens.textSecondary,
+              ),
+            ),
+            const SizedBox(height: 14),
+            TextButton(
+              onPressed: () {
+                _searchController.clear();
+                notifier.loadDiscover(topic: 'all', searchQuery: '');
+              },
+              child: Text(
+                'Xóa tìm kiếm',
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: tokens.greenAccent,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildTrendingTopicsSection(
     List<CommunityTrendingTopic> topics,
+    CommunityDiscoverNotifier notifier,
     SamanHomePalette tokens,
   ) {
     return Padding(
@@ -560,15 +705,21 @@ class _CommunityDiscoverScreenState
             separatorBuilder: (_, __) => const SizedBox(height: 8),
             itemBuilder: (context, index) {
               final topic = topics[index];
-              return Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: tokens.cardSurface,
-                  borderRadius: BorderRadius.circular(14),
-                  border: Border.all(
-                    color: tokens.border,
+              return InkWell(
+                onTap: () {
+                  _searchController.text = topic.hashtag;
+                  notifier.loadDiscover(topic: 'all', searchQuery: topic.hashtag);
+                },
+                borderRadius: BorderRadius.circular(14),
+                child: Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: tokens.cardSurface,
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(
+                      color: tokens.border,
+                    ),
                   ),
-                ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
@@ -667,6 +818,7 @@ class _CommunityDiscoverScreenState
                     ),
                   ],
                 ),
+                ),
               );
             },
           ),
@@ -732,43 +884,78 @@ class _CommunityDiscoverScreenState
               final creator = creators[index];
               final isFollowing = creator.isFollowing;
 
-              return Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: tokens.cardSurface,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(
-                    color: tokens.border,
+              return InkWell(
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => CommunityProfileScreen(
+                        authorId: creator.id,
+                      ),
+                    ),
+                  );
+                },
+                borderRadius: BorderRadius.circular(16),
+                child: Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: tokens.cardSurface,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                      color: tokens.border,
+                    ),
                   ),
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Expanded(
-                      child: Row(
-                        children: [
-                          Container(
-                            width: 44,
-                            height: 44,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: tokens.secondarySurface,
-                              border: Border.all(
-                                color: tokens.greenAccent.withOpacity(0.3),
-                                width: 1.5,
-                              ),
-                            ),
-                            child: Center(
-                              child: Text(
-                                creator.name.isNotEmpty ? creator.name[0] : 'S',
-                                style: TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
-                                  color: tokens.greenAccent,
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Expanded(
+                        child: Row(
+                          children: [
+                            Container(
+                              width: 44,
+                              height: 44,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: tokens.secondarySurface,
+                                border: Border.all(
+                                  color: tokens.greenAccent.withOpacity(0.3),
+                                  width: 1.5,
                                 ),
                               ),
+                              child: ClipOval(
+                                child: (creator.avatarUrl != null &&
+                                        (creator.avatarUrl!.startsWith('http://') ||
+                                            creator.avatarUrl!.startsWith('https://')))
+                                    ? Image.network(
+                                        creator.avatarUrl!,
+                                        fit: BoxFit.cover,
+                                        errorBuilder: (_, __, ___) => Center(
+                                          child: Text(
+                                            creator.name.isNotEmpty
+                                                ? creator.name[0]
+                                                : 'S',
+                                            style: TextStyle(
+                                              fontSize: 18,
+                                              fontWeight: FontWeight.bold,
+                                              color: tokens.greenAccent,
+                                            ),
+                                          ),
+                                        ),
+                                      )
+                                    : Center(
+                                        child: Text(
+                                          creator.name.isNotEmpty
+                                              ? creator.name[0]
+                                              : 'S',
+                                          style: TextStyle(
+                                            fontSize: 18,
+                                            fontWeight: FontWeight.bold,
+                                            color: tokens.greenAccent,
+                                          ),
+                                        ),
+                                      ),
+                              ),
                             ),
-                          ),
                           const SizedBox(width: 12),
                           Expanded(
                             child: Column(
@@ -810,7 +997,9 @@ class _CommunityDiscoverScreenState
                                 ),
                                 const SizedBox(height: 2),
                                 Text(
-                                  '${(creator.followerCount / 1000).toStringAsFixed(1)}k người theo dõi',
+                                  creator.followerCount >= 1000
+                                      ? '${(creator.followerCount / 1000).toStringAsFixed(1)}k người theo dõi'
+                                      : '${creator.followerCount} người theo dõi',
                                   style: TextStyle(
                                     fontSize: 10,
                                     color: tokens.textMuted,
@@ -869,6 +1058,7 @@ class _CommunityDiscoverScreenState
                       ),
                     ),
                   ],
+                ),
                 ),
               );
             },

@@ -13,7 +13,7 @@ import '../../data/repositories/journal_repository_impl.dart';
 /// Explicit toggle between Remote HTTP and Fake Datasources via DI.
 /// In production/connected mode, defaults to true.
 final useRemoteJournalProvider = StateProvider<bool>((ref) {
-  return const bool.fromEnvironment('USE_REMOTE_JOURNAL', defaultValue: false);
+  return const bool.fromEnvironment('USE_REMOTE_JOURNAL', defaultValue: true);
 });
 
 final journalFakeDatasourceProvider = Provider<JournalFakeDatasource>((ref) {
@@ -46,6 +46,8 @@ class JournalDiscoverState {
     this.readingProgress,
     this.libraryEntries = const [],
     this.guidedSeries,
+    this.bookmarkedArticles = const [],
+    this.bookmarkedIds = const {},
   });
 
   final bool isLoading;
@@ -56,6 +58,8 @@ class JournalDiscoverState {
   final JournalReadingProgress? readingProgress;
   final List<JournalLibraryEntry> libraryEntries;
   final JournalGuidedSeries? guidedSeries;
+  final List<JournalArticle> bookmarkedArticles;
+  final Set<String> bookmarkedIds;
 
   JournalDiscoverState copyWith({
     bool? isLoading,
@@ -67,6 +71,8 @@ class JournalDiscoverState {
     JournalReadingProgress? readingProgress,
     List<JournalLibraryEntry>? libraryEntries,
     JournalGuidedSeries? guidedSeries,
+    List<JournalArticle>? bookmarkedArticles,
+    Set<String>? bookmarkedIds,
   }) {
     return JournalDiscoverState(
       isLoading: isLoading ?? this.isLoading,
@@ -77,6 +83,8 @@ class JournalDiscoverState {
       readingProgress: readingProgress ?? this.readingProgress,
       libraryEntries: libraryEntries ?? this.libraryEntries,
       guidedSeries: guidedSeries ?? this.guidedSeries,
+      bookmarkedArticles: bookmarkedArticles ?? this.bookmarkedArticles,
+      bookmarkedIds: bookmarkedIds ?? this.bookmarkedIds,
     );
   }
 }
@@ -97,18 +105,28 @@ class JournalDiscoverNotifier extends StateNotifier<JournalDiscoverState> {
         _repository.getReadingProgress(),
         _repository.getLibraryEntries(),
         _repository.getGuidedSeries(),
+        _repository.getBookmarkedArticles(),
       ]);
 
       if (!mounted) return;
 
+      final bookmarks = results[5] as List<JournalArticle>;
+      final bookmarkIdSet = bookmarks.map((b) => b.id).toSet();
+
       state = state.copyWith(
         isLoading: false,
         clearError: true,
-        featuredArticle: results[0] as JournalArticle?,
-        articles: results[1] as List<JournalArticle>,
+        featuredArticle: (results[0] as JournalArticle?)?.copyWith(
+          isBookmarked: bookmarkIdSet.contains((results[0] as JournalArticle?)?.id),
+        ),
+        articles: (results[1] as List<JournalArticle>).map((a) {
+          return a.copyWith(isBookmarked: bookmarkIdSet.contains(a.id));
+        }).toList(),
         readingProgress: results[2] as JournalReadingProgress?,
         libraryEntries: results[3] as List<JournalLibraryEntry>,
         guidedSeries: results[4] as JournalGuidedSeries?,
+        bookmarkedArticles: bookmarks,
+        bookmarkedIds: bookmarkIdSet,
       );
     } catch (e) {
       if (!mounted) return;
@@ -127,7 +145,9 @@ class JournalDiscoverNotifier extends StateNotifier<JournalDiscoverState> {
       if (!mounted) return;
       state = state.copyWith(
         isLoading: false,
-        articles: articles,
+        articles: articles.map((a) {
+          return a.copyWith(isBookmarked: state.bookmarkedIds.contains(a.id));
+        }).toList(),
       );
     } catch (e) {
       if (!mounted) return;
@@ -135,6 +155,87 @@ class JournalDiscoverNotifier extends StateNotifier<JournalDiscoverState> {
         isLoading: false,
         error: e.toString(),
       );
+    }
+  }
+
+  Future<bool> toggleBookmark(String articleId) async {
+    final currentlyBookmarked = state.bookmarkedIds.contains(articleId);
+    final nextState = !currentlyBookmarked;
+
+    // Optimistic local update
+    final updatedIds = Set<String>.from(state.bookmarkedIds);
+    if (nextState) {
+      updatedIds.add(articleId);
+    } else {
+      updatedIds.remove(articleId);
+    }
+
+    state = state.copyWith(
+      bookmarkedIds: updatedIds,
+      articles: state.articles.map((a) {
+        if (a.id == articleId) return a.copyWith(isBookmarked: nextState);
+        return a;
+      }).toList(),
+      featuredArticle: state.featuredArticle?.id == articleId
+          ? state.featuredArticle!.copyWith(isBookmarked: nextState)
+          : state.featuredArticle,
+    );
+
+    try {
+      final confirmed = await _repository.toggleBookmark(articleId, nextState);
+      // Refresh bookmarks list
+      final bookmarks = await _repository.getBookmarkedArticles();
+      if (mounted) {
+        final confirmedIds = bookmarks.map((b) => b.id).toSet();
+        state = state.copyWith(
+          bookmarkedArticles: bookmarks,
+          bookmarkedIds: confirmedIds,
+        );
+      }
+      return confirmed;
+    } catch (e) {
+      // Rollback on error
+      if (mounted) {
+        final rollbackIds = Set<String>.from(state.bookmarkedIds);
+        if (currentlyBookmarked) {
+          rollbackIds.add(articleId);
+        } else {
+          rollbackIds.remove(articleId);
+        }
+        state = state.copyWith(
+          bookmarkedIds: rollbackIds,
+          articles: state.articles.map((a) {
+            if (a.id == articleId) {
+              return a.copyWith(isBookmarked: currentlyBookmarked);
+            }
+            return a;
+          }).toList(),
+          featuredArticle: state.featuredArticle?.id == articleId
+              ? state.featuredArticle!.copyWith(isBookmarked: currentlyBookmarked)
+              : state.featuredArticle,
+        );
+      }
+      return currentlyBookmarked;
+    }
+  }
+
+  Future<void> syncReadingProgress(
+    String articleId,
+    double progress,
+    int remainingMinutes,
+  ) async {
+    try {
+      await _repository.saveReadingProgress(
+        articleId,
+        progress,
+        remainingMinutes,
+      );
+      final updatedProgress = await _repository.getReadingProgress();
+      if (mounted && updatedProgress != null) {
+        state = state.copyWith(readingProgress: updatedProgress);
+      }
+    } catch (_) {
+      // Non-blocking sync error
     }
   }
 

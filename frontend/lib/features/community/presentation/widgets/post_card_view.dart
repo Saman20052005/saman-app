@@ -419,7 +419,16 @@ class PostCardView extends ConsumerWidget {
         child: Stack(
           fit: StackFit.expand,
           children: [
-            if (post.photoUrls.isNotEmpty)
+            if (post.photoUrls.length > 1)
+              ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: _MultiPhotoCarousel(
+                  photoUrls: post.photoUrls,
+                  tokens: tokens,
+                  photoBuilder: _buildPhotoView,
+                ),
+              )
+            else if (post.photoUrls.isNotEmpty)
               ClipRRect(
                 borderRadius: BorderRadius.circular(12),
                 child: _buildPhotoView(post.photoUrls.first, tokens),
@@ -699,6 +708,87 @@ class PostCardView extends ConsumerWidget {
       message: 'Đã sao chép liên kết bài viết vào clipboard.',
       type: FeedbackType.info,
       duration: const Duration(seconds: 2),
+    );
+  }
+}
+
+class _MultiPhotoCarousel extends StatefulWidget {
+  final List<String> photoUrls;
+  final SamanHomePalette tokens;
+  final Widget Function(String path, SamanHomePalette tokens) photoBuilder;
+
+  const _MultiPhotoCarousel({
+    required this.photoUrls,
+    required this.tokens,
+    required this.photoBuilder,
+  });
+
+  @override
+  State<_MultiPhotoCarousel> createState() => _MultiPhotoCarouselState();
+}
+
+class _MultiPhotoCarouselState extends State<_MultiPhotoCarousel> {
+  int _currentIndex = 0;
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        PageView.builder(
+          itemCount: widget.photoUrls.length,
+          onPageChanged: (index) {
+            setState(() {
+              _currentIndex = index;
+            });
+          },
+          itemBuilder: (context, index) {
+            return widget.photoBuilder(widget.photoUrls[index], widget.tokens);
+          },
+        ),
+        Positioned(
+          top: 10,
+          right: 10,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            decoration: BoxDecoration(
+              color: Colors.black.withOpacity(0.65),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Text(
+              '${_currentIndex + 1}/${widget.photoUrls.length}',
+              style: const TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+                color: Colors.white,
+              ),
+            ),
+          ),
+        ),
+        Positioned(
+          bottom: 12,
+          left: 0,
+          right: 0,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: List.generate(widget.photoUrls.length, (index) {
+              final isActive = index == _currentIndex;
+              return AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                margin: const EdgeInsets.symmetric(horizontal: 3),
+                width: isActive ? 14 : 6,
+                height: 6,
+                decoration: BoxDecoration(
+                  color: isActive
+                      ? widget.tokens.greenAccent
+                      : Colors.white.withOpacity(0.55),
+                  borderRadius: BorderRadius.circular(3),
+                ),
+              );
+            }),
+          ),
+        ),
+      ],
     );
   }
 }

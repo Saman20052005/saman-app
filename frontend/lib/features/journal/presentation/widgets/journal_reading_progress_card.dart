@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import '../../../../config/app_translations.dart';
 import '../../../../screens/home/tokens/saman_home_tokens.dart';
 import '../../domain/models/journal_article.dart';
-import 'journal_preview_sheet.dart';
+import '../screens/journal_article_detail_screen.dart';
 
 /// Card showing current reading progress (Resume reading) in R01.
 class JournalReadingProgressCard extends StatelessWidget {
@@ -63,15 +63,13 @@ class JournalReadingProgressCard extends StatelessWidget {
           child: InkWell(
             onTap: onTap ??
                 () {
-                  JournalPreviewSheet.show(
-                    context,
-                    title: progress.title,
-                    categoryLabel: context.tr('journal_continue_reading'),
-                    description:
-                        'Tiến độ minh họa: ${progress.percentDisplay}% bài viết. Thời gian đọc ước tính còn lại: ${progress.remainingMinutes} phút.',
-                    metricLabel: 'Đã đọc ${progress.percentDisplay}%',
-                    imageAsset: progress.coverImageAsset,
-                    notice: context.tr('journal_sample_progress_note'),
+                  Navigator.of(context).push(
+                    MaterialPageRoute<void>(
+                      builder: (_) => JournalArticleDetailScreen(
+                        articleId: progress.articleId,
+                        initialProgress: progress.progressPercent,
+                      ),
+                    ),
                   );
                 },
             borderRadius: BorderRadius.circular(SamanHomeTokens.radiusLg),

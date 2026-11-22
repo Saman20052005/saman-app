@@ -1,8 +1,11 @@
 import 'package:dio/dio.dart';
+import '../../domain/models/community_notification.dart';
+import '../../domain/models/draft_post.dart';
 import 'package:http_parser/http_parser.dart';
 import '../../../../config/api_config.dart';
 import '../../domain/models/community_author.dart';
 import '../../domain/models/community_comment.dart';
+import '../../domain/models/community_discover_item.dart';
 import '../../domain/models/community_post.dart';
 import '../../domain/models/question_answer.dart';
 import '../../domain/models/post_attachment_snapshot.dart';
@@ -68,6 +71,95 @@ extension CommunityRemoteDatasourceMediaExtension on CommunityRemoteDatasource {
       );
     }
     throw UnsupportedError('Media upload is not supported by this datasource double');
+  }
+}
+
+extension CommunityRemoteDatasourceWave2Extension on CommunityRemoteDatasource {
+  Future<List<CommunityNotification>> getNotifications({
+    String filter = 'all',
+    int limit = 20,
+    String? cursor,
+  }) {
+    if (this is CommunityRemoteDatasourceImpl) {
+      return (this as CommunityRemoteDatasourceImpl).getNotifications(
+        filter: filter,
+        limit: limit,
+        cursor: cursor,
+      );
+    }
+    throw UnsupportedError('Notifications are not supported by this datasource double');
+  }
+
+  Future<void> markNotificationRead(String notificationId) {
+    if (this is CommunityRemoteDatasourceImpl) {
+      return (this as CommunityRemoteDatasourceImpl).markNotificationRead(notificationId);
+    }
+    throw UnsupportedError('Notifications are not supported by this datasource double');
+  }
+
+  Future<void> markAllNotificationsRead() {
+    if (this is CommunityRemoteDatasourceImpl) {
+      return (this as CommunityRemoteDatasourceImpl).markAllNotificationsRead();
+    }
+    throw UnsupportedError('Notifications are not supported by this datasource double');
+  }
+
+  Future<List<DraftPost>> getDrafts() {
+    if (this is CommunityRemoteDatasourceImpl) {
+      return (this as CommunityRemoteDatasourceImpl).getDrafts();
+    }
+    throw UnsupportedError('Drafts are not supported by this datasource double');
+  }
+
+  Future<DraftPost> saveDraft(DraftPost draft) {
+    if (this is CommunityRemoteDatasourceImpl) {
+      return (this as CommunityRemoteDatasourceImpl).saveDraft(draft);
+    }
+    throw UnsupportedError('Drafts are not supported by this datasource double');
+  }
+
+  Future<void> deleteDraft(String draftId) {
+    if (this is CommunityRemoteDatasourceImpl) {
+      return (this as CommunityRemoteDatasourceImpl).deleteDraft(draftId);
+    }
+    throw UnsupportedError('Drafts are not supported by this datasource double');
+  }
+
+  Future<List<CommunityPost>> getAuthorPosts(
+    String authorId, {
+    String tab = 'all',
+    int limit = 20,
+    String? cursor,
+  }) {
+    if (this is CommunityRemoteDatasourceImpl) {
+      return (this as CommunityRemoteDatasourceImpl).getAuthorPosts(
+        authorId,
+        tab: tab,
+        limit: limit,
+        cursor: cursor,
+      );
+    }
+    throw UnsupportedError('Author posts are not supported by this datasource double');
+  }
+
+  Future<CommunityAuthor> updateProfile(Map<String, dynamic> body) {
+    if (this is CommunityRemoteDatasourceImpl) {
+      return (this as CommunityRemoteDatasourceImpl).updateProfile(body);
+    }
+    throw UnsupportedError('Profile update is not supported by this datasource double');
+  }
+
+  Future<CommunityDiscoverData> getDiscoverData({
+    String topic = 'all',
+    String? searchQuery,
+  }) {
+    if (this is CommunityRemoteDatasourceImpl) {
+      return (this as CommunityRemoteDatasourceImpl).getDiscoverData(
+        topic: topic,
+        searchQuery: searchQuery,
+      );
+    }
+    throw UnsupportedError('Discover is not supported by this datasource double');
   }
 }
 
@@ -559,6 +651,191 @@ class CommunityRemoteDatasourceImpl implements CommunityRemoteDatasource {
       followingCount: json['following_count'] as int? ?? 0,
       postCount: json['post_count'] as int? ?? 0,
       isFollowing: json['is_following'] as bool? ?? false,
+      handle: json['handle'] as String?,
+      bio: json['bio'] as String?,
+      interestTopics: (json['interest_topics'] as List<dynamic>? ?? [])
+          .map((e) => e.toString())
+          .toList(),
+      workoutPostCount: json['workout_post_count'] as int? ?? 0,
+      mealPostCount: json['meal_post_count'] as int? ?? 0,
+      totalLikesReceived: json['total_likes_received'] as int? ?? 0,
+    );
+  }
+
+  CommunityNotification _parseNotification(Map<String, dynamic> json) {
+    final typeStr = (json['type'] as String? ?? 'system').toLowerCase();
+    CommunityNotificationType type;
+    switch (typeStr) {
+      case 'like':
+        type = CommunityNotificationType.like;
+        break;
+      case 'comment':
+        type = CommunityNotificationType.comment;
+        break;
+      case 'follow':
+        type = CommunityNotificationType.follow;
+        break;
+      case 'answer':
+        type = CommunityNotificationType.answer;
+        break;
+      case 'system':
+      default:
+        type = CommunityNotificationType.system;
+        break;
+    }
+    return CommunityNotification(
+      id: json['id'] as String? ?? '',
+      actorId: json['actor_id'] as String?,
+      actorName: json['actor_name'] as String? ?? 'Saman',
+      actorAvatarUrl: _resolveMediaUrl(json['actor_avatar_url'] as String?),
+      actionText: json['action_text'] as String? ?? '',
+      targetSnippet: json['target_snippet'] as String?,
+      timeAgo: json['time_ago'] as String? ?? 'Vừa xong',
+      isUnread: json['is_unread'] as bool? ?? true,
+      type: type,
+      targetPostId: json['target_post_id'] as String?,
+      targetPostType: json['target_post_type'] as String?,
+    );
+  }
+
+  Future<List<CommunityNotification>> getNotifications({
+    String filter = 'all',
+    int limit = 20,
+    String? cursor,
+  }) async {
+    final response = await dio.get(
+      '/api/community/notifications',
+      queryParameters: {
+        'filter': filter,
+        'limit': limit,
+        if (cursor != null) 'cursor': cursor,
+      },
+    );
+    final data = response.data as Map<String, dynamic>;
+    final itemsRaw = data['items'] as List<dynamic>? ?? [];
+    return itemsRaw
+        .map((raw) => _parseNotification(Map<String, dynamic>.from(raw as Map)))
+        .toList();
+  }
+
+  Future<void> markNotificationRead(String notificationId) async {
+    await dio.patch('/api/community/notifications/$notificationId/read');
+  }
+
+  Future<void> markAllNotificationsRead() async {
+    await dio.post('/api/community/notifications/read-all');
+  }
+
+  Future<List<DraftPost>> getDrafts() async {
+    final response = await dio.get('/api/community/drafts');
+    final data = response.data as Map<String, dynamic>;
+    final itemsRaw = data['items'] as List<dynamic>? ?? [];
+    return itemsRaw
+        .map((raw) => DraftPost.fromJson(Map<String, dynamic>.from(raw as Map)))
+        .toList();
+  }
+
+  Future<DraftPost> saveDraft(DraftPost draft) async {
+    final response = draft.id.isNotEmpty
+        ? await dio.put(
+            '/api/community/drafts/${draft.id}',
+            data: draft.toJson(),
+          )
+        : await dio.post(
+            '/api/community/drafts',
+            data: draft.toJson(),
+          );
+    return DraftPost.fromJson(Map<String, dynamic>.from(response.data as Map));
+  }
+
+  Future<void> deleteDraft(String draftId) async {
+    await dio.delete('/api/community/drafts/$draftId');
+  }
+
+  Future<List<CommunityPost>> getAuthorPosts(
+    String authorId, {
+    String tab = 'all',
+    int limit = 20,
+    String? cursor,
+  }) async {
+    final response = await dio.get(
+      '/api/community/authors/$authorId/posts',
+      queryParameters: {
+        'tab': tab,
+        'limit': limit,
+        if (cursor != null) 'cursor': cursor,
+      },
+    );
+    final data = response.data as Map<String, dynamic>;
+    final itemsRaw = data['items'] as List<dynamic>? ?? [];
+    return itemsRaw
+        .map((raw) => _parsePost(Map<String, dynamic>.from(raw as Map)))
+        .toList();
+  }
+
+  Future<CommunityAuthor> updateProfile(Map<String, dynamic> body) async {
+    final response = await dio.patch('/api/community/profile', data: body);
+    return _parseAuthor(Map<String, dynamic>.from(response.data as Map));
+  }
+
+  Future<CommunityDiscoverData> getDiscoverData({
+    String topic = 'all',
+    String? searchQuery,
+  }) async {
+    final trimmedQuery = searchQuery?.trim();
+    final response = await dio.get(
+      '/api/community/discover',
+      queryParameters: {
+        'topic': topic,
+        if (trimmedQuery != null && trimmedQuery.isNotEmpty) 'q': trimmedQuery,
+      },
+    );
+    final data = Map<String, dynamic>.from(response.data as Map);
+    final topicChips = (data['topic_chips'] as List<dynamic>? ?? const [])
+        .map((e) => e.toString())
+        .toList();
+    final activeTopic = data['active_topic'] as String? ?? topic;
+
+    final gridRaw = data['grid_items'] as List<dynamic>? ?? const [];
+    final gridItems = gridRaw.map((raw) {
+      final item = Map<String, dynamic>.from(raw as Map);
+      return CommunityVisualGridItem(
+        id: item['id'] as String? ?? '',
+        postId: item['post_id'] as String?,
+        imageUrl: _resolveMediaUrl(item['image_url'] as String?) ?? '',
+        likeCount: (item['like_count'] as num?)?.toInt() ?? 0,
+        hasMultiPhoto: item['has_multi_photo'] as bool? ?? false,
+        hasVideo: item['has_video'] as bool? ?? false,
+        altText: item['alt_text'] as String?,
+      );
+    }).toList();
+
+    final trendingRaw = data['trending_topics'] as List<dynamic>? ?? const [];
+    final trendingTopics = trendingRaw.map((raw) {
+      final item = Map<String, dynamic>.from(raw as Map);
+      return CommunityTrendingTopic(
+        id: item['id'] as String? ?? '',
+        hashtag: item['hashtag'] as String? ?? '',
+        postCountFormatted: item['post_count_formatted'] as String? ?? '',
+        growthPercent: item['growth_percent'] as String? ?? 'Ổn định',
+        isStable: item['is_stable'] as bool? ?? true,
+        iconName: item['icon_name'] as String? ?? 'tag',
+      );
+    }).toList();
+
+    final creatorsRaw = data['recommended_creators'] as List<dynamic>? ?? const [];
+    final recommendedCreators = creatorsRaw
+        .map((raw) => _parseAuthor(Map<String, dynamic>.from(raw as Map)))
+        .toList();
+
+    return CommunityDiscoverData(
+      topicChips: topicChips.isNotEmpty
+          ? topicChips
+          : const ['all', 'workout', 'meal', 'recipe', 'qna', 'journey'],
+      activeTopic: activeTopic,
+      gridItems: gridItems,
+      trendingTopics: trendingTopics,
+      recommendedCreators: recommendedCreators,
     );
   }
 

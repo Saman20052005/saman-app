@@ -19,9 +19,10 @@ Invariants:
 import base64
 import io
 import os
+import re
 import uuid
 from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Literal, Optional, Union
 from fastapi import Request, APIRouter, Depends, Header, HTTPException, Query, File, UploadFile
 from starlette.routing import Route
 from starlette.responses import FileResponse
@@ -43,14 +44,24 @@ from backend.app.models.community import (
     CommunityAuthorModel,
     CommunityAuthorProfileResponse,
     CommunityCommentModel,
+    CommunityDiscoverResponse,
+    CommunityDraftModel,
+    CommunityDraftsResponse,
+    CommunityDraftUpsertRequest,
     CommunityFeedResponse,
     CommunityFollowListResponse,
+    CommunityNotificationModel,
+    CommunityNotificationsResponse,
     CommunityPostModel,
     CommunitySavedResponse,
+    CommunityTrendingTopicModel,
+    CommunityVisualGridItemModel,
     ExerciseThumbnailPreviewModel,
     FollowResponse,
     InteractionLikeResponse,
     InteractionSaveResponse,
+    NotificationReadResponse,
+    NotificationsReadAllResponse,
     PostNutritionInfoModel,
     PostQaInfoModel,
     PostWorkoutAttachmentModel,
@@ -58,6 +69,7 @@ from backend.app.models.community import (
     QuestionAnswersResponse,
     CreateQuestionAnswerRequest,
     QuestionAnswerReceipt,
+    UpdateCommunityProfileRequest,
 )
 
 from backend.auth.config import JWT_ALGORITHM, JWT_SECRET
@@ -90,6 +102,18 @@ def get_community_interactions_collection():
 def get_community_follows_collection():
     if db is not None:
         return db["community_follows"]
+    return None
+
+
+def get_community_notifications_collection():
+    if db is not None:
+        return db["community_notifications"]
+    return None
+
+
+def get_community_drafts_collection():
+    if db is not None:
+        return db["community_drafts"]
     return None
 
 
@@ -257,9 +281,12 @@ def _find_author_doc(author_id: str) -> Optional[Dict[str, Any]]:
             return {
                 "id": str(u.get("_id")),
                 "name": u.get("name") or u.get("full_name") or "Saman Athlete",
-                "avatar_url": u.get("avatar") or u.get("avatar_url") or u.get("custom_avatar"),
+                "avatar_url": u.get("avatar_url") or u.get("avatar") or u.get("custom_avatar"),
                 "title": u.get("title") or "Thành viên Saman",
                 "is_verified": bool(u.get("is_verified", False)),
+                "handle": u.get("handle"),
+                "bio": u.get("bio"),
+                "interest_topics": list(u.get("interest_topics") or []),
             }
 
     posts_col = get_community_posts_collection()
@@ -276,6 +303,9 @@ def _find_author_doc(author_id: str) -> Optional[Dict[str, Any]]:
                 "avatar_url": a.get("avatar_url"),
                 "title": a.get("title") or "Thành viên Saman",
                 "is_verified": bool(a.get("is_verified", False)),
+                "handle": a.get("handle"),
+                "bio": a.get("bio"),
+                "interest_topics": list(a.get("interest_topics") or []),
             }
     return None
 
@@ -837,6 +867,7 @@ async def like_post(
     canonical_post_id = str(doc.get("id") or doc.get("_id"))
 
     # 1. Attempt atomic insert
+    inserted_new_like = False
     try:
         interactions_col.insert_one({
             "user_id": current_user_id,
@@ -844,8 +875,26 @@ async def like_post(
             "interaction_type": "like",
             "created_at": datetime.now(timezone.utc),
         })
+        inserted_new_like = True
     except DuplicateKeyError:
         pass
+
+    if inserted_new_like:
+        post_author_id = str(doc.get("author_id") or (doc.get("author") or {}).get("id") or "")
+        snippet = (
+            doc.get("caption")
+            or (doc.get("qa_info") or {}).get("question")
+            or (doc.get("workout_attachment") or {}).get("title")
+        )
+        _create_notification(
+            recipient_id=post_author_id,
+            actor_user=current_user,
+            notif_type="like",
+            action_text="đã thích bài viết của bạn",
+            target_snippet=snippet,
+            target_post_id=canonical_post_id,
+            target_post_type=str(doc.get("type", "photo")),
+        )
 
     # 2. Concurrency-safe OCC loop for updating cached count on community_posts
     MAX_RETRIES = 5
@@ -1219,7 +1268,7 @@ def create_question_answer(question_id: str, body: CreateQuestionAnswerRequest,
         current_user: Dict[str, Any] = Depends(get_required_current_user)):
     user = _canonical_comment_user(current_user)
     uid = str(user["_id"])
-    _, qid = _answer_question(question_id, uid)
+    question_doc, qid = _answer_question(question_id, uid)
     content = body.content.strip()
     if not content:
         raise HTTPException(422, "Answer must not be blank")
@@ -1230,6 +1279,7 @@ def create_question_answer(question_id: str, body: CreateQuestionAnswerRequest,
     doc = col.find_one(identity)
     if doc is not None and any(doc.get(k) != v for k, v in payload.items()):
         raise HTTPException(409, "Idempotency key payload conflict")
+    inserted_new_answer = False
     if doc is None:
         candidate = dict(identity, **payload, _id=ObjectId(), created_at=datetime.now(timezone.utc),
             author={"id": uid, "name": user.get("name") or user.get("full_name") or "Saman Athlete",
@@ -1237,6 +1287,7 @@ def create_question_answer(question_id: str, body: CreateQuestionAnswerRequest,
         try:
             col.insert_one(candidate)
             doc = candidate
+            inserted_new_answer = True
         except DuplicateKeyError:
             doc = col.find_one(identity)
     if doc is None:
@@ -1245,6 +1296,17 @@ def create_question_answer(question_id: str, body: CreateQuestionAnswerRequest,
         raise HTTPException(409, "Idempotency key payload conflict")
     if doc.get("is_deleted"):
         raise HTTPException(404, "Answer not found")
+    if inserted_new_answer:
+        question_author_id = str(question_doc.get("author_id") or (question_doc.get("author") or {}).get("id") or "")
+        _create_notification(
+            recipient_id=question_author_id,
+            actor_user=user,
+            notif_type="answer",
+            action_text="đã trả lời câu hỏi của bạn",
+            target_snippet=content,
+            target_post_id=qid,
+            target_post_type="qa",
+        )
     answer = _public_answer(doc, uid)
     count = col.count_documents({"question_id": qid, "is_deleted": {"$ne": True}})
     _answer_question(question_id, uid)
@@ -1320,14 +1382,24 @@ async def follow_author(
     if follows_col is None:
         raise HTTPException(status_code=503, detail="Database unavailable")
 
+    inserted_new_follow = False
     try:
         follows_col.insert_one({
             "follower_id": current_user_id,
             "following_id": author_id,
             "created_at": datetime.now(timezone.utc),
         })
+        inserted_new_follow = True
     except DuplicateKeyError:
         pass  # Idempotent PUT: already following
+
+    if inserted_new_follow:
+        _create_notification(
+            recipient_id=author_id,
+            actor_user=current_user,
+            notif_type="follow",
+            action_text="đã bắt đầu theo dõi bạn",
+        )
 
     follower_count = follows_col.count_documents({"following_id": author_id})
     following_count = follows_col.count_documents({"follower_id": author_id})
@@ -1394,50 +1466,10 @@ async def get_community_author_profile(
     if not target_id:
         raise HTTPException(status_code=401, detail="Authentication required")
 
-    author_info = _find_author_doc(target_id)
-    if not author_info:
-        if author_id == "me" and current_user:
-            author_info = {
-                "id": current_user_id,
-                "name": current_user.get("name", "Saman Athlete"),
-                "avatar_url": current_user.get("avatar") or current_user.get("custom_avatar"),
-                "title": current_user.get("title", "Thành viên Saman"),
-                "is_verified": bool(current_user.get("is_verified", False)),
-            }
-        else:
-            raise HTTPException(status_code=404, detail="Author not found")
-
-    follows_col = get_community_follows_collection()
-    posts_col = get_community_posts_collection()
-
-    follower_count = 0
-    following_count = 0
-    post_count = 0
-    is_following = False
-
-    if follows_col is not None:
-        follower_count = follows_col.count_documents({"following_id": target_id})
-        following_count = follows_col.count_documents({"follower_id": target_id})
-        if current_user_id and current_user_id != target_id:
-            is_following = bool(follows_col.find_one({"follower_id": current_user_id, "following_id": target_id}))
-
-    if posts_col is not None:
-        post_count = posts_col.count_documents({
-            "$or": [{"author_id": target_id}, {"author.id": target_id}],
-            "is_deleted": {"$ne": True},
-            "status": {"$in": ["published", None]},
-        })
-
-    return CommunityAuthorProfileResponse(
-        id=target_id,
-        name=author_info["name"],
-        avatar_url=author_info.get("avatar_url"),
-        title=author_info.get("title"),
-        is_verified=author_info.get("is_verified", False),
-        follower_count=follower_count,
-        following_count=following_count,
-        post_count=post_count,
-        is_following=is_following,
+    return _build_author_profile_response(
+        target_id=target_id,
+        current_user=current_user,
+        allow_fallback_current_user=(author_id == "me"),
     )
 
 
@@ -1739,6 +1771,7 @@ def create_post_comment(
             raise HTTPException(404, "Parent comment not found")
         if parent.get("parent_comment_id"):
             raise HTTPException(422, "Only one reply level is supported")
+    inserted_new_comment = False
     if existing is None:
         # Public snapshot is built exclusively from canonical server current_user.
         author = {
@@ -1753,12 +1786,37 @@ def create_post_comment(
         try:
             col.insert_one(candidate)
             existing = candidate
+            inserted_new_comment = True
         except DuplicateKeyError:
             existing = col.find_one(identity)
     if existing is None:
         raise HTTPException(503, "Comment confirmation unavailable")
     if any(existing.get(k) != v for k, v in payload.items()):
         raise HTTPException(409, "Idempotency key payload conflict")
+    if inserted_new_comment:
+        post_author_id = str(post.get("author_id") or (post.get("author") or {}).get("id") or "")
+        post_type = str(post.get("type", "photo"))
+        _create_notification(
+            recipient_id=post_author_id,
+            actor_user=current_user,
+            notif_type="comment",
+            action_text="đã bình luận về bài viết của bạn",
+            target_snippet=content,
+            target_post_id=canonical_id,
+            target_post_type=post_type,
+        )
+        if parent is not None:
+            parent_author_id = str(parent.get("user_id") or (parent.get("author") or {}).get("id") or "")
+            if parent_author_id and parent_author_id != user_id and parent_author_id != post_author_id:
+                _create_notification(
+                    recipient_id=parent_author_id,
+                    actor_user=current_user,
+                    notif_type="comment",
+                    action_text="đã trả lời bình luận của bạn",
+                    target_snippet=content,
+                    target_post_id=canonical_id,
+                    target_post_type=post_type,
+                )
     _comment_post(post_id, user_id)
     return CommunityCommentMutationResponse(
         comment=_public_comment(existing, post, user_id),
@@ -1832,7 +1890,7 @@ def publish_community_post(body: Union[PublishTextPostRequest, PublishQuestionRe
             type=body.type, caption="" if question else content, topic=body.topic, privacy=body.privacy,
             allow_comments=True if question else body.allow_comments, status="published", created_at=datetime.now(timezone.utc))
         if snapshot is not None: candidate["attachment_snapshot"] = snapshot
-        if is_photo: candidate["photo_urls"] = body.photo_urls
+        if is_photo: candidate["photo_urls"] = list(body.photo_urls)
         if question:
             candidate["qa_info"] = {"question": content, "details": payload["body"],
                 "category_tag": "HỎI ĐÁP • " + body.topic.upper(), "respondent_count": 0}
@@ -1891,3 +1949,1058 @@ def delete_community_post(
         {"$set": {"is_deleted": True, "deleted_at": datetime.now(timezone.utc)}},
     )
     return {"success": True, "post_id": post_id}
+
+
+# --- WAVE 2: NOTIFICATIONS, DRAFTS, AUTHOR POSTS & PROFILE ---
+
+_HANDLE_RE = re.compile(r"^[a-z0-9._]{1,32}$")
+
+
+def _format_time_ago(dt: Optional[datetime]) -> str:
+    if not dt:
+        return "Vừa xong"
+    if isinstance(dt, str):
+        try:
+            dt = datetime.fromisoformat(dt)
+        except ValueError:
+            return "Vừa xong"
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=timezone.utc)
+    now = datetime.now(timezone.utc)
+    diff_seconds = max(0, int((now - dt).total_seconds()))
+    if diff_seconds < 60:
+        return "Vừa xong"
+    minutes = diff_seconds // 60
+    if minutes < 60:
+        return f"{minutes} phút trước"
+    hours = minutes // 60
+    if hours < 24:
+        return f"{hours} giờ trước"
+    days = hours // 24
+    if days < 7:
+        return f"{days} ngày trước"
+    return dt.strftime("%d/%m/%Y")
+
+
+def _extract_actor_summary(actor_user: Optional[Dict[str, Any]]) -> tuple[Optional[str], str, Optional[str]]:
+    if not actor_user:
+        return None, "Saman", None
+    actor_id = str(actor_user.get("_id") or actor_user.get("id") or "") or None
+    actor_name = str(actor_user.get("name") or actor_user.get("full_name") or "Saman Athlete")
+    actor_avatar = actor_user.get("avatar_url") or actor_user.get("avatar") or actor_user.get("custom_avatar")
+    return actor_id, actor_name, actor_avatar
+
+
+def _create_notification(
+    recipient_id: Optional[str],
+    actor_user: Optional[Dict[str, Any]],
+    notif_type: str,
+    action_text: str,
+    target_snippet: Optional[str] = None,
+    target_post_id: Optional[str] = None,
+    target_post_type: Optional[str] = None,
+) -> Optional[Dict[str, Any]]:
+    if not recipient_id:
+        return None
+    recipient_id_str = str(recipient_id).strip()
+    if not recipient_id_str or recipient_id_str == "unknown":
+        return None
+
+    actor_id, actor_name, actor_avatar = _extract_actor_summary(actor_user)
+    if actor_id and actor_id == recipient_id_str:
+        return None
+
+    col = get_community_notifications_collection()
+    if col is None:
+        return None
+
+    if actor_id and (not actor_avatar or actor_name in ("User", "Saman Athlete")):
+        author_info = _find_author_doc(actor_id)
+        if author_info:
+            if author_info.get("name"):
+                actor_name = author_info["name"]
+            if author_info.get("avatar_url"):
+                actor_avatar = author_info["avatar_url"]
+
+    snippet = None
+    if target_snippet:
+        cleaned = str(target_snippet).strip()
+        if cleaned:
+            snippet = cleaned[:140]
+
+    now = datetime.now(timezone.utc)
+    doc = {
+        "_id": ObjectId(),
+        "recipient_id": recipient_id_str,
+        "actor_id": actor_id,
+        "actor_name": actor_name,
+        "actor_avatar_url": actor_avatar,
+        "action_text": action_text,
+        "target_snippet": snippet,
+        "type": notif_type,
+        "target_post_id": str(target_post_id) if target_post_id else None,
+        "target_post_type": target_post_type,
+        "is_read": False,
+        "created_at": now,
+    }
+    try:
+        col.insert_one(doc)
+        return doc
+    except Exception:
+        return None
+
+
+def _build_notification_model(doc: Dict[str, Any]) -> CommunityNotificationModel:
+    dt = doc.get("created_at")
+    if isinstance(dt, str):
+        try:
+            dt = datetime.fromisoformat(dt)
+        except ValueError:
+            dt = None
+    if isinstance(dt, datetime) and dt.tzinfo is None:
+        dt = dt.replace(tzinfo=timezone.utc)
+    is_read = doc["is_read"] if "is_read" in doc else (not doc.get("is_unread", True))
+    return CommunityNotificationModel(
+        id=str(doc.get("id") or doc.get("_id")),
+        actor_id=str(doc["actor_id"]) if doc.get("actor_id") else None,
+        actor_name=str(doc.get("actor_name") or "Saman"),
+        actor_avatar_url=doc.get("actor_avatar_url"),
+        action_text=str(doc.get("action_text") or ""),
+        target_snippet=doc.get("target_snippet"),
+        time_ago=doc.get("time_ago") or _format_time_ago(dt),
+        created_at=dt,
+        is_unread=not bool(is_read),
+        type=doc.get("type", "system"),
+        target_post_id=str(doc["target_post_id"]) if doc.get("target_post_id") else None,
+        target_post_type=doc.get("target_post_type"),
+    )
+
+
+def _is_author_post(doc: Dict[str, Any], target_id: str) -> bool:
+    if doc.get("is_deleted", False):
+        return False
+    if doc.get("status") not in (None, "published"):
+        return False
+    doc_author_id = str(doc.get("author_id") or (doc.get("author") or {}).get("id") or "")
+    return doc_author_id == target_id
+
+
+def _is_workout_post(doc: Dict[str, Any]) -> bool:
+    if doc.get("type") == "workout":
+        return True
+    if doc.get("workout_attachment"):
+        return True
+    snap = doc.get("attachment_snapshot")
+    if isinstance(snap, dict) and snap.get("kind") == "workout":
+        return True
+    return False
+
+
+def _is_meal_post(doc: Dict[str, Any]) -> bool:
+    if doc.get("type") == "meal":
+        return True
+    if doc.get("nutrition_info"):
+        return True
+    snap = doc.get("attachment_snapshot")
+    if isinstance(snap, dict) and snap.get("kind") == "meal":
+        return True
+    return False
+
+
+def _build_author_profile_response(
+    target_id: str,
+    current_user: Optional[Dict[str, Any]],
+    allow_fallback_current_user: bool = False,
+) -> CommunityAuthorProfileResponse:
+    current_user_id = str(current_user["_id"]) if current_user else None
+    author_info = _find_author_doc(target_id)
+    if not author_info:
+        if allow_fallback_current_user and current_user:
+            author_info = {
+                "id": current_user_id,
+                "name": current_user.get("name") or current_user.get("full_name") or "Saman Athlete",
+                "avatar_url": current_user.get("avatar_url") or current_user.get("avatar") or current_user.get("custom_avatar"),
+                "title": current_user.get("title") or "Thành viên Saman",
+                "is_verified": bool(current_user.get("is_verified", False)),
+                "handle": current_user.get("handle"),
+                "bio": current_user.get("bio"),
+                "interest_topics": list(current_user.get("interest_topics") or []),
+            }
+        else:
+            raise HTTPException(status_code=404, detail="Author not found")
+
+    follows_col = get_community_follows_collection()
+    posts_col = get_community_posts_collection()
+    interactions_col = get_community_interactions_collection()
+
+    follower_count = 0
+    following_count = 0
+    post_count = 0
+    workout_post_count = 0
+    meal_post_count = 0
+    total_likes_received = 0
+    is_following = False
+
+    if follows_col is not None:
+        follower_count = follows_col.count_documents({"following_id": target_id})
+        following_count = follows_col.count_documents({"follower_id": target_id})
+        if current_user_id and current_user_id != target_id:
+            is_following = bool(follows_col.find_one({"follower_id": current_user_id, "following_id": target_id}))
+
+    if posts_col is not None:
+        raw_posts = list(
+            posts_col.find({
+                "$or": [{"author_id": target_id}, {"author.id": target_id}],
+                "is_deleted": {"$ne": True},
+                "status": {"$in": ["published", None]},
+            })
+        )
+        author_posts = [p for p in raw_posts if _is_author_post(p, target_id)]
+        post_count = len(author_posts)
+        workout_post_count = sum(1 for p in author_posts if _is_workout_post(p))
+        meal_post_count = sum(1 for p in author_posts if _is_meal_post(p))
+
+        if interactions_col is not None and author_posts:
+            post_id_set: set[str] = set()
+            for p in author_posts:
+                if p.get("id"):
+                    post_id_set.add(str(p["id"]))
+                if p.get("_id"):
+                    post_id_set.add(str(p["_id"]))
+            if post_id_set:
+                total_likes_received = interactions_col.count_documents({
+                    "post_id": {"$in": list(post_id_set)},
+                    "interaction_type": "like",
+                })
+
+    return CommunityAuthorProfileResponse(
+        id=target_id,
+        name=author_info["name"],
+        avatar_url=author_info.get("avatar_url"),
+        title=author_info.get("title"),
+        is_verified=author_info.get("is_verified", False),
+        follower_count=follower_count,
+        following_count=following_count,
+        post_count=post_count,
+        is_following=is_following,
+        handle=author_info.get("handle"),
+        bio=author_info.get("bio"),
+        interest_topics=list(author_info.get("interest_topics") or []),
+        workout_post_count=workout_post_count,
+        meal_post_count=meal_post_count,
+        total_likes_received=total_likes_received,
+    )
+
+
+def _hydrate_post_docs(
+    results_docs: List[Dict[str, Any]],
+    current_user_id: Optional[str],
+) -> List[CommunityPostModel]:
+    liked_post_ids: Optional[set[str]] = None
+    saved_post_ids: Optional[set[str]] = None
+    interactions_col = get_community_interactions_collection()
+    follows_col = get_community_follows_collection()
+
+    if current_user_id and interactions_col is not None and results_docs:
+        liked_post_ids = set()
+        saved_post_ids = set()
+        post_id_strs: List[str] = []
+        for d in results_docs:
+            if d.get("id"):
+                post_id_strs.append(str(d["id"]))
+            if d.get("_id"):
+                post_id_strs.append(str(d["_id"]))
+        for inter in interactions_col.find({
+            "user_id": current_user_id,
+            "post_id": {"$in": post_id_strs},
+        }):
+            itype = inter.get("interaction_type")
+            pid = str(inter.get("post_id"))
+            if itype == "like":
+                liked_post_ids.add(pid)
+            elif itype == "save":
+                saved_post_ids.add(pid)
+
+    authoritative_like_counts: Dict[str, int] = {}
+    if interactions_col is not None and results_docs:
+        all_pids: List[str] = []
+        for d in results_docs:
+            if d.get("id"):
+                all_pids.append(str(d["id"]))
+            if d.get("_id"):
+                all_pids.append(str(d["_id"]))
+        for agg in interactions_col.aggregate([
+            {"$match": {"post_id": {"$in": all_pids}, "interaction_type": "like"}},
+            {"$group": {"_id": "$post_id", "count": {"$sum": 1}}},
+        ]):
+            authoritative_like_counts[str(agg["_id"])] = agg["count"]
+
+    author_ids: List[str] = []
+    for d in results_docs:
+        a_id = str(d.get("author_id") or (d.get("author") or {}).get("id") or (d.get("author") or {}).get("_id") or "")
+        if a_id:
+            author_ids.append(a_id)
+
+    author_follower_counts: Dict[str, int] = {}
+    followed_author_set: set[str] = set()
+    if follows_col is not None and author_ids:
+        for agg in follows_col.aggregate([
+            {"$match": {"following_id": {"$in": author_ids}}},
+            {"$group": {"_id": "$following_id", "count": {"$sum": 1}}},
+        ]):
+            author_follower_counts[str(agg["_id"])] = agg["count"]
+        if current_user_id:
+            for f in follows_col.find({"follower_id": current_user_id, "following_id": {"$in": author_ids}}):
+                followed_author_set.add(str(f["following_id"]))
+
+    items: List[CommunityPostModel] = []
+    for d in results_docs:
+        pid = str(d.get("id") or d.get("_id"))
+        doc_id = str(d.get("_id")) if d.get("_id") else None
+        auth_cnt = None
+        if pid in authoritative_like_counts:
+            auth_cnt = authoritative_like_counts[pid]
+        elif doc_id and doc_id in authoritative_like_counts:
+            auth_cnt = authoritative_like_counts[doc_id]
+        elif d.get("interaction_version", 0) > 0:
+            auth_cnt = 0
+        items.append(_build_post_model(
+            d,
+            current_user_id,
+            liked_post_ids,
+            saved_post_ids,
+            override_like_count=auth_cnt,
+            followed_author_ids=followed_author_set if current_user_id else set(),
+            author_follower_counts=author_follower_counts,
+        ))
+    return items
+
+
+@router.get("/notifications", response_model=CommunityNotificationsResponse)
+async def get_community_notifications(
+    filter: str = Query("all", description="Notification filter: all, interactions, system"),
+    limit: int = Query(20, ge=1, le=50, description="Items per page"),
+    cursor: Optional[str] = Query(None, description="Opaque cursor for pagination"),
+    current_user: Dict[str, Any] = Depends(get_required_current_user),
+):
+    norm_filter = filter.lower()
+    if norm_filter not in ("all", "interactions", "system"):
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid notification filter: {filter}. Allowed values: all, interactions, system",
+        )
+
+    current_user_id = str(current_user["_id"])
+    col = get_community_notifications_collection()
+    if col is None:
+        return CommunityNotificationsResponse(items=[], unread_count=0, next_cursor=None)
+
+    unread_count = col.count_documents({"recipient_id": current_user_id, "is_read": False})
+
+    query: Dict[str, Any] = {"recipient_id": current_user_id}
+    if norm_filter == "interactions":
+        query["type"] = {"$in": ["like", "comment", "follow", "answer"]}
+    elif norm_filter == "system":
+        query["type"] = "system"
+
+    if cursor:
+        cursor_dt, cursor_id = _decode_cursor(cursor)
+        cursor_filter = {
+            "$or": [
+                {"created_at": {"$lt": cursor_dt}},
+                {
+                    "created_at": cursor_dt,
+                    "_id": {"$lt": ObjectId(cursor_id) if ObjectId.is_valid(cursor_id) else cursor_id},
+                },
+            ]
+        }
+        query = {"$and": [query, cursor_filter]}
+
+    docs = list(col.find(query).sort([("created_at", -1), ("_id", -1)]).limit(limit + 1))
+    has_more = len(docs) > limit
+    results = docs[:limit]
+
+    next_cursor = None
+    if has_more and results:
+        last_doc = results[-1]
+        c_dt = last_doc.get("created_at") or datetime.now(timezone.utc)
+        if isinstance(c_dt, str):
+            c_dt = datetime.fromisoformat(c_dt)
+        next_cursor = _encode_cursor(c_dt, str(last_doc.get("_id") or last_doc.get("id")))
+
+    return CommunityNotificationsResponse(
+        items=[_build_notification_model(d) for d in results],
+        unread_count=unread_count,
+        next_cursor=next_cursor,
+    )
+
+
+@router.patch("/notifications/{notification_id}/read", response_model=NotificationReadResponse)
+async def mark_notification_read(
+    notification_id: str,
+    current_user: Dict[str, Any] = Depends(get_required_current_user),
+):
+    current_user_id = str(current_user["_id"])
+    col = get_community_notifications_collection()
+    if col is None:
+        raise HTTPException(status_code=503, detail="Database unavailable")
+
+    id_filters: List[Dict[str, Any]] = [{"id": notification_id}, {"_id": notification_id}]
+    if ObjectId.is_valid(notification_id):
+        id_filters.append({"_id": ObjectId(notification_id)})
+
+    doc = col.find_one({"recipient_id": current_user_id, "$or": id_filters})
+    if not doc:
+        raise HTTPException(status_code=404, detail="Notification not found")
+
+    col.update_one(
+        {"_id": doc["_id"], "recipient_id": current_user_id},
+        {"$set": {"is_read": True, "read_at": datetime.now(timezone.utc)}},
+    )
+    unread_count = col.count_documents({"recipient_id": current_user_id, "is_read": False})
+    return NotificationReadResponse(
+        id=str(doc.get("id") or doc["_id"]),
+        is_unread=False,
+        unread_count=unread_count,
+    )
+
+
+@router.post("/notifications/read-all", response_model=NotificationsReadAllResponse)
+async def mark_all_notifications_read(
+    current_user: Dict[str, Any] = Depends(get_required_current_user),
+):
+    current_user_id = str(current_user["_id"])
+    col = get_community_notifications_collection()
+    if col is None:
+        raise HTTPException(status_code=503, detail="Database unavailable")
+
+    col.update_many(
+        {"recipient_id": current_user_id, "is_read": False},
+        {"$set": {"is_read": True, "read_at": datetime.now(timezone.utc)}},
+    )
+    unread_count = col.count_documents({"recipient_id": current_user_id, "is_read": False})
+    return NotificationsReadAllResponse(unread_count=unread_count)
+
+
+def _build_draft_model(doc: Dict[str, Any]) -> CommunityDraftModel:
+    updated_at = doc.get("updated_at") or datetime.now(timezone.utc)
+    if isinstance(updated_at, str):
+        updated_at = datetime.fromisoformat(updated_at)
+    if isinstance(updated_at, datetime) and updated_at.tzinfo is None:
+        updated_at = updated_at.replace(tzinfo=timezone.utc)
+    return CommunityDraftModel(
+        id=str(doc.get("id") or doc["_id"]),
+        user_id=str(doc["user_id"]),
+        caption=str(doc.get("caption", "")),
+        media_urls=[str(u) for u in (doc.get("media_urls") or [])],
+        aspect_ratio=str(doc.get("aspect_ratio", "1:1")),
+        rotation=int(doc.get("rotation", 0)),
+        brightness=float(doc.get("brightness", 0.0)),
+        contrast=float(doc.get("contrast", 0.0)),
+        audience=str(doc.get("audience", "Công khai")),
+        topic=str(doc.get("topic", "#BữaĂn")),
+        allow_comments=bool(doc.get("allow_comments", True)),
+        attachment=doc.get("attachment"),
+        question_title=doc.get("question_title"),
+        question_details=doc.get("question_details"),
+        updated_at=updated_at,
+    )
+
+
+def _find_draft_by_id(col, draft_id: str) -> Optional[Dict[str, Any]]:
+    id_filters: List[Dict[str, Any]] = [{"id": draft_id}, {"_id": draft_id}]
+    if ObjectId.is_valid(draft_id):
+        id_filters.append({"_id": ObjectId(draft_id)})
+    return col.find_one({"$or": id_filters})
+
+
+def _upsert_draft(
+    current_user_id: str,
+    body: CommunityDraftUpsertRequest,
+    path_draft_id: Optional[str] = None,
+) -> CommunityDraftModel:
+    col = get_community_drafts_collection()
+    if col is None:
+        raise HTTPException(status_code=503, detail="Database unavailable")
+
+    target_id = path_draft_id.strip() if path_draft_id else (body.id.strip() if body.id else None)
+    now = datetime.now(timezone.utc)
+    fields: Dict[str, Any] = {
+        "caption": body.caption,
+        "media_urls": list(body.media_urls),
+        "aspect_ratio": body.aspect_ratio,
+        "rotation": body.rotation,
+        "brightness": body.brightness,
+        "contrast": body.contrast,
+        "audience": body.audience,
+        "topic": body.topic,
+        "allow_comments": bool(body.allow_comments),
+        "attachment": body.attachment,
+        "question_title": body.question_title,
+        "question_details": body.question_details,
+        "updated_at": now,
+    }
+
+    if target_id:
+        existing = _find_draft_by_id(col, target_id)
+        if existing is not None:
+            if str(existing.get("user_id")) != current_user_id:
+                raise HTTPException(status_code=404, detail="Draft not found")
+            col.update_one(
+                {"_id": existing["_id"], "user_id": current_user_id},
+                {"$set": fields},
+            )
+            return _build_draft_model(dict(existing, **fields))
+
+        new_oid = ObjectId(target_id) if ObjectId.is_valid(target_id) else ObjectId()
+        doc = {
+            "_id": new_oid,
+            "id": target_id,
+            "user_id": current_user_id,
+            "created_at": now,
+            **fields,
+        }
+        col.insert_one(doc)
+        return _build_draft_model(doc)
+
+    new_oid = ObjectId()
+    doc = {
+        "_id": new_oid,
+        "id": str(new_oid),
+        "user_id": current_user_id,
+        "created_at": now,
+        **fields,
+    }
+    col.insert_one(doc)
+    return _build_draft_model(doc)
+
+
+@router.get("/drafts", response_model=CommunityDraftsResponse)
+async def list_community_drafts(
+    current_user: Dict[str, Any] = Depends(get_required_current_user),
+):
+    current_user_id = str(current_user["_id"])
+    col = get_community_drafts_collection()
+    if col is None:
+        return CommunityDraftsResponse(items=[])
+
+    docs = list(col.find({"user_id": current_user_id}).sort([("updated_at", -1), ("_id", -1)]))
+    return CommunityDraftsResponse(items=[_build_draft_model(d) for d in docs])
+
+
+@router.post("/drafts", response_model=CommunityDraftModel)
+async def create_or_upsert_community_draft(
+    body: CommunityDraftUpsertRequest,
+    current_user: Dict[str, Any] = Depends(get_required_current_user),
+):
+    return _upsert_draft(str(current_user["_id"]), body)
+
+
+@router.put("/drafts/{draft_id}", response_model=CommunityDraftModel)
+async def upsert_community_draft_by_id(
+    draft_id: str,
+    body: CommunityDraftUpsertRequest,
+    current_user: Dict[str, Any] = Depends(get_required_current_user),
+):
+    return _upsert_draft(str(current_user["_id"]), body, path_draft_id=draft_id)
+
+
+@router.delete("/drafts/{draft_id}")
+async def delete_community_draft(
+    draft_id: str,
+    current_user: Dict[str, Any] = Depends(get_required_current_user),
+):
+    current_user_id = str(current_user["_id"])
+    col = get_community_drafts_collection()
+    if col is None:
+        raise HTTPException(status_code=503, detail="Database unavailable")
+
+    id_filters: List[Dict[str, Any]] = [{"id": draft_id}, {"_id": draft_id}]
+    if ObjectId.is_valid(draft_id):
+        id_filters.append({"_id": ObjectId(draft_id)})
+    doc = col.find_one({"user_id": current_user_id, "$or": id_filters})
+    if not doc:
+        raise HTTPException(status_code=404, detail="Draft not found")
+
+    col.delete_one({"_id": doc["_id"], "user_id": current_user_id})
+    return {"success": True, "id": str(doc.get("id") or doc["_id"])}
+
+
+@router.get("/authors/{author_id}/posts", response_model=CommunityFeedResponse)
+async def get_author_posts(
+    author_id: str,
+    tab: Literal["all", "workout", "meal", "qa"] = Query("all"),
+    limit: int = Query(20, ge=1, le=50),
+    cursor: Optional[str] = Query(None),
+    current_user: Optional[Dict[str, Any]] = Depends(get_optional_current_user),
+):
+    current_user_id = str(current_user["_id"]) if current_user else None
+    target_id = current_user_id if author_id == "me" else author_id
+    if not target_id:
+        raise HTTPException(status_code=401, detail="Authentication required")
+
+    target_info = _find_author_doc(target_id)
+    if not target_info and target_id != current_user_id:
+        raise HTTPException(status_code=404, detail="Author not found")
+
+    posts_col = get_community_posts_collection()
+    if posts_col is None:
+        return CommunityFeedResponse(items=[], next_cursor=None)
+
+    follows_col = get_community_follows_collection()
+    if current_user_id and current_user_id == target_id:
+        allowed_privacies: List[Optional[str]] = ["public", "followers_only", "private", None]
+    else:
+        is_follower = False
+        if current_user_id and follows_col is not None:
+            is_follower = bool(follows_col.find_one({"follower_id": current_user_id, "following_id": target_id}))
+        allowed_privacies = ["public", "followers_only", None] if is_follower else ["public", None]
+
+    and_clauses: List[Dict[str, Any]] = [
+        {"is_deleted": {"$ne": True}},
+        {"status": {"$in": ["published", None]}},
+        {"$or": [{"author_id": target_id}, {"author.id": target_id}]},
+        {"privacy": {"$in": allowed_privacies}},
+    ]
+
+    if tab == "workout":
+        and_clauses.append({
+            "$or": [
+                {"type": "workout"},
+                {"workout_attachment": {"$ne": None}},
+                {"attachment_snapshot.kind": "workout"},
+            ]
+        })
+    elif tab == "meal":
+        and_clauses.append({
+            "$or": [
+                {"type": "meal"},
+                {"nutrition_info": {"$ne": None}},
+                {"attachment_snapshot.kind": "meal"},
+            ]
+        })
+    elif tab == "qa":
+        and_clauses.append({"type": "qa"})
+
+    if cursor:
+        cursor_dt, cursor_id = _decode_cursor(cursor)
+        and_clauses.append({
+            "$or": [
+                {"created_at": {"$lt": cursor_dt}},
+                {
+                    "created_at": cursor_dt,
+                    "_id": {"$lt": ObjectId(cursor_id) if ObjectId.is_valid(cursor_id) else cursor_id},
+                },
+            ]
+        })
+
+    docs = list(posts_col.find({"$and": and_clauses}).sort([("created_at", -1), ("_id", -1)]).limit(limit + 1))
+
+    # Defense-in-depth audience enforcement via _check_post_audience
+    visible_docs: List[Dict[str, Any]] = []
+    for d in docs:
+        try:
+            _check_post_audience(d, current_user_id)
+            visible_docs.append(d)
+        except HTTPException:
+            continue
+
+    has_more = len(visible_docs) > limit
+    results_docs = visible_docs[:limit]
+
+    items = _hydrate_post_docs(results_docs, current_user_id)
+
+    next_cursor = None
+    if has_more and results_docs:
+        last_doc = results_docs[-1]
+        c_dt = last_doc.get("created_at") or datetime.now(timezone.utc)
+        if isinstance(c_dt, str):
+            c_dt = datetime.fromisoformat(c_dt)
+        next_cursor = _encode_cursor(c_dt, str(last_doc["_id"]))
+
+    return CommunityFeedResponse(items=items, next_cursor=next_cursor)
+
+
+@router.patch("/profile", response_model=CommunityAuthorProfileResponse)
+async def update_community_profile(
+    body: UpdateCommunityProfileRequest,
+    current_user: Dict[str, Any] = Depends(get_required_current_user),
+):
+    current_user_id = str(current_user["_id"])
+    users_col = get_users_collection()
+    if users_col is None:
+        raise HTTPException(status_code=503, detail="Database unavailable")
+
+    id_filters: List[Dict[str, Any]] = [{"_id": current_user_id}, {"id": current_user_id}]
+    if ObjectId.is_valid(current_user_id):
+        id_filters.append({"_id": ObjectId(current_user_id)})
+    user_doc = users_col.find_one({"$or": id_filters})
+    if not user_doc and current_user.get("email"):
+        user_doc = users_col.find_one({"email": current_user["email"]})
+    if not user_doc:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    updates: Dict[str, Any] = {}
+
+    if body.name is not None:
+        clean_name = body.name.strip()
+        if not clean_name:
+            raise HTTPException(status_code=422, detail="Name must not be blank")
+        updates["name"] = clean_name
+
+    if body.handle is not None:
+        raw_handle = body.handle.strip()
+        if raw_handle == "":
+            updates["handle"] = None
+        else:
+            stripped = raw_handle.lstrip("@").strip().lower()
+            if not stripped or not _HANDLE_RE.fullmatch(stripped):
+                raise HTTPException(
+                    status_code=422,
+                    detail="Handle must contain only lowercase letters, numbers, dots, and underscores (1-32 chars)",
+                )
+            existing_handle_user = users_col.find_one({"handle": stripped})
+            if existing_handle_user is not None:
+                existing_ids = {str(existing_handle_user.get("_id"))}
+                if existing_handle_user.get("id"):
+                    existing_ids.add(str(existing_handle_user.get("id")))
+                my_ids = {current_user_id, str(user_doc.get("_id"))}
+                if user_doc.get("id"):
+                    my_ids.add(str(user_doc.get("id")))
+                if not (existing_ids & my_ids):
+                    raise HTTPException(status_code=409, detail="Handle already in use")
+            updates["handle"] = stripped
+
+    if body.title is not None:
+        updates["title"] = body.title.strip()
+
+    if body.bio is not None:
+        updates["bio"] = body.bio.strip()
+
+    if body.interest_topics is not None:
+        cleaned_topics: List[str] = []
+        for topic in body.interest_topics:
+            ct = topic.strip()
+            if ct and ct not in cleaned_topics:
+                cleaned_topics.append(ct)
+        if len(cleaned_topics) > 3:
+            raise HTTPException(status_code=422, detail="At most 3 interest topics are allowed")
+        updates["interest_topics"] = cleaned_topics
+
+    if body.avatar_url is not None:
+        clean_avatar = body.avatar_url.strip() or None
+        updates["avatar_url"] = clean_avatar
+        updates["custom_avatar"] = clean_avatar
+
+    if updates:
+        updates["updated_at"] = datetime.now(timezone.utc)
+        users_col.update_one({"_id": user_doc["_id"]}, {"$set": updates})
+
+        post_author_updates: Dict[str, Any] = {}
+        if "name" in updates:
+            post_author_updates["author.name"] = updates["name"]
+        if "title" in updates:
+            post_author_updates["author.title"] = updates["title"]
+        if "avatar_url" in updates:
+            post_author_updates["author.avatar_url"] = updates["avatar_url"]
+
+        if post_author_updates:
+            target_author_ids = list({
+                current_user_id,
+                str(user_doc["_id"]),
+                *([str(user_doc["id"])] if user_doc.get("id") else []),
+            })
+            posts_col = get_community_posts_collection()
+            if posts_col is not None and hasattr(posts_col, "update_many"):
+                posts_col.update_many(
+                    {"$or": [{"author_id": {"$in": target_author_ids}}, {"author.id": {"$in": target_author_ids}}]},
+                    {"$set": post_author_updates},
+                )
+
+    return _build_author_profile_response(
+        target_id=current_user_id,
+        current_user=current_user,
+        allow_fallback_current_user=True,
+    )
+
+
+# --- WAVE 3: DISCOVER ENDPOINT ---
+
+_DISCOVER_TOPIC_CHIPS: List[str] = ["all", "workout", "meal", "recipe", "qna", "journey"]
+
+
+def _is_public_discover_post(doc: Dict[str, Any]) -> bool:
+    if not isinstance(doc, dict):
+        return False
+    if doc.get("privacy") != "public":
+        return False
+    if doc.get("is_deleted") is True:
+        return False
+    if doc.get("status") not in ("published", None):
+        return False
+    return True
+
+
+def _build_discover_topic_clause(active_topic: str) -> Optional[Dict[str, Any]]:
+    if not active_topic or active_topic == "all":
+        return None
+    if active_topic == "workout":
+        return {
+            "$or": [
+                {"type": "workout"},
+                {"topic": "#TậpLuyện"},
+                {"attachment_snapshot.kind": "workout"},
+            ]
+        }
+    if active_topic == "meal":
+        return {
+            "$or": [
+                {"type": "meal"},
+                {"topic": "#BữaĂn"},
+                {"attachment_snapshot.kind": "meal"},
+            ]
+        }
+    if active_topic == "recipe":
+        return {
+            "$or": [
+                {"topic": {"$in": ["#BữaĂn", "#Mẹo"]}},
+                {"caption": {"$regex": r"công thức|recipe", "$options": "i"}},
+                {"topic": {"$regex": r"công thức|recipe", "$options": "i"}},
+            ]
+        }
+    if active_topic == "qna":
+        return {"type": "qa"}
+    if active_topic == "journey":
+        return {"topic": {"$in": ["#KỷLuật", "#PhụcHồi", "#ChiaSẻ"]}}
+    if active_topic.startswith("#"):
+        escaped_tag = re.escape(active_topic)
+        stripped_tag = re.escape(active_topic.lstrip("#"))
+        clauses: List[Dict[str, Any]] = [
+            {"topic": {"$regex": f"^{escaped_tag}$", "$options": "i"}},
+        ]
+        if stripped_tag:
+            clauses.append({"topic": {"$regex": f"^{stripped_tag}$", "$options": "i"}})
+        return {"$or": clauses}
+    return {"topic": active_topic}
+
+
+@router.get("/discover", response_model=CommunityDiscoverResponse)
+async def get_community_discover(
+    topic: str = Query("all"),
+    q: str = Query("", max_length=100),
+    limit: int = Query(18, ge=1, le=50),
+    current_user: Optional[Dict[str, Any]] = Depends(get_optional_current_user),
+):
+    current_user_id = str(current_user["_id"]) if current_user else None
+
+    raw_topic = (topic or "all").strip()
+    if not raw_topic:
+        active_topic = "all"
+    elif raw_topic.startswith("#"):
+        active_topic = raw_topic
+    else:
+        active_topic = raw_topic.lower()
+
+    query_text = (q or "").strip()
+    escaped_q = re.escape(query_text) if query_text else ""
+    q_regex = re.compile(escaped_q, re.IGNORECASE) if escaped_q else None
+
+    posts_col = get_community_posts_collection()
+    interactions_col = get_community_interactions_collection()
+    follows_col = get_community_follows_collection()
+    users_col = get_users_collection()
+
+    grid_items: List[CommunityVisualGridItemModel] = []
+    trending_topics: List[CommunityTrendingTopicModel] = []
+    recommended_creators: List[CommunityAuthorModel] = []
+
+    if posts_col is not None:
+        and_clauses: List[Dict[str, Any]] = [
+            {"privacy": "public"},
+            {"is_deleted": {"$ne": True}},
+            {"status": {"$in": ["published", None]}},
+            {"photo_urls.0": {"$exists": True}},
+        ]
+
+        topic_clause = _build_discover_topic_clause(active_topic)
+        if topic_clause is not None:
+            and_clauses.append(topic_clause)
+
+        if escaped_q:
+            regex_cond = {"$regex": escaped_q, "$options": "i"}
+            and_clauses.append({
+                "$or": [
+                    {"caption": regex_cond},
+                    {"topic": regex_cond},
+                    {"qa_info.question": regex_cond},
+                    {"attachment_snapshot.title": regex_cond},
+                    {"author.name": regex_cond},
+                ]
+            })
+
+        raw_grid_docs = list(
+            posts_col.find({"$and": and_clauses})
+            .sort([("created_at", -1), ("_id", -1)])
+            .limit(limit)
+        )
+
+        grid_docs: List[tuple[Dict[str, Any], List[str]]] = []
+        for d in raw_grid_docs:
+            if not _is_public_discover_post(d):
+                continue
+            valid_photos = [
+                str(u).strip()
+                for u in (d.get("photo_urls") or [])
+                if isinstance(u, str) and u.strip()
+            ]
+            if not valid_photos:
+                continue
+            grid_docs.append((d, valid_photos))
+
+        authoritative_like_counts: Dict[str, int] = {}
+        if interactions_col is not None and grid_docs:
+            all_pids: List[str] = []
+            for d, _ in grid_docs:
+                if d.get("id"):
+                    all_pids.append(str(d["id"]))
+                if d.get("_id") is not None:
+                    all_pids.append(str(d["_id"]))
+            if all_pids:
+                for agg in interactions_col.aggregate([
+                    {"$match": {"post_id": {"$in": list(set(all_pids))}, "interaction_type": "like"}},
+                    {"$group": {"_id": "$post_id", "count": {"$sum": 1}}},
+                ]):
+                    authoritative_like_counts[str(agg["_id"])] = int(agg["count"])
+
+        for d, valid_photos in grid_docs:
+            pid = str(d.get("id") or d.get("_id"))
+            doc_oid = str(d.get("_id")) if d.get("_id") is not None else None
+            auth_cnt: Optional[int] = None
+            if pid in authoritative_like_counts:
+                auth_cnt = authoritative_like_counts[pid]
+            elif doc_oid and doc_oid in authoritative_like_counts:
+                auth_cnt = authoritative_like_counts[doc_oid]
+            elif d.get("interaction_version", 0) > 0:
+                auth_cnt = 0
+            final_like_count = auth_cnt if auth_cnt is not None else int(d.get("like_count", 0))
+
+            alt_text = (
+                str(d.get("caption") or "").strip()
+                or str((d.get("attachment_snapshot") or {}).get("title") or "").strip()
+                or str((d.get("qa_info") or {}).get("question") or "").strip()
+                or None
+            )
+            grid_items.append(
+                CommunityVisualGridItemModel(
+                    id=pid,
+                    post_id=pid,
+                    image_url=valid_photos[0],
+                    like_count=final_like_count,
+                    has_multi_photo=len(valid_photos) > 1,
+                    has_video=bool(d.get("has_video", False) or d.get("video_url")),
+                    alt_text=alt_text,
+                )
+            )
+
+        trending_match: Dict[str, Any] = {
+            "privacy": "public",
+            "is_deleted": {"$ne": True},
+            "status": {"$in": ["published", None]},
+            "topic": {"$exists": True, "$ne": ""},
+        }
+        topic_counts: Dict[str, int] = {}
+        for agg in posts_col.aggregate([
+            {"$match": trending_match},
+            {"$group": {"_id": "$topic", "count": {"$sum": 1}}},
+        ]):
+            raw_t = agg.get("_id")
+            if not isinstance(raw_t, str):
+                continue
+            cleaned_t = raw_t.strip()
+            if not cleaned_t:
+                continue
+            hashtag = cleaned_t if cleaned_t.startswith("#") else f"#{cleaned_t}"
+            topic_counts[hashtag] = topic_counts.get(hashtag, 0) + int(agg.get("count", 0))
+
+        topic_entries = list(topic_counts.items())
+        if q_regex is not None:
+            topic_entries = [
+                (tag, cnt) for tag, cnt in topic_entries if q_regex.search(tag)
+            ]
+
+        topic_entries.sort(key=lambda item: (-item[1], item[0].lower()))
+        for idx, (hashtag, cnt) in enumerate(topic_entries[:5], start=1):
+            slug = re.sub(r"[^a-z0-9]+", "_", hashtag.lower()).strip("_") or str(idx)
+            trending_topics.append(
+                CommunityTrendingTopicModel(
+                    id=f"trending_{idx}_{slug}",
+                    hashtag=hashtag,
+                    post_count_formatted=f"{cnt} bài viết thảo luận",
+                    growth_percent="Ổn định",
+                    is_stable=True,
+                    icon_name="tag",
+                )
+            )
+
+    if users_col is not None:
+        user_query: Dict[str, Any] = {}
+        if escaped_q:
+            regex_cond = {"$regex": escaped_q, "$options": "i"}
+            user_query = {
+                "$or": [
+                    {"name": regex_cond},
+                    {"full_name": regex_cond},
+                    {"title": regex_cond},
+                    {"handle": regex_cond},
+                ]
+            }
+
+        raw_users = list(users_col.find(user_query).limit(200))
+        candidate_users: List[tuple[str, Dict[str, Any]]] = []
+        seen_uids: set[str] = set()
+        for u in raw_users:
+            uid = str(u.get("_id") or u.get("id") or "")
+            if not uid or uid in seen_uids:
+                continue
+            if current_user_id and (uid == current_user_id or str(u.get("id") or "") == current_user_id):
+                continue
+            seen_uids.add(uid)
+            candidate_users.append((uid, u))
+
+        creator_ids = [uid for uid, _ in candidate_users]
+        creator_follower_counts: Dict[str, int] = {}
+        viewer_following_ids: set[str] = set()
+        if follows_col is not None and creator_ids:
+            for agg in follows_col.aggregate([
+                {"$match": {"following_id": {"$in": creator_ids}}},
+                {"$group": {"_id": "$following_id", "count": {"$sum": 1}}},
+            ]):
+                creator_follower_counts[str(agg["_id"])] = int(agg["count"])
+            if current_user_id:
+                for f in follows_col.find({
+                    "follower_id": current_user_id,
+                    "following_id": {"$in": creator_ids},
+                }):
+                    viewer_following_ids.add(str(f["following_id"]))
+
+        creators_all: List[CommunityAuthorModel] = []
+        for uid, u in candidate_users:
+            creators_all.append(
+                _sanitize_author_projection(
+                    u,
+                    current_user_id=current_user_id,
+                    is_following=(uid in viewer_following_ids) if current_user_id else False,
+                    follower_count_override=creator_follower_counts.get(uid, 0),
+                )
+            )
+
+        creators_all.sort(key=lambda c: (-c.follower_count, c.name.lower()))
+        recommended_creators = creators_all[:10]
+
+    return CommunityDiscoverResponse(
+        topic_chips=list(_DISCOVER_TOPIC_CHIPS),
+        active_topic=active_topic,
+        grid_items=grid_items,
+        trending_topics=trending_topics,
+        recommended_creators=recommended_creators,
+    )

@@ -5,13 +5,21 @@ import '../../../../screens/home/tokens/saman_home_tokens.dart';
 import '../../domain/models/journal_search_result.dart';
 import '../providers/journal_providers.dart';
 import '../widgets/journal_preview_sheet.dart';
+import 'journal_article_detail_screen.dart';
 
 /// R02 — Saman Journal Search Screen.
 ///
 /// Final visual truth: `design/saman-Journal_community/r02_journal_search/screen.png`
 /// Strictly isolates Journal content (Articles, Exercises, Foods, Recipes) from Community posts.
 class JournalSearchScreen extends ConsumerStatefulWidget {
-  const JournalSearchScreen({super.key});
+  const JournalSearchScreen({
+    super.key,
+    this.initialCategory,
+    this.initialQuery,
+  });
+
+  final JournalSearchCategory? initialCategory;
+  final String? initialQuery;
 
   @override
   ConsumerState<JournalSearchScreen> createState() =>
@@ -25,8 +33,26 @@ class _JournalSearchScreenState extends ConsumerState<JournalSearchScreen> {
   @override
   void initState() {
     super.initState();
-    final initialQuery = ref.read(journalSearchProvider).query;
-    _searchController = TextEditingController(text: initialQuery);
+    final existingQuery = ref.read(journalSearchProvider).query;
+    _searchController = TextEditingController(
+      text: widget.initialQuery ?? existingQuery,
+    );
+
+    if (widget.initialCategory != null || widget.initialQuery != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        final notifier = ref.read(journalSearchProvider.notifier);
+        if (widget.initialCategory != null) {
+          notifier.selectCategory(widget.initialCategory!);
+        }
+        if (widget.initialQuery != null) {
+          if (_searchController.text != widget.initialQuery!) {
+            _searchController.text = widget.initialQuery!;
+          }
+          notifier.executeSearch(immediateQuery: widget.initialQuery!);
+        }
+      });
+    }
   }
 
   @override
@@ -491,6 +517,16 @@ class _JournalSearchScreenState extends ConsumerState<JournalSearchScreen> {
       color: Colors.transparent,
       child: InkWell(
         onTap: () {
+          if (item.category == JournalSearchCategory.articles) {
+            Navigator.of(context).push(
+              MaterialPageRoute<void>(
+                builder: (_) => JournalArticleDetailScreen(
+                  articleId: item.id,
+                ),
+              ),
+            );
+            return;
+          }
           JournalPreviewSheet.show(
             context,
             title: item.title,

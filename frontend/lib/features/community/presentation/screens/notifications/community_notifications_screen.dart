@@ -8,6 +8,13 @@ import '../../providers/community_providers.dart';
 class CommunityNotificationsScreen extends ConsumerWidget {
   const CommunityNotificationsScreen({super.key});
 
+  bool _isToday(String timeAgo) {
+    final lower = timeAgo.toLowerCase();
+    return lower.contains('phút') ||
+        lower.contains('giờ') ||
+        lower.contains('vừa xong');
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final tokens = SamanHomeTokens.of(context);
@@ -43,65 +50,70 @@ class CommunityNotificationsScreen extends ConsumerWidget {
     SamanHomePalette tokens,
   ) {
     return Container(
-      height: 52,
-      padding: const EdgeInsets.symmetric(horizontal: 16),
+      height: 56,
+      padding: const EdgeInsets.symmetric(horizontal: 12),
       decoration: BoxDecoration(
         color: tokens.canvas,
         border: Border(bottom: BorderSide(color: tokens.border, width: 1)),
       ),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           IconButton(
             onPressed: () => Navigator.pop(context),
+            tooltip: 'Quay lại',
             icon: Icon(
               Icons.arrow_back_rounded,
               color: tokens.textPrimary,
               size: 22,
             ),
           ),
-          Row(
-            children: [
-              Text(
-                'Thông báo',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w700,
-                  color: tokens.textPrimary,
-                ),
-              ),
-              if (state.unreadCount > 0) ...[
-                const SizedBox(width: 6),
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                  decoration: BoxDecoration(
-                    color: tokens.greenAccent,
-                    borderRadius: BorderRadius.circular(10),
-                  ),
+          const SizedBox(width: 4),
+          Expanded(
+            child: Row(
+              children: [
+                Flexible(
                   child: Text(
-                    '${state.unreadCount}',
+                    'Thông báo',
+                    overflow: TextOverflow.ellipsis,
                     style: TextStyle(
-                      fontSize: 11,
+                      fontSize: 20,
                       fontWeight: FontWeight.w700,
-                      color: tokens.isDark
-                          ? const Color(0xFF003824)
-                          : const Color(0xFFFFFFFF),
+                      letterSpacing: -0.3,
+                      color: tokens.textPrimary,
                     ),
                   ),
                 ),
+                if (state.unreadCount > 0) ...[
+                  const SizedBox(width: 8),
+                  Container(
+                    width: 8,
+                    height: 8,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: tokens.greenAccent,
+                    ),
+                  ),
+                ],
               ],
-            ],
+            ),
           ),
-          TextButton(
-            onPressed: state.unreadCount > 0 ? () => notifier.markAllAsRead() : null,
-            child: Text(
-              'Đọc hết',
+          TextButton.icon(
+            onPressed:
+                state.unreadCount > 0 ? () => notifier.markAllAsRead() : null,
+            icon: Icon(
+              Icons.done_all_rounded,
+              size: 18,
+              color: state.unreadCount > 0
+                  ? tokens.greenAccent
+                  : tokens.textMuted,
+            ),
+            label: Text(
+              'Đã đọc',
               style: TextStyle(
                 fontSize: 13,
                 fontWeight: FontWeight.w600,
                 color: state.unreadCount > 0
-                    ? tokens.greenAccent
+                    ? tokens.textSecondary
                     : tokens.textMuted,
               ),
             ),
@@ -122,40 +134,63 @@ class CommunityNotificationsScreen extends ConsumerWidget {
       {'key': 'system', 'label': 'Hệ thống'},
     ];
 
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      child: Row(
-        children: filters.map((f) {
-          final isSelected = state.activeFilter == f['key'];
-          return Padding(
-            padding: const EdgeInsets.only(right: 8),
-            child: ChoiceChip(
-              label: Text(f['label']!),
-              selected: isSelected,
-              onSelected: (_) => notifier.setFilter(f['key']!),
-              selectedColor: tokens.greenAccent,
-              backgroundColor: tokens.cardSurface,
-              labelStyle: TextStyle(
-                fontSize: 12,
-                fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-                color: isSelected
-                    ? (tokens.isDark
-                        ? const Color(0xFF003824)
-                        : const Color(0xFFFFFFFF))
-                    : tokens.textSecondary,
+    return SizedBox(
+      width: double.infinity,
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+        child: Row(
+          children: filters.map((f) {
+            final isSelected = state.activeFilter == f['key'];
+            return Padding(
+              padding: const EdgeInsets.only(right: 8),
+              child: InkWell(
+                onTap: () => notifier.setFilter(f['key']!),
+                borderRadius: BorderRadius.circular(8),
+                child: Container(
+                  height: 34,
+                  padding: const EdgeInsets.symmetric(horizontal: 14),
+                  decoration: BoxDecoration(
+                    color: isSelected
+                        ? tokens.secondarySurface
+                        : tokens.cardSurface,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                      color: isSelected ? tokens.greenAccent : tokens.border,
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (isSelected) ...[
+                        Container(
+                          width: 6,
+                          height: 6,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: tokens.greenAccent,
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                      ],
+                      Text(
+                        f['label']!,
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight:
+                              isSelected ? FontWeight.w600 : FontWeight.w500,
+                          color: isSelected
+                              ? tokens.greenAccent
+                              : tokens.textSecondary,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               ),
-              side: BorderSide(
-                color: isSelected
-                    ? tokens.greenAccent
-                    : tokens.border,
-              ),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(20),
-              ),
-            ),
-          );
-        }).toList(),
+            );
+          }).toList(),
+        ),
       ),
     );
   }
@@ -169,103 +204,293 @@ class CommunityNotificationsScreen extends ConsumerWidget {
     final list = state.filteredNotifications;
 
     if (list.isEmpty) {
-      return Center(
-        child: Text(
-          'Không có thông báo nào.',
-          style: TextStyle(color: tokens.textMuted, fontSize: 13),
+      return RefreshIndicator(
+        color: tokens.greenAccent,
+        backgroundColor: tokens.cardSurface,
+        onRefresh: () => notifier.loadNotifications(),
+        child: LayoutBuilder(
+          builder: (context, constraints) => SingleChildScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            child: ConstrainedBox(
+              constraints: BoxConstraints(minHeight: constraints.maxHeight),
+              child: _buildEmptyState(tokens),
+            ),
+          ),
         ),
       );
     }
 
-    return ListView.separated(
-      padding: const EdgeInsets.symmetric(vertical: 6),
-      itemCount: list.length,
-      separatorBuilder: (_, __) =>
-          Divider(color: tokens.border, height: 1),
-      itemBuilder: (context, index) {
-        final notif = list[index];
-        return InkWell(
-          onTap: () {
-            notifier.markAsRead(notif.id);
-            if (notif.targetPostId != null) {
-              Navigator.pushNamed(
-                context,
-                AppRoutes.communityPost,
-                arguments: notif.targetPostId,
-              );
-            }
-          },
-          child: Container(
-            color: notif.isUnread
-                ? tokens.greenAccent.withOpacity(0.04)
-                : Colors.transparent,
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _buildActorAvatar(notif, tokens),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text.rich(
-                        TextSpan(
-                          style: TextStyle(
-                            fontSize: 13,
-                            color: tokens.textPrimary,
-                            height: 1.35,
-                          ),
-                          children: [
-                            TextSpan(
-                              text: notif.actorName,
-                              style: const TextStyle(fontWeight: FontWeight.w700),
-                            ),
-                            TextSpan(text: ' ${notif.actionText}'),
-                          ],
-                        ),
-                      ),
-                      if (notif.targetSnippet != null) ...[
-                        const SizedBox(height: 4),
-                        Text(
-                          '"${notif.targetSnippet}"',
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: tokens.textSecondary,
-                            fontStyle: FontStyle.italic,
-                          ),
-                        ),
-                      ],
-                      const SizedBox(height: 4),
-                      Text(
-                        notif.timeAgo,
-                        style: TextStyle(
-                          fontSize: 11,
-                          color: tokens.textMuted,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                if (notif.isUnread) ...[
-                  const SizedBox(width: 8),
-                  Container(
-                    width: 8,
-                    height: 8,
-                    margin: const EdgeInsets.only(top: 6),
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: tokens.greenAccent,
-                    ),
-                  ),
-                ],
-              ],
+    final todayList = list.where((n) => _isToday(n.timeAgo)).toList();
+    final earlierList = list.where((n) => !_isToday(n.timeAgo)).toList();
+
+    return RefreshIndicator(
+      color: tokens.greenAccent,
+      backgroundColor: tokens.cardSurface,
+      onRefresh: () => notifier.loadNotifications(),
+      child: ListView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
+        children: [
+          if (todayList.isNotEmpty) ...[
+            _buildSectionHeader(
+              title: 'Hôm nay',
+              badgeText: state.unreadCount > 0 ? '${state.unreadCount} mới' : null,
+              tokens: tokens,
+            ),
+            ..._buildSectionItems(
+              context: context,
+              items: todayList,
+              notifier: notifier,
+              tokens: tokens,
+            ),
+          ],
+          if (earlierList.isNotEmpty) ...[
+            SizedBox(height: todayList.isNotEmpty ? 16 : 0),
+            _buildSectionHeader(
+              title: 'Trước đó',
+              tokens: tokens,
+            ),
+            ..._buildSectionItems(
+              context: context,
+              items: earlierList,
+              notifier: notifier,
+              tokens: tokens,
+              dimmed: true,
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSectionHeader({
+    required String title,
+    String? badgeText,
+    required SamanHomePalette tokens,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            title.toUpperCase(),
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 0.8,
+              color: tokens.textSecondary,
             ),
           ),
-        );
-      },
+          if (badgeText != null)
+            Text(
+              badgeText,
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+                color: tokens.greenAccent,
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  List<Widget> _buildSectionItems({
+    required BuildContext context,
+    required List<CommunityNotification> items,
+    required CommunityNotificationsNotifier notifier,
+    required SamanHomePalette tokens,
+    bool dimmed = false,
+  }) {
+    final widgets = <Widget>[];
+    for (var i = 0; i < items.length; i++) {
+      final notif = items[i];
+      widgets.add(_buildNotificationRow(
+        context: context,
+        notif: notif,
+        notifier: notifier,
+        tokens: tokens,
+        dimmed: dimmed && !notif.isUnread,
+      ));
+      if (i < items.length - 1) {
+        widgets.add(Divider(color: tokens.border, height: 1));
+      }
+    }
+    return widgets;
+  }
+
+  Widget _buildNotificationRow({
+    required BuildContext context,
+    required CommunityNotification notif,
+    required CommunityNotificationsNotifier notifier,
+    required SamanHomePalette tokens,
+    bool dimmed = false,
+  }) {
+    return Opacity(
+      opacity: dimmed ? 0.88 : 1.0,
+      child: InkWell(
+        onTap: () {
+          notifier.markAsRead(notif.id);
+          if (notif.targetPostId != null) {
+            Navigator.pushNamed(
+              context,
+              AppRoutes.communityPost,
+              arguments: notif.targetPostId,
+            );
+          } else if (notif.type == CommunityNotificationType.follow) {
+            // Keep safe navigation for follow notifications without an actor profile route
+          }
+        },
+        borderRadius: BorderRadius.circular(12),
+        child: Container(
+          decoration: BoxDecoration(
+            color: notif.isUnread
+                ? tokens.greenAccent.withOpacity(0.05)
+                : Colors.transparent,
+            borderRadius: BorderRadius.circular(12),
+          ),
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 14),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildActorAvatar(notif, tokens),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text.rich(
+                      TextSpan(
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: tokens.textPrimary,
+                          height: 1.38,
+                        ),
+                        children: [
+                          TextSpan(
+                            text: notif.actorName,
+                            style: const TextStyle(fontWeight: FontWeight.w600),
+                          ),
+                          TextSpan(
+                            text: ' ${notif.actionText}',
+                            style: TextStyle(color: tokens.textSecondary),
+                          ),
+                          if (notif.targetSnippet != null)
+                            TextSpan(
+                              text: ' "${notif.targetSnippet}"',
+                              style: TextStyle(
+                                color: tokens.textPrimary,
+                                fontStyle: FontStyle.italic,
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Row(
+                      children: [
+                        Text(
+                          notif.timeAgo,
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w500,
+                            color: tokens.textMuted,
+                          ),
+                        ),
+                        if (notif.isUnread) ...[
+                          const SizedBox(width: 8),
+                          Container(
+                            width: 6,
+                            height: 6,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: tokens.greenAccent,
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              if (notif.targetPostId != null) ...[
+                const SizedBox(width: 8),
+                Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: tokens.cardSurface,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: tokens.border),
+                  ),
+                  child: Icon(
+                    notif.type == CommunityNotificationType.comment
+                        ? Icons.forum_outlined
+                        : Icons.article_outlined,
+                    size: 18,
+                    color: tokens.textSecondary,
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEmptyState(SamanHomePalette tokens) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 48),
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 36),
+          decoration: BoxDecoration(
+            color: tokens.cardSurface,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: tokens.border),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 56,
+                height: 56,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: tokens.secondarySurface,
+                ),
+                child: Icon(
+                  Icons.notifications_paused_rounded,
+                  size: 28,
+                  color: tokens.textSecondary,
+                ),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'Chưa có thông báo nào',
+                style: TextStyle(
+                  fontSize: 17,
+                  fontWeight: FontWeight.w600,
+                  color: tokens.textPrimary,
+                ),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                'Các tương tác cộng đồng trong nhóm lọc này sẽ xuất hiện tại đây ngay khi có cập nhật.',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 13,
+                  color: tokens.textSecondary,
+                  height: 1.4,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 
@@ -279,9 +504,7 @@ class CommunityNotificationsScreen extends ConsumerWidget {
     switch (notif.type) {
       case CommunityNotificationType.like:
         icon = Icons.favorite_rounded;
-        iconColor = tokens.isDark
-            ? const Color(0xFFFF5252)
-            : const Color(0xFFDC2626);
+        iconColor = tokens.fatRose;
         break;
       case CommunityNotificationType.comment:
         icon = Icons.chat_bubble_rounded;
@@ -289,48 +512,72 @@ class CommunityNotificationsScreen extends ConsumerWidget {
         break;
       case CommunityNotificationType.follow:
         icon = Icons.person_add_rounded;
-        iconColor = tokens.isDark
-            ? const Color(0xFF64B5F6)
-            : const Color(0xFF0284C7);
+        iconColor = tokens.waterCyan;
+        break;
+      case CommunityNotificationType.answer:
+        icon = Icons.question_answer_rounded;
+        iconColor = tokens.greenAccent;
         break;
       case CommunityNotificationType.system:
         icon = Icons.notifications_active_rounded;
-        iconColor = tokens.isDark
-            ? const Color(0xFFFFB74D)
-            : tokens.carbsAmber;
+        iconColor = tokens.carbsAmber;
         break;
     }
 
+    final initial = notif.actorName.isNotEmpty
+        ? notif.actorName[0].toUpperCase()
+        : 'S';
+
     return Stack(
+      clipBehavior: Clip.none,
       children: [
         Container(
-          width: 40,
-          height: 40,
+          width: 44,
+          height: 44,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
             color: tokens.secondarySurface,
           ),
-          child: Center(
-            child: Text(
-              notif.actorName.isNotEmpty ? notif.actorName[0] : 'S',
-              style: TextStyle(
-                fontSize: 15,
-                fontWeight: FontWeight.w700,
-                color: tokens.greenAccent,
-              ),
-            ),
-          ),
+          clipBehavior: Clip.antiAlias,
+          child: notif.actorAvatarUrl != null &&
+                  notif.actorAvatarUrl!.isNotEmpty
+              ? Image.network(
+                  notif.actorAvatarUrl!,
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, __, ___) => Center(
+                    child: Text(
+                      initial,
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                        color: tokens.greenAccent,
+                      ),
+                    ),
+                  ),
+                )
+              : Center(
+                  child: Text(
+                    initial,
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700,
+                      color: tokens.greenAccent,
+                    ),
+                  ),
+                ),
         ),
         Positioned(
-          bottom: 0,
-          right: 0,
+          bottom: -2,
+          right: -2,
           child: Container(
-            padding: const EdgeInsets.all(2),
+            width: 20,
+            height: 20,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: tokens.canvas,
+              color: tokens.cardSurface,
+              border: Border.all(color: tokens.canvas, width: 1.5),
             ),
-            child: Icon(icon, size: 12, color: iconColor),
+            child: Icon(icon, size: 11, color: iconColor),
           ),
         ),
       ],

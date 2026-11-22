@@ -48,7 +48,6 @@ class _CommunityAskQuestionScreenState
   }
 
   Future<void> _handleClose() async {
-    if (ref.read(useRemoteCommunityProvider)) { Navigator.pop(context); return; }
     final title = _titleController.text.trim();
     if (title.isNotEmpty) {
       final action = await DraftDiscardDialog.show(context);
@@ -61,7 +60,7 @@ class _CommunityAskQuestionScreenState
           topic: _selectedTopic,
           updatedAt: DateTime.now(),
         );
-        await ref.read(communityRepositoryProvider).saveDraft(draft);
+        await ref.read(communityDraftsProvider.notifier).saveDraft(draft);
         if (!mounted) return;
         Navigator.pop(context);
       } else if (action == DraftDiscardAction.discard) {

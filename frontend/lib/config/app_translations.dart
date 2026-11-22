@@ -713,6 +713,11 @@ class AppTranslations {
       'journal_community_title': 'Saman Community',
       'journal_community_subtitle': 'Share your journey. Progress together.',
       'journal_community_cta': 'Explore community',
+      'journal_bookmarks_title': 'Saved Articles',
+      'journal_bookmarks_empty': 'No saved articles yet. Bookmark articles to read later.',
+      'journal_lessons_count': 'lessons',
+      'journal_lessons_title': 'Series Lessons',
+      'journal_topics_title': 'Explore by Topic',
 
       // Community Translations
       'community_comment_send': 'Send comment',
@@ -1470,6 +1475,11 @@ class AppTranslations {
       'journal_community_title': 'Saman Community',
       'journal_community_subtitle': 'Chia sẻ hành trình. Cùng nhau tiến bộ.',
       'journal_community_cta': 'Khám phá cộng đồng',
+      'journal_bookmarks_title': 'Bài viết đã lưu',
+      'journal_bookmarks_empty': 'Bạn chưa lưu bài viết nào. Hãy bấm lưu để đọc lại sau.',
+      'journal_lessons_count': 'bài học',
+      'journal_lessons_title': 'Bài học trong lộ trình',
+      'journal_topics_title': 'Khám phá theo chủ đề',
 
       // Community Translations
       'community_comment_send': 'Gửi bình luận',

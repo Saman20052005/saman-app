@@ -373,7 +373,28 @@ class CommunityRepositoryImpl implements CommunityRepository {
     String topic = 'all',
     String? searchQuery,
   }) async {
-    return _fakeDatasource.getDiscoverData(topic: topic);
+    final currentGen = _generation;
+    if (isRemote) {
+      final data = await _remoteDatasource!.getDiscoverData(
+        topic: topic,
+        searchQuery: searchQuery,
+      );
+      if (currentGen != _generation) {
+        return const CommunityDiscoverData();
+      }
+      for (final c in data.recommendedCreators) {
+        if (c.isFollowing) {
+          _remoteFollowedAuthorIds.add(c.id);
+        } else {
+          _remoteFollowedAuthorIds.remove(c.id);
+        }
+      }
+      return data;
+    }
+    return _fakeDatasource.getDiscoverData(
+      topic: topic,
+      searchQuery: searchQuery,
+    );
   }
 
   // JCOM-03: Publishing & Activity Attachments
@@ -397,7 +418,7 @@ class CommunityRepositoryImpl implements CommunityRepository {
   }) async {
     if (isRemote) {
       if (mediaUrls.isNotEmpty) {
-        if (mediaUrls.length > 1) {
+        if (mediaUrls.length > 10) {
           throw UnsupportedError('community_publish_media_unsupported');
         }
         if (attachment != null) {
@@ -405,11 +426,10 @@ class CommunityRepositoryImpl implements CommunityRepository {
         }
       }
       if (requestKey == null) throw ArgumentError('Stable publication request key required');
-      List<String> resolvedPhotoUrls = [];
-      if (mediaUrls.isNotEmpty) {
-        final item = mediaUrls.first;
+      final List<String> resolvedPhotoUrls = [];
+      for (final item in mediaUrls) {
         if (item.startsWith('http://') || item.startsWith('https://') || item.startsWith('/static/')) {
-          resolvedPhotoUrls = [item];
+          resolvedPhotoUrls.add(item);
         } else {
           final xfile = XFile(item);
           final bytes = await xfile.readAsBytes();
@@ -422,7 +442,7 @@ class CommunityRepositoryImpl implements CommunityRepository {
             mimeType: mimeType,
           );
           final uploadedUrl = uploadRes['media_url'] as String;
-          resolvedPhotoUrls = [uploadedUrl];
+          resolvedPhotoUrls.add(uploadedUrl);
         }
       }
 
@@ -496,16 +516,30 @@ class CommunityRepositoryImpl implements CommunityRepository {
 
   @override
   Future<List<DraftPost>> getDrafts() async {
+    final currentGen = _generation;
+    if (isRemote) {
+      final drafts = await _remoteDatasource!.getDrafts();
+      if (currentGen != _generation) return [];
+      return drafts;
+    }
     return _fakeDatasource.getDrafts();
   }
 
   @override
   Future<void> saveDraft(DraftPost draft) async {
+    if (isRemote) {
+      await _remoteDatasource!.saveDraft(draft);
+      return;
+    }
     _fakeDatasource.saveDraft(draft);
   }
 
   @override
   Future<void> deleteDraft(String draftId) async {
+    if (isRemote) {
+      await _remoteDatasource!.deleteDraft(draftId);
+      return;
+    }
     _fakeDatasource.deleteDraft(draftId);
   }
 
@@ -531,12 +565,31 @@ class CommunityRepositoryImpl implements CommunityRepository {
 
   @override
   Future<List<CommunityNotification>> getNotifications() async {
+    final currentGen = _generation;
+    if (isRemote) {
+      final notifs = await _remoteDatasource!.getNotifications();
+      if (currentGen != _generation) return [];
+      return notifs;
+    }
     return _fakeDatasource.getNotifications();
   }
 
   @override
   Future<void> markNotificationRead(String id) async {
+    if (isRemote) {
+      await _remoteDatasource!.markNotificationRead(id);
+      return;
+    }
     _fakeDatasource.markNotificationRead(id);
+  }
+
+  @override
+  Future<void> markAllNotificationsRead() async {
+    if (isRemote) {
+      await _remoteDatasource!.markAllNotificationsRead();
+      return;
+    }
+    _fakeDatasource.markAllNotificationsRead();
   }
 
   @override
@@ -553,6 +606,92 @@ class CommunityRepositoryImpl implements CommunityRepository {
       return author;
     }
     return _fakeDatasource.getAuthorProfile(authorId);
+  }
+
+  @override
+  Future<List<CommunityPost>> getAuthorPosts(
+    String authorId, {
+    String tab = 'all',
+    String? cursor,
+  }) async {
+    final currentGen = _generation;
+    if (isRemote) {
+      final posts = await _remoteDatasource!.getAuthorPosts(
+        authorId,
+        tab: tab,
+        cursor: cursor,
+      );
+      if (currentGen != _generation) return [];
+      for (final p in posts) {
+        if (p.isLiked) {
+          _remoteLikedPostIds.add(p.id);
+        } else {
+          _remoteLikedPostIds.remove(p.id);
+        }
+        if (p.isBookmarked) {
+          _remoteBookmarkedPostIds.add(p.id);
+        } else {
+          _remoteBookmarkedPostIds.remove(p.id);
+        }
+      }
+      return posts;
+    }
+    return _fakeDatasource.getAuthorPosts(authorId, tab: tab);
+  }
+
+  @override
+  Future<CommunityAuthor> updateProfile({
+    String? name,
+    String? handle,
+    String? title,
+    String? bio,
+    List<String>? interestTopics,
+    String? avatarUrl,
+    String? localAvatarPath,
+    bool removeAvatar = false,
+  }) async {
+    if (isRemote) {
+      String? resolvedAvatarUrl;
+      if (removeAvatar) {
+        resolvedAvatarUrl = '';
+      } else if (localAvatarPath != null && localAvatarPath.isNotEmpty) {
+        final xfile = XFile(localAvatarPath);
+        final bytes = await xfile.readAsBytes();
+        final filename = xfile.name.isNotEmpty ? xfile.name : 'avatar.jpg';
+        final ext =
+            filename.contains('.') ? filename.split('.').last.toLowerCase() : 'jpg';
+        final mimeType = ext == 'png'
+            ? 'image/png'
+            : (ext == 'webp' ? 'image/webp' : 'image/jpeg');
+        final uploadRes = await _remoteDatasource!.uploadMedia(
+          bytes: bytes,
+          filename: filename,
+          mimeType: mimeType,
+        );
+        resolvedAvatarUrl = uploadRes['media_url'] as String?;
+      } else if (avatarUrl != null) {
+        resolvedAvatarUrl = avatarUrl;
+      }
+
+      final body = <String, dynamic>{
+        if (name != null) 'name': name,
+        if (handle != null) 'handle': handle,
+        if (title != null) 'title': title,
+        if (bio != null) 'bio': bio,
+        if (interestTopics != null) 'interest_topics': interestTopics,
+        if (resolvedAvatarUrl != null) 'avatar_url': resolvedAvatarUrl,
+      };
+      return _remoteDatasource!.updateProfile(body);
+    }
+    return _fakeDatasource.updateProfile(
+      name: name,
+      handle: handle,
+      title: title,
+      bio: bio,
+      interestTopics: interestTopics,
+      avatarUrl: avatarUrl,
+      removeAvatar: removeAvatar,
+    );
   }
 
   @override

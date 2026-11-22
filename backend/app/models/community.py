@@ -1,6 +1,6 @@
 from datetime import datetime
 from typing import List, Optional, Literal
-from pydantic import BaseModel, Field, StrictBool
+from pydantic import BaseModel, Field, StrictBool, field_validator
 
 
 class CommunityAuthorModel(BaseModel):
@@ -108,11 +108,61 @@ class MediaUploadResponse(BaseModel):
 class PublishPhotoPostRequest(BaseModel):
     type: Literal["photo"]
     content: str = Field("", max_length=5000)
-    photo_urls: List[str] = Field(..., min_length=1, max_length=1)
+    photo_urls: List[str] = Field(..., min_length=1, max_length=10)
     privacy: Literal["public", "private", "followers_only"]
     topic: Literal["#BữaĂn", "#TậpLuyện", "#PhụcHồi", "#ChiaSẻ", "#KỷLuật", "#Mẹo"]
     allow_comments: StrictBool = True
     model_config = {"extra": "forbid"}
+
+    @field_validator("photo_urls")
+    @classmethod
+    def validate_photo_urls(cls, value: List[str]) -> List[str]:
+        cleaned: List[str] = []
+        for raw in value:
+            if not isinstance(raw, str):
+                raise ValueError("Each photo URL must be a string")
+            url = raw.strip()
+            if not url:
+                raise ValueError("Photo URL must not be empty")
+            if url.startswith("/static/community/"):
+                remainder = url[len("/static/community/"):]
+                if not remainder or "/" in remainder or "\\" in remainder or ".." in remainder:
+                    raise ValueError("Invalid community media URL")
+            elif url.startswith("http://") or url.startswith("https://"):
+                scheme_len = 8 if url.startswith("https://") else 7
+                if len(url) <= scheme_len or any(ch.isspace() for ch in url):
+                    raise ValueError("Invalid HTTP(S) photo URL")
+            else:
+                raise ValueError("Photo URL must start with /static/community/ or http(s)://")
+            cleaned.append(url)
+        return cleaned
+
+
+class CommunityVisualGridItemModel(BaseModel):
+    id: str
+    post_id: Optional[str] = None
+    image_url: str
+    like_count: int = 0
+    has_multi_photo: bool = False
+    has_video: bool = False
+    alt_text: Optional[str] = None
+
+
+class CommunityTrendingTopicModel(BaseModel):
+    id: str
+    hashtag: str
+    post_count_formatted: str
+    growth_percent: str = "Ổn định"
+    is_stable: bool = True
+    icon_name: str = "tag"
+
+
+class CommunityDiscoverResponse(BaseModel):
+    topic_chips: List[str]
+    active_topic: str
+    grid_items: List[CommunityVisualGridItemModel]
+    trending_topics: List[CommunityTrendingTopicModel]
+    recommended_creators: List[CommunityAuthorModel]
 
 
 class CommunityPostModel(BaseModel):
@@ -196,6 +246,92 @@ class CommunityAuthorProfileResponse(BaseModel):
     following_count: int = 0
     post_count: int = 0
     is_following: bool = False
+    handle: Optional[str] = None
+    bio: Optional[str] = None
+    interest_topics: List[str] = Field(default_factory=list)
+    workout_post_count: int = 0
+    meal_post_count: int = 0
+    total_likes_received: int = 0
+
+
+class UpdateCommunityProfileRequest(BaseModel):
+    name: Optional[str] = Field(None, min_length=1, max_length=50)
+    handle: Optional[str] = Field(None, max_length=32)
+    title: Optional[str] = Field(None, max_length=80)
+    bio: Optional[str] = Field(None, max_length=150)
+    interest_topics: Optional[List[str]] = Field(None, max_length=3)
+    avatar_url: Optional[str] = Field(None, max_length=500)
+    model_config = {"extra": "forbid"}
+
+
+class CommunityNotificationModel(BaseModel):
+    id: str
+    actor_id: Optional[str] = None
+    actor_name: str
+    actor_avatar_url: Optional[str] = None
+    action_text: str
+    target_snippet: Optional[str] = None
+    time_ago: str
+    created_at: Optional[datetime] = None
+    is_unread: bool = True
+    type: Literal["like", "comment", "follow", "answer", "system"]
+    target_post_id: Optional[str] = None
+    target_post_type: Optional[str] = None
+
+
+class CommunityNotificationsResponse(BaseModel):
+    items: List[CommunityNotificationModel]
+    unread_count: int = 0
+    next_cursor: Optional[str] = None
+
+
+class NotificationReadResponse(BaseModel):
+    id: str
+    is_unread: bool
+    unread_count: int
+
+
+class NotificationsReadAllResponse(BaseModel):
+    unread_count: int = 0
+
+
+class CommunityDraftUpsertRequest(BaseModel):
+    id: Optional[str] = None
+    caption: str = Field("", max_length=5000)
+    media_urls: List[str] = Field(default_factory=list, max_length=10)
+    aspect_ratio: str = "1:1"
+    rotation: int = 0
+    brightness: float = 0.0
+    contrast: float = 0.0
+    audience: str = "Công khai"
+    topic: str = "#BữaĂn"
+    allow_comments: StrictBool = True
+    attachment: Optional[dict] = None
+    question_title: Optional[str] = Field(None, max_length=150)
+    question_details: Optional[str] = Field(None, max_length=2000)
+    model_config = {"extra": "forbid"}
+
+
+class CommunityDraftModel(BaseModel):
+    id: str
+    user_id: str
+    caption: str = ""
+    media_urls: List[str] = Field(default_factory=list)
+    aspect_ratio: str = "1:1"
+    rotation: int = 0
+    brightness: float = 0.0
+    contrast: float = 0.0
+    audience: str = "Công khai"
+    topic: str = "#BữaĂn"
+    allow_comments: bool = True
+    attachment: Optional[dict] = None
+    question_title: Optional[str] = None
+    question_details: Optional[str] = None
+    updated_at: datetime
+
+
+class CommunityDraftsResponse(BaseModel):
+    items: List[CommunityDraftModel]
 
 
 class FollowResponse(BaseModel):

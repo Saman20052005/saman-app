@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../../config/routes.dart';
 import '../../../../screens/home/tokens/saman_home_tokens.dart';
+import '../providers/community_providers.dart';
 import 'create_content_bottom_sheet.dart';
 
 enum CommunityNavTab {
@@ -10,14 +13,16 @@ enum CommunityNavTab {
   profile,
 }
 
-class CommunityBottomNavigationBar extends StatelessWidget {
+class CommunityBottomNavigationBar extends ConsumerWidget {
   final CommunityNavTab currentTab;
   final ValueChanged<CommunityNavTab>? onTabSelected;
+  final bool? hasUnreadBadge;
 
   const CommunityBottomNavigationBar({
     super.key,
     required this.currentTab,
     this.onTabSelected,
+    this.hasUnreadBadge,
   });
 
   void _handleTabTap(BuildContext context, CommunityNavTab tab) {
@@ -28,32 +33,36 @@ class CommunityBottomNavigationBar extends StatelessWidget {
     }
     switch (tab) {
       case CommunityNavTab.feed:
-        Navigator.pushReplacementNamed(context, '/community/feed');
+        Navigator.pushReplacementNamed(context, AppRoutes.communityFeed);
         break;
       case CommunityNavTab.discover:
-        Navigator.pushReplacementNamed(context, '/community/discover');
+        Navigator.pushReplacementNamed(context, AppRoutes.communityDiscover);
         break;
       case CommunityNavTab.create:
         CreateContentBottomSheet.show(context);
         break;
       case CommunityNavTab.notifications:
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Tính năng đang hoàn thiện, sẽ sớm ra mắt!'),
-            duration: Duration(seconds: 2),
-          ),
-        );
+        Navigator.pushNamed(context, AppRoutes.communityNotifications);
         break;
       case CommunityNavTab.profile:
-        Navigator.pushNamed(context, '/community/profile');
+        Navigator.pushNamed(context, AppRoutes.communityProfile);
         break;
     }
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final tokens = SamanHomeTokens.of(context);
     final bottomInset = MediaQuery.paddingOf(context).bottom;
+    final hasScope =
+        context.findAncestorWidgetOfExactType<UncontrolledProviderScope>() !=
+            null;
+    final bool showNotificationsBadge = hasUnreadBadge ??
+        (hasScope
+            ? ref.watch(
+                communityNotificationsProvider.select((s) => s.unreadCount > 0),
+              )
+            : false);
 
     return Container(
       decoration: BoxDecoration(
@@ -115,7 +124,7 @@ class CommunityBottomNavigationBar extends StatelessWidget {
                 icon: Icons.notifications_rounded,
                 label: 'Thông báo',
                 isActive: currentTab == CommunityNavTab.notifications,
-                hasBadge: true,
+                hasBadge: showNotificationsBadge,
                 tokens: tokens,
               ),
             ),
@@ -147,7 +156,8 @@ class CommunityBottomNavigationBar extends StatelessWidget {
     bool isAvatar = false,
   }) {
     final activeColor = tokens.greenAccent;
-    final inactiveColor = tokens.textSecondary.withOpacity(tokens.isDark ? 0.7 : 0.85);
+    final inactiveColor =
+        tokens.textSecondary.withOpacity(tokens.isDark ? 0.7 : 0.85);
 
     return InkWell(
       onTap: () => _handleTabTap(context, tab),

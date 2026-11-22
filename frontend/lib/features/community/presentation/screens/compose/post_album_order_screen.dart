@@ -1,5 +1,7 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:image_picker/image_picker.dart';
 import '../../../../../screens/home/tokens/saman_home_tokens.dart';
 import '../../providers/community_composer_provider.dart';
 import 'post_compose_publish_screen.dart';
@@ -45,7 +47,12 @@ class PostAlbumOrderScreen extends ConsumerWidget {
                       itemBuilder: (context, index) {
                         if (index == urls.length) {
                           // Add photo slot
-                          return _buildAddPhotoSlot(context, notifier, tokens);
+                          return _buildAddPhotoSlot(
+                            context,
+                            urls,
+                            notifier,
+                            tokens,
+                          );
                         }
 
                         final url = urls[index];
@@ -248,13 +255,7 @@ class PostAlbumOrderScreen extends ConsumerWidget {
         child: Stack(
           fit: StackFit.expand,
           children: [
-            Image.network(
-              url,
-              fit: BoxFit.cover,
-              errorBuilder: (_, __, ___) => Container(
-                color: tokens.cardSurface,
-              ),
-            ),
+            _buildImageView(url, tokens),
             // Top Controls: Order badge & Remove (dark translucent overlay kept for image contrast)
             Positioned(
               top: 8,
@@ -388,20 +389,97 @@ class PostAlbumOrderScreen extends ConsumerWidget {
     );
   }
 
+  Widget _buildImageView(String path, SamanHomePalette tokens) {
+    if (path.startsWith('http://') ||
+        path.startsWith('https://') ||
+        path.startsWith('/static/')) {
+      return Image.network(
+        path,
+        fit: BoxFit.cover,
+        errorBuilder: (_, __, ___) => Container(
+          color: tokens.cardSurface,
+          child: Icon(
+            Icons.broken_image_outlined,
+            color: tokens.textSecondary,
+          ),
+        ),
+      );
+    }
+    final file = File(path);
+    if (file.existsSync()) {
+      return Image.file(file, fit: BoxFit.cover);
+    }
+    return Container(
+      color: tokens.cardSurface,
+      child: Icon(
+        Icons.image_outlined,
+        color: tokens.textSecondary,
+      ),
+    );
+  }
+
+  Future<void> _pickMorePhotos(
+    BuildContext context,
+    List<String> currentUrls,
+    CommunityComposerNotifier notifier,
+  ) async {
+    if (currentUrls.length >= 10) return;
+    try {
+      final picker = ImagePicker();
+      List<XFile> pickedFiles = const [];
+      try {
+        pickedFiles = await picker.pickMultiImage(
+          maxWidth: 1920,
+          maxHeight: 1920,
+          imageQuality: 90,
+        );
+      } catch (_) {
+        final single = await picker.pickImage(
+          source: ImageSource.gallery,
+          maxWidth: 1920,
+          maxHeight: 1920,
+          imageQuality: 90,
+        );
+        if (single != null) {
+          pickedFiles = [single];
+        }
+      }
+      if (pickedFiles.isEmpty) return;
+
+      final merged = <String>[...currentUrls];
+      for (final file in pickedFiles) {
+        if (!merged.contains(file.path) && merged.length < 10) {
+          merged.add(file.path);
+        }
+      }
+      if (merged.length > currentUrls.length) {
+        notifier.setInitialMedia(merged);
+      }
+      if (currentUrls.length + pickedFiles.length > 10 && context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              Localizations.maybeLocaleOf(context)?.languageCode == 'en'
+                  ? 'Maximum 10 photos allowed'
+                  : 'Chỉ thêm được tối đa 10 ảnh',
+            ),
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
+    } catch (_) {
+      // Fallback in headless environment
+    }
+  }
+
   Widget _buildAddPhotoSlot(
     BuildContext context,
+    List<String> currentUrls,
     CommunityComposerNotifier notifier,
     SamanHomePalette tokens,
   ) {
     return InkWell(
-      onTap: () {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Đã chọn thêm ảnh từ thư viện mẫu.'),
-            duration: Duration(seconds: 1),
-          ),
-        );
-      },
+      onTap: () => _pickMorePhotos(context, currentUrls, notifier),
       borderRadius: BorderRadius.circular(14),
       child: Container(
         decoration: BoxDecoration(

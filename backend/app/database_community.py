@@ -93,4 +93,24 @@ def ensure_community_indexes(db):
         ),
     ]
 
+    notifications = db["community_notifications"]
+    created["community_notifications"] = [
+        notifications.create_index(
+            [("recipient_id", 1), ("created_at", -1), ("_id", -1)],
+            name="idx_notifications_recipient_created",
+        ),
+        notifications.create_index(
+            [("recipient_id", 1), ("is_read", 1)],
+            name="idx_notifications_recipient_unread",
+        ),
+    ]
+
+    drafts = db["community_drafts"]
+    created["community_drafts"] = [
+        drafts.create_index(
+            [("user_id", 1), ("updated_at", -1), ("_id", -1)],
+            name="idx_drafts_user_updated",
+        ),
+    ]
+
     return created

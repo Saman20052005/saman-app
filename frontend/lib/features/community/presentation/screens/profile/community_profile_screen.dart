@@ -3,15 +3,16 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../../config/routes.dart';
 import '../../../../../providers/profile_provider.dart';
 import '../../../../../screens/home/tokens/saman_home_tokens.dart';
+import '../../../../../widgets/saman_feedback_snackbar.dart';
 import '../../../domain/models/community_author.dart';
 import '../../../domain/models/community_post.dart';
 import '../../providers/community_providers.dart';
 import '../../widgets/community_bottom_navigation_bar.dart';
 import '../../widgets/create_content_bottom_sheet.dart';
+import '../../widgets/post_card_view.dart';
+import '../saved/community_saved_screen.dart';
 import 'community_edit_profile_screen.dart';
 import 'community_follow_list_screen.dart';
-import '../saved/community_saved_screen.dart';
-import '../../../../../widgets/saman_feedback_snackbar.dart';
 
 class CommunityProfileScreen extends ConsumerStatefulWidget {
   final String authorId;
@@ -30,21 +31,37 @@ class _CommunityProfileScreenState
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
   CommunityAuthor? _author;
-  String _bio =
-      'Yêu thích rèn luyện thể chất và dinh dưỡng cân bằng. Chia sẻ hành trình tập luyện thực tế mỗi ngày cùng Saman.';
+  List<CommunityPost> _posts = const [];
+  bool _isLoading = true;
+  bool _isGridView = true;
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
-    WidgetsBinding.instance.addPostFrameCallback((_) => _loadAuthor());
+    WidgetsBinding.instance.addPostFrameCallback((_) => _loadProfileData());
   }
 
-  Future<void> _loadAuthor() async {
-    final a = await ref
-        .read(communityRepositoryProvider)
-        .getAuthorProfile(widget.authorId);
-    if (mounted) setState(() => _author = a);
+  Future<void> _loadProfileData() async {
+    if (mounted) {
+      setState(() => _isLoading = true);
+    }
+    try {
+      final repo = ref.read(communityRepositoryProvider);
+      final results = await Future.wait<dynamic>([
+        repo.getAuthorProfile(widget.authorId),
+        repo.getAuthorPosts(widget.authorId),
+      ]);
+      if (!mounted) return;
+      setState(() {
+        _author = results[0] as CommunityAuthor;
+        _posts = results[1] as List<CommunityPost>;
+        _isLoading = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _isLoading = false);
+    }
   }
 
   @override
@@ -56,7 +73,9 @@ class _CommunityProfileScreenState
   bool get _isMe {
     if (widget.authorId == 'me') return true;
     final confirmedId = ref.read(profileProvider).confirmedUserId;
-    if (confirmedId != null && confirmedId.isNotEmpty && confirmedId == widget.authorId) {
+    if (confirmedId != null &&
+        confirmedId.isNotEmpty &&
+        confirmedId == widget.authorId) {
       return true;
     }
     final snapId = ref.read(profileProvider).snapshot?.userId;
@@ -86,10 +105,10 @@ class _CommunityProfileScreenState
     });
 
     ref.read(communityFeedProvider.notifier).updateAuthorFollow(
-      authorId: author.id,
-      isFollowing: nextFollowing,
-      followerCount: nextFollowerCount,
-    );
+          authorId: author.id,
+          isFollowing: nextFollowing,
+          followerCount: nextFollowerCount,
+        );
 
     try {
       final actualState = await ref
@@ -100,9 +119,9 @@ class _CommunityProfileScreenState
           _author = _author?.copyWith(isFollowing: actualState);
         });
         ref.read(communityFeedProvider.notifier).updateAuthorFollow(
-          authorId: author.id,
-          isFollowing: actualState,
-        );
+              authorId: author.id,
+              isFollowing: actualState,
+            );
       }
     } catch (e) {
       if (mounted) {
@@ -110,10 +129,10 @@ class _CommunityProfileScreenState
           _author = author;
         });
         ref.read(communityFeedProvider.notifier).updateAuthorFollow(
-          authorId: author.id,
-          isFollowing: prevFollowing,
-          followerCount: author.followerCount,
-        );
+              authorId: author.id,
+              isFollowing: prevFollowing,
+              followerCount: author.followerCount,
+            );
         SamanFeedbackSnackBar.show(
           context,
           message: 'Không thể cập nhật theo dõi: ${e.toString()}',
@@ -125,6 +144,33 @@ class _CommunityProfileScreenState
     }
   }
 
+  String _formatCount(int count) {
+    if (count >= 1000) {
+      final formatted = (count / 1000).toStringAsFixed(1);
+      final clean = formatted.endsWith('.0')
+          ? formatted.substring(0, formatted.length - 2)
+          : formatted;
+      return '${clean}k';
+    }
+    return '$count';
+  }
+
+  void _openPost(CommunityPost post) {
+    if (post.type == CommunityPostType.qa) {
+      Navigator.pushNamed(
+        context,
+        AppRoutes.communityQuestionDetail,
+        arguments: post.id,
+      );
+    } else {
+      Navigator.pushNamed(
+        context,
+        AppRoutes.communityPost,
+        arguments: post.id,
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final tokens = SamanHomeTokens.of(context);
@@ -133,9 +179,22 @@ class _CommunityProfileScreenState
           id: 'me',
           name: 'Linh Nguyễn',
           isVerified: true,
-          title: 'Thành viên chia sẻ (Mẫu)',
+          title: 'Thành viên chia sẻ',
         );
-    final feedState = ref.watch(communityFeedProvider);
+
+    final workoutPosts = _posts
+        .where(
+          (p) =>
+              p.type == CommunityPostType.workout ||
+              p.workoutAttachment != null,
+        )
+        .toList();
+    final mealPosts = _posts
+        .where(
+          (p) =>
+              p.type == CommunityPostType.meal || p.nutritionInfo != null,
+        )
+        .toList();
 
     return Scaffold(
       backgroundColor: tokens.canvas,
@@ -144,78 +203,101 @@ class _CommunityProfileScreenState
         child: Column(
           children: [
             _buildAppBar(context, author, tokens),
-            _buildPreviewNoticeBanner(tokens),
             Expanded(
-              child: NestedScrollView(
-                headerSliverBuilder: (context, innerBoxIsScrolled) {
-                  return [
-                    SliverToBoxAdapter(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+              child: _isLoading && _author == null
+                  ? Center(
+                      child: CircularProgressIndicator(
+                        color: tokens.greenAccent,
+                      ),
+                    )
+                  : NestedScrollView(
+                      headerSliverBuilder: (context, innerBoxIsScrolled) {
+                        return [
+                          SliverToBoxAdapter(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                _buildProfileHeader(context, author, tokens),
+                                const SizedBox(height: 12),
+                                _buildActionStrip(context, author, tokens),
+                                const SizedBox(height: 16),
+                                _buildStatsStrip(author, tokens),
+                                const SizedBox(height: 16),
+                              ],
+                            ),
+                          ),
+                          SliverPersistentHeader(
+                            pinned: true,
+                            delegate: _SliverTabBarDelegate(
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: TabBar(
+                                      controller: _tabController,
+                                      indicatorColor: tokens.greenAccent,
+                                      labelColor: tokens.greenAccent,
+                                      unselectedLabelColor:
+                                          tokens.textSecondary,
+                                      tabs: const [
+                                        Tab(text: 'Bài viết'),
+                                        Tab(text: 'Buổi tập'),
+                                        Tab(text: 'Bữa ăn'),
+                                      ],
+                                    ),
+                                  ),
+                                  IconButton(
+                                    key: const ValueKey('profile-view-toggle'),
+                                    onPressed: () {
+                                      setState(
+                                        () => _isGridView = !_isGridView,
+                                      );
+                                    },
+                                    tooltip: _isGridView
+                                        ? 'Xem dạng danh sách'
+                                        : 'Xem dạng lưới',
+                                    icon: Icon(
+                                      _isGridView
+                                          ? Icons.view_agenda_outlined
+                                          : Icons.grid_view_rounded,
+                                      color: tokens.textSecondary,
+                                      size: 20,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ];
+                      },
+                      body: TabBarView(
+                        controller: _tabController,
                         children: [
-                          _buildProfileHeader(context, author, tokens),
-                          const SizedBox(height: 12),
-                          _buildActionStrip(context, author, tokens),
-                          const SizedBox(height: 16),
-                          _buildStatsStrip(tokens),
-                          const SizedBox(height: 16),
+                          _buildPostsBody(_posts, tokens),
+                          _buildPostsBody(workoutPosts, tokens),
+                          _buildPostsBody(mealPosts, tokens),
                         ],
                       ),
                     ),
-                    SliverPersistentHeader(
-                      pinned: true,
-                      delegate: _SliverTabBarDelegate(
-                        TabBar(
-                          controller: _tabController,
-                          indicatorColor: tokens.greenAccent,
-                          labelColor: tokens.greenAccent,
-                          unselectedLabelColor: tokens.textSecondary,
-                          tabs: const [
-                            Tab(text: 'Bài viết'),
-                            Tab(text: 'Buổi tập'),
-                            Tab(text: 'Bữa ăn'),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ];
-                },
-                body: TabBarView(
-                  controller: _tabController,
-                  children: [
-                    _buildPostGrid(feedState.posts, tokens),
-                    _buildPostGrid(
-                      feedState.posts
-                          .where((p) => p.type == CommunityPostType.workout)
-                          .toList(),
-                      tokens,
-                    ),
-                    _buildPostGrid(
-                      feedState.posts
-                          .where((p) => p.nutritionInfo != null)
-                          .toList(),
-                      tokens,
-                    ),
-                  ],
-                ),
-              ),
             ),
             CommunityBottomNavigationBar(
               currentTab: CommunityNavTab.profile,
               onTabSelected: (tab) {
                 if (tab == CommunityNavTab.feed) {
-                  Navigator.pushReplacementNamed(context, AppRoutes.communityFeed);
+                  Navigator.pushReplacementNamed(
+                    context,
+                    AppRoutes.communityFeed,
+                  );
                 } else if (tab == CommunityNavTab.discover) {
                   Navigator.pushReplacementNamed(
-                      context, AppRoutes.communityDiscover);
+                    context,
+                    AppRoutes.communityDiscover,
+                  );
                 } else if (tab == CommunityNavTab.create) {
                   CreateContentBottomSheet.show(context);
                 } else if (tab == CommunityNavTab.notifications) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Tính năng đang hoàn thiện, sẽ sớm ra mắt!'),
-                      duration: Duration(seconds: 2),
-                    ),
+                  Navigator.pushNamed(
+                    context,
+                    AppRoutes.communityNotifications,
                   );
                 }
               },
@@ -226,42 +308,16 @@ class _CommunityProfileScreenState
     );
   }
 
-  Widget _buildPreviewNoticeBanner(SamanHomePalette tokens) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-      color: tokens.cardSurface,
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            Icons.info_outline_rounded,
-            size: 13,
-            color: tokens.greenAccent,
-          ),
-          const SizedBox(width: 6),
-          Flexible(
-            child: Text(
-              'Bản xem trước giao diện • Dữ liệu mẫu thử nghiệm',
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                fontSize: 11,
-                color: tokens.textSecondary,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
   Widget _buildAppBar(
     BuildContext context,
     CommunityAuthor author,
     SamanHomePalette tokens,
   ) {
+    final handleText =
+        (author.handle != null && author.handle!.trim().isNotEmpty)
+            ? '@${author.handle!.trim()}'
+            : '@${author.name.toLowerCase().replaceAll(' ', '.')}';
+
     return Container(
       height: 52,
       padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -282,7 +338,7 @@ class _CommunityProfileScreenState
           ),
           Expanded(
             child: Text(
-              '@${author.name.toLowerCase().replaceAll(' ', '.')}',
+              handleText,
               textAlign: TextAlign.center,
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
@@ -310,6 +366,11 @@ class _CommunityProfileScreenState
     CommunityAuthor author,
     SamanHomePalette tokens,
   ) {
+    final initial = author.name.isNotEmpty ? author.name[0].toUpperCase() : 'S';
+    final bioText = (author.bio != null && author.bio!.trim().isNotEmpty)
+        ? author.bio!.trim()
+        : 'Thành viên cộng đồng Saman';
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       child: Column(
@@ -328,16 +389,32 @@ class _CommunityProfileScreenState
                   ),
                   color: tokens.secondarySurface,
                 ),
-                child: Center(
-                  child: Text(
-                    author.name.isNotEmpty ? author.name[0] : 'S',
-                    style: TextStyle(
-                      fontSize: 28,
-                      fontWeight: FontWeight.w700,
-                      color: tokens.greenAccent,
-                    ),
-                  ),
-                ),
+                clipBehavior: Clip.antiAlias,
+                child: author.avatarUrl != null && author.avatarUrl!.isNotEmpty
+                    ? Image.network(
+                        author.avatarUrl!,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) => Center(
+                          child: Text(
+                            initial,
+                            style: TextStyle(
+                              fontSize: 28,
+                              fontWeight: FontWeight.w700,
+                              color: tokens.greenAccent,
+                            ),
+                          ),
+                        ),
+                      )
+                    : Center(
+                        child: Text(
+                          initial,
+                          style: TextStyle(
+                            fontSize: 28,
+                            fontWeight: FontWeight.w700,
+                            color: tokens.greenAccent,
+                          ),
+                        ),
+                      ),
               ),
               const SizedBox(width: 16),
               Expanded(
@@ -391,7 +468,7 @@ class _CommunityProfileScreenState
                                 ),
                               ),
                             );
-                            if (mounted) _loadAuthor();
+                            if (mounted) _loadProfileData();
                           },
                           child: Text.rich(
                             TextSpan(
@@ -427,7 +504,7 @@ class _CommunityProfileScreenState
                                 ),
                               ),
                             );
-                            if (mounted) _loadAuthor();
+                            if (mounted) _loadProfileData();
                           },
                           child: Text.rich(
                             TextSpan(
@@ -460,13 +537,43 @@ class _CommunityProfileScreenState
           ),
           const SizedBox(height: 12),
           Text(
-            _bio,
+            bioText,
             style: TextStyle(
               fontSize: 13,
               color: tokens.textPrimary,
               height: 1.4,
             ),
           ),
+          if (author.interestTopics.isNotEmpty) ...[
+            const SizedBox(height: 10),
+            Wrap(
+              spacing: 6,
+              runSpacing: 6,
+              children: author.interestTopics
+                  .map(
+                    (topic) => Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: tokens.secondarySurface,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: tokens.border),
+                      ),
+                      child: Text(
+                        topic,
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                          color: tokens.greenAccent,
+                        ),
+                      ),
+                    ),
+                  )
+                  .toList(),
+            ),
+          ],
         ],
       ),
     );
@@ -529,34 +636,49 @@ class _CommunityProfileScreenState
               height: 36,
               child: OutlinedButton(
                 onPressed: () async {
-                  final result = await Navigator.push(
+                  await Navigator.push(
                     context,
                     MaterialPageRoute(
                       builder: (_) => CommunityEditProfileScreen(
                         initialName: author.name,
+                        initialHandle: author.handle,
                         initialTitle: author.title,
-                        initialBio: _bio,
+                        initialBio: author.bio ?? '',
+                        initialAvatarUrl: author.avatarUrl,
+                        initialInterestTopics: author.interestTopics,
+                        onSaveProfile: (payload) async {
+                          try {
+                            await ref
+                                .read(communityRepositoryProvider)
+                                .updateProfile(
+                                  name: payload['name'] as String?,
+                                  handle: payload['handle'] as String?,
+                                  title: payload['title'] as String?,
+                                  bio: payload['bio'] as String?,
+                                  interestTopics:
+                                      (payload['interestTopics'] as List<dynamic>?)
+                                          ?.map((e) => e.toString())
+                                          .toList(),
+                                  avatarUrl: payload['avatarUrl'] as String?,
+                                  localAvatarPath:
+                                      payload['avatarPath'] as String?,
+                                  removeAvatar:
+                                      payload['avatarRemoved'] == true,
+                                );
+                            if (mounted) {
+                              await _loadProfileData();
+                              ref
+                                  .read(communityFeedProvider.notifier)
+                                  .refresh();
+                            }
+                            return true;
+                          } catch (_) {
+                            return false;
+                          }
+                        },
                       ),
                     ),
                   );
-                  if (result is Map<String, dynamic> && mounted) {
-                    setState(() {
-                      if (result['bio'] != null &&
-                          (result['bio'] as String).isNotEmpty) {
-                        _bio = result['bio'] as String;
-                      }
-                      if (result['name'] != null &&
-                          (result['name'] as String).isNotEmpty) {
-                        _author = (_author ?? author)
-                            .copyWith(name: result['name'] as String);
-                      }
-                      if (result['title'] != null &&
-                          (result['title'] as String).isNotEmpty) {
-                        _author = (_author ?? author)
-                            .copyWith(title: result['title'] as String);
-                      }
-                    });
-                  }
                 },
                 style: OutlinedButton.styleFrom(
                   foregroundColor: tokens.textPrimary,
@@ -600,12 +722,7 @@ class _CommunityProfileScreenState
             height: 36,
             child: OutlinedButton.icon(
               onPressed: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Tính năng đang hoàn thiện, sẽ sớm ra mắt!'),
-                    duration: Duration(seconds: 2),
-                  ),
-                );
+                Navigator.pushNamed(context, AppRoutes.communityDrafts);
               },
               icon: const Icon(Icons.edit_note_rounded, size: 16),
               label: const Text('Bản nháp', style: TextStyle(fontSize: 12)),
@@ -623,7 +740,7 @@ class _CommunityProfileScreenState
     );
   }
 
-  Widget _buildStatsStrip(SamanHomePalette tokens) {
+  Widget _buildStatsStrip(CommunityAuthor author, SamanHomePalette tokens) {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
@@ -635,11 +752,23 @@ class _CommunityProfileScreenState
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
-          _buildStatItem('42', 'Buổi tập chia sẻ', tokens),
+          _buildStatItem(
+            '${author.workoutPostCount}',
+            'Buổi tập chia sẻ',
+            tokens,
+          ),
           Container(width: 1, height: 24, color: tokens.border),
-          _buildStatItem('18', 'Bữa ăn dinh dưỡng', tokens),
+          _buildStatItem(
+            '${author.mealPostCount}',
+            'Bữa ăn dinh dưỡng',
+            tokens,
+          ),
           Container(width: 1, height: 24, color: tokens.border),
-          _buildStatItem('1.2k', 'Lượt thích nhận', tokens),
+          _buildStatItem(
+            _formatCount(author.totalLikesReceived),
+            'Lượt thích nhận',
+            tokens,
+          ),
         ],
       ),
     );
@@ -677,7 +806,7 @@ class _CommunityProfileScreenState
     );
   }
 
-  Widget _buildPostGrid(
+  Widget _buildPostsBody(
     List<CommunityPost> posts,
     SamanHomePalette tokens,
   ) {
@@ -687,6 +816,25 @@ class _CommunityProfileScreenState
           'Chưa có bài viết nào trong mục này.',
           style: TextStyle(color: tokens.textMuted, fontSize: 13),
         ),
+      );
+    }
+
+    if (!_isGridView) {
+      return ListView.builder(
+        padding: const EdgeInsets.symmetric(vertical: 8),
+        itemCount: posts.length,
+        itemBuilder: (context, index) {
+          final post = posts[index];
+          return PostCardView(
+            post: post,
+            onOpenDetail: () => _openPost(post),
+            onLikeToggle: () =>
+                ref.read(communityFeedProvider.notifier).toggleLike(post.id),
+            onBookmarkToggle: () => ref
+                .read(communityFeedProvider.notifier)
+                .toggleBookmark(post.id),
+          );
+        },
       );
     }
 
@@ -705,13 +853,7 @@ class _CommunityProfileScreenState
             : 'assets/images/nutrition/meal_pho.jpg';
 
         return InkWell(
-          onTap: () {
-            Navigator.pushNamed(
-              context,
-              AppRoutes.communityPost,
-              arguments: post.id,
-            );
-          },
+          onTap: () => _openPost(post),
           child: Container(
             color: tokens.cardSurface,
             child: Stack(
@@ -723,7 +865,9 @@ class _CommunityProfileScreenState
                   errorBuilder: (_, __, ___) => Container(
                     color: tokens.secondarySurface,
                     child: Icon(
-                      Icons.fitness_center_rounded,
+                      post.type == CommunityPostType.qa
+                          ? Icons.question_answer_rounded
+                          : Icons.fitness_center_rounded,
                       color: tokens.textMuted,
                       size: 24,
                     ),
@@ -739,6 +883,16 @@ class _CommunityProfileScreenState
                       size: 16,
                     ),
                   ),
+                if (post.type == CommunityPostType.qa)
+                  Positioned(
+                    top: 4,
+                    right: 4,
+                    child: Icon(
+                      Icons.help_outline_rounded,
+                      color: tokens.greenAccent,
+                      size: 16,
+                    ),
+                  ),
               ],
             ),
           ),
@@ -749,21 +903,24 @@ class _CommunityProfileScreenState
 }
 
 class _SliverTabBarDelegate extends SliverPersistentHeaderDelegate {
-  final TabBar _tabBar;
-  _SliverTabBarDelegate(this._tabBar);
+  final Widget _child;
+  _SliverTabBarDelegate(this._child);
 
   @override
-  double get minExtent => _tabBar.preferredSize.height;
+  double get minExtent => 48;
   @override
-  double get maxExtent => _tabBar.preferredSize.height;
+  double get maxExtent => 48;
 
   @override
   Widget build(
-      BuildContext context, double shrinkOffset, bool overlapsContent) {
+    BuildContext context,
+    double shrinkOffset,
+    bool overlapsContent,
+  ) {
     final tokens = SamanHomeTokens.of(context);
     return Container(
       color: tokens.canvas,
-      child: _tabBar,
+      child: _child,
     );
   }
 

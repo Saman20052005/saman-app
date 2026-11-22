@@ -10,6 +10,8 @@ import '../features/shop/presentation/screens/shop_saved_screen.dart';
 import '../features/journey/presentation/screens/create_journey_screen.dart';
 import '../features/journey/presentation/screens/my_journey_screen.dart';
 import '../features/journey/presentation/screens/wallet_rewards_screen.dart';
+import '../features/journal/domain/models/journal_article.dart';
+import '../features/journal/presentation/screens/journal_article_detail_screen.dart';
 import '../features/journal/presentation/screens/journal_discover_screen.dart';
 import '../features/journal/presentation/screens/journal_search_screen.dart';
 import '../features/community/presentation/screens/community_feed_screen.dart';
@@ -39,6 +41,7 @@ class AppRoutes {
   static const String walletRewards = '/journey/wallet';
   static const String journal = '/journal';
   static const String journalSearch = '/journal/search';
+  static const String journalArticle = '/journal/article';
   static const String communityFeed = '/community/feed';
   static const String communityDiscover = '/community/discover';
   static const String communityPost = '/community/post';
@@ -124,6 +127,34 @@ class AppRoutes {
         return MaterialPageRoute(
           settings: settings,
           builder: (_) => const JournalSearchScreen(),
+        );
+
+      case journalArticle:
+        final args = settings.arguments;
+        final String articleId;
+        JournalArticle? initialArticle;
+        bool initialBookmarked = false;
+        double initialProgress = 0.0;
+
+        if (args is String) {
+          articleId = args;
+        } else if (args is Map<String, dynamic>) {
+          articleId = (args['articleId'] as String?) ?? '';
+          initialArticle = args['initialArticle'] as JournalArticle?;
+          initialBookmarked = (args['initialBookmarked'] as bool?) ?? false;
+          initialProgress = (args['initialProgress'] as num?)?.toDouble() ?? 0.0;
+        } else {
+          articleId = '';
+        }
+
+        return MaterialPageRoute(
+          settings: settings,
+          builder: (_) => JournalArticleDetailScreen(
+            articleId: articleId,
+            initialArticle: initialArticle,
+            initialBookmarked: initialBookmarked,
+            initialProgress: initialProgress,
+          ),
         );
 
       case communityFeed:

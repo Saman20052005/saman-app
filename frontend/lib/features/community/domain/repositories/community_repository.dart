@@ -94,6 +94,28 @@ abstract class CommunityRepository {
   /// Marks a notification as read (R11).
   Future<void> markNotificationRead(String id);
 
+  /// Marks all notifications as read (R11).
+  Future<void> markAllNotificationsRead();
+
+  /// Retrieves posts authored by [authorId] (R09).
+  Future<List<CommunityPost>> getAuthorPosts(
+    String authorId, {
+    String tab = 'all',
+    String? cursor,
+  });
+
+  /// Updates the current user's community profile.
+  Future<CommunityAuthor> updateProfile({
+    String? name,
+    String? handle,
+    String? title,
+    String? bio,
+    List<String>? interestTopics,
+    String? avatarUrl,
+    String? localAvatarPath,
+    bool removeAvatar = false,
+  });
+
   /// Retrieves author profile and their posts (R09).
   Future<CommunityAuthor> getAuthorProfile(String authorId);
 

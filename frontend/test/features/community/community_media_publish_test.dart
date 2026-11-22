@@ -3,6 +3,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:health_ai_app/config/api_config.dart';
 import 'package:health_ai_app/features/community/data/datasources/community_remote_datasource.dart';
 import 'package:health_ai_app/features/community/data/repositories/community_repository_impl.dart';
 import 'package:health_ai_app/features/community/domain/models/community_post.dart';
@@ -113,17 +114,32 @@ void main() {
 
       expect(post.type, CommunityPostType.photo);
       expect(post.caption, 'Leg day triumph');
-      expect(post.photoUrls, ['/static/community/my_photo.jpg']);
+      expect(
+        post.photoUrls,
+        ['${ApiConfig.baseUrl}/api/community/static/community/my_photo.jpg'],
+      );
       expect(transport.postBodies.length, 1);
       expect(transport.postBodies.first['type'], 'photo');
       expect(transport.postBodies.first['photo_urls'], ['/static/community/my_photo.jpg']);
 
-      // B. Reject multiple photos (slice constraint)
+      // B. Allow multiple photos up to 10
+      final multiPost = await repo.publishPost(
+        caption: 'Two photos valid',
+        requestKey: 'req_photo_multi_002',
+        mediaUrls: ['/static/community/photo1.jpg', '/static/community/photo2.jpg'],
+      );
+      expect(multiPost.photoUrls.length, 2);
+      expect(transport.postBodies.last['photo_urls'], [
+        '/static/community/photo1.jpg',
+        '/static/community/photo2.jpg',
+      ]);
+
+      // C. Reject more than 10 photos
       expect(
         () => repo.publishPost(
-          caption: 'Two photos attempt',
-          requestKey: 'req_photo_multi_002',
-          mediaUrls: ['/static/photo1.jpg', '/static/photo2.jpg'],
+          caption: 'Eleven photos attempt',
+          requestKey: 'req_photo_over_limit_003',
+          mediaUrls: List.generate(11, (i) => '/static/community/photo_$i.jpg'),
         ),
         throwsA(isA<UnsupportedError>()),
       );

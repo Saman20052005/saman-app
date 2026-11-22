@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../../screens/home/tokens/saman_home_tokens.dart';
 import '../../domain/models/journal_article.dart';
-import 'journal_preview_sheet.dart';
+import '../screens/journal_article_detail_screen.dart';
 
 /// Featured editorial story card (Hero) in Saman Journal Discover (R01).
 class JournalHeroCard extends StatelessWidget {
@@ -22,15 +22,13 @@ class JournalHeroCard extends StatelessWidget {
       child: InkWell(
         onTap: onTap ??
             () {
-              JournalPreviewSheet.show(
-                context,
-                title: article.title,
-                categoryLabel: article.badgeLabel ?? 'Phục hồi',
-                description: article.contentBody ?? article.summary,
-                metricLabel: '${article.readTimeMinutes} phút đọc',
-                imageAsset: article.coverImageAsset,
-                notice:
-                    'Chế độ xem trước nội dung nghiên cứu. Màn đọc toàn văn đầy đủ sẽ được hoàn thiện trong giai đoạn kế tiếp.',
+              Navigator.of(context).push(
+                MaterialPageRoute<void>(
+                  builder: (_) => JournalArticleDetailScreen(
+                    articleId: article.id,
+                    initialArticle: article,
+                  ),
+                ),
               );
             },
         borderRadius: BorderRadius.circular(SamanHomeTokens.radiusLg),

@@ -6,6 +6,7 @@ import 'package:image_picker/image_picker.dart';
 import '../../../../../screens/home/tokens/saman_home_tokens.dart';
 import '../../providers/community_composer_provider.dart';
 import '../../widgets/draft_discard_dialog.dart';
+import 'post_album_order_screen.dart';
 import 'post_compose_publish_screen.dart';
 
 
@@ -31,7 +32,7 @@ class _PostSelectMediaScreenState extends ConsumerState<PostSelectMediaScreen> {
 
   late List<String> _selectedUrls;
   String _activePreviewUrl = _sampleMediaLibrary.first;
-  final bool _isMultiSelect = false;
+  bool _isMultiSelect = false;
   String _aspectRatio = '1:1';
 
   @override
@@ -70,16 +71,23 @@ class _PostSelectMediaScreenState extends ConsumerState<PostSelectMediaScreen> {
     }
 
     if (_isMultiSelect) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            Localizations.maybeLocaleOf(context)?.languageCode == 'en'
-                ? 'Only 1 photo is currently supported'
-                : 'Tạm thời chỉ hỗ trợ 1 ảnh',
+      if (_selectedUrls.length >= 10) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              Localizations.maybeLocaleOf(context)?.languageCode == 'en'
+                  ? 'Maximum 10 photos allowed'
+                  : 'Tối đa 10 ảnh',
+            ),
+            duration: const Duration(seconds: 2),
           ),
-          duration: const Duration(seconds: 2),
-        ),
-      );
+        );
+        return;
+      }
+      setState(() {
+        _selectedUrls.add(url);
+        _activePreviewUrl = url;
+      });
       return;
     }
 
@@ -92,23 +100,55 @@ class _PostSelectMediaScreenState extends ConsumerState<PostSelectMediaScreen> {
   Future<void> _pickFromGallery() async {
     try {
       final picker = ImagePicker();
-      final picked = await picker.pickImage(
-        source: ImageSource.gallery,
-        maxWidth: 1920,
-        maxHeight: 1920,
-        imageQuality: 90,
-      );
-      if (picked != null) {
+      List<XFile> pickedFiles = const [];
+      try {
+        pickedFiles = await picker.pickMultiImage(
+          maxWidth: 1920,
+          maxHeight: 1920,
+          imageQuality: 90,
+        );
+      } catch (_) {
+        final single = await picker.pickImage(
+          source: ImageSource.gallery,
+          maxWidth: 1920,
+          maxHeight: 1920,
+          imageQuality: 90,
+        );
+        if (single != null) {
+          pickedFiles = [single];
+        }
+      }
+      if (pickedFiles.isNotEmpty) {
+        if (pickedFiles.length > 10 && mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                Localizations.maybeLocaleOf(context)?.languageCode == 'en'
+                    ? 'Maximum 10 photos selected'
+                    : 'Chỉ chọn tối đa 10 ảnh',
+              ),
+              duration: const Duration(seconds: 2),
+            ),
+          );
+        }
+        final paths = pickedFiles.take(10).map((e) => e.path).toList();
         setState(() {
-          _activePreviewUrl = picked.path;
-          _selectedUrls = [picked.path];
+          _activePreviewUrl = paths.first;
+          _selectedUrls = paths;
+          if (paths.length > 1) {
+            _isMultiSelect = true;
+          }
         });
-        ref.read(communityComposerProvider.notifier).setInitialMedia([picked.path]);
+        final notifier = ref.read(communityComposerProvider.notifier);
+        notifier.setInitialMedia(paths);
+        notifier.setAspectRatio(_aspectRatio);
         if (!mounted) return;
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (_) => const PostComposePublishScreen(),
+            builder: (_) => paths.length > 1
+                ? const PostAlbumOrderScreen()
+                : const PostComposePublishScreen(),
           ),
         );
       }
@@ -118,13 +158,16 @@ class _PostSelectMediaScreenState extends ConsumerState<PostSelectMediaScreen> {
   }
 
   void _onNext() {
-    final mediaToPass = _selectedUrls.isNotEmpty ? [_selectedUrls.first] : <String>[];
-    ref.read(communityComposerProvider.notifier).setInitialMedia(mediaToPass);
-    ref.read(communityComposerProvider.notifier).setAspectRatio(_aspectRatio);
+    final mediaToPass = _selectedUrls.take(10).toList();
+    final notifier = ref.read(communityComposerProvider.notifier);
+    notifier.setInitialMedia(mediaToPass);
+    notifier.setAspectRatio(_aspectRatio);
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => const PostComposePublishScreen(),
+        builder: (_) => mediaToPass.length > 1
+            ? const PostAlbumOrderScreen()
+            : const PostComposePublishScreen(),
       ),
     );
   }
@@ -398,25 +441,23 @@ class _PostSelectMediaScreenState extends ConsumerState<PostSelectMediaScreen> {
           ),
           InkWell(
             onTap: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(
-                    Localizations.maybeLocaleOf(context)?.languageCode == 'en'
-                        ? 'Only 1 photo is currently supported'
-                        : 'Tạm thời chỉ hỗ trợ 1 ảnh',
-                  ),
-                  duration: const Duration(seconds: 2),
-                ),
-              );
+              setState(() {
+                _isMultiSelect = !_isMultiSelect;
+                if (!_isMultiSelect && _selectedUrls.length > 1) {
+                  _selectedUrls = [_activePreviewUrl];
+                }
+              });
             },
             borderRadius: BorderRadius.circular(16),
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
               decoration: BoxDecoration(
-                color: tokens.secondarySurface,
+                color: _isMultiSelect
+                    ? tokens.greenAccent.withOpacity(0.15)
+                    : tokens.secondarySurface,
                 borderRadius: BorderRadius.circular(16),
                 border: Border.all(
-                  color: tokens.border,
+                  color: _isMultiSelect ? tokens.greenAccent : tokens.border,
                 ),
               ),
               child: Row(
@@ -425,7 +466,9 @@ class _PostSelectMediaScreenState extends ConsumerState<PostSelectMediaScreen> {
                   Icon(
                     Icons.photo_library_outlined,
                     size: 14,
-                    color: tokens.textSecondary,
+                    color: _isMultiSelect
+                        ? tokens.greenAccent
+                        : tokens.textSecondary,
                   ),
                   const SizedBox(width: 6),
                   Text(
@@ -433,7 +476,9 @@ class _PostSelectMediaScreenState extends ConsumerState<PostSelectMediaScreen> {
                     style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w600,
-                      color: tokens.textSecondary,
+                      color: _isMultiSelect
+                          ? tokens.greenAccent
+                          : tokens.textSecondary,
                     ),
                   ),
                 ],
@@ -446,6 +491,10 @@ class _PostSelectMediaScreenState extends ConsumerState<PostSelectMediaScreen> {
   }
 
   Widget _buildMediaGrid(SamanHomePalette tokens) {
+    final gridItems = [
+      ..._selectedUrls.where((u) => !_sampleMediaLibrary.contains(u)),
+      ..._sampleMediaLibrary,
+    ];
     return GridView.builder(
       padding: const EdgeInsets.all(2),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
@@ -453,7 +502,7 @@ class _PostSelectMediaScreenState extends ConsumerState<PostSelectMediaScreen> {
         crossAxisSpacing: 2,
         mainAxisSpacing: 2,
       ),
-      itemCount: _sampleMediaLibrary.length + 1,
+      itemCount: gridItems.length + 1,
       itemBuilder: (context, index) {
         if (index == 0) {
           // Camera capture tile
@@ -493,7 +542,7 @@ class _PostSelectMediaScreenState extends ConsumerState<PostSelectMediaScreen> {
           );
         }
 
-        final url = _sampleMediaLibrary[index - 1];
+        final url = gridItems[index - 1];
         final isSelected = _selectedUrls.contains(url);
         final selectionIndex = _selectedUrls.indexOf(url) + 1;
 
@@ -502,13 +551,7 @@ class _PostSelectMediaScreenState extends ConsumerState<PostSelectMediaScreen> {
           child: Stack(
             fit: StackFit.expand,
             children: [
-              Image.network(
-                url,
-                fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) => Container(
-                  color: tokens.secondarySurface,
-                ),
-              ),
+              _buildPreviewImageWidget(url, tokens),
               if (isSelected)
                 Container(
                   color: tokens.greenAccent.withOpacity(0.25),

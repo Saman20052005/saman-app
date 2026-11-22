@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../../screens/home/tokens/saman_home_tokens.dart';
@@ -81,13 +82,7 @@ class _PostEditMediaScreenState extends ConsumerState<PostEditMediaScreen> {
                                       composer.contrast,
                                     ),
                                   ),
-                                  child: Image.network(
-                                    activeUrl,
-                                    fit: BoxFit.cover,
-                                    errorBuilder: (_, __, ___) => Container(
-                                      color: tokens.cardSurface,
-                                    ),
-                                  ),
+                                  child: _buildImageView(activeUrl, tokens),
                                 ),
                               ),
                               if (composer.isGridOverlayVisible)
@@ -374,9 +369,9 @@ class _PostEditMediaScreenState extends ConsumerState<PostEditMediaScreen> {
                       ),
                       child: ClipRRect(
                         borderRadius: BorderRadius.circular(6),
-                        child: Image.network(
+                        child: _buildImageView(
                           composer.selectedMediaUrls[idx],
-                          fit: BoxFit.cover,
+                          tokens,
                         ),
                       ),
                     ),
@@ -667,6 +662,35 @@ class _PostEditMediaScreenState extends ConsumerState<PostEditMediaScreen> {
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildImageView(String path, SamanHomePalette tokens) {
+    if (path.startsWith('http://') ||
+        path.startsWith('https://') ||
+        path.startsWith('/static/')) {
+      return Image.network(
+        path,
+        fit: BoxFit.cover,
+        errorBuilder: (_, __, ___) => Container(
+          color: tokens.cardSurface,
+          child: Icon(
+            Icons.broken_image_outlined,
+            color: tokens.textSecondary,
+          ),
+        ),
+      );
+    }
+    final file = File(path);
+    if (file.existsSync()) {
+      return Image.file(file, fit: BoxFit.cover);
+    }
+    return Container(
+      color: tokens.cardSurface,
+      child: Icon(
+        Icons.image_outlined,
+        color: tokens.textSecondary,
+      ),
     );
   }
 

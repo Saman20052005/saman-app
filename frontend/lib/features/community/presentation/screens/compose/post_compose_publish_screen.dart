@@ -68,7 +68,7 @@ class _PostComposePublishScreenState
       if (action == DraftDiscardAction.saveDraft) {
         ref.read(communityComposerProvider.notifier).setCaption(_captionController.text);
         final draft = ref.read(communityComposerProvider.notifier).toDraft();
-        await ref.read(communityRepositoryProvider).saveDraft(draft);
+        await ref.read(communityDraftsProvider.notifier).saveDraft(draft);
         if (!mounted) return;
         Navigator.popUntil(context, (route) => route.settings.name == '/community/feed');
       } else if (action == DraftDiscardAction.discard) {
@@ -85,16 +85,61 @@ class _PostComposePublishScreenState
     if (composer.hasPendingSubmission || composer.attachedActivity != null) {
       return;
     }
+    if (composer.selectedMediaUrls.length >= 10) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            Localizations.maybeLocaleOf(context)?.languageCode == 'en'
+                ? 'Maximum 10 photos allowed'
+                : 'Đã đạt tối đa 10 ảnh',
+          ),
+          duration: const Duration(seconds: 2),
+        ),
+      );
+      return;
+    }
     try {
       final picker = ImagePicker();
-      final picked = await picker.pickImage(
-        source: ImageSource.gallery,
-        maxWidth: 1920,
-        maxHeight: 1920,
-        imageQuality: 90,
-      );
-      if (!mounted || picked == null) return;
-      ref.read(communityComposerProvider.notifier).setInitialMedia([picked.path]);
+      List<XFile> pickedFiles = const [];
+      try {
+        pickedFiles = await picker.pickMultiImage(
+          maxWidth: 1920,
+          maxHeight: 1920,
+          imageQuality: 90,
+        );
+      } catch (_) {
+        final single = await picker.pickImage(
+          source: ImageSource.gallery,
+          maxWidth: 1920,
+          maxHeight: 1920,
+          imageQuality: 90,
+        );
+        if (single != null) {
+          pickedFiles = [single];
+        }
+      }
+      if (!mounted || pickedFiles.isEmpty) return;
+      final merged = <String>[...composer.selectedMediaUrls];
+      for (final file in pickedFiles) {
+        if (!merged.contains(file.path) && merged.length < 10) {
+          merged.add(file.path);
+        }
+      }
+      if (merged.length > composer.selectedMediaUrls.length) {
+        ref.read(communityComposerProvider.notifier).setInitialMedia(merged);
+      }
+      if (composer.selectedMediaUrls.length + pickedFiles.length > 10) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              Localizations.maybeLocaleOf(context)?.languageCode == 'en'
+                  ? 'Maximum 10 photos allowed'
+                  : 'Chỉ chọn tối đa 10 ảnh',
+            ),
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
     } catch (_) {
       // Fallback in headless/unsupported environment
     }

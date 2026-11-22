@@ -111,6 +111,15 @@ async def lifespan(app: FastAPI):
 
         try:
             from backend.app.database import db as application_db
+            from backend.app.database_journal import ensure_journal_indexes
+
+            if application_db is not None:
+                ensure_journal_indexes(application_db)
+        except (PyMongoError, RuntimeError) as exc:
+            logger.warning("Journal index setup unavailable: %s", type(exc).__name__)
+
+        try:
+            from backend.app.database import db as application_db
             from backend.app.database_revenue import COLL_USAGE_BUCKETS
 
             if application_db is not None:

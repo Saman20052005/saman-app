@@ -27,7 +27,12 @@ class CommunityFakeDatasource {
     name: 'Linh Nguyễn',
     isVerified: true,
     title: 'Thành viên chia sẻ (Mẫu)',
+    bio:
+        'Yêu thích rèn luyện thể chất và dinh dưỡng cân bằng. Chia sẻ hành trình tập luyện thực tế mỗi ngày cùng Saman.',
     followerCount: 1250,
+    workoutPostCount: 42,
+    mealPostCount: 18,
+    totalLikesReceived: 1200,
   );
 
   static const CommunityAuthor authorKhang = CommunityAuthor(
@@ -432,12 +437,38 @@ class CommunityFakeDatasource {
     return newComment;
   }
 
-  CommunityDiscoverData getDiscoverData({String topic = 'all'}) {
+  CommunityDiscoverData getDiscoverData({
+    String topic = 'all',
+    String? searchQuery,
+  }) {
+    final query = searchQuery?.trim().toLowerCase() ?? '';
+    final allGrid = _defaultGridItems();
+    final allTrending = _defaultTrendingTopics();
+    final allCreators = List<CommunityAuthor>.unmodifiable(_creators);
+
+    if (query.isEmpty) {
+      return CommunityDiscoverData(
+        activeTopic: topic,
+        gridItems: allGrid,
+        trendingTopics: allTrending,
+        recommendedCreators: allCreators,
+      );
+    }
+
     return CommunityDiscoverData(
       activeTopic: topic,
-      gridItems: _defaultGridItems(),
-      trendingTopics: _defaultTrendingTopics(),
-      recommendedCreators: List.unmodifiable(_creators),
+      gridItems: allGrid
+          .where((item) => (item.altText ?? '').toLowerCase().contains(query))
+          .toList(),
+      trendingTopics: allTrending
+          .where((t) => t.hashtag.toLowerCase().contains(query))
+          .toList(),
+      recommendedCreators: allCreators
+          .where((c) =>
+              c.name.toLowerCase().contains(query) ||
+              (c.title ?? '').toLowerCase().contains(query) ||
+              (c.handle ?? '').toLowerCase().contains(query))
+          .toList(),
     );
   }
 
@@ -702,12 +733,74 @@ class CommunityFakeDatasource {
     }
   }
 
+  void markAllNotificationsRead() {
+    for (var i = 0; i < _notifications.length; i++) {
+      if (_notifications[i].isUnread) {
+        _notifications[i] = _notifications[i].copyWith(isUnread: false);
+      }
+    }
+  }
+
+  CommunityAuthor? _customMyProfile;
+
   CommunityAuthor getAuthorProfile(String authorId) {
-    if (authorId == 'author_linh' || authorId == 'me') return authorLinh;
+    if (authorId == 'author_linh' || authorId == 'me') {
+      return _customMyProfile ?? authorLinh;
+    }
     if (authorId == 'author_khang') return authorKhang;
     if (authorId == 'creator_long') return creatorLong;
     if (authorId == 'creator_mai') return creatorMai;
-    return authorLinh;
+    return _customMyProfile ?? authorLinh;
+  }
+
+  List<CommunityPost> getAuthorPosts(
+    String authorId, {
+    String tab = 'all',
+  }) {
+    final bookmarks = _sharedUserBookmarks[currentUserId] ?? const <String>{};
+    final isMe = authorId == 'me' || authorId == 'author_linh';
+    final filtered = _posts.where((p) {
+      final matchesAuthor = isMe
+          ? (p.author.id == 'me' || p.author.id == 'author_linh')
+          : p.author.id == authorId;
+      if (!matchesAuthor) return false;
+      if (tab == 'workout') {
+        return p.type == CommunityPostType.workout ||
+            p.workoutAttachment != null;
+      }
+      if (tab == 'meal') {
+        return p.type == CommunityPostType.meal || p.nutritionInfo != null;
+      }
+      if (tab == 'qa') {
+        return p.type == CommunityPostType.qa;
+      }
+      return true;
+    });
+    return filtered
+        .map((p) => p.copyWith(isBookmarked: bookmarks.contains(p.id)))
+        .toList();
+  }
+
+  CommunityAuthor updateProfile({
+    String? name,
+    String? handle,
+    String? title,
+    String? bio,
+    List<String>? interestTopics,
+    String? avatarUrl,
+    bool removeAvatar = false,
+  }) {
+    final base = _customMyProfile ?? authorLinh;
+    final updated = base.copyWith(
+      name: name ?? base.name,
+      handle: handle ?? base.handle,
+      title: title ?? base.title,
+      bio: bio ?? base.bio,
+      interestTopics: interestTopics ?? base.interestTopics,
+      avatarUrl: removeAvatar ? null : (avatarUrl ?? base.avatarUrl),
+    );
+    _customMyProfile = updated;
+    return updated;
   }
 
   List<CommunityAuthor> getFollowers(String authorId) {
