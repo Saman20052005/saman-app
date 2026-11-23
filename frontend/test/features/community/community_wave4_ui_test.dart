@@ -23,6 +23,7 @@ import 'package:health_ai_app/features/community/presentation/screens/dm/communi
 import 'package:health_ai_app/features/community/presentation/screens/profile/community_profile_screen.dart';
 import 'package:health_ai_app/features/community/presentation/screens/settings/community_settings_screen.dart';
 import 'package:health_ai_app/features/community/presentation/screens/stories/community_story_viewer_screen.dart';
+import 'package:health_ai_app/features/community/presentation/widgets/community_create_story_sheet.dart';
 import 'package:health_ai_app/features/community/presentation/widgets/community_story_tray.dart';
 import 'package:health_ai_app/features/community/presentation/widgets/post_card_view.dart';
 import 'package:health_ai_app/providers/profile_provider.dart';
@@ -511,6 +512,134 @@ void main() {
         await tester.pump();
         await tester.pump(const Duration(milliseconds: 400));
         expect(find.byType(CommunityChatThreadScreen), findsOneWidget);
+        expect(tester.takeException(), isNull);
+      },
+    );
+
+    testWidgets(
+      '8. PostCardView: double-tap on Text-only post triggers onLikeToggle and heart animation',
+      (tester) async {
+        await tester.binding.setSurfaceSize(const Size(393, 852));
+        addTearDown(() => tester.binding.setSurfaceSize(null));
+
+        final fake = CommunityFakeDatasource(currentUserId: 'author_linh');
+        var likeToggleCount = 0;
+
+        const textPost = CommunityPost(
+          id: 'post_w4_text_only',
+          type: CommunityPostType.text,
+          author: CommunityAuthor(
+            id: 'author_other',
+            name: 'Minh Trần',
+            isVerified: true,
+          ),
+          timeAgo: '5 phút trước',
+          caption: 'Bài viết text-only kiểm tra double tap!',
+          likeCount: 2,
+          commentCount: 0,
+          isLiked: false,
+        );
+
+        await tester.pumpWidget(
+          _wrapTestApp(
+            fakeDatasource: fake,
+            child: Scaffold(
+              body: SingleChildScrollView(
+                child: PostCardView(
+                  post: textPost,
+                  currentUserId: 'author_linh',
+                  onLikeToggle: () {
+                    likeToggleCount++;
+                  },
+                ),
+              ),
+            ),
+          ),
+        );
+        await tester.pump();
+
+        final captionFinder =
+            find.text('Bài viết text-only kiểm tra double tap!');
+        expect(captionFinder, findsOneWidget);
+        final center = tester.getCenter(captionFinder);
+        await tester.tapAt(center);
+        await tester.pump(const Duration(milliseconds: 50));
+        await tester.tapAt(center);
+        await tester.pump(const Duration(milliseconds: 100));
+
+        expect(likeToggleCount, 1);
+        expect(
+          find.byKey(const ValueKey('double-tap-heart-icon')),
+          findsOneWidget,
+        );
+        await tester.pump(const Duration(milliseconds: 700));
+        expect(tester.takeException(), isNull);
+      },
+    );
+
+    testWidgets(
+      '9. CommunityStoryTray: after createStory, tap "Tin của bạn" opens CommunityStoryViewerScreen and tap + opens CommunityCreateStorySheet',
+      (tester) async {
+        await tester.binding.setSurfaceSize(const Size(393, 852));
+        addTearDown(() => tester.binding.setSurfaceSize(null));
+
+        final fake = CommunityFakeDatasource(currentUserId: 'author_linh');
+
+        await tester.pumpWidget(
+          _wrapTestApp(
+            fakeDatasource: fake,
+            child: Scaffold(
+              body: Consumer(
+                builder: (context, ref, _) {
+                  return Column(
+                    children: [
+                      const CommunityStoryTray(),
+                      ElevatedButton(
+                        onPressed: () {
+                          ref
+                              .read(communityStoriesProvider.notifier)
+                              .createStory(
+                                mediaType: 'text',
+                                caption: 'My new story',
+                              );
+                        },
+                        child: const Text('CreateStory'),
+                      ),
+                    ],
+                  );
+                },
+              ),
+            ),
+          ),
+        );
+        await tester.pump();
+
+        await tester.tap(find.text('CreateStory'));
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 300));
+
+        expect(find.text('Tin của bạn'), findsOneWidget);
+
+        // Tap "Tin của bạn" -> opens CommunityStoryViewerScreen with own story
+        await tester.tap(find.text('Tin của bạn'));
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 400));
+
+        expect(find.byType(CommunityStoryViewerScreen), findsOneWidget);
+        expect(find.text('My new story'), findsOneWidget);
+
+        // Close viewer
+        Navigator.of(
+          tester.element(find.byType(CommunityStoryViewerScreen)),
+        ).pop();
+        await tester.pumpAndSettle();
+
+        // Tap "+" badge -> opens CommunityCreateStorySheet
+        await tester.tap(find.byIcon(Icons.add_rounded));
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 400));
+
+        expect(find.byType(CommunityCreateStorySheet), findsOneWidget);
         expect(tester.takeException(), isNull);
       },
     );

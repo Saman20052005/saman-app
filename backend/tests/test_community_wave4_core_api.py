@@ -964,6 +964,8 @@ class TestCommunityWave4CoreApi(unittest.TestCase):
             self.client.put(f"/api/community/authors/{self.user_b_id}/follow", headers=self.headers_a)
             feed_after = self.client.get("/api/community/stories", headers=self.headers_a).json()
             self.assertEqual([g["author"]["id"] for g in feed_after["items"]], [self.user_a_id, self.user_b_id])
+            self.assertTrue(feed_after["items"][0]["is_self"])
+            self.assertFalse(feed_after["items"][1]["is_self"])
             self.assertTrue(feed_after["items"][1]["has_unviewed"])
 
             # A views B's story twice -> idempotent view_count = 1

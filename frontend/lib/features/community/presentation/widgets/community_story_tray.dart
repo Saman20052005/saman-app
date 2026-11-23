@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../screens/home/tokens/saman_home_tokens.dart';
 import '../../domain/models/community_story.dart';
+import '../providers/community_providers.dart';
 import '../providers/community_social_providers.dart';
 import '../screens/stories/community_story_viewer_screen.dart';
 import 'community_create_story_sheet.dart';
@@ -42,15 +43,23 @@ class CommunityStoryTray extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final tokens = SamanHomeTokens.of(context);
     final storiesState = ref.watch(communityStoriesProvider);
+    final activeUserId = ref.watch(communityRepositoryProvider).activeUserId;
     final groups = storiesState.groups;
 
-    final selfIndex = groups.indexWhere((g) => g.isSelf && g.stories.isNotEmpty);
+    final selfIndex = groups.indexWhere(
+      (g) =>
+          (g.isSelf ||
+              (activeUserId != null &&
+                  activeUserId.isNotEmpty &&
+                  g.author.id == activeUserId)) &&
+          g.stories.isNotEmpty,
+    );
     final CommunityStoryAuthorGroup? selfGroup =
         selfIndex >= 0 ? groups[selfIndex] : null;
 
     final otherEntries = <({int index, CommunityStoryAuthorGroup group})>[
       for (var i = 0; i < groups.length; i++)
-        if (!groups[i].isSelf && groups[i].stories.isNotEmpty)
+        if (i != selfIndex && !groups[i].isSelf && groups[i].stories.isNotEmpty)
           (index: i, group: groups[i]),
     ];
 
@@ -186,15 +195,19 @@ class _SelfStoryItem extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 6),
-          Text(
-            'Tin của bạn',
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              color: tokens.textSecondary,
-              fontSize: 11.5,
-              fontWeight: FontWeight.w500,
+          GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: onTapAvatar,
+            child: Text(
+              'Tin của bạn',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: tokens.textSecondary,
+                fontSize: 11.5,
+                fontWeight: FontWeight.w500,
+              ),
             ),
           ),
         ],

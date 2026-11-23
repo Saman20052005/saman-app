@@ -158,49 +158,63 @@ class PostCardView extends ConsumerWidget {
             ),
           ),
 
-          // Caption (if any)
-          if (post.caption.isNotEmpty)
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-              child: Text(
-                post.caption,
-                style: TextStyle(
-                  fontSize: 14,
-                  height: 1.45,
-                  color: tokens.textPrimary,
-                ),
-              ),
-            ),
+          // Region 2: Caption + activitySnapshot + Photo/Workout/QA attachment
+          _DoubleTapHeartOverlay(
+            onTap: onOpenDetail,
+            onDoubleTap: () {
+              if (!post.isLiked) {
+                onLikeToggle?.call();
+              }
+            },
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Caption (if any)
+                if (post.caption.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+                    child: Text(
+                      post.caption,
+                      style: TextStyle(
+                        fontSize: 14,
+                        height: 1.45,
+                        color: tokens.textPrimary,
+                      ),
+                    ),
+                  ),
 
-          if (post.activitySnapshot != null)
-            CommunityActivitySnapshotCard(snapshot: post.activitySnapshot!),
+                if (post.activitySnapshot != null)
+                  CommunityActivitySnapshotCard(snapshot: post.activitySnapshot!),
 
-          // Content archetype
-          if (post.type == CommunityPostType.photo &&
-              post.photoUrls.isNotEmpty) ...[
-            _buildPhotoAttachment(context, tokens),
-            const SizedBox(height: 10),
-          ] else if (post.type == CommunityPostType.workout &&
-              post.workoutAttachment != null) ...[
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: KineticWorkoutAttachmentCard(
-                attachment: post.workoutAttachment!,
-                onViewWorkout: onOpenDetail,
-              ),
+                // Content archetype
+                if (post.type == CommunityPostType.photo &&
+                    post.photoUrls.isNotEmpty) ...[
+                  _buildPhotoAttachment(context, tokens),
+                  const SizedBox(height: 10),
+                ] else if (post.type == CommunityPostType.workout &&
+                    post.workoutAttachment != null) ...[
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: KineticWorkoutAttachmentCard(
+                      attachment: post.workoutAttachment!,
+                      onViewWorkout: onOpenDetail,
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                ] else if (post.type == CommunityPostType.qa &&
+                    post.qaInfo != null) ...[
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: CommunityQuestionCard(
+                      qaInfo: post.qaInfo!,
+                      onJoinDiscussion: onOpenDetail,
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                ],
+              ],
             ),
-            const SizedBox(height: 10),
-          ] else if (post.type == CommunityPostType.qa &&
-              post.qaInfo != null) ...[
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: CommunityQuestionCard(
-                qaInfo: post.qaInfo!,
-                onJoinDiscussion: onOpenDetail,
-              ),
-            ),
-            const SizedBox(height: 10),
-          ],
+          ),
 
           // Action Bar
           Padding(
@@ -441,81 +455,73 @@ class PostCardView extends ConsumerWidget {
   }
 
   Widget _buildPhotoAttachment(BuildContext context, SamanHomePalette tokens) {
-    return _DoubleTapHeartOverlay(
-      onTap: onOpenDetail,
-      onDoubleTap: () {
-        if (!post.isLiked) {
-          onLikeToggle?.call();
-        }
-      },
-      child: AspectRatio(
-        aspectRatio: 4 / 3,
-        child: Stack(
-          fit: StackFit.expand,
-          children: [
-            if (post.photoUrls.length > 1)
-              ClipRRect(
-                borderRadius: BorderRadius.circular(12),
-                child: _MultiPhotoCarousel(
-                  photoUrls: post.photoUrls,
-                  tokens: tokens,
-                  photoBuilder: _buildPhotoView,
-                ),
-              )
-            else if (post.photoUrls.isNotEmpty)
-              ClipRRect(
-                borderRadius: BorderRadius.circular(12),
-                child: _buildPhotoView(post.photoUrls.first, tokens),
-              )
-            else
-              Container(
-                color: tokens.secondarySurface,
-                child: Center(
-                  child: Icon(
-                    Icons.restaurant_rounded,
-                    size: 48,
-                    color: tokens.greenAccent,
-                  ),
+    return AspectRatio(
+      aspectRatio: 4 / 3,
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          if (post.photoUrls.length > 1)
+            ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: _MultiPhotoCarousel(
+                photoUrls: post.photoUrls,
+                tokens: tokens,
+                photoBuilder: _buildPhotoView,
+              ),
+            )
+          else if (post.photoUrls.isNotEmpty)
+            ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: _buildPhotoView(post.photoUrls.first, tokens),
+            )
+          else
+            Container(
+              color: tokens.secondarySurface,
+              child: Center(
+                child: Icon(
+                  Icons.restaurant_rounded,
+                  size: 48,
+                  color: tokens.greenAccent,
                 ),
               ),
-            // Floating nutrition badge (dark translucent overlay kept for image contrast)
-            if (post.nutritionInfo != null)
-              Positioned(
-                bottom: 12,
-                right: 12,
-                child: Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF0D0E0F).withOpacity(0.85),
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(
-                      color: const Color(0xFF343536),
+            ),
+          // Floating nutrition badge (dark translucent overlay kept for image contrast)
+          if (post.nutritionInfo != null)
+            Positioned(
+              bottom: 12,
+              right: 12,
+              child: Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF0D0E0F).withOpacity(0.85),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                    color: const Color(0xFF343536),
+                  ),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(
+                      Icons.local_fire_department_rounded,
+                      size: 14,
+                      color: Color(0xFF5BBFA0),
                     ),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Icon(
-                        Icons.local_fire_department_rounded,
-                        size: 14,
-                        color: Color(0xFF5BBFA0),
+                    const SizedBox(width: 5),
+                    Text(
+                      post.nutritionInfo!.defaultBadge,
+                      style: const TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.white,
                       ),
-                      const SizedBox(width: 5),
-                      Text(
-                        post.nutritionInfo!.defaultBadge,
-                        style: const TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.white,
-                        ),
-                      ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
               ),
-          ],
-        ),
+            ),
+        ],
       ),
     );
   }

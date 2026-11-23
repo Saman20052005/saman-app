@@ -212,6 +212,7 @@ class CommunityStoriesState {
 
 class CommunityStoriesNotifier extends StateNotifier<CommunityStoriesState> {
   final CommunityRepository _repository;
+  final Set<String> _knownSelfUserIds = <String>{};
   int _generation = 0;
 
   CommunityStoriesNotifier(this._repository)
@@ -219,7 +220,27 @@ class CommunityStoriesNotifier extends StateNotifier<CommunityStoriesState> {
 
   void resetForUser(String? userId) {
     _generation++;
+    _knownSelfUserIds.clear();
     state = const CommunityStoriesState();
+  }
+
+  List<CommunityStoryAuthorGroup> _normalizeGroups(
+    List<CommunityStoryAuthorGroup> groups,
+  ) {
+    if (_knownSelfUserIds.isEmpty) return groups;
+    final selfGroups = <CommunityStoryAuthorGroup>[];
+    final otherGroups = <CommunityStoryAuthorGroup>[];
+    for (final group in groups) {
+      final matchesSelf = group.isSelf ||
+          _knownSelfUserIds.contains(group.author.id) ||
+          group.stories.any((s) => _knownSelfUserIds.contains(s.userId));
+      if (matchesSelf) {
+        selfGroups.add(group.isSelf ? group : group.copyWith(isSelf: true));
+      } else {
+        otherGroups.add(group);
+      }
+    }
+    return [...selfGroups, ...otherGroups];
   }
 
   Future<void> loadStories() async {
@@ -228,7 +249,10 @@ class CommunityStoriesNotifier extends StateNotifier<CommunityStoriesState> {
     try {
       final groups = await _repository.getStories();
       if (!mounted || gen != _generation) return;
-      state = state.copyWith(isLoading: false, groups: groups);
+      state = state.copyWith(
+        isLoading: false,
+        groups: _normalizeGroups(groups),
+      );
     } catch (e) {
       if (!mounted || gen != _generation) return;
       state = state.copyWith(
@@ -254,7 +278,51 @@ class CommunityStoriesNotifier extends StateNotifier<CommunityStoriesState> {
       privacy: privacy,
     );
     if (!mounted || gen != _generation) return null;
+    if (story.userId.isNotEmpty) {
+      _knownSelfUserIds.add(story.userId);
+    }
     await loadStories();
+    if (!mounted || gen != _generation) return story;
+
+    final currentGroups = List<CommunityStoryAuthorGroup>.from(state.groups);
+    final hasCreatedStory = currentGroups.any(
+      (g) => g.stories.any((s) => s.id == story.id),
+    );
+    if (!hasCreatedStory) {
+      final selfIdx = currentGroups.indexWhere(
+        (g) =>
+            g.isSelf ||
+            (story.userId.isNotEmpty && g.author.id == story.userId),
+      );
+      if (selfIdx >= 0) {
+        final existing = currentGroups[selfIdx];
+        final updatedGroup = existing.copyWith(
+          isSelf: true,
+          hasUnviewed: true,
+          latestCreatedAt: story.createdAt,
+          stories: [...existing.stories, story],
+        );
+        currentGroups.removeAt(selfIdx);
+        currentGroups.insert(0, updatedGroup);
+      } else {
+        currentGroups.insert(
+          0,
+          CommunityStoryAuthorGroup(
+            author: CommunityAuthor(
+              id: story.userId,
+              name: 'Tin của bạn',
+            ),
+            isSelf: true,
+            hasUnviewed: !story.isViewed,
+            latestCreatedAt: story.createdAt,
+            stories: [story],
+          ),
+        );
+      }
+      state = state.copyWith(groups: currentGroups);
+    } else {
+      state = state.copyWith(groups: _normalizeGroups(currentGroups));
+    }
     return story;
   }
 

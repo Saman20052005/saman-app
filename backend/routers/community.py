@@ -4008,7 +4008,7 @@ async def get_community_stories(
                     is_viewed=(sid in viewed_story_ids),
                 )
             )
-        is_self = bool(current_user_id and aid == current_user_id)
+        is_self = bool(current_user_id and str(aid) == str(current_user_id))
         has_unviewed = any(not s.is_viewed for s in story_models)
         latest_dt = max(s.created_at for s in story_models)
         groups.append(
