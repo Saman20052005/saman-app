@@ -3,13 +3,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../../config/app_translations.dart';
 import '../../../../../config/routes.dart';
 import '../../../../../providers/profile_provider.dart';
-import '../../../../../screens/home/tokens/saman_home_tokens.dart';
 import '../../../../../widgets/saman_feedback_snackbar.dart';
 import '../../../domain/models/community_author.dart';
 import '../../../domain/models/community_post.dart';
 import '../../providers/community_dm_provider.dart';
 import '../../providers/community_providers.dart';
 import '../../providers/community_social_providers.dart';
+import '../../tokens/saman_ig_tokens.dart';
 import '../../widgets/community_bottom_navigation_bar.dart';
 import '../../widgets/create_content_bottom_sheet.dart';
 import '../../widgets/post_card_view.dart';
@@ -204,16 +204,16 @@ class _CommunityProfileScreenState
   }
 
   void _showUserOptionsSheet(BuildContext context, CommunityAuthor author) {
-    final sheetBg = SamanHomeTokens.of(context).cardSurface;
+    final ig = SamanIgTokens.of(context);
     showModalBottomSheet<void>(
       context: context,
-      backgroundColor: sheetBg,
+      backgroundColor: ig.surface,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       builder: (ctx) {
-        final tokens = SamanHomeTokens.of(ctx);
-        final dangerColor = Theme.of(ctx).colorScheme.error;
+        final sheetIg = SamanIgTokens.of(ctx);
+        final dangerColor = sheetIg.danger;
         return SafeArea(
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -222,13 +222,11 @@ class _CommunityProfileScreenState
                 key: const ValueKey('profile-options-mute-tile'),
                 leading: Icon(
                   Icons.volume_off_outlined,
-                  color: tokens.textPrimary,
+                  color: sheetIg.textPrimary,
                 ),
                 title: Text(
                   context.tr('profile_action_mute_user'),
-                  style: Theme.of(ctx).textTheme.bodyMedium?.copyWith(
-                    color: tokens.textPrimary,
-                  ),
+                  style: sheetIg.body(),
                 ),
                 onTap: () async {
                   Navigator.pop(ctx);
@@ -240,9 +238,7 @@ class _CommunityProfileScreenState
                 leading: Icon(Icons.block_rounded, color: dangerColor),
                 title: Text(
                   context.tr('profile_action_block_user'),
-                  style: Theme.of(ctx).textTheme.bodyMedium?.copyWith(
-                    color: dangerColor,
-                  ),
+                  style: sheetIg.body(color: dangerColor),
                 ),
                 onTap: () {
                   Navigator.pop(ctx);
@@ -254,9 +250,7 @@ class _CommunityProfileScreenState
                 leading: Icon(Icons.flag_outlined, color: dangerColor),
                 title: Text(
                   context.tr('profile_action_report_user'),
-                  style: Theme.of(ctx).textTheme.bodyMedium?.copyWith(
-                    color: dangerColor,
-                  ),
+                  style: sheetIg.body(color: dangerColor),
                 ),
                 onTap: () {
                   Navigator.pop(ctx);
@@ -296,31 +290,24 @@ class _CommunityProfileScreenState
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogCtx) {
-        final tokens = SamanHomeTokens.of(dialogCtx);
-        final dangerColor = Theme.of(dialogCtx).colorScheme.error;
+        final ig = SamanIgTokens.of(dialogCtx);
+        final dangerColor = ig.danger;
         return AlertDialog(
-          backgroundColor: tokens.cardSurface,
+          backgroundColor: ig.surface,
           title: Text(
             context.tr('post_block_confirm_title'),
-            style: Theme.of(dialogCtx).textTheme.titleMedium?.copyWith(
-              color: tokens.textPrimary,
-              fontWeight: FontWeight.w700,
-            ),
+            style: ig.displayTitle(fontSize: 16),
           ),
           content: Text(
             context.tr('post_block_confirm_msg'),
-            style: Theme.of(dialogCtx).textTheme.bodyMedium?.copyWith(
-              color: tokens.textSecondary,
-            ),
+            style: ig.body(color: ig.textSecondary),
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(dialogCtx, false),
               child: Text(
                 context.tr('compose_discard'),
-                style: Theme.of(dialogCtx).textTheme.labelLarge?.copyWith(
-                  color: tokens.textMuted,
-                ),
+                style: ig.buttonLabel(color: ig.textMuted),
               ),
             ),
             TextButton(
@@ -328,9 +315,7 @@ class _CommunityProfileScreenState
               onPressed: () => Navigator.pop(dialogCtx, true),
               child: Text(
                 context.tr('post_block_confirm_btn'),
-                style: Theme.of(dialogCtx).textTheme.labelLarge?.copyWith(
-                  color: dangerColor,
-                ),
+                style: ig.buttonLabel(color: dangerColor),
               ),
             ),
           ],
@@ -365,7 +350,7 @@ class _CommunityProfileScreenState
   }
 
   void _showReportUserReasonSheet(CommunityAuthor author) {
-    final tokens = SamanHomeTokens.of(context);
+    final ig = SamanIgTokens.of(context);
     final reasons = <({String key, String labelKey})>[
       (key: 'spam', labelKey: 'post_report_reason_spam'),
       (key: 'harassment', labelKey: 'post_report_reason_harassment'),
@@ -376,12 +361,12 @@ class _CommunityProfileScreenState
 
     showModalBottomSheet<void>(
       context: context,
-      backgroundColor: tokens.cardSurface,
+      backgroundColor: ig.surface,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       builder: (sheetCtx) {
-        final sheetTokens = SamanHomeTokens.of(sheetCtx);
+        final sheetIg = SamanIgTokens.of(sheetCtx);
         return SafeArea(
           child: Padding(
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
@@ -391,10 +376,7 @@ class _CommunityProfileScreenState
               children: [
                 Text(
                   context.tr('profile_action_report_user'),
-                  style: Theme.of(sheetCtx).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w700,
-                    color: sheetTokens.textPrimary,
-                  ),
+                  style: sheetIg.displayTitle(fontSize: 16),
                 ),
                 const SizedBox(height: 8),
                 ...reasons.map(
@@ -402,14 +384,11 @@ class _CommunityProfileScreenState
                     contentPadding: EdgeInsets.zero,
                     title: Text(
                       context.tr(r.labelKey),
-                      style: Theme.of(sheetCtx).textTheme.bodyMedium?.copyWith(
-                        fontSize: 14,
-                        color: sheetTokens.textPrimary,
-                      ),
+                      style: sheetIg.body(fontSize: 14),
                     ),
                     trailing: Icon(
                       Icons.chevron_right_rounded,
-                      color: sheetTokens.textSecondary,
+                      color: sheetIg.textSecondary,
                     ),
                     onTap: () async {
                       Navigator.pop(sheetCtx);
@@ -450,7 +429,7 @@ class _CommunityProfileScreenState
 
   @override
   Widget build(BuildContext context) {
-    final tokens = SamanHomeTokens.of(context);
+    final ig = SamanIgTokens.of(context);
     final author = _author ??
         const CommunityAuthor(
           id: 'me',
@@ -474,17 +453,17 @@ class _CommunityProfileScreenState
         .toList();
 
     return Scaffold(
-      backgroundColor: tokens.canvas,
+      backgroundColor: ig.canvas,
       body: SafeArea(
         bottom: false,
         child: Column(
           children: [
-            _buildAppBar(context, author, tokens),
+            _buildAppBar(context, author, ig),
             Expanded(
               child: _isLoading && _author == null
                   ? Center(
                       child: CircularProgressIndicator(
-                        color: tokens.greenAccent,
+                        color: ig.primaryAction,
                       ),
                     )
                   : NestedScrollView(
@@ -494,12 +473,12 @@ class _CommunityProfileScreenState
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                _buildProfileHeader(context, author, tokens),
+                                _buildProfileHeader(context, author, ig),
                                 const SizedBox(height: 12),
-                                _buildActionStrip(context, author, tokens),
+                                _buildActionStrip(context, author, ig),
                                 const SizedBox(height: 16),
-                                _buildStatsStrip(author, tokens),
-                                const SizedBox(height: 16),
+                                _buildStatsStrip(author, ig),
+                                const SizedBox(height: 12),
                               ],
                             ),
                           ),
@@ -511,11 +490,17 @@ class _CommunityProfileScreenState
                                   Expanded(
                                     child: TabBar(
                                       controller: _tabController,
-                                      indicatorColor: tokens.greenAccent,
-                                      dividerColor: tokens.borderSubtle,
-                                      labelColor: tokens.greenAccent,
-                                      unselectedLabelColor:
-                                          tokens.textSecondary,
+                                      indicatorColor: ig.textPrimary,
+                                      indicatorWeight: 1.5,
+                                      dividerColor: ig.border,
+                                      dividerHeight: 0.5,
+                                      labelColor: ig.textPrimary,
+                                      unselectedLabelColor: ig.textSecondary,
+                                      labelStyle: ig.username(fontSize: 13),
+                                      unselectedLabelStyle: ig.body(
+                                        fontSize: 13,
+                                        color: ig.textSecondary,
+                                      ),
                                       tabs: const [
                                         Tab(text: 'Bài viết'),
                                         Tab(text: 'Buổi tập'),
@@ -541,7 +526,7 @@ class _CommunityProfileScreenState
                                       _isGridView
                                           ? Icons.view_agenda_outlined
                                           : Icons.grid_view_rounded,
-                                      color: tokens.textSecondary,
+                                      color: ig.textPrimary,
                                       size: 20,
                                     ),
                                   ),
@@ -554,9 +539,9 @@ class _CommunityProfileScreenState
                       body: TabBarView(
                         controller: _tabController,
                         children: [
-                          _buildPostsBody(_posts, tokens),
-                          _buildPostsBody(workoutPosts, tokens),
-                          _buildPostsBody(mealPosts, tokens),
+                          _buildPostsBody(_posts, ig),
+                          _buildPostsBody(workoutPosts, ig),
+                          _buildPostsBody(mealPosts, ig),
                         ],
                       ),
                     ),
@@ -593,7 +578,7 @@ class _CommunityProfileScreenState
   Widget _buildAppBar(
     BuildContext context,
     CommunityAuthor author,
-    SamanHomePalette tokens,
+    SamanIgTokens ig,
   ) {
     final handleText =
         (author.handle != null && author.handle!.trim().isNotEmpty)
@@ -602,10 +587,10 @@ class _CommunityProfileScreenState
 
     return Container(
       height: 52,
-      padding: const EdgeInsets.symmetric(horizontal: 16),
+      padding: const EdgeInsets.symmetric(horizontal: 12),
       decoration: BoxDecoration(
-        color: tokens.canvas,
-        border: Border(bottom: BorderSide(color: tokens.border, width: 1)),
+        color: ig.canvas,
+        border: Border(bottom: BorderSide(color: ig.border, width: 0.5)),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -615,7 +600,7 @@ class _CommunityProfileScreenState
             onPressed: () => Navigator.pop(context),
             icon: Icon(
               Icons.arrow_back_rounded,
-              color: tokens.textPrimary,
+              color: ig.textPrimary,
               size: 22,
             ),
           ),
@@ -624,10 +609,7 @@ class _CommunityProfileScreenState
               handleText,
               textAlign: TextAlign.center,
               overflow: TextOverflow.ellipsis,
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.w700,
-                color: tokens.textPrimary,
-              ),
+              style: ig.displayTitle(fontSize: 16),
             ),
           ),
           Row(
@@ -645,7 +627,7 @@ class _CommunityProfileScreenState
                   },
                   icon: Icon(
                     Icons.settings_outlined,
-                    color: tokens.textPrimary,
+                    color: ig.textPrimary,
                     size: 22,
                   ),
                 )
@@ -659,7 +641,7 @@ class _CommunityProfileScreenState
                   onPressed: () => _showUserOptionsSheet(context, author),
                   icon: Icon(
                     Icons.more_horiz_rounded,
-                    color: tokens.textPrimary,
+                    color: ig.textPrimary,
                     size: 22,
                   ),
                 ),
@@ -673,7 +655,7 @@ class _CommunityProfileScreenState
   Widget _buildProfileHeader(
     BuildContext context,
     CommunityAuthor author,
-    SamanHomePalette tokens,
+    SamanIgTokens ig,
   ) {
     final initial = author.name.isNotEmpty ? author.name[0].toUpperCase() : 'S';
     final bioText = (author.bio != null && author.bio!.trim().isNotEmpty)
@@ -688,15 +670,15 @@ class _CommunityProfileScreenState
           Row(
             children: [
               Container(
-                width: 76,
-                height: 76,
+                width: 80,
+                height: 80,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   border: Border.all(
-                    color: tokens.greenAccent,
-                    width: 2,
+                    color: ig.border,
+                    width: 1,
                   ),
-                  color: tokens.secondarySurface,
+                  color: ig.surfaceElevated,
                 ),
                 clipBehavior: Clip.antiAlias,
                 child: author.avatarUrl != null && author.avatarUrl!.isNotEmpty
@@ -706,159 +688,74 @@ class _CommunityProfileScreenState
                         errorBuilder: (_, __, ___) => Center(
                           child: Text(
                             initial,
-                            style: Theme.of(context)
-                                .textTheme
-                                .headlineMedium
-                                ?.copyWith(
-                                  fontSize: 28,
-                                  fontWeight: FontWeight.w700,
-                                  color: tokens.greenAccent,
-                                ),
+                            style: ig.displayTitle(
+                              fontSize: 28,
+                              color: ig.textPrimary,
+                            ),
                           ),
                         ),
                       )
                     : Center(
                         child: Text(
                           initial,
-                          style: Theme.of(context)
-                              .textTheme
-                              .headlineMedium
-                              ?.copyWith(
-                                fontSize: 28,
-                                fontWeight: FontWeight.w700,
-                                color: tokens.greenAccent,
-                              ),
+                          style: ig.displayTitle(
+                            fontSize: 28,
+                            color: ig.textPrimary,
+                          ),
                         ),
                       ),
               ),
               const SizedBox(width: 16),
               Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: [
-                    Row(
-                      children: [
-                        Flexible(
-                          child: Text(
-                            author.name,
-                            overflow: TextOverflow.ellipsis,
-                            style: Theme.of(context)
-                                .textTheme
-                                .titleLarge
-                                ?.copyWith(
-                                  fontWeight: FontWeight.w700,
-                                  color: tokens.textPrimary,
-                                  height: 1.25,
-                                ),
-                          ),
-                        ),
-                        if (author.isVerified) ...[
-                          const SizedBox(width: 4),
-                          Icon(
-                            Icons.verified_rounded,
-                            size: 16,
-                            color: tokens.greenAccent,
-                          ),
-                        ],
-                      ],
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      author.title ?? '',
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        fontSize: 12,
-                        color: tokens.textSecondary,
+                    Expanded(
+                      child: _buildHeaderMetricColumn(
+                        value: '${_posts.length}',
+                        label: 'Bài viết',
+                        ig: ig,
                       ),
                     ),
-                    const SizedBox(height: 8),
-                    Wrap(
-                      spacing: 8,
-                      children: [
-                        InkWell(
-                          onTap: () async {
-                            await Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => CommunityFollowListScreen(
-                                  authorId: author.id,
-                                  authorName: author.name,
-                                  initialTabIndex: 1,
-                                ),
+                    Expanded(
+                      child: _buildHeaderMetricColumn(
+                        value: '${author.followerCount}',
+                        label: 'Người theo dõi',
+                        ig: ig,
+                        onTap: () async {
+                          await Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => CommunityFollowListScreen(
+                                authorId: author.id,
+                                authorName: author.name,
+                                initialTabIndex: 0,
                               ),
-                            );
-                            if (mounted) _loadProfileData();
-                          },
-                          child: Text.rich(
-                            TextSpan(
-                              children: [
-                                TextSpan(
-                                  text: '${author.followingCount} ',
-                                  style: Theme.of(context)
-                                      .textTheme
-                                      .labelMedium
-                                      ?.copyWith(
-                                        fontWeight: FontWeight.w700,
-                                        color: tokens.textPrimary,
-                                        fontSize: 13,
-                                      ),
-                                ),
-                                TextSpan(
-                                  text: 'Đang theo dõi  •  ',
-                                  style: Theme.of(context)
-                                      .textTheme
-                                      .bodySmall
-                                      ?.copyWith(
-                                        color: tokens.textSecondary,
-                                        fontSize: 12,
-                                      ),
-                                ),
-                              ],
                             ),
-                          ),
-                        ),
-                        InkWell(
-                          onTap: () async {
-                            await Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => CommunityFollowListScreen(
-                                  authorId: author.id,
-                                  authorName: author.name,
-                                  initialTabIndex: 0,
-                                ),
+                          );
+                          if (mounted) _loadProfileData();
+                        },
+                      ),
+                    ),
+                    Expanded(
+                      child: _buildHeaderMetricColumn(
+                        value: '${author.followingCount}',
+                        label: 'Đang theo dõi',
+                        ig: ig,
+                        onTap: () async {
+                          await Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => CommunityFollowListScreen(
+                                authorId: author.id,
+                                authorName: author.name,
+                                initialTabIndex: 1,
                               ),
-                            );
-                            if (mounted) _loadProfileData();
-                          },
-                          child: Text.rich(
-                            TextSpan(
-                              children: [
-                                TextSpan(
-                                  text: '${author.followerCount} ',
-                                  style: Theme.of(context)
-                                      .textTheme
-                                      .labelMedium
-                                      ?.copyWith(
-                                        fontWeight: FontWeight.w700,
-                                        color: tokens.textPrimary,
-                                        fontSize: 13,
-                                      ),
-                                ),
-                                TextSpan(
-                                  text: 'Người theo dõi',
-                                  style: Theme.of(context)
-                                      .textTheme
-                                      .bodySmall
-                                      ?.copyWith(
-                                        color: tokens.textSecondary,
-                                        fontSize: 12,
-                                      ),
-                                ),
-                              ],
                             ),
-                          ),
-                        ),
-                      ],
+                          );
+                          if (mounted) _loadProfileData();
+                        },
+                      ),
                     ),
                   ],
                 ),
@@ -866,13 +763,36 @@ class _CommunityProfileScreenState
             ],
           ),
           const SizedBox(height: 12),
+          Row(
+            children: [
+              Flexible(
+                child: Text(
+                  author.name,
+                  overflow: TextOverflow.ellipsis,
+                  style: ig.username(fontSize: 15, fontWeight: FontWeight.w700),
+                ),
+              ),
+              if (author.isVerified) ...[
+                const SizedBox(width: 4),
+                Icon(
+                  Icons.verified_rounded,
+                  size: 16,
+                  color: ig.primaryAction,
+                ),
+              ],
+            ],
+          ),
+          if (author.title != null && author.title!.trim().isNotEmpty) ...[
+            const SizedBox(height: 2),
+            Text(
+              author.title!,
+              style: ig.caption(fontSize: 12),
+            ),
+          ],
+          const SizedBox(height: 6),
           Text(
             bioText,
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-              fontSize: 13,
-              color: tokens.textPrimary,
-              height: 1.5,
-            ),
+            style: ig.body(fontSize: 13, height: 1.45),
           ),
           if (author.interestTopics.isNotEmpty) ...[
             const SizedBox(height: 10),
@@ -887,18 +807,16 @@ class _CommunityProfileScreenState
                         vertical: 4,
                       ),
                       decoration: BoxDecoration(
-                        color: tokens.secondarySurface,
-                        borderRadius: BorderRadius.circular(
-                          SamanHomeTokens.radiusSm,
-                        ),
-                        border: Border.all(color: tokens.border),
+                        color: ig.surfaceElevated,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: ig.border, width: 0.5),
                       ),
                       child: Text(
                         topic,
-                        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                        style: ig.caption(
                           fontSize: 11,
                           fontWeight: FontWeight.w600,
-                          color: tokens.greenAccent,
+                          color: ig.primaryAction,
                         ),
                       ),
                     ),
@@ -911,10 +829,46 @@ class _CommunityProfileScreenState
     );
   }
 
+  Widget _buildHeaderMetricColumn({
+    required String value,
+    required String label,
+    required SamanIgTokens ig,
+    VoidCallback? onTap,
+  }) {
+    final column = Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            value,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: ig.displayTitle(fontSize: 17),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            label,
+            textAlign: TextAlign.center,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: ig.caption(fontSize: 11, color: ig.textPrimary),
+          ),
+        ],
+      ),
+    );
+    if (onTap == null) return column;
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(8),
+      child: column,
+    );
+  }
+
   Widget _buildActionStrip(
     BuildContext context,
     CommunityAuthor author,
-    SamanHomePalette tokens,
+    SamanIgTokens ig,
   ) {
     if (!_isMe) {
       final isFollowing = author.isFollowing;
@@ -924,63 +878,53 @@ class _CommunityProfileScreenState
           children: [
             Expanded(
               child: SizedBox(
-                height: 44,
+                height: 38,
                 child: isFollowing
                     ? OutlinedButton(
                         onPressed: () => _handleToggleFollow(author),
                         style: OutlinedButton.styleFrom(
-                          foregroundColor: tokens.textSecondary,
-                          side: BorderSide(color: tokens.border),
+                          backgroundColor: ig.secondaryButtonBg,
+                          foregroundColor: ig.secondaryButtonText,
+                          side: BorderSide.none,
                           padding: const EdgeInsets.symmetric(horizontal: 10),
                           shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(
-                              SamanHomeTokens.radiusMd,
-                            ),
+                            borderRadius: BorderRadius.circular(8),
                           ),
                         ),
                         child: Text(
                           'Đang theo dõi',
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                          style: ig.buttonLabel(
+                            color: ig.secondaryButtonText,
                             fontSize: 13,
-                            fontWeight: FontWeight.w600,
-                            color: tokens.textSecondary,
                           ),
                         ),
                       )
                     : ElevatedButton(
                         onPressed: () => _handleToggleFollow(author),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: tokens.greenAccent,
-                          foregroundColor:
-                              Theme.of(context).colorScheme.onPrimary,
-                          padding: const EdgeInsets.symmetric(horizontal: 10),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(
-                              SamanHomeTokens.radiusMd,
-                            ),
-                          ),
-                          elevation: 0,
+                        style: ig.primaryButtonStyle(
+                          minHeight: 38,
+                          borderRadius: 8,
                         ),
                         child: Text(
                           'Theo dõi',
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                          style: ig.buttonLabel(
+                            color: ig.onPrimaryAction,
                             fontSize: 13,
                             fontWeight: FontWeight.w700,
-                            color: Theme.of(context).colorScheme.onPrimary,
                           ),
                         ),
                       ),
               ),
             ),
-            const SizedBox(width: 10),
+            const SizedBox(width: 8),
             Expanded(
               child: SizedBox(
-                height: 44,
-                child: OutlinedButton.icon(
+                height: 38,
+                child: ElevatedButton.icon(
                   key: const ValueKey('profile-message-btn'),
                   onPressed: _isStartingChat
                       ? null
@@ -988,27 +932,20 @@ class _CommunityProfileScreenState
                   icon: Icon(
                     Icons.chat_bubble_outline_rounded,
                     size: 16,
-                    color: tokens.textPrimary,
+                    color: ig.secondaryButtonText,
                   ),
                   label: Text(
                     context.tr('profile_action_message'),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                    style: ig.buttonLabel(
+                      color: ig.secondaryButtonText,
                       fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                      color: tokens.textPrimary,
                     ),
                   ),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: tokens.textPrimary,
-                    side: BorderSide(color: tokens.border),
-                    padding: const EdgeInsets.symmetric(horizontal: 10),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(
-                        SamanHomeTokens.radiusMd,
-                      ),
-                    ),
+                  style: ig.secondaryButtonStyle(
+                    minHeight: 38,
+                    borderRadius: 8,
                   ),
                 ),
               ),
@@ -1025,8 +962,8 @@ class _CommunityProfileScreenState
           Expanded(
             flex: 4,
             child: SizedBox(
-              height: 44,
-              child: OutlinedButton(
+              height: 38,
+              child: ElevatedButton(
                 onPressed: () async {
                   await Navigator.push(
                     context,
@@ -1072,24 +1009,21 @@ class _CommunityProfileScreenState
                     ),
                   );
                 },
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: tokens.textPrimary,
-                  side: BorderSide(color: tokens.border),
-                  padding: const EdgeInsets.symmetric(horizontal: 10),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(
-                      SamanHomeTokens.radiusMd,
-                    ),
+                style: ig.secondaryButtonStyle(
+                  minHeight: 38,
+                  borderRadius: 8,
+                ).copyWith(
+                  padding: const WidgetStatePropertyAll(
+                    EdgeInsets.symmetric(horizontal: 10),
                   ),
                 ),
                 child: Text(
                   'Chỉnh sửa hồ sơ',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                  style: ig.buttonLabel(
+                    color: ig.secondaryButtonText,
                     fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    color: tokens.textPrimary,
                   ),
                 ),
               ),
@@ -1099,8 +1033,8 @@ class _CommunityProfileScreenState
           Flexible(
             flex: 3,
             child: SizedBox(
-              height: 44,
-              child: OutlinedButton.icon(
+              height: 38,
+              child: ElevatedButton.icon(
                 onPressed: () {
                   Navigator.push(
                     context,
@@ -1109,25 +1043,26 @@ class _CommunityProfileScreenState
                     ),
                   );
                 },
-                icon: const Icon(Icons.bookmark_border_rounded, size: 16),
+                icon: Icon(
+                  Icons.bookmark_border_rounded,
+                  size: 16,
+                  color: ig.secondaryButtonText,
+                ),
                 label: Text(
                   'Đã lưu',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                  style: ig.buttonLabel(
+                    color: ig.secondaryButtonText,
                     fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    color: tokens.textSecondary,
                   ),
                 ),
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: tokens.textSecondary,
-                  side: BorderSide(color: tokens.border),
-                  padding: const EdgeInsets.symmetric(horizontal: 10),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(
-                      SamanHomeTokens.radiusMd,
-                    ),
+                style: ig.secondaryButtonStyle(
+                  minHeight: 38,
+                  borderRadius: 8,
+                ).copyWith(
+                  padding: const WidgetStatePropertyAll(
+                    EdgeInsets.symmetric(horizontal: 10),
                   ),
                 ),
               ),
@@ -1137,30 +1072,31 @@ class _CommunityProfileScreenState
           Flexible(
             flex: 3,
             child: SizedBox(
-              height: 44,
-              child: OutlinedButton.icon(
+              height: 38,
+              child: ElevatedButton.icon(
                 onPressed: () {
                   Navigator.pushNamed(context, AppRoutes.communityDrafts);
                 },
-                icon: const Icon(Icons.edit_note_rounded, size: 16),
+                icon: Icon(
+                  Icons.edit_note_rounded,
+                  size: 16,
+                  color: ig.secondaryButtonText,
+                ),
                 label: Text(
                   'Bản nháp',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                  style: ig.buttonLabel(
+                    color: ig.secondaryButtonText,
                     fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    color: tokens.textSecondary,
                   ),
                 ),
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: tokens.textSecondary,
-                  side: BorderSide(color: tokens.border),
-                  padding: const EdgeInsets.symmetric(horizontal: 10),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(
-                      SamanHomeTokens.radiusMd,
-                    ),
+                style: ig.secondaryButtonStyle(
+                  minHeight: 38,
+                  borderRadius: 8,
+                ).copyWith(
+                  padding: const WidgetStatePropertyAll(
+                    EdgeInsets.symmetric(horizontal: 10),
                   ),
                 ),
               ),
@@ -1171,14 +1107,14 @@ class _CommunityProfileScreenState
     );
   }
 
-  Widget _buildStatsStrip(CommunityAuthor author, SamanHomePalette tokens) {
+  Widget _buildStatsStrip(CommunityAuthor author, SamanIgTokens ig) {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
       decoration: BoxDecoration(
-        color: tokens.cardSurface,
-        borderRadius: BorderRadius.circular(SamanHomeTokens.radiusLg),
-        border: Border.all(color: tokens.borderSubtle),
+        color: ig.surface,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: ig.border, width: 0.5),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
@@ -1186,19 +1122,19 @@ class _CommunityProfileScreenState
           _buildStatItem(
             '${author.workoutPostCount}',
             'Buổi tập chia sẻ',
-            tokens,
+            ig,
           ),
-          Container(width: 1, height: 24, color: tokens.borderSubtle),
+          Container(width: 0.5, height: 24, color: ig.border),
           _buildStatItem(
             '${author.mealPostCount}',
             'Bữa ăn dinh dưỡng',
-            tokens,
+            ig,
           ),
-          Container(width: 1, height: 24, color: tokens.borderSubtle),
+          Container(width: 0.5, height: 24, color: ig.border),
           _buildStatItem(
             _formatCount(author.totalLikesReceived),
             'Lượt thích nhận',
-            tokens,
+            ig,
           ),
         ],
       ),
@@ -1208,17 +1144,14 @@ class _CommunityProfileScreenState
   Widget _buildStatItem(
     String value,
     String label,
-    SamanHomePalette tokens,
+    SamanIgTokens ig,
   ) {
     return Expanded(
       child: Column(
         children: [
           Text(
             value,
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.w700,
-              color: tokens.greenAccent,
-            ),
+            style: ig.displayTitle(fontSize: 16),
           ),
           const SizedBox(height: 2),
           Text(
@@ -1226,10 +1159,7 @@ class _CommunityProfileScreenState
             textAlign: TextAlign.center,
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
-            style: Theme.of(context).textTheme.labelSmall?.copyWith(
-              fontSize: 11,
-              color: tokens.textSecondary,
-            ),
+            style: ig.caption(fontSize: 11),
           ),
         ],
       ),
@@ -1238,15 +1168,13 @@ class _CommunityProfileScreenState
 
   Widget _buildPostsBody(
     List<CommunityPost> posts,
-    SamanHomePalette tokens,
+    SamanIgTokens ig,
   ) {
     if (posts.isEmpty) {
       return Center(
         child: Text(
           'Chưa có bài viết nào trong mục này.',
-          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-            color: tokens.textMuted,
-          ),
+          style: ig.body(fontSize: 13, color: ig.textMuted),
         ),
       );
     }
@@ -1271,11 +1199,11 @@ class _CommunityProfileScreenState
     }
 
     return GridView.builder(
-      padding: const EdgeInsets.all(4),
+      padding: EdgeInsets.zero,
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 3,
-        crossAxisSpacing: 3,
-        mainAxisSpacing: 3,
+        crossAxisSpacing: 1.5,
+        mainAxisSpacing: 1.5,
       ),
       itemCount: posts.length,
       itemBuilder: (context, index) {
@@ -1287,7 +1215,7 @@ class _CommunityProfileScreenState
         return InkWell(
           onTap: () => _openPost(post),
           child: Container(
-            color: tokens.cardSurface,
+            color: ig.surface,
             child: Stack(
               fit: StackFit.expand,
               children: [
@@ -1295,33 +1223,33 @@ class _CommunityProfileScreenState
                   img,
                   fit: BoxFit.cover,
                   errorBuilder: (_, __, ___) => Container(
-                    color: tokens.secondarySurface,
+                    color: ig.surfaceElevated,
                     child: Icon(
                       post.type == CommunityPostType.qa
                           ? Icons.question_answer_rounded
                           : Icons.fitness_center_rounded,
-                      color: tokens.textMuted,
+                      color: ig.textMuted,
                       size: 24,
                     ),
                   ),
                 ),
                 if (post.type == CommunityPostType.workout)
                   Positioned(
-                    top: 4,
-                    right: 4,
+                    top: 6,
+                    right: 6,
                     child: Icon(
                       Icons.bolt_rounded,
-                      color: tokens.greenAccent,
+                      color: ig.primaryAction,
                       size: 16,
                     ),
                   ),
                 if (post.type == CommunityPostType.qa)
                   Positioned(
-                    top: 4,
-                    right: 4,
+                    top: 6,
+                    right: 6,
                     child: Icon(
                       Icons.help_outline_rounded,
-                      color: tokens.greenAccent,
+                      color: ig.primaryAction,
                       size: 16,
                     ),
                   ),
@@ -1349,9 +1277,9 @@ class _SliverTabBarDelegate extends SliverPersistentHeaderDelegate {
     double shrinkOffset,
     bool overlapsContent,
   ) {
-    final tokens = SamanHomeTokens.of(context);
+    final ig = SamanIgTokens.of(context);
     return Container(
-      color: tokens.canvas,
+      color: ig.canvas,
       child: _child,
     );
   }

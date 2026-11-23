@@ -1,35 +1,35 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../../config/routes.dart';
-import '../../../../../screens/home/tokens/saman_home_tokens.dart';
 import '../../../domain/models/community_post.dart';
 import '../../providers/community_providers.dart';
+import '../../tokens/saman_ig_tokens.dart';
 
 class CommunitySavedScreen extends ConsumerWidget {
   const CommunitySavedScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final tokens = SamanHomeTokens.of(context);
+    final ig = SamanIgTokens.of(context);
     final state = ref.watch(communitySavedProvider);
     final notifier = ref.read(communitySavedProvider.notifier);
 
     return Scaffold(
-      backgroundColor: tokens.canvas,
+      backgroundColor: ig.canvas,
       body: SafeArea(
         child: Column(
           children: [
-            _buildAppBar(context, state.posts.length, tokens),
+            _buildAppBar(context, state.posts.length, ig),
             Expanded(
               child: state.isLoading
                   ? Center(
                       child: CircularProgressIndicator(
-                        color: tokens.greenAccent,
+                        color: ig.primaryAction,
                       ),
                     )
                   : state.posts.isEmpty
-                      ? _buildEmptyState(tokens)
-                      : _buildSavedList(context, state.posts, notifier, tokens),
+                      ? _buildEmptyState(ig)
+                      : _buildSavedList(context, state.posts, notifier, ig),
             ),
           ],
         ),
@@ -40,14 +40,14 @@ class CommunitySavedScreen extends ConsumerWidget {
   Widget _buildAppBar(
     BuildContext context,
     int count,
-    SamanHomePalette tokens,
+    SamanIgTokens ig,
   ) {
     return Container(
       height: 52,
-      padding: const EdgeInsets.symmetric(horizontal: 16),
+      padding: const EdgeInsets.symmetric(horizontal: 12),
       decoration: BoxDecoration(
-        color: tokens.canvas,
-        border: Border(bottom: BorderSide(color: tokens.border, width: 1)),
+        color: ig.canvas,
+        border: Border(bottom: BorderSide(color: ig.border, width: 0.5)),
       ),
       child: Row(
         children: [
@@ -55,7 +55,7 @@ class CommunitySavedScreen extends ConsumerWidget {
             onPressed: () => Navigator.pop(context),
             icon: Icon(
               Icons.arrow_back_rounded,
-              color: tokens.textPrimary,
+              color: ig.textPrimary,
               size: 22,
             ),
           ),
@@ -68,27 +68,22 @@ class CommunitySavedScreen extends ConsumerWidget {
                   child: Text(
                     'Bài viết đã lưu',
                     overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w700,
-                      color: tokens.textPrimary,
-                    ),
+                    style: ig.displayTitle(fontSize: 16),
                   ),
                 ),
                 const SizedBox(width: 6),
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                   decoration: BoxDecoration(
-                    color: tokens.cardSurface,
+                    color: ig.surface,
                     borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: tokens.border),
+                    border: Border.all(color: ig.border, width: 0.5),
                   ),
                   child: Text(
                     '$count',
-                    style: TextStyle(
+                    style: ig.caption(
                       fontSize: 11,
                       fontWeight: FontWeight.w700,
-                      color: tokens.textSecondary,
                     ),
                   ),
                 ),
@@ -100,7 +95,7 @@ class CommunitySavedScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildEmptyState(SamanHomePalette tokens) {
+  Widget _buildEmptyState(SamanIgTokens ig) {
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(32),
@@ -112,30 +107,26 @@ class CommunitySavedScreen extends ConsumerWidget {
               height: 64,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: tokens.cardSurface,
+                color: ig.surface,
               ),
               child: Icon(
                 Icons.bookmark_border_rounded,
                 size: 32,
-                color: tokens.textSecondary,
+                color: ig.textSecondary,
               ),
             ),
             const SizedBox(height: 16),
             Text(
               'Chưa có bài viết nào được lưu',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w700,
-                color: tokens.textPrimary,
-              ),
+              style: ig.displayTitle(fontSize: 16),
             ),
             const SizedBox(height: 6),
             Text(
               'Nhấn vào biểu tượng dấu trang ở bất kỳ bài viết nào để lưu lại xem sau.',
               textAlign: TextAlign.center,
-              style: TextStyle(
+              style: ig.body(
                 fontSize: 13,
-                color: tokens.textMuted,
+                color: ig.textMuted,
                 height: 1.4,
               ),
             ),
@@ -149,7 +140,7 @@ class CommunitySavedScreen extends ConsumerWidget {
     BuildContext context,
     List<CommunityPost> posts,
     CommunitySavedNotifier notifier,
-    SamanHomePalette tokens,
+    SamanIgTokens ig,
   ) {
     return ListView.separated(
       padding: const EdgeInsets.all(16),
@@ -169,13 +160,13 @@ class CommunitySavedScreen extends ConsumerWidget {
               arguments: post.id,
             );
           },
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: BorderRadius.circular(12),
           child: Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: tokens.cardSurface,
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: tokens.border),
+              color: ig.surface,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: ig.border, width: 0.5),
             ),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -189,10 +180,10 @@ class CommunitySavedScreen extends ConsumerWidget {
                       img,
                       fit: BoxFit.cover,
                       errorBuilder: (_, __, ___) => Container(
-                        color: tokens.secondarySurface,
+                        color: ig.surfaceElevated,
                         child: Icon(
                           Icons.image_not_supported_outlined,
-                          color: tokens.textMuted,
+                          color: ig.textMuted,
                           size: 24,
                         ),
                       ),
@@ -211,11 +202,7 @@ class CommunitySavedScreen extends ConsumerWidget {
                             child: Text(
                               post.author.name,
                               overflow: TextOverflow.ellipsis,
-                              style: TextStyle(
-                                fontSize: 13,
-                                fontWeight: FontWeight.w600,
-                                color: tokens.textPrimary,
-                              ),
+                              style: ig.username(fontSize: 13),
                             ),
                           ),
                           IconButton(
@@ -227,13 +214,13 @@ class CommunitySavedScreen extends ConsumerWidget {
                                     SnackBar(
                                       content: Text(
                                         'Đã bỏ lưu bài viết.',
-                                        style: TextStyle(color: tokens.textPrimary),
+                                        style: ig.body(),
                                       ),
-                                      backgroundColor: tokens.cardSurface,
+                                      backgroundColor: ig.surface,
                                       duration: const Duration(seconds: 3),
                                       action: SnackBarAction(
                                         label: 'Hoàn tác',
-                                        textColor: tokens.greenAccent,
+                                        textColor: ig.primaryAction,
                                         onPressed: () => notifier.restore(post),
                                       ),
                                     ),
@@ -253,7 +240,7 @@ class CommunitySavedScreen extends ConsumerWidget {
                             icon: Icon(
                               Icons.bookmark_rounded,
                               size: 20,
-                              color: tokens.greenAccent,
+                              color: ig.primaryAction,
                             ),
                             padding: EdgeInsets.zero,
                             constraints: const BoxConstraints(),
@@ -269,19 +256,16 @@ class CommunitySavedScreen extends ConsumerWidget {
                                 'Bài viết chia sẻ'),
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
+                        style: ig.body(
                           fontSize: 12,
-                          color: tokens.textSecondary,
+                          color: ig.textSecondary,
                           height: 1.3,
                         ),
                       ),
                       const SizedBox(height: 6),
                       Text(
                         '${post.likeCount} thích • ${post.commentCount} bình luận',
-                        style: TextStyle(
-                          fontSize: 11,
-                          color: tokens.textMuted,
-                        ),
+                        style: ig.caption(fontSize: 11, color: ig.textMuted),
                       ),
                     ],
                   ),

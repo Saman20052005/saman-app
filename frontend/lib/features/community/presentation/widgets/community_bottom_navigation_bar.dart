@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../config/routes.dart';
-import '../../../../screens/home/tokens/saman_home_tokens.dart';
 import '../providers/community_providers.dart';
+import '../tokens/saman_ig_tokens.dart';
 import 'create_content_bottom_sheet.dart';
 
 enum CommunityNavTab {
@@ -52,7 +52,7 @@ class CommunityBottomNavigationBar extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final tokens = SamanHomeTokens.of(context);
+    final ig = SamanIgTokens.of(context);
     final bottomInset = MediaQuery.paddingOf(context).bottom;
     final hasScope =
         context.findAncestorWidgetOfExactType<UncontrolledProviderScope>() !=
@@ -66,20 +66,13 @@ class CommunityBottomNavigationBar extends ConsumerWidget {
 
     return Container(
       decoration: BoxDecoration(
-        color: tokens.canvas.withOpacity(0.95),
+        color: ig.canvas,
         border: Border(
           top: BorderSide(
-            color: tokens.border,
-            width: 1,
+            color: ig.border,
+            width: 0.5,
           ),
         ),
-        boxShadow: [
-          BoxShadow(
-            color: tokens.isDark ? Colors.black38 : const Color(0x120F172A),
-            offset: const Offset(0, -2),
-            blurRadius: 12,
-          ),
-        ],
       ),
       padding: EdgeInsets.only(
         left: 4,
@@ -88,7 +81,7 @@ class CommunityBottomNavigationBar extends ConsumerWidget {
         bottom: bottomInset > 0 ? bottomInset : 4,
       ),
       child: SizedBox(
-        height: 60,
+        height: 58,
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceAround,
           children: [
@@ -96,47 +89,51 @@ class CommunityBottomNavigationBar extends ConsumerWidget {
               child: _buildNavItem(
                 context: context,
                 tab: CommunityNavTab.feed,
-                icon: Icons.dynamic_feed_rounded,
+                activeIcon: Icons.home_rounded,
+                inactiveIcon: Icons.home_outlined,
                 label: 'Bảng tin',
                 isActive: currentTab == CommunityNavTab.feed,
-                tokens: tokens,
+                ig: ig,
               ),
             ),
             Expanded(
               child: _buildNavItem(
                 context: context,
                 tab: CommunityNavTab.discover,
-                icon: Icons.explore_rounded,
+                activeIcon: Icons.search_rounded,
+                inactiveIcon: Icons.search_rounded,
                 label: 'Khám phá',
                 isActive: currentTab == CommunityNavTab.discover,
-                tokens: tokens,
+                ig: ig,
               ),
             ),
             Expanded(
               child: Center(
-                child: _buildFabButton(context, tokens),
+                child: _buildCreateButton(context, ig),
               ),
             ),
             Expanded(
               child: _buildNavItem(
                 context: context,
                 tab: CommunityNavTab.notifications,
-                icon: Icons.notifications_rounded,
+                activeIcon: Icons.favorite_rounded,
+                inactiveIcon: Icons.favorite_border_rounded,
                 label: 'Thông báo',
                 isActive: currentTab == CommunityNavTab.notifications,
                 hasBadge: showNotificationsBadge,
-                tokens: tokens,
+                ig: ig,
               ),
             ),
             Expanded(
               child: _buildNavItem(
                 context: context,
                 tab: CommunityNavTab.profile,
-                icon: Icons.person_rounded,
+                activeIcon: Icons.person_rounded,
+                inactiveIcon: Icons.person_outline_rounded,
                 label: 'Cá nhân',
                 isActive: currentTab == CommunityNavTab.profile,
                 isAvatar: true,
-                tokens: tokens,
+                ig: ig,
               ),
             ),
           ],
@@ -148,113 +145,107 @@ class CommunityBottomNavigationBar extends ConsumerWidget {
   Widget _buildNavItem({
     required BuildContext context,
     required CommunityNavTab tab,
-    required IconData icon,
+    required IconData activeIcon,
+    required IconData inactiveIcon,
     required String label,
     required bool isActive,
-    required SamanHomePalette tokens,
+    required SamanIgTokens ig,
     bool hasBadge = false,
     bool isAvatar = false,
   }) {
-    final activeColor = tokens.greenAccent;
-    final inactiveColor =
-        tokens.textSecondary.withOpacity(tokens.isDark ? 0.7 : 0.85);
+    final activeColor = ig.textPrimary;
+    final inactiveColor = ig.textSecondary;
 
     return InkWell(
       onTap: () => _handleTabTap(context, tab),
       borderRadius: BorderRadius.circular(12),
-      child: Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Stack(
-              clipBehavior: Clip.none,
-              children: [
-                if (isAvatar)
-                  Container(
-                    width: 22,
-                    height: 22,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: isActive
-                          ? activeColor.withOpacity(0.2)
-                          : tokens.secondarySurface,
-                      border: Border.all(
-                        color: isActive ? activeColor : Colors.transparent,
-                        width: 1.5,
-                      ),
-                    ),
-                    child: Icon(
-                      icon,
-                      size: 15,
-                      color: isActive ? activeColor : inactiveColor,
-                    ),
-                  )
-                else
-                  Icon(
-                    icon,
-                    size: 22,
-                    color: isActive ? activeColor : inactiveColor,
-                  ),
-                if (hasBadge)
-                  Positioned(
-                    top: -1,
-                    right: -2,
-                    child: Container(
-                      width: 7,
-                      height: 7,
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(
+          minWidth: SamanIgTokens.minTouchTarget,
+          minHeight: SamanIgTokens.minTouchTarget,
+        ),
+        child: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  if (isAvatar)
+                    Container(
+                      width: 24,
+                      height: 24,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        color: tokens.greenAccent,
+                        color: ig.surfaceElevated,
+                        border: Border.all(
+                          color: isActive ? activeColor : Colors.transparent,
+                          width: 1.5,
+                        ),
+                      ),
+                      child: Icon(
+                        isActive ? activeIcon : inactiveIcon,
+                        size: 16,
+                        color: isActive ? activeColor : inactiveColor,
+                      ),
+                    )
+                  else
+                    Icon(
+                      isActive ? activeIcon : inactiveIcon,
+                      size: 24,
+                      color: isActive ? activeColor : inactiveColor,
+                    ),
+                  if (hasBadge)
+                    Positioned(
+                      top: -1,
+                      right: -2,
+                      child: Container(
+                        width: 7,
+                        height: 7,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: ig.likeHeart,
+                        ),
                       ),
                     ),
-                  ),
-              ],
-            ),
-            const SizedBox(height: 3),
-            Flexible(
-              child: FittedBox(
-                fit: BoxFit.scaleDown,
-                child: Text(
-                  label,
-                  maxLines: 1,
-                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                    fontSize: 11,
-                    fontWeight: isActive ? FontWeight.w600 : FontWeight.w400,
-                    color: isActive ? activeColor : inactiveColor,
-                    letterSpacing: -0.2,
+                ],
+              ),
+              const SizedBox(height: 2),
+              Flexible(
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text(
+                    label,
+                    maxLines: 1,
+                    style: ig.caption(
+                      fontSize: 10.5,
+                      fontWeight: isActive ? FontWeight.w700 : FontWeight.w400,
+                      color: isActive ? activeColor : inactiveColor,
+                    ).copyWith(letterSpacing: -0.2),
                   ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildFabButton(BuildContext context, SamanHomePalette tokens) {
+  Widget _buildCreateButton(BuildContext context, SamanIgTokens ig) {
     return InkWell(
       onTap: () => _handleTabTap(context, CommunityNavTab.create),
-      borderRadius: BorderRadius.circular(SamanHomeTokens.radiusMd),
-      child: Container(
-        width: 44,
-        height: 44,
-        decoration: BoxDecoration(
-          color: tokens.greenAccent,
-          borderRadius: BorderRadius.circular(SamanHomeTokens.radiusMd),
-          boxShadow: [
-            BoxShadow(
-              color: tokens.greenAccent.withOpacity(0.35),
-              blurRadius: 8,
-              offset: const Offset(0, 3),
-            ),
-          ],
-        ),
-        child: Icon(
-          Icons.add_rounded,
-          color: Theme.of(context).colorScheme.onPrimary,
-          size: 26,
+      borderRadius: BorderRadius.circular(12),
+      child: SizedBox(
+        width: SamanIgTokens.minTouchTarget,
+        height: SamanIgTokens.minTouchTarget,
+        child: Center(
+          child: Icon(
+            Icons.add_box_outlined,
+            color: ig.textPrimary,
+            size: 26,
+          ),
         ),
       ),
     );

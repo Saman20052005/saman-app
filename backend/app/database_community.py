@@ -154,21 +154,27 @@ def ensure_community_indexes(db):
     ]
 
     stories = db["community_stories"]
+    # Remove legacy TTL index(es) so expired stories are preserved for Story Archive
+    # instead of being hard-deleted by MongoDB after 24h.
     try:
-        stories_ttl_idx = stories.create_index(
-            [("expires_at", 1)],
-            expireAfterSeconds=0,
-            name="idx_stories_ttl_expires",
-        )
-    except TypeError as exc:
-        if "expireAfterSeconds" not in str(exc):
-            raise
-        stories_ttl_idx = stories.create_index(
-            [("expires_at", 1)],
-            name="idx_stories_ttl_expires",
-        )
+        existing_story_indexes = stories.index_information()
+    except Exception:
+        existing_story_indexes = {}
+
+    if isinstance(existing_story_indexes, dict):
+        for idx_name, idx_info in list(existing_story_indexes.items()):
+            has_ttl = isinstance(idx_info, dict) and "expireAfterSeconds" in idx_info
+            if has_ttl or idx_name == "idx_stories_ttl_expires":
+                try:
+                    stories.drop_index(idx_name)
+                except Exception:
+                    pass
+
     created["community_stories"] = [
-        stories_ttl_idx,
+        stories.create_index(
+            [("expires_at", 1)],
+            name="idx_stories_expires_at",
+        ),
         stories.create_index(
             [("user_id", 1), ("created_at", -1)],
             name="idx_stories_user_created",

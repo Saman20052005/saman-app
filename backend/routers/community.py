@@ -60,6 +60,8 @@ from backend.app.models.community import (
     CommunityPostModel,
     CommunitySavedResponse,
     CommunitySettingsModel,
+    CommunityArchivedStoryModel,
+    CommunityStoriesArchiveResponse,
     CommunityStoriesFeedResponse,
     CommunityStoryAuthorGroupModel,
     CommunityStoryModel,
@@ -173,14 +175,76 @@ def get_community_post_shares_collection():
     return _safe_db_collection("community_post_shares")
 
 
+_MAX_MUTED_KEYWORDS = 50
+_MAX_MUTED_KEYWORD_LENGTH = 40
+
 _DEFAULT_COMMUNITY_SETTINGS: Dict[str, Any] = {
     "is_private_account": False,
     "who_can_dm": "everyone",
     "who_can_comment": "everyone",
+    "who_can_reply_story": "everyone",
+    "allow_mentions": "everyone",
     "hide_like_counts": False,
     "show_activity_status": True,
+    "auto_prompt_share_workout": True,
+    "auto_prompt_share_meal": True,
     "muted_keywords": [],
 }
+
+
+def _normalize_muted_keywords(
+    raw_keywords: Any,
+    *,
+    strict: bool = False,
+) -> List[str]:
+    if not isinstance(raw_keywords, list):
+        return []
+    cleaned_keywords: List[str] = []
+    seen_kw: set[str] = set()
+    for raw_kw in raw_keywords:
+        if raw_kw is None:
+            continue
+        kw = str(raw_kw).strip()
+        if not kw:
+            continue
+        if strict and len(kw) > _MAX_MUTED_KEYWORD_LENGTH:
+            raise HTTPException(
+                status_code=422,
+                detail=f"Muted keyword must be at most {_MAX_MUTED_KEYWORD_LENGTH} characters",
+            )
+        kw_low = kw.lower()
+        if kw_low not in seen_kw:
+            seen_kw.add(kw_low)
+            cleaned_keywords.append(kw_low)
+    if strict and len(cleaned_keywords) > _MAX_MUTED_KEYWORDS:
+        raise HTTPException(
+            status_code=422,
+            detail=f"At most {_MAX_MUTED_KEYWORDS} muted keywords are allowed",
+        )
+    return cleaned_keywords[:_MAX_MUTED_KEYWORDS]
+
+
+def _post_matches_muted_keywords(doc: Dict[str, Any], muted_keywords_lower: List[str]) -> bool:
+    if not muted_keywords_lower:
+        return False
+    qa_info = doc.get("qa_info") if isinstance(doc.get("qa_info"), dict) else {}
+    workout_att = doc.get("workout_attachment") if isinstance(doc.get("workout_attachment"), dict) else {}
+    att_snap = doc.get("attachment_snapshot") if isinstance(doc.get("attachment_snapshot"), dict) else {}
+    searchable_parts = [
+        doc.get("caption"),
+        doc.get("content"),
+        doc.get("title"),
+        qa_info.get("question"),
+        qa_info.get("details"),
+        workout_att.get("title"),
+        att_snap.get("title"),
+    ]
+    haystack = " ".join(
+        str(part) for part in searchable_parts if isinstance(part, str) and part.strip()
+    ).lower()
+    if not haystack:
+        return False
+    return any(kw in haystack for kw in muted_keywords_lower)
 
 
 def _build_settings_model(doc: Optional[Dict[str, Any]]) -> CommunitySettingsModel:
@@ -189,7 +253,7 @@ def _build_settings_model(doc: Optional[Dict[str, Any]]) -> CommunitySettingsMod
         for key in _DEFAULT_COMMUNITY_SETTINGS:
             if key in doc and doc[key] is not None:
                 merged[key] = doc[key]
-    merged["muted_keywords"] = [str(k) for k in (merged.get("muted_keywords") or [])][:20]
+    merged["muted_keywords"] = _normalize_muted_keywords(merged.get("muted_keywords"), strict=False)
     return CommunitySettingsModel(**merged)
 
 
@@ -964,11 +1028,31 @@ async def get_community_feed(
 
     sort_order = [("created_at", -1), ("_id", -1)]
 
+    viewer_muted_keywords: List[str] = []
+    if current_user_id:
+        viewer_settings = _get_user_settings_doc(current_user_id)
+        viewer_muted_keywords = _normalize_muted_keywords(
+            viewer_settings.get("muted_keywords"),
+            strict=False,
+        )
+
     # Fetch 1 extra to determine next_cursor
-    cursor_res = col.find(query).sort(sort_order).limit(limit + 1)
-    docs = list(cursor_res)
-    if excluded_ids:
-        docs = [d for d in docs if _extract_doc_author_id(d) not in excluded_ids]
+    if viewer_muted_keywords:
+        docs = []
+        for d in col.find(query).sort(sort_order):
+            doc_author_id = _extract_doc_author_id(d)
+            if excluded_ids and doc_author_id in excluded_ids:
+                continue
+            if doc_author_id != current_user_id and _post_matches_muted_keywords(d, viewer_muted_keywords):
+                continue
+            docs.append(d)
+            if len(docs) > limit:
+                break
+    else:
+        cursor_res = col.find(query).sort(sort_order).limit(limit + 1)
+        docs = list(cursor_res)
+        if excluded_ids:
+            docs = [d for d in docs if _extract_doc_author_id(d) not in excluded_ids]
 
     has_more = len(docs) > limit
     results_docs = docs[:limit]
@@ -3493,26 +3577,20 @@ async def update_community_settings(
         merged["who_can_dm"] = body.who_can_dm
     if body.who_can_comment is not None:
         merged["who_can_comment"] = body.who_can_comment
+    if body.who_can_reply_story is not None:
+        merged["who_can_reply_story"] = body.who_can_reply_story
+    if body.allow_mentions is not None:
+        merged["allow_mentions"] = body.allow_mentions
     if body.hide_like_counts is not None:
         merged["hide_like_counts"] = bool(body.hide_like_counts)
     if body.show_activity_status is not None:
         merged["show_activity_status"] = bool(body.show_activity_status)
+    if body.auto_prompt_share_workout is not None:
+        merged["auto_prompt_share_workout"] = bool(body.auto_prompt_share_workout)
+    if body.auto_prompt_share_meal is not None:
+        merged["auto_prompt_share_meal"] = bool(body.auto_prompt_share_meal)
     if body.muted_keywords is not None:
-        cleaned_keywords: List[str] = []
-        seen_kw: set[str] = set()
-        for raw_kw in body.muted_keywords:
-            kw = str(raw_kw).strip()
-            if not kw:
-                continue
-            if len(kw) > 64:
-                raise HTTPException(status_code=422, detail="Muted keyword must be at most 64 characters")
-            kw_low = kw.lower()
-            if kw_low not in seen_kw:
-                seen_kw.add(kw_low)
-                cleaned_keywords.append(kw)
-        if len(cleaned_keywords) > 20:
-            raise HTTPException(status_code=422, detail="At most 20 muted keywords are allowed")
-        merged["muted_keywords"] = cleaned_keywords
+        merged["muted_keywords"] = _normalize_muted_keywords(body.muted_keywords, strict=True)
 
     now = datetime.now(timezone.utc)
     col.update_one(
@@ -4029,6 +4107,125 @@ async def get_community_stories(
         )
     )
     return CommunityStoriesFeedResponse(items=groups)
+
+
+@router.get("/stories/archive", response_model=CommunityStoriesArchiveResponse)
+async def get_community_stories_archive(
+    include_active: bool = Query(
+        False,
+        description="Include active (<24h) stories alongside expired stories",
+    ),
+    limit: int = Query(20, ge=1, le=50, description="Items per page"),
+    cursor: Optional[str] = Query(None, description="Opaque cursor for stable pagination"),
+    offset: Optional[int] = Query(
+        None,
+        ge=0,
+        description="Optional offset pagination (ignored when cursor is provided)",
+    ),
+    current_user: Dict[str, Any] = Depends(get_required_current_user),
+):
+    """
+    Personal Story Archive endpoint.
+    Returns only stories created by the authenticated user (is_deleted != True),
+    sorted newest first (created_at DESC, _id DESC).
+    By default returns expired stories (expires_at <= now); pass include_active=true
+    to return all non-deleted stories of the current user.
+    """
+    stories_col = get_community_stories_collection()
+    if stories_col is None:
+        return CommunityStoriesArchiveResponse(items=[], next_cursor=None, total_count=0)
+
+    current_user_id = str(current_user["_id"])
+    now = datetime.now(timezone.utc)
+
+    base_query: Dict[str, Any] = {
+        "user_id": current_user_id,
+        "is_deleted": {"$ne": True},
+    }
+    if not include_active:
+        base_query["expires_at"] = {"$lte": now}
+
+    query: Dict[str, Any] = dict(base_query)
+    if cursor:
+        cursor_dt, cursor_id = _decode_cursor(cursor)
+        cursor_filter = {
+            "$or": [
+                {"created_at": {"$lt": cursor_dt}},
+                {
+                    "created_at": cursor_dt,
+                    "_id": {"$lt": ObjectId(cursor_id) if ObjectId.is_valid(cursor_id) else cursor_id},
+                },
+            ]
+        }
+        query = {"$and": [base_query, cursor_filter]}
+
+    sort_order = [("created_at", -1), ("_id", -1)]
+
+    def _is_eligible_archive_doc(doc: Dict[str, Any]) -> bool:
+        if str(doc.get("user_id") or "") != current_user_id:
+            return False
+        if doc.get("is_deleted", False):
+            return False
+        if not include_active:
+            exp_dt = _normalize_utc_dt(doc.get("expires_at"))
+            if exp_dt is None or exp_dt > now:
+                return False
+        return True
+
+    effective_offset = 0 if cursor else int(offset or 0)
+    needed = effective_offset + limit + 1
+    raw_docs = list(stories_col.find(query).sort(sort_order).limit(needed))
+    eligible_docs = [d for d in raw_docs if _is_eligible_archive_doc(d)]
+    if len(eligible_docs) < needed and len(raw_docs) == needed:
+        # Fallback scan if an in-memory mock does not evaluate $lte in query
+        all_docs = list(stories_col.find(query).sort(sort_order))
+        eligible_docs = [d for d in all_docs if _is_eligible_archive_doc(d)]
+
+    sliced_docs = eligible_docs[effective_offset:]
+    has_more = len(sliced_docs) > limit
+    page_docs = sliced_docs[:limit]
+
+    total_count = stories_col.count_documents(base_query)
+
+    story_ids = [str(d.get("id") or d["_id"]) for d in page_docs]
+    views_col = get_community_story_views_collection()
+    view_counts: Dict[str, int] = {}
+    viewed_story_ids: set[str] = set()
+    if views_col is not None and story_ids:
+        for agg in views_col.aggregate([
+            {"$match": {"story_id": {"$in": story_ids}}},
+            {"$group": {"_id": "$story_id", "count": {"$sum": 1}}},
+        ]):
+            view_counts[str(agg["_id"])] = int(agg["count"])
+        for v in views_col.find({"viewer_id": current_user_id, "story_id": {"$in": story_ids}}):
+            viewed_story_ids.add(str(v["story_id"]))
+
+    items: List[CommunityArchivedStoryModel] = []
+    for sdoc in page_docs:
+        sid = str(sdoc.get("id") or sdoc["_id"])
+        base_model = _build_story_model(
+            sdoc,
+            view_count=view_counts.get(sid, 0),
+            is_viewed=(sid in viewed_story_ids),
+        )
+        items.append(
+            CommunityArchivedStoryModel(
+                **base_model.model_dump(),
+                is_expired=bool(base_model.expires_at <= now),
+            )
+        )
+
+    next_cursor = None
+    if has_more and page_docs:
+        last_doc = page_docs[-1]
+        c_dt = _normalize_utc_dt(last_doc.get("created_at")) or now
+        next_cursor = _encode_cursor(c_dt, str(last_doc["_id"]))
+
+    return CommunityStoriesArchiveResponse(
+        items=items,
+        next_cursor=next_cursor,
+        total_count=total_count,
+    )
 
 
 @router.post("/stories/{story_id}/view", response_model=StoryViewResponse)

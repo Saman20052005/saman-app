@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../../screens/home/tokens/saman_home_tokens.dart';
 import '../../domain/models/community_story.dart';
 import '../providers/community_providers.dart';
 import '../providers/community_social_providers.dart';
 import '../screens/stories/community_story_viewer_screen.dart';
+import '../tokens/saman_ig_tokens.dart';
 import 'community_create_story_sheet.dart';
 
 class CommunityStoryTray extends ConsumerWidget {
@@ -41,7 +41,7 @@ class CommunityStoryTray extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final tokens = SamanHomeTokens.of(context);
+    final ig = SamanIgTokens.of(context);
     final storiesState = ref.watch(communityStoriesProvider);
     final activeUserId = ref.watch(communityRepositoryProvider).activeUserId;
     final groups = storiesState.groups;
@@ -65,7 +65,7 @@ class CommunityStoryTray extends ConsumerWidget {
 
     final children = <Widget>[
       _SelfStoryItem(
-        tokens: tokens,
+        ig: ig,
         selfGroup: selfGroup,
         onTapAvatar: () {
           if (selfGroup != null) {
@@ -77,21 +77,79 @@ class CommunityStoryTray extends ConsumerWidget {
         onTapAdd: () => _openCreate(context),
       ),
       for (final entry in otherEntries) ...[
-        const SizedBox(width: 14),
+        const SizedBox(width: 12),
         _StoryGroupItem(
-          tokens: tokens,
+          ig: ig,
           group: entry.group,
           onTap: () => _openViewer(context, groups, entry.index),
         ),
       ],
     ];
 
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: children,
+    return Container(
+      decoration: BoxDecoration(
+        color: ig.canvas,
+        border: Border(
+          bottom: BorderSide(color: ig.borderSubtle, width: 0.75),
+        ),
+      ),
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: children,
+        ),
+      ),
+    );
+  }
+}
+
+class _StoryAvatarRing extends StatelessWidget {
+  const _StoryAvatarRing({
+    required this.ig,
+    required this.showGradientRing,
+    required this.showViewedRing,
+    required this.child,
+  });
+
+  final SamanIgTokens ig;
+  final bool showGradientRing;
+  final bool showViewedRing;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final BoxDecoration outerDecoration;
+    if (showGradientRing) {
+      outerDecoration = const BoxDecoration(
+        shape: BoxShape.circle,
+        gradient: SamanIgTokens.storyGradient,
+      );
+    } else if (showViewedRing) {
+      outerDecoration = BoxDecoration(
+        shape: BoxShape.circle,
+        border: Border.all(color: ig.border, width: 1.5),
+      );
+    } else {
+      outerDecoration = BoxDecoration(
+        shape: BoxShape.circle,
+        border: Border.all(color: ig.border, width: 1.25),
+      );
+    }
+
+    return Container(
+      width: 68,
+      height: 68,
+      padding: EdgeInsets.all(showGradientRing ? 2.5 : 1.5),
+      decoration: outerDecoration,
+      child: Container(
+        padding: const EdgeInsets.all(1.5),
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: ig.canvas,
+        ),
+        child: ClipOval(child: child),
       ),
     );
   }
@@ -99,26 +157,25 @@ class CommunityStoryTray extends ConsumerWidget {
 
 class _SelfStoryItem extends StatelessWidget {
   const _SelfStoryItem({
-    required this.tokens,
+    required this.ig,
     required this.selfGroup,
     required this.onTapAvatar,
     required this.onTapAdd,
   });
 
-  final SamanHomePalette tokens;
+  final SamanIgTokens ig;
   final CommunityStoryAuthorGroup? selfGroup;
   final VoidCallback onTapAvatar;
   final VoidCallback onTapAdd;
 
   @override
   Widget build(BuildContext context) {
-    final textTheme = Theme.of(context).textTheme;
     final hasStory = selfGroup != null;
     final avatarUrl = selfGroup?.author.avatarUrl;
     final hasUnviewed = selfGroup?.hasUnviewed ?? false;
 
     return SizedBox(
-      width: 76,
+      width: 78,
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -127,45 +184,30 @@ class _SelfStoryItem extends StatelessWidget {
             children: [
               GestureDetector(
                 onTap: onTapAvatar,
-                child: Container(
-                  width: 60,
-                  height: 60,
-                  padding: const EdgeInsets.all(2.5),
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    border: Border.all(
-                      color: hasStory
-                          ? (hasUnviewed ? tokens.greenAccent : tokens.border)
-                          : tokens.borderHigh,
-                      width: hasStory && hasUnviewed ? 2.2 : 1.5,
-                    ),
-                  ),
-                  child: ClipOval(
-                    child: Container(
-                      color: tokens.secondarySurface,
-                      alignment: Alignment.center,
-                      child: avatarUrl != null && avatarUrl.isNotEmpty
-                          ? Image.network(
-                              avatarUrl,
-                              fit: BoxFit.cover,
-                              width: double.infinity,
-                              height: double.infinity,
-                              errorBuilder: (_, __, ___) => Icon(
-                                Icons.person_rounded,
-                                color: tokens.textSecondary,
-                                size: 26,
-                              ),
-                            )
-                          : Icon(
-                              hasStory
-                                  ? Icons.person_rounded
-                                  : Icons.auto_awesome_outlined,
-                              color: hasStory
-                                  ? tokens.textSecondary
-                                  : tokens.greenAccent,
-                              size: 24,
+                child: _StoryAvatarRing(
+                  ig: ig,
+                  showGradientRing: hasStory && hasUnviewed,
+                  showViewedRing: hasStory && !hasUnviewed,
+                  child: Container(
+                    color: ig.surfaceElevated,
+                    alignment: Alignment.center,
+                    child: avatarUrl != null && avatarUrl.isNotEmpty
+                        ? Image.network(
+                            avatarUrl,
+                            fit: BoxFit.cover,
+                            width: double.infinity,
+                            height: double.infinity,
+                            errorBuilder: (_, __, ___) => Icon(
+                              Icons.person_rounded,
+                              color: ig.textSecondary,
+                              size: 28,
                             ),
-                    ),
+                          )
+                        : Icon(
+                            Icons.person_rounded,
+                            color: ig.textSecondary,
+                            size: 28,
+                          ),
                   ),
                 ),
               ),
@@ -175,20 +217,20 @@ class _SelfStoryItem extends StatelessWidget {
                 child: GestureDetector(
                   onTap: onTapAdd,
                   child: Container(
-                    width: 22,
-                    height: 22,
+                    width: 24,
+                    height: 24,
                     decoration: BoxDecoration(
-                      color: tokens.greenAccent,
+                      color: ig.primaryAction,
                       shape: BoxShape.circle,
                       border: Border.all(
-                        color: tokens.canvas,
+                        color: ig.canvas,
                         width: 2,
                       ),
                     ),
-                    child: const Icon(
+                    child: Icon(
                       Icons.add_rounded,
-                      size: 14,
-                      color: Colors.white,
+                      size: 15,
+                      color: ig.onPrimaryAction,
                     ),
                   ),
                 ),
@@ -204,10 +246,13 @@ class _SelfStoryItem extends StatelessWidget {
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               textAlign: TextAlign.center,
-              style: textTheme.labelSmall?.copyWith(
-                color: tokens.textSecondary,
+              style: ig.caption(
+                color: hasStory && hasUnviewed
+                    ? ig.textPrimary
+                    : ig.textSecondary,
                 fontSize: 11.5,
-                fontWeight: FontWeight.w500,
+                fontWeight:
+                    hasStory && hasUnviewed ? FontWeight.w600 : FontWeight.w500,
               ),
             ),
           ),
@@ -219,18 +264,17 @@ class _SelfStoryItem extends StatelessWidget {
 
 class _StoryGroupItem extends StatelessWidget {
   const _StoryGroupItem({
-    required this.tokens,
+    required this.ig,
     required this.group,
     required this.onTap,
   });
 
-  final SamanHomePalette tokens;
+  final SamanIgTokens ig;
   final CommunityStoryAuthorGroup group;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    final textTheme = Theme.of(context).textTheme;
     final avatarUrl = group.author.avatarUrl;
     final initial =
         group.author.name.isNotEmpty ? group.author.name[0].toUpperCase() : 'S';
@@ -238,49 +282,40 @@ class _StoryGroupItem extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: SizedBox(
-        width: 76,
+        width: 78,
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Container(
-              width: 60,
-              height: 60,
-              padding: const EdgeInsets.all(2.5),
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                border: Border.all(
-                  color: group.hasUnviewed ? tokens.greenAccent : tokens.border,
-                  width: group.hasUnviewed ? 2.2 : 1.5,
-                ),
-              ),
-              child: ClipOval(
-                child: Container(
-                  color: tokens.secondarySurface,
-                  alignment: Alignment.center,
-                  child: avatarUrl != null && avatarUrl.isNotEmpty
-                      ? Image.network(
-                          avatarUrl,
-                          fit: BoxFit.cover,
-                          width: double.infinity,
-                          height: double.infinity,
-                          errorBuilder: (_, __, ___) => Text(
-                            initial,
-                            style: textTheme.titleMedium?.copyWith(
-                              color: tokens.textPrimary,
-                              fontWeight: FontWeight.w700,
-                              fontSize: 18,
-                            ),
-                          ),
-                        )
-                      : Text(
+            _StoryAvatarRing(
+              ig: ig,
+              showGradientRing: group.hasUnviewed,
+              showViewedRing: !group.hasUnviewed,
+              child: Container(
+                color: ig.surfaceElevated,
+                alignment: Alignment.center,
+                child: avatarUrl != null && avatarUrl.isNotEmpty
+                    ? Image.network(
+                        avatarUrl,
+                        fit: BoxFit.cover,
+                        width: double.infinity,
+                        height: double.infinity,
+                        errorBuilder: (_, __, ___) => Text(
                           initial,
-                          style: textTheme.titleMedium?.copyWith(
-                            color: tokens.textPrimary,
+                          style: ig.username(
+                            color: ig.textPrimary,
                             fontWeight: FontWeight.w700,
                             fontSize: 18,
                           ),
                         ),
-                ),
+                      )
+                    : Text(
+                        initial,
+                        style: ig.username(
+                          color: ig.textPrimary,
+                          fontWeight: FontWeight.w700,
+                          fontSize: 18,
+                        ),
+                      ),
               ),
             ),
             const SizedBox(height: 6),
@@ -289,10 +324,8 @@ class _StoryGroupItem extends StatelessWidget {
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               textAlign: TextAlign.center,
-              style: textTheme.labelSmall?.copyWith(
-                color: group.hasUnviewed
-                    ? tokens.textPrimary
-                    : tokens.textSecondary,
+              style: ig.caption(
+                color: group.hasUnviewed ? ig.textPrimary : ig.textSecondary,
                 fontSize: 11.5,
                 fontWeight:
                     group.hasUnviewed ? FontWeight.w600 : FontWeight.w400,

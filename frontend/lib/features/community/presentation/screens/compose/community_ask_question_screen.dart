@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import '../../../../../config/app_translations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../../../screens/home/tokens/saman_home_tokens.dart';
 import '../../../domain/models/draft_post.dart';
 import '../../providers/community_providers.dart';
 import '../../providers/community_composer_provider.dart';
+import '../../tokens/saman_ig_tokens.dart';
 import '../../widgets/draft_discard_dialog.dart';
 
 class CommunityAskQuestionScreen extends ConsumerStatefulWidget {
@@ -87,19 +87,25 @@ class _CommunityAskQuestionScreenState
       if (_titleController.text != next.caption) _titleController.text = next.caption;
       if (_detailsController.text != next.questionDetails) _detailsController.text = next.questionDetails;
     });
-    final tokens = SamanHomeTokens.of(context);
+    final ig = SamanIgTokens.of(context);
     final charCount = _titleController.text.length;
 
     return Scaffold(
-      backgroundColor: tokens.canvas,
+      backgroundColor: ig.canvas,
       body: SafeArea(
         bottom: false,
         child: Column(
           children: [
             // Header
-            _buildAppBar(context, tokens),
+            _buildAppBar(context, ig),
             if (draft.errorMessage != null)
-              Padding(padding: const EdgeInsets.all(16), child: Text(context.tr(draft.errorMessage!), style: tokens.headerSubtitle)),
+              Padding(
+                padding: const EdgeInsets.all(16),
+                child: Text(
+                  context.tr(draft.errorMessage!),
+                  style: ig.caption(color: ig.danger),
+                ),
+              ),
 
             // Content
             Expanded(
@@ -110,7 +116,7 @@ class _CommunityAskQuestionScreenState
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     // Author Identity
-                    _buildAuthorRow(tokens),
+                    _buildAuthorRow(ig),
                     _QuestionAudience(
                       value: draft.audience,
                       enabled: !draft.hasPendingSubmission,
@@ -119,16 +125,16 @@ class _CommunityAskQuestionScreenState
                     const SizedBox(height: 16),
 
                     // Topic Selection
-                    _buildTopicChips(tokens),
+                    _buildTopicChips(ig),
                     const SizedBox(height: 16),
 
                     // Question Title input
                     Container(
                       padding: const EdgeInsets.all(14),
                       decoration: BoxDecoration(
-                        color: tokens.cardSurface,
+                        color: ig.surface,
                         borderRadius: BorderRadius.circular(14),
-                        border: Border.all(color: tokens.border),
+                        border: Border.all(color: ig.border),
                       ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -140,20 +146,20 @@ class _CommunityAskQuestionScreenState
                                 child: Text(
                                   'Câu hỏi của bạn *',
                                   overflow: TextOverflow.ellipsis,
-                                  style: TextStyle(
+                                  style: ig.caption(
                                     fontSize: 13,
                                     fontWeight: FontWeight.w600,
-                                    color: tokens.textSecondary,
+                                    color: ig.textSecondary,
                                   ),
                                 ),
                               ),
                               Text(
                                 '$charCount/150 ký tự',
-                                style: TextStyle(
+                                style: ig.caption(
                                   fontSize: 11,
                                   color: charCount > 130
-                                      ? tokens.carbsAmber
-                                      : tokens.textSecondary,
+                                      ? ig.danger
+                                      : ig.textSecondary,
                                 ),
                               ),
                             ],
@@ -166,20 +172,18 @@ class _CommunityAskQuestionScreenState
                             maxLength: 150,
                             maxLines: 2,
                             onChanged: ref.read(communityQuestionComposerProvider.notifier).setCaption,
-                            style: TextStyle(
+                            style: ig.displayTitle(
                               fontSize: 16,
                               fontWeight: FontWeight.w600,
-                              color: tokens.textPrimary,
-                              height: 1.3,
-                            ),
+                              color: ig.textPrimary,
+                            ).copyWith(height: 1.3),
                             decoration: InputDecoration(
                               filled: false,
-                              counterStyle: tokens.headerSubtitle,
+                              counterStyle: ig.caption(),
                               hintText: 'Đặt câu hỏi ngắn gọn, trọng tâm...',
-                              hintStyle: TextStyle(
+                              hintStyle: ig.body(
                                 fontSize: 15,
-                                fontWeight: FontWeight.w400,
-                                color: tokens.textMuted,
+                                color: ig.textMuted,
                               ),
                               counterText: '',
                               border: InputBorder.none,
@@ -194,19 +198,19 @@ class _CommunityAskQuestionScreenState
                     Container(
                       padding: const EdgeInsets.all(14),
                       decoration: BoxDecoration(
-                        color: tokens.cardSurface,
+                        color: ig.surface,
                         borderRadius: BorderRadius.circular(14),
-                        border: Border.all(color: tokens.border),
+                        border: Border.all(color: ig.border),
                       ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
                             'Chi tiết thêm (không bắt buộc)',
-                            style: TextStyle(
+                            style: ig.caption(
                               fontSize: 13,
                               fontWeight: FontWeight.w600,
-                              color: tokens.textSecondary,
+                              color: ig.textSecondary,
                             ),
                           ),
                           const SizedBox(height: 8),
@@ -217,19 +221,19 @@ class _CommunityAskQuestionScreenState
                             onChanged: ref.read(communityQuestionComposerProvider.notifier).setQuestionDetails,
                             maxLength: 2000,
                             maxLines: 4,
-                            style: TextStyle(
+                            style: ig.body(
                               fontSize: 14,
-                              color: tokens.textPrimary,
+                              color: ig.textPrimary,
                               height: 1.4,
                             ),
                             decoration: InputDecoration(
                               filled: false,
-                              counterStyle: tokens.headerSubtitle,
+                              counterStyle: ig.caption(),
                               hintText:
                                   'Chia sẻ bối cảnh, mục tiêu của bạn để nhận được câu trả lời chính xác hơn...',
-                              hintStyle: TextStyle(
+                              hintStyle: ig.caption(
                                 fontSize: 13,
-                                color: tokens.textMuted,
+                                color: ig.textMuted,
                               ),
                               border: InputBorder.none,
                             ),
@@ -248,15 +252,15 @@ class _CommunityAskQuestionScreenState
     );
   }
 
-  Widget _buildAppBar(BuildContext context, SamanHomePalette tokens) {
+  Widget _buildAppBar(BuildContext context, SamanIgTokens ig) {
     final hasTitle = _titleController.text.trim().isNotEmpty;
 
     return Container(
       height: 52,
       padding: const EdgeInsets.symmetric(horizontal: 16),
       decoration: BoxDecoration(
-        color: tokens.canvas,
-        border: Border(bottom: BorderSide(color: tokens.border, width: 1)),
+        color: ig.canvas,
+        border: Border(bottom: BorderSide(color: ig.border, width: 0.5)),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -265,16 +269,16 @@ class _CommunityAskQuestionScreenState
             onPressed: _handleClose,
             icon: Icon(
               Icons.close_rounded,
-              color: tokens.textPrimary,
+              color: ig.textPrimary,
               size: 22,
             ),
           ),
           Text(
             'Đặt câu hỏi',
-            style: TextStyle(
+            style: ig.displayTitle(
               fontSize: 16,
               fontWeight: FontWeight.w700,
-              color: tokens.textPrimary,
+              color: ig.textPrimary,
             ),
           ),
           _isSubmitting
@@ -283,24 +287,17 @@ class _CommunityAskQuestionScreenState
                   height: 20,
                   child: CircularProgressIndicator(
                     strokeWidth: 2,
-                    color: tokens.greenAccent,
+                    color: ig.primaryAction,
                   ),
                 )
               : ElevatedButton.icon(
                   onPressed: hasTitle ? _handleSubmit : null,
                   icon: const Icon(Icons.arrow_upward_rounded, size: 16),
                   label: const Text('Đăng'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: tokens.greenAccent,
-                    foregroundColor: tokens.isDark
-                        ? const Color(0xFF003824)
-                        : const Color(0xFFFFFFFF),
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
+                  style: ig.primaryButtonStyle(minHeight: 36, borderRadius: 10).copyWith(
+                    padding: const WidgetStatePropertyAll(
+                      EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                     ),
-                    elevation: 0,
                   ),
                 ),
         ],
@@ -308,7 +305,7 @@ class _CommunityAskQuestionScreenState
     );
   }
 
-  Widget _buildAuthorRow(SamanHomePalette tokens) {
+  Widget _buildAuthorRow(SamanIgTokens ig) {
     return Row(
       children: [
         Container(
@@ -316,11 +313,11 @@ class _CommunityAskQuestionScreenState
           height: 38,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
-            color: tokens.secondarySurface,
+            color: ig.surfaceElevated,
           ),
           child: Icon(
             Icons.person_rounded,
-            color: tokens.greenAccent,
+            color: ig.textPrimary,
             size: 22,
           ),
         ),
@@ -330,16 +327,16 @@ class _CommunityAskQuestionScreenState
           children: [
             Text(
               ref.watch(useRemoteCommunityProvider) ? context.tr('community_publish_current_user') : 'Linh Nguyễn',
-              style: TextStyle(
+              style: ig.username(
                 fontSize: 14,
                 fontWeight: FontWeight.w700,
-                color: tokens.textPrimary,
+                color: ig.textPrimary,
               ),
             ),
             const SizedBox(height: 2),
             Text(
               'Hỏi cộng đồng',
-              style: TextStyle(fontSize: 11, color: tokens.textSecondary),
+              style: ig.caption(fontSize: 11, color: ig.textSecondary),
             ),
           ],
         ),
@@ -347,7 +344,7 @@ class _CommunityAskQuestionScreenState
     );
   }
 
-  Widget _buildTopicChips(SamanHomePalette tokens) {
+  Widget _buildTopicChips(SamanIgTokens ig) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -358,18 +355,18 @@ class _CommunityAskQuestionScreenState
               child: Text(
                 'Chủ đề thảo luận',
                 overflow: TextOverflow.ellipsis,
-                style: TextStyle(
+                style: ig.caption(
                   fontSize: 13,
                   fontWeight: FontWeight.w600,
-                  color: tokens.textSecondary,
+                  color: ig.textSecondary,
                 ),
               ),
             ),
             Text(
               'Bắt buộc chọn 1',
-              style: TextStyle(
+              style: ig.caption(
                 fontSize: 11,
-                color: tokens.greenAccent,
+                color: ig.primaryAction,
                 fontWeight: FontWeight.w500,
               ),
             ),
@@ -386,22 +383,16 @@ class _CommunityAskQuestionScreenState
                 child: ChoiceChip(
                   label: Text(t),
                   selected: isSelected,
-                  selectedColor: tokens.greenAccent,
-                  disabledColor: tokens.cardSurface,
-                  backgroundColor: tokens.cardSurface,
-                  labelStyle: TextStyle(
+                  selectedColor: ig.primaryAction,
+                  disabledColor: ig.surface,
+                  backgroundColor: ig.surface,
+                  labelStyle: ig.caption(
                     fontSize: 12,
                     fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
-                    color: isSelected
-                        ? (tokens.isDark
-                            ? const Color(0xFF003824)
-                            : const Color(0xFFFFFFFF))
-                        : tokens.textSecondary,
+                    color: isSelected ? ig.onPrimaryAction : ig.textSecondary,
                   ),
                   side: BorderSide(
-                    color: isSelected
-                        ? tokens.greenAccent
-                        : tokens.border,
+                    color: isSelected ? ig.primaryAction : ig.border,
                   ),
                   onSelected: _pending ? null : (_) => ref.read(communityQuestionComposerProvider.notifier).setTopic(t),
                 ),
@@ -421,17 +412,17 @@ class _QuestionAudience extends StatelessWidget {
   const _QuestionAudience({required this.value, required this.enabled, required this.onChanged});
   @override
   Widget build(BuildContext context) {
-    final tokens = SamanHomeTokens.of(context);
+    final ig = SamanIgTokens.of(context);
     return DropdownButtonFormField<String>(
       key: const ValueKey('question-audience'),
       value: value,
-      decoration: InputDecoration(filled: false, labelStyle: tokens.headerSubtitle, labelText: context.tr('community_publish_audience')),
-      dropdownColor: tokens.cardSurface,
-      style: TextStyle(color: tokens.textPrimary),
+      decoration: InputDecoration(filled: false, labelStyle: ig.caption(), labelText: context.tr('community_publish_audience')),
+      dropdownColor: ig.surface,
+      style: ig.body(color: ig.textPrimary),
       items: ['Công khai', 'Người theo dõi', 'Chỉ mình tôi'].map((audience) =>
         DropdownMenuItem(value: audience, child: Text(context.tr(
           audience == 'Công khai' ? 'community_audience_public' :
-          audience == 'Người theo dõi' ? 'community_audience_followers' : 'community_audience_private'), style: TextStyle(color: tokens.textPrimary)))).toList(),
+          audience == 'Người theo dõi' ? 'community_audience_followers' : 'community_audience_private'), style: ig.body(color: ig.textPrimary)))).toList(),
       onChanged: enabled ? (next) { if (next != null) onChanged(next); } : null,
     );
   }

@@ -3,7 +3,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:video_player/video_player.dart';
 
-import '../../../../screens/home/tokens/saman_home_tokens.dart';
+import '../tokens/saman_ig_tokens.dart';
 
 /// Full-screen image and video viewers for Messenger-Lite DM attachments.
 /// Uses an obsidian dark media backdrop for clear visual fidelity.
@@ -98,7 +98,7 @@ class _DmFullScreenImagePageState extends State<_DmFullScreenImagePage> {
 
   @override
   Widget build(BuildContext context) {
-    final accent = SamanHomeTokens.of(context).greenAccent;
+    final accent = SamanIgTokens.of(context).primaryAction;
     final bgOpacity = (1.0 - (_dragOffsetY / 360.0) * 0.55).clamp(0.4, 1.0);
 
     return Scaffold(
@@ -307,7 +307,7 @@ class _DmFullScreenVideoPageState extends State<_DmFullScreenVideoPage> {
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
-    final accent = SamanHomeTokens.of(context).greenAccent;
+    final accent = SamanIgTokens.of(context).primaryAction;
     final controller = _controller;
     final isInitialized = controller != null && controller.value.isInitialized;
     final isPlaying = isInitialized && controller.value.isPlaying;

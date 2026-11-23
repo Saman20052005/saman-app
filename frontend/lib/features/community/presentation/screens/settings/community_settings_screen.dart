@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../../../screens/home/tokens/saman_home_tokens.dart';
+import '../../../../../config/app_translations.dart';
+import '../../../../../config/routes.dart';
 import '../../../../../widgets/saman_feedback_snackbar.dart';
 import '../../../domain/models/community_settings.dart';
 import '../../providers/community_social_providers.dart';
+import '../../tokens/saman_ig_tokens.dart';
 import '../../widgets/community_blocked_muted_sheet.dart';
 
 class CommunitySettingsScreen extends ConsumerStatefulWidget {
@@ -17,7 +19,7 @@ class CommunitySettingsScreen extends ConsumerStatefulWidget {
 
 class _CommunitySettingsScreenState
     extends ConsumerState<CommunitySettingsScreen> {
-  static const int _maxMutedKeywords = 20;
+  static const int _maxMutedKeywords = 50;
 
   @override
   void initState() {
@@ -38,7 +40,7 @@ class _CommunitySettingsScreenState
     if (!mounted) return;
     if (result == null) {
       final errorMsg = ref.read(communitySettingsProvider).errorMessage ??
-          'Không thể cập nhật cài đặt. Vui lòng thử lại.';
+          context.tr('community_settings_update_error');
       SamanFeedbackSnackBar.show(
         context,
         message: errorMsg,
@@ -65,7 +67,7 @@ class _CommunitySettingsScreenState
     if (currentKeywords.length >= _maxMutedKeywords) {
       SamanFeedbackSnackBar.show(
         context,
-        message: 'Đã đạt giới hạn tối đa $_maxMutedKeywords từ khóa đã ẩn',
+        message: context.tr('community_settings_keyword_limit_reached'),
         type: FeedbackType.warning,
       );
       return;
@@ -83,7 +85,7 @@ class _CommunitySettingsScreenState
     if (exists) {
       SamanFeedbackSnackBar.show(
         context,
-        message: 'Từ khóa "$trimmed" đã có trong danh sách',
+        message: context.tr('community_settings_keyword_exists'),
         type: FeedbackType.info,
       );
       return;
@@ -103,45 +105,45 @@ class _CommunitySettingsScreenState
     await _applyUpdate(() => notifier.updateSettings(mutedKeywords: nextKeywords));
   }
 
-  String _audienceLabel(String value) {
+  String _audienceLabel(BuildContext context, String value) {
     switch (value) {
       case 'followers':
-        return 'Người theo dõi';
+        return context.tr('community_settings_audience_followers');
       case 'nobody':
-        return 'Không ai';
+        return context.tr('community_settings_audience_nobody');
       case 'everyone':
       default:
-        return 'Mọi người';
+        return context.tr('community_settings_audience_everyone');
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final tokens = SamanHomeTokens.of(context);
-    final textTheme = Theme.of(context).textTheme;
+    final ig = SamanIgTokens.of(context);
     final state = ref.watch(communitySettingsProvider);
     final settings = state.settings;
     final notifier = ref.read(communitySettingsProvider.notifier);
 
     return Scaffold(
-      backgroundColor: tokens.canvas,
+      backgroundColor: ig.canvas,
       appBar: AppBar(
-        backgroundColor: tokens.canvas,
+        backgroundColor: ig.canvas,
         surfaceTintColor: Colors.transparent,
         elevation: 0,
+        scrolledUnderElevation: 0,
         leading: IconButton(
           onPressed: () => Navigator.of(context).maybePop(),
-          constraints: const BoxConstraints(minWidth: 44, minHeight: 44),
-          icon: Icon(Icons.arrow_back_rounded, color: tokens.textPrimary),
-          tooltip: 'Quay lại',
-        ),
-        title: Text(
-          'Cài đặt cộng đồng',
-          style: textTheme.titleLarge?.copyWith(
-            fontSize: 18,
-            fontWeight: FontWeight.w600,
-            color: tokens.textPrimary,
+          constraints: const BoxConstraints(
+            minWidth: SamanIgTokens.minTouchTarget,
+            minHeight: SamanIgTokens.minTouchTarget,
           ),
+          icon: Icon(Icons.arrow_back_rounded, color: ig.textPrimary),
+          tooltip: context.tr('community_settings_back'),
+        ),
+        titleSpacing: 4,
+        title: Text(
+          context.tr('community_settings_title'),
+          style: ig.displayTitle(fontSize: 18, fontWeight: FontWeight.w700),
         ),
         actions: [
           if (state.isSaving)
@@ -153,12 +155,16 @@ class _CommunitySettingsScreenState
                   height: 18,
                   child: CircularProgressIndicator(
                     strokeWidth: 2,
-                    color: tokens.greenAccent,
+                    color: ig.primaryAction,
                   ),
                 ),
               ),
             ),
         ],
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(0.5),
+          child: Container(height: 0.5, color: ig.border),
+        ),
       ),
       body: SafeArea(
         top: false,
@@ -166,23 +172,28 @@ class _CommunitySettingsScreenState
           children: [
             if (state.isLoading)
               LinearProgressIndicator(
-                minHeight: 2.5,
-                color: tokens.greenAccent,
-                backgroundColor: tokens.progressTrack,
+                minHeight: 2,
+                color: ig.primaryAction,
+                backgroundColor: ig.surfaceElevated,
               ),
             Expanded(
               child: ListView(
-                padding: const EdgeInsets.fromLTRB(16, 12, 16, 28),
+                padding: const EdgeInsets.fromLTRB(16, 14, 16, 32),
                 children: [
-                  const _SectionHeader(title: 'QUYỀN RIÊNG TƯ'),
+                  // 1. How others can interact with you
+                  _SectionHeader(
+                    title: context.tr('community_settings_section_interactions'),
+                  ),
                   const SizedBox(height: 8),
                   _SettingsGroupCard(
                     children: [
                       _SettingsSwitchTile(
+                        switchKey: const ValueKey('settings-private-switch'),
                         icon: Icons.lock_outline_rounded,
-                        title: 'Tài khoản riêng tư',
-                        subtitle:
-                            'Chỉ người theo dõi được chấp nhận mới xem được bài viết và hoạt động của bạn.',
+                        title: context.tr('community_settings_private_account'),
+                        subtitle: context.tr(
+                          'community_settings_private_account_desc',
+                        ),
                         value: settings.isPrivateAccount,
                         onChanged: state.isSaving
                             ? null
@@ -192,12 +203,102 @@ class _CommunitySettingsScreenState
                                   ),
                                 ),
                       ),
-                      Divider(height: 1, thickness: 1, color: tokens.border),
+                      _HairlineDivider(ig: ig),
+                      _SettingsNavTile(
+                        icon: Icons.chat_bubble_outline_rounded,
+                        title: context.tr('community_settings_who_can_dm'),
+                        trailingText: _audienceLabel(context, settings.whoCanDm),
+                        onTap: state.isSaving
+                            ? null
+                            : () => _pickAudience(
+                                  title: context.tr(
+                                    'community_settings_who_can_dm',
+                                  ),
+                                  currentValue: settings.whoCanDm,
+                                  onSelected: (val) =>
+                                      notifier.updateSettings(whoCanDm: val),
+                                ),
+                      ),
+                      _HairlineDivider(ig: ig),
+                      _SettingsNavTile(
+                        icon: Icons.mode_comment_outlined,
+                        title: context.tr('community_settings_who_can_comment'),
+                        trailingText: _audienceLabel(
+                          context,
+                          settings.whoCanComment,
+                        ),
+                        onTap: state.isSaving
+                            ? null
+                            : () => _pickAudience(
+                                  title: context.tr(
+                                    'community_settings_who_can_comment',
+                                  ),
+                                  currentValue: settings.whoCanComment,
+                                  onSelected: (val) => notifier.updateSettings(
+                                    whoCanComment: val,
+                                  ),
+                                ),
+                      ),
+                      _HairlineDivider(ig: ig),
+                      _SettingsNavTile(
+                        icon: Icons.reply_outlined,
+                        title: context.tr(
+                          'community_settings_who_can_reply_story',
+                        ),
+                        trailingText: _audienceLabel(
+                          context,
+                          settings.whoCanReplyStory,
+                        ),
+                        onTap: state.isSaving
+                            ? null
+                            : () => _pickAudience(
+                                  title: context.tr(
+                                    'community_settings_who_can_reply_story',
+                                  ),
+                                  currentValue: settings.whoCanReplyStory,
+                                  onSelected: (val) => notifier.updateSettings(
+                                    whoCanReplyStory: val,
+                                  ),
+                                ),
+                      ),
+                      _HairlineDivider(ig: ig),
+                      _SettingsNavTile(
+                        icon: Icons.alternate_email_rounded,
+                        title: context.tr('community_settings_allow_mentions'),
+                        trailingText: _audienceLabel(
+                          context,
+                          settings.allowMentions,
+                        ),
+                        onTap: state.isSaving
+                            ? null
+                            : () => _pickAudience(
+                                  title: context.tr(
+                                    'community_settings_allow_mentions',
+                                  ),
+                                  currentValue: settings.allowMentions,
+                                  onSelected: (val) => notifier.updateSettings(
+                                    allowMentions: val,
+                                  ),
+                                ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 22),
+
+                  // 2. What you see
+                  _SectionHeader(
+                    title: context.tr('community_settings_section_what_you_see'),
+                  ),
+                  const SizedBox(height: 8),
+                  _SettingsGroupCard(
+                    children: [
                       _SettingsSwitchTile(
+                        switchKey: const ValueKey('settings-hide-likes-switch'),
                         icon: Icons.favorite_border_rounded,
-                        title: 'Ẩn số lượt thích trên bài viết',
-                        subtitle:
-                            'Người khác sẽ không thấy tổng số lượt thích trên bài viết của bạn.',
+                        title: context.tr('community_settings_hide_likes'),
+                        subtitle: context.tr(
+                          'community_settings_hide_likes_desc',
+                        ),
                         value: settings.hideLikeCounts,
                         onChanged: state.isSaving
                             ? null
@@ -207,12 +308,15 @@ class _CommunitySettingsScreenState
                                   ),
                                 ),
                       ),
-                      Divider(height: 1, thickness: 1, color: tokens.border),
+                      _HairlineDivider(ig: ig),
                       _SettingsSwitchTile(
+                        switchKey:
+                            const ValueKey('settings-activity-status-switch'),
                         icon: Icons.circle_outlined,
-                        title: 'Hiển thị trạng thái hoạt động',
-                        subtitle:
-                            'Cho phép người theo dõi biết khi bạn đang hoạt động trong cộng đồng.',
+                        title: context.tr('community_settings_activity_status'),
+                        subtitle: context.tr(
+                          'community_settings_activity_status_desc',
+                        ),
                         value: settings.showActivityStatus,
                         onChanged: state.isSaving
                             ? null
@@ -222,42 +326,7 @@ class _CommunitySettingsScreenState
                                   ),
                                 ),
                       ),
-                    ],
-                  ),
-                  const SizedBox(height: 20),
-                  const _SectionHeader(title: 'TƯƠNG TÁC'),
-                  const SizedBox(height: 8),
-                  _SettingsGroupCard(
-                    children: [
-                      _SettingsNavTile(
-                        icon: Icons.chat_bubble_outline_rounded,
-                        title: 'Ai có thể nhắn tin cho bạn',
-                        trailingText: _audienceLabel(settings.whoCanDm),
-                        onTap: state.isSaving
-                            ? null
-                            : () => _pickAudience(
-                                  title: 'Ai có thể nhắn tin cho bạn',
-                                  currentValue: settings.whoCanDm,
-                                  onSelected: (val) =>
-                                      notifier.updateSettings(whoCanDm: val),
-                                ),
-                      ),
-                      Divider(height: 1, thickness: 1, color: tokens.border),
-                      _SettingsNavTile(
-                        icon: Icons.mode_comment_outlined,
-                        title: 'Ai có thể bình luận',
-                        trailingText: _audienceLabel(settings.whoCanComment),
-                        onTap: state.isSaving
-                            ? null
-                            : () => _pickAudience(
-                                  title: 'Ai có thể bình luận',
-                                  currentValue: settings.whoCanComment,
-                                  onSelected: (val) => notifier.updateSettings(
-                                    whoCanComment: val,
-                                  ),
-                                ),
-                      ),
-                      Divider(height: 1, thickness: 1, color: tokens.border),
+                      _HairlineDivider(ig: ig),
                       _MutedKeywordsSection(
                         keywords: settings.mutedKeywords,
                         maxKeywords: _maxMutedKeywords,
@@ -267,30 +336,154 @@ class _CommunitySettingsScreenState
                         onRemoveKeyword: (keyword) =>
                             _removeKeyword(settings.mutedKeywords, keyword),
                       ),
+                      _HairlineDivider(ig: ig),
+                      _SettingsNavTile(
+                        icon: Icons.volume_off_rounded,
+                        title: context.tr('community_settings_muted_accounts'),
+                        badgeCount: state.mutedUsers.length,
+                        onTap: () => CommunityBlockedMutedSheet.show(
+                          context,
+                          mode: BlockedMutedMode.muted,
+                        ),
+                      ),
                     ],
                   ),
-                  const SizedBox(height: 20),
-                  const _SectionHeader(title: 'KIỂM SOÁT TÀI KHOẢN'),
+                  const SizedBox(height: 22),
+
+                  // 3. Your archive & activity
+                  _SectionHeader(
+                    title: context.tr(
+                      'community_settings_section_archive_activity',
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  _SettingsGroupCard(
+                    children: [
+                      _SettingsNavTile(
+                        icon: Icons.bookmark_border_rounded,
+                        title: context.tr('community_settings_saved_posts'),
+                        onTap: () => Navigator.of(context)
+                            .pushNamed(AppRoutes.communitySaved),
+                      ),
+                      _HairlineDivider(ig: ig),
+                      _SettingsNavTile(
+                        icon: Icons.history_rounded,
+                        title: context.tr('community_settings_story_archive'),
+                        onTap: () => Navigator.of(context)
+                            .pushNamed(AppRoutes.communityStoryArchive),
+                      ),
+                      _HairlineDivider(ig: ig),
+                      _SettingsNavTile(
+                        icon: Icons.edit_note_rounded,
+                        title: context.tr('community_settings_drafts'),
+                        onTap: () => Navigator.of(context)
+                            .pushNamed(AppRoutes.communityDrafts),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 22),
+
+                  // 4. Saman Ecosystem Sync
+                  _SectionHeader(
+                    title: context.tr('community_settings_section_saman_sync'),
+                  ),
+                  const SizedBox(height: 8),
+                  _SettingsGroupCard(
+                    children: [
+                      _SettingsSwitchTile(
+                        switchKey:
+                            const ValueKey('settings-auto-workout-switch'),
+                        icon: Icons.fitness_center_rounded,
+                        title: context.tr(
+                          'community_settings_auto_prompt_workout',
+                        ),
+                        subtitle: context.tr(
+                          'community_settings_auto_prompt_workout_desc',
+                        ),
+                        value: settings.autoPromptShareWorkout,
+                        onChanged: state.isSaving
+                            ? null
+                            : (val) => _applyUpdate(
+                                  () => notifier.updateSettings(
+                                    autoPromptShareWorkout: val,
+                                  ),
+                                ),
+                      ),
+                      _HairlineDivider(ig: ig),
+                      _SettingsSwitchTile(
+                        switchKey: const ValueKey('settings-auto-meal-switch'),
+                        icon: Icons.restaurant_outlined,
+                        title: context.tr(
+                          'community_settings_auto_prompt_meal',
+                        ),
+                        subtitle: context.tr(
+                          'community_settings_auto_prompt_meal_desc',
+                        ),
+                        value: settings.autoPromptShareMeal,
+                        onChanged: state.isSaving
+                            ? null
+                            : (val) => _applyUpdate(
+                                  () => notifier.updateSettings(
+                                    autoPromptShareMeal: val,
+                                  ),
+                                ),
+                      ),
+                      _HairlineDivider(ig: ig),
+                      Padding(
+                        padding: const EdgeInsets.all(14),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 10,
+                          ),
+                          decoration: BoxDecoration(
+                            color: ig.surfaceElevated,
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(color: ig.border, width: 0.5),
+                          ),
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Icon(
+                                Icons.verified_user_outlined,
+                                size: 18,
+                                color: ig.primaryAction,
+                              ),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: Text(
+                                  context.tr(
+                                    'community_settings_privacy_by_design',
+                                  ),
+                                  style: ig.caption(
+                                    color: ig.textSecondary,
+                                    fontSize: 12,
+                                  ).copyWith(height: 1.4),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 22),
+
+                  // 5. Safety
+                  _SectionHeader(
+                    title: context.tr('community_settings_section_safety'),
+                  ),
                   const SizedBox(height: 8),
                   _SettingsGroupCard(
                     children: [
                       _SettingsNavTile(
                         icon: Icons.block_rounded,
-                        title: 'Tài khoản đã chặn',
+                        iconColor: ig.danger,
+                        title: context.tr('community_settings_blocked_accounts'),
                         badgeCount: state.blockedUsers.length,
                         onTap: () => CommunityBlockedMutedSheet.show(
                           context,
                           mode: BlockedMutedMode.blocked,
-                        ),
-                      ),
-                      Divider(height: 1, thickness: 1, color: tokens.border),
-                      _SettingsNavTile(
-                        icon: Icons.volume_off_rounded,
-                        title: 'Tài khoản đã ẩn tiếng',
-                        badgeCount: state.mutedUsers.length,
-                        onTap: () => CommunityBlockedMutedSheet.show(
-                          context,
-                          mode: BlockedMutedMode.muted,
                         ),
                       ),
                     ],
@@ -305,6 +498,17 @@ class _CommunitySettingsScreenState
   }
 }
 
+class _HairlineDivider extends StatelessWidget {
+  final SamanIgTokens ig;
+
+  const _HairlineDivider({required this.ig});
+
+  @override
+  Widget build(BuildContext context) {
+    return Divider(height: 0.5, thickness: 0.5, color: ig.border);
+  }
+}
+
 class _SectionHeader extends StatelessWidget {
   final String title;
 
@@ -312,18 +516,16 @@ class _SectionHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final tokens = SamanHomeTokens.of(context);
-    final textTheme = Theme.of(context).textTheme;
+    final ig = SamanIgTokens.of(context);
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 4),
       child: Text(
-        title,
-        style: textTheme.labelSmall?.copyWith(
-          fontSize: 11,
+        title.toUpperCase(),
+        style: ig.caption(
+          color: ig.textSecondary,
+          fontSize: 11.5,
           fontWeight: FontWeight.w700,
-          letterSpacing: 1.1,
-          color: tokens.textSecondary,
-        ),
+        ).copyWith(letterSpacing: 0.8),
       ),
     );
   }
@@ -336,12 +538,12 @@ class _SettingsGroupCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final tokens = SamanHomeTokens.of(context);
+    final ig = SamanIgTokens.of(context);
     return Container(
       decoration: BoxDecoration(
-        color: tokens.cardSurface,
-        borderRadius: BorderRadius.circular(SamanHomeTokens.radiusLg),
-        border: Border.all(color: tokens.border, width: 1),
+        color: ig.surface,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: ig.border, width: 0.5),
       ),
       clipBehavior: Clip.antiAlias,
       child: Column(
@@ -353,6 +555,7 @@ class _SettingsGroupCard extends StatelessWidget {
 }
 
 class _SettingsSwitchTile extends StatelessWidget {
+  final Key? switchKey;
   final IconData icon;
   final String title;
   final String subtitle;
@@ -360,6 +563,7 @@ class _SettingsSwitchTile extends StatelessWidget {
   final ValueChanged<bool>? onChanged;
 
   const _SettingsSwitchTile({
+    this.switchKey,
     required this.icon,
     required this.title,
     required this.subtitle,
@@ -369,16 +573,15 @@ class _SettingsSwitchTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final tokens = SamanHomeTokens.of(context);
-    final textTheme = Theme.of(context).textTheme;
+    final ig = SamanIgTokens.of(context);
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Padding(
             padding: const EdgeInsets.only(top: 2),
-            child: Icon(icon, size: 20, color: tokens.textSecondary),
+            child: Icon(icon, size: 20, color: ig.textSecondary),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -387,31 +590,31 @@ class _SettingsSwitchTile extends StatelessWidget {
               children: [
                 Text(
                   title,
-                  style: textTheme.titleSmall?.copyWith(
+                  style: ig.username(
                     fontSize: 14.5,
                     fontWeight: FontWeight.w600,
-                    color: tokens.textPrimary,
                   ),
                 ),
                 const SizedBox(height: 3),
                 Text(
                   subtitle,
-                  style: textTheme.bodySmall?.copyWith(
+                  style: ig.caption(
+                    color: ig.textSecondary,
                     fontSize: 12.5,
-                    color: tokens.textSecondary,
-                    height: 1.35,
-                  ),
+                  ).copyWith(height: 1.35),
                 ),
               ],
             ),
           ),
           const SizedBox(width: 12),
           Switch.adaptive(
+            key: switchKey,
             value: value,
             onChanged: onChanged,
-            activeColor: tokens.greenAccent,
-            inactiveThumbColor: tokens.textMuted,
-            inactiveTrackColor: tokens.secondarySurface,
+            activeColor: ig.primaryAction,
+            activeTrackColor: ig.primaryAction.withOpacity(0.42),
+            inactiveThumbColor: ig.textMuted,
+            inactiveTrackColor: ig.surfaceElevated,
           ),
         ],
       ),
@@ -421,6 +624,7 @@ class _SettingsSwitchTile extends StatelessWidget {
 
 class _SettingsNavTile extends StatelessWidget {
   final IconData icon;
+  final Color? iconColor;
   final String title;
   final String? trailingText;
   final int? badgeCount;
@@ -428,6 +632,7 @@ class _SettingsNavTile extends StatelessWidget {
 
   const _SettingsNavTile({
     required this.icon,
+    this.iconColor,
     required this.title,
     this.trailingText,
     this.badgeCount,
@@ -436,65 +641,71 @@ class _SettingsNavTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final tokens = SamanHomeTokens.of(context);
-    final textTheme = Theme.of(context).textTheme;
+    final ig = SamanIgTokens.of(context);
     return InkWell(
       onTap: onTap,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-        child: Row(
-          children: [
-            Icon(icon, size: 20, color: tokens.textSecondary),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Text(
-                title,
-                style: textTheme.titleSmall?.copyWith(
-                  fontSize: 14.5,
-                  fontWeight: FontWeight.w600,
-                  color: tokens.textPrimary,
-                ),
-              ),
-            ),
-            if (trailingText != null) ...[
-              Text(
-                trailingText!,
-                style: textTheme.bodySmall?.copyWith(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w500,
-                  color: tokens.textSecondary,
-                ),
-              ),
-              const SizedBox(width: 6),
-            ],
-            if (badgeCount != null) ...[
-              Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                decoration: BoxDecoration(
-                  color: tokens.secondarySurface,
-                  borderRadius:
-                      BorderRadius.circular(SamanHomeTokens.radiusSm),
-                  border: Border.all(color: tokens.border, width: 1),
-                ),
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(
+          minHeight: SamanIgTokens.minTouchTarget,
+        ),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
+          child: Row(
+            children: [
+              Icon(icon, size: 20, color: iconColor ?? ig.textSecondary),
+              const SizedBox(width: 12),
+              Expanded(
                 child: Text(
-                  '$badgeCount',
-                  style: textTheme.labelSmall?.copyWith(
-                    fontSize: 12,
+                  title,
+                  style: ig.username(
+                    fontSize: 14.5,
                     fontWeight: FontWeight.w600,
-                    color: tokens.textPrimary,
-                    fontFeatures: const [FontFeature.tabularFigures()],
                   ),
                 ),
               ),
-              const SizedBox(width: 6),
+              if (trailingText != null) ...[
+                const SizedBox(width: 8),
+                Text(
+                  trailingText!,
+                  style: ig.caption(
+                    color: ig.textSecondary,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                const SizedBox(width: 4),
+              ],
+              if (badgeCount != null) ...[
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 3,
+                  ),
+                  decoration: BoxDecoration(
+                    color: ig.surfaceElevated,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: ig.border, width: 0.5),
+                  ),
+                  child: Text(
+                    '$badgeCount',
+                    style: ig.caption(
+                      color: ig.textPrimary,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                    ).copyWith(
+                      fontFeatures: const [FontFeature.tabularFigures()],
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 6),
+              ],
+              Icon(
+                Icons.chevron_right_rounded,
+                size: 20,
+                color: ig.textMuted,
+              ),
             ],
-            Icon(
-              Icons.chevron_right_rounded,
-              size: 20,
-              color: tokens.textMuted,
-            ),
-          ],
+          ),
         ),
       ),
     );
@@ -518,8 +729,7 @@ class _MutedKeywordsSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final tokens = SamanHomeTokens.of(context);
-    final textTheme = Theme.of(context).textTheme;
+    final ig = SamanIgTokens.of(context);
     return Padding(
       padding: const EdgeInsets.all(16),
       child: Column(
@@ -530,25 +740,25 @@ class _MutedKeywordsSection extends StatelessWidget {
               Icon(
                 Icons.filter_alt_off_outlined,
                 size: 20,
-                color: tokens.textSecondary,
+                color: ig.textSecondary,
               ),
               const SizedBox(width: 12),
               Expanded(
                 child: Text(
-                  'Từ khóa đã ẩn',
-                  style: textTheme.titleSmall?.copyWith(
+                  context.tr('community_settings_muted_keywords'),
+                  style: ig.username(
                     fontSize: 14.5,
                     fontWeight: FontWeight.w600,
-                    color: tokens.textPrimary,
                   ),
                 ),
               ),
               Text(
                 '${keywords.length}/$maxKeywords',
-                style: textTheme.bodySmall?.copyWith(
+                style: ig.caption(
+                  color: ig.textSecondary,
                   fontSize: 12,
-                  fontWeight: FontWeight.w500,
-                  color: tokens.textSecondary,
+                  fontWeight: FontWeight.w600,
+                ).copyWith(
                   fontFeatures: const [FontFeature.tabularFigures()],
                 ),
               ),
@@ -558,12 +768,11 @@ class _MutedKeywordsSection extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.only(left: 32),
             child: Text(
-              'Bài viết hoặc bình luận chứa từ khóa này sẽ được ẩn khỏi bảng tin của bạn.',
-              style: textTheme.bodySmall?.copyWith(
+              context.tr('community_settings_muted_keywords_desc'),
+              style: ig.caption(
+                color: ig.textSecondary,
                 fontSize: 12.5,
-                color: tokens.textSecondary,
-                height: 1.35,
-              ),
+              ).copyWith(height: 1.35),
             ),
           ),
           const SizedBox(height: 12),
@@ -573,36 +782,37 @@ class _MutedKeywordsSection extends StatelessWidget {
             children: [
               for (final keyword in keywords)
                 Container(
-                  padding: const EdgeInsets.fromLTRB(10, 6, 6, 6),
+                  constraints: const BoxConstraints(minHeight: 36),
+                  padding: const EdgeInsets.fromLTRB(10, 4, 4, 4),
                   decoration: BoxDecoration(
-                    color: tokens.secondarySurface,
-                    borderRadius:
-                        BorderRadius.circular(SamanHomeTokens.radiusSm),
-                    border: Border.all(color: tokens.border, width: 1),
+                    color: ig.surfaceElevated,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: ig.border, width: 0.5),
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(
                         keyword,
-                        style: textTheme.labelMedium?.copyWith(
+                        style: ig.caption(
+                          color: ig.textPrimary,
                           fontSize: 12.5,
                           fontWeight: FontWeight.w500,
-                          color: tokens.textPrimary,
                         ),
                       ),
-                      const SizedBox(width: 6),
+                      const SizedBox(width: 4),
                       InkWell(
+                        key: ValueKey('remove-keyword-$keyword'),
                         onTap:
                             isDisabled ? null : () => onRemoveKeyword(keyword),
-                        borderRadius:
-                            BorderRadius.circular(SamanHomeTokens.radiusSm),
-                        child: Padding(
-                          padding: const EdgeInsets.all(2),
+                        borderRadius: BorderRadius.circular(8),
+                        child: SizedBox(
+                          width: 28,
+                          height: 28,
                           child: Icon(
                             Icons.close_rounded,
                             size: 14,
-                            color: tokens.textSecondary,
+                            color: ig.textSecondary,
                           ),
                         ),
                       ),
@@ -610,19 +820,21 @@ class _MutedKeywordsSection extends StatelessWidget {
                   ),
                 ),
               InkWell(
+                key: const ValueKey('add-muted-keyword-btn'),
                 onTap: isDisabled ? null : onAddPressed,
-                borderRadius: BorderRadius.circular(SamanHomeTokens.radiusMd),
+                borderRadius: BorderRadius.circular(10),
                 child: Container(
-                  constraints: const BoxConstraints(minHeight: 44),
+                  constraints: const BoxConstraints(
+                    minHeight: SamanIgTokens.minTouchTarget,
+                  ),
                   padding: const EdgeInsets.symmetric(
                     horizontal: 12,
                     vertical: 10,
                   ),
                   decoration: BoxDecoration(
-                    color: tokens.secondarySurface,
-                    borderRadius:
-                        BorderRadius.circular(SamanHomeTokens.radiusMd),
-                    border: Border.all(color: tokens.border, width: 1),
+                    color: ig.surfaceElevated,
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: ig.border, width: 0.5),
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
@@ -630,15 +842,15 @@ class _MutedKeywordsSection extends StatelessWidget {
                       Icon(
                         Icons.add_rounded,
                         size: 16,
-                        color: tokens.greenAccent,
+                        color: ig.primaryAction,
                       ),
                       const SizedBox(width: 4),
                       Text(
-                        'Thêm từ khóa',
-                        style: textTheme.labelMedium?.copyWith(
+                        context.tr('community_settings_add_keyword'),
+                        style: ig.caption(
+                          color: ig.primaryAction,
                           fontSize: 12.5,
                           fontWeight: FontWeight.w600,
-                          color: tokens.greenAccent,
                         ),
                       ),
                     ],
@@ -662,25 +874,6 @@ class _AudiencePickerSheet extends StatelessWidget {
     required this.currentValue,
   });
 
-  static const List<({String value, String label, String subtitle})> _options =
-      [
-    (
-      value: 'everyone',
-      label: 'Mọi người',
-      subtitle: 'Tất cả thành viên trong cộng đồng Saman',
-    ),
-    (
-      value: 'followers',
-      label: 'Người theo dõi',
-      subtitle: 'Chỉ những người đang theo dõi bạn',
-    ),
-    (
-      value: 'nobody',
-      label: 'Không ai',
-      subtitle: 'Tắt hoàn toàn tương tác này',
-    ),
-  ];
-
   static Future<String?> show(
     BuildContext context, {
     required String title,
@@ -698,18 +891,33 @@ class _AudiencePickerSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final tokens = SamanHomeTokens.of(context);
-    final textTheme = Theme.of(context).textTheme;
+    final ig = SamanIgTokens.of(context);
+    final options = <({String value, String label, String subtitle})>[
+      (
+        value: 'everyone',
+        label: context.tr('community_settings_audience_everyone'),
+        subtitle: context.tr('community_settings_audience_everyone_desc'),
+      ),
+      (
+        value: 'followers',
+        label: context.tr('community_settings_audience_followers'),
+        subtitle: context.tr('community_settings_audience_followers_desc'),
+      ),
+      (
+        value: 'nobody',
+        label: context.tr('community_settings_audience_nobody'),
+        subtitle: context.tr('community_settings_audience_nobody_desc'),
+      ),
+    ];
+
     return Container(
       decoration: BoxDecoration(
-        color: tokens.cardSurface,
-        borderRadius: const BorderRadius.vertical(
-          top: Radius.circular(SamanHomeTokens.radiusLg),
-        ),
+        color: ig.surface,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(18)),
         border: Border(
-          top: BorderSide(color: tokens.border, width: 1),
-          left: BorderSide(color: tokens.border, width: 1),
-          right: BorderSide(color: tokens.border, width: 1),
+          top: BorderSide(color: ig.border, width: 0.5),
+          left: BorderSide(color: ig.border, width: 0.5),
+          right: BorderSide(color: ig.border, width: 0.5),
         ),
       ),
       child: SafeArea(
@@ -723,38 +931,37 @@ class _AudiencePickerSheet extends StatelessWidget {
                 width: 36,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: tokens.borderHigh,
-                  borderRadius: BorderRadius.circular(SamanHomeTokens.radiusPill),
+                  color: ig.textMuted.withOpacity(0.45),
+                  borderRadius: BorderRadius.circular(999),
                 ),
               ),
             ),
             Padding(
-              padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
+              padding: const EdgeInsets.fromLTRB(16, 2, 16, 12),
               child: Align(
                 alignment: Alignment.centerLeft,
                 child: Text(
                   title,
-                  style: textTheme.titleMedium?.copyWith(
+                  style: ig.displayTitle(
                     fontSize: 16,
                     fontWeight: FontWeight.w700,
-                    color: tokens.textPrimary,
                   ),
                 ),
               ),
             ),
-            Divider(height: 1, thickness: 1, color: tokens.border),
+            Divider(height: 0.5, thickness: 0.5, color: ig.border),
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  for (var i = 0; i < _options.length; i++) ...[
+                  for (var i = 0; i < options.length; i++) ...[
                     if (i > 0) const SizedBox(height: 8),
                     _AudienceOptionTile(
-                      label: _options[i].label,
-                      subtitle: _options[i].subtitle,
-                      isSelected: _options[i].value == currentValue,
-                      onTap: () => Navigator.of(context).pop(_options[i].value),
+                      label: options[i].label,
+                      subtitle: options[i].subtitle,
+                      isSelected: options[i].value == currentValue,
+                      onTap: () => Navigator.of(context).pop(options[i].value),
                     ),
                   ],
                 ],
@@ -782,19 +989,21 @@ class _AudienceOptionTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final tokens = SamanHomeTokens.of(context);
-    final textTheme = Theme.of(context).textTheme;
+    final ig = SamanIgTokens.of(context);
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(SamanHomeTokens.radiusMd),
+      borderRadius: BorderRadius.circular(10),
       child: Container(
+        constraints: const BoxConstraints(
+          minHeight: SamanIgTokens.minTouchTarget,
+        ),
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
         decoration: BoxDecoration(
-          color: tokens.secondarySurface,
-          borderRadius: BorderRadius.circular(SamanHomeTokens.radiusMd),
+          color: ig.surfaceElevated,
+          borderRadius: BorderRadius.circular(10),
           border: Border.all(
-            color: isSelected ? tokens.greenAccent : tokens.border,
-            width: 1,
+            color: isSelected ? ig.primaryAction : ig.border,
+            width: isSelected ? 1 : 0.5,
           ),
         ),
         child: Row(
@@ -805,18 +1014,17 @@ class _AudienceOptionTile extends StatelessWidget {
                 children: [
                   Text(
                     label,
-                    style: textTheme.titleSmall?.copyWith(
+                    style: ig.username(
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
-                      color: tokens.textPrimary,
                     ),
                   ),
                   const SizedBox(height: 2),
                   Text(
                     subtitle,
-                    style: textTheme.bodySmall?.copyWith(
+                    style: ig.caption(
+                      color: ig.textSecondary,
                       fontSize: 12,
-                      color: tokens.textSecondary,
                     ),
                   ),
                 ],
@@ -828,7 +1036,7 @@ class _AudienceOptionTile extends StatelessWidget {
                   ? Icons.check_circle_rounded
                   : Icons.radio_button_unchecked_rounded,
               size: 20,
-              color: isSelected ? tokens.greenAccent : tokens.textMuted,
+              color: isSelected ? ig.primaryAction : ig.textMuted,
             ),
           ],
         ),
@@ -868,97 +1076,63 @@ class _AddKeywordDialogState extends State<_AddKeywordDialog> {
 
   @override
   Widget build(BuildContext context) {
-    final tokens = SamanHomeTokens.of(context);
-    final textTheme = Theme.of(context).textTheme;
+    final ig = SamanIgTokens.of(context);
     return AlertDialog(
-      backgroundColor: tokens.cardSurface,
+      backgroundColor: ig.surface,
       surfaceTintColor: Colors.transparent,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(SamanHomeTokens.radiusLg),
-        side: BorderSide(color: tokens.border, width: 1),
+        borderRadius: BorderRadius.circular(14),
+        side: BorderSide(color: ig.border, width: 0.5),
       ),
       title: Text(
-        'Thêm từ khóa ẩn',
-        style: textTheme.titleMedium?.copyWith(
-          fontSize: 16,
-          fontWeight: FontWeight.w700,
-          color: tokens.textPrimary,
-        ),
+        context.tr('community_settings_add_keyword_title'),
+        style: ig.displayTitle(fontSize: 16, fontWeight: FontWeight.w700),
       ),
       content: TextField(
         controller: _controller,
         autofocus: true,
         maxLength: 40,
-        style: textTheme.bodyMedium?.copyWith(
-          color: tokens.textPrimary,
-          fontSize: 14,
-        ),
-        decoration: InputDecoration(
-          hintText: 'Ví dụ: quảng cáo, spam...',
-          hintStyle: textTheme.bodySmall?.copyWith(
-            color: tokens.textMuted,
-            fontSize: 13.5,
-          ),
-          filled: true,
-          fillColor: tokens.secondarySurface,
-          counterStyle: textTheme.labelSmall?.copyWith(
-            color: tokens.textMuted,
-            fontSize: 11,
-            fontFeatures: const [FontFeature.tabularFigures()],
-          ),
-          contentPadding:
-              const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(SamanHomeTokens.radiusMd),
-            borderSide: BorderSide(color: tokens.border, width: 1),
-          ),
-          enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(SamanHomeTokens.radiusMd),
-            borderSide: BorderSide(color: tokens.border, width: 1),
-          ),
-          focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(SamanHomeTokens.radiusMd),
-            borderSide: BorderSide(color: tokens.greenAccent, width: 1),
-          ),
-        ),
+        style: ig.body(color: ig.textPrimary, fontSize: 14),
+        decoration: ig
+            .inputDecoration(
+              hintText: context.tr('community_settings_add_keyword_hint'),
+              borderRadius: 10,
+            )
+            .copyWith(
+              counterStyle: ig.caption(
+                color: ig.textMuted,
+                fontSize: 11,
+              ).copyWith(
+                fontFeatures: const [FontFeature.tabularFigures()],
+              ),
+            ),
         onSubmitted: (_) => _submit(),
       ),
       actions: [
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
           style: TextButton.styleFrom(
-            foregroundColor: tokens.textSecondary,
-            minimumSize: const Size(0, 44),
+            foregroundColor: ig.textSecondary,
+            minimumSize: const Size(
+              SamanIgTokens.minTouchTarget,
+              SamanIgTokens.minTouchTarget,
+            ),
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(SamanHomeTokens.radiusMd),
+              borderRadius: BorderRadius.circular(8),
             ),
           ),
           child: Text(
-            'Hủy',
-            style: textTheme.labelLarge?.copyWith(
-              color: tokens.textSecondary,
+            context.tr('community_settings_cancel'),
+            style: ig.buttonLabel(
+              color: ig.textSecondary,
               fontWeight: FontWeight.w600,
             ),
           ),
         ),
         ElevatedButton(
           onPressed: _submit,
-          style: ElevatedButton.styleFrom(
-            backgroundColor: tokens.greenAccent,
-            foregroundColor: tokens.primaryCtaText,
-            minimumSize: const Size(0, 44),
-            elevation: 0,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(SamanHomeTokens.radiusMd),
-            ),
-          ),
-          child: Text(
-            'Thêm',
-            style: textTheme.labelLarge?.copyWith(
-              color: tokens.primaryCtaText,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
+          style: ig.primaryButtonStyle(borderRadius: 8),
+          child: Text(context.tr('community_settings_add')),
         ),
       ],
     );

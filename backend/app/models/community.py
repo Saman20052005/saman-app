@@ -376,18 +376,26 @@ class CommunitySettingsModel(BaseModel):
     is_private_account: bool = False
     who_can_dm: Literal["everyone", "followers", "nobody"] = "everyone"
     who_can_comment: Literal["everyone", "followers", "nobody"] = "everyone"
+    who_can_reply_story: Literal["everyone", "followers", "nobody"] = "everyone"
+    allow_mentions: Literal["everyone", "followers", "nobody"] = "everyone"
     hide_like_counts: bool = False
     show_activity_status: bool = True
-    muted_keywords: List[str] = Field(default_factory=list, max_length=20)
+    auto_prompt_share_workout: bool = True
+    auto_prompt_share_meal: bool = True
+    muted_keywords: List[str] = Field(default_factory=list, max_length=50)
 
 
 class UpdateCommunitySettingsRequest(BaseModel):
     is_private_account: Optional[StrictBool] = None
     who_can_dm: Optional[Literal["everyone", "followers", "nobody"]] = None
     who_can_comment: Optional[Literal["everyone", "followers", "nobody"]] = None
+    who_can_reply_story: Optional[Literal["everyone", "followers", "nobody"]] = None
+    allow_mentions: Optional[Literal["everyone", "followers", "nobody"]] = None
     hide_like_counts: Optional[StrictBool] = None
     show_activity_status: Optional[StrictBool] = None
-    muted_keywords: Optional[List[str]] = Field(None, max_length=20)
+    auto_prompt_share_workout: Optional[StrictBool] = None
+    auto_prompt_share_meal: Optional[StrictBool] = None
+    muted_keywords: Optional[List[str]] = Field(None, max_length=200)
     model_config = {"extra": "forbid"}
 
 
@@ -458,6 +466,16 @@ class CommunityStoryAuthorGroupModel(BaseModel):
 
 class CommunityStoriesFeedResponse(BaseModel):
     items: List[CommunityStoryAuthorGroupModel] = Field(default_factory=list)
+
+
+class CommunityArchivedStoryModel(CommunityStoryModel):
+    is_expired: bool = True
+
+
+class CommunityStoriesArchiveResponse(BaseModel):
+    items: List[CommunityArchivedStoryModel] = Field(default_factory=list)
+    next_cursor: Optional[str] = None
+    total_count: int = 0
 
 
 class StoryViewResponse(BaseModel):

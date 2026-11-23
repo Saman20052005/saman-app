@@ -1168,10 +1168,12 @@ void resetCommunityStateForUser(WidgetRef ref, [String? userId]) {
   unawaited(ref.read(communityDmWsServiceProvider).disconnect());
   ref.read(communitySettingsProvider.notifier).resetForUser(userId);
   ref.read(communityStoriesProvider.notifier).resetForUser(userId);
+  ref.read(communityStoryArchiveProvider.notifier).resetForUser(userId);
   ref.read(communityInboxProvider.notifier).resetForUser(userId);
   ref.read(communityDmUnreadProvider.notifier).resetForUser(userId);
   ref.invalidate(communitySettingsProvider);
   ref.invalidate(communityStoriesProvider);
+  ref.invalidate(communityStoryArchiveProvider);
   ref.invalidate(communityInboxProvider);
   ref.invalidate(communityChatThreadProvider);
   ref.invalidate(communityDmUnreadProvider);
@@ -1198,10 +1200,12 @@ void resetCommunityStateInContainer(ProviderContainer container, [String? userId
   unawaited(container.read(communityDmWsServiceProvider).disconnect());
   container.read(communitySettingsProvider.notifier).resetForUser(userId);
   container.read(communityStoriesProvider.notifier).resetForUser(userId);
+  container.read(communityStoryArchiveProvider.notifier).resetForUser(userId);
   container.read(communityInboxProvider.notifier).resetForUser(userId);
   container.read(communityDmUnreadProvider.notifier).resetForUser(userId);
   container.invalidate(communitySettingsProvider);
   container.invalidate(communityStoriesProvider);
+  container.invalidate(communityStoryArchiveProvider);
   container.invalidate(communityInboxProvider);
   container.invalidate(communityChatThreadProvider);
   container.invalidate(communityDmUnreadProvider);

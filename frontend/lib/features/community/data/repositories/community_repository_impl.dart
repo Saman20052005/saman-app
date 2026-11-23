@@ -791,8 +791,12 @@ class CommunityRepositoryImpl implements CommunityRepository {
     bool? isPrivateAccount,
     String? whoCanDm,
     String? whoCanComment,
+    String? whoCanReplyStory,
+    String? allowMentions,
     bool? hideLikeCounts,
     bool? showActivityStatus,
+    bool? autoPromptShareWorkout,
+    bool? autoPromptShareMeal,
     List<String>? mutedKeywords,
   }) async {
     if (isRemote) {
@@ -800,8 +804,16 @@ class CommunityRepositoryImpl implements CommunityRepository {
         if (isPrivateAccount != null) 'is_private_account': isPrivateAccount,
         if (whoCanDm != null) 'who_can_dm': whoCanDm,
         if (whoCanComment != null) 'who_can_comment': whoCanComment,
+        if (whoCanReplyStory != null)
+          'who_can_reply_story': whoCanReplyStory,
+        if (allowMentions != null) 'allow_mentions': allowMentions,
         if (hideLikeCounts != null) 'hide_like_counts': hideLikeCounts,
-        if (showActivityStatus != null) 'show_activity_status': showActivityStatus,
+        if (showActivityStatus != null)
+          'show_activity_status': showActivityStatus,
+        if (autoPromptShareWorkout != null)
+          'auto_prompt_share_workout': autoPromptShareWorkout,
+        if (autoPromptShareMeal != null)
+          'auto_prompt_share_meal': autoPromptShareMeal,
         if (mutedKeywords != null) 'muted_keywords': mutedKeywords,
       };
       return _remoteDatasource!.updateSettings(body);
@@ -810,8 +822,12 @@ class CommunityRepositoryImpl implements CommunityRepository {
       isPrivateAccount: isPrivateAccount,
       whoCanDm: whoCanDm,
       whoCanComment: whoCanComment,
+      whoCanReplyStory: whoCanReplyStory,
+      allowMentions: allowMentions,
       hideLikeCounts: hideLikeCounts,
       showActivityStatus: showActivityStatus,
+      autoPromptShareWorkout: autoPromptShareWorkout,
+      autoPromptShareMeal: autoPromptShareMeal,
       mutedKeywords: mutedKeywords,
     );
   }
@@ -897,6 +913,26 @@ class CommunityRepositoryImpl implements CommunityRepository {
       return _remoteDatasource!.getStories();
     }
     return _fakeDatasource.getStories();
+  }
+
+  @override
+  Future<CommunityStoriesArchivePage> getArchivedStories({
+    bool includeActive = false,
+    int limit = 30,
+    String? cursor,
+  }) async {
+    if (isRemote) {
+      return _remoteDatasource!.getArchivedStories(
+        includeActive: includeActive,
+        limit: limit,
+        cursor: cursor,
+      );
+    }
+    return _fakeDatasource.getArchivedStories(
+      includeActive: includeActive,
+      limit: limit,
+      cursor: cursor,
+    );
   }
 
   @override

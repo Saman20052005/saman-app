@@ -4,7 +4,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:just_audio/just_audio.dart';
 
-import '../../../../screens/home/tokens/saman_home_tokens.dart';
+import '../tokens/saman_ig_tokens.dart';
 
 /// Voice note audio bubble for Messenger-Lite DM threads.
 /// Uses [AudioPlayer] (`just_audio`) with lazy URL loading, minimalist
@@ -13,7 +13,7 @@ class DmVoiceBubble extends StatefulWidget {
   final String mediaUrl;
   final double? durationSeconds;
   final bool isMine;
-  final SamanHomePalette tokens;
+  final SamanIgTokens tokens;
 
   const DmVoiceBubble({
     super.key,
@@ -201,19 +201,23 @@ class _DmVoiceBubbleState extends State<DmVoiceBubble> {
 
   @override
   Widget build(BuildContext context) {
-    final tokens = widget.tokens;
+    final ig = widget.tokens;
     final textTheme = Theme.of(context).textTheme;
     final disableAnimations = MediaQuery.disableAnimationsOf(context);
 
-    final fgColor = widget.isMine ? Colors.white : tokens.textPrimary;
-    final mutedColor =
-        widget.isMine ? Colors.white.withOpacity(0.78) : tokens.textSecondary;
-    final activeBarColor = widget.isMine ? Colors.white : tokens.greenAccent;
-    final inactiveBarColor =
-        widget.isMine ? Colors.white.withOpacity(0.32) : tokens.borderHigh;
-    final playButtonBg = widget.isMine ? Colors.white : tokens.greenAccent;
+    final fgColor = widget.isMine ? ig.onPrimaryAction : ig.textPrimary;
+    final mutedColor = widget.isMine
+        ? ig.onPrimaryAction.withOpacity(0.78)
+        : ig.textSecondary;
+    final activeBarColor =
+        widget.isMine ? ig.onPrimaryAction : ig.primaryAction;
+    final inactiveBarColor = widget.isMine
+        ? ig.onPrimaryAction.withOpacity(0.32)
+        : ig.textMuted.withOpacity(0.45);
+    final playButtonBg =
+        widget.isMine ? ig.onPrimaryAction : ig.primaryAction;
     final playButtonIcon =
-        widget.isMine ? const Color(0xFF059669) : tokens.primaryCtaText;
+        widget.isMine ? ig.dmBubbleSent : ig.onPrimaryAction;
 
     final double progress = _totalDuration.inMilliseconds > 0
         ? (_position.inMilliseconds / _totalDuration.inMilliseconds)

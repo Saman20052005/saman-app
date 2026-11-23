@@ -31,6 +31,7 @@ import '../features/community/presentation/screens/qa/community_question_detail_
 import '../features/community/presentation/screens/dm/community_inbox_screen.dart';
 import '../features/community/presentation/screens/dm/community_chat_thread_screen.dart';
 import '../features/community/presentation/screens/settings/community_settings_screen.dart';
+import '../features/community/presentation/screens/stories/community_story_archive_screen.dart';
 import '../features/community/presentation/screens/stories/community_story_viewer_screen.dart';
 
 class AppRoutes {
@@ -64,6 +65,7 @@ class AppRoutes {
   static const String communitySettings = '/community/settings';
   static const String communityChat = '/community/chat';
   static const String communityStoryViewer = '/community/stories/viewer';
+  static const String communityStoryArchive = '/community/stories/archive';
 
   // 2. Hàm Generate Route tập trung
   static Route<dynamic> onGenerateRoute(
@@ -306,6 +308,12 @@ class AppRoutes {
             groups: groups,
             initialGroupIndex: initialGroupIndex,
           ),
+        );
+
+      case communityStoryArchive:
+        return MaterialPageRoute(
+          settings: settings,
+          builder: (_) => const CommunityStoryArchiveScreen(),
         );
 
       // Mặc định: Trả về trang lỗi hoặc Login nếu không tìm thấy route

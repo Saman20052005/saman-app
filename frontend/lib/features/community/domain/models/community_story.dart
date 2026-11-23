@@ -91,3 +91,90 @@ class CommunityStoryAuthorGroup {
     );
   }
 }
+
+class CommunityArchivedStory extends CommunityStory {
+  final bool isExpired;
+
+  const CommunityArchivedStory({
+    required super.id,
+    required super.userId,
+    required super.mediaType,
+    super.mediaUrl,
+    super.caption = '',
+    super.backgroundColor,
+    super.privacy = 'public',
+    super.viewCount = 0,
+    super.isViewed = false,
+    super.timeAgo = 'Vừa xong',
+    required super.createdAt,
+    required super.expiresAt,
+    this.isExpired = true,
+  });
+
+  factory CommunityArchivedStory.fromStory(
+    CommunityStory story, {
+    bool? isExpired,
+  }) {
+    final now = DateTime.now().toUtc();
+    return CommunityArchivedStory(
+      id: story.id,
+      userId: story.userId,
+      mediaType: story.mediaType,
+      mediaUrl: story.mediaUrl,
+      caption: story.caption,
+      backgroundColor: story.backgroundColor,
+      privacy: story.privacy,
+      viewCount: story.viewCount,
+      isViewed: story.isViewed,
+      timeAgo: story.timeAgo,
+      createdAt: story.createdAt,
+      expiresAt: story.expiresAt,
+      isExpired: isExpired ?? !story.expiresAt.isAfter(now),
+    );
+  }
+
+  @override
+  CommunityArchivedStory copyWith({
+    String? id,
+    String? userId,
+    String? mediaType,
+    String? mediaUrl,
+    String? caption,
+    String? backgroundColor,
+    String? privacy,
+    int? viewCount,
+    bool? isViewed,
+    String? timeAgo,
+    DateTime? createdAt,
+    DateTime? expiresAt,
+    bool? isExpired,
+  }) {
+    return CommunityArchivedStory(
+      id: id ?? this.id,
+      userId: userId ?? this.userId,
+      mediaType: mediaType ?? this.mediaType,
+      mediaUrl: mediaUrl ?? this.mediaUrl,
+      caption: caption ?? this.caption,
+      backgroundColor: backgroundColor ?? this.backgroundColor,
+      privacy: privacy ?? this.privacy,
+      viewCount: viewCount ?? this.viewCount,
+      isViewed: isViewed ?? this.isViewed,
+      timeAgo: timeAgo ?? this.timeAgo,
+      createdAt: createdAt ?? this.createdAt,
+      expiresAt: expiresAt ?? this.expiresAt,
+      isExpired: isExpired ?? this.isExpired,
+    );
+  }
+}
+
+class CommunityStoriesArchivePage {
+  final List<CommunityArchivedStory> items;
+  final String? nextCursor;
+  final int totalCount;
+
+  const CommunityStoriesArchivePage({
+    this.items = const [],
+    this.nextCursor,
+    this.totalCount = 0,
+  });
+}

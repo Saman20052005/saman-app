@@ -22,8 +22,60 @@ class CommunityFakeDatasource {
   final Set<String> _blockedUserIds = <String>{};
   final Set<String> _mutedUserIds = <String>{};
   final List<CommunityStoryAuthorGroup> _storyGroups = [];
+  late final List<CommunityArchivedStory> _archivedStories =
+      _defaultArchivedStories(currentUserId);
   final Map<String, DmConversation> _conversations = {};
   final Map<String, List<DmMessage>> _messagesByConv = {};
+
+  static List<CommunityArchivedStory> _defaultArchivedStories(String userId) {
+    final now = DateTime.now().toUtc();
+    return [
+      CommunityArchivedStory(
+        id: 'arch_story_1',
+        userId: userId,
+        mediaType: 'photo',
+        mediaUrl:
+            'https://images.unsplash.com/photo-1517836357463-d25dfeac3438?w=800&auto=format&fit=crop',
+        caption: '[SAMAN_WORKOUT] Upper Body • 45 phút\nHoàn thành buổi tập sáng!',
+        privacy: 'public',
+        viewCount: 42,
+        isViewed: true,
+        timeAgo: '3 ngày trước',
+        createdAt: now.subtract(const Duration(days: 3)),
+        expiresAt: now.subtract(const Duration(days: 2)),
+        isExpired: true,
+      ),
+      CommunityArchivedStory(
+        id: 'arch_story_2',
+        userId: userId,
+        mediaType: 'text',
+        caption: '[SAMAN_MEAL] Cơm ức gà & bông cải\nĐủ đạm cho buổi trưa năng lượng',
+        backgroundColor: '#1E293B',
+        privacy: 'followers_only',
+        viewCount: 19,
+        isViewed: true,
+        timeAgo: '6 ngày trước',
+        createdAt: now.subtract(const Duration(days: 6)),
+        expiresAt: now.subtract(const Duration(days: 5)),
+        isExpired: true,
+      ),
+      CommunityArchivedStory(
+        id: 'arch_story_3',
+        userId: userId,
+        mediaType: 'photo',
+        mediaUrl:
+            'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=800&auto=format&fit=crop',
+        caption: 'Salad cá hồi sau giờ tập',
+        privacy: 'public',
+        viewCount: 68,
+        isViewed: true,
+        timeAgo: '10 ngày trước',
+        createdAt: now.subtract(const Duration(days: 10)),
+        expiresAt: now.subtract(const Duration(days: 9)),
+        isExpired: true,
+      ),
+    ];
+  }
 
   static void resetStorage() {
     _sharedUserDrafts.clear();
@@ -876,16 +928,24 @@ class CommunityFakeDatasource {
     bool? isPrivateAccount,
     String? whoCanDm,
     String? whoCanComment,
+    String? whoCanReplyStory,
+    String? allowMentions,
     bool? hideLikeCounts,
     bool? showActivityStatus,
+    bool? autoPromptShareWorkout,
+    bool? autoPromptShareMeal,
     List<String>? mutedKeywords,
   }) {
     _settings = _settings.copyWith(
       isPrivateAccount: isPrivateAccount,
       whoCanDm: whoCanDm,
       whoCanComment: whoCanComment,
+      whoCanReplyStory: whoCanReplyStory,
+      allowMentions: allowMentions,
       hideLikeCounts: hideLikeCounts,
       showActivityStatus: showActivityStatus,
+      autoPromptShareWorkout: autoPromptShareWorkout,
+      autoPromptShareMeal: autoPromptShareMeal,
       mutedKeywords: mutedKeywords,
     );
     return _settings;
@@ -938,6 +998,52 @@ class CommunityFakeDatasource {
 
   List<CommunityStoryAuthorGroup> getStories() {
     return List.unmodifiable(_storyGroups);
+  }
+
+  void clearArchivedStories() {
+    _archivedStories.clear();
+  }
+
+  void addArchivedStory(CommunityArchivedStory story) {
+    _archivedStories.insert(0, story);
+  }
+
+  CommunityStoriesArchivePage getArchivedStories({
+    bool includeActive = false,
+    int limit = 30,
+    String? cursor,
+  }) {
+    final now = DateTime.now().toUtc();
+    final combined = <CommunityArchivedStory>[
+      ..._archivedStories.where((s) => includeActive || s.isExpired || !s.expiresAt.isAfter(now)),
+    ];
+    if (includeActive) {
+      for (final group in _storyGroups.where((g) => g.isSelf)) {
+        for (final s in group.stories) {
+          if (!combined.any((existing) => existing.id == s.id)) {
+            combined.add(
+              CommunityArchivedStory.fromStory(
+                s,
+                isExpired: !s.expiresAt.isAfter(now),
+              ),
+            );
+          }
+        }
+      }
+    }
+    combined.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+
+    final startIndex = int.tryParse(cursor ?? '') ?? 0;
+    final safeStart = startIndex.clamp(0, combined.length);
+    final endIndex = (safeStart + limit).clamp(0, combined.length);
+    final pageItems = combined.sublist(safeStart, endIndex);
+    final nextCursor = endIndex < combined.length ? '$endIndex' : null;
+
+    return CommunityStoriesArchivePage(
+      items: pageItems,
+      nextCursor: nextCursor,
+      totalCount: combined.length,
+    );
   }
 
   CommunityStory createStory({
@@ -1005,6 +1111,11 @@ class CommunityFakeDatasource {
   }
 
   bool deleteStory(String storyId) {
+    final archivedBefore = _archivedStories.length;
+    _archivedStories.removeWhere((s) => s.id == storyId);
+    if (_archivedStories.length != archivedBefore) {
+      return true;
+    }
     for (var i = 0; i < _storyGroups.length; i++) {
       final group = _storyGroups[i];
       final nextStories = group.stories.where((s) => s.id != storyId).toList();

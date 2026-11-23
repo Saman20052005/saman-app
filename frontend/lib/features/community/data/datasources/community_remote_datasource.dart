@@ -999,6 +999,36 @@ class CommunityRemoteDatasourceImpl implements CommunityRemoteDatasource {
     }).toList();
   }
 
+  Future<CommunityStoriesArchivePage> getArchivedStories({
+    bool includeActive = false,
+    int limit = 30,
+    String? cursor,
+  }) async {
+    final response = await dio.get(
+      '/api/community/stories/archive',
+      queryParameters: {
+        'include_active': includeActive,
+        'limit': limit,
+        if (cursor != null && cursor.isNotEmpty) 'cursor': cursor,
+      },
+    );
+    final data = Map<String, dynamic>.from(response.data as Map);
+    final itemsRaw = data['items'] as List<dynamic>? ?? const [];
+    final items = itemsRaw.map((raw) {
+      final json = Map<String, dynamic>.from(raw as Map);
+      final story = _parseStory(json);
+      return CommunityArchivedStory.fromStory(
+        story,
+        isExpired: json['is_expired'] as bool? ?? true,
+      );
+    }).toList();
+    return CommunityStoriesArchivePage(
+      items: items,
+      nextCursor: data['next_cursor'] as String?,
+      totalCount: (data['total_count'] as num?)?.toInt() ?? items.length,
+    );
+  }
+
   Future<CommunityStory> createStory({
     required String mediaType,
     String? mediaUrl,
@@ -1274,6 +1304,21 @@ extension CommunityRemoteDatasourceWave4Extension on CommunityRemoteDatasource {
       return (this as CommunityRemoteDatasourceImpl).getStories();
     }
     throw UnsupportedError('Stories not supported by this datasource double');
+  }
+
+  Future<CommunityStoriesArchivePage> getArchivedStories({
+    bool includeActive = false,
+    int limit = 30,
+    String? cursor,
+  }) {
+    if (this is CommunityRemoteDatasourceImpl) {
+      return (this as CommunityRemoteDatasourceImpl).getArchivedStories(
+        includeActive: includeActive,
+        limit: limit,
+        cursor: cursor,
+      );
+    }
+    throw UnsupportedError('Story archive not supported by this datasource double');
   }
 
   Future<CommunityStory> createStory({

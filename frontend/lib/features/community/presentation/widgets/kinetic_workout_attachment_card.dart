@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import '../../../../screens/home/tokens/saman_home_tokens.dart';
 import '../../domain/models/community_post.dart';
+import '../tokens/saman_ig_tokens.dart';
 
 class KineticWorkoutAttachmentCard extends StatelessWidget {
   final PostWorkoutAttachment attachment;
@@ -14,14 +14,14 @@ class KineticWorkoutAttachmentCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final tokens = SamanHomeTokens.of(context);
+    final ig = SamanIgTokens.of(context);
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: tokens.secondarySurface,
+        color: ig.surface,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: tokens.border,
+          color: ig.border,
         ),
       ),
       child: Column(
@@ -34,7 +34,7 @@ class KineticWorkoutAttachmentCard extends StatelessWidget {
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                   decoration: BoxDecoration(
-                    color: tokens.greenAccent.withOpacity(0.15),
+                    color: ig.primaryAction.withOpacity(0.12),
                     borderRadius: BorderRadius.circular(6),
                   ),
                   child: Row(
@@ -43,7 +43,7 @@ class KineticWorkoutAttachmentCard extends StatelessWidget {
                       Icon(
                         Icons.check_circle_rounded,
                         size: 14,
-                        color: tokens.greenAccent,
+                        color: ig.primaryAction,
                       ),
                       const SizedBox(width: 5),
                       Flexible(
@@ -52,9 +52,10 @@ class KineticWorkoutAttachmentCard extends StatelessWidget {
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(
+                            fontFamily: SamanIgTokens.fontFamily,
                             fontSize: 11,
                             fontWeight: FontWeight.w600,
-                            color: tokens.greenAccent,
+                            color: ig.primaryAction,
                             letterSpacing: 0.5,
                           ),
                         ),
@@ -67,8 +68,9 @@ class KineticWorkoutAttachmentCard extends StatelessWidget {
               Text(
                 attachment.category,
                 style: TextStyle(
+                  fontFamily: SamanIgTokens.fontFamily,
                   fontSize: 12,
-                  color: tokens.textSecondary,
+                  color: ig.textSecondary,
                 ),
               ),
             ],
@@ -77,9 +79,10 @@ class KineticWorkoutAttachmentCard extends StatelessWidget {
           Text(
             attachment.title,
             style: TextStyle(
+              fontFamily: SamanIgTokens.fontFamily,
               fontSize: 18,
               fontWeight: FontWeight.w700,
-              color: tokens.textPrimary,
+              color: ig.textPrimary,
               letterSpacing: -0.3,
             ),
           ),
@@ -87,9 +90,10 @@ class KineticWorkoutAttachmentCard extends StatelessWidget {
           Text(
             attachment.summaryFormatted,
             style: TextStyle(
+              fontFamily: SamanIgTokens.fontFamily,
               fontSize: 13,
               fontWeight: FontWeight.w500,
-              color: tokens.greenAccent,
+              color: ig.primaryAction,
             ),
           ),
           const SizedBox(height: 14),
@@ -105,15 +109,15 @@ class KineticWorkoutAttachmentCard extends StatelessWidget {
                       Container(
                         height: 64,
                         decoration: BoxDecoration(
-                          color: tokens.cardSurface,
+                          color: ig.surfaceElevated,
                           borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: tokens.border),
+                          border: Border.all(color: ig.border),
                         ),
                         child: Center(
                           child: Icon(
                             Icons.fitness_center_rounded,
                             size: 26,
-                            color: tokens.greenAccent,
+                            color: ig.primaryAction,
                           ),
                         ),
                       ),
@@ -123,8 +127,9 @@ class KineticWorkoutAttachmentCard extends StatelessWidget {
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
+                          fontFamily: SamanIgTokens.fontFamily,
                           fontSize: 11,
-                          color: tokens.textPrimary,
+                          color: ig.textPrimary,
                         ),
                       ),
                     ],
@@ -142,10 +147,10 @@ class KineticWorkoutAttachmentCard extends StatelessWidget {
               width: double.infinity,
               height: 44,
               decoration: BoxDecoration(
-                color: tokens.canvas,
+                color: ig.surfaceElevated,
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(
-                  color: tokens.border,
+                  color: ig.border,
                 ),
               ),
               child: Row(
@@ -154,16 +159,17 @@ class KineticWorkoutAttachmentCard extends StatelessWidget {
                   Text(
                     'Xem buổi tập',
                     style: TextStyle(
+                      fontFamily: SamanIgTokens.fontFamily,
                       fontSize: 13,
                       fontWeight: FontWeight.w600,
-                      color: tokens.greenAccent,
+                      color: ig.primaryAction,
                     ),
                   ),
                   const SizedBox(width: 6),
                   Icon(
                     Icons.arrow_forward_rounded,
                     size: 16,
-                    color: tokens.greenAccent,
+                    color: ig.primaryAction,
                   ),
                 ],
               ),

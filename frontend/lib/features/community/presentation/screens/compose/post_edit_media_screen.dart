@@ -1,8 +1,8 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../../../screens/home/tokens/saman_home_tokens.dart';
 import '../../providers/community_composer_provider.dart';
+import '../../tokens/saman_ig_tokens.dart';
 import 'post_album_order_screen.dart';
 import 'post_compose_publish_screen.dart';
 
@@ -36,7 +36,7 @@ class _PostEditMediaScreenState extends ConsumerState<PostEditMediaScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final tokens = SamanHomeTokens.of(context);
+    final ig = SamanIgTokens.of(context);
     final composer = ref.watch(communityComposerProvider);
     final notifier = ref.read(communityComposerProvider.notifier);
 
@@ -50,13 +50,13 @@ class _PostEditMediaScreenState extends ConsumerState<PostEditMediaScreen> {
         : (composer.aspectRatio == 'orig' ? 1.2 : 1.0);
 
     return Scaffold(
-      backgroundColor: tokens.canvas,
+      backgroundColor: ig.canvas,
       body: SafeArea(
         bottom: false,
         child: Column(
           children: [
             // Header
-            _buildAppBar(context, tokens),
+            _buildAppBar(context, ig),
 
             // Main Preview Frame
             Expanded(
@@ -82,11 +82,11 @@ class _PostEditMediaScreenState extends ConsumerState<PostEditMediaScreen> {
                                       composer.contrast,
                                     ),
                                   ),
-                                  child: _buildImageView(activeUrl, tokens),
+                                  child: _buildImageView(activeUrl, ig),
                                 ),
                               ),
                               if (composer.isGridOverlayVisible)
-                                _buildGridOverlay(tokens),
+                                _buildGridOverlay(ig),
                             ],
                           ),
                         ),
@@ -96,42 +96,41 @@ class _PostEditMediaScreenState extends ConsumerState<PostEditMediaScreen> {
 
                     // Thumbnail Strip (if multiple photos)
                     if (selectedUrls.length > 1) ...[
-                      _buildThumbnailStrip(composer, notifier, tokens),
+                      _buildThumbnailStrip(composer, notifier, ig),
                       const SizedBox(height: 12),
                     ],
 
                     // Ratio & Rotate Controls
-                    _buildRatioAndRotateBar(composer, notifier, tokens),
+                    _buildRatioAndRotateBar(composer, notifier, ig),
                     const SizedBox(height: 12),
 
                     // Lighting Tools
-                    _buildLightingControls(composer, notifier, tokens),
+                    _buildLightingControls(composer, notifier, ig),
                     const SizedBox(height: 12),
 
                     // Data Honesty Notice: Media Adjustments Preview Only
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                       decoration: BoxDecoration(
-                        color: tokens.cardSurface,
+                        color: ig.surface,
                         borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: tokens.border),
+                        border: Border.all(color: ig.border),
                       ),
                       child: Row(
                         children: [
                           Icon(
                             Icons.info_outline_rounded,
                             size: 15,
-                            color: tokens.textSecondary,
+                            color: ig.textSecondary,
                           ),
                           const SizedBox(width: 8),
                           Expanded(
                             child: Text(
                               'Bộ lọc và xoay ảnh hiển thị trực quan trong trình soạn thảo; tệp gốc không bị can thiệp biến đổi.',
-                              style: TextStyle(
+                              style: ig.caption(
                                 fontSize: 11,
-                                color: tokens.textSecondary,
-                                height: 1.3,
-                              ),
+                                color: ig.textSecondary,
+                              ).copyWith(height: 1.3),
                             ),
                           ),
                         ],
@@ -140,7 +139,7 @@ class _PostEditMediaScreenState extends ConsumerState<PostEditMediaScreen> {
                     const SizedBox(height: 12),
 
                     // Footer utility
-                    _buildFooterUtility(composer, notifier, tokens),
+                    _buildFooterUtility(composer, notifier, ig),
                     const SizedBox(height: 24),
                   ],
                 ),
@@ -152,14 +151,14 @@ class _PostEditMediaScreenState extends ConsumerState<PostEditMediaScreen> {
     );
   }
 
-  Widget _buildAppBar(BuildContext context, SamanHomePalette tokens) {
+  Widget _buildAppBar(BuildContext context, SamanIgTokens ig) {
     return Container(
       height: 52,
       padding: const EdgeInsets.symmetric(horizontal: 16),
       decoration: BoxDecoration(
-        color: tokens.canvas,
+        color: ig.canvas,
         border: Border(
-          bottom: BorderSide(color: tokens.border, width: 1),
+          bottom: BorderSide(color: ig.border, width: 0.5),
         ),
       ),
       child: Row(
@@ -169,26 +168,25 @@ class _PostEditMediaScreenState extends ConsumerState<PostEditMediaScreen> {
             onPressed: () => Navigator.pop(context),
             icon: Icon(
               Icons.arrow_back_rounded,
-              color: tokens.textPrimary,
+              color: ig.textPrimary,
               size: 22,
             ),
           ),
           Text(
             'Chỉnh ảnh',
-            style: TextStyle(
+            style: ig.displayTitle(
               fontSize: 16,
               fontWeight: FontWeight.w700,
-              color: tokens.textPrimary,
+              color: ig.textPrimary,
             ),
           ),
           TextButton(
             onPressed: _onNext,
             child: Text(
               'Tiếp',
-              style: TextStyle(
+              style: ig.buttonLabel(
                 fontSize: 15,
-                fontWeight: FontWeight.w600,
-                color: tokens.greenAccent,
+                color: ig.primaryAction,
               ),
             ),
           ),
@@ -197,12 +195,13 @@ class _PostEditMediaScreenState extends ConsumerState<PostEditMediaScreen> {
     );
   }
 
-  Widget _buildGridOverlay(SamanHomePalette tokens) {
+  Widget _buildGridOverlay(SamanIgTokens ig) {
+    final gridColor = ig.primaryAction.withOpacity(0.35);
     return IgnorePointer(
       child: Container(
         decoration: BoxDecoration(
           border: Border.all(
-            color: tokens.greenAccent.withOpacity(0.3),
+            color: gridColor,
             width: 1,
           ),
         ),
@@ -215,12 +214,8 @@ class _PostEditMediaScreenState extends ConsumerState<PostEditMediaScreen> {
                     child: Container(
                       decoration: BoxDecoration(
                         border: Border(
-                          right: BorderSide(
-                            color: tokens.greenAccent.withOpacity(0.25),
-                          ),
-                          bottom: BorderSide(
-                            color: tokens.greenAccent.withOpacity(0.25),
-                          ),
+                          right: BorderSide(color: gridColor),
+                          bottom: BorderSide(color: gridColor),
                         ),
                       ),
                     ),
@@ -229,12 +224,8 @@ class _PostEditMediaScreenState extends ConsumerState<PostEditMediaScreen> {
                     child: Container(
                       decoration: BoxDecoration(
                         border: Border(
-                          right: BorderSide(
-                            color: tokens.greenAccent.withOpacity(0.25),
-                          ),
-                          bottom: BorderSide(
-                            color: tokens.greenAccent.withOpacity(0.25),
-                          ),
+                          right: BorderSide(color: gridColor),
+                          bottom: BorderSide(color: gridColor),
                         ),
                       ),
                     ),
@@ -243,9 +234,7 @@ class _PostEditMediaScreenState extends ConsumerState<PostEditMediaScreen> {
                     child: Container(
                       decoration: BoxDecoration(
                         border: Border(
-                          bottom: BorderSide(
-                            color: tokens.greenAccent.withOpacity(0.25),
-                          ),
+                          bottom: BorderSide(color: gridColor),
                         ),
                       ),
                     ),
@@ -260,12 +249,8 @@ class _PostEditMediaScreenState extends ConsumerState<PostEditMediaScreen> {
                     child: Container(
                       decoration: BoxDecoration(
                         border: Border(
-                          right: BorderSide(
-                            color: tokens.greenAccent.withOpacity(0.25),
-                          ),
-                          bottom: BorderSide(
-                            color: tokens.greenAccent.withOpacity(0.25),
-                          ),
+                          right: BorderSide(color: gridColor),
+                          bottom: BorderSide(color: gridColor),
                         ),
                       ),
                     ),
@@ -274,12 +259,8 @@ class _PostEditMediaScreenState extends ConsumerState<PostEditMediaScreen> {
                     child: Container(
                       decoration: BoxDecoration(
                         border: Border(
-                          right: BorderSide(
-                            color: tokens.greenAccent.withOpacity(0.25),
-                          ),
-                          bottom: BorderSide(
-                            color: tokens.greenAccent.withOpacity(0.25),
-                          ),
+                          right: BorderSide(color: gridColor),
+                          bottom: BorderSide(color: gridColor),
                         ),
                       ),
                     ),
@@ -288,9 +269,7 @@ class _PostEditMediaScreenState extends ConsumerState<PostEditMediaScreen> {
                     child: Container(
                       decoration: BoxDecoration(
                         border: Border(
-                          bottom: BorderSide(
-                            color: tokens.greenAccent.withOpacity(0.25),
-                          ),
+                          bottom: BorderSide(color: gridColor),
                         ),
                       ),
                     ),
@@ -305,9 +284,7 @@ class _PostEditMediaScreenState extends ConsumerState<PostEditMediaScreen> {
                     child: Container(
                       decoration: BoxDecoration(
                         border: Border(
-                          right: BorderSide(
-                            color: tokens.greenAccent.withOpacity(0.25),
-                          ),
+                          right: BorderSide(color: gridColor),
                         ),
                       ),
                     ),
@@ -316,9 +293,7 @@ class _PostEditMediaScreenState extends ConsumerState<PostEditMediaScreen> {
                     child: Container(
                       decoration: BoxDecoration(
                         border: Border(
-                          right: BorderSide(
-                            color: tokens.greenAccent.withOpacity(0.25),
-                          ),
+                          right: BorderSide(color: gridColor),
                         ),
                       ),
                     ),
@@ -336,12 +311,12 @@ class _PostEditMediaScreenState extends ConsumerState<PostEditMediaScreen> {
   Widget _buildThumbnailStrip(
     CommunityComposerState composer,
     CommunityComposerNotifier notifier,
-    SamanHomePalette tokens,
+    SamanIgTokens ig,
   ) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
       decoration: BoxDecoration(
-        color: tokens.cardSurface,
+        color: ig.surface,
         borderRadius: BorderRadius.circular(12),
       ),
       child: Row(
@@ -362,7 +337,7 @@ class _PostEditMediaScreenState extends ConsumerState<PostEditMediaScreen> {
                         borderRadius: BorderRadius.circular(8),
                         border: Border.all(
                           color: isCurrent
-                              ? tokens.greenAccent
+                              ? ig.primaryAction
                               : Colors.transparent,
                           width: 2,
                         ),
@@ -371,7 +346,7 @@ class _PostEditMediaScreenState extends ConsumerState<PostEditMediaScreen> {
                         borderRadius: BorderRadius.circular(6),
                         child: _buildImageView(
                           composer.selectedMediaUrls[idx],
-                          tokens,
+                          ig,
                         ),
                       ),
                     ),
@@ -382,10 +357,10 @@ class _PostEditMediaScreenState extends ConsumerState<PostEditMediaScreen> {
           ),
           Text(
             '${composer.activeMediaIndex + 1}/${composer.selectedMediaUrls.length}',
-            style: TextStyle(
+            style: ig.caption(
               fontSize: 12,
               fontWeight: FontWeight.w600,
-              color: tokens.greenAccent,
+              color: ig.primaryAction,
             ),
           ),
         ],
@@ -396,12 +371,12 @@ class _PostEditMediaScreenState extends ConsumerState<PostEditMediaScreen> {
   Widget _buildRatioAndRotateBar(
     CommunityComposerState composer,
     CommunityComposerNotifier notifier,
-    SamanHomePalette tokens,
+    SamanIgTokens ig,
   ) {
     return Container(
       padding: const EdgeInsets.all(6),
       decoration: BoxDecoration(
-        color: tokens.cardSurface,
+        color: ig.surface,
         borderRadius: BorderRadius.circular(12),
       ),
       child: Row(
@@ -413,19 +388,19 @@ class _PostEditMediaScreenState extends ConsumerState<PostEditMediaScreen> {
                   label: 'Gốc',
                   isActive: composer.aspectRatio == 'orig',
                   onTap: () => notifier.setAspectRatio('orig'),
-                  tokens: tokens,
+                  ig: ig,
                 ),
                 _buildRatioButton(
                   label: 'Vuông',
                   isActive: composer.aspectRatio == '1:1',
                   onTap: () => notifier.setAspectRatio('1:1'),
-                  tokens: tokens,
+                  ig: ig,
                 ),
                 _buildRatioButton(
                   label: 'Dọc (4:5)',
                   isActive: composer.aspectRatio == '4:5',
                   onTap: () => notifier.setAspectRatio('4:5'),
-                  tokens: tokens,
+                  ig: ig,
                 ),
               ],
             ),
@@ -434,7 +409,7 @@ class _PostEditMediaScreenState extends ConsumerState<PostEditMediaScreen> {
             onPressed: () => notifier.rotate(),
             icon: Icon(
               Icons.rotate_90_degrees_cw_rounded,
-              color: tokens.textSecondary,
+              color: ig.textSecondary,
               size: 20,
             ),
             tooltip: 'Xoay 90°',
@@ -448,7 +423,7 @@ class _PostEditMediaScreenState extends ConsumerState<PostEditMediaScreen> {
     required String label,
     required bool isActive,
     required VoidCallback onTap,
-    required SamanHomePalette tokens,
+    required SamanIgTokens ig,
   }) {
     return Expanded(
       child: InkWell(
@@ -457,23 +432,21 @@ class _PostEditMediaScreenState extends ConsumerState<PostEditMediaScreen> {
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: 8),
           decoration: BoxDecoration(
-            color: isActive ? tokens.secondarySurface : Colors.transparent,
+            color: isActive ? ig.surfaceElevated : Colors.transparent,
             borderRadius: BorderRadius.circular(8),
             border: Border.all(
               color: isActive
-                  ? tokens.greenAccent.withOpacity(0.4)
+                  ? ig.primaryAction.withOpacity(0.5)
                   : Colors.transparent,
             ),
           ),
           child: Text(
             label,
             textAlign: TextAlign.center,
-            style: TextStyle(
+            style: ig.caption(
               fontSize: 12,
               fontWeight: isActive ? FontWeight.w600 : FontWeight.w400,
-              color: isActive
-                  ? tokens.greenAccent
-                  : tokens.textSecondary,
+              color: isActive ? ig.primaryAction : ig.textSecondary,
             ),
           ),
         ),
@@ -484,12 +457,12 @@ class _PostEditMediaScreenState extends ConsumerState<PostEditMediaScreen> {
   Widget _buildLightingControls(
     CommunityComposerState composer,
     CommunityComposerNotifier notifier,
-    SamanHomePalette tokens,
+    SamanIgTokens ig,
   ) {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: tokens.cardSurface,
+        color: ig.surface,
         borderRadius: BorderRadius.circular(14),
       ),
       child: Column(
@@ -502,18 +475,17 @@ class _PostEditMediaScreenState extends ConsumerState<PostEditMediaScreen> {
                 child: Text(
                   'Tinh chỉnh ánh sáng',
                   overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
+                  style: ig.username(
                     fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                    color: tokens.textPrimary,
+                    color: ig.textPrimary,
                   ),
                 ),
               ),
               Text(
                 'Tự nhiên',
-                style: TextStyle(
+                style: ig.caption(
                   fontSize: 11,
-                  color: tokens.textSecondary,
+                  color: ig.textSecondary,
                 ),
               ),
             ],
@@ -525,14 +497,14 @@ class _PostEditMediaScreenState extends ConsumerState<PostEditMediaScreen> {
               Icon(
                 Icons.light_mode_rounded,
                 size: 16,
-                color: tokens.textSecondary,
+                color: ig.textSecondary,
               ),
               const SizedBox(width: 6),
               SizedBox(
                 width: 65,
                 child: Text(
                   'Độ sáng',
-                  style: TextStyle(fontSize: 12, color: tokens.textSecondary),
+                  style: ig.caption(fontSize: 12, color: ig.textSecondary),
                 ),
               ),
               Expanded(
@@ -548,8 +520,8 @@ class _PostEditMediaScreenState extends ConsumerState<PostEditMediaScreen> {
                     value: composer.brightness,
                     min: -50,
                     max: 50,
-                    activeColor: tokens.greenAccent,
-                    inactiveColor: tokens.secondarySurface,
+                    activeColor: ig.primaryAction,
+                    inactiveColor: ig.surfaceElevated,
                     onChanged: (v) => notifier.setBrightness(v),
                   ),
                 ),
@@ -559,9 +531,9 @@ class _PostEditMediaScreenState extends ConsumerState<PostEditMediaScreen> {
                 child: Text(
                   '${composer.brightness.round()}',
                   textAlign: TextAlign.end,
-                  style: TextStyle(
+                  style: ig.caption(
                     fontSize: 11,
-                    color: tokens.textSecondary,
+                    color: ig.textSecondary,
                   ),
                 ),
               ),
@@ -573,14 +545,14 @@ class _PostEditMediaScreenState extends ConsumerState<PostEditMediaScreen> {
               Icon(
                 Icons.contrast_rounded,
                 size: 16,
-                color: tokens.textSecondary,
+                color: ig.textSecondary,
               ),
               const SizedBox(width: 6),
               SizedBox(
                 width: 65,
                 child: Text(
                   'Tương phản',
-                  style: TextStyle(fontSize: 12, color: tokens.textSecondary),
+                  style: ig.caption(fontSize: 12, color: ig.textSecondary),
                 ),
               ),
               Expanded(
@@ -596,8 +568,8 @@ class _PostEditMediaScreenState extends ConsumerState<PostEditMediaScreen> {
                     value: composer.contrast,
                     min: -50,
                     max: 50,
-                    activeColor: tokens.greenAccent,
-                    inactiveColor: tokens.secondarySurface,
+                    activeColor: ig.primaryAction,
+                    inactiveColor: ig.surfaceElevated,
                     onChanged: (v) => notifier.setContrast(v),
                   ),
                 ),
@@ -607,9 +579,9 @@ class _PostEditMediaScreenState extends ConsumerState<PostEditMediaScreen> {
                 child: Text(
                   '${composer.contrast.round()}',
                   textAlign: TextAlign.end,
-                  style: TextStyle(
+                  style: ig.caption(
                     fontSize: 11,
-                    color: tokens.textSecondary,
+                    color: ig.textSecondary,
                   ),
                 ),
               ),
@@ -623,7 +595,7 @@ class _PostEditMediaScreenState extends ConsumerState<PostEditMediaScreen> {
   Widget _buildFooterUtility(
     CommunityComposerState composer,
     CommunityComposerNotifier notifier,
-    SamanHomePalette tokens,
+    SamanIgTokens ig,
   ) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -633,11 +605,11 @@ class _PostEditMediaScreenState extends ConsumerState<PostEditMediaScreen> {
           icon: Icon(
             Icons.restart_alt_rounded,
             size: 16,
-            color: tokens.textSecondary,
+            color: ig.textSecondary,
           ),
           label: Text(
             'Đặt lại',
-            style: TextStyle(fontSize: 12, color: tokens.textSecondary),
+            style: ig.caption(fontSize: 12, color: ig.textSecondary),
           ),
         ),
         TextButton.icon(
@@ -648,16 +620,16 @@ class _PostEditMediaScreenState extends ConsumerState<PostEditMediaScreen> {
                 : Icons.grid_off_rounded,
             size: 16,
             color: composer.isGridOverlayVisible
-                ? tokens.greenAccent
-                : tokens.textSecondary,
+                ? ig.primaryAction
+                : ig.textSecondary,
           ),
           label: Text(
             'Lưới căn chỉnh',
-            style: TextStyle(
+            style: ig.caption(
               fontSize: 12,
               color: composer.isGridOverlayVisible
-                  ? tokens.greenAccent
-                  : tokens.textSecondary,
+                  ? ig.primaryAction
+                  : ig.textSecondary,
             ),
           ),
         ),
@@ -665,7 +637,7 @@ class _PostEditMediaScreenState extends ConsumerState<PostEditMediaScreen> {
     );
   }
 
-  Widget _buildImageView(String path, SamanHomePalette tokens) {
+  Widget _buildImageView(String path, SamanIgTokens ig) {
     if (path.startsWith('http://') ||
         path.startsWith('https://') ||
         path.startsWith('/static/')) {
@@ -673,10 +645,10 @@ class _PostEditMediaScreenState extends ConsumerState<PostEditMediaScreen> {
         path,
         fit: BoxFit.cover,
         errorBuilder: (_, __, ___) => Container(
-          color: tokens.cardSurface,
+          color: ig.surface,
           child: Icon(
             Icons.broken_image_outlined,
-            color: tokens.textSecondary,
+            color: ig.textSecondary,
           ),
         ),
       );
@@ -686,10 +658,10 @@ class _PostEditMediaScreenState extends ConsumerState<PostEditMediaScreen> {
       return Image.file(file, fit: BoxFit.cover);
     }
     return Container(
-      color: tokens.cardSurface,
+      color: ig.surface,
       child: Icon(
         Icons.image_outlined,
-        color: tokens.textSecondary,
+        color: ig.textSecondary,
       ),
     );
   }

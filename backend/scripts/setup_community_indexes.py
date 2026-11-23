@@ -16,6 +16,7 @@ from pymongo import ASCENDING, DESCENDING
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
 from backend.app.database import db
+from backend.app.database_community import ensure_community_indexes
 
 
 def setup_indexes():
@@ -93,6 +94,12 @@ def setup_indexes():
         name="idx_following_created",
     )
     print("[setup_community_indexes] Created query indexes on community_follows.")
+
+    # 4. Ensure remaining community indexes, including safe Story TTL migration
+    #    (drops legacy expireAfterSeconds TTL index on community_stories and
+    #     creates regular expires_at + user_id/created_at indexes for Story Archive).
+    ensure_community_indexes(db)
+    print("[setup_community_indexes] Ensured all community indexes (including non-TTL community_stories indexes).")
     return True
 
 

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/community_providers.dart';
 import '../screens/compose/post_compose_publish_screen.dart';
-import '../../../../screens/home/tokens/saman_home_tokens.dart';
+import '../tokens/saman_ig_tokens.dart';
 import '../../domain/models/post_attachment_snapshot.dart';
 import '../screens/compose/community_ask_question_screen.dart';
 import '../screens/compose/community_select_attachment_screen.dart';
@@ -22,13 +22,13 @@ class CreateContentBottomSheet extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final tokens = SamanHomeTokens.of(context);
+    final ig = SamanIgTokens.of(context);
     final remote = ref.watch(useRemoteCommunityProvider);
     final bottomInset = MediaQuery.paddingOf(context).bottom;
 
     return Container(
       decoration: BoxDecoration(
-        color: tokens.cardSurface,
+        color: ig.surface,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
       ),
       padding: EdgeInsets.fromLTRB(16, 12, 16, 20 + bottomInset),
@@ -42,7 +42,7 @@ class CreateContentBottomSheet extends ConsumerWidget {
               width: 36,
               height: 4,
               decoration: BoxDecoration(
-                color: tokens.secondarySurface,
+                color: ig.border,
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
@@ -59,19 +59,12 @@ class CreateContentBottomSheet extends ConsumerWidget {
                   children: [
                     Text(
                       'Tạo nội dung mới',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w700,
-                        color: tokens.textPrimary,
-                      ),
+                      style: ig.displayTitle(fontSize: 18),
                     ),
                     const SizedBox(height: 2),
                     Text(
                       'Chọn định dạng nhật ký thể hình của bạn',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: tokens.textSecondary,
-                      ),
+                      style: ig.caption(fontSize: 12),
                     ),
                   ],
                 ),
@@ -80,7 +73,7 @@ class CreateContentBottomSheet extends ConsumerWidget {
                 onPressed: () => Navigator.pop(context),
                 icon: Icon(
                   Icons.close_rounded,
-                  color: tokens.textSecondary,
+                  color: ig.textSecondary,
                   size: 20,
                 ),
               ),
@@ -103,7 +96,7 @@ class CreateContentBottomSheet extends ConsumerWidget {
                 title: 'Bài viết',
                 subtitle: 'Ảnh & nhật ký',
                 isActive: true,
-                tokens: tokens,
+                ig: ig,
                 onTap: () {
                   Navigator.pop(context);
                   Navigator.push(
@@ -120,7 +113,7 @@ class CreateContentBottomSheet extends ConsumerWidget {
                 title: 'Chia sẻ buổi tập',
                 subtitle: 'Kinetic & Tải trọng',
                 isActive: false,
-                tokens: tokens,
+                ig: ig,
                 onTap: () {
                   Navigator.pop(context);
                   Navigator.push(
@@ -140,7 +133,7 @@ class CreateContentBottomSheet extends ConsumerWidget {
                 title: 'Chia sẻ bữa ăn',
                 subtitle: 'Macros & Calo',
                 isActive: false,
-                tokens: tokens,
+                ig: ig,
                 onTap: () {
                   Navigator.pop(context);
                   Navigator.push(
@@ -160,7 +153,7 @@ class CreateContentBottomSheet extends ConsumerWidget {
                 title: 'Đặt câu hỏi',
                 subtitle: 'Hỏi cộng đồng',
                 isActive: false,
-                tokens: tokens,
+                ig: ig,
                 onTap: () {
                   Navigator.pop(context);
                   Navigator.push(
@@ -184,7 +177,7 @@ class CreateContentBottomSheet extends ConsumerWidget {
     required String title,
     required String subtitle,
     required bool isActive,
-    required SamanHomePalette tokens,
+    required SamanIgTokens ig,
     required VoidCallback onTap,
   }) {
     return InkWell(
@@ -194,13 +187,13 @@ class CreateContentBottomSheet extends ConsumerWidget {
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
         decoration: BoxDecoration(
           color: isActive
-              ? tokens.greenAccent.withOpacity(0.08)
-              : tokens.secondarySurface,
+              ? ig.primaryAction.withOpacity(0.1)
+              : ig.surfaceElevated,
           borderRadius: BorderRadius.circular(14),
           border: Border.all(
             color: isActive
-                ? tokens.greenAccent.withOpacity(0.3)
-                : tokens.border,
+                ? ig.primaryAction.withOpacity(0.35)
+                : ig.border,
           ),
         ),
         child: Column(
@@ -211,19 +204,13 @@ class CreateContentBottomSheet extends ConsumerWidget {
               width: 36,
               height: 36,
               decoration: BoxDecoration(
-                color: isActive
-                    ? tokens.greenAccent
-                    : tokens.cardSurface,
+                color: isActive ? ig.primaryAction : ig.surface,
                 borderRadius: BorderRadius.circular(10),
               ),
               child: Icon(
                 icon,
                 size: 20,
-                color: isActive
-                    ? (tokens.isDark
-                        ? const Color(0xFF003824)
-                        : const Color(0xFFFFFFFF))
-                    : tokens.textPrimary,
+                color: isActive ? ig.onPrimaryAction : ig.textPrimary,
               ),
             ),
             Column(
@@ -231,20 +218,14 @@ class CreateContentBottomSheet extends ConsumerWidget {
               children: [
                 Text(
                   title,
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                    color: tokens.textPrimary,
-                  ),
+                  style: ig.username(fontSize: 13),
                 ),
                 const SizedBox(height: 2),
                 Text(
                   subtitle,
-                  style: TextStyle(
+                  style: ig.caption(
                     fontSize: 11,
-                    color: isActive
-                        ? tokens.greenAccent
-                        : tokens.textSecondary,
+                    color: isActive ? ig.primaryAction : ig.textSecondary,
                   ),
                 ),
               ],

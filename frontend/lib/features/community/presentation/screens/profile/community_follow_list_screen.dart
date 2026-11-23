@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../../../screens/home/tokens/saman_home_tokens.dart';
 import '../../../domain/models/community_author.dart';
 import '../../providers/community_providers.dart';
+import '../../tokens/saman_ig_tokens.dart';
 import 'community_profile_screen.dart';
 
 class CommunityFollowListScreen extends ConsumerStatefulWidget {
@@ -88,22 +88,30 @@ class _CommunityFollowListScreenState
 
   @override
   Widget build(BuildContext context) {
-    final tokens = SamanHomeTokens.of(context);
+    final ig = SamanIgTokens.of(context);
     final followers = _followers;
     final following = _following;
 
     return Scaffold(
-      backgroundColor: tokens.canvas,
+      backgroundColor: ig.canvas,
       body: SafeArea(
         child: Column(
           children: [
-            _buildAppBar(context, tokens),
-            _buildSearchBar(tokens),
+            _buildAppBar(context, ig),
+            _buildSearchBar(ig),
             TabBar(
               controller: _tabController,
-              indicatorColor: tokens.greenAccent,
-              labelColor: tokens.greenAccent,
-              unselectedLabelColor: tokens.textSecondary,
+              indicatorColor: ig.textPrimary,
+              indicatorWeight: 1.5,
+              dividerColor: ig.border,
+              dividerHeight: 0.5,
+              labelColor: ig.textPrimary,
+              unselectedLabelColor: ig.textSecondary,
+              labelStyle: ig.username(fontSize: 13),
+              unselectedLabelStyle: ig.body(
+                fontSize: 13,
+                color: ig.textSecondary,
+              ),
               tabs: [
                 Tab(text: '${followers.length} Người theo dõi'),
                 Tab(text: '${following.length} Đang theo dõi'),
@@ -113,8 +121,8 @@ class _CommunityFollowListScreenState
               child: TabBarView(
                 controller: _tabController,
                 children: [
-                  _buildUserList(followers, tokens),
-                  _buildUserList(following, tokens),
+                  _buildUserList(followers, ig),
+                  _buildUserList(following, ig),
                 ],
               ),
             ),
@@ -124,13 +132,13 @@ class _CommunityFollowListScreenState
     );
   }
 
-  Widget _buildAppBar(BuildContext context, SamanHomePalette tokens) {
+  Widget _buildAppBar(BuildContext context, SamanIgTokens ig) {
     return Container(
       height: 52,
-      padding: const EdgeInsets.symmetric(horizontal: 16),
+      padding: const EdgeInsets.symmetric(horizontal: 12),
       decoration: BoxDecoration(
-        color: tokens.canvas,
-        border: Border(bottom: BorderSide(color: tokens.border, width: 1)),
+        color: ig.canvas,
+        border: Border(bottom: BorderSide(color: ig.border, width: 0.5)),
       ),
       child: Row(
         children: [
@@ -138,7 +146,7 @@ class _CommunityFollowListScreenState
             onPressed: () => Navigator.pop(context),
             icon: Icon(
               Icons.arrow_back_rounded,
-              color: tokens.textPrimary,
+              color: ig.textPrimary,
               size: 22,
             ),
           ),
@@ -146,11 +154,7 @@ class _CommunityFollowListScreenState
             child: Text(
               widget.authorName,
               overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w700,
-                color: tokens.textPrimary,
-              ),
+              style: ig.displayTitle(fontSize: 16),
             ),
           ),
         ],
@@ -158,22 +162,22 @@ class _CommunityFollowListScreenState
     );
   }
 
-  Widget _buildSearchBar(SamanHomePalette tokens) {
+  Widget _buildSearchBar(SamanIgTokens ig) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
       child: Container(
         height: 42,
         padding: const EdgeInsets.symmetric(horizontal: 12),
         decoration: BoxDecoration(
-          color: tokens.cardSurface,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: tokens.border),
+          color: ig.surfaceElevated,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: ig.borderSubtle, width: 0.5),
         ),
         child: Row(
           children: [
             Icon(
               Icons.search_rounded,
-              color: tokens.textSecondary,
+              color: ig.textSecondary,
               size: 20,
             ),
             const SizedBox(width: 8),
@@ -181,10 +185,10 @@ class _CommunityFollowListScreenState
               child: TextField(
                 controller: _searchController,
                 onChanged: (v) => setState(() => _searchQuery = v.trim().toLowerCase()),
-                style: TextStyle(fontSize: 13, color: tokens.textPrimary),
+                style: ig.body(fontSize: 13),
                 decoration: InputDecoration(
                   hintText: 'Tìm kiếm theo tên thành viên...',
-                  hintStyle: TextStyle(fontSize: 13, color: tokens.textMuted),
+                  hintStyle: ig.body(fontSize: 13, color: ig.textMuted),
                   border: InputBorder.none,
                   isDense: true,
                 ),
@@ -196,7 +200,7 @@ class _CommunityFollowListScreenState
                   _searchController.clear();
                   setState(() => _searchQuery = '');
                 },
-                icon: Icon(Icons.clear_rounded, size: 16, color: tokens.textSecondary),
+                icon: Icon(Icons.clear_rounded, size: 16, color: ig.textSecondary),
                 padding: EdgeInsets.zero,
                 constraints: const BoxConstraints(),
               ),
@@ -208,7 +212,7 @@ class _CommunityFollowListScreenState
 
   Widget _buildUserList(
     List<CommunityAuthor> authors,
-    SamanHomePalette tokens,
+    SamanIgTokens ig,
   ) {
     final filtered = _searchQuery.isEmpty
         ? authors
@@ -224,7 +228,7 @@ class _CommunityFollowListScreenState
           _searchQuery.isEmpty
               ? 'Danh sách trống.'
               : 'Không tìm thấy kết quả phù hợp.',
-          style: TextStyle(color: tokens.textMuted, fontSize: 13),
+          style: ig.body(color: ig.textMuted, fontSize: 13),
         ),
       );
     }
@@ -232,15 +236,15 @@ class _CommunityFollowListScreenState
     return ListView.separated(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       itemCount: filtered.length,
-      separatorBuilder: (_, __) => Divider(color: tokens.border, height: 16),
+      separatorBuilder: (_, __) => Divider(color: ig.border, height: 16, thickness: 0.5),
       itemBuilder: (context, index) {
         final author = filtered[index];
-        return _buildUserTile(author, tokens);
+        return _buildUserTile(author, ig);
       },
     );
   }
 
-  Widget _buildUserTile(CommunityAuthor author, SamanHomePalette tokens) {
+  Widget _buildUserTile(CommunityAuthor author, SamanIgTokens ig) {
     return Row(
       children: [
         InkWell(
@@ -258,15 +262,14 @@ class _CommunityFollowListScreenState
             height: 44,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: tokens.secondarySurface,
+              color: ig.surfaceElevated,
             ),
             child: Center(
               child: Text(
                 author.name.isNotEmpty ? author.name[0] : 'S',
-                style: TextStyle(
+                style: ig.displayTitle(
                   fontSize: 16,
-                  fontWeight: FontWeight.w700,
-                  color: tokens.greenAccent,
+                  color: ig.textPrimary,
                 ),
               ),
             ),
@@ -292,11 +295,7 @@ class _CommunityFollowListScreenState
                       child: Text(
                         author.name,
                         overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                          color: tokens.textPrimary,
-                        ),
+                        style: ig.username(fontSize: 14),
                       ),
                     ),
                     if (author.isVerified) ...[
@@ -304,7 +303,7 @@ class _CommunityFollowListScreenState
                       Icon(
                         Icons.verified_rounded,
                         size: 14,
-                        color: tokens.greenAccent,
+                        color: ig.primaryAction,
                       ),
                     ],
                   ],
@@ -313,10 +312,7 @@ class _CommunityFollowListScreenState
                 Text(
                   author.title ?? '',
                   overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: tokens.textSecondary,
-                  ),
+                  style: ig.caption(fontSize: 12),
                 ),
               ],
             ),
@@ -324,7 +320,7 @@ class _CommunityFollowListScreenState
         ),
         const SizedBox(width: 8),
         SizedBox(
-          height: 32,
+          height: 34,
           child: author.isFollowing
               ? OutlinedButton(
                   onPressed: () async {
@@ -351,14 +347,21 @@ class _CommunityFollowListScreenState
                     }
                   },
                   style: OutlinedButton.styleFrom(
-                    foregroundColor: tokens.textSecondary,
-                    side: BorderSide(color: tokens.border),
+                    backgroundColor: ig.secondaryButtonBg,
+                    foregroundColor: ig.secondaryButtonText,
+                    side: BorderSide.none,
                     padding: const EdgeInsets.symmetric(horizontal: 12),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(8),
                     ),
                   ),
-                  child: const Text('Đang theo dõi', style: TextStyle(fontSize: 12)),
+                  child: Text(
+                    'Đang theo dõi',
+                    style: ig.buttonLabel(
+                      fontSize: 12,
+                      color: ig.secondaryButtonText,
+                    ),
+                  ),
                 )
               : ElevatedButton(
                   onPressed: () async {
@@ -384,20 +387,21 @@ class _CommunityFollowListScreenState
                       });
                     }
                   },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: tokens.greenAccent,
-                    foregroundColor: tokens.isDark
-                        ? const Color(0xFF003824)
-                        : const Color(0xFFFFFFFF),
-                    padding: const EdgeInsets.symmetric(horizontal: 14),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
+                  style: ig.primaryButtonStyle(
+                    minHeight: 34,
+                    borderRadius: 8,
+                  ).copyWith(
+                    padding: const WidgetStatePropertyAll(
+                      EdgeInsets.symmetric(horizontal: 14),
                     ),
-                    elevation: 0,
                   ),
-                  child: const Text(
+                  child: Text(
                     'Theo dõi',
-                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
+                    style: ig.buttonLabel(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                      color: ig.onPrimaryAction,
+                    ),
                   ),
                 ),
         ),

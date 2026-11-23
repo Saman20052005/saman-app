@@ -839,6 +839,72 @@ class AppTranslations {
       'community_settings_privacy': 'Privacy',
       'community_settings_interactions': 'Interactions',
       'community_settings_blocked_muted': 'Blocked & Muted',
+      'community_settings_section_interactions': 'How others can interact with you',
+      'community_settings_section_what_you_see': 'What you see',
+      'community_settings_section_archive_activity': 'Your archive & activity',
+      'community_settings_section_saman_sync': 'Saman Ecosystem Sync',
+      'community_settings_section_safety': 'Safety',
+      'community_settings_private_account': 'Private account',
+      'community_settings_private_account_desc':
+          'Only approved followers can view your posts and activity.',
+      'community_settings_who_can_dm': 'Direct messages',
+      'community_settings_who_can_comment': 'Comments',
+      'community_settings_who_can_reply_story': 'Story replies',
+      'community_settings_allow_mentions': 'Tags & Mentions',
+      'community_settings_audience_everyone': 'Everyone',
+      'community_settings_audience_everyone_desc':
+          'All members in Saman Community',
+      'community_settings_audience_followers': 'Followers',
+      'community_settings_audience_followers_desc':
+          'Only people who follow you',
+      'community_settings_audience_nobody': 'No one',
+      'community_settings_audience_nobody_desc':
+          'Turn off this interaction completely',
+      'community_settings_hide_likes': 'Hide like counts',
+      'community_settings_hide_likes_desc':
+          'Others will not see the total likes on your posts.',
+      'community_settings_activity_status': 'Show activity status',
+      'community_settings_activity_status_desc':
+          'Let followers see when you are active in the community.',
+      'community_settings_muted_keywords': 'Hidden words',
+      'community_settings_muted_keywords_desc':
+          'Posts or comments containing these words will be hidden from your feed.',
+      'community_settings_add_keyword': 'Add word',
+      'community_settings_add_keyword_title': 'Add hidden word',
+      'community_settings_add_keyword_hint': 'e.g. promo, spam...',
+      'community_settings_keyword_limit_reached':
+          'Maximum of 50 hidden words reached',
+      'community_settings_keyword_exists':
+          'This word is already in your list',
+      'community_settings_muted_accounts': 'Muted accounts',
+      'community_settings_blocked_accounts': 'Blocked accounts',
+      'community_settings_saved_posts': 'Saved posts',
+      'community_settings_story_archive': 'Story archive',
+      'community_settings_drafts': 'Drafts',
+      'community_settings_auto_prompt_workout':
+          'Prompt to share after workout',
+      'community_settings_auto_prompt_workout_desc':
+          'Suggest sharing a check-in card or story when you finish a session.',
+      'community_settings_auto_prompt_meal': 'Prompt to share meal',
+      'community_settings_auto_prompt_meal_desc':
+          'Suggest sharing a healthy meal photo or recipe after logging.',
+      'community_settings_privacy_by_design':
+          'Privacy-by-Design: Detailed weights, load volume, and exact calories are hidden by default when sharing from Saman.',
+      'community_settings_update_error':
+          'Unable to update settings. Please try again.',
+      'community_settings_cancel': 'Cancel',
+      'community_settings_add': 'Add',
+      'community_settings_back': 'Back',
+      'community_story_archive_title': 'Story Archive',
+      'community_story_archive_include_active': 'Include active 24h',
+      'community_story_archive_count_label': 'stories',
+      'community_story_archive_empty_title': 'No archived stories yet',
+      'community_story_archive_empty_desc':
+          'Stories you share will be saved here automatically after 24 hours.',
+      'community_story_archive_load_error': 'Unable to load story archive',
+      'community_story_archive_retry': 'Retry',
+      'community_story_archive_active_badge': 'Active',
+      'community_story_archive_views_suffix': 'views',
       'community_stories_your_story': 'Your story',
       'community_stories_reply_hint': 'Send message...',
       'profile_action_message': 'Message',
@@ -1677,6 +1743,75 @@ class AppTranslations {
       'community_settings_privacy': 'Quyền riêng tư',
       'community_settings_interactions': 'Tương tác',
       'community_settings_blocked_muted': 'Đã chặn & Ẩn tiếng',
+      'community_settings_section_interactions':
+          'Cách người khác tương tác với bạn',
+      'community_settings_section_what_you_see': 'Nội dung bạn nhìn thấy',
+      'community_settings_section_archive_activity':
+          'Kho lưu trữ & Hoạt động của bạn',
+      'community_settings_section_saman_sync': 'Đồng bộ Hệ sinh thái Saman',
+      'community_settings_section_safety': 'An toàn',
+      'community_settings_private_account': 'Tài khoản riêng tư',
+      'community_settings_private_account_desc':
+          'Chỉ người theo dõi được chấp nhận mới xem được bài viết và hoạt động của bạn.',
+      'community_settings_who_can_dm': 'Ai có thể nhắn tin (DM)',
+      'community_settings_who_can_comment': 'Ai có thể bình luận',
+      'community_settings_who_can_reply_story': 'Ai có thể trả lời Story',
+      'community_settings_allow_mentions': 'Gắn thẻ & Nhắc tên',
+      'community_settings_audience_everyone': 'Mọi người',
+      'community_settings_audience_everyone_desc':
+          'Tất cả thành viên trong cộng đồng Saman',
+      'community_settings_audience_followers': 'Người theo dõi',
+      'community_settings_audience_followers_desc':
+          'Chỉ những người đang theo dõi bạn',
+      'community_settings_audience_nobody': 'Không ai',
+      'community_settings_audience_nobody_desc':
+          'Tắt hoàn toàn tương tác này',
+      'community_settings_hide_likes': 'Ẩn số lượt thích',
+      'community_settings_hide_likes_desc':
+          'Người khác sẽ không thấy tổng số lượt thích trên bài viết của bạn.',
+      'community_settings_activity_status': 'Hiển thị trạng thái hoạt động',
+      'community_settings_activity_status_desc':
+          'Cho phép người theo dõi biết khi bạn đang hoạt động trong cộng đồng.',
+      'community_settings_muted_keywords': 'Từ khóa đã ẩn',
+      'community_settings_muted_keywords_desc':
+          'Bài viết hoặc bình luận chứa từ khóa này sẽ được ẩn khỏi bảng tin của bạn.',
+      'community_settings_add_keyword': 'Thêm từ khóa',
+      'community_settings_add_keyword_title': 'Thêm từ khóa ẩn',
+      'community_settings_add_keyword_hint': 'Ví dụ: quảng cáo, spam...',
+      'community_settings_keyword_limit_reached':
+          'Đã đạt giới hạn tối đa 50 từ khóa đã ẩn',
+      'community_settings_keyword_exists':
+          'Từ khóa này đã có trong danh sách',
+      'community_settings_muted_accounts': 'Tài khoản đã ẩn tiếng',
+      'community_settings_blocked_accounts': 'Tài khoản đã chặn',
+      'community_settings_saved_posts': 'Bài viết đã lưu',
+      'community_settings_story_archive': 'Kho lưu trữ Tin 24h',
+      'community_settings_drafts': 'Bản nháp',
+      'community_settings_auto_prompt_workout':
+          'Gợi ý chia sẻ sau buổi tập',
+      'community_settings_auto_prompt_workout_desc':
+          'Gợi ý đăng thẻ check-in hoặc Tin 24h khi bạn hoàn thành buổi tập.',
+      'community_settings_auto_prompt_meal': 'Gợi ý chia sẻ bữa ăn',
+      'community_settings_auto_prompt_meal_desc':
+          'Gợi ý chia sẻ ảnh bữa ăn lành mạnh sau khi ghi nhật ký.',
+      'community_settings_privacy_by_design':
+          'Privacy-by-Design: Số tạ, tổng tải trọng và calo chi tiết luôn được ẩn mặc định khi chia sẻ từ Saman.',
+      'community_settings_update_error':
+          'Không thể cập nhật cài đặt. Vui lòng thử lại.',
+      'community_settings_cancel': 'Hủy',
+      'community_settings_add': 'Thêm',
+      'community_settings_back': 'Quay lại',
+      'community_story_archive_title': 'Kho lưu trữ Tin 24h',
+      'community_story_archive_include_active': 'Gồm tin đang hiển thị',
+      'community_story_archive_count_label': 'tin',
+      'community_story_archive_empty_title': 'Chưa có Tin nào được lưu trữ',
+      'community_story_archive_empty_desc':
+          'Các Tin 24h bạn đăng sẽ tự động được lưu giữ tại đây sau khi hết hạn.',
+      'community_story_archive_load_error':
+          'Không thể tải kho lưu trữ Tin 24h',
+      'community_story_archive_retry': 'Thử lại',
+      'community_story_archive_active_badge': 'Đang hiện',
+      'community_story_archive_views_suffix': 'lượt xem',
       'community_stories_your_story': 'Tin của bạn',
       'community_stories_reply_hint': 'Gửi tin nhắn...',
       'profile_action_message': 'Nhắn tin',

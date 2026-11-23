@@ -2,8 +2,8 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
-import '../../../../../screens/home/tokens/saman_home_tokens.dart';
 import '../../providers/community_composer_provider.dart';
+import '../../tokens/saman_ig_tokens.dart';
 import 'post_compose_publish_screen.dart';
 
 class PostAlbumOrderScreen extends ConsumerWidget {
@@ -11,19 +11,19 @@ class PostAlbumOrderScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final tokens = SamanHomeTokens.of(context);
+    final ig = SamanIgTokens.of(context);
     final composer = ref.watch(communityComposerProvider);
     final notifier = ref.read(communityComposerProvider.notifier);
     final urls = composer.selectedMediaUrls;
 
     return Scaffold(
-      backgroundColor: tokens.canvas,
+      backgroundColor: ig.canvas,
       body: SafeArea(
         bottom: false,
         child: Column(
           children: [
             // Top App Bar
-            _buildAppBar(context, tokens),
+            _buildAppBar(context, ig),
 
             // Content
             Expanded(
@@ -51,7 +51,7 @@ class PostAlbumOrderScreen extends ConsumerWidget {
                             context,
                             urls,
                             notifier,
-                            tokens,
+                            ig,
                           );
                         }
 
@@ -64,7 +64,7 @@ class PostAlbumOrderScreen extends ConsumerWidget {
                           index: index,
                           isCover: isCover,
                           totalCount: urls.length,
-                          tokens: tokens,
+                          ig: ig,
                           onRemove: () => notifier.removeMedia(index),
                           onMoveUp: index > 0
                               ? () => notifier.reorderMedia(index, index - 1)
@@ -81,9 +81,9 @@ class PostAlbumOrderScreen extends ConsumerWidget {
                     Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: tokens.cardSurface,
+                        color: ig.surface,
                         borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: tokens.border),
+                        border: Border.all(color: ig.border),
                       ),
                       child: Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -91,17 +91,16 @@ class PostAlbumOrderScreen extends ConsumerWidget {
                           Icon(
                             Icons.touch_app_rounded,
                             size: 18,
-                            color: tokens.greenAccent,
+                            color: ig.primaryAction,
                           ),
                           const SizedBox(width: 8),
                           Expanded(
                             child: Text(
                               'Đổi thứ tự ảnh để bài viết mạch lạc hơn. Ảnh đầu tiên được đặt làm ảnh bìa đại diện trên bảng tin.',
-                              style: TextStyle(
+                              style: ig.caption(
                                 fontSize: 12,
-                                color: tokens.textSecondary,
-                                height: 1.4,
-                              ),
+                                color: ig.textSecondary,
+                              ).copyWith(height: 1.4),
                             ),
                           ),
                         ],
@@ -116,9 +115,9 @@ class PostAlbumOrderScreen extends ConsumerWidget {
                         vertical: 10,
                       ),
                       decoration: BoxDecoration(
-                        color: tokens.cardSurface,
+                        color: ig.surface,
                         borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: tokens.border),
+                        border: Border.all(color: ig.border),
                       ),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -129,17 +128,16 @@ class PostAlbumOrderScreen extends ConsumerWidget {
                                 Icon(
                                   Icons.collections_rounded,
                                   size: 18,
-                                  color: tokens.greenAccent,
+                                  color: ig.primaryAction,
                                 ),
                                 const SizedBox(width: 8),
                                 Flexible(
                                   child: Text(
                                     '${urls.length}/10 ảnh đã chọn',
                                     overflow: TextOverflow.ellipsis,
-                                    style: TextStyle(
+                                    style: ig.username(
                                       fontSize: 13,
-                                      fontWeight: FontWeight.w600,
-                                      color: tokens.textPrimary,
+                                      color: ig.textPrimary,
                                     ),
                                   ),
                                 ),
@@ -152,14 +150,14 @@ class PostAlbumOrderScreen extends ConsumerWidget {
                               vertical: 3,
                             ),
                             decoration: BoxDecoration(
-                              color: tokens.secondarySurface,
+                              color: ig.surfaceElevated,
                               borderRadius: BorderRadius.circular(8),
                             ),
                             child: Text(
                               'Tự động lưu',
-                              style: TextStyle(
+                              style: ig.caption(
                                 fontSize: 11,
-                                color: tokens.greenAccent,
+                                color: ig.primaryAction,
                               ),
                             ),
                           ),
@@ -177,14 +175,14 @@ class PostAlbumOrderScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildAppBar(BuildContext context, SamanHomePalette tokens) {
+  Widget _buildAppBar(BuildContext context, SamanIgTokens ig) {
     return Container(
       height: 52,
       padding: const EdgeInsets.symmetric(horizontal: 16),
       decoration: BoxDecoration(
-        color: tokens.canvas,
+        color: ig.canvas,
         border: Border(
-          bottom: BorderSide(color: tokens.border, width: 1),
+          bottom: BorderSide(color: ig.border, width: 0.5),
         ),
       ),
       child: Row(
@@ -194,16 +192,16 @@ class PostAlbumOrderScreen extends ConsumerWidget {
             onPressed: () => Navigator.pop(context),
             icon: Icon(
               Icons.arrow_back_rounded,
-              color: tokens.textPrimary,
+              color: ig.textPrimary,
               size: 22,
             ),
           ),
           Text(
             'Sắp xếp ảnh',
-            style: TextStyle(
+            style: ig.displayTitle(
               fontSize: 16,
               fontWeight: FontWeight.w700,
-              color: tokens.textPrimary,
+              color: ig.textPrimary,
             ),
           ),
           TextButton(
@@ -217,10 +215,9 @@ class PostAlbumOrderScreen extends ConsumerWidget {
             },
             child: Text(
               'Xong',
-              style: TextStyle(
+              style: ig.buttonLabel(
                 fontSize: 15,
-                fontWeight: FontWeight.w600,
-                color: tokens.greenAccent,
+                color: ig.primaryAction,
               ),
             ),
           ),
@@ -235,7 +232,7 @@ class PostAlbumOrderScreen extends ConsumerWidget {
     required int index,
     required bool isCover,
     required int totalCount,
-    required SamanHomePalette tokens,
+    required SamanIgTokens ig,
     required VoidCallback onRemove,
     required VoidCallback? onMoveUp,
     required VoidCallback? onMoveDown,
@@ -244,9 +241,7 @@ class PostAlbumOrderScreen extends ConsumerWidget {
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(14),
         border: Border.all(
-          color: isCover
-              ? tokens.greenAccent.withOpacity(0.5)
-              : tokens.border,
+          color: isCover ? ig.primaryAction : ig.border,
           width: 1.5,
         ),
       ),
@@ -255,8 +250,8 @@ class PostAlbumOrderScreen extends ConsumerWidget {
         child: Stack(
           fit: StackFit.expand,
           children: [
-            _buildImageView(url, tokens),
-            // Top Controls: Order badge & Remove (dark translucent overlay kept for image contrast)
+            _buildImageView(url, ig),
+            // Top Controls: Order badge & Remove
             Positioned(
               top: 8,
               left: 8,
@@ -269,21 +264,16 @@ class PostAlbumOrderScreen extends ConsumerWidget {
                     height: 24,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      color: isCover
-                          ? tokens.greenAccent
-                          : const Color(0xFF1F2021).withOpacity(0.85),
+                      color: isCover ? ig.primaryAction : ig.scrim,
                     ),
                     child: Center(
                       child: Text(
                         '${index + 1}',
                         style: TextStyle(
+                          fontFamily: SamanIgTokens.fontFamily,
                           fontSize: 12,
                           fontWeight: FontWeight.w700,
-                          color: isCover
-                              ? (tokens.isDark
-                                  ? const Color(0xFF003824)
-                                  : const Color(0xFFFFFFFF))
-                              : Colors.white,
+                          color: ig.onPrimaryAction,
                         ),
                       ),
                     ),
@@ -296,19 +286,19 @@ class PostAlbumOrderScreen extends ConsumerWidget {
                         height: 24,
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
-                          color: Colors.black.withOpacity(0.6),
+                          color: ig.scrim,
                         ),
-                        child: const Icon(
+                        child: Icon(
                           Icons.close_rounded,
                           size: 14,
-                          color: Colors.white,
+                          color: ig.onPrimaryAction,
                         ),
                       ),
                     ),
                 ],
               ),
             ),
-            // Bottom Controls: Cover tag & Reorder controls (dark translucent overlay kept for image contrast)
+            // Bottom Controls: Cover tag & Reorder controls
             Positioned(
               bottom: 8,
               left: 8,
@@ -323,18 +313,19 @@ class PostAlbumOrderScreen extends ConsumerWidget {
                         vertical: 3,
                       ),
                       decoration: BoxDecoration(
-                        color: Colors.black.withOpacity(0.75),
+                        color: ig.scrim,
                         borderRadius: BorderRadius.circular(6),
                         border: Border.all(
-                          color: const Color(0xFF5BBFA0).withOpacity(0.4),
+                          color: ig.primaryAction.withOpacity(0.6),
                         ),
                       ),
-                      child: const Text(
+                      child: Text(
                         'Ảnh bìa',
                         style: TextStyle(
+                          fontFamily: SamanIgTokens.fontFamily,
                           fontSize: 10,
                           fontWeight: FontWeight.w700,
-                          color: Color(0xFF5BBFA0),
+                          color: ig.primaryAction,
                         ),
                       ),
                     )
@@ -351,12 +342,12 @@ class PostAlbumOrderScreen extends ConsumerWidget {
                             height: 24,
                             decoration: BoxDecoration(
                               shape: BoxShape.circle,
-                              color: Colors.black.withOpacity(0.6),
+                              color: ig.scrim,
                             ),
-                            child: const Icon(
+                            child: Icon(
                               Icons.arrow_back_rounded,
                               size: 14,
-                              color: Colors.white,
+                              color: ig.onPrimaryAction,
                             ),
                           ),
                         ),
@@ -369,12 +360,12 @@ class PostAlbumOrderScreen extends ConsumerWidget {
                             height: 24,
                             decoration: BoxDecoration(
                               shape: BoxShape.circle,
-                              color: Colors.black.withOpacity(0.6),
+                              color: ig.scrim,
                             ),
-                            child: const Icon(
+                            child: Icon(
                               Icons.arrow_forward_rounded,
                               size: 14,
-                              color: Colors.white,
+                              color: ig.onPrimaryAction,
                             ),
                           ),
                         ),
@@ -389,7 +380,7 @@ class PostAlbumOrderScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildImageView(String path, SamanHomePalette tokens) {
+  Widget _buildImageView(String path, SamanIgTokens ig) {
     if (path.startsWith('http://') ||
         path.startsWith('https://') ||
         path.startsWith('/static/')) {
@@ -397,10 +388,10 @@ class PostAlbumOrderScreen extends ConsumerWidget {
         path,
         fit: BoxFit.cover,
         errorBuilder: (_, __, ___) => Container(
-          color: tokens.cardSurface,
+          color: ig.surface,
           child: Icon(
             Icons.broken_image_outlined,
-            color: tokens.textSecondary,
+            color: ig.textSecondary,
           ),
         ),
       );
@@ -410,10 +401,10 @@ class PostAlbumOrderScreen extends ConsumerWidget {
       return Image.file(file, fit: BoxFit.cover);
     }
     return Container(
-      color: tokens.cardSurface,
+      color: ig.surface,
       child: Icon(
         Icons.image_outlined,
-        color: tokens.textSecondary,
+        color: ig.textSecondary,
       ),
     );
   }
@@ -476,17 +467,17 @@ class PostAlbumOrderScreen extends ConsumerWidget {
     BuildContext context,
     List<String> currentUrls,
     CommunityComposerNotifier notifier,
-    SamanHomePalette tokens,
+    SamanIgTokens ig,
   ) {
     return InkWell(
       onTap: () => _pickMorePhotos(context, currentUrls, notifier),
       borderRadius: BorderRadius.circular(14),
       child: Container(
         decoration: BoxDecoration(
-          color: tokens.cardSurface,
+          color: ig.surface,
           borderRadius: BorderRadius.circular(14),
           border: Border.all(
-            color: tokens.border,
+            color: ig.border,
             style: BorderStyle.solid,
           ),
         ),
@@ -495,24 +486,24 @@ class PostAlbumOrderScreen extends ConsumerWidget {
           children: [
             Icon(
               Icons.add_photo_alternate_rounded,
-              color: tokens.textSecondary,
+              color: ig.textSecondary,
               size: 28,
             ),
             const SizedBox(height: 6),
             Text(
               '+ Thêm ảnh',
-              style: TextStyle(
+              style: ig.caption(
                 fontSize: 12,
                 fontWeight: FontWeight.w600,
-                color: tokens.textSecondary,
+                color: ig.textSecondary,
               ),
             ),
             const SizedBox(height: 2),
             Text(
               'Tối đa 10 ảnh',
-              style: TextStyle(
+              style: ig.caption(
                 fontSize: 10,
-                color: tokens.textMuted,
+                color: ig.textMuted,
               ),
             ),
           ],

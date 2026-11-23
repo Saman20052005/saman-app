@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../../../screens/home/tokens/saman_home_tokens.dart';
+import '../tokens/saman_ig_tokens.dart';
 
 enum DraftDiscardAction { saveDraft, discard, cancel }
 
@@ -16,10 +16,10 @@ class DraftDiscardDialog extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final tokens = SamanHomeTokens.of(context);
+    final ig = SamanIgTokens.of(context);
     return Container(
       decoration: BoxDecoration(
-        color: tokens.cardSurface,
+        color: ig.surface,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
       ),
       padding: EdgeInsets.fromLTRB(
@@ -35,26 +35,22 @@ class DraftDiscardDialog extends StatelessWidget {
             width: 36,
             height: 4,
             decoration: BoxDecoration(
-              color: tokens.secondarySurface,
+              color: ig.border,
               borderRadius: BorderRadius.circular(2),
             ),
           ),
           const SizedBox(height: 16),
           Text(
             'Lưu bản nháp bài viết?',
-            style: TextStyle(
-              fontSize: 17,
-              fontWeight: FontWeight.w700,
-              color: tokens.textPrimary,
-            ),
+            style: ig.displayTitle(fontSize: 17),
           ),
           const SizedBox(height: 8),
           Text(
             'Bạn có thể tiếp tục chỉnh sửa nội dung này bất kỳ lúc nào từ mục Bản nháp.',
             textAlign: TextAlign.center,
-            style: TextStyle(
+            style: ig.body(
               fontSize: 13,
-              color: tokens.textSecondary,
+              color: ig.textSecondary,
               height: 1.4,
             ),
           ),
@@ -65,23 +61,8 @@ class DraftDiscardDialog extends StatelessWidget {
             child: ElevatedButton(
               onPressed: () =>
                   Navigator.pop(context, DraftDiscardAction.saveDraft),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: tokens.greenAccent,
-                foregroundColor: tokens.isDark
-                    ? const Color(0xFF003824)
-                    : const Color(0xFFFFFFFF),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                elevation: 0,
-              ),
-              child: const Text(
-                'Lưu bản nháp',
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
+              style: ig.primaryButtonStyle(minHeight: 46, borderRadius: 12),
+              child: const Text('Lưu bản nháp'),
             ),
           ),
           const SizedBox(height: 8),
@@ -92,25 +73,14 @@ class DraftDiscardDialog extends StatelessWidget {
               onPressed: () =>
                   Navigator.pop(context, DraftDiscardAction.discard),
               style: OutlinedButton.styleFrom(
-                foregroundColor: tokens.isDark
-                    ? const Color(0xFFFFB4AB)
-                    : const Color(0xFFDC2626),
-                side: BorderSide(
-                  color: tokens.isDark
-                      ? const Color(0xFF93000A)
-                      : const Color(0xFFDC2626),
-                ),
+                foregroundColor: ig.danger,
+                side: BorderSide(color: ig.danger),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),
+                textStyle: ig.buttonLabel(color: ig.danger),
               ),
-              child: const Text(
-                'Hủy bỏ thay đổi',
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
+              child: const Text('Hủy bỏ thay đổi'),
             ),
           ),
           const SizedBox(height: 8),
@@ -118,10 +88,7 @@ class DraftDiscardDialog extends StatelessWidget {
             onPressed: () => Navigator.pop(context, DraftDiscardAction.cancel),
             child: Text(
               'Tiếp tục chỉnh sửa',
-              style: TextStyle(
-                fontSize: 13,
-                color: tokens.textSecondary,
-              ),
+              style: ig.caption(fontSize: 13, color: ig.textSecondary),
             ),
           ),
         ],

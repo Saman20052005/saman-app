@@ -428,6 +428,37 @@ def _enforce_dm_allowed(sender_id: str, target_user_id: str) -> None:
             )
 
 
+def _enforce_story_reply_allowed(sender_id: str, story_owner_id: str) -> None:
+    """Enforce story owner's community_user_settings.who_can_reply_story."""
+    if not story_owner_id or str(sender_id) == str(story_owner_id):
+        return
+
+    settings_doc = _get_user_settings_doc(story_owner_id)
+    who_can_reply = str((settings_doc or {}).get("who_can_reply_story") or "everyone").strip().lower()
+
+    if who_can_reply == "nobody":
+        raise HTTPException(
+            status_code=403,
+            detail="Người dùng này không cho phép trả lời tin (Story).",
+        )
+
+    if who_can_reply == "followers":
+        follows_col = get_community_follows_collection()
+        is_following = False
+        if follows_col is not None:
+            is_following = (
+                follows_col.find_one(
+                    {"follower_id": sender_id, "following_id": story_owner_id}
+                )
+                is not None
+            )
+        if not is_following:
+            raise HTTPException(
+                status_code=403,
+                detail="Bạn cần theo dõi người dùng này để trả lời tin (Story).",
+            )
+
+
 def _get_conversation_for_member(conversation_id: str, current_user_id: str) -> Dict[str, Any]:
     """Fetch conversation and verify participant membership; return 404 on miss or non-member (anti-IDOR)."""
     conv_col = get_dm_conversations_collection()
@@ -1042,6 +1073,8 @@ async def send_message(
         peer_id = _get_peer_id(conv, current_user_id)
 
         _enforce_dm_allowed(current_user_id, peer_id)
+        if body.type == "story_reply":
+            _enforce_story_reply_allowed(current_user_id, peer_id)
 
         conv_col = get_dm_conversations_collection()
         msg_col = get_dm_messages_collection()

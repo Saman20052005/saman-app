@@ -3,10 +3,10 @@ import 'package:flutter/material.dart';
 import '../../../../../config/app_translations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
-import '../../../../../screens/home/tokens/saman_home_tokens.dart';
 import '../../../domain/models/post_attachment_snapshot.dart';
 import '../../providers/community_composer_provider.dart';
 import '../../providers/community_providers.dart';
+import '../../tokens/saman_ig_tokens.dart';
 import '../../widgets/draft_discard_dialog.dart';
 import 'community_select_attachment_screen.dart';
 import '../../widgets/community_activity_snapshot_card.dart';
@@ -37,13 +37,13 @@ class _PostComposePublishScreenState
     super.dispose();
   }
 
-  Widget _buildThumbnail(String path, SamanHomePalette tokens) {
+  Widget _buildThumbnail(String path, SamanIgTokens ig) {
     if (path.startsWith('http://') || path.startsWith('https://') || path.startsWith('/static/')) {
       return Image.network(
         path,
         fit: BoxFit.cover,
         errorBuilder: (_, __, ___) => Center(
-          child: Icon(Icons.image, size: 28, color: tokens.textSecondary),
+          child: Icon(Icons.image, size: 28, color: ig.textSecondary),
         ),
       );
     }
@@ -52,7 +52,7 @@ class _PostComposePublishScreenState
       return Image.file(file, fit: BoxFit.cover);
     }
     return Center(
-      child: Icon(Icons.image, size: 28, color: tokens.textSecondary),
+      child: Icon(Icons.image, size: 28, color: ig.textSecondary),
     );
   }
 
@@ -159,10 +159,10 @@ class _PostComposePublishScreenState
       context: context,
       backgroundColor: Colors.transparent,
       builder: (sheetCtx) {
-        final tokens = SamanHomeTokens.of(sheetCtx);
+        final ig = SamanIgTokens.of(sheetCtx);
         return Container(
           decoration: BoxDecoration(
-            color: tokens.cardSurface,
+            color: ig.surface,
             borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
           ),
           padding: EdgeInsets.fromLTRB(16, 12, 16, 24 + MediaQuery.paddingOf(sheetCtx).bottom),
@@ -175,7 +175,7 @@ class _PostComposePublishScreenState
                   width: 36,
                   height: 4,
                   decoration: BoxDecoration(
-                    color: tokens.secondarySurface,
+                    color: ig.border,
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
@@ -183,10 +183,9 @@ class _PostComposePublishScreenState
               const SizedBox(height: 16),
               Text(
                 context.tr('compose_audience_sheet_title'),
-                style: TextStyle(
+                style: ig.displayTitle(
                   fontSize: 16,
-                  fontWeight: FontWeight.w700,
-                  color: tokens.textPrimary,
+                  color: ig.textPrimary,
                 ),
               ),
               const SizedBox(height: 12),
@@ -195,14 +194,14 @@ class _PostComposePublishScreenState
                 title: context.tr('compose_audience_public'),
                 subtitle: context.tr('compose_audience_public_desc'),
                 value: 'Công khai',
-                tokens: tokens,
+                ig: ig,
               ),
               _buildAudienceOption(
                 icon: Icons.group_rounded,
                 title: context.tr('compose_audience_followers'),
                 subtitle: context.tr('compose_audience_followers_desc'),
                 value: 'Người theo dõi',
-                tokens: tokens,
+                ig: ig,
                 legacyVietnameseText: 'Người theo dõi',
               ),
               _buildAudienceOption(
@@ -210,7 +209,7 @@ class _PostComposePublishScreenState
                 title: context.tr('compose_audience_private'),
                 subtitle: context.tr('compose_audience_private_desc'),
                 value: 'Chỉ mình tôi',
-                tokens: tokens,
+                ig: ig,
               ),
             ],
           ),
@@ -224,7 +223,7 @@ class _PostComposePublishScreenState
     required String title,
     required String subtitle,
     required String value,
-    required SamanHomePalette tokens,
+    required SamanIgTokens ig,
     String? legacyVietnameseText,
   }) {
     final currentAudience = ref.watch(communityComposerProvider).audience;
@@ -239,7 +238,7 @@ class _PostComposePublishScreenState
         padding: const EdgeInsets.symmetric(vertical: 10),
         child: Row(
           children: [
-            Icon(icon, color: isSelected ? tokens.greenAccent : tokens.textSecondary, size: 22),
+            Icon(icon, color: isSelected ? ig.primaryAction : ig.textSecondary, size: 22),
             const SizedBox(width: 12),
             Expanded(
               child: Column(
@@ -249,10 +248,9 @@ class _PostComposePublishScreenState
                     children: [
                       Text(
                         title,
-                        style: TextStyle(
+                        style: ig.username(
                           fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                          color: isSelected ? tokens.greenAccent : tokens.textPrimary,
+                          color: isSelected ? ig.primaryAction : ig.textPrimary,
                         ),
                       ),
                       if (legacyVietnameseText != null && legacyVietnameseText != title)
@@ -268,13 +266,13 @@ class _PostComposePublishScreenState
                   const SizedBox(height: 2),
                   Text(
                     subtitle,
-                    style: TextStyle(fontSize: 12, color: tokens.textSecondary),
+                    style: ig.caption(fontSize: 12, color: ig.textSecondary),
                   ),
                 ],
               ),
             ),
             if (isSelected)
-              Icon(Icons.check_rounded, color: tokens.greenAccent, size: 20),
+              Icon(Icons.check_rounded, color: ig.primaryAction, size: 20),
           ],
         ),
       ),
@@ -325,10 +323,10 @@ class _PostComposePublishScreenState
       context: context,
       backgroundColor: Colors.transparent,
       builder: (sheetCtx) {
-        final tokens = SamanHomeTokens.of(sheetCtx);
+        final ig = SamanIgTokens.of(sheetCtx);
         return Container(
           decoration: BoxDecoration(
-            color: tokens.cardSurface,
+            color: ig.surface,
             borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
           ),
           padding: EdgeInsets.fromLTRB(16, 12, 16, 24 + MediaQuery.paddingOf(sheetCtx).bottom),
@@ -341,7 +339,7 @@ class _PostComposePublishScreenState
                   width: 36,
                   height: 4,
                   decoration: BoxDecoration(
-                    color: tokens.secondarySurface,
+                    color: ig.border,
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
@@ -349,10 +347,9 @@ class _PostComposePublishScreenState
               const SizedBox(height: 16),
               Text(
                 context.tr('compose_topic_sheet_title'),
-                style: TextStyle(
+                style: ig.displayTitle(
                   fontSize: 16,
-                  fontWeight: FontWeight.w700,
-                  color: tokens.textPrimary,
+                  color: ig.textPrimary,
                 ),
               ),
               const SizedBox(height: 12),
@@ -370,19 +367,14 @@ class _PostComposePublishScreenState
                     child: Container(
                       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                       decoration: BoxDecoration(
-                        color: isSelected ? tokens.greenAccent : tokens.secondarySurface,
+                        color: isSelected ? ig.primaryAction : ig.surfaceElevated,
                         borderRadius: BorderRadius.circular(10),
                       ),
                       child: Text(
                         _localizedTopic(context, t),
-                        style: TextStyle(
+                        style: ig.username(
                           fontSize: 13,
-                          fontWeight: FontWeight.w600,
-                          color: isSelected
-                              ? (tokens.isDark
-                                  ? const Color(0xFF003824)
-                                  : const Color(0xFFFFFFFF))
-                              : tokens.textPrimary,
+                          color: isSelected ? ig.onPrimaryAction : ig.textPrimary,
                         ),
                       ),
                     ),
@@ -404,21 +396,27 @@ class _PostComposePublishScreenState
             selection: TextSelection.collapsed(offset: next.caption.length));
       }
     });
-    final tokens = SamanHomeTokens.of(context);
+    final ig = SamanIgTokens.of(context);
     final composer = ref.watch(communityComposerProvider);
     final notifier = ref.read(communityComposerProvider.notifier);
 
     return Scaffold(
-      backgroundColor: tokens.canvas,
+      backgroundColor: ig.canvas,
       body: SafeArea(
         bottom: false,
         child: Column(
           children: [
             // Top App Bar
-            _buildAppBar(context, composer, tokens),
+            _buildAppBar(context, composer, ig),
             if (composer.errorMessage != null)
-              Padding(key: const ValueKey('publication-status'), padding: const EdgeInsets.all(16),
-                child: Text(context.tr(composer.errorMessage!), style: tokens.headerSubtitle)),
+              Padding(
+                key: const ValueKey('publication-status'),
+                padding: const EdgeInsets.all(16),
+                child: Text(
+                  context.tr(composer.errorMessage!),
+                  style: ig.caption(color: ig.danger),
+                ),
+              ),
 
             // Main Compose Scroll
             Expanded(
@@ -428,7 +426,7 @@ class _PostComposePublishScreenState
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     // User Identity Row
-                    _buildUserIdentityRow(composer, tokens),
+                    _buildUserIdentityRow(composer, ig),
                     const SizedBox(height: 12),
 
                     // Caption Input & Thumbnail row
@@ -443,18 +441,18 @@ class _PostComposePublishScreenState
                             readOnly: composer.hasPendingSubmission,
                             maxLines: 5,
                             onChanged: (v) => notifier.setCaption(v),
-                            style: TextStyle(
+                            style: ig.body(
                               fontSize: 14,
-                              color: tokens.textPrimary,
+                              color: ig.textPrimary,
                               height: 1.4,
                             ),
                             decoration: InputDecoration(
                               filled: false,
-                              counterStyle: tokens.headerSubtitle,
+                              counterStyle: ig.caption(),
                               hintText: context.tr('compose_caption_hint'),
-                              hintStyle: TextStyle(
+                              hintStyle: ig.body(
                                 fontSize: 14,
-                                color: tokens.textMuted,
+                                color: ig.textMuted,
                               ),
                               border: InputBorder.none,
                             ),
@@ -476,14 +474,14 @@ class _PostComposePublishScreenState
                               margin: const EdgeInsets.only(left: 8),
                               decoration: BoxDecoration(
                                 borderRadius: BorderRadius.circular(12),
-                                border: Border.all(color: tokens.border),
+                                border: Border.all(color: ig.border),
                               ),
                               child: Stack(
                                 fit: StackFit.expand,
                                 children: [
                                   ClipRRect(
                                     borderRadius: BorderRadius.circular(11),
-                                    child: _buildThumbnail(composer.selectedMediaUrls.first, tokens),
+                                    child: _buildThumbnail(composer.selectedMediaUrls.first, ig),
                                   ),
                                   Positioned(
                                     top: 4,
@@ -514,15 +512,16 @@ class _PostComposePublishScreenState
                                       child: Container(
                                         padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
                                         decoration: BoxDecoration(
-                                          color: Colors.black.withOpacity(0.7),
+                                          color: ig.scrim,
                                           borderRadius: BorderRadius.circular(4),
                                         ),
                                         child: Text(
                                           '${composer.selectedMediaUrls.length}',
-                                          style: const TextStyle(
+                                          style: TextStyle(
+                                            fontFamily: SamanIgTokens.fontFamily,
                                             fontSize: 10,
                                             fontWeight: FontWeight.w700,
-                                            color: Color(0xFF5BBFA0),
+                                            color: ig.primaryAction,
                                           ),
                                         ),
                                       ),
@@ -537,16 +536,16 @@ class _PostComposePublishScreenState
 
                     // Attached Activity Card (if any)
                     if (composer.attachedActivity != null) ...[
-                      _buildAttachedActivityCard(composer.attachedActivity!, notifier, tokens),
+                      _buildAttachedActivityCard(composer.attachedActivity!, notifier, ig),
                       const SizedBox(height: 16),
                     ],
 
                     // Settings Group
                     Container(
                       decoration: BoxDecoration(
-                        color: tokens.cardSurface,
+                        color: ig.surface,
                         borderRadius: BorderRadius.circular(14),
-                        border: Border.all(color: tokens.border),
+                        border: Border.all(color: ig.border),
                       ),
                       child: Column(
                         children: [
@@ -555,17 +554,17 @@ class _PostComposePublishScreenState
                             label: context.tr('community_publish_audience'),
                             value: _localizedAudience(context, composer.audience),
                             onTap: _showAudienceSheet,
-                            tokens: tokens,
+                            ig: ig,
                           ),
-                          Divider(color: tokens.border, height: 1),
+                          Divider(color: ig.border, height: 1),
                           _buildSettingTile(
                             icon: Icons.tag_rounded,
                             label: context.tr('compose_topic_label'),
                             value: _localizedTopic(context, composer.topic),
                             onTap: _showTopicSheet,
-                            tokens: tokens,
+                            ig: ig,
                           ),
-                          Divider(color: tokens.border, height: 1),
+                          Divider(color: ig.border, height: 1),
                           _buildSettingTile(
                             icon: Icons.fitness_center_rounded,
                             label: context.tr('compose_attach_activity_label'),
@@ -582,9 +581,9 @@ class _PostComposePublishScreenState
                                 ),
                               );
                             },
-                            tokens: tokens,
+                            ig: ig,
                           ),
-                          Divider(color: tokens.border, height: 1),
+                          Divider(color: ig.border, height: 1),
                           _buildSettingTile(
                             icon: Icons.photo_library_outlined,
                             label: context.tr('compose_add_photos_label'),
@@ -595,9 +594,9 @@ class _PostComposePublishScreenState
                                     composer.attachedActivity != null)
                                 ? null
                                 : _pickMediaFromGallery,
-                            tokens: tokens,
+                            ig: ig,
                           ),
-                          Divider(color: tokens.border, height: 1),
+                          Divider(color: ig.border, height: 1),
                           Padding(
                             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                             child: Row(
@@ -606,16 +605,16 @@ class _PostComposePublishScreenState
                                 Expanded(
                                   child: Row(
                                     children: [
-                                      Icon(Icons.chat_bubble_outline_rounded, size: 20, color: tokens.textSecondary),
+                                      Icon(Icons.chat_bubble_outline_rounded, size: 20, color: ig.textSecondary),
                                       const SizedBox(width: 12),
                                       Flexible(
                                         child: Text(
                                           context.tr('compose_allow_comments'),
                                           overflow: TextOverflow.ellipsis,
-                                          style: TextStyle(
+                                          style: ig.body(
                                             fontSize: 13,
                                             fontWeight: FontWeight.w500,
-                                            color: tokens.textPrimary,
+                                            color: ig.textPrimary,
                                           ),
                                         ),
                                       ),
@@ -624,7 +623,7 @@ class _PostComposePublishScreenState
                                 ),
                                 Switch(
                                   value: composer.allowComments,
-                                  activeColor: tokens.greenAccent,
+                                  activeColor: ig.primaryAction,
                                   onChanged: (_) => notifier.toggleAllowComments(),
                                 ),
                               ],
@@ -647,14 +646,14 @@ class _PostComposePublishScreenState
   Widget _buildAppBar(
     BuildContext context,
     CommunityComposerState composer,
-    SamanHomePalette tokens,
+    SamanIgTokens ig,
   ) {
     return Container(
       height: 52,
       padding: const EdgeInsets.symmetric(horizontal: 16),
       decoration: BoxDecoration(
-        color: tokens.canvas,
-        border: Border(bottom: BorderSide(color: tokens.border, width: 1)),
+        color: ig.canvas,
+        border: Border(bottom: BorderSide(color: ig.border, width: 0.5)),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -663,7 +662,7 @@ class _PostComposePublishScreenState
             onPressed: _handleBack,
             icon: Icon(
               Icons.arrow_back_rounded,
-              color: tokens.textPrimary,
+              color: ig.textPrimary,
               size: 22,
             ),
           ),
@@ -686,10 +685,10 @@ class _PostComposePublishScreenState
                   context.tr('compose_post_title'),
                   textAlign: TextAlign.center,
                   overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
+                  style: ig.displayTitle(
                     fontSize: 16,
                     fontWeight: FontWeight.w700,
-                    color: tokens.textPrimary,
+                    color: ig.textPrimary,
                   ),
                 ),
               ],
@@ -701,21 +700,15 @@ class _PostComposePublishScreenState
                   height: 20,
                   child: CircularProgressIndicator(
                     strokeWidth: 2,
-                    color: tokens.greenAccent,
+                    color: ig.primaryAction,
                   ),
                 )
               : ElevatedButton(
                   onPressed: composer.hasContent ? _handlePublish : null,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: tokens.greenAccent,
-                    foregroundColor: tokens.isDark
-                        ? const Color(0xFF003824)
-                        : const Color(0xFFFFFFFF),
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
+                  style: ig.primaryButtonStyle(minHeight: 36, borderRadius: 10).copyWith(
+                    padding: const WidgetStatePropertyAll(
+                      EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                     ),
-                    elevation: 0,
                   ),
                   child: Stack(
                     alignment: Alignment.center,
@@ -733,7 +726,7 @@ class _PostComposePublishScreenState
                       ),
                       Text(
                         context.tr('compose_publish_btn'),
-                        style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
+                        style: ig.buttonLabel(fontSize: 13, fontWeight: FontWeight.w700),
                       ),
                     ],
                   ),
@@ -745,7 +738,7 @@ class _PostComposePublishScreenState
 
   Widget _buildUserIdentityRow(
     CommunityComposerState composer,
-    SamanHomePalette tokens,
+    SamanIgTokens ig,
   ) {
     return Row(
       children: [
@@ -754,9 +747,9 @@ class _PostComposePublishScreenState
           height: 38,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
-            color: tokens.secondarySurface,
+            color: ig.surfaceElevated,
           ),
-          child: Icon(Icons.person_rounded, color: tokens.greenAccent, size: 22),
+          child: Icon(Icons.person_rounded, color: ig.textPrimary, size: 22),
         ),
         const SizedBox(width: 10),
         Column(
@@ -764,10 +757,10 @@ class _PostComposePublishScreenState
           children: [
             Text(
               ref.watch(useRemoteCommunityProvider) ? context.tr('community_publish_current_user') : 'Linh Nguyễn',
-              style: TextStyle(
+              style: ig.username(
                 fontSize: 14,
                 fontWeight: FontWeight.w700,
-                color: tokens.textPrimary,
+                color: ig.textPrimary,
               ),
             ),
             const SizedBox(height: 2),
@@ -777,9 +770,9 @@ class _PostComposePublishScreenState
                 children: [
                   Text(
                     _localizedAudience(context, composer.audience),
-                    style: TextStyle(fontSize: 11, color: tokens.textSecondary),
+                    style: ig.caption(fontSize: 11, color: ig.textSecondary),
                   ),
-                  Icon(Icons.keyboard_arrow_down_rounded, size: 14, color: tokens.textSecondary),
+                  Icon(Icons.keyboard_arrow_down_rounded, size: 14, color: ig.textSecondary),
                 ],
               ),
             ),
@@ -792,19 +785,28 @@ class _PostComposePublishScreenState
   Widget _buildAttachedActivityCard(
     PostAttachmentSnapshot att,
     CommunityComposerNotifier notifier,
-    SamanHomePalette tokens,
+    SamanIgTokens ig,
   ) {
-    if (att.sharedSnapshot != null) { return Column(children: [
-      CommunityActivitySnapshotCard(snapshot:att),
-      TextButton(onPressed: ref.read(communityComposerProvider).hasPendingSubmission ? null : notifier.clearAttachment,
-        child: Text(context.tr('community_attachment_remove'),style: tokens.linkText)),
-    ]); }
+    if (att.sharedSnapshot != null) {
+      return Column(children: [
+        CommunityActivitySnapshotCard(snapshot: att),
+        TextButton(
+          onPressed: ref.read(communityComposerProvider).hasPendingSubmission
+              ? null
+              : notifier.clearAttachment,
+          child: Text(
+            context.tr('community_attachment_remove'),
+            style: ig.buttonLabel(color: ig.primaryAction),
+          ),
+        ),
+      ]);
+    }
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: tokens.cardSurface,
+        color: ig.surface,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: tokens.greenAccent.withOpacity(0.3)),
+        border: Border.all(color: ig.primaryAction.withOpacity(0.35)),
       ),
       child: Row(
         children: [
@@ -812,7 +814,7 @@ class _PostComposePublishScreenState
             att.type == AttachmentType.workout
                 ? Icons.fitness_center_rounded
                 : Icons.restaurant_rounded,
-            color: tokens.greenAccent,
+            color: ig.primaryAction,
             size: 20,
           ),
           const SizedBox(width: 10),
@@ -822,22 +824,21 @@ class _PostComposePublishScreenState
               children: [
                 Text(
                   att.title,
-                  style: TextStyle(
+                  style: ig.username(
                     fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                    color: tokens.textPrimary,
+                    color: ig.textPrimary,
                   ),
                 ),
                 Text(
                   '${att.category} • ${att.dateFormatted}',
-                  style: TextStyle(fontSize: 11, color: tokens.textSecondary),
+                  style: ig.caption(fontSize: 11, color: ig.textSecondary),
                 ),
               ],
             ),
           ),
           IconButton(
             onPressed: () => notifier.clearAttachment(),
-            icon: Icon(Icons.close_rounded, size: 18, color: tokens.textSecondary),
+            icon: Icon(Icons.close_rounded, size: 18, color: ig.textSecondary),
             padding: EdgeInsets.zero,
             constraints: const BoxConstraints(),
           ),
@@ -851,7 +852,7 @@ class _PostComposePublishScreenState
     required String label,
     required String value,
     required VoidCallback? onTap,
-    required SamanHomePalette tokens,
+    required SamanIgTokens ig,
   }) {
     final isDisabled = onTap == null;
     return InkWell(
@@ -867,17 +868,17 @@ class _PostComposePublishScreenState
                   Icon(
                     icon,
                     size: 20,
-                    color: isDisabled ? tokens.textMuted : tokens.textSecondary,
+                    color: isDisabled ? ig.textMuted : ig.textSecondary,
                   ),
                   const SizedBox(width: 12),
                   Flexible(
                     child: Text(
                       label,
                       overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
+                      style: ig.body(
                         fontSize: 13,
                         fontWeight: FontWeight.w500,
-                        color: isDisabled ? tokens.textMuted : tokens.textPrimary,
+                        color: isDisabled ? ig.textMuted : ig.textPrimary,
                       ),
                     ),
                   ),
@@ -889,16 +890,16 @@ class _PostComposePublishScreenState
               children: [
                 Text(
                   value,
-                  style: TextStyle(
+                  style: ig.caption(
                     fontSize: 12,
-                    color: isDisabled ? tokens.textMuted : tokens.greenAccent,
+                    color: isDisabled ? ig.textMuted : ig.primaryAction,
                   ),
                 ),
                 const SizedBox(width: 4),
                 Icon(
                   Icons.chevron_right_rounded,
                   size: 18,
-                  color: isDisabled ? tokens.textMuted : tokens.textSecondary,
+                  color: isDisabled ? ig.textMuted : ig.textSecondary,
                 ),
               ],
             ),

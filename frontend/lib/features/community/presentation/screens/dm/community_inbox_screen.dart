@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../../../screens/home/tokens/saman_home_tokens.dart';
 import '../../../../../widgets/saman_feedback_snackbar.dart';
 import '../../../domain/models/community_author.dart';
 import '../../../domain/models/community_dm.dart';
 import '../../providers/community_dm_provider.dart';
 import '../../providers/community_providers.dart';
+import '../../tokens/saman_ig_tokens.dart';
 import 'community_chat_thread_screen.dart';
 
 /// R16 Messenger-Lite Inbox screen.
@@ -104,11 +104,11 @@ class _CommunityInboxScreenState extends ConsumerState<CommunityInboxScreen> {
   }
 
   Future<void> _showNewChatBottomSheet() async {
-    final tokens = SamanHomeTokens.of(context);
+    final ig = SamanIgTokens.of(context);
     final selectedAuthor = await showModalBottomSheet<CommunityAuthor>(
       context: context,
       isScrollControlled: true,
-      backgroundColor: tokens.cardSurface,
+      backgroundColor: ig.surface,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -150,20 +150,20 @@ class _CommunityInboxScreenState extends ConsumerState<CommunityInboxScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final tokens = SamanHomeTokens.of(context);
+    final ig = SamanIgTokens.of(context);
     final textTheme = Theme.of(context).textTheme;
     final state = ref.watch(communityInboxProvider);
     final notifier = ref.read(communityInboxProvider.notifier);
     final visibleConversations = _filterConversations(state.conversations);
 
     return Scaffold(
-      backgroundColor: tokens.canvas,
+      backgroundColor: ig.canvas,
       body: SafeArea(
         child: Column(
           children: [
             _InboxAppBar(
               totalUnreadCount: state.totalUnreadCount,
-              tokens: tokens,
+              ig: ig,
               onBack: () => Navigator.pop(context),
               onNewChat: _showNewChatBottomSheet,
             ),
@@ -171,7 +171,7 @@ class _CommunityInboxScreenState extends ConsumerState<CommunityInboxScreen> {
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 10),
               child: Container(
                 decoration: BoxDecoration(
-                  color: tokens.cardSurfaceElevated,
+                  color: ig.surfaceElevated,
                   borderRadius: BorderRadius.circular(22),
                 ),
                 child: TextField(
@@ -182,19 +182,21 @@ class _CommunityInboxScreenState extends ConsumerState<CommunityInboxScreen> {
                     });
                   },
                   style: textTheme.bodyMedium?.copyWith(
+                    fontFamily: SamanIgTokens.fontFamily,
                     fontSize: 14,
-                    color: tokens.textPrimary,
+                    color: ig.textPrimary,
                   ),
                   decoration: InputDecoration(
                     hintText: 'Tìm kiếm cuộc trò chuyện...',
                     hintStyle: textTheme.bodyMedium?.copyWith(
+                      fontFamily: SamanIgTokens.fontFamily,
                       fontSize: 14,
-                      color: tokens.textMuted,
+                      color: ig.textMuted,
                     ),
                     prefixIcon: Icon(
                       Icons.search_rounded,
                       size: 20,
-                      color: tokens.textMuted,
+                      color: ig.textMuted,
                     ),
                     suffixIcon: _searchQuery.isNotEmpty
                         ? IconButton(
@@ -212,7 +214,7 @@ class _CommunityInboxScreenState extends ConsumerState<CommunityInboxScreen> {
                             icon: Icon(
                               Icons.close_rounded,
                               size: 18,
-                              color: tokens.textMuted,
+                              color: ig.textMuted,
                             ),
                           )
                         : null,
@@ -235,7 +237,7 @@ class _CommunityInboxScreenState extends ConsumerState<CommunityInboxScreen> {
                 state: state,
                 visibleConversations: visibleConversations,
                 notifier: notifier,
-                tokens: tokens,
+                ig: ig,
               ),
             ),
           ],
@@ -249,20 +251,20 @@ class _CommunityInboxScreenState extends ConsumerState<CommunityInboxScreen> {
     required CommunityInboxState state,
     required List<DmConversation> visibleConversations,
     required CommunityInboxNotifier notifier,
-    required SamanHomePalette tokens,
+    required SamanIgTokens ig,
   }) {
     final textTheme = Theme.of(context).textTheme;
 
     if (state.isLoading && state.conversations.isEmpty) {
       return Center(
-        child: CircularProgressIndicator(color: tokens.greenAccent),
+        child: CircularProgressIndicator(color: ig.primaryAction),
       );
     }
 
     if (state.errorMessage != null && state.conversations.isEmpty) {
       return RefreshIndicator(
-        color: tokens.greenAccent,
-        backgroundColor: tokens.cardSurface,
+        color: ig.primaryAction,
+        backgroundColor: ig.surface,
         onRefresh: notifier.loadConversations,
         child: LayoutBuilder(
           builder: (context, constraints) => SingleChildScrollView(
@@ -278,24 +280,25 @@ class _CommunityInboxScreenState extends ConsumerState<CommunityInboxScreen> {
                       Icon(
                         Icons.cloud_off_rounded,
                         size: 40,
-                        color: tokens.textMuted,
+                        color: ig.textMuted,
                       ),
                       const SizedBox(height: 12),
                       Text(
                         state.errorMessage!,
                         textAlign: TextAlign.center,
                         style: textTheme.titleSmall?.copyWith(
+                          fontFamily: SamanIgTokens.fontFamily,
                           fontSize: 15,
                           fontWeight: FontWeight.w600,
-                          color: tokens.textPrimary,
+                          color: ig.textPrimary,
                         ),
                       ),
                       const SizedBox(height: 16),
                       OutlinedButton.icon(
                         onPressed: notifier.loadConversations,
                         style: OutlinedButton.styleFrom(
-                          foregroundColor: tokens.greenAccent,
-                          side: BorderSide(color: tokens.greenAccent),
+                          foregroundColor: ig.primaryAction,
+                          side: BorderSide(color: ig.primaryAction),
                           minimumSize: const Size(0, 46),
                           padding: const EdgeInsets.symmetric(
                             horizontal: 20,
@@ -309,9 +312,10 @@ class _CommunityInboxScreenState extends ConsumerState<CommunityInboxScreen> {
                         label: Text(
                           'Thử lại',
                           style: textTheme.labelLarge?.copyWith(
+                            fontFamily: SamanIgTokens.fontFamily,
                             fontSize: 14,
                             fontWeight: FontWeight.w600,
-                            color: tokens.greenAccent,
+                            color: ig.primaryAction,
                           ),
                         ),
                       ),
@@ -327,8 +331,8 @@ class _CommunityInboxScreenState extends ConsumerState<CommunityInboxScreen> {
 
     if (state.conversations.isEmpty) {
       return RefreshIndicator(
-        color: tokens.greenAccent,
-        backgroundColor: tokens.cardSurface,
+        color: ig.primaryAction,
+        backgroundColor: ig.surface,
         onRefresh: notifier.loadConversations,
         child: LayoutBuilder(
           builder: (context, constraints) => SingleChildScrollView(
@@ -336,7 +340,7 @@ class _CommunityInboxScreenState extends ConsumerState<CommunityInboxScreen> {
             child: ConstrainedBox(
               constraints: BoxConstraints(minHeight: constraints.maxHeight),
               child: _InboxEmptyState(
-                tokens: tokens,
+                ig: ig,
                 onStartChat: _showNewChatBottomSheet,
               ),
             ),
@@ -355,15 +359,16 @@ class _CommunityInboxScreenState extends ConsumerState<CommunityInboxScreen> {
               Icon(
                 Icons.search_off_rounded,
                 size: 40,
-                color: tokens.textMuted,
+                color: ig.textMuted,
               ),
               const SizedBox(height: 10),
               Text(
                 'Không tìm thấy cuộc trò chuyện nào',
                 style: textTheme.titleSmall?.copyWith(
+                  fontFamily: SamanIgTokens.fontFamily,
                   fontSize: 15,
                   fontWeight: FontWeight.w600,
-                  color: tokens.textPrimary,
+                  color: ig.textPrimary,
                 ),
               ),
               const SizedBox(height: 6),
@@ -371,8 +376,9 @@ class _CommunityInboxScreenState extends ConsumerState<CommunityInboxScreen> {
                 'Thử từ khóa khác hoặc bắt đầu cuộc trò chuyện mới.',
                 textAlign: TextAlign.center,
                 style: textTheme.bodySmall?.copyWith(
+                  fontFamily: SamanIgTokens.fontFamily,
                   fontSize: 13,
-                  color: tokens.textSecondary,
+                  color: ig.textSecondary,
                 ),
               ),
             ],
@@ -385,8 +391,8 @@ class _CommunityInboxScreenState extends ConsumerState<CommunityInboxScreen> {
         visibleConversations.length + (state.isLoadingMore ? 1 : 0);
 
     return RefreshIndicator(
-      color: tokens.greenAccent,
-      backgroundColor: tokens.cardSurface,
+      color: ig.primaryAction,
+      backgroundColor: ig.surface,
       onRefresh: notifier.loadConversations,
       child: ListView.builder(
         controller: _scrollController,
@@ -403,7 +409,7 @@ class _CommunityInboxScreenState extends ConsumerState<CommunityInboxScreen> {
                   height: 20,
                   child: CircularProgressIndicator(
                     strokeWidth: 2,
-                    color: tokens.greenAccent,
+                    color: ig.primaryAction,
                   ),
                 ),
               ),
@@ -415,7 +421,7 @@ class _CommunityInboxScreenState extends ConsumerState<CommunityInboxScreen> {
             conversation: conv,
             relativeTime:
                 _formatRelativeTime(conv.lastMessageAt ?? conv.updatedAt),
-            tokens: tokens,
+            ig: ig,
             onTap: () => _openThread(conv),
           );
         },
@@ -426,13 +432,13 @@ class _CommunityInboxScreenState extends ConsumerState<CommunityInboxScreen> {
 
 class _InboxAppBar extends StatelessWidget {
   final int totalUnreadCount;
-  final SamanHomePalette tokens;
+  final SamanIgTokens ig;
   final VoidCallback onBack;
   final VoidCallback onNewChat;
 
   const _InboxAppBar({
     required this.totalUnreadCount,
-    required this.tokens,
+    required this.ig,
     required this.onBack,
     required this.onNewChat,
   });
@@ -444,7 +450,7 @@ class _InboxAppBar extends StatelessWidget {
     return Container(
       height: 56,
       padding: const EdgeInsets.symmetric(horizontal: 8),
-      color: tokens.canvas,
+      color: ig.canvas,
       child: Row(
         children: [
           IconButton(
@@ -453,7 +459,7 @@ class _InboxAppBar extends StatelessWidget {
             constraints: const BoxConstraints(minWidth: 44, minHeight: 44),
             icon: Icon(
               Icons.arrow_back_rounded,
-              color: tokens.textPrimary,
+              color: ig.textPrimary,
               size: 22,
             ),
           ),
@@ -466,10 +472,11 @@ class _InboxAppBar extends StatelessWidget {
                     'Tin nhắn',
                     overflow: TextOverflow.ellipsis,
                     style: textTheme.titleLarge?.copyWith(
+                      fontFamily: SamanIgTokens.fontFamily,
                       fontSize: 20,
                       fontWeight: FontWeight.w700,
                       letterSpacing: -0.3,
-                      color: tokens.textPrimary,
+                      color: ig.textPrimary,
                     ),
                   ),
                 ),
@@ -479,16 +486,19 @@ class _InboxAppBar extends StatelessWidget {
                     padding:
                         const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
                     decoration: BoxDecoration(
-                      color: tokens.greenBadgeBg,
+                      color: ig.primaryAction.withOpacity(0.12),
                       borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: tokens.greenBadgeBorder),
+                      border: Border.all(
+                        color: ig.primaryAction.withOpacity(0.35),
+                      ),
                     ),
                     child: Text(
                       totalUnreadCount > 99 ? '99+' : '$totalUnreadCount',
                       style: textTheme.labelSmall?.copyWith(
+                        fontFamily: SamanIgTokens.fontFamily,
                         fontSize: 11,
                         fontWeight: FontWeight.w700,
-                        color: tokens.greenAccent,
+                        color: ig.primaryAction,
                         fontFeatures: const [FontFeature.tabularFigures()],
                       ),
                     ),
@@ -503,7 +513,7 @@ class _InboxAppBar extends StatelessWidget {
             constraints: const BoxConstraints(minWidth: 44, minHeight: 44),
             icon: Icon(
               Icons.add_comment_outlined,
-              color: tokens.textPrimary,
+              color: ig.textPrimary,
               size: 22,
             ),
           ),
@@ -516,13 +526,13 @@ class _InboxAppBar extends StatelessWidget {
 class _ConversationTile extends StatelessWidget {
   final DmConversation conversation;
   final String relativeTime;
-  final SamanHomePalette tokens;
+  final SamanIgTokens ig;
   final VoidCallback onTap;
 
   const _ConversationTile({
     required this.conversation,
     required this.relativeTime,
-    required this.tokens,
+    required this.ig,
     required this.onTap,
   });
 
@@ -591,8 +601,8 @@ class _ConversationTile extends StatelessWidget {
                   height: 54,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    color: tokens.secondarySurface,
-                    border: Border.all(color: tokens.border),
+                    color: ig.surfaceElevated,
+                    border: Border.all(color: ig.border),
                   ),
                   clipBehavior: Clip.antiAlias,
                   child: peer.avatarUrl != null && peer.avatarUrl!.isNotEmpty
@@ -603,9 +613,10 @@ class _ConversationTile extends StatelessWidget {
                             child: Text(
                               initial,
                               style: textTheme.titleMedium?.copyWith(
+                                fontFamily: SamanIgTokens.fontFamily,
                                 fontSize: 19,
                                 fontWeight: FontWeight.w700,
-                                color: tokens.greenAccent,
+                                color: ig.primaryAction,
                               ),
                             ),
                           ),
@@ -614,9 +625,10 @@ class _ConversationTile extends StatelessWidget {
                           child: Text(
                             initial,
                             style: textTheme.titleMedium?.copyWith(
+                              fontFamily: SamanIgTokens.fontFamily,
                               fontSize: 19,
                               fontWeight: FontWeight.w700,
-                              color: tokens.greenAccent,
+                              color: ig.primaryAction,
                             ),
                           ),
                         ),
@@ -629,10 +641,10 @@ class _ConversationTile extends StatelessWidget {
                       width: 14,
                       height: 14,
                       decoration: BoxDecoration(
-                        color: tokens.greenAccent,
+                        color: ig.primaryAction,
                         shape: BoxShape.circle,
                         border: Border.all(
-                          color: tokens.canvas,
+                          color: ig.canvas,
                           width: 2,
                         ),
                       ),
@@ -656,11 +668,12 @@ class _ConversationTile extends StatelessWidget {
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                                 style: textTheme.titleSmall?.copyWith(
+                                  fontFamily: SamanIgTokens.fontFamily,
                                   fontSize: 15,
                                   fontWeight: hasUnread
                                       ? FontWeight.w700
                                       : FontWeight.w600,
-                                  color: tokens.textPrimary,
+                                  color: ig.textPrimary,
                                 ),
                               ),
                             ),
@@ -669,7 +682,7 @@ class _ConversationTile extends StatelessWidget {
                               Icon(
                                 Icons.verified_rounded,
                                 size: 15,
-                                color: tokens.greenAccent,
+                                color: ig.primaryAction,
                               ),
                             ],
                           ],
@@ -679,12 +692,11 @@ class _ConversationTile extends StatelessWidget {
                       Text(
                         relativeTime,
                         style: textTheme.labelSmall?.copyWith(
+                          fontFamily: SamanIgTokens.fontFamily,
                           fontSize: 12,
                           fontWeight:
                               hasUnread ? FontWeight.w600 : FontWeight.w400,
-                          color: hasUnread
-                              ? tokens.greenAccent
-                              : tokens.textMuted,
+                          color: hasUnread ? ig.primaryAction : ig.textMuted,
                           fontFeatures: const [FontFeature.tabularFigures()],
                         ),
                       ),
@@ -698,8 +710,8 @@ class _ConversationTile extends StatelessWidget {
                           preview.icon,
                           size: 14,
                           color: hasUnread
-                              ? tokens.textPrimary
-                              : tokens.textSecondary,
+                              ? ig.textPrimary
+                              : ig.textSecondary,
                         ),
                         const SizedBox(width: 5),
                       ],
@@ -709,44 +721,24 @@ class _ConversationTile extends StatelessWidget {
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: textTheme.bodySmall?.copyWith(
+                            fontFamily: SamanIgTokens.fontFamily,
                             fontSize: 13.5,
                             fontWeight:
                                 hasUnread ? FontWeight.w700 : FontWeight.w400,
                             color: hasUnread
-                                ? tokens.textPrimary
-                                : tokens.textSecondary,
+                                ? ig.textPrimary
+                                : ig.textSecondary,
                           ),
                         ),
                       ),
                       if (hasUnread) ...[
                         const SizedBox(width: 10),
                         Container(
-                          constraints: const BoxConstraints(
-                            minWidth: 20,
-                            minHeight: 20,
-                          ),
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 6,
-                            vertical: 2,
-                          ),
+                          width: 9,
+                          height: 9,
                           decoration: BoxDecoration(
-                            color: tokens.greenAccent,
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          child: Center(
-                            child: Text(
-                              conversation.unreadCount > 99
-                                  ? '99+'
-                                  : '${conversation.unreadCount}',
-                              style: textTheme.labelSmall?.copyWith(
-                                fontSize: 11,
-                                fontWeight: FontWeight.w700,
-                                color: tokens.primaryCtaText,
-                                fontFeatures: const [
-                                  FontFeature.tabularFigures(),
-                                ],
-                              ),
-                            ),
+                            color: ig.primaryAction,
+                            shape: BoxShape.circle,
                           ),
                         ),
                       ],
@@ -763,11 +755,11 @@ class _ConversationTile extends StatelessWidget {
 }
 
 class _InboxEmptyState extends StatelessWidget {
-  final SamanHomePalette tokens;
+  final SamanIgTokens ig;
   final VoidCallback onStartChat;
 
   const _InboxEmptyState({
-    required this.tokens,
+    required this.ig,
     required this.onStartChat,
   });
 
@@ -782,9 +774,9 @@ class _InboxEmptyState extends StatelessWidget {
           width: double.infinity,
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
           decoration: BoxDecoration(
-            color: tokens.cardSurface,
+            color: ig.surface,
             borderRadius: BorderRadius.circular(18),
-            border: Border.all(color: tokens.border),
+            border: Border.all(color: ig.border),
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -794,12 +786,12 @@ class _InboxEmptyState extends StatelessWidget {
                 height: 60,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: tokens.secondarySurface,
+                  color: ig.surfaceElevated,
                 ),
                 child: Icon(
                   Icons.forum_outlined,
                   size: 30,
-                  color: tokens.greenAccent,
+                  color: ig.primaryAction,
                 ),
               ),
               const SizedBox(height: 16),
@@ -807,9 +799,10 @@ class _InboxEmptyState extends StatelessWidget {
                 'Chưa có cuộc trò chuyện nào',
                 textAlign: TextAlign.center,
                 style: textTheme.titleMedium?.copyWith(
+                  fontFamily: SamanIgTokens.fontFamily,
                   fontSize: 17,
                   fontWeight: FontWeight.w700,
-                  color: tokens.textPrimary,
+                  color: ig.textPrimary,
                 ),
               ),
               const SizedBox(height: 6),
@@ -817,8 +810,9 @@ class _InboxEmptyState extends StatelessWidget {
                 'Kết nối trực tiếp với huấn luyện viên và bạn bè trong cộng đồng Saman qua tin nhắn, ảnh và giọng nói.',
                 textAlign: TextAlign.center,
                 style: textTheme.bodySmall?.copyWith(
+                  fontFamily: SamanIgTokens.fontFamily,
                   fontSize: 13,
-                  color: tokens.textSecondary,
+                  color: ig.textSecondary,
                   height: 1.45,
                 ),
               ),
@@ -828,22 +822,16 @@ class _InboxEmptyState extends StatelessWidget {
                 height: 46,
                 child: ElevatedButton.icon(
                   onPressed: onStartChat,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: tokens.greenAccent,
-                    foregroundColor: tokens.primaryCtaText,
-                    minimumSize: const Size(0, 46),
-                    elevation: 0,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
+                  style: ig.primaryButtonStyle(
+                    minHeight: 46,
+                    borderRadius: 12,
                   ),
                   icon: const Icon(Icons.add_comment_outlined, size: 18),
                   label: Text(
                     'Bắt đầu trò chuyện',
-                    style: textTheme.labelLarge?.copyWith(
+                    style: ig.buttonLabel(
                       fontSize: 14,
                       fontWeight: FontWeight.w700,
-                      color: tokens.primaryCtaText,
                     ),
                   ),
                 ),
@@ -914,7 +902,7 @@ class _NewChatMemberSheetState extends ConsumerState<_NewChatMemberSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final tokens = SamanHomeTokens.of(context);
+    final ig = SamanIgTokens.of(context);
     final textTheme = Theme.of(context).textTheme;
     final maxHeight = MediaQuery.sizeOf(context).height * 0.72;
     final filtered = _query.trim().isEmpty
@@ -942,7 +930,7 @@ class _NewChatMemberSheetState extends ConsumerState<_NewChatMemberSheet> {
                 width: 40,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: tokens.borderHigh,
+                  color: ig.textMuted.withOpacity(0.45),
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
@@ -953,9 +941,10 @@ class _NewChatMemberSheetState extends ConsumerState<_NewChatMemberSheet> {
                     child: Text(
                       'Tin nhắn mới',
                       style: textTheme.titleMedium?.copyWith(
+                        fontFamily: SamanIgTokens.fontFamily,
                         fontSize: 17,
                         fontWeight: FontWeight.w700,
-                        color: tokens.textPrimary,
+                        color: ig.textPrimary,
                       ),
                     ),
                   ),
@@ -968,7 +957,7 @@ class _NewChatMemberSheetState extends ConsumerState<_NewChatMemberSheet> {
                     ),
                     icon: Icon(
                       Icons.close_rounded,
-                      color: tokens.textSecondary,
+                      color: ig.textSecondary,
                       size: 20,
                     ),
                   ),
@@ -977,7 +966,7 @@ class _NewChatMemberSheetState extends ConsumerState<_NewChatMemberSheet> {
               const SizedBox(height: 8),
               Container(
                 decoration: BoxDecoration(
-                  color: tokens.cardSurfaceElevated,
+                  color: ig.surfaceElevated,
                   borderRadius: BorderRadius.circular(22),
                 ),
                 child: TextField(
@@ -988,19 +977,21 @@ class _NewChatMemberSheetState extends ConsumerState<_NewChatMemberSheet> {
                     });
                   },
                   style: textTheme.bodyMedium?.copyWith(
+                    fontFamily: SamanIgTokens.fontFamily,
                     fontSize: 14,
-                    color: tokens.textPrimary,
+                    color: ig.textPrimary,
                   ),
                   decoration: InputDecoration(
                     hintText: 'Tìm thành viên để nhắn tin...',
                     hintStyle: textTheme.bodyMedium?.copyWith(
+                      fontFamily: SamanIgTokens.fontFamily,
                       fontSize: 14,
-                      color: tokens.textMuted,
+                      color: ig.textMuted,
                     ),
                     prefixIcon: Icon(
                       Icons.search_rounded,
                       size: 19,
-                      color: tokens.textMuted,
+                      color: ig.textMuted,
                     ),
                     filled: false,
                     isDense: true,
@@ -1021,7 +1012,7 @@ class _NewChatMemberSheetState extends ConsumerState<_NewChatMemberSheet> {
                         padding: const EdgeInsets.symmetric(vertical: 32),
                         child: Center(
                           child: CircularProgressIndicator(
-                            color: tokens.greenAccent,
+                            color: ig.primaryAction,
                           ),
                         ),
                       )
@@ -1031,8 +1022,9 @@ class _NewChatMemberSheetState extends ConsumerState<_NewChatMemberSheet> {
                             child: Text(
                               'Không có gợi ý thành viên phù hợp.',
                               style: textTheme.bodySmall?.copyWith(
+                                fontFamily: SamanIgTokens.fontFamily,
                                 fontSize: 13,
-                                color: tokens.textSecondary,
+                                color: ig.textSecondary,
                               ),
                             ),
                           )
@@ -1056,8 +1048,8 @@ class _NewChatMemberSheetState extends ConsumerState<_NewChatMemberSheet> {
                                   height: 44,
                                   decoration: BoxDecoration(
                                     shape: BoxShape.circle,
-                                    color: tokens.secondarySurface,
-                                    border: Border.all(color: tokens.border),
+                                    color: ig.surfaceElevated,
+                                    border: Border.all(color: ig.border),
                                   ),
                                   clipBehavior: Clip.antiAlias,
                                   child: author.avatarUrl != null &&
@@ -1070,9 +1062,11 @@ class _NewChatMemberSheetState extends ConsumerState<_NewChatMemberSheet> {
                                               initial,
                                               style: textTheme.titleSmall
                                                   ?.copyWith(
+                                                fontFamily:
+                                                    SamanIgTokens.fontFamily,
                                                 fontSize: 16,
                                                 fontWeight: FontWeight.w700,
-                                                color: tokens.greenAccent,
+                                                color: ig.primaryAction,
                                               ),
                                             ),
                                           ),
@@ -1082,9 +1076,11 @@ class _NewChatMemberSheetState extends ConsumerState<_NewChatMemberSheet> {
                                             initial,
                                             style:
                                                 textTheme.titleSmall?.copyWith(
+                                              fontFamily:
+                                                  SamanIgTokens.fontFamily,
                                               fontSize: 16,
                                               fontWeight: FontWeight.w700,
-                                              color: tokens.greenAccent,
+                                              color: ig.primaryAction,
                                             ),
                                           ),
                                         ),
@@ -1097,9 +1093,10 @@ class _NewChatMemberSheetState extends ConsumerState<_NewChatMemberSheet> {
                                         maxLines: 1,
                                         overflow: TextOverflow.ellipsis,
                                         style: textTheme.titleSmall?.copyWith(
+                                          fontFamily: SamanIgTokens.fontFamily,
                                           fontSize: 14,
                                           fontWeight: FontWeight.w600,
-                                          color: tokens.textPrimary,
+                                          color: ig.textPrimary,
                                         ),
                                       ),
                                     ),
@@ -1108,7 +1105,7 @@ class _NewChatMemberSheetState extends ConsumerState<_NewChatMemberSheet> {
                                       Icon(
                                         Icons.verified_rounded,
                                         size: 14,
-                                        color: tokens.greenAccent,
+                                        color: ig.primaryAction,
                                       ),
                                     ],
                                   ],
@@ -1120,15 +1117,16 @@ class _NewChatMemberSheetState extends ConsumerState<_NewChatMemberSheet> {
                                         maxLines: 1,
                                         overflow: TextOverflow.ellipsis,
                                         style: textTheme.bodySmall?.copyWith(
+                                          fontFamily: SamanIgTokens.fontFamily,
                                           fontSize: 12,
-                                          color: tokens.textSecondary,
+                                          color: ig.textSecondary,
                                         ),
                                       )
                                     : null,
                                 trailing: Icon(
                                   Icons.chat_bubble_outline_rounded,
                                   size: 18,
-                                  color: tokens.greenAccent,
+                                  color: ig.primaryAction,
                                 ),
                               );
                             },

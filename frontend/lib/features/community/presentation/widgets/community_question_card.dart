@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import '../../../../screens/home/tokens/saman_home_tokens.dart';
 import '../../domain/models/community_post.dart';
+import '../tokens/saman_ig_tokens.dart';
 
 class CommunityQuestionCard extends StatelessWidget {
   final PostQaInfo qaInfo;
@@ -14,14 +14,15 @@ class CommunityQuestionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final tokens = SamanHomeTokens.of(context);
+    final ig = SamanIgTokens.of(context);
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: tokens.cardSurface,
-        borderRadius: BorderRadius.circular(16),
+        color: ig.surface,
+        borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: tokens.border,
+          color: ig.border,
+          width: 0.5,
         ),
       ),
       child: Column(
@@ -35,18 +36,13 @@ class CommunityQuestionCard extends StatelessWidget {
                 child: Icon(
                   Icons.help_outline_rounded,
                   size: 22,
-                  color: tokens.greenAccent,
+                  color: ig.primaryAction,
                 ),
               ),
               Expanded(
                 child: Text(
                   qaInfo.question,
-                  style: TextStyle(
-                    fontSize: 17,
-                    fontWeight: FontWeight.w700,
-                    color: tokens.textPrimary,
-                    height: 1.3,
-                  ),
+                  style: ig.displayTitle(fontSize: 17).copyWith(height: 1.3),
                 ),
               ),
             ],
@@ -55,9 +51,9 @@ class CommunityQuestionCard extends StatelessWidget {
             const SizedBox(height: 8),
             Text(
               qaInfo.details!,
-              style: TextStyle(
+              style: ig.body(
                 fontSize: 14,
-                color: tokens.textSecondary,
+                color: ig.textSecondary,
                 height: 1.45,
               ),
             ),
@@ -67,20 +63,17 @@ class CommunityQuestionCard extends StatelessWidget {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
             decoration: BoxDecoration(
-              color: tokens.secondarySurface.withOpacity(0.6),
-              borderRadius: BorderRadius.circular(12),
+              color: ig.surfaceElevated,
+              borderRadius: BorderRadius.circular(10),
             ),
             child: Row(
               children: [
-                _buildAvatarStack(qaInfo.respondentInitials, tokens),
+                _buildAvatarStack(qaInfo.respondentInitials, ig),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
                     qaInfo.respondentsSummary,
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: tokens.textSecondary,
-                    ),
+                    style: ig.caption(fontSize: 12),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -93,7 +86,7 @@ class CommunityQuestionCard extends StatelessWidget {
     );
   }
 
-  Widget _buildAvatarStack(List<String> initials, SamanHomePalette tokens) {
+  Widget _buildAvatarStack(List<String> initials, SamanIgTokens ig) {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: initials.take(3).map((initial) {
@@ -104,22 +97,22 @@ class CommunityQuestionCard extends StatelessWidget {
           decoration: BoxDecoration(
             shape: BoxShape.circle,
             color: initial.startsWith('+')
-                ? tokens.secondarySurface
-                : tokens.greenAccent.withOpacity(0.2),
+                ? ig.surfaceElevated
+                : ig.primaryAction.withOpacity(0.18),
             border: Border.all(
-              color: tokens.canvas,
+              color: ig.canvas,
               width: 1.5,
             ),
           ),
           child: Center(
             child: Text(
               initial,
-              style: TextStyle(
+              style: ig.caption(
                 fontSize: 9,
-                fontWeight: FontWeight.bold,
+                fontWeight: FontWeight.w700,
                 color: initial.startsWith('+')
-                    ? tokens.textPrimary
-                    : tokens.greenAccent,
+                    ? ig.textPrimary
+                    : ig.primaryAction,
               ),
             ),
           ),

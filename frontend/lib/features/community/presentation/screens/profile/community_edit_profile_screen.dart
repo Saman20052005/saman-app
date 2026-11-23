@@ -1,8 +1,8 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import '../../../../../screens/home/tokens/saman_home_tokens.dart';
 import '../../../../../widgets/saman_feedback_snackbar.dart';
+import '../../tokens/saman_ig_tokens.dart';
 
 class CommunityEditProfileScreen extends StatefulWidget {
   final String? initialName;
@@ -107,10 +107,10 @@ class _CommunityEditProfileScreenState
     }
   }
 
-  void _showAvatarOptionsSheet(SamanHomePalette tokens) {
+  void _showAvatarOptionsSheet(SamanIgTokens ig) {
     showModalBottomSheet<void>(
       context: context,
-      backgroundColor: tokens.cardSurface,
+      backgroundColor: ig.surface,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -125,34 +125,27 @@ class _CommunityEditProfileScreenState
                   width: 40,
                   height: 4,
                   decoration: BoxDecoration(
-                    color: tokens.borderHigh,
+                    color: ig.border,
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
                 const SizedBox(height: 14),
                 Text(
                   'Cập nhật ảnh đại diện',
-                  style: TextStyle(
-                    fontSize: 17,
-                    fontWeight: FontWeight.w600,
-                    color: tokens.textPrimary,
-                  ),
+                  style: ig.displayTitle(fontSize: 17, fontWeight: FontWeight.w600),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   'Đồng bộ tự động cùng hồ sơ tài khoản Saman',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: tokens.textSecondary,
-                  ),
+                  style: ig.caption(fontSize: 12),
                 ),
                 const SizedBox(height: 16),
                 _buildSheetAction(
                   icon: Icons.photo_library_rounded,
                   label: 'Chọn từ thư viện ảnh',
-                  iconColor: tokens.greenAccent,
-                  textColor: tokens.textPrimary,
-                  tokens: tokens,
+                  iconColor: ig.primaryAction,
+                  textColor: ig.textPrimary,
+                  ig: ig,
                   onTap: () {
                     Navigator.pop(sheetContext);
                     _pickAvatar(ImageSource.gallery);
@@ -162,9 +155,9 @@ class _CommunityEditProfileScreenState
                 _buildSheetAction(
                   icon: Icons.photo_camera_rounded,
                   label: 'Chụp ảnh mới',
-                  iconColor: tokens.greenAccent,
-                  textColor: tokens.textPrimary,
-                  tokens: tokens,
+                  iconColor: ig.primaryAction,
+                  textColor: ig.textPrimary,
+                  ig: ig,
                   onTap: () {
                     Navigator.pop(sheetContext);
                     _pickAvatar(ImageSource.camera);
@@ -174,9 +167,9 @@ class _CommunityEditProfileScreenState
                 _buildSheetAction(
                   icon: Icons.delete_outline_rounded,
                   label: 'Xóa ảnh hiện tại',
-                  iconColor: tokens.fatRose,
-                  textColor: tokens.fatRose,
-                  tokens: tokens,
+                  iconColor: ig.danger,
+                  textColor: ig.danger,
+                  ig: ig,
                   onTap: () {
                     Navigator.pop(sheetContext);
                     setState(() {
@@ -193,17 +186,16 @@ class _CommunityEditProfileScreenState
                   child: TextButton(
                     onPressed: () => Navigator.pop(sheetContext),
                     style: TextButton.styleFrom(
-                      backgroundColor: tokens.secondarySurface,
+                      backgroundColor: ig.secondaryButtonBg,
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: BorderRadius.circular(10),
                       ),
                     ),
                     child: Text(
                       'Hủy',
-                      style: TextStyle(
+                      style: ig.buttonLabel(
+                        color: ig.secondaryButtonText,
                         fontSize: 15,
-                        fontWeight: FontWeight.w600,
-                        color: tokens.textPrimary,
                       ),
                     ),
                   ),
@@ -221,19 +213,19 @@ class _CommunityEditProfileScreenState
     required String label,
     required Color iconColor,
     required Color textColor,
-    required SamanHomePalette tokens,
+    required SamanIgTokens ig,
     required VoidCallback onTap,
   }) {
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
+      borderRadius: BorderRadius.circular(10),
       child: Container(
         height: 48,
         padding: const EdgeInsets.symmetric(horizontal: 14),
         decoration: BoxDecoration(
-          color: tokens.secondarySurface,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: tokens.border),
+          color: ig.surfaceElevated,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: ig.border, width: 0.5),
         ),
         child: Row(
           children: [
@@ -241,7 +233,7 @@ class _CommunityEditProfileScreenState
             const SizedBox(width: 12),
             Text(
               label,
-              style: TextStyle(
+              style: ig.body(
                 fontSize: 15,
                 fontWeight: FontWeight.w500,
                 color: textColor,
@@ -318,13 +310,13 @@ class _CommunityEditProfileScreenState
 
   @override
   Widget build(BuildContext context) {
-    final tokens = SamanHomeTokens.of(context);
+    final ig = SamanIgTokens.of(context);
     return Scaffold(
-      backgroundColor: tokens.canvas,
+      backgroundColor: ig.canvas,
       body: SafeArea(
         child: Column(
           children: [
-            _buildAppBar(context, tokens),
+            _buildAppBar(context, ig),
             Expanded(
               child: SingleChildScrollView(
                 padding:
@@ -332,13 +324,13 @@ class _CommunityEditProfileScreenState
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _buildAvatarEdit(tokens),
+                    _buildAvatarEdit(ig),
                     const SizedBox(height: 24),
                     _buildInputCard(
                       label: 'TÊN HIỂN THỊ *',
                       controller: _nameController,
                       hint: 'Nhập họ và tên...',
-                      tokens: tokens,
+                      ig: ig,
                     ),
                     const SizedBox(height: 14),
                     _buildInputCard(
@@ -347,21 +339,21 @@ class _CommunityEditProfileScreenState
                       controller: _handleController,
                       prefixText: '@',
                       hint: 'username',
-                      tokens: tokens,
+                      ig: ig,
                     ),
                     const SizedBox(height: 14),
                     _buildInputCard(
                       label: 'CHỨC DANH / DANH HIỆU',
                       controller: _titleController,
                       hint: 'Ví dụ: HLV thể hình, Người tập luyện...',
-                      tokens: tokens,
+                      ig: ig,
                     ),
                     const SizedBox(height: 14),
-                    _buildBioField(tokens),
+                    _buildBioField(ig),
                     const SizedBox(height: 16),
-                    _buildTopicsSelector(tokens),
+                    _buildTopicsSelector(ig),
                     const SizedBox(height: 16),
-                    _buildPrivacyNoticeCard(tokens),
+                    _buildPrivacyNoticeCard(ig),
                     const SizedBox(height: 32),
                   ],
                 ),
@@ -373,13 +365,13 @@ class _CommunityEditProfileScreenState
     );
   }
 
-  Widget _buildAppBar(BuildContext context, SamanHomePalette tokens) {
+  Widget _buildAppBar(BuildContext context, SamanIgTokens ig) {
     return Container(
       height: 56,
       padding: const EdgeInsets.symmetric(horizontal: 12),
       decoration: BoxDecoration(
-        color: tokens.canvas,
-        border: Border(bottom: BorderSide(color: tokens.border, width: 1)),
+        color: ig.canvas,
+        border: Border(bottom: BorderSide(color: ig.border, width: 0.5)),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -389,7 +381,7 @@ class _CommunityEditProfileScreenState
             tooltip: 'Quay lại',
             icon: Icon(
               Icons.close_rounded,
-              color: tokens.textPrimary,
+              color: ig.textPrimary,
               size: 22,
             ),
           ),
@@ -398,11 +390,7 @@ class _CommunityEditProfileScreenState
               'Chỉnh sửa hồ sơ',
               textAlign: TextAlign.center,
               overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                fontSize: 17,
-                fontWeight: FontWeight.w600,
-                color: tokens.textPrimary,
-              ),
+              style: ig.displayTitle(fontSize: 17, fontWeight: FontWeight.w600),
             ),
           ),
           _isSaving
@@ -413,7 +401,7 @@ class _CommunityEditProfileScreenState
                     height: 20,
                     child: CircularProgressIndicator(
                       strokeWidth: 2,
-                      color: tokens.greenAccent,
+                      color: ig.primaryAction,
                     ),
                   ),
                 )
@@ -421,10 +409,10 @@ class _CommunityEditProfileScreenState
                   onPressed: _handleSave,
                   child: Text(
                     'Lưu',
-                    style: TextStyle(
+                    style: ig.buttonLabel(
                       fontSize: 15,
                       fontWeight: FontWeight.w700,
-                      color: tokens.greenAccent,
+                      color: ig.primaryAction,
                     ),
                   ),
                 ),
@@ -433,7 +421,7 @@ class _CommunityEditProfileScreenState
     );
   }
 
-  Widget _buildAvatarEdit(SamanHomePalette tokens) {
+  Widget _buildAvatarEdit(SamanIgTokens ig) {
     final nameText = _nameController.text.trim();
     final initial = nameText.isNotEmpty ? nameText[0].toUpperCase() : 'L';
 
@@ -442,7 +430,7 @@ class _CommunityEditProfileScreenState
       avatarContent = Image.file(
         File(_localAvatarPath!),
         fit: BoxFit.cover,
-        errorBuilder: (_, __, ___) => _buildInitialAvatar(initial, tokens),
+        errorBuilder: (_, __, ___) => _buildInitialAvatar(initial, ig),
       );
     } else if (!_avatarRemoved &&
         _avatarUrl != null &&
@@ -450,17 +438,17 @@ class _CommunityEditProfileScreenState
       avatarContent = Image.network(
         _avatarUrl!,
         fit: BoxFit.cover,
-        errorBuilder: (_, __, ___) => _buildInitialAvatar(initial, tokens),
+        errorBuilder: (_, __, ___) => _buildInitialAvatar(initial, ig),
       );
     } else {
-      avatarContent = _buildInitialAvatar(initial, tokens);
+      avatarContent = _buildInitialAvatar(initial, ig);
     }
 
     return Center(
       child: Column(
         children: [
           GestureDetector(
-            onTap: () => _showAvatarOptionsSheet(tokens),
+            onTap: () => _showAvatarOptionsSheet(ig),
             child: Stack(
               children: [
                 Container(
@@ -468,8 +456,8 @@ class _CommunityEditProfileScreenState
                   height: 92,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    color: tokens.secondarySurface,
-                    border: Border.all(color: tokens.border),
+                    color: ig.surfaceElevated,
+                    border: Border.all(color: ig.border, width: 1),
                   ),
                   clipBehavior: Clip.antiAlias,
                   child: avatarContent,
@@ -482,15 +470,13 @@ class _CommunityEditProfileScreenState
                     height: 30,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      color: tokens.greenAccent,
-                      border: Border.all(color: tokens.canvas, width: 2),
+                      color: ig.primaryAction,
+                      border: Border.all(color: ig.canvas, width: 2),
                     ),
                     child: Icon(
                       Icons.camera_alt_rounded,
                       size: 16,
-                      color: tokens.isDark
-                          ? const Color(0xFF003824)
-                          : const Color(0xFFFFFFFF),
+                      color: ig.onPrimaryAction,
                     ),
                   ),
                 ),
@@ -499,37 +485,32 @@ class _CommunityEditProfileScreenState
           ),
           const SizedBox(height: 10),
           GestureDetector(
-            onTap: () => _showAvatarOptionsSheet(tokens),
+            onTap: () => _showAvatarOptionsSheet(ig),
             child: Text(
               'Đổi ảnh đại diện',
-              style: TextStyle(
+              style: ig.username(
                 fontSize: 13,
-                fontWeight: FontWeight.w600,
-                color: tokens.greenAccent,
+                color: ig.primaryAction,
               ),
             ),
           ),
           const SizedBox(height: 4),
           Text(
             'Ảnh đại diện cũng được cập nhật trong Saman.',
-            style: TextStyle(
-              fontSize: 11,
-              color: tokens.textMuted,
-            ),
+            style: ig.caption(fontSize: 11, color: ig.textMuted),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildInitialAvatar(String initial, SamanHomePalette tokens) {
+  Widget _buildInitialAvatar(String initial, SamanIgTokens ig) {
     return Center(
       child: Text(
         initial,
-        style: TextStyle(
+        style: ig.displayTitle(
           fontSize: 32,
-          fontWeight: FontWeight.w700,
-          color: tokens.greenAccent,
+          color: ig.textPrimary,
         ),
       ),
     );
@@ -538,7 +519,7 @@ class _CommunityEditProfileScreenState
   Widget _buildInputCard({
     required String label,
     required TextEditingController controller,
-    required SamanHomePalette tokens,
+    required SamanIgTokens ig,
     String? trailingLabel,
     String? hint,
     String? prefixText,
@@ -546,9 +527,9 @@ class _CommunityEditProfileScreenState
     return Container(
       padding: const EdgeInsets.fromLTRB(14, 12, 14, 8),
       decoration: BoxDecoration(
-        color: tokens.cardSurface,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: tokens.border),
+        color: ig.surface,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: ig.border, width: 0.5),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -560,22 +541,17 @@ class _CommunityEditProfileScreenState
                 child: Text(
                   label,
                   overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
+                  style: ig.caption(
                     fontSize: 11,
                     fontWeight: FontWeight.w600,
-                    letterSpacing: 0.6,
-                    color: tokens.textSecondary,
-                  ),
+                  ).copyWith(letterSpacing: 0.6),
                 ),
               ),
               if (trailingLabel != null) ...[
                 const SizedBox(width: 8),
                 Text(
                   trailingLabel,
-                  style: TextStyle(
-                    fontSize: 11,
-                    color: tokens.textMuted,
-                  ),
+                  style: ig.caption(fontSize: 11, color: ig.textMuted),
                 ),
               ],
             ],
@@ -586,10 +562,9 @@ class _CommunityEditProfileScreenState
               if (prefixText != null) ...[
                 Text(
                   prefixText,
-                  style: TextStyle(
+                  style: ig.username(
                     fontSize: 15,
-                    color: tokens.greenAccent,
-                    fontWeight: FontWeight.w600,
+                    color: ig.primaryAction,
                   ),
                 ),
                 const SizedBox(width: 4),
@@ -598,18 +573,12 @@ class _CommunityEditProfileScreenState
                 child: TextField(
                   controller: controller,
                   onChanged: (_) => setState(() {}),
-                  style: TextStyle(
-                    fontSize: 15,
-                    color: tokens.textPrimary,
-                  ),
+                  style: ig.body(fontSize: 15),
                   decoration: InputDecoration(
                     isDense: true,
                     contentPadding: const EdgeInsets.symmetric(vertical: 6),
                     hintText: hint,
-                    hintStyle: TextStyle(
-                      fontSize: 14,
-                      color: tokens.textMuted,
-                    ),
+                    hintStyle: ig.body(fontSize: 14, color: ig.textMuted),
                     border: InputBorder.none,
                   ),
                 ),
@@ -621,13 +590,13 @@ class _CommunityEditProfileScreenState
     );
   }
 
-  Widget _buildBioField(SamanHomePalette tokens) {
+  Widget _buildBioField(SamanIgTokens ig) {
     return Container(
       padding: const EdgeInsets.fromLTRB(14, 12, 14, 10),
       decoration: BoxDecoration(
-        color: tokens.cardSurface,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: tokens.border),
+        color: ig.surface,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: ig.border, width: 0.5),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -639,17 +608,15 @@ class _CommunityEditProfileScreenState
                 child: Text(
                   'GIỚI THIỆU',
                   overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
+                  style: ig.caption(
                     fontSize: 11,
                     fontWeight: FontWeight.w600,
-                    letterSpacing: 0.6,
-                    color: tokens.textSecondary,
-                  ),
+                  ).copyWith(letterSpacing: 0.6),
                 ),
               ),
               Text(
                 '${_bioController.text.length}/150',
-                style: TextStyle(fontSize: 11, color: tokens.textSecondary),
+                style: ig.caption(fontSize: 11),
               ),
             ],
           ),
@@ -664,17 +631,13 @@ class _CommunityEditProfileScreenState
                     maxLength}) =>
                 null,
             onChanged: (_) => setState(() {}),
-            style: TextStyle(
-              fontSize: 14,
-              color: tokens.textPrimary,
-              height: 1.4,
-            ),
+            style: ig.body(fontSize: 14, height: 1.4),
             decoration: InputDecoration(
               isDense: true,
               contentPadding: EdgeInsets.zero,
               hintText:
                   'Viết đôi dòng chia sẻ nguồn cảm hứng hoặc hành trình của bạn...',
-              hintStyle: TextStyle(fontSize: 13, color: tokens.textMuted),
+              hintStyle: ig.body(fontSize: 13, color: ig.textMuted),
               border: InputBorder.none,
             ),
           ),
@@ -683,34 +646,29 @@ class _CommunityEditProfileScreenState
     );
   }
 
-  Widget _buildTopicsSelector(SamanHomePalette tokens) {
+  Widget _buildTopicsSelector(SamanIgTokens ig) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: tokens.cardSurface,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: tokens.border),
+        color: ig.surface,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: ig.border, width: 0.5),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             'CHỦ ĐỀ QUAN TÂM',
-            style: TextStyle(
+            style: ig.caption(
               fontSize: 11,
               fontWeight: FontWeight.w600,
-              letterSpacing: 0.6,
-              color: tokens.textSecondary,
-            ),
+            ).copyWith(letterSpacing: 0.6),
           ),
           const SizedBox(height: 4),
           Text(
             'Chọn tối đa $_maxTopics chủ đề hiển thị trên hồ sơ cá nhân',
-            style: TextStyle(
-              fontSize: 12,
-              color: tokens.textMuted,
-            ),
+            style: ig.caption(fontSize: 12, color: ig.textMuted),
           ),
           const SizedBox(height: 12),
           Wrap(
@@ -743,11 +701,11 @@ class _CommunityEditProfileScreenState
                   padding: const EdgeInsets.symmetric(horizontal: 12),
                   decoration: BoxDecoration(
                     color: isSelected
-                        ? tokens.secondarySurface
-                        : tokens.canvas.withOpacity(0.35),
+                        ? ig.primaryAction.withOpacity(0.12)
+                        : ig.surfaceElevated,
                     borderRadius: BorderRadius.circular(8),
                     border: Border.all(
-                      color: isSelected ? tokens.greenAccent : tokens.border,
+                      color: isSelected ? ig.primaryAction : ig.border,
                     ),
                   ),
                   child: Row(
@@ -757,19 +715,19 @@ class _CommunityEditProfileScreenState
                         Icon(
                           Icons.check_rounded,
                           size: 16,
-                          color: tokens.greenAccent,
+                          color: ig.primaryAction,
                         ),
                         const SizedBox(width: 6),
                       ],
                       Text(
                         topic,
-                        style: TextStyle(
+                        style: ig.body(
                           fontSize: 13,
                           fontWeight:
                               isSelected ? FontWeight.w600 : FontWeight.w500,
                           color: isSelected
-                              ? tokens.greenAccent
-                              : tokens.textSecondary,
+                              ? ig.primaryAction
+                              : ig.textSecondary,
                         ),
                       ),
                     ],
@@ -783,14 +741,14 @@ class _CommunityEditProfileScreenState
     );
   }
 
-  Widget _buildPrivacyNoticeCard(SamanHomePalette tokens) {
+  Widget _buildPrivacyNoticeCard(SamanIgTokens ig) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: tokens.secondarySurface,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: tokens.border),
+        color: ig.surfaceElevated,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: ig.border, width: 0.5),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -798,15 +756,15 @@ class _CommunityEditProfileScreenState
           Icon(
             Icons.shield_outlined,
             size: 20,
-            color: tokens.greenAccent,
+            color: ig.primaryAction,
           ),
           const SizedBox(width: 10),
           Expanded(
             child: Text(
               'Những thông tin này hiển thị trên hồ sơ cộng đồng của bạn.',
-              style: TextStyle(
+              style: ig.body(
                 fontSize: 13,
-                color: tokens.textSecondary,
+                color: ig.textSecondary,
                 height: 1.4,
               ),
             ),

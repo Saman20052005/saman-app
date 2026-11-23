@@ -4,12 +4,60 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:video_player/video_player.dart';
 
-import '../../../../../screens/home/tokens/saman_home_tokens.dart';
 import '../../../../../widgets/saman_feedback_snackbar.dart';
 import '../../../domain/models/community_dm.dart';
 import '../../../domain/models/community_story.dart';
 import '../../providers/community_dm_provider.dart';
 import '../../providers/community_social_providers.dart';
+import '../../tokens/saman_ig_tokens.dart';
+
+enum _SamanCheckInKind { workout, meal }
+
+class _ParsedStoryContent {
+  const _ParsedStoryContent({
+    required this.captionText,
+    this.checkInKind,
+    this.checkInSummary,
+  });
+
+  final String captionText;
+  final _SamanCheckInKind? checkInKind;
+  final String? checkInSummary;
+
+  bool get hasCheckIn =>
+      checkInKind != null &&
+      checkInSummary != null &&
+      checkInSummary!.isNotEmpty;
+}
+
+_ParsedStoryContent _parseStoryContent(String rawCaption) {
+  const workoutPrefix = '[SAMAN_WORKOUT]';
+  const mealPrefix = '[SAMAN_MEAL]';
+
+  final lines = rawCaption.split('\n');
+  _SamanCheckInKind? kind;
+  String? summary;
+  final remaining = <String>[];
+
+  for (final rawLine in lines) {
+    final trimmed = rawLine.trim();
+    if (kind == null && trimmed.startsWith(workoutPrefix)) {
+      kind = _SamanCheckInKind.workout;
+      summary = trimmed.substring(workoutPrefix.length).trim();
+    } else if (kind == null && trimmed.startsWith(mealPrefix)) {
+      kind = _SamanCheckInKind.meal;
+      summary = trimmed.substring(mealPrefix.length).trim();
+    } else {
+      remaining.add(rawLine);
+    }
+  }
+
+  return _ParsedStoryContent(
+    captionText: remaining.join('\n').trim(),
+    checkInKind: kind,
+    checkInSummary: summary,
+  );
+}
 
 class CommunityStoryViewerScreen extends ConsumerStatefulWidget {
   const CommunityStoryViewerScreen({
@@ -31,6 +79,14 @@ class _CommunityStoryViewerScreenState
     with SingleTickerProviderStateMixin {
   static const Duration _defaultStoryDuration = Duration(seconds: 5);
   static const Duration _maxVideoDuration = Duration(seconds: 30);
+  static const List<String> _quickReactions = <String>[
+    '❤️',
+    '🔥',
+    '👏',
+    '💪',
+    '😍',
+    '😂',
+  ];
 
   late List<CommunityStoryAuthorGroup> _groups;
   late int _groupIndex;
@@ -44,10 +100,13 @@ class _CommunityStoryViewerScreenState
   VideoPlayerController? _videoController;
   int _mediaLoadGeneration = 0;
   bool _isPaused = false;
+  bool _isHolding = false;
   bool _isVideoReady = false;
   bool _hasVideoError = false;
   bool _isSendingReply = false;
   bool _isDeleting = false;
+  String? _activeReactionOverlay;
+  Timer? _reactionOverlayTimer;
 
   @override
   void initState() {
@@ -84,6 +143,7 @@ class _CommunityStoryViewerScreenState
   @override
   void dispose() {
     _mediaLoadGeneration++;
+    _reactionOverlayTimer?.cancel();
     _replyFocusNode.removeListener(_handleReplyFocusChange);
     _replyFocusNode.dispose();
     _replyController.dispose();
@@ -95,7 +155,7 @@ class _CommunityStoryViewerScreenState
   void _handleReplyFocusChange() {
     if (_replyFocusNode.hasFocus) {
       _pausePlayback();
-    } else if (!_isDeleting) {
+    } else if (!_isDeleting && !_isHolding) {
       _resumePlayback();
     }
   }
@@ -140,6 +200,7 @@ class _CommunityStoryViewerScreenState
     setState(() {
       _isVideoReady = false;
       _hasVideoError = false;
+      _isHolding = false;
       _isPaused = _replyFocusNode.hasFocus;
     });
 
@@ -233,6 +294,20 @@ class _CommunityStoryViewerScreenState
     }
   }
 
+  void _startHoldPause() {
+    if (_replyFocusNode.hasFocus) return;
+    setState(() => _isHolding = true);
+    _pausePlayback();
+  }
+
+  void _endHoldPause() {
+    if (!_isHolding) return;
+    setState(() => _isHolding = false);
+    if (!_replyFocusNode.hasFocus && !_isDeleting) {
+      _resumePlayback();
+    }
+  }
+
   void _nextStory() {
     final group = _currentGroup;
     if (group == null) {
@@ -282,60 +357,61 @@ class _CommunityStoryViewerScreenState
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) {
-        final tokens = SamanHomeTokens.of(dialogContext);
-        final textTheme = Theme.of(dialogContext).textTheme;
+        final ig = SamanIgTokens.of(dialogContext);
         return AlertDialog(
-          backgroundColor: tokens.cardSurface,
+          backgroundColor: ig.surface,
           surfaceTintColor: Colors.transparent,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(SamanHomeTokens.radiusLg),
-            side: BorderSide(color: tokens.border, width: 1),
+            borderRadius: BorderRadius.circular(16),
+            side: BorderSide(color: ig.border, width: 1),
           ),
           title: Text(
             'Xóa tin này?',
-            style: textTheme.titleMedium?.copyWith(
-              color: tokens.textPrimary,
+            style: ig.displayTitle(
+              color: ig.textPrimary,
+              fontSize: 17,
               fontWeight: FontWeight.w700,
             ),
           ),
           content: Text(
             'Tin 24h sẽ bị xóa vĩnh viễn và không thể khôi phục.',
-            style: textTheme.bodyMedium?.copyWith(
-              color: tokens.textSecondary,
+            style: ig.body(
+              color: ig.textSecondary,
+              fontSize: 14,
+              height: 1.4,
             ),
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(dialogContext).pop(false),
               style: TextButton.styleFrom(
-                foregroundColor: tokens.textSecondary,
-                minimumSize: const Size(0, 44),
+                foregroundColor: ig.textSecondary,
+                minimumSize: const Size(0, SamanIgTokens.minTouchTarget),
                 shape: RoundedRectangleBorder(
-                  borderRadius:
-                      BorderRadius.circular(SamanHomeTokens.radiusMd),
+                  borderRadius: BorderRadius.circular(10),
                 ),
               ),
               child: Text(
                 'Hủy',
-                style: textTheme.labelLarge?.copyWith(
-                  color: tokens.textSecondary,
+                style: ig.buttonLabel(
+                  color: ig.textSecondary,
+                  fontWeight: FontWeight.w600,
                 ),
               ),
             ),
             TextButton(
               onPressed: () => Navigator.of(dialogContext).pop(true),
               style: TextButton.styleFrom(
-                foregroundColor: tokens.fatRose,
-                minimumSize: const Size(0, 44),
+                foregroundColor: ig.danger,
+                minimumSize: const Size(0, SamanIgTokens.minTouchTarget),
                 shape: RoundedRectangleBorder(
-                  borderRadius:
-                      BorderRadius.circular(SamanHomeTokens.radiusMd),
+                  borderRadius: BorderRadius.circular(10),
                 ),
               ),
               child: Text(
                 'Xóa',
-                style: textTheme.labelLarge?.copyWith(
-                  color: tokens.fatRose,
+                style: ig.buttonLabel(
+                  color: ig.danger,
                   fontWeight: FontWeight.w700,
                 ),
               ),
@@ -403,14 +479,32 @@ class _CommunityStoryViewerScreenState
     }
   }
 
-  Future<void> _sendReply(
-    CommunityStoryAuthorGroup group,
-    CommunityStory story,
-  ) async {
-    final text = _replyController.text.trim();
-    if (text.isEmpty || _isSendingReply) return;
+  Future<void> _sendReplyPayload({
+    required CommunityStoryAuthorGroup group,
+    required CommunityStory story,
+    required String content,
+    bool clearInput = false,
+    String? reactionEmoji,
+  }) async {
+    final trimmed = content.trim();
+    if (trimmed.isEmpty || _isSendingReply) return;
 
-    setState(() => _isSendingReply = true);
+    setState(() {
+      _isSendingReply = true;
+      if (reactionEmoji != null) {
+        _activeReactionOverlay = reactionEmoji;
+      }
+    });
+
+    if (reactionEmoji != null) {
+      _reactionOverlayTimer?.cancel();
+      _reactionOverlayTimer = Timer(const Duration(milliseconds: 900), () {
+        if (mounted) {
+          setState(() => _activeReactionOverlay = null);
+        }
+      });
+    }
+
     try {
       final conv = await ref
           .read(communityInboxProvider.notifier)
@@ -419,7 +513,7 @@ class _CommunityStoryViewerScreenState
           .read(communityChatThreadProvider(conv.id).notifier)
           .sendMessage(
             type: DmMessageType.storyReply,
-            content: text,
+            content: trimmed,
             mediaUrl: story.mediaUrl,
           );
 
@@ -433,11 +527,15 @@ class _CommunityStoryViewerScreenState
         );
         return;
       }
-      _replyController.clear();
-      _replyFocusNode.unfocus();
+      if (clearInput) {
+        _replyController.clear();
+        _replyFocusNode.unfocus();
+      }
       SamanFeedbackSnackBar.show(
         context,
-        message: 'Đã gửi trả lời tin đến ${group.author.name}',
+        message: reactionEmoji != null
+            ? 'Đã gửi cảm xúc $reactionEmoji đến ${group.author.name}'
+            : 'Đã gửi trả lời tin đến ${group.author.name}',
         type: FeedbackType.success,
       );
     } catch (_) {
@@ -451,6 +549,31 @@ class _CommunityStoryViewerScreenState
     }
   }
 
+  Future<void> _sendReply(
+    CommunityStoryAuthorGroup group,
+    CommunityStory story,
+  ) {
+    return _sendReplyPayload(
+      group: group,
+      story: story,
+      content: _replyController.text,
+      clearInput: true,
+    );
+  }
+
+  Future<void> _sendQuickReaction(
+    CommunityStoryAuthorGroup group,
+    CommunityStory story,
+    String emoji,
+  ) {
+    return _sendReplyPayload(
+      group: group,
+      story: story,
+      content: emoji,
+      reactionEmoji: emoji,
+    );
+  }
+
   Color _parseHexColor(String? hex, Color fallback) {
     final cleaned = (hex ?? '').replaceFirst('#', '').trim();
     if (cleaned.length == 6) {
@@ -462,19 +585,21 @@ class _CommunityStoryViewerScreenState
 
   @override
   Widget build(BuildContext context) {
-    final tokens = SamanHomeTokens.of(context);
-    final textTheme = Theme.of(context).textTheme;
+    final ig = SamanIgTokens.of(context);
     final group = _currentGroup;
     final story = _currentStory;
     if (group == null || story == null) {
       return const Scaffold(
-        backgroundColor: Colors.black,
+        backgroundColor: Color(0xFF000000),
         body: SizedBox.shrink(),
       );
     }
 
+    final parsed = _parseStoryContent(story.caption);
+    final chromeOpacity = _isHolding ? 0.0 : 1.0;
+
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: const Color(0xFF000000),
       body: SafeArea(
         child: Column(
           children: [
@@ -487,109 +612,244 @@ class _CommunityStoryViewerScreenState
                     return;
                   }
                   final width = MediaQuery.sizeOf(context).width;
-                  if (details.localPosition.dx < width * 0.35) {
+                  if (details.localPosition.dx < width * 0.33) {
                     _previousStory();
                   } else {
                     _nextStory();
                   }
                 },
-                onLongPressStart: (_) => _pausePlayback(),
-                onLongPressEnd: (_) {
-                  if (!_replyFocusNode.hasFocus) {
-                    _resumePlayback();
-                  }
-                },
-                child: Stack(
-                  fit: StackFit.expand,
-                  children: [
-                    _StoryMediaContent(
-                      story: story,
-                      videoController: _videoController,
-                      isVideoReady: _isVideoReady,
-                      hasVideoError: _hasVideoError,
-                      backgroundColor: _parseHexColor(
-                        story.backgroundColor,
-                        tokens.greenAccent,
-                      ),
-                    ),
-                    Positioned(
-                      top: 0,
-                      left: 0,
-                      right: 0,
-                      child: Container(
-                        padding: const EdgeInsets.fromLTRB(12, 10, 12, 16),
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            begin: Alignment.topCenter,
-                            end: Alignment.bottomCenter,
-                            colors: [
-                              Colors.black.withOpacity(0.65),
-                              Colors.transparent,
-                            ],
-                          ),
-                        ),
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            _SegmentedProgressBar(
-                              count: group.stories.length,
-                              activeIndex: _storyIndex,
-                              animation: _progressController,
-                            ),
-                            const SizedBox(height: 12),
-                            _StoryHeaderRow(
-                              group: group,
-                              story: story,
-                              onClose: () => Navigator.of(context).pop(),
-                            ),
-                          ],
+                onLongPressStart: (_) => _startHoldPause(),
+                onLongPressEnd: (_) => _endHoldPause(),
+                onLongPressCancel: _endHoldPause,
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      _StoryMediaContent(
+                        ig: ig,
+                        story: story,
+                        parsed: parsed,
+                        videoController: _videoController,
+                        isVideoReady: _isVideoReady,
+                        hasVideoError: _hasVideoError,
+                        backgroundColor: _parseHexColor(
+                          story.backgroundColor,
+                          const Color(0xFF1C1C1E),
                         ),
                       ),
-                    ),
-                    if (story.mediaType != 'text' &&
-                        story.caption.trim().isNotEmpty)
                       Positioned(
-                        left: 16,
-                        right: 16,
-                        bottom: 16,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 14,
-                            vertical: 10,
-                          ),
-                          decoration: BoxDecoration(
-                            color: Colors.black.withOpacity(0.55),
-                            borderRadius:
-                                BorderRadius.circular(SamanHomeTokens.radiusMd),
-                          ),
-                          child: Text(
-                            story.caption.trim(),
-                            textAlign: TextAlign.center,
-                            style: textTheme.bodyMedium?.copyWith(
-                              color: Colors.white,
-                              fontSize: 14.5,
-                              fontWeight: FontWeight.w500,
-                              height: 1.35,
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        child: AnimatedOpacity(
+                          opacity: chromeOpacity,
+                          duration: const Duration(milliseconds: 160),
+                          child: Container(
+                            padding: const EdgeInsets.fromLTRB(12, 10, 12, 20),
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                begin: Alignment.topCenter,
+                                end: Alignment.bottomCenter,
+                                colors: [
+                                  Colors.black.withOpacity(0.68),
+                                  Colors.transparent,
+                                ],
+                              ),
+                            ),
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                _SegmentedProgressBar(
+                                  count: group.stories.length,
+                                  activeIndex: _storyIndex,
+                                  animation: _progressController,
+                                ),
+                                const SizedBox(height: 12),
+                                _StoryHeaderRow(
+                                  ig: ig,
+                                  group: group,
+                                  story: story,
+                                  onClose: () => Navigator.of(context).pop(),
+                                ),
+                              ],
                             ),
                           ),
                         ),
                       ),
-                  ],
+                      if (story.mediaType != 'text' &&
+                          (parsed.hasCheckIn || parsed.captionText.isNotEmpty))
+                        Positioned(
+                          left: 16,
+                          right: 16,
+                          bottom: 16,
+                          child: AnimatedOpacity(
+                            opacity: chromeOpacity,
+                            duration: const Duration(milliseconds: 160),
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                if (parsed.hasCheckIn) ...[
+                                  _SamanCheckInStickerBadge(
+                                    kind: parsed.checkInKind!,
+                                    summary: parsed.checkInSummary!,
+                                  ),
+                                  if (parsed.captionText.isNotEmpty)
+                                    const SizedBox(height: 10),
+                                ],
+                                if (parsed.captionText.isNotEmpty)
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 14,
+                                      vertical: 10,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: Colors.black.withOpacity(0.58),
+                                      borderRadius: BorderRadius.circular(14),
+                                    ),
+                                    child: Text(
+                                      parsed.captionText,
+                                      textAlign: TextAlign.center,
+                                      style: ig.body(
+                                        color: Colors.white,
+                                        fontSize: 14.5,
+                                        fontWeight: FontWeight.w500,
+                                        height: 1.35,
+                                      ),
+                                    ),
+                                  ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      if (_activeReactionOverlay != null)
+                        IgnorePointer(
+                          child: Center(
+                            child: TweenAnimationBuilder<double>(
+                              key: ValueKey(_activeReactionOverlay),
+                              tween: Tween(begin: 0.65, end: 1.15),
+                              duration: const Duration(milliseconds: 240),
+                              curve: Curves.easeOutBack,
+                              builder: (context, scale, child) {
+                                return Transform.scale(
+                                  scale: scale,
+                                  child: child,
+                                );
+                              },
+                              child: Text(
+                                _activeReactionOverlay!,
+                                style: const TextStyle(fontSize: 56),
+                              ),
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
                 ),
               ),
             ),
-            _StoryFooterBar(
-              group: group,
-              story: story,
-              replyController: _replyController,
-              replyFocusNode: _replyFocusNode,
-              isSendingReply: _isSendingReply,
-              isDeleting: _isDeleting,
-              onDelete: () => _confirmAndDelete(story),
-              onSendReply: () => _sendReply(group, story),
+            AnimatedOpacity(
+              opacity: chromeOpacity,
+              duration: const Duration(milliseconds: 160),
+              child: _StoryFooterBar(
+                ig: ig,
+                group: group,
+                story: story,
+                quickReactions: _quickReactions,
+                replyController: _replyController,
+                replyFocusNode: _replyFocusNode,
+                isSendingReply: _isSendingReply,
+                isDeleting: _isDeleting,
+                onDelete: () => _confirmAndDelete(story),
+                onSendReply: () => _sendReply(group, story),
+                onQuickReaction: (emoji) =>
+                    _sendQuickReaction(group, story, emoji),
+              ),
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _SamanCheckInStickerBadge extends StatelessWidget {
+  const _SamanCheckInStickerBadge({
+    required this.kind,
+    required this.summary,
+  });
+
+  final _SamanCheckInKind kind;
+  final String summary;
+
+  @override
+  Widget build(BuildContext context) {
+    final isWorkout = kind == _SamanCheckInKind.workout;
+    return Container(
+      constraints: const BoxConstraints(maxWidth: 300),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        color: Colors.black.withOpacity(0.62),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: Colors.white.withOpacity(0.22),
+          width: 1,
+        ),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 34,
+            height: 34,
+            decoration: const BoxDecoration(
+              shape: BoxShape.circle,
+              gradient: SamanIgTokens.storyGradient,
+            ),
+            alignment: Alignment.center,
+            child: Icon(
+              isWorkout
+                  ? Icons.fitness_center_rounded
+                  : Icons.restaurant_rounded,
+              color: Colors.white,
+              size: 18,
+            ),
+          ),
+          const SizedBox(width: 10),
+          Flexible(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  isWorkout ? 'SAMAN WORKOUT' : 'SAMAN MEAL',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontFamily: SamanIgTokens.fontFamily,
+                    color: Colors.white.withOpacity(0.75),
+                    fontSize: 10,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 0.7,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  summary,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontFamily: SamanIgTokens.fontFamily,
+                    color: Colors.white,
+                    fontSize: 13.5,
+                    fontWeight: FontWeight.w700,
+                    height: 1.25,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -625,11 +885,11 @@ class _SegmentedProgressBar extends StatelessWidget {
               child: Padding(
                 padding: EdgeInsets.only(right: index == count - 1 ? 0 : 4),
                 child: ClipRRect(
-                  borderRadius: BorderRadius.circular(2),
+                  borderRadius: BorderRadius.circular(999),
                   child: LinearProgressIndicator(
                     value: fill,
-                    minHeight: 3,
-                    backgroundColor: Colors.white.withOpacity(0.28),
+                    minHeight: 2.5,
+                    backgroundColor: Colors.white.withOpacity(0.30),
                     valueColor: const AlwaysStoppedAnimation<Color>(
                       Colors.white,
                     ),
@@ -646,38 +906,37 @@ class _SegmentedProgressBar extends StatelessWidget {
 
 class _StoryHeaderRow extends StatelessWidget {
   const _StoryHeaderRow({
+    required this.ig,
     required this.group,
     required this.story,
     required this.onClose,
   });
 
+  final SamanIgTokens ig;
   final CommunityStoryAuthorGroup group;
   final CommunityStory story;
   final VoidCallback onClose;
 
   @override
   Widget build(BuildContext context) {
-    final tokens = SamanHomeTokens.of(context);
-    final textTheme = Theme.of(context).textTheme;
     final avatarUrl = group.author.avatarUrl;
     return Row(
       children: [
         CircleAvatar(
-          radius: 18,
-          backgroundColor: SamanHomeTokens.secondarySurface,
-          backgroundImage:
-              avatarUrl != null && avatarUrl.isNotEmpty
-                  ? NetworkImage(avatarUrl)
-                  : null,
+          radius: 17,
+          backgroundColor: const Color(0xFF262626),
+          backgroundImage: avatarUrl != null && avatarUrl.isNotEmpty
+              ? NetworkImage(avatarUrl)
+              : null,
           child: avatarUrl == null || avatarUrl.isEmpty
               ? Text(
                   group.author.name.isNotEmpty
                       ? group.author.name[0].toUpperCase()
                       : 'S',
-                  style: textTheme.titleSmall?.copyWith(
+                  style: ig.username(
                     color: Colors.white,
                     fontWeight: FontWeight.w700,
-                    fontSize: 14,
+                    fontSize: 13.5,
                   ),
                 )
               : null,
@@ -695,7 +954,7 @@ class _StoryHeaderRow extends StatelessWidget {
                       group.isSelf ? 'Tin của bạn' : group.author.name,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: textTheme.titleSmall?.copyWith(
+                      style: ig.username(
                         color: Colors.white,
                         fontSize: 14,
                         fontWeight: FontWeight.w700,
@@ -707,25 +966,30 @@ class _StoryHeaderRow extends StatelessWidget {
                     Icon(
                       Icons.verified_rounded,
                       size: 14,
-                      color: tokens.greenAccent,
+                      color: ig.primaryAction,
                     ),
                   ],
+                  const SizedBox(width: 6),
+                  Text(
+                    story.timeAgo,
+                    style: ig.caption(
+                      color: Colors.white.withOpacity(0.72),
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
                 ],
-              ),
-              Text(
-                story.timeAgo,
-                style: textTheme.bodySmall?.copyWith(
-                  color: Colors.white.withOpacity(0.72),
-                  fontSize: 11.5,
-                ),
               ),
             ],
           ),
         ),
         IconButton(
           onPressed: onClose,
-          constraints: const BoxConstraints(minWidth: 44, minHeight: 44),
-          icon: const Icon(Icons.close_rounded, color: Colors.white),
+          constraints: const BoxConstraints(
+            minWidth: SamanIgTokens.minTouchTarget,
+            minHeight: SamanIgTokens.minTouchTarget,
+          ),
+          icon: const Icon(Icons.close_rounded, color: Colors.white, size: 24),
           tooltip: 'Đóng',
         ),
       ],
@@ -735,14 +999,18 @@ class _StoryHeaderRow extends StatelessWidget {
 
 class _StoryMediaContent extends StatelessWidget {
   const _StoryMediaContent({
+    required this.ig,
     required this.story,
+    required this.parsed,
     required this.videoController,
     required this.isVideoReady,
     required this.hasVideoError,
     required this.backgroundColor,
   });
 
+  final SamanIgTokens ig;
   final CommunityStory story;
+  final _ParsedStoryContent parsed;
   final VideoPlayerController? videoController;
   final bool isVideoReady;
   final bool hasVideoError;
@@ -750,21 +1018,32 @@ class _StoryMediaContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final textTheme = Theme.of(context).textTheme;
     if (story.mediaType == 'text') {
       return Container(
         color: backgroundColor,
-        padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 48),
+        padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 64),
         alignment: Alignment.center,
-        child: Text(
-          story.caption,
-          textAlign: TextAlign.center,
-          style: textTheme.headlineMedium?.copyWith(
-            color: Colors.white,
-            fontSize: 24,
-            fontWeight: FontWeight.w700,
-            height: 1.4,
-          ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (parsed.hasCheckIn) ...[
+              _SamanCheckInStickerBadge(
+                kind: parsed.checkInKind!,
+                summary: parsed.checkInSummary!,
+              ),
+              if (parsed.captionText.isNotEmpty) const SizedBox(height: 18),
+            ],
+            if (parsed.captionText.isNotEmpty)
+              Text(
+                parsed.captionText,
+                textAlign: TextAlign.center,
+                style: ig.displayTitle(
+                  color: Colors.white,
+                  fontSize: 24,
+                  fontWeight: FontWeight.w700,
+                ).copyWith(height: 1.4),
+              ),
+          ],
         ),
       );
     }
@@ -783,7 +1062,7 @@ class _StoryMediaContent extends StatelessWidget {
               const SizedBox(height: 10),
               Text(
                 'Không thể phát video này',
-                style: textTheme.bodyMedium?.copyWith(
+                style: ig.body(
                   color: Colors.white70,
                   fontSize: 14,
                 ),
@@ -810,7 +1089,8 @@ class _StoryMediaContent extends StatelessWidget {
     final url = story.mediaUrl ?? '';
     if (url.isEmpty) {
       return const Center(
-        child: Icon(Icons.broken_image_outlined, color: Colors.white54, size: 48),
+        child:
+            Icon(Icons.broken_image_outlined, color: Colors.white54, size: 48),
       );
     }
     return Image.network(
@@ -834,7 +1114,7 @@ class _StoryMediaContent extends StatelessWidget {
             const SizedBox(height: 10),
             Text(
               'Không thể tải ảnh',
-              style: textTheme.bodyMedium?.copyWith(
+              style: ig.body(
                 color: Colors.white70,
                 fontSize: 14,
               ),
@@ -848,32 +1128,36 @@ class _StoryMediaContent extends StatelessWidget {
 
 class _StoryFooterBar extends StatelessWidget {
   const _StoryFooterBar({
+    required this.ig,
     required this.group,
     required this.story,
+    required this.quickReactions,
     required this.replyController,
     required this.replyFocusNode,
     required this.isSendingReply,
     required this.isDeleting,
     required this.onDelete,
     required this.onSendReply,
+    required this.onQuickReaction,
   });
 
+  final SamanIgTokens ig;
   final CommunityStoryAuthorGroup group;
   final CommunityStory story;
+  final List<String> quickReactions;
   final TextEditingController replyController;
   final FocusNode replyFocusNode;
   final bool isSendingReply;
   final bool isDeleting;
   final VoidCallback onDelete;
   final VoidCallback onSendReply;
+  final ValueChanged<String> onQuickReaction;
 
   @override
   Widget build(BuildContext context) {
-    final tokens = SamanHomeTokens.of(context);
-    final textTheme = Theme.of(context).textTheme;
     return Container(
-      padding: const EdgeInsets.fromLTRB(14, 10, 14, 12),
-      color: Colors.black,
+      padding: const EdgeInsets.fromLTRB(14, 8, 14, 12),
+      color: const Color(0xFF000000),
       child: group.isSelf
           ? Row(
               children: [
@@ -885,10 +1169,11 @@ class _StoryFooterBar extends StatelessWidget {
                 const SizedBox(width: 6),
                 Text(
                   '${story.viewCount} lượt xem',
-                  style: textTheme.bodySmall?.copyWith(
+                  style: ig.caption(
                     color: Colors.white,
                     fontSize: 13.5,
                     fontWeight: FontWeight.w600,
+                  ).copyWith(
                     fontFeatures: const [FontFeature.tabularFigures()],
                   ),
                 ),
@@ -896,7 +1181,7 @@ class _StoryFooterBar extends StatelessWidget {
                 TextButton.icon(
                   onPressed: isDeleting ? null : onDelete,
                   style: TextButton.styleFrom(
-                    minimumSize: const Size(0, 44),
+                    minimumSize: const Size(0, SamanIgTokens.minTouchTarget),
                   ),
                   icon: isDeleting
                       ? SizedBox(
@@ -904,94 +1189,128 @@ class _StoryFooterBar extends StatelessWidget {
                           height: 16,
                           child: CircularProgressIndicator(
                             strokeWidth: 2,
-                            color: tokens.fatRose,
+                            color: ig.danger,
                           ),
                         )
                       : Icon(
                           Icons.delete_outline_rounded,
-                          color: tokens.fatRose,
+                          color: ig.danger,
                           size: 19,
                         ),
                   label: Text(
                     'Xóa',
-                    style: textTheme.labelLarge?.copyWith(
-                      color: tokens.fatRose,
+                    style: ig.buttonLabel(
+                      color: ig.danger,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
                 ),
               ],
             )
-          : Row(
+          : Column(
+              mainAxisSize: MainAxisSize.min,
               children: [
-                Expanded(
-                  child: TextField(
-                    controller: replyController,
-                    focusNode: replyFocusNode,
-                    enabled: !isSendingReply,
-                    textInputAction: TextInputAction.send,
-                    onSubmitted: (_) => onSendReply(),
-                    style: textTheme.bodyMedium?.copyWith(
-                      color: Colors.white,
-                      fontSize: 14,
-                    ),
-                    decoration: InputDecoration(
-                      hintText: 'Trả lời tin này...',
-                      hintStyle: textTheme.bodyMedium?.copyWith(
-                        color: Colors.white.withOpacity(0.6),
-                        fontSize: 14,
-                      ),
-                      isDense: true,
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 11,
-                      ),
-                      filled: true,
-                      fillColor: Colors.white.withOpacity(0.12),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(24),
-                        borderSide: BorderSide(
-                          color: Colors.white.withOpacity(0.22),
+                SizedBox(
+                  height: 36,
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: quickReactions.map((emoji) {
+                      return GestureDetector(
+                        behavior: HitTestBehavior.opaque,
+                        onTap: isSendingReply
+                            ? null
+                            : () => onQuickReaction(emoji),
+                        child: SizedBox(
+                          width: 44,
+                          height: 36,
+                          child: Center(
+                            child: Text(
+                              emoji,
+                              style: const TextStyle(fontSize: 22),
+                            ),
+                          ),
                         ),
-                      ),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(24),
-                        borderSide: BorderSide(
-                          color: Colors.white.withOpacity(0.22),
-                        ),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(24),
-                        borderSide: BorderSide(
-                          color: tokens.greenAccent,
-                        ),
-                      ),
-                    ),
+                      );
+                    }).toList(),
                   ),
                 ),
-                const SizedBox(width: 8),
-                IconButton(
-                  onPressed: isSendingReply ? null : onSendReply,
-                  constraints: const BoxConstraints(
-                    minWidth: 44,
-                    minHeight: 44,
-                  ),
-                  style: IconButton.styleFrom(
-                    backgroundColor: tokens.greenAccent,
-                    foregroundColor: Colors.black,
-                    minimumSize: const Size(44, 44),
-                  ),
-                  icon: isSendingReply
-                      ? const SizedBox(
-                          width: 18,
-                          height: 18,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: Colors.black,
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: replyController,
+                        focusNode: replyFocusNode,
+                        enabled: !isSendingReply,
+                        textInputAction: TextInputAction.send,
+                        onSubmitted: (_) => onSendReply(),
+                        style: ig.body(
+                          color: Colors.white,
+                          fontSize: 14,
+                        ),
+                        decoration: InputDecoration(
+                          hintText: 'Gửi tin nhắn',
+                          hintStyle: ig.body(
+                            color: Colors.white.withOpacity(0.65),
+                            fontSize: 14,
                           ),
-                        )
-                      : const Icon(Icons.send_rounded, size: 19),
-                  tooltip: 'Gửi',
+                          isDense: true,
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 18,
+                            vertical: 11,
+                          ),
+                          filled: true,
+                          fillColor: Colors.white.withOpacity(0.08),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(24),
+                            borderSide: BorderSide(
+                              color: Colors.white.withOpacity(0.32),
+                            ),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(24),
+                            borderSide: BorderSide(
+                              color: Colors.white.withOpacity(0.32),
+                            ),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(24),
+                            borderSide: BorderSide(
+                              color: ig.primaryAction,
+                              width: 1.4,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    IconButton(
+                      onPressed: isSendingReply ? null : onSendReply,
+                      constraints: const BoxConstraints(
+                        minWidth: SamanIgTokens.minTouchTarget,
+                        minHeight: SamanIgTokens.minTouchTarget,
+                      ),
+                      style: IconButton.styleFrom(
+                        backgroundColor: ig.primaryAction,
+                        foregroundColor: ig.onPrimaryAction,
+                        minimumSize: const Size(
+                          SamanIgTokens.minTouchTarget,
+                          SamanIgTokens.minTouchTarget,
+                        ),
+                      ),
+                      icon: isSendingReply
+                          ? SizedBox(
+                              width: 18,
+                              height: 18,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: ig.onPrimaryAction,
+                              ),
+                            )
+                          : const Icon(Icons.send_rounded, size: 19),
+                      tooltip: 'Gửi',
+                    ),
+                  ],
                 ),
               ],
             ),

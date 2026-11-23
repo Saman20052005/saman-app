@@ -75,8 +75,12 @@ class CommunitySettingsNotifier extends StateNotifier<CommunitySettingsState> {
     bool? isPrivateAccount,
     String? whoCanDm,
     String? whoCanComment,
+    String? whoCanReplyStory,
+    String? allowMentions,
     bool? hideLikeCounts,
     bool? showActivityStatus,
+    bool? autoPromptShareWorkout,
+    bool? autoPromptShareMeal,
     List<String>? mutedKeywords,
   }) async {
     final gen = _generation;
@@ -86,8 +90,12 @@ class CommunitySettingsNotifier extends StateNotifier<CommunitySettingsState> {
         isPrivateAccount: isPrivateAccount,
         whoCanDm: whoCanDm,
         whoCanComment: whoCanComment,
+        whoCanReplyStory: whoCanReplyStory,
+        allowMentions: allowMentions,
         hideLikeCounts: hideLikeCounts,
         showActivityStatus: showActivityStatus,
+        autoPromptShareWorkout: autoPromptShareWorkout,
+        autoPromptShareMeal: autoPromptShareMeal,
         mutedKeywords: mutedKeywords,
       );
       if (!mounted || gen != _generation) return null;
@@ -369,3 +377,132 @@ final communityStoriesProvider =
     return CommunityStoriesNotifier(repo);
   },
 );
+
+class CommunityStoryArchiveState {
+  final bool isLoading;
+  final bool isLoadingMore;
+  final bool includeActive;
+  final List<CommunityArchivedStory> items;
+  final String? nextCursor;
+  final int totalCount;
+  final String? errorMessage;
+
+  const CommunityStoryArchiveState({
+    this.isLoading = false,
+    this.isLoadingMore = false,
+    this.includeActive = false,
+    this.items = const [],
+    this.nextCursor,
+    this.totalCount = 0,
+    this.errorMessage,
+  });
+
+  CommunityStoryArchiveState copyWith({
+    bool? isLoading,
+    bool? isLoadingMore,
+    bool? includeActive,
+    List<CommunityArchivedStory>? items,
+    String? nextCursor,
+    bool clearNextCursor = false,
+    int? totalCount,
+    String? errorMessage,
+    bool clearError = false,
+  }) {
+    return CommunityStoryArchiveState(
+      isLoading: isLoading ?? this.isLoading,
+      isLoadingMore: isLoadingMore ?? this.isLoadingMore,
+      includeActive: includeActive ?? this.includeActive,
+      items: items ?? this.items,
+      nextCursor: clearNextCursor ? null : (nextCursor ?? this.nextCursor),
+      totalCount: totalCount ?? this.totalCount,
+      errorMessage: clearError ? null : (errorMessage ?? this.errorMessage),
+    );
+  }
+}
+
+class CommunityStoryArchiveNotifier
+    extends StateNotifier<CommunityStoryArchiveState> {
+  final CommunityRepository _repository;
+  int _generation = 0;
+
+  CommunityStoryArchiveNotifier(this._repository)
+      : super(const CommunityStoryArchiveState());
+
+  void resetForUser(String? userId) {
+    _generation++;
+    state = const CommunityStoryArchiveState();
+  }
+
+  Future<void> loadArchive({bool? includeActive}) async {
+    final gen = _generation;
+    final effectiveIncludeActive = includeActive ?? state.includeActive;
+    state = state.copyWith(
+      isLoading: true,
+      includeActive: effectiveIncludeActive,
+      clearError: true,
+    );
+    try {
+      final page = await _repository.getArchivedStories(
+        includeActive: effectiveIncludeActive,
+        limit: 30,
+      );
+      if (!mounted || gen != _generation) return;
+      state = state.copyWith(
+        isLoading: false,
+        items: page.items,
+        nextCursor: page.nextCursor,
+        clearNextCursor: page.nextCursor == null,
+        totalCount: page.totalCount,
+      );
+    } catch (_) {
+      if (!mounted || gen != _generation) return;
+      state = state.copyWith(
+        isLoading: false,
+        errorMessage: 'community_story_archive_load_error',
+      );
+    }
+  }
+
+  Future<void> loadMore() async {
+    final cursor = state.nextCursor;
+    if (cursor == null || cursor.isEmpty || state.isLoading || state.isLoadingMore) {
+      return;
+    }
+    final gen = _generation;
+    state = state.copyWith(isLoadingMore: true, clearError: true);
+    try {
+      final page = await _repository.getArchivedStories(
+        includeActive: state.includeActive,
+        limit: 30,
+        cursor: cursor,
+      );
+      if (!mounted || gen != _generation) return;
+      final existingIds = state.items.map((e) => e.id).toSet();
+      final merged = [
+        ...state.items,
+        ...page.items.where((item) => !existingIds.contains(item.id)),
+      ];
+      state = state.copyWith(
+        isLoadingMore: false,
+        items: merged,
+        nextCursor: page.nextCursor,
+        clearNextCursor: page.nextCursor == null,
+        totalCount: page.totalCount,
+      );
+    } catch (_) {
+      if (!mounted || gen != _generation) return;
+      state = state.copyWith(isLoadingMore: false);
+    }
+  }
+
+  Future<void> toggleIncludeActive(bool value) async {
+    if (value == state.includeActive && !state.isLoading) return;
+    await loadArchive(includeActive: value);
+  }
+}
+
+final communityStoryArchiveProvider = StateNotifierProvider<
+    CommunityStoryArchiveNotifier, CommunityStoryArchiveState>((ref) {
+  final repo = ref.watch(communityRepositoryProvider);
+  return CommunityStoryArchiveNotifier(repo);
+});

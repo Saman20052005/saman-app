@@ -4,13 +4,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../config/app_theme.dart';
 import '../../config/routes.dart';
-import '../../screens/home/tokens/saman_home_tokens.dart';
 import '../journal/data/datasources/journal_fake_datasource.dart';
 import '../journal/data/repositories/journal_repository_impl.dart';
 import '../journal/presentation/providers/journal_providers.dart';
 import 'data/datasources/community_fake_datasource.dart';
 import 'data/repositories/community_repository_impl.dart';
 import 'presentation/providers/community_providers.dart';
+import 'presentation/tokens/saman_ig_tokens.dart';
 
 /// Entrypoint riêng biệt phục vụ kiểm chứng giao diện tương tác và nghiệm thu runtime (JCOM-04A).
 ///
@@ -77,12 +77,12 @@ class _SamanCommunityPreviewAppState extends State<SamanCommunityPreviewApp> {
       initialRoute: AppRoutes.communityFeed,
       onGenerateRoute: (settings) => AppRoutes.onGenerateRoute(settings),
       builder: (context, child) {
-        final tokens = SamanHomeTokens.of(context);
+        final ig = SamanIgTokens.of(context);
         return Scaffold(
-          backgroundColor: tokens.canvas,
+          backgroundColor: ig.canvas,
           body: Column(
             children: [
-              _buildTopPreviewBanner(context),
+              _buildTopPreviewBanner(context, ig),
               Expanded(child: child ?? const SizedBox.shrink()),
             ],
           ),
@@ -91,14 +91,14 @@ class _SamanCommunityPreviewAppState extends State<SamanCommunityPreviewApp> {
     );
   }
 
-  Widget _buildTopPreviewBanner(BuildContext context) {
+  Widget _buildTopPreviewBanner(BuildContext context, SamanIgTokens ig) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-      decoration: const BoxDecoration(
-        color: Color(0xFF1B281B),
+      decoration: BoxDecoration(
+        color: ig.surfaceElevated,
         border: Border(
-          bottom: BorderSide(color: Color(0xFF2E4D2E), width: 1),
+          bottom: BorderSide(color: ig.border, width: 0.5),
         ),
       ),
       child: SafeArea(
@@ -108,28 +108,29 @@ class _SamanCommunityPreviewAppState extends State<SamanCommunityPreviewApp> {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
               decoration: BoxDecoration(
-                color: SamanHomeTokens.greenAccent,
+                color: ig.primaryAction,
                 borderRadius: BorderRadius.circular(4),
               ),
-              child: const Text(
+              child: Text(
                 'PREVIEW',
                 style: TextStyle(
+                  fontFamily: SamanIgTokens.fontFamily,
                   fontSize: 10,
-                  fontWeight: FontWeight.w900,
-                  color: Color(0xFF003824),
+                  fontWeight: FontWeight.w800,
+                  color: ig.onPrimaryAction,
                   letterSpacing: 0.5,
                 ),
               ),
             ),
             const SizedBox(width: 8),
-            const Expanded(
+            Expanded(
               child: Text(
                 'Bản xem trước nội bộ • Dữ liệu mẫu in-memory • Không có API ghi live',
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: TextStyle(
+                style: ig.caption(
+                  color: ig.textSecondary,
                   fontSize: 11,
-                  color: Color(0xFFBBCAAF),
                   fontWeight: FontWeight.w500,
                 ),
               ),
@@ -141,10 +142,11 @@ class _SamanCommunityPreviewAppState extends State<SamanCommunityPreviewApp> {
                 padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                 child: Text(
                   _locale.languageCode.toUpperCase(),
-                  style: const TextStyle(
+                  style: TextStyle(
+                    fontFamily: SamanIgTokens.fontFamily,
                     fontSize: 11,
                     fontWeight: FontWeight.w700,
-                    color: SamanHomeTokens.greenAccent,
+                    color: ig.primaryAction,
                   ),
                 ),
               ),

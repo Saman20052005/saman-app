@@ -4,10 +4,10 @@ import '../widgets/community_comment_composer.dart';
 import 'package:flutter/material.dart';
 import '../widgets/community_activity_snapshot_card.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../../screens/home/tokens/saman_home_tokens.dart';
 import '../../domain/models/community_comment.dart';
 import '../../domain/models/community_post.dart';
 import '../providers/community_providers.dart';
+import '../tokens/saman_ig_tokens.dart';
 import '../widgets/kinetic_workout_attachment_card.dart';
 
 class CommunityPostDetailScreen extends ConsumerStatefulWidget {
@@ -52,7 +52,7 @@ class _CommunityPostDetailScreenState
             selection: TextSelection.collapsed(offset: next.draft.length));
       }
     });
-    final tokens = SamanHomeTokens.of(context);
+    final ig = SamanIgTokens.of(context);
     final detailState =
         ref.watch(communityPostDetailProvider(widget.postId));
     final detailNotifier =
@@ -60,66 +60,70 @@ class _CommunityPostDetailScreenState
     final displayPost = detailState.post ?? widget.initialPost;
 
     return Scaffold(
-      backgroundColor: tokens.canvas,
+      backgroundColor: ig.canvas,
       body: SafeArea(
         bottom: false,
         child: Column(
           children: [
             // Top App Bar
-            _buildAppBar(displayPost, detailNotifier, tokens),
+            _buildAppBar(displayPost, detailNotifier, ig),
 
             // Honest Preview Notice Banner
-            _buildPreviewNoticeBanner(tokens),
+            _buildPreviewNoticeBanner(ig),
 
             // Main Content Scroll
             Expanded(
               child: (detailState.isLoading && displayPost == null)
                   ? Center(
                       child: CircularProgressIndicator(
-                        color: tokens.greenAccent,
+                        color: ig.primaryAction,
                       ),
                     )
                   : displayPost == null
                       ? _buildNotFoundState(context, () {
                           detailNotifier.loadPost();
-                        }, tokens)
+                        }, ig)
                       : SingleChildScrollView(
                           padding: const EdgeInsets.only(bottom: 110),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               // Author Section
-                              _buildAuthorSection(displayPost, tokens),
+                              _buildAuthorSection(displayPost, ig),
 
                               // Post Body
-                              _buildPostBody(displayPost, tokens),
+                              _buildPostBody(displayPost, ig),
 
                               // Photo / Workout Attachment
-                              _buildPostAttachment(displayPost, tokens),
+                              _buildPostAttachment(displayPost, ig),
 
                               // Engagement Action Bar
                               _buildActionBar(
                                 displayPost,
                                 detailNotifier,
-                                tokens,
+                                ig,
                               ),
 
                               // Social Likes Preview
-                              _buildSocialLikes(displayPost, tokens),
+                              _buildSocialLikes(displayPost, ig),
 
                               const SizedBox(height: 16),
                               Divider(
-                                color: tokens.border,
-                                height: 1,
+                                color: ig.border,
+                                height: 0.5,
+                                thickness: 0.5,
                               ),
 
                               // Discussion & Comments List
-                              _buildDiscussionSection(displayPost, detailNotifier, tokens),
+                              _buildDiscussionSection(displayPost, detailNotifier, ig),
                               if (detailState.commentsCursor != null || detailState.commentErrorKey == 'community_comments_load_error')
                                 TextButton(
                                   onPressed: detailState.isLoadingComments ? null
                                       : () => detailNotifier.loadComments(more: detailState.commentsCursor != null),
-                                  child: Text(context.tr('community_comments_more')),
+                                  child: Text(
+                                    context.tr('community_comments_more'),
+                                    style: ig.buttonLabel(color: ig.primaryAction),
+                                  ),
                                 ),
                             ],
                           ),
@@ -138,19 +142,19 @@ class _CommunityPostDetailScreenState
     );
   }
 
-  Widget _buildPreviewNoticeBanner(SamanHomePalette tokens) {
+  Widget _buildPreviewNoticeBanner(SamanIgTokens ig) {
     final isRemote = ref.watch(useRemoteCommunityProvider);
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-      color: tokens.cardSurface,
+      color: ig.surface,
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Icon(
             Icons.info_outline_rounded,
             size: 13,
-            color: tokens.greenAccent,
+            color: ig.primaryAction,
           ),
           const SizedBox(width: 6),
           Flexible(
@@ -160,9 +164,8 @@ class _CommunityPostDetailScreenState
                   : 'Bản xem trước giao diện • Dữ liệu mẫu thử nghiệm',
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: TextStyle(
+              style: ig.caption(
                 fontSize: 11,
-                color: tokens.textSecondary,
                 fontWeight: FontWeight.w500,
               ),
             ),
@@ -175,7 +178,7 @@ class _CommunityPostDetailScreenState
   Widget _buildNotFoundState(
     BuildContext context,
     VoidCallback onRetry,
-    SamanHomePalette tokens,
+    SamanIgTokens ig,
   ) {
     return Center(
       child: Padding(
@@ -187,13 +190,13 @@ class _CommunityPostDetailScreenState
               width: 56,
               height: 56,
               decoration: BoxDecoration(
-                color: tokens.cardSurface,
+                color: ig.surface,
                 shape: BoxShape.circle,
               ),
               child: Icon(
                 Icons.article_outlined,
                 size: 28,
-                color: tokens.textSecondary,
+                color: ig.textSecondary,
               ),
             ),
             const SizedBox(height: 16),
@@ -214,11 +217,7 @@ class _CommunityPostDetailScreenState
                   ),
                 Text(
                   context.tr('post_not_found_title'),
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                    color: tokens.textPrimary,
-                  ),
+                  style: ig.displayTitle(fontSize: 16, fontWeight: FontWeight.w600),
                 ),
               ],
             ),
@@ -228,10 +227,7 @@ class _CommunityPostDetailScreenState
                   ? 'This post may have been removed or does not exist in this preview.'
                   : 'Bài viết này có thể đã bị gỡ hoặc không tồn tại trong phiên xem trước này.',
               textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 13,
-                color: tokens.textSecondary,
-              ),
+              style: ig.caption(fontSize: 13),
             ),
             const SizedBox(height: 20),
             Wrap(
@@ -242,12 +238,7 @@ class _CommunityPostDetailScreenState
                 ElevatedButton(
                   key: const ValueKey('back-to-feed-button'),
                   onPressed: () => Navigator.pop(context),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: tokens.greenAccent,
-                    foregroundColor: tokens.isDark
-                        ? const Color(0xFF003824)
-                        : const Color(0xFFFFFFFF),
-                  ),
+                  style: ig.primaryButtonStyle(borderRadius: 8),
                   child: Stack(
                     alignment: Alignment.center,
                     children: [
@@ -270,13 +261,14 @@ class _CommunityPostDetailScreenState
                 OutlinedButton(
                   onPressed: onRetry,
                   style: OutlinedButton.styleFrom(
-                    foregroundColor: tokens.textPrimary,
-                    side: BorderSide(color: tokens.border),
+                    foregroundColor: ig.textPrimary,
+                    side: BorderSide(color: ig.border),
                   ),
                   child: Text(
                     Localizations.maybeLocaleOf(context)?.languageCode == 'en'
                         ? 'Retry'
                         : 'Thử lại',
+                    style: ig.buttonLabel(color: ig.textPrimary),
                   ),
                 ),
               ],
@@ -290,16 +282,16 @@ class _CommunityPostDetailScreenState
   Widget _buildAppBar(
     CommunityPost? post,
     CommunityPostDetailNotifier notifier,
-    SamanHomePalette tokens,
+    SamanIgTokens ig,
   ) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
-        color: tokens.canvas,
+        color: ig.canvas,
         border: Border(
           bottom: BorderSide(
-            color: tokens.border,
-            width: 1,
+            color: ig.border,
+            width: 0.5,
           ),
         ),
       ),
@@ -312,7 +304,7 @@ class _CommunityPostDetailScreenState
                 IconButton(
                   icon: Icon(
                     Icons.arrow_back_rounded,
-                    color: tokens.textPrimary,
+                    color: ig.textPrimary,
                     size: 22,
                   ),
                   onPressed: () => Navigator.pop(context),
@@ -337,11 +329,7 @@ class _CommunityPostDetailScreenState
                         context.tr('post_detail_title'),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w700,
-                          color: tokens.textPrimary,
-                        ),
+                        style: ig.displayTitle(fontSize: 18),
                       ),
                     ],
                   ),
@@ -356,7 +344,7 @@ class _CommunityPostDetailScreenState
                   key: const ValueKey('app-bar-post-options-button'),
                   icon: Icon(
                     Icons.more_horiz_rounded,
-                    color: tokens.textSecondary,
+                    color: ig.textSecondary,
                     size: 22,
                   ),
                   onPressed: () {
@@ -370,8 +358,8 @@ class _CommunityPostDetailScreenState
                         ? Icons.bookmark_rounded
                         : Icons.bookmark_border_rounded,
                     color: post.isBookmarked
-                        ? tokens.greenAccent
-                        : tokens.textSecondary,
+                        ? ig.primaryAction
+                        : ig.textSecondary,
                     size: 22,
                   ),
                   onPressed: () async {
@@ -394,14 +382,12 @@ class _CommunityPostDetailScreenState
                 height: 32,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: tokens.greenAccent,
+                  color: ig.primaryAction,
                 ),
                 child: Icon(
                   Icons.person_rounded,
                   size: 18,
-                  color: tokens.isDark
-                      ? const Color(0xFF003824)
-                      : const Color(0xFFFFFFFF),
+                  color: ig.onPrimaryAction,
                 ),
               ),
             ],
@@ -411,7 +397,7 @@ class _CommunityPostDetailScreenState
     );
   }
 
-  Widget _buildAuthorSection(CommunityPost post, SamanHomePalette tokens) {
+  Widget _buildAuthorSection(CommunityPost post, SamanIgTokens ig) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 10),
       child: Row(
@@ -425,15 +411,14 @@ class _CommunityPostDetailScreenState
                   height: 46,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    color: tokens.secondarySurface,
+                    color: ig.surfaceElevated,
                   ),
                   child: Center(
                     child: Text(
                       post.author.name.isNotEmpty ? post.author.name[0] : 'S',
-                      style: TextStyle(
+                      style: ig.displayTitle(
                         fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: tokens.greenAccent,
+                        color: ig.textPrimary,
                       ),
                     ),
                   ),
@@ -450,10 +435,9 @@ class _CommunityPostDetailScreenState
                         children: [
                           Text(
                             post.author.name,
-                            style: TextStyle(
+                            style: ig.username(
                               fontSize: 16,
                               fontWeight: FontWeight.w700,
-                              color: tokens.textPrimary,
                             ),
                           ),
                           Container(
@@ -462,7 +446,7 @@ class _CommunityPostDetailScreenState
                               vertical: 2,
                             ),
                             decoration: BoxDecoration(
-                              color: tokens.greenAccent.withOpacity(0.15),
+                              color: ig.primaryAction.withOpacity(0.12),
                               borderRadius: BorderRadius.circular(12),
                             ),
                             child: Row(
@@ -471,15 +455,15 @@ class _CommunityPostDetailScreenState
                                 Icon(
                                   Icons.verified_rounded,
                                   size: 13,
-                                  color: tokens.greenAccent,
+                                  color: ig.primaryAction,
                                 ),
                                 const SizedBox(width: 4),
                                 Text(
                                   'Thành viên Saman',
-                                  style: TextStyle(
+                                  style: ig.caption(
                                     fontSize: 11,
                                     fontWeight: FontWeight.w600,
-                                    color: tokens.greenAccent,
+                                    color: ig.primaryAction,
                                   ),
                                 ),
                               ],
@@ -492,10 +476,7 @@ class _CommunityPostDetailScreenState
                         children: [
                           Text(
                             post.timeAgo,
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: tokens.textSecondary,
-                            ),
+                            style: ig.caption(fontSize: 12),
                           ),
                           const SizedBox(width: 6),
                           Container(
@@ -503,14 +484,14 @@ class _CommunityPostDetailScreenState
                             height: 3,
                             decoration: BoxDecoration(
                               shape: BoxShape.circle,
-                              color: tokens.textMuted,
+                              color: ig.textMuted,
                             ),
                           ),
                           const SizedBox(width: 6),
                           Icon(
                             Icons.public_rounded,
                             size: 13,
-                            color: tokens.textMuted,
+                            color: ig.textMuted,
                           ),
                         ],
                       ),
@@ -523,7 +504,7 @@ class _CommunityPostDetailScreenState
           IconButton(
             icon: Icon(
               Icons.more_vert_rounded,
-              color: tokens.textSecondary,
+              color: ig.textSecondary,
               size: 20,
             ),
             key: const ValueKey('post-detail-options-button'),
@@ -536,7 +517,7 @@ class _CommunityPostDetailScreenState
     );
   }
 
-  Widget _buildPostBody(CommunityPost post, SamanHomePalette tokens) {
+  Widget _buildPostBody(CommunityPost post, SamanIgTokens ig) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: Column(
@@ -545,21 +526,16 @@ class _CommunityPostDetailScreenState
           if (post.type == CommunityPostType.qa && post.qaInfo != null) ...[
             Text(
               post.qaInfo!.question,
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                height: 1.4,
-                color: tokens.textPrimary,
-              ),
+              style: ig.displayTitle(fontSize: 18).copyWith(height: 1.4),
             ),
             if (post.qaInfo!.details != null && post.qaInfo!.details!.isNotEmpty) ...[
               const SizedBox(height: 8),
               Text(
                 post.qaInfo!.details!,
-                style: TextStyle(
+                style: ig.body(
                   fontSize: 14,
                   height: 1.5,
-                  color: tokens.textSecondary,
+                  color: ig.textSecondary,
                 ),
               ),
             ],
@@ -568,21 +544,18 @@ class _CommunityPostDetailScreenState
           if (post.caption.isNotEmpty)
             Text(
               post.caption,
-              style: TextStyle(
-                fontSize: 15,
-                height: 1.5,
-                color: tokens.textPrimary,
-              ),
+              style: ig.body(fontSize: 15, height: 1.5),
             ),
           if (post.nutritionInfo?.proTip != null) ...[
             const SizedBox(height: 12),
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: tokens.cardSurface,
-                borderRadius: BorderRadius.circular(12),
+                color: ig.surface,
+                borderRadius: BorderRadius.circular(10),
                 border: Border.all(
-                  color: tokens.border,
+                  color: ig.border,
+                  width: 0.5,
                 ),
               ),
               child: Row(
@@ -590,18 +563,14 @@ class _CommunityPostDetailScreenState
                 children: [
                   Icon(
                     Icons.lightbulb_outline_rounded,
-                    color: tokens.greenAccent,
+                    color: ig.primaryAction,
                     size: 20,
                   ),
                   const SizedBox(width: 10),
                   Expanded(
                     child: Text(
                       post.nutritionInfo!.proTip!,
-                      style: TextStyle(
-                        fontSize: 13,
-                        color: tokens.textPrimary,
-                        height: 1.4,
-                      ),
+                      style: ig.body(fontSize: 13, height: 1.4),
                     ),
                   ),
                 ],
@@ -616,26 +585,26 @@ class _CommunityPostDetailScreenState
                 children: [
                   _buildMacroTag(
                     '${post.nutritionInfo!.proteinGrams.toStringAsFixed(0)}g Protein',
-                    tokens.greenAccent,
-                    tokens,
+                    ig.primaryAction,
+                    ig,
                   ),
                   const SizedBox(width: 8),
                   _buildMacroTag(
                     '${post.nutritionInfo!.calories} kcal',
-                    tokens.fatRose,
-                    tokens,
+                    ig.likeHeart,
+                    ig,
                   ),
                   const SizedBox(width: 8),
                   _buildMacroTag(
                     '${post.nutritionInfo!.carbsGrams.toStringAsFixed(0)}g Carbs',
-                    tokens.textSecondary,
-                    tokens,
+                    ig.textSecondary,
+                    ig,
                   ),
                   const SizedBox(width: 8),
                   _buildMacroTag(
                     '${post.nutritionInfo!.fatGrams.toStringAsFixed(0)}g Fat',
-                    tokens.textMuted,
-                    tokens,
+                    ig.textMuted,
+                    ig,
                   ),
                 ],
               ),
@@ -649,13 +618,14 @@ class _CommunityPostDetailScreenState
   Widget _buildMacroTag(
     String label,
     Color dotColor,
-    SamanHomePalette tokens,
+    SamanIgTokens ig,
   ) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
-        color: tokens.cardSurface,
+        color: ig.surface,
         borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: ig.border, width: 0.5),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -671,10 +641,10 @@ class _CommunityPostDetailScreenState
           const SizedBox(width: 6),
           Text(
             label,
-            style: TextStyle(
+            style: ig.caption(
               fontSize: 12,
               fontWeight: FontWeight.w500,
-              color: tokens.textPrimary,
+              color: ig.textPrimary,
             ),
           ),
         ],
@@ -682,13 +652,13 @@ class _CommunityPostDetailScreenState
     );
   }
 
-  Widget _buildPhotoView(String path, SamanHomePalette tokens) {
+  Widget _buildPhotoView(String path, SamanIgTokens ig) {
     if (path.startsWith('http://') || path.startsWith('https://') || path.startsWith('/static/')) {
       return Image.network(
         path,
         fit: BoxFit.cover,
         errorBuilder: (_, __, ___) => Center(
-          child: Icon(Icons.broken_image, size: 48, color: tokens.textSecondary),
+          child: Icon(Icons.broken_image, size: 48, color: ig.textSecondary),
         ),
       );
     }
@@ -697,11 +667,11 @@ class _CommunityPostDetailScreenState
       return Image.file(file, fit: BoxFit.cover);
     }
     return Center(
-      child: Icon(Icons.image, size: 48, color: tokens.textSecondary),
+      child: Icon(Icons.image, size: 48, color: ig.textSecondary),
     );
   }
 
-  Widget _buildPostAttachment(CommunityPost post, SamanHomePalette tokens) {
+  Widget _buildPostAttachment(CommunityPost post, SamanIgTokens ig) {
     if (post.activitySnapshot != null) return CommunityActivitySnapshotCard(snapshot: post.activitySnapshot!);
 
     if (post.type == CommunityPostType.photo && post.photoUrls.isNotEmpty) {
@@ -710,16 +680,16 @@ class _CommunityPostDetailScreenState
         child: AspectRatio(
           aspectRatio: 4 / 3,
           child: ClipRRect(
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(12),
             child: Container(
-              color: tokens.secondarySurface,
+              color: ig.surfaceElevated,
               child: post.photoUrls.length > 1
                   ? _MultiPhotoCarousel(
                       photoUrls: post.photoUrls,
-                      tokens: tokens,
+                      ig: ig,
                       photoBuilder: _buildPhotoView,
                     )
-                  : _buildPhotoView(post.photoUrls.first, tokens),
+                  : _buildPhotoView(post.photoUrls.first, ig),
             ),
           ),
         ),
@@ -739,7 +709,7 @@ class _CommunityPostDetailScreenState
   Widget _buildActionBar(
     CommunityPost post,
     CommunityPostDetailNotifier notifier,
-    SamanHomePalette tokens,
+    SamanIgTokens ig,
   ) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
@@ -768,8 +738,9 @@ class _CommunityPostDetailScreenState
                   padding:
                       const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                   decoration: BoxDecoration(
-                    color: tokens.cardSurface,
+                    color: ig.surface,
                     borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: ig.border, width: 0.5),
                   ),
                   child: Row(
                     children: [
@@ -779,17 +750,13 @@ class _CommunityPostDetailScreenState
                             : Icons.favorite_border_rounded,
                         size: 20,
                         color: post.isLiked
-                            ? (tokens.isDark ? const Color(0xFFFC7C78) : tokens.fatRose)
-                            : tokens.textSecondary,
+                            ? ig.likeHeart
+                            : ig.textSecondary,
                       ),
                       const SizedBox(width: 6),
                       Text(
                         '${post.likeCount}',
-                        style: TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
-                          color: tokens.textPrimary,
-                        ),
+                        style: ig.username(fontSize: 13),
                       ),
                     ],
                   ),
@@ -800,24 +767,21 @@ class _CommunityPostDetailScreenState
                 padding:
                     const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 decoration: BoxDecoration(
-                  color: tokens.cardSurface,
+                  color: ig.surface,
                   borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: ig.border, width: 0.5),
                 ),
                 child: Row(
                   children: [
                     Icon(
-                      Icons.chat_bubble_rounded,
+                      Icons.chat_bubble_outline_rounded,
                       size: 18,
-                      color: tokens.textSecondary,
+                      color: ig.textSecondary,
                     ),
                     const SizedBox(width: 6),
                     Text(
                       '${post.commentCount}',
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                        color: tokens.textPrimary,
-                      ),
+                      style: ig.username(fontSize: 13),
                     ),
                   ],
                 ),
@@ -828,12 +792,13 @@ class _CommunityPostDetailScreenState
                 height: 36,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: tokens.cardSurface,
+                  color: ig.surface,
+                  border: Border.all(color: ig.border, width: 0.5),
                 ),
                 child: Icon(
                   Icons.share_rounded,
                   size: 18,
-                  color: tokens.textSecondary,
+                  color: ig.textSecondary,
                 ),
               ),
             ],
@@ -844,8 +809,8 @@ class _CommunityPostDetailScreenState
                   ? Icons.bookmark_rounded
                   : Icons.bookmark_border_rounded,
               color: post.isBookmarked
-                  ? tokens.greenAccent
-                  : tokens.textSecondary,
+                  ? ig.primaryAction
+                  : ig.textSecondary,
               size: 22,
             ),
             onPressed: () async {
@@ -868,30 +833,23 @@ class _CommunityPostDetailScreenState
     );
   }
 
-  Widget _buildSocialLikes(CommunityPost post, SamanHomePalette tokens) {
+  Widget _buildSocialLikes(CommunityPost post, SamanIgTokens ig) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
       child: Row(
         children: [
           Row(
             children: [
-              _buildSmallAvatar('MK', tokens.greenAccent, tokens),
-              _buildSmallAvatar(
-                'TH',
-                tokens.isDark ? const Color(0xFFFC7C78) : tokens.fatRose,
-                tokens,
-              ),
-              _buildSmallAvatar('HL', tokens.textMuted, tokens),
+              _buildSmallAvatar('MK', ig.primaryAction, ig),
+              _buildSmallAvatar('TH', ig.likeHeart, ig),
+              _buildSmallAvatar('HL', ig.textMuted, ig),
             ],
           ),
           const SizedBox(width: 8),
           Expanded(
             child: Text(
               post.likedBySummary,
-              style: TextStyle(
-                fontSize: 12,
-                color: tokens.textSecondary,
-              ),
+              style: ig.caption(fontSize: 12),
             ),
           ),
         ],
@@ -902,7 +860,7 @@ class _CommunityPostDetailScreenState
   Widget _buildSmallAvatar(
     String initials,
     Color color,
-    SamanHomePalette tokens,
+    SamanIgTokens ig,
   ) {
     return Container(
       width: 22,
@@ -910,18 +868,18 @@ class _CommunityPostDetailScreenState
       margin: const EdgeInsets.only(right: 3),
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        color: color.withOpacity(0.2),
+        color: color.withOpacity(0.18),
         border: Border.all(
-          color: tokens.canvas,
+          color: ig.canvas,
           width: 1.5,
         ),
       ),
       child: Center(
         child: Text(
           initials,
-          style: TextStyle(
+          style: ig.caption(
             fontSize: 9,
-            fontWeight: FontWeight.bold,
+            fontWeight: FontWeight.w700,
             color: color,
           ),
         ),
@@ -932,7 +890,7 @@ class _CommunityPostDetailScreenState
   Widget _buildDiscussionSection(
     CommunityPost post,
     CommunityPostDetailNotifier notifier,
-    SamanHomePalette tokens,
+    SamanIgTokens ig,
   ) {
     return Padding(
       padding: const EdgeInsets.all(16),
@@ -950,11 +908,7 @@ class _CommunityPostDetailScreenState
                         context.tr('post_detail_comments_header'),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w700,
-                          color: tokens.textPrimary,
-                        ),
+                        style: ig.displayTitle(fontSize: 16),
                       ),
                     ),
                     const SizedBox(width: 8),
@@ -964,15 +918,12 @@ class _CommunityPostDetailScreenState
                         vertical: 2,
                       ),
                       decoration: BoxDecoration(
-                        color: tokens.secondarySurface,
+                        color: ig.surfaceElevated,
                         borderRadius: BorderRadius.circular(10),
                       ),
                       child: Text(
                         '${post.commentCount}',
-                        style: TextStyle(
-                          fontSize: 11,
-                          color: tokens.textSecondary,
-                        ),
+                        style: ig.caption(fontSize: 11),
                       ),
                     ),
                   ],
@@ -983,15 +934,12 @@ class _CommunityPostDetailScreenState
                 children: [
                   Text(
                     context.tr('community_comments_order'),
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: tokens.textSecondary,
-                    ),
+                    style: ig.caption(fontSize: 12),
                   ),
                   Icon(
                     Icons.expand_more_rounded,
                     size: 16,
-                    color: tokens.textSecondary,
+                    color: ig.textSecondary,
                   ),
                 ],
               ),
@@ -1005,10 +953,7 @@ class _CommunityPostDetailScreenState
                 child: Text(
                   context.tr('post_detail_empty_comments'),
                   textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 13,
-                    color: tokens.textSecondary,
-                  ),
+                  style: ig.caption(fontSize: 13),
                 ),
               ),
             ),
@@ -1019,7 +964,7 @@ class _CommunityPostDetailScreenState
             separatorBuilder: (_, __) => const SizedBox(height: 14),
             itemBuilder: (context, index) {
               final comment = post.comments[index];
-              return _buildCommentThread(comment, notifier, tokens);
+              return _buildCommentThread(comment, notifier, ig);
             },
           ),
         ],
@@ -1030,12 +975,12 @@ class _CommunityPostDetailScreenState
   Widget _buildCommentThread(
     CommunityComment comment,
     CommunityPostDetailNotifier notifier,
-    SamanHomePalette tokens,
+    SamanIgTokens ig,
   ) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _buildSingleCommentBubble(comment, notifier, tokens),
+        _buildSingleCommentBubble(comment, notifier, ig),
         if (comment.replies.isNotEmpty) ...[
           const SizedBox(height: 8),
           Padding(
@@ -1047,7 +992,7 @@ class _CommunityPostDetailScreenState
                   child: _buildSingleCommentBubble(
                     reply,
                     notifier,
-                    tokens,
+                    ig,
                     isNested: true,
                   ),
                 );
@@ -1062,7 +1007,7 @@ class _CommunityPostDetailScreenState
   Widget _buildSingleCommentBubble(
     CommunityComment comment,
     CommunityPostDetailNotifier notifier,
-    SamanHomePalette tokens, {
+    SamanIgTokens ig, {
     bool isNested = false,
   }) {
     return Row(
@@ -1073,15 +1018,14 @@ class _CommunityPostDetailScreenState
           height: isNested ? 32 : 38,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
-            color: tokens.secondarySurface,
+            color: ig.surfaceElevated,
           ),
           child: Center(
             child: Text(
               comment.author.name.isNotEmpty ? comment.author.name[0] : 'S',
-              style: TextStyle(
+              style: ig.displayTitle(
                 fontSize: isNested ? 13 : 15,
-                fontWeight: FontWeight.bold,
-                color: tokens.greenAccent,
+                color: ig.textPrimary,
               ),
             ),
           ),
@@ -1091,10 +1035,11 @@ class _CommunityPostDetailScreenState
           child: Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: tokens.cardSurface,
-              borderRadius: BorderRadius.circular(14),
+              color: ig.surface,
+              borderRadius: BorderRadius.circular(12),
               border: Border.all(
-                color: tokens.border,
+                color: ig.border,
+                width: 0.5,
               ),
             ),
             child: Column(
@@ -1111,11 +1056,7 @@ class _CommunityPostDetailScreenState
                               comment.author.name,
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
-                              style: TextStyle(
-                                fontSize: 13,
-                                fontWeight: FontWeight.w600,
-                                color: tokens.textPrimary,
-                              ),
+                              style: ig.username(fontSize: 13),
                             ),
                           ),
                           if (comment.isAuthorReply) ...[
@@ -1126,17 +1067,15 @@ class _CommunityPostDetailScreenState
                                 vertical: 1.5,
                               ),
                               decoration: BoxDecoration(
-                                color: tokens.greenAccent,
+                                color: ig.primaryAction,
                                 borderRadius: BorderRadius.circular(4),
                               ),
                               child: Text(
                                 'Tác giả',
-                                style: TextStyle(
+                                style: ig.caption(
                                   fontSize: 10,
                                   fontWeight: FontWeight.w600,
-                                  color: tokens.isDark
-                                      ? const Color(0xFF003824)
-                                      : const Color(0xFFFFFFFF),
+                                  color: ig.onPrimaryAction,
                                 ),
                               ),
                             ),
@@ -1147,21 +1086,14 @@ class _CommunityPostDetailScreenState
                     const SizedBox(width: 8),
                     Text(
                       comment.timeAgo,
-                      style: TextStyle(
-                        fontSize: 11,
-                        color: tokens.textMuted,
-                      ),
+                      style: ig.caption(fontSize: 11, color: ig.textMuted),
                     ),
                   ],
                 ),
                 const SizedBox(height: 6),
                 Text(
                   comment.content,
-                  style: TextStyle(
-                    fontSize: 13,
-                    height: 1.4,
-                    color: tokens.textPrimary,
-                  ),
+                  style: ig.body(fontSize: 13, height: 1.4),
                 ),
                 const SizedBox(height: 8),
                 Row(
@@ -1171,15 +1103,12 @@ class _CommunityPostDetailScreenState
                         Icon(
                           Icons.thumb_up_alt_rounded,
                           size: 13,
-                          color: tokens.textMuted,
+                          color: ig.textMuted,
                         ),
                         const SizedBox(width: 4),
                         Text(
                           '${comment.likeCount}',
-                          style: TextStyle(
-                            fontSize: 11,
-                            color: tokens.textMuted,
-                          ),
+                          style: ig.caption(fontSize: 11, color: ig.textMuted),
                         ),
                       ],
                     ),
@@ -1194,10 +1123,10 @@ class _CommunityPostDetailScreenState
                       },
                       child: Text(
                         'Trả lời',
-                        style: TextStyle(
+                        style: ig.caption(
                           fontSize: 12,
                           fontWeight: FontWeight.w600,
-                          color: tokens.greenAccent,
+                          color: ig.primaryAction,
                         ),
                       ),
                     ),
@@ -1213,21 +1142,19 @@ class _CommunityPostDetailScreenState
 
 
   void _showPostOptionsSheet(BuildContext context, CommunityPost post) {
-    final tokens = SamanHomeTokens.of(context);
+    final ig = SamanIgTokens.of(context);
     final activeUserId = ref.read(communityRepositoryProvider).activeUserId;
     final isAuthor = activeUserId != null && (post.author.id == activeUserId || activeUserId == 'me');
 
     showModalBottomSheet(
       context: context,
-      backgroundColor: tokens.cardSurface,
+      backgroundColor: ig.surface,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       builder: (ctx) {
-        final sheetTokens = SamanHomeTokens.of(ctx);
-        final dangerColor = sheetTokens.isDark
-            ? Colors.redAccent
-            : const Color(0xFFDC2626);
+        final sheetIg = SamanIgTokens.of(ctx);
+        final dangerColor = sheetIg.danger;
         return SafeArea(
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -1252,7 +1179,7 @@ class _CommunityPostDetailScreenState
                         ),
                       Text(
                         context.tr('post_action_delete'),
-                        style: TextStyle(color: dangerColor),
+                        style: sheetIg.body(color: dangerColor),
                       ),
                     ],
                   ),
@@ -1262,10 +1189,10 @@ class _CommunityPostDetailScreenState
                   },
                 ),
               ListTile(
-                leading: Icon(Icons.bookmark_outline, color: sheetTokens.textPrimary),
+                leading: Icon(Icons.bookmark_outline, color: sheetIg.textPrimary),
                 title: Text(
                   context.tr('post_action_save'),
-                  style: TextStyle(color: sheetTokens.textPrimary),
+                  style: sheetIg.body(),
                 ),
                 onTap: () {
                   Navigator.pop(ctx);
@@ -1273,10 +1200,10 @@ class _CommunityPostDetailScreenState
                 },
               ),
               ListTile(
-                leading: Icon(Icons.share_outlined, color: sheetTokens.textPrimary),
+                leading: Icon(Icons.share_outlined, color: sheetIg.textPrimary),
                 title: Text(
                   context.tr('post_action_share'),
-                  style: TextStyle(color: sheetTokens.textPrimary),
+                  style: sheetIg.body(),
                 ),
                 onTap: () {
                   Navigator.pop(ctx);
@@ -1294,15 +1221,13 @@ class _CommunityPostDetailScreenState
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogCtx) {
-        final tokens = SamanHomeTokens.of(dialogCtx);
-        final dangerColor = tokens.isDark
-            ? Colors.redAccent
-            : const Color(0xFFDC2626);
+        final ig = SamanIgTokens.of(dialogCtx);
+        final dangerColor = ig.danger;
         return AlertDialog(
-          backgroundColor: tokens.cardSurface,
+          backgroundColor: ig.surface,
           title: Text(
             context.tr('delete_post_confirm_title'),
-            style: TextStyle(color: tokens.textPrimary, fontWeight: FontWeight.bold),
+            style: ig.displayTitle(fontSize: 16),
           ),
           content: Stack(
             children: [
@@ -1320,7 +1245,7 @@ class _CommunityPostDetailScreenState
                 ),
               Text(
                 context.tr('delete_post_confirm_msg'),
-                style: TextStyle(color: tokens.textSecondary),
+                style: ig.body(color: ig.textSecondary),
               ),
             ],
           ),
@@ -1330,7 +1255,7 @@ class _CommunityPostDetailScreenState
               onPressed: () => Navigator.pop(dialogCtx, false),
               child: Text(
                 context.tr('compose_discard'),
-                style: TextStyle(color: tokens.textMuted),
+                style: ig.buttonLabel(color: ig.textMuted),
               ),
             ),
             TextButton(
@@ -1338,7 +1263,7 @@ class _CommunityPostDetailScreenState
               onPressed: () => Navigator.pop(dialogCtx, true),
               child: Text(
                 context.tr('post_action_delete'),
-                style: TextStyle(color: dangerColor),
+                style: ig.buttonLabel(color: dangerColor),
               ),
             ),
           ],
@@ -1406,13 +1331,13 @@ class _CommunityPostDetailScreenState
   }
 
   void _showShareToast(BuildContext context) {
-    final tokens = SamanHomeTokens.of(context);
+    final ig = SamanIgTokens.of(context);
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        backgroundColor: tokens.cardSurface,
+        backgroundColor: ig.surface,
         content: Text(
           'Đã sao chép liên kết bài viết vào clipboard.',
-          style: TextStyle(color: tokens.textPrimary),
+          style: ig.body(),
         ),
         duration: const Duration(seconds: 2),
       ),
@@ -1422,12 +1347,12 @@ class _CommunityPostDetailScreenState
 
 class _MultiPhotoCarousel extends StatefulWidget {
   final List<String> photoUrls;
-  final SamanHomePalette tokens;
-  final Widget Function(String path, SamanHomePalette tokens) photoBuilder;
+  final SamanIgTokens ig;
+  final Widget Function(String path, SamanIgTokens ig) photoBuilder;
 
   const _MultiPhotoCarousel({
     required this.photoUrls,
-    required this.tokens,
+    required this.ig,
     required this.photoBuilder,
   });
 
@@ -1451,7 +1376,7 @@ class _MultiPhotoCarouselState extends State<_MultiPhotoCarousel> {
             });
           },
           itemBuilder: (context, index) {
-            return widget.photoBuilder(widget.photoUrls[index], widget.tokens);
+            return widget.photoBuilder(widget.photoUrls[index], widget.ig);
           },
         ),
         Positioned(
@@ -1465,7 +1390,7 @@ class _MultiPhotoCarouselState extends State<_MultiPhotoCarousel> {
             ),
             child: Text(
               '${_currentIndex + 1}/${widget.photoUrls.length}',
-              style: const TextStyle(
+              style: widget.ig.caption(
                 fontSize: 11,
                 fontWeight: FontWeight.w600,
                 color: Colors.white,
@@ -1488,7 +1413,7 @@ class _MultiPhotoCarouselState extends State<_MultiPhotoCarousel> {
                 height: 6,
                 decoration: BoxDecoration(
                   color: isActive
-                      ? widget.tokens.greenAccent
+                      ? widget.ig.primaryAction
                       : Colors.white.withOpacity(0.55),
                   borderRadius: BorderRadius.circular(3),
                 ),

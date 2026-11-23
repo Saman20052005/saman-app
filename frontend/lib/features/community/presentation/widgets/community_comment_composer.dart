@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../../config/app_translations.dart';
-import '../../../../screens/home/tokens/saman_home_tokens.dart';
 import '../providers/community_providers.dart';
+import '../tokens/saman_ig_tokens.dart';
 
 class CommunityCommentComposer extends StatelessWidget {
   const CommunityCommentComposer({super.key, required this.state,
@@ -18,36 +18,45 @@ class CommunityCommentComposer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final tokens = SamanHomeTokens.of(context);
-    return Material(
-      color: tokens.companionSurface,
+    final ig = SamanIgTokens.of(context);
+    return Container(
+      decoration: BoxDecoration(
+        color: ig.surface,
+        border: Border(
+          top: BorderSide(color: ig.border, width: 0.5),
+        ),
+      ),
       child: SafeArea(top: false, child: Padding(
         padding: const EdgeInsetsDirectional.fromSTEB(16, 8, 16, 8),
         child: Column(mainAxisSize: MainAxisSize.min, children: [
           if (state.replyToAuthorName != null)
             Row(children: [
-              Icon(Icons.reply_rounded, color: tokens.greenAccent),
+              Icon(Icons.reply_rounded, color: ig.primaryAction),
               Expanded(child: Text('${context.tr('community_replying_to')} ${state.replyToAuthorName}',
-                  style: theme.textTheme.bodySmall?.copyWith(color: tokens.greenAccent),
+                  style: ig.caption(color: ig.primaryAction),
                   maxLines: 1, overflow: TextOverflow.ellipsis)),
               IconButton(onPressed: state.hasPendingSubmission ? null : onCancelReply,
-                  tooltip: context.tr('community_cancel_reply'), icon: const Icon(Icons.close)),
+                  tooltip: context.tr('community_cancel_reply'),
+                  icon: Icon(Icons.close, color: ig.textSecondary)),
             ]),
           if (state.commentErrorKey != null)
             Row(children: [
-              Icon(Icons.info_outline, color: tokens.textSecondary),
+              Icon(Icons.info_outline, color: ig.textSecondary),
               Expanded(child: Text(context.tr(state.commentErrorKey!),
-                  style: theme.textTheme.bodySmall?.copyWith(color: tokens.textPrimary))),
+                  style: ig.caption(color: ig.textPrimary))),
               if (!state.isSubmitting && state.post != null)
-                TextButton(onPressed: onRetry, child: Text(context.tr('community_comment_retry'))),
+                TextButton(
+                  onPressed: onRetry,
+                  child: Text(
+                    context.tr('community_comment_retry'),
+                    style: ig.buttonLabel(color: ig.primaryAction),
+                  ),
+                ),
             ]),
           Row(key: const ValueKey('community-comment-input-row'), children: [
             CircleAvatar(
-              backgroundColor: tokens.greenAccent,
-              foregroundColor: tokens.isDark
-                  ? const Color(0xFF003824)
-                  : const Color(0xFFFFFFFF),
+              backgroundColor: ig.primaryAction,
+              foregroundColor: ig.onPrimaryAction,
               child: const Icon(Icons.person_outline),
             ),
             const SizedBox(width: 10),
@@ -57,27 +66,35 @@ class CommunityCommentComposer extends StatelessWidget {
               enabled: state.post != null,
               readOnly: state.hasPendingSubmission,
               maxLength: 2000, minLines: 1, maxLines: 3,
-              style: theme.textTheme.bodyMedium?.copyWith(color: tokens.textPrimary),
+              style: ig.body(),
               onChanged: onChanged,
               textInputAction: TextInputAction.send,
               onSubmitted: (_) { if (!state.isSubmitting) onSubmit(); },
               decoration: InputDecoration(hintText: context.tr('community_write_comment'), counterText: '',
-                  filled: true, fillColor: tokens.cardSurfaceElevated,
-                  hintStyle: theme.textTheme.bodyMedium?.copyWith(color: tokens.textSecondary),
+                  filled: true, fillColor: ig.surfaceElevated,
+                  hintStyle: ig.body(color: ig.textMuted),
                   border: OutlineInputBorder(borderSide: BorderSide.none,
-                      borderRadius: BorderRadius.circular(SamanHomeTokens.radiusPill))),
+                      borderRadius: BorderRadius.circular(24))),
             )),
+            const SizedBox(width: 8),
             IconButton(
               key: const ValueKey('community-comment-send'),
               tooltip: context.tr('community_comment_send'),
               style: IconButton.styleFrom(
-                backgroundColor: tokens.greenAccent,
-                foregroundColor: tokens.isDark
-                    ? const Color(0xFF003824)
-                    : const Color(0xFFFFFFFF),
+                backgroundColor: ig.primaryAction,
+                foregroundColor: ig.onPrimaryAction,
               ),
               onPressed: state.isSubmitting || state.post == null ? null : onSubmit,
-              icon: state.isSubmitting ? const CircularProgressIndicator() : const Icon(Icons.send_rounded),
+              icon: state.isSubmitting
+                  ? SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: ig.onPrimaryAction,
+                      ),
+                    )
+                  : const Icon(Icons.send_rounded),
             ),
           ]),
         ]),

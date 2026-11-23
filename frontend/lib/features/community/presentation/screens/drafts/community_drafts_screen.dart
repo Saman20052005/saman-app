@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../../../screens/home/tokens/saman_home_tokens.dart';
 import '../../../domain/models/draft_post.dart';
 import '../../../domain/models/post_attachment_snapshot.dart';
 import '../../providers/community_composer_provider.dart';
 import '../../providers/community_providers.dart';
+import '../../tokens/saman_ig_tokens.dart';
 import '../compose/community_ask_question_screen.dart';
 import '../compose/post_compose_publish_screen.dart';
 
@@ -41,7 +41,7 @@ class CommunityDraftsScreen extends ConsumerWidget {
     BuildContext context,
     DraftPost draft,
     CommunityDraftsNotifier notifier,
-    SamanHomePalette tokens,
+    SamanIgTokens ig,
   ) async {
     final previewText = draft.isQuestionDraft
         ? (draft.questionTitle ?? '')
@@ -52,18 +52,14 @@ class CommunityDraftsScreen extends ConsumerWidget {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        backgroundColor: tokens.cardSurfaceElevated,
+        backgroundColor: ig.surface,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-          side: BorderSide(color: tokens.border),
+          borderRadius: BorderRadius.circular(14),
+          side: BorderSide(color: ig.border, width: 0.5),
         ),
         title: Text(
           'Xóa bản nháp này?',
-          style: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.w600,
-            color: tokens.textPrimary,
-          ),
+          style: ig.displayTitle(fontSize: 18, fontWeight: FontWeight.w600),
         ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
@@ -74,19 +70,15 @@ class CommunityDraftsScreen extends ConsumerWidget {
                 previewText,
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w500,
-                  color: tokens.textPrimary,
-                ),
+                style: ig.body(fontSize: 13, fontWeight: FontWeight.w500),
               ),
               const SizedBox(height: 8),
             ],
             Text(
               'Hành động này không thể hoàn tác và nội dung chưa đăng sẽ bị mất vĩnh viễn.',
-              style: TextStyle(
+              style: ig.body(
                 fontSize: 13,
-                color: tokens.textSecondary,
+                color: ig.textSecondary,
                 height: 1.4,
               ),
             ),
@@ -97,10 +89,9 @@ class CommunityDraftsScreen extends ConsumerWidget {
             onPressed: () => Navigator.pop(dialogContext, false),
             child: Text(
               'Hủy',
-              style: TextStyle(
+              style: ig.buttonLabel(
                 fontSize: 14,
-                fontWeight: FontWeight.w600,
-                color: tokens.textSecondary,
+                color: ig.textSecondary,
               ),
             ),
           ),
@@ -108,10 +99,10 @@ class CommunityDraftsScreen extends ConsumerWidget {
             onPressed: () => Navigator.pop(dialogContext, true),
             child: Text(
               'Xóa bản nháp',
-              style: TextStyle(
+              style: ig.buttonLabel(
                 fontSize: 14,
                 fontWeight: FontWeight.w700,
-                color: tokens.fatRose,
+                color: ig.danger,
               ),
             ),
           ),
@@ -156,26 +147,26 @@ class CommunityDraftsScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final tokens = SamanHomeTokens.of(context);
+    final ig = SamanIgTokens.of(context);
     final state = ref.watch(communityDraftsProvider);
     final notifier = ref.read(communityDraftsProvider.notifier);
 
     return Scaffold(
-      backgroundColor: tokens.canvas,
+      backgroundColor: ig.canvas,
       body: SafeArea(
         child: Column(
           children: [
-            _buildAppBar(context, state.drafts.length, tokens),
+            _buildAppBar(context, state.drafts.length, ig),
             Expanded(
               child: state.isLoading
                   ? Center(
                       child: CircularProgressIndicator(
-                        color: tokens.greenAccent,
+                        color: ig.primaryAction,
                       ),
                     )
                   : RefreshIndicator(
-                      color: tokens.greenAccent,
-                      backgroundColor: tokens.cardSurface,
+                      color: ig.primaryAction,
+                      backgroundColor: ig.surface,
                       onRefresh: () => notifier.loadDrafts(),
                       child: state.drafts.isEmpty
                           ? LayoutBuilder(
@@ -192,9 +183,9 @@ class CommunityDraftsScreen extends ConsumerWidget {
                                       Padding(
                                         padding: const EdgeInsets.fromLTRB(
                                             16, 12, 16, 0),
-                                        child: _buildPrivacyInfoPill(tokens),
+                                        child: _buildPrivacyInfoPill(ig),
                                       ),
-                                      _buildEmptyState(tokens),
+                                      _buildEmptyState(ig),
                                     ],
                                   ),
                                 ),
@@ -205,7 +196,7 @@ class CommunityDraftsScreen extends ConsumerWidget {
                               ref,
                               state.drafts,
                               notifier,
-                              tokens,
+                              ig,
                             ),
                     ),
             ),
@@ -218,14 +209,14 @@ class CommunityDraftsScreen extends ConsumerWidget {
   Widget _buildAppBar(
     BuildContext context,
     int count,
-    SamanHomePalette tokens,
+    SamanIgTokens ig,
   ) {
     return Container(
       height: 56,
       padding: const EdgeInsets.symmetric(horizontal: 12),
       decoration: BoxDecoration(
-        color: tokens.canvas,
-        border: Border(bottom: BorderSide(color: tokens.border, width: 1)),
+        color: ig.canvas,
+        border: Border(bottom: BorderSide(color: ig.border, width: 0.5)),
       ),
       child: Row(
         children: [
@@ -234,7 +225,7 @@ class CommunityDraftsScreen extends ConsumerWidget {
             tooltip: 'Quay lại',
             icon: Icon(
               Icons.arrow_back_rounded,
-              color: tokens.textPrimary,
+              color: ig.textPrimary,
               size: 22,
             ),
           ),
@@ -247,12 +238,10 @@ class CommunityDraftsScreen extends ConsumerWidget {
                   child: Text(
                     'Bản nháp bài viết',
                     overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
+                    style: ig.displayTitle(
                       fontSize: 18,
                       fontWeight: FontWeight.w600,
-                      letterSpacing: -0.2,
-                      color: tokens.textPrimary,
-                    ),
+                    ).copyWith(letterSpacing: -0.2),
                   ),
                 ),
                 const SizedBox(width: 8),
@@ -260,16 +249,15 @@ class CommunityDraftsScreen extends ConsumerWidget {
                   padding:
                       const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                   decoration: BoxDecoration(
-                    color: tokens.cardSurface,
+                    color: ig.surface,
                     borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: tokens.border),
+                    border: Border.all(color: ig.border, width: 0.5),
                   ),
                   child: Text(
                     '$count',
-                    style: TextStyle(
+                    style: ig.caption(
                       fontSize: 11,
                       fontWeight: FontWeight.w700,
-                      color: tokens.textSecondary,
                     ),
                   ),
                 ),
@@ -281,30 +269,27 @@ class CommunityDraftsScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildPrivacyInfoPill(SamanHomePalette tokens) {
+  Widget _buildPrivacyInfoPill(SamanIgTokens ig) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       decoration: BoxDecoration(
-        color: tokens.cardSurface,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: tokens.border),
+        color: ig.surface,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: ig.border, width: 0.5),
       ),
       child: Row(
         children: [
           Icon(
             Icons.lock_outline_rounded,
             size: 18,
-            color: tokens.textMuted,
+            color: ig.textMuted,
           ),
           const SizedBox(width: 10),
           Expanded(
             child: Text(
               'Chỉ bạn nhìn thấy các bản nháp này',
-              style: TextStyle(
-                fontSize: 13,
-                color: tokens.textSecondary,
-              ),
+              style: ig.caption(fontSize: 13),
             ),
           ),
         ],
@@ -312,7 +297,7 @@ class CommunityDraftsScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildEmptyState(SamanHomePalette tokens) {
+  Widget _buildEmptyState(SamanIgTokens ig) {
     return Center(
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 64),
@@ -324,31 +309,27 @@ class CommunityDraftsScreen extends ConsumerWidget {
               height: 72,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: tokens.cardSurface,
-                border: Border.all(color: tokens.border),
+                color: ig.surface,
+                border: Border.all(color: ig.border, width: 0.5),
               ),
               child: Icon(
                 Icons.edit_note_rounded,
                 size: 34,
-                color: tokens.textSecondary,
+                color: ig.textSecondary,
               ),
             ),
             const SizedBox(height: 16),
             Text(
               'Chưa có bản nháp nào',
-              style: TextStyle(
-                fontSize: 17,
-                fontWeight: FontWeight.w600,
-                color: tokens.textPrimary,
-              ),
+              style: ig.displayTitle(fontSize: 17, fontWeight: FontWeight.w600),
             ),
             const SizedBox(height: 6),
             Text(
               'Khi bạn bắt đầu viết bài và lưu lại trước khi đăng, bài viết sẽ hiển thị tại đây.',
               textAlign: TextAlign.center,
-              style: TextStyle(
+              style: ig.body(
                 fontSize: 13,
-                color: tokens.textSecondary,
+                color: ig.textSecondary,
                 height: 1.4,
               ),
             ),
@@ -363,7 +344,7 @@ class CommunityDraftsScreen extends ConsumerWidget {
     WidgetRef ref,
     List<DraftPost> drafts,
     CommunityDraftsNotifier notifier,
-    SamanHomePalette tokens,
+    SamanIgTokens ig,
   ) {
     return ListView.separated(
       physics: const AlwaysScrollableScrollPhysics(),
@@ -372,7 +353,7 @@ class CommunityDraftsScreen extends ConsumerWidget {
       separatorBuilder: (_, index) => SizedBox(height: index == 0 ? 14 : 12),
       itemBuilder: (context, index) {
         if (index == 0) {
-          return _buildPrivacyInfoPill(tokens);
+          return _buildPrivacyInfoPill(ig);
         }
         final draft = drafts[index - 1];
         final displayText = draft.isQuestionDraft
@@ -383,18 +364,18 @@ class CommunityDraftsScreen extends ConsumerWidget {
 
         return InkWell(
           onTap: () => _openDraft(context, ref, draft),
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: BorderRadius.circular(12),
           child: Container(
             padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
-              color: tokens.cardSurface,
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: tokens.border),
+              color: ig.surface,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: ig.border, width: 0.5),
             ),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _buildThumbnail(draft, tokens),
+                _buildThumbnail(draft, ig),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Column(
@@ -408,15 +389,15 @@ class CommunityDraftsScreen extends ConsumerWidget {
                             padding: const EdgeInsets.symmetric(
                                 horizontal: 8, vertical: 3),
                             decoration: BoxDecoration(
-                              color: tokens.secondarySurface,
+                              color: ig.surfaceElevated,
                               borderRadius: BorderRadius.circular(8),
                             ),
                             child: Text(
                               _draftCategoryLabel(draft),
-                              style: TextStyle(
+                              style: ig.caption(
                                 fontSize: 11,
                                 fontWeight: FontWeight.w600,
-                                color: tokens.greenAccent,
+                                color: ig.primaryAction,
                               ),
                             ),
                           ),
@@ -425,15 +406,14 @@ class CommunityDraftsScreen extends ConsumerWidget {
                               padding: const EdgeInsets.symmetric(
                                   horizontal: 8, vertical: 3),
                               decoration: BoxDecoration(
-                                color: tokens.secondarySurface,
+                                color: ig.surfaceElevated,
                                 borderRadius: BorderRadius.circular(8),
                               ),
                               child: Text(
                                 draft.topic,
-                                style: TextStyle(
+                                style: ig.caption(
                                   fontSize: 11,
                                   fontWeight: FontWeight.w500,
-                                  color: tokens.textSecondary,
                                 ),
                               ),
                             ),
@@ -444,10 +424,9 @@ class CommunityDraftsScreen extends ConsumerWidget {
                         displayText,
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
+                        style: ig.body(
                           fontSize: 14,
                           fontWeight: FontWeight.w500,
-                          color: tokens.textPrimary,
                           height: 1.35,
                         ),
                       ),
@@ -457,9 +436,9 @@ class CommunityDraftsScreen extends ConsumerWidget {
                           padding: const EdgeInsets.symmetric(
                               horizontal: 8, vertical: 4),
                           decoration: BoxDecoration(
-                            color: tokens.secondarySurface,
+                            color: ig.surfaceElevated,
                             borderRadius: BorderRadius.circular(8),
-                            border: Border.all(color: tokens.border),
+                            border: Border.all(color: ig.border, width: 0.5),
                           ),
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
@@ -467,7 +446,7 @@ class CommunityDraftsScreen extends ConsumerWidget {
                               Icon(
                                 Icons.attachment_rounded,
                                 size: 14,
-                                color: tokens.textMuted,
+                                color: ig.textMuted,
                               ),
                               const SizedBox(width: 5),
                               Flexible(
@@ -477,10 +456,7 @@ class CommunityDraftsScreen extends ConsumerWidget {
                                       : draft.attachment!.title,
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
-                                  style: TextStyle(
-                                    fontSize: 11,
-                                    color: tokens.textSecondary,
-                                  ),
+                                  style: ig.caption(fontSize: 11),
                                 ),
                               ),
                             ],
@@ -493,15 +469,12 @@ class CommunityDraftsScreen extends ConsumerWidget {
                           Icon(
                             Icons.access_time_rounded,
                             size: 13,
-                            color: tokens.textMuted,
+                            color: ig.textMuted,
                           ),
                           const SizedBox(width: 4),
                           Text(
                             _formatUpdatedAt(draft.updatedAt),
-                            style: TextStyle(
-                              fontSize: 11,
-                              color: tokens.textMuted,
-                            ),
+                            style: ig.caption(fontSize: 11, color: ig.textMuted),
                           ),
                         ],
                       ),
@@ -510,12 +483,12 @@ class CommunityDraftsScreen extends ConsumerWidget {
                 ),
                 IconButton(
                   onPressed: () =>
-                      _confirmDelete(context, draft, notifier, tokens),
+                      _confirmDelete(context, draft, notifier, ig),
                   tooltip: 'Xóa bản nháp',
                   icon: Icon(
                     Icons.delete_outline_rounded,
                     size: 20,
-                    color: tokens.fatRose,
+                    color: ig.danger,
                   ),
                 ),
               ],
@@ -526,16 +499,16 @@ class CommunityDraftsScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildThumbnail(DraftPost draft, SamanHomePalette tokens) {
+  Widget _buildThumbnail(DraftPost draft, SamanIgTokens ig) {
     if (draft.mediaUrls.isNotEmpty) {
       final url = draft.mediaUrls.first;
       return Container(
         width: 56,
         height: 56,
         decoration: BoxDecoration(
-          color: tokens.secondarySurface,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: tokens.border),
+          color: ig.surfaceElevated,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: ig.border, width: 0.5),
         ),
         clipBehavior: Clip.antiAlias,
         child: Stack(
@@ -548,7 +521,7 @@ class CommunityDraftsScreen extends ConsumerWidget {
                     errorBuilder: (_, __, ___) => Icon(
                       Icons.photo_library_outlined,
                       size: 22,
-                      color: tokens.textSecondary,
+                      color: ig.textSecondary,
                     ),
                   )
                 : Image.asset(
@@ -557,7 +530,7 @@ class CommunityDraftsScreen extends ConsumerWidget {
                     errorBuilder: (_, __, ___) => Icon(
                       Icons.photo_library_outlined,
                       size: 22,
-                      color: tokens.textSecondary,
+                      color: ig.textSecondary,
                     ),
                   ),
             if (draft.mediaUrls.length > 1)
@@ -567,13 +540,13 @@ class CommunityDraftsScreen extends ConsumerWidget {
                 child: Container(
                   padding: const EdgeInsets.all(2),
                   decoration: BoxDecoration(
-                    color: tokens.canvas.withOpacity(0.8),
+                    color: ig.canvas.withOpacity(0.8),
                     borderRadius: BorderRadius.circular(4),
                   ),
                   child: Icon(
                     Icons.photo_library_rounded,
                     size: 11,
-                    color: tokens.textPrimary,
+                    color: ig.textPrimary,
                   ),
                 ),
               ),
@@ -597,14 +570,14 @@ class CommunityDraftsScreen extends ConsumerWidget {
       width: 56,
       height: 56,
       decoration: BoxDecoration(
-        color: tokens.secondarySurface,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: tokens.border),
+        color: ig.surfaceElevated,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: ig.border, width: 0.5),
       ),
       child: Icon(
         icon,
         size: 24,
-        color: tokens.textSecondary,
+        color: ig.textSecondary,
       ),
     );
   }

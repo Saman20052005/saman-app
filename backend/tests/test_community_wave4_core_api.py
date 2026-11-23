@@ -430,9 +430,10 @@ class TestCommunityWave4CoreApi(unittest.TestCase):
         self.assertTrue(report_idxs["idx_report_unique"]["unique"])
 
         story_idxs = self.fake_db["community_stories"].index_information()
-        self.assertIn("idx_stories_ttl_expires", story_idxs)
-        self.assertEqual(story_idxs["idx_stories_ttl_expires"]["key"], [("expires_at", 1)])
-        self.assertEqual(story_idxs["idx_stories_ttl_expires"]["expireAfterSeconds"], 0)
+        self.assertIn("idx_stories_expires_at", story_idxs)
+        self.assertEqual(story_idxs["idx_stories_expires_at"]["key"], [("expires_at", 1)])
+        self.assertNotIn("expireAfterSeconds", story_idxs["idx_stories_expires_at"])
+        self.assertNotIn("idx_stories_ttl_expires", story_idxs)
         self.assertIn("idx_stories_user_created", story_idxs)
 
         view_idxs = self.fake_db["community_story_views"].index_information()
@@ -451,8 +452,12 @@ class TestCommunityWave4CoreApi(unittest.TestCase):
                 "is_private_account": False,
                 "who_can_dm": "everyone",
                 "who_can_comment": "everyone",
+                "who_can_reply_story": "everyone",
+                "allow_mentions": "everyone",
                 "hide_like_counts": False,
                 "show_activity_status": True,
+                "auto_prompt_share_workout": True,
+                "auto_prompt_share_meal": True,
                 "muted_keywords": [],
             })
 
@@ -463,8 +468,12 @@ class TestCommunityWave4CoreApi(unittest.TestCase):
                     "is_private_account": True,
                     "who_can_dm": "followers",
                     "who_can_comment": "nobody",
+                    "who_can_reply_story": "followers",
+                    "allow_mentions": "nobody",
                     "hide_like_counts": True,
                     "show_activity_status": False,
+                    "auto_prompt_share_workout": False,
+                    "auto_prompt_share_meal": False,
                     "muted_keywords": ["spoiler", "spam", "Spoiler"],
                 },
             )
@@ -473,8 +482,12 @@ class TestCommunityWave4CoreApi(unittest.TestCase):
             self.assertTrue(patched["is_private_account"])
             self.assertEqual(patched["who_can_dm"], "followers")
             self.assertEqual(patched["who_can_comment"], "nobody")
+            self.assertEqual(patched["who_can_reply_story"], "followers")
+            self.assertEqual(patched["allow_mentions"], "nobody")
             self.assertTrue(patched["hide_like_counts"])
             self.assertFalse(patched["show_activity_status"])
+            self.assertFalse(patched["auto_prompt_share_workout"])
+            self.assertFalse(patched["auto_prompt_share_meal"])
             self.assertEqual(patched["muted_keywords"], ["spoiler", "spam"])
 
             # Verify persisted on GET
@@ -489,11 +502,11 @@ class TestCommunityWave4CoreApi(unittest.TestCase):
             )
             self.assertEqual(res_extra.status_code, 422)
 
-            # More than 20 muted keywords rejected
+            # More than 50 muted keywords rejected
             res_too_many = self.client.patch(
                 "/api/community/settings",
                 headers=self.headers_a,
-                json={"muted_keywords": [f"kw{i}" for i in range(21)]},
+                json={"muted_keywords": [f"kw{i}" for i in range(51)]},
             )
             self.assertEqual(res_too_many.status_code, 422)
 

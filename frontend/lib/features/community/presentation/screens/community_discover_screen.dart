@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../../screens/home/tokens/saman_home_tokens.dart';
 import '../../domain/models/community_author.dart';
 import '../../domain/models/community_discover_item.dart';
 import '../providers/community_providers.dart';
+import '../tokens/saman_ig_tokens.dart';
 import '../widgets/community_bottom_navigation_bar.dart';
 import 'community_post_detail_screen.dart';
 import 'profile/community_profile_screen.dart';
@@ -28,7 +28,7 @@ class _CommunityDiscoverScreenState
 
   @override
   Widget build(BuildContext context) {
-    final tokens = SamanHomeTokens.of(context);
+    final ig = SamanIgTokens.of(context);
     final isRemote = ref.watch(useRemoteCommunityProvider);
     final discoverState = ref.watch(communityDiscoverProvider);
     final discoverNotifier = ref.read(communityDiscoverProvider.notifier);
@@ -40,30 +40,31 @@ class _CommunityDiscoverScreenState
         discoverState.data.recommendedCreators.isEmpty;
 
     return Scaffold(
-      backgroundColor: tokens.canvas,
+      backgroundColor: ig.canvas,
       body: SafeArea(
         bottom: false,
         child: Column(
           children: [
             // Header
-            _buildHeader(context, tokens),
+            _buildHeader(context, ig),
 
             // Honest Preview Notice Banner (hidden in remote mode)
-            if (!isRemote) _buildPreviewNoticeBanner(tokens),
+            if (!isRemote) _buildPreviewNoticeBanner(ig),
 
             // Search Bar
-            _buildSearchBar(discoverNotifier, tokens),
+            _buildSearchBar(discoverNotifier, ig),
 
             // Content Scroll
             Expanded(
               child: discoverState.isLoading
                   ? Center(
                       child: CircularProgressIndicator(
-                        color: tokens.greenAccent,
+                        color: ig.primaryAction,
                       ),
                     )
                   : RefreshIndicator(
-                      color: tokens.greenAccent,
+                      color: ig.primaryAction,
+                      backgroundColor: ig.surface,
                       onRefresh: () => discoverNotifier.refresh(),
                       child: SingleChildScrollView(
                         physics: const AlwaysScrollableScrollPhysics(),
@@ -76,18 +77,18 @@ class _CommunityDiscoverScreenState
                               discoverState.data.topicChips,
                               discoverState.activeTopic,
                               (topic) => discoverNotifier.setTopic(topic),
-                              tokens,
+                              ig,
                             ),
-                            const SizedBox(height: 16),
+                            const SizedBox(height: 12),
 
                             if (hasNoResults)
-                              _buildSearchEmptyState(discoverNotifier, tokens)
+                              _buildSearchEmptyState(discoverNotifier, ig)
                             else ...[
-                              // Section 1: Visual Grid (3x3)
+                              // Section 1: Visual Grid (3x3 edge-to-edge)
                               _buildVisualGridSection(
                                 context,
                                 discoverState.data.gridItems,
-                                tokens,
+                                ig,
                               ),
                               const SizedBox(height: 24),
 
@@ -96,7 +97,7 @@ class _CommunityDiscoverScreenState
                                 _buildTrendingTopicsSection(
                                   discoverState.data.trendingTopics,
                                   discoverNotifier,
-                                  tokens,
+                                  ig,
                                 ),
                                 const SizedBox(height: 24),
                               ],
@@ -107,7 +108,7 @@ class _CommunityDiscoverScreenState
                                   discoverState.data.recommendedCreators,
                                   (authorId) =>
                                       discoverNotifier.toggleFollow(authorId),
-                                  tokens,
+                                  ig,
                                 ),
                             ],
                           ],
@@ -124,18 +125,18 @@ class _CommunityDiscoverScreenState
     );
   }
 
-  Widget _buildPreviewNoticeBanner(SamanHomePalette tokens) {
+  Widget _buildPreviewNoticeBanner(SamanIgTokens ig) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-      color: tokens.cardSurface,
+      color: ig.surface,
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Icon(
             Icons.info_outline_rounded,
             size: 13,
-            color: tokens.greenAccent,
+            color: ig.textSecondary,
           ),
           const SizedBox(width: 6),
           Flexible(
@@ -143,9 +144,9 @@ class _CommunityDiscoverScreenState
               'Bản xem trước giao diện • Dữ liệu mẫu thử nghiệm',
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: TextStyle(
+              style: ig.caption(
                 fontSize: 11,
-                color: tokens.textSecondary,
+                color: ig.textSecondary,
                 fontWeight: FontWeight.w500,
               ),
             ),
@@ -155,9 +156,10 @@ class _CommunityDiscoverScreenState
     );
   }
 
-  Widget _buildHeader(BuildContext context, SamanHomePalette tokens) {
+  Widget _buildHeader(BuildContext context, SamanIgTokens ig) {
     return Container(
-      padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
+      padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
+      color: ig.canvas,
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
@@ -167,16 +169,21 @@ class _CommunityDiscoverScreenState
                 InkWell(
                   onTap: () => Navigator.pop(context),
                   borderRadius: BorderRadius.circular(12),
-                  child: Padding(
-                    padding: const EdgeInsets.all(4),
-                    child: Icon(
-                      Icons.arrow_back_rounded,
-                      color: tokens.textPrimary,
-                      size: 24,
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(
+                      minWidth: SamanIgTokens.minTouchTarget,
+                      minHeight: SamanIgTokens.minTouchTarget,
+                    ),
+                    child: Center(
+                      child: Icon(
+                        Icons.arrow_back_rounded,
+                        color: ig.textPrimary,
+                        size: 22,
+                      ),
                     ),
                   ),
                 ),
-                const SizedBox(width: 8),
+                const SizedBox(width: 6),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -185,21 +192,20 @@ class _CommunityDiscoverScreenState
                         'Khám phá cộng đồng',
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          fontSize: 18,
+                        style: ig.displayTitle(
+                          fontSize: 19,
                           fontWeight: FontWeight.w700,
-                          color: tokens.textPrimary,
-                          letterSpacing: -0.3,
-                        ),
+                          color: ig.textPrimary,
+                        ).copyWith(letterSpacing: -0.3),
                       ),
                       Text(
                         'Không gian truyền cảm hứng',
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
+                        style: ig.caption(
                           fontSize: 12,
                           fontWeight: FontWeight.w500,
-                          color: tokens.greenAccent,
+                          color: ig.textSecondary,
                         ),
                       ),
                     ],
@@ -209,9 +215,13 @@ class _CommunityDiscoverScreenState
             ),
           ),
           IconButton(
+            constraints: const BoxConstraints(
+              minWidth: SamanIgTokens.minTouchTarget,
+              minHeight: SamanIgTokens.minTouchTarget,
+            ),
             icon: Icon(
               Icons.tune_rounded,
-              color: tokens.textSecondary,
+              color: ig.textPrimary,
               size: 20,
             ),
             onPressed: () {
@@ -230,40 +240,37 @@ class _CommunityDiscoverScreenState
 
   Widget _buildSearchBar(
     CommunityDiscoverNotifier notifier,
-    SamanHomePalette tokens,
+    SamanIgTokens ig,
   ) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
       child: Container(
-        height: 48,
+        height: 40,
         decoration: BoxDecoration(
-          color: tokens.cardSurface,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(
-            color: tokens.border,
-          ),
+          color: ig.surfaceElevated,
+          borderRadius: BorderRadius.circular(10),
         ),
-        padding: const EdgeInsets.symmetric(horizontal: 14),
+        padding: const EdgeInsets.symmetric(horizontal: 12),
         child: Row(
           children: [
             Icon(
               Icons.search_rounded,
-              color: tokens.textMuted,
-              size: 20,
+              color: ig.textSecondary,
+              size: 18,
             ),
-            const SizedBox(width: 10),
+            const SizedBox(width: 8),
             Expanded(
               child: TextField(
                 controller: _searchController,
                 onChanged: (val) => notifier.setSearchQuery(val),
-                style: TextStyle(
-                  color: tokens.textPrimary,
+                style: ig.body(
+                  color: ig.textPrimary,
                   fontSize: 14,
                 ),
                 decoration: InputDecoration(
                   hintText: 'Tìm bài viết, chủ đề, thành viên…',
-                  hintStyle: TextStyle(
-                    color: tokens.textMuted,
+                  hintStyle: ig.body(
+                    color: ig.textSecondary,
                     fontSize: 14,
                   ),
                   border: InputBorder.none,
@@ -277,8 +284,8 @@ class _CommunityDiscoverScreenState
                 if (value.text.isEmpty) {
                   return Icon(
                     Icons.mic_none_rounded,
-                    color: tokens.textMuted,
-                    size: 20,
+                    color: ig.textSecondary,
+                    size: 18,
                   );
                 }
                 return InkWell(
@@ -292,7 +299,7 @@ class _CommunityDiscoverScreenState
                     padding: const EdgeInsets.all(4),
                     child: Icon(
                       Icons.close_rounded,
-                      color: tokens.textSecondary,
+                      color: ig.textSecondary,
                       size: 18,
                     ),
                   ),
@@ -309,7 +316,7 @@ class _CommunityDiscoverScreenState
     List<String> chips,
     String activeTopic,
     ValueChanged<String> onSelected,
-    SamanHomePalette tokens,
+    SamanIgTokens ig,
   ) {
     final Map<String, (String, IconData)> topicMeta = {
       'all': ('Tất cả', Icons.apps_rounded),
@@ -321,7 +328,7 @@ class _CommunityDiscoverScreenState
     };
 
     return SizedBox(
-      height: 40,
+      height: 38,
       child: ListView.separated(
         padding: const EdgeInsets.symmetric(horizontal: 16),
         scrollDirection: Axis.horizontal,
@@ -336,37 +343,26 @@ class _CommunityDiscoverScreenState
             onTap: () => onSelected(key),
             borderRadius: BorderRadius.circular(10),
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
               decoration: BoxDecoration(
-                color: isActive
-                    ? tokens.secondarySurface
-                    : tokens.cardSurface,
+                color: isActive ? ig.textPrimary : ig.surfaceElevated,
                 borderRadius: BorderRadius.circular(10),
-                border: Border.all(
-                  color: isActive
-                      ? tokens.greenAccent.withOpacity(0.5)
-                      : tokens.border,
-                ),
               ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Icon(
                     meta.$2,
-                    size: 15,
-                    color: isActive
-                        ? tokens.greenAccent
-                        : tokens.textSecondary,
+                    size: 14,
+                    color: isActive ? ig.canvas : ig.textPrimary,
                   ),
                   const SizedBox(width: 6),
                   Text(
                     meta.$1,
-                    style: TextStyle(
+                    style: ig.caption(
                       fontSize: 12,
                       fontWeight: isActive ? FontWeight.w600 : FontWeight.w500,
-                      color: isActive
-                          ? tokens.greenAccent
-                          : tokens.textSecondary,
+                      color: isActive ? ig.canvas : ig.textPrimary,
                     ),
                   ),
                 ],
@@ -381,14 +377,14 @@ class _CommunityDiscoverScreenState
   Widget _buildVisualGridSection(
     BuildContext context,
     List<CommunityVisualGridItem> items,
-    SamanHomePalette tokens,
+    SamanIgTokens ig,
   ) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Expanded(
@@ -397,7 +393,7 @@ class _CommunityDiscoverScreenState
                     Icon(
                       Icons.grid_view_rounded,
                       size: 18,
-                      color: tokens.greenAccent,
+                      color: ig.textPrimary,
                     ),
                     const SizedBox(width: 6),
                     Flexible(
@@ -405,10 +401,10 @@ class _CommunityDiscoverScreenState
                         'Khoảnh khắc tiêu biểu',
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
+                        style: ig.displayTitle(
                           fontSize: 16,
                           fontWeight: FontWeight.w700,
-                          color: tokens.textPrimary,
+                          color: ig.textPrimary,
                         ),
                       ),
                     ),
@@ -418,179 +414,168 @@ class _CommunityDiscoverScreenState
               const SizedBox(width: 8),
               Text(
                 'Mới nhất',
-                style: TextStyle(
+                style: ig.caption(
                   fontSize: 12,
                   fontWeight: FontWeight.w600,
-                  color: tokens.greenAccent.withOpacity(0.9),
+                  color: ig.primaryAction,
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 10),
-          Container(
-            padding: const EdgeInsets.all(4),
-            decoration: BoxDecoration(
-              color: tokens.isDark
-                  ? const Color(0xFF0D0E0F)
-                  : tokens.border,
-              borderRadius: BorderRadius.circular(16),
+        ),
+        const SizedBox(height: 10),
+        if (items.isEmpty)
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 28, horizontal: 16),
+            child: Center(
+              child: Column(
+                children: [
+                  Icon(
+                    Icons.photo_library_outlined,
+                    size: 32,
+                    color: ig.textMuted,
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Chưa có khoảnh khắc nào trong chủ đề này',
+                    textAlign: TextAlign.center,
+                    style: ig.caption(
+                      fontSize: 13,
+                      color: ig.textSecondary,
+                    ),
+                  ),
+                ],
+              ),
             ),
-            child: items.isEmpty
-                ? Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 28, horizontal: 16),
-                    child: Center(
-                      child: Column(
-                        children: [
-                          Icon(
-                            Icons.photo_library_outlined,
-                            size: 32,
-                            color: tokens.textMuted,
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            'Chưa có khoảnh khắc nào trong chủ đề này',
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                              fontSize: 13,
-                              color: tokens.textSecondary,
-                            ),
-                          ),
-                        ],
+          )
+        else
+          GridView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: items.length,
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 3,
+              crossAxisSpacing: 1.5,
+              mainAxisSpacing: 1.5,
+              childAspectRatio: 1,
+            ),
+            itemBuilder: (context, index) {
+              final item = items[index];
+              return InkWell(
+                onTap: () {
+                  if (item.postId != null) {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => CommunityPostDetailScreen(
+                          postId: item.postId!,
+                        ),
                       ),
-                    ),
-                  )
-                : GridView.builder(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    itemCount: items.length,
-                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 3,
-                      crossAxisSpacing: 4,
-                      mainAxisSpacing: 4,
-                      childAspectRatio: 1,
-                    ),
-                    itemBuilder: (context, index) {
-                      final item = items[index];
-                      return InkWell(
-                        onTap: () {
-                          if (item.postId != null) {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => CommunityPostDetailScreen(
-                                  postId: item.postId!,
-                                ),
-                              ),
-                            );
-                          }
-                        },
-                        borderRadius: BorderRadius.circular(10),
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(10),
-                          child: Stack(
-                            fit: StackFit.expand,
-                            children: [
-                              _buildGridMedia(item, tokens),
-                              // Top badge (dark translucent overlay kept for media contrast)
-                              if (item.hasMultiPhoto || item.hasVideo)
-                                Positioned(
-                                  top: 4,
-                                  right: 4,
-                                  child: Container(
-                                    padding: const EdgeInsets.all(3),
-                                    decoration: BoxDecoration(
-                                      color: const Color(0xFF121314).withOpacity(0.8),
-                                      borderRadius: BorderRadius.circular(5),
-                                    ),
-                                    child: Icon(
-                                      item.hasMultiPhoto
-                                          ? Icons.photo_library_rounded
-                                          : Icons.play_arrow_rounded,
-                                      size: 12,
-                                      color: Colors.white,
-                                    ),
-                                  ),
-                                ),
-                              // Bottom gradient & likes (dark scrim kept for media contrast)
-                              Positioned(
-                                left: 0,
-                                right: 0,
-                                bottom: 0,
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 6,
-                                    vertical: 4,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    gradient: LinearGradient(
-                                      begin: Alignment.topCenter,
-                                      end: Alignment.bottomCenter,
-                                      colors: [
-                                        Colors.transparent,
-                                        Colors.black.withOpacity(0.85),
-                                      ],
-                                    ),
-                                  ),
-                                  child: Row(
-                                    children: [
-                                      const Icon(
-                                        Icons.favorite_rounded,
-                                        size: 11,
-                                        color: Color(0xFF5BBFA0),
-                                      ),
-                                      const SizedBox(width: 3),
-                                      Text(
-                                        item.formattedLikes,
-                                        style: const TextStyle(
-                                          fontSize: 10,
-                                          fontWeight: FontWeight.w600,
-                                          color: Colors.white,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
+                    );
+                  }
+                },
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    _buildGridMedia(item, ig),
+                    // Top badge
+                    if (item.hasMultiPhoto || item.hasVideo)
+                      Positioned(
+                        top: 6,
+                        right: 6,
+                        child: Container(
+                          padding: const EdgeInsets.all(3),
+                          decoration: BoxDecoration(
+                            color: ig.scrim,
+                            borderRadius: BorderRadius.circular(5),
+                          ),
+                          child: Icon(
+                            item.hasMultiPhoto
+                                ? Icons.photo_library_rounded
+                                : Icons.play_arrow_rounded,
+                            size: 12,
+                            color: ig.onPrimaryAction,
+                          ),
+                        ),
+                      ),
+                    // Bottom gradient & likes
+                    Positioned(
+                      left: 0,
+                      right: 0,
+                      bottom: 0,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 6,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
+                            colors: [
+                              Colors.transparent,
+                              Colors.black.withOpacity(0.75),
                             ],
                           ),
                         ),
-                      );
-                    },
-                  ),
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.favorite_rounded,
+                              size: 11,
+                              color: ig.likeHeart,
+                            ),
+                            const SizedBox(width: 3),
+                            Text(
+                              item.formattedLikes,
+                              style: TextStyle(
+                                fontFamily: SamanIgTokens.fontFamily,
+                                fontSize: 10,
+                                fontWeight: FontWeight.w600,
+                                color: ig.onPrimaryAction,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            },
           ),
-        ],
-      ),
+      ],
     );
   }
 
   Widget _buildGridMedia(
     CommunityVisualGridItem item,
-    SamanHomePalette tokens,
+    SamanIgTokens ig,
   ) {
     final url = item.imageUrl.trim();
     if (url.startsWith('http://') || url.startsWith('https://')) {
       return Image.network(
         url,
         fit: BoxFit.cover,
-        errorBuilder: (_, __, ___) => _buildGridPlaceholder(item, tokens),
+        errorBuilder: (_, __, ___) => _buildGridPlaceholder(item, ig),
       );
     }
-    return _buildGridPlaceholder(item, tokens);
+    return _buildGridPlaceholder(item, ig);
   }
 
   Widget _buildGridPlaceholder(
     CommunityVisualGridItem item,
-    SamanHomePalette tokens,
+    SamanIgTokens ig,
   ) {
     return Container(
-      color: tokens.cardSurface,
+      color: ig.surfaceElevated,
       child: Center(
         child: Icon(
           item.hasVideo
               ? Icons.play_circle_fill_rounded
               : Icons.image_rounded,
           size: 28,
-          color: tokens.secondarySurface,
+          color: ig.textMuted,
         ),
       ),
     );
@@ -598,7 +583,7 @@ class _CommunityDiscoverScreenState
 
   Widget _buildSearchEmptyState(
     CommunityDiscoverNotifier notifier,
-    SamanHomePalette tokens,
+    SamanIgTokens ig,
   ) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 36),
@@ -608,25 +593,24 @@ class _CommunityDiscoverScreenState
             Icon(
               Icons.search_off_rounded,
               size: 40,
-              color: tokens.textMuted,
+              color: ig.textMuted,
             ),
             const SizedBox(height: 10),
             Text(
               'Không tìm thấy kết quả phù hợp',
               textAlign: TextAlign.center,
-              style: TextStyle(
+              style: ig.username(
                 fontSize: 15,
-                fontWeight: FontWeight.w600,
-                color: tokens.textPrimary,
+                color: ig.textPrimary,
               ),
             ),
             const SizedBox(height: 4),
             Text(
               'Hãy thử từ khóa khác hoặc xóa bộ lọc tìm kiếm.',
               textAlign: TextAlign.center,
-              style: TextStyle(
+              style: ig.caption(
                 fontSize: 13,
-                color: tokens.textSecondary,
+                color: ig.textSecondary,
               ),
             ),
             const SizedBox(height: 14),
@@ -637,10 +621,9 @@ class _CommunityDiscoverScreenState
               },
               child: Text(
                 'Xóa tìm kiếm',
-                style: TextStyle(
+                style: ig.buttonLabel(
                   fontSize: 13,
-                  fontWeight: FontWeight.w600,
-                  color: tokens.greenAccent,
+                  color: ig.primaryAction,
                 ),
               ),
             ),
@@ -653,7 +636,7 @@ class _CommunityDiscoverScreenState
   Widget _buildTrendingTopicsSection(
     List<CommunityTrendingTopic> topics,
     CommunityDiscoverNotifier notifier,
-    SamanHomePalette tokens,
+    SamanIgTokens ig,
   ) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -669,7 +652,7 @@ class _CommunityDiscoverScreenState
                     Icon(
                       Icons.trending_up_rounded,
                       size: 19,
-                      color: tokens.greenAccent,
+                      color: ig.textPrimary,
                     ),
                     const SizedBox(width: 6),
                     Flexible(
@@ -677,10 +660,10 @@ class _CommunityDiscoverScreenState
                         'Chủ đề đang được quan tâm',
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
+                        style: ig.displayTitle(
                           fontSize: 16,
                           fontWeight: FontWeight.w700,
-                          color: tokens.textPrimary,
+                          color: ig.textPrimary,
                         ),
                       ),
                     ),
@@ -690,9 +673,9 @@ class _CommunityDiscoverScreenState
               const SizedBox(width: 8),
               Text(
                 'Thịnh hành',
-                style: TextStyle(
+                style: ig.caption(
                   fontSize: 11,
-                  color: tokens.textSecondary,
+                  color: ig.textSecondary,
                 ),
               ),
             ],
@@ -710,114 +693,113 @@ class _CommunityDiscoverScreenState
                   _searchController.text = topic.hashtag;
                   notifier.loadDiscover(topic: 'all', searchQuery: topic.hashtag);
                 },
-                borderRadius: BorderRadius.circular(14),
+                borderRadius: BorderRadius.circular(12),
                 child: Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: tokens.cardSurface,
-                    borderRadius: BorderRadius.circular(14),
+                    color: ig.surface,
+                    borderRadius: BorderRadius.circular(12),
                     border: Border.all(
-                      color: tokens.border,
+                      color: ig.borderSubtle,
                     ),
                   ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Expanded(
-                      child: Row(
-                        children: [
-                          Container(
-                            width: 40,
-                            height: 40,
-                            decoration: BoxDecoration(
-                              color: tokens.secondarySurface,
-                              borderRadius: BorderRadius.circular(10),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Expanded(
+                        child: Row(
+                          children: [
+                            Container(
+                              width: 40,
+                              height: 40,
+                              decoration: BoxDecoration(
+                                color: ig.surfaceElevated,
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: Icon(
+                                Icons.tag_rounded,
+                                color: ig.textPrimary,
+                                size: 20,
+                              ),
                             ),
-                            child: Icon(
-                              Icons.tag_rounded,
-                              color: tokens.greenAccent,
-                              size: 20,
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  topic.hashtag,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: TextStyle(
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w600,
-                                    color: tokens.textPrimary,
-                                  ),
-                                ),
-                                const SizedBox(height: 2),
-                                Row(
-                                  children: [
-                                    Container(
-                                      width: 5,
-                                      height: 5,
-                                      decoration: BoxDecoration(
-                                        shape: BoxShape.circle,
-                                        color: tokens.greenAccent,
-                                      ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    topic.hashtag,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: ig.username(
+                                      fontSize: 14,
+                                      color: ig.textPrimary,
                                     ),
-                                    const SizedBox(width: 5),
-                                    Flexible(
-                                      child: Text(
-                                        topic.postCountFormatted,
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                        style: TextStyle(
-                                          fontSize: 11,
-                                          color: tokens.textSecondary,
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Row(
+                                    children: [
+                                      Container(
+                                        width: 5,
+                                        height: 5,
+                                        decoration: BoxDecoration(
+                                          shape: BoxShape.circle,
+                                          color: ig.primaryAction,
                                         ),
                                       ),
-                                    ),
-                                  ],
-                                ),
-                              ],
+                                      const SizedBox(width: 5),
+                                      Flexible(
+                                        child: Text(
+                                          topic.postCountFormatted,
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: ig.caption(
+                                            fontSize: 11,
+                                            color: ig.textSecondary,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
                             ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 7,
+                              vertical: 3,
+                            ),
+                            decoration: BoxDecoration(
+                              color: ig.surfaceElevated,
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: Text(
+                              topic.growthPercent,
+                              style: ig.caption(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w600,
+                                color: topic.isStable
+                                    ? ig.textSecondary
+                                    : ig.primaryAction,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          Icon(
+                            Icons.chevron_right_rounded,
+                            size: 18,
+                            color: ig.textMuted,
                           ),
                         ],
                       ),
-                    ),
-                    const SizedBox(width: 8),
-                    Row(
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 7,
-                            vertical: 3,
-                          ),
-                          decoration: BoxDecoration(
-                            color: tokens.secondarySurface,
-                            borderRadius: BorderRadius.circular(6),
-                          ),
-                          child: Text(
-                            topic.growthPercent,
-                            style: TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.w600,
-                              color: topic.isStable
-                                  ? tokens.textSecondary
-                                  : tokens.greenAccent,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 6),
-                        Icon(
-                          Icons.chevron_right_rounded,
-                          size: 18,
-                          color: tokens.textMuted,
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
+                    ],
+                  ),
                 ),
               );
             },
@@ -830,7 +812,7 @@ class _CommunityDiscoverScreenState
   Widget _buildRecommendedCreatorsSection(
     List<CommunityAuthor> creators,
     ValueChanged<String> onFollowToggle,
-    SamanHomePalette tokens,
+    SamanIgTokens ig,
   ) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -846,7 +828,7 @@ class _CommunityDiscoverScreenState
                     Icon(
                       Icons.person_add_alt_1_rounded,
                       size: 19,
-                      color: tokens.greenAccent,
+                      color: ig.textPrimary,
                     ),
                     const SizedBox(width: 6),
                     Flexible(
@@ -854,10 +836,10 @@ class _CommunityDiscoverScreenState
                         'Có thể bạn muốn theo dõi',
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
+                        style: ig.displayTitle(
                           fontSize: 16,
                           fontWeight: FontWeight.w700,
-                          color: tokens.textPrimary,
+                          color: ig.textPrimary,
                         ),
                       ),
                     ),
@@ -867,9 +849,10 @@ class _CommunityDiscoverScreenState
               const SizedBox(width: 8),
               Text(
                 'Xem tất cả',
-                style: TextStyle(
+                style: ig.caption(
                   fontSize: 12,
-                  color: tokens.textSecondary,
+                  color: ig.primaryAction,
+                  fontWeight: FontWeight.w600,
                 ),
               ),
             ],
@@ -895,14 +878,14 @@ class _CommunityDiscoverScreenState
                     ),
                   );
                 },
-                borderRadius: BorderRadius.circular(16),
+                borderRadius: BorderRadius.circular(14),
                 child: Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: tokens.cardSurface,
-                    borderRadius: BorderRadius.circular(16),
+                    color: ig.surface,
+                    borderRadius: BorderRadius.circular(14),
                     border: Border.all(
-                      color: tokens.border,
+                      color: ig.borderSubtle,
                     ),
                   ),
                   child: Row(
@@ -916,10 +899,10 @@ class _CommunityDiscoverScreenState
                               height: 44,
                               decoration: BoxDecoration(
                                 shape: BoxShape.circle,
-                                color: tokens.secondarySurface,
+                                color: ig.surfaceElevated,
                                 border: Border.all(
-                                  color: tokens.greenAccent.withOpacity(0.3),
-                                  width: 1.5,
+                                  color: ig.border,
+                                  width: 1,
                                 ),
                               ),
                               child: ClipOval(
@@ -934,10 +917,9 @@ class _CommunityDiscoverScreenState
                                             creator.name.isNotEmpty
                                                 ? creator.name[0]
                                                 : 'S',
-                                            style: TextStyle(
+                                            style: ig.displayTitle(
                                               fontSize: 18,
-                                              fontWeight: FontWeight.bold,
-                                              color: tokens.greenAccent,
+                                              color: ig.textPrimary,
                                             ),
                                           ),
                                         ),
@@ -947,118 +929,97 @@ class _CommunityDiscoverScreenState
                                           creator.name.isNotEmpty
                                               ? creator.name[0]
                                               : 'S',
-                                          style: TextStyle(
+                                          style: ig.displayTitle(
                                             fontSize: 18,
-                                            fontWeight: FontWeight.bold,
-                                            color: tokens.greenAccent,
+                                            color: ig.textPrimary,
                                           ),
                                         ),
                                       ),
                               ),
                             ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Row(
-                                  children: [
-                                    Flexible(
-                                      child: Text(
-                                        creator.name,
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                        style: TextStyle(
-                                          fontSize: 14,
-                                          fontWeight: FontWeight.w600,
-                                          color: tokens.textPrimary,
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    children: [
+                                      Flexible(
+                                        child: Text(
+                                          creator.name,
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: ig.username(
+                                            fontSize: 14,
+                                            color: ig.textPrimary,
+                                          ),
                                         ),
                                       ),
-                                    ),
-                                    if (creator.isVerified) ...[
-                                      const SizedBox(width: 4),
-                                      Icon(
-                                        Icons.verified_rounded,
-                                        size: 14,
-                                        color: tokens.greenAccent,
-                                      ),
+                                      if (creator.isVerified) ...[
+                                        const SizedBox(width: 4),
+                                        Icon(
+                                          Icons.verified_rounded,
+                                          size: 14,
+                                          color: ig.primaryAction,
+                                        ),
+                                      ],
                                     ],
-                                  ],
-                                ),
-                                const SizedBox(height: 2),
-                                Text(
-                                  creator.title ?? 'Thành viên Saman',
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    color: tokens.textSecondary,
                                   ),
-                                ),
-                                const SizedBox(height: 2),
-                                Text(
-                                  creator.followerCount >= 1000
-                                      ? '${(creator.followerCount / 1000).toStringAsFixed(1)}k người theo dõi'
-                                      : '${creator.followerCount} người theo dõi',
-                                  style: TextStyle(
-                                    fontSize: 10,
-                                    color: tokens.textMuted,
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    creator.title ?? 'Thành viên Saman',
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: ig.caption(
+                                      fontSize: 12,
+                                      color: ig.textSecondary,
+                                    ),
                                   ),
-                                ),
-                              ],
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    creator.followerCount >= 1000
+                                        ? '${(creator.followerCount / 1000).toStringAsFixed(1)}k người theo dõi'
+                                        : '${creator.followerCount} người theo dõi',
+                                    style: ig.caption(
+                                      fontSize: 10,
+                                      color: ig.textMuted,
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      ElevatedButton(
+                        onPressed: () => onFollowToggle(creator.id),
+                        style: (isFollowing
+                                ? ig.secondaryButtonStyle(
+                                    minHeight: 34,
+                                    borderRadius: 8,
+                                  )
+                                : ig.primaryButtonStyle(
+                                    minHeight: 34,
+                                    borderRadius: 8,
+                                  ))
+                            .copyWith(
+                          padding: const WidgetStatePropertyAll(
+                            EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                           ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    ElevatedButton(
-                      onPressed: () => onFollowToggle(creator.id),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: isFollowing
-                            ? tokens.secondarySurface
-                            : tokens.greenAccent,
-                        foregroundColor: isFollowing
-                            ? tokens.textSecondary
-                            : (tokens.isDark
-                                ? const Color(0xFF003824)
-                                : const Color(0xFFFFFFFF)),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10),
                         ),
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 14,
-                          vertical: 8,
-                        ),
-                        elevation: 0,
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            isFollowing
-                                ? Icons.check_rounded
-                                : Icons.add_rounded,
-                            size: 15,
+                        child: Text(
+                          isFollowing ? 'Đang theo dõi' : 'Theo dõi',
+                          style: ig.buttonLabel(
+                            fontSize: 12,
                             color: isFollowing
-                                ? tokens.greenAccent
-                                : (tokens.isDark
-                                    ? const Color(0xFF003824)
-                                    : const Color(0xFFFFFFFF)),
+                                ? ig.secondaryButtonText
+                                : ig.onPrimaryAction,
                           ),
-                          const SizedBox(width: 4),
-                          Text(
-                            isFollowing ? 'Đang theo dõi' : 'Theo dõi',
-                            style: const TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ],
+                        ),
                       ),
-                    ),
-                  ],
-                ),
+                    ],
+                  ),
                 ),
               );
             },

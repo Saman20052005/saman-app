@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../../config/routes.dart';
-import '../../../../../screens/home/tokens/saman_home_tokens.dart';
 import '../../../domain/models/community_notification.dart';
 import '../../providers/community_providers.dart';
+import '../../tokens/saman_ig_tokens.dart';
 
 class CommunityNotificationsScreen extends ConsumerWidget {
   const CommunityNotificationsScreen({super.key});
@@ -17,25 +17,25 @@ class CommunityNotificationsScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final tokens = SamanHomeTokens.of(context);
+    final ig = SamanIgTokens.of(context);
     final state = ref.watch(communityNotificationsProvider);
     final notifier = ref.read(communityNotificationsProvider.notifier);
 
     return Scaffold(
-      backgroundColor: tokens.canvas,
+      backgroundColor: ig.canvas,
       body: SafeArea(
         child: Column(
           children: [
-            _buildAppBar(context, state, notifier, tokens),
-            _buildFilterChips(state, notifier, tokens),
+            _buildAppBar(context, state, notifier, ig),
+            _buildFilterChips(state, notifier, ig),
             Expanded(
               child: state.isLoading
                   ? Center(
                       child: CircularProgressIndicator(
-                        color: tokens.greenAccent,
+                        color: ig.primaryAction,
                       ),
                     )
-                  : _buildNotificationList(context, state, notifier, tokens),
+                  : _buildNotificationList(context, state, notifier, ig),
             ),
           ],
         ),
@@ -47,14 +47,14 @@ class CommunityNotificationsScreen extends ConsumerWidget {
     BuildContext context,
     CommunityNotificationsState state,
     CommunityNotificationsNotifier notifier,
-    SamanHomePalette tokens,
+    SamanIgTokens ig,
   ) {
     return Container(
       height: 56,
       padding: const EdgeInsets.symmetric(horizontal: 12),
       decoration: BoxDecoration(
-        color: tokens.canvas,
-        border: Border(bottom: BorderSide(color: tokens.border, width: 1)),
+        color: ig.canvas,
+        border: Border(bottom: BorderSide(color: ig.border, width: 0.5)),
       ),
       child: Row(
         children: [
@@ -63,7 +63,7 @@ class CommunityNotificationsScreen extends ConsumerWidget {
             tooltip: 'Quay lại',
             icon: Icon(
               Icons.arrow_back_rounded,
-              color: tokens.textPrimary,
+              color: ig.textPrimary,
               size: 22,
             ),
           ),
@@ -75,12 +75,9 @@ class CommunityNotificationsScreen extends ConsumerWidget {
                   child: Text(
                     'Thông báo',
                     overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: -0.3,
-                      color: tokens.textPrimary,
-                    ),
+                    style: ig.displayTitle(fontSize: 20).copyWith(
+                          letterSpacing: -0.3,
+                        ),
                   ),
                 ),
                 if (state.unreadCount > 0) ...[
@@ -90,7 +87,7 @@ class CommunityNotificationsScreen extends ConsumerWidget {
                     height: 8,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      color: tokens.greenAccent,
+                      color: ig.primaryAction,
                     ),
                   ),
                 ],
@@ -104,17 +101,16 @@ class CommunityNotificationsScreen extends ConsumerWidget {
               Icons.done_all_rounded,
               size: 18,
               color: state.unreadCount > 0
-                  ? tokens.greenAccent
-                  : tokens.textMuted,
+                  ? ig.primaryAction
+                  : ig.textMuted,
             ),
             label: Text(
               'Đã đọc',
-              style: TextStyle(
+              style: ig.buttonLabel(
                 fontSize: 13,
-                fontWeight: FontWeight.w600,
                 color: state.unreadCount > 0
-                    ? tokens.textSecondary
-                    : tokens.textMuted,
+                    ? ig.textSecondary
+                    : ig.textMuted,
               ),
             ),
           ),
@@ -126,7 +122,7 @@ class CommunityNotificationsScreen extends ConsumerWidget {
   Widget _buildFilterChips(
     CommunityNotificationsState state,
     CommunityNotificationsNotifier notifier,
-    SamanHomePalette tokens,
+    SamanIgTokens ig,
   ) {
     final filters = [
       {'key': 'all', 'label': 'Tất cả'},
@@ -152,11 +148,12 @@ class CommunityNotificationsScreen extends ConsumerWidget {
                   padding: const EdgeInsets.symmetric(horizontal: 14),
                   decoration: BoxDecoration(
                     color: isSelected
-                        ? tokens.secondarySurface
-                        : tokens.cardSurface,
+                        ? ig.primaryAction.withOpacity(0.12)
+                        : ig.surface,
                     borderRadius: BorderRadius.circular(8),
                     border: Border.all(
-                      color: isSelected ? tokens.greenAccent : tokens.border,
+                      color: isSelected ? ig.primaryAction : ig.border,
+                      width: isSelected ? 1 : 0.5,
                     ),
                   ),
                   child: Row(
@@ -168,20 +165,20 @@ class CommunityNotificationsScreen extends ConsumerWidget {
                           height: 6,
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
-                            color: tokens.greenAccent,
+                            color: ig.primaryAction,
                           ),
                         ),
                         const SizedBox(width: 6),
                       ],
                       Text(
                         f['label']!,
-                        style: TextStyle(
+                        style: ig.caption(
                           fontSize: 12,
                           fontWeight:
                               isSelected ? FontWeight.w600 : FontWeight.w500,
                           color: isSelected
-                              ? tokens.greenAccent
-                              : tokens.textSecondary,
+                              ? ig.primaryAction
+                              : ig.textSecondary,
                         ),
                       ),
                     ],
@@ -199,21 +196,21 @@ class CommunityNotificationsScreen extends ConsumerWidget {
     BuildContext context,
     CommunityNotificationsState state,
     CommunityNotificationsNotifier notifier,
-    SamanHomePalette tokens,
+    SamanIgTokens ig,
   ) {
     final list = state.filteredNotifications;
 
     if (list.isEmpty) {
       return RefreshIndicator(
-        color: tokens.greenAccent,
-        backgroundColor: tokens.cardSurface,
+        color: ig.primaryAction,
+        backgroundColor: ig.surface,
         onRefresh: () => notifier.loadNotifications(),
         child: LayoutBuilder(
           builder: (context, constraints) => SingleChildScrollView(
             physics: const AlwaysScrollableScrollPhysics(),
             child: ConstrainedBox(
               constraints: BoxConstraints(minHeight: constraints.maxHeight),
-              child: _buildEmptyState(tokens),
+              child: _buildEmptyState(ig),
             ),
           ),
         ),
@@ -224,8 +221,8 @@ class CommunityNotificationsScreen extends ConsumerWidget {
     final earlierList = list.where((n) => !_isToday(n.timeAgo)).toList();
 
     return RefreshIndicator(
-      color: tokens.greenAccent,
-      backgroundColor: tokens.cardSurface,
+      color: ig.primaryAction,
+      backgroundColor: ig.surface,
       onRefresh: () => notifier.loadNotifications(),
       child: ListView(
         physics: const AlwaysScrollableScrollPhysics(),
@@ -235,26 +232,26 @@ class CommunityNotificationsScreen extends ConsumerWidget {
             _buildSectionHeader(
               title: 'Hôm nay',
               badgeText: state.unreadCount > 0 ? '${state.unreadCount} mới' : null,
-              tokens: tokens,
+              ig: ig,
             ),
             ..._buildSectionItems(
               context: context,
               items: todayList,
               notifier: notifier,
-              tokens: tokens,
+              ig: ig,
             ),
           ],
           if (earlierList.isNotEmpty) ...[
             SizedBox(height: todayList.isNotEmpty ? 16 : 0),
             _buildSectionHeader(
               title: 'Trước đó',
-              tokens: tokens,
+              ig: ig,
             ),
             ..._buildSectionItems(
               context: context,
               items: earlierList,
               notifier: notifier,
-              tokens: tokens,
+              ig: ig,
               dimmed: true,
             ),
           ],
@@ -266,7 +263,7 @@ class CommunityNotificationsScreen extends ConsumerWidget {
   Widget _buildSectionHeader({
     required String title,
     String? badgeText,
-    required SamanHomePalette tokens,
+    required SamanIgTokens ig,
   }) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
@@ -275,20 +272,18 @@ class CommunityNotificationsScreen extends ConsumerWidget {
         children: [
           Text(
             title.toUpperCase(),
-            style: TextStyle(
+            style: ig.caption(
               fontSize: 11,
               fontWeight: FontWeight.w700,
-              letterSpacing: 0.8,
-              color: tokens.textSecondary,
-            ),
+            ).copyWith(letterSpacing: 0.8),
           ),
           if (badgeText != null)
             Text(
               badgeText,
-              style: TextStyle(
+              style: ig.caption(
                 fontSize: 11,
                 fontWeight: FontWeight.w600,
-                color: tokens.greenAccent,
+                color: ig.primaryAction,
               ),
             ),
         ],
@@ -300,7 +295,7 @@ class CommunityNotificationsScreen extends ConsumerWidget {
     required BuildContext context,
     required List<CommunityNotification> items,
     required CommunityNotificationsNotifier notifier,
-    required SamanHomePalette tokens,
+    required SamanIgTokens ig,
     bool dimmed = false,
   }) {
     final widgets = <Widget>[];
@@ -310,11 +305,11 @@ class CommunityNotificationsScreen extends ConsumerWidget {
         context: context,
         notif: notif,
         notifier: notifier,
-        tokens: tokens,
+        ig: ig,
         dimmed: dimmed && !notif.isUnread,
       ));
       if (i < items.length - 1) {
-        widgets.add(Divider(color: tokens.border, height: 1));
+        widgets.add(Divider(color: ig.border, height: 1, thickness: 0.5));
       }
     }
     return widgets;
@@ -324,7 +319,7 @@ class CommunityNotificationsScreen extends ConsumerWidget {
     required BuildContext context,
     required CommunityNotification notif,
     required CommunityNotificationsNotifier notifier,
-    required SamanHomePalette tokens,
+    required SamanIgTokens ig,
     bool dimmed = false,
   }) {
     return Opacity(
@@ -346,7 +341,7 @@ class CommunityNotificationsScreen extends ConsumerWidget {
         child: Container(
           decoration: BoxDecoration(
             color: notif.isUnread
-                ? tokens.greenAccent.withOpacity(0.05)
+                ? ig.primaryAction.withOpacity(0.08)
                 : Colors.transparent,
             borderRadius: BorderRadius.circular(12),
           ),
@@ -354,7 +349,7 @@ class CommunityNotificationsScreen extends ConsumerWidget {
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _buildActorAvatar(notif, tokens),
+              _buildActorAvatar(notif, ig),
               const SizedBox(width: 12),
               Expanded(
                 child: Column(
@@ -362,11 +357,7 @@ class CommunityNotificationsScreen extends ConsumerWidget {
                   children: [
                     Text.rich(
                       TextSpan(
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: tokens.textPrimary,
-                          height: 1.38,
-                        ),
+                        style: ig.body(fontSize: 14, height: 1.38),
                         children: [
                           TextSpan(
                             text: notif.actorName,
@@ -374,13 +365,13 @@ class CommunityNotificationsScreen extends ConsumerWidget {
                           ),
                           TextSpan(
                             text: ' ${notif.actionText}',
-                            style: TextStyle(color: tokens.textSecondary),
+                            style: TextStyle(color: ig.textSecondary),
                           ),
                           if (notif.targetSnippet != null)
                             TextSpan(
                               text: ' "${notif.targetSnippet}"',
                               style: TextStyle(
-                                color: tokens.textPrimary,
+                                color: ig.textPrimary,
                                 fontStyle: FontStyle.italic,
                               ),
                             ),
@@ -392,10 +383,10 @@ class CommunityNotificationsScreen extends ConsumerWidget {
                       children: [
                         Text(
                           notif.timeAgo,
-                          style: TextStyle(
+                          style: ig.caption(
                             fontSize: 11,
                             fontWeight: FontWeight.w500,
-                            color: tokens.textMuted,
+                            color: ig.textMuted,
                           ),
                         ),
                         if (notif.isUnread) ...[
@@ -405,7 +396,7 @@ class CommunityNotificationsScreen extends ConsumerWidget {
                             height: 6,
                             decoration: BoxDecoration(
                               shape: BoxShape.circle,
-                              color: tokens.greenAccent,
+                              color: ig.primaryAction,
                             ),
                           ),
                         ],
@@ -420,16 +411,16 @@ class CommunityNotificationsScreen extends ConsumerWidget {
                   width: 40,
                   height: 40,
                   decoration: BoxDecoration(
-                    color: tokens.cardSurface,
+                    color: ig.surface,
                     borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: tokens.border),
+                    border: Border.all(color: ig.border, width: 0.5),
                   ),
                   child: Icon(
                     notif.type == CommunityNotificationType.comment
                         ? Icons.forum_outlined
                         : Icons.article_outlined,
                     size: 18,
-                    color: tokens.textSecondary,
+                    color: ig.textSecondary,
                   ),
                 ),
               ],
@@ -440,7 +431,7 @@ class CommunityNotificationsScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildEmptyState(SamanHomePalette tokens) {
+  Widget _buildEmptyState(SamanIgTokens ig) {
     return Center(
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 48),
@@ -448,9 +439,9 @@ class CommunityNotificationsScreen extends ConsumerWidget {
           width: double.infinity,
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 36),
           decoration: BoxDecoration(
-            color: tokens.cardSurface,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: tokens.border),
+            color: ig.surface,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: ig.border, width: 0.5),
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -460,30 +451,26 @@ class CommunityNotificationsScreen extends ConsumerWidget {
                 height: 56,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: tokens.secondarySurface,
+                  color: ig.surfaceElevated,
                 ),
                 child: Icon(
                   Icons.notifications_paused_rounded,
                   size: 28,
-                  color: tokens.textSecondary,
+                  color: ig.textSecondary,
                 ),
               ),
               const SizedBox(height: 16),
               Text(
                 'Chưa có thông báo nào',
-                style: TextStyle(
-                  fontSize: 17,
-                  fontWeight: FontWeight.w600,
-                  color: tokens.textPrimary,
-                ),
+                style: ig.displayTitle(fontSize: 17, fontWeight: FontWeight.w600),
               ),
               const SizedBox(height: 6),
               Text(
                 'Các tương tác cộng đồng trong nhóm lọc này sẽ xuất hiện tại đây ngay khi có cập nhật.',
                 textAlign: TextAlign.center,
-                style: TextStyle(
+                style: ig.body(
                   fontSize: 13,
-                  color: tokens.textSecondary,
+                  color: ig.textSecondary,
                   height: 1.4,
                 ),
               ),
@@ -496,7 +483,7 @@ class CommunityNotificationsScreen extends ConsumerWidget {
 
   Widget _buildActorAvatar(
     CommunityNotification notif,
-    SamanHomePalette tokens,
+    SamanIgTokens ig,
   ) {
     IconData icon;
     Color iconColor;
@@ -504,23 +491,23 @@ class CommunityNotificationsScreen extends ConsumerWidget {
     switch (notif.type) {
       case CommunityNotificationType.like:
         icon = Icons.favorite_rounded;
-        iconColor = tokens.fatRose;
+        iconColor = ig.likeHeart;
         break;
       case CommunityNotificationType.comment:
         icon = Icons.chat_bubble_rounded;
-        iconColor = tokens.greenAccent;
+        iconColor = ig.primaryAction;
         break;
       case CommunityNotificationType.follow:
         icon = Icons.person_add_rounded;
-        iconColor = tokens.waterCyan;
+        iconColor = ig.primaryAction;
         break;
       case CommunityNotificationType.answer:
         icon = Icons.question_answer_rounded;
-        iconColor = tokens.greenAccent;
+        iconColor = ig.primaryAction;
         break;
       case CommunityNotificationType.system:
         icon = Icons.notifications_active_rounded;
-        iconColor = tokens.carbsAmber;
+        iconColor = ig.textSecondary;
         break;
     }
 
@@ -536,7 +523,7 @@ class CommunityNotificationsScreen extends ConsumerWidget {
           height: 44,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
-            color: tokens.secondarySurface,
+            color: ig.surfaceElevated,
           ),
           clipBehavior: Clip.antiAlias,
           child: notif.actorAvatarUrl != null &&
@@ -547,10 +534,9 @@ class CommunityNotificationsScreen extends ConsumerWidget {
                   errorBuilder: (_, __, ___) => Center(
                     child: Text(
                       initial,
-                      style: TextStyle(
+                      style: ig.displayTitle(
                         fontSize: 16,
-                        fontWeight: FontWeight.w700,
-                        color: tokens.greenAccent,
+                        color: ig.textPrimary,
                       ),
                     ),
                   ),
@@ -558,10 +544,9 @@ class CommunityNotificationsScreen extends ConsumerWidget {
               : Center(
                   child: Text(
                     initial,
-                    style: TextStyle(
+                    style: ig.displayTitle(
                       fontSize: 16,
-                      fontWeight: FontWeight.w700,
-                      color: tokens.greenAccent,
+                      color: ig.textPrimary,
                     ),
                   ),
                 ),
@@ -574,8 +559,8 @@ class CommunityNotificationsScreen extends ConsumerWidget {
             height: 20,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: tokens.cardSurface,
-              border: Border.all(color: tokens.canvas, width: 1.5),
+              color: ig.surface,
+              border: Border.all(color: ig.canvas, width: 1.5),
             ),
             child: Icon(icon, size: 11, color: iconColor),
           ),

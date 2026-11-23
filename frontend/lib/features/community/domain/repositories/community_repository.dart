@@ -151,8 +151,12 @@ abstract class CommunityRepository {
     bool? isPrivateAccount,
     String? whoCanDm,
     String? whoCanComment,
+    String? whoCanReplyStory,
+    String? allowMentions,
     bool? hideLikeCounts,
     bool? showActivityStatus,
+    bool? autoPromptShareWorkout,
+    bool? autoPromptShareMeal,
     List<String>? mutedKeywords,
   });
   Future<bool> blockUser(String targetUserId);
@@ -168,6 +172,11 @@ abstract class CommunityRepository {
     String details = '',
   });
   Future<List<CommunityStoryAuthorGroup>> getStories();
+  Future<CommunityStoriesArchivePage> getArchivedStories({
+    bool includeActive = false,
+    int limit = 30,
+    String? cursor,
+  });
   Future<CommunityStory> createStory({
     required String mediaType,
     String? mediaUrl,

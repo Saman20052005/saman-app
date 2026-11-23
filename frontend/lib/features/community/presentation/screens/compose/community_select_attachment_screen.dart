@@ -3,10 +3,10 @@ import '../../../../../config/app_translations.dart';
 import '../../widgets/community_activity_snapshot_card.dart';
 import 'post_compose_publish_screen.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../../../screens/home/tokens/saman_home_tokens.dart';
 import '../../../domain/models/post_attachment_snapshot.dart';
 import '../../providers/community_composer_provider.dart';
 import '../../providers/community_providers.dart';
+import '../../tokens/saman_ig_tokens.dart';
 
 class CommunitySelectAttachmentScreen extends ConsumerStatefulWidget {
   final AttachmentType initialTab;
@@ -121,29 +121,39 @@ class _CommunitySelectAttachmentScreenState
     ref.listen(communityIdentityRevisionProvider, (previous, next) {
       if (previous != null && previous != next) _loadActivities();
     });
-    final tokens = SamanHomeTokens.of(context);
+    final ig = SamanIgTokens.of(context);
     final activeList = _currentTab == AttachmentType.workout ? _workouts : _meals;
 
     return Scaffold(
-      backgroundColor: tokens.canvas,
+      backgroundColor: ig.canvas,
       body: SafeArea(
         bottom: false,
         child: Column(
           children: [
             // Header
-            _buildAppBar(context, tokens),
+            _buildAppBar(context, ig),
 
             if (_error != null) ...[
-              Text(context.tr(_error!),style: tokens.headerSubtitle),
-              TextButton(onPressed:_loadActivities,child:Text(context.tr('community_attachment_retry'),style: tokens.linkText)),
+              Text(context.tr(_error!), style: ig.caption(color: ig.danger)),
+              TextButton(
+                onPressed: _loadActivities,
+                child: Text(
+                  context.tr('community_attachment_retry'),
+                  style: ig.buttonLabel(color: ig.primaryAction),
+                ),
+              ),
             ],
-            if (_previewLoading) const LinearProgressIndicator(),
+            if (_previewLoading)
+              LinearProgressIndicator(
+                color: ig.primaryAction,
+                backgroundColor: ig.surfaceElevated,
+              ),
             // Main Content Scroll
             Expanded(
               child: _isLoading
                   ? Center(
                       child: CircularProgressIndicator(
-                        color: tokens.greenAccent,
+                        color: ig.primaryAction,
                       ),
                     )
                   : SingleChildScrollView(
@@ -155,20 +165,20 @@ class _CommunitySelectAttachmentScreenState
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           // Tab Switcher
-                          _buildTabSwitcher(tokens),
+                          _buildTabSwitcher(ig),
                           const SizedBox(height: 16),
 
                           // Activity Selection List
-                          _buildActivityList(activeList, tokens),
+                          _buildActivityList(activeList, ig),
                           const SizedBox(height: 16),
 
                           // Selected Item Preview
                           if (_selectedAttachment != null) ...[
-                            _buildAttachmentPreview(tokens),
+                            _buildAttachmentPreview(ig),
                             const SizedBox(height: 16),
 
                             // Privacy Settings Accordion
-                            _buildPrivacySettingsAccordion(tokens),
+                            _buildPrivacySettingsAccordion(ig),
                             const SizedBox(height: 16),
                           ],
                         ],
@@ -177,21 +187,21 @@ class _CommunitySelectAttachmentScreenState
             ),
 
             // Bottom CTA
-            _buildBottomCta(context, tokens),
+            _buildBottomCta(context, ig),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildAppBar(BuildContext context, SamanHomePalette tokens) {
+  Widget _buildAppBar(BuildContext context, SamanIgTokens ig) {
     return Container(
       height: 52,
       padding: const EdgeInsets.symmetric(horizontal: 16),
       decoration: BoxDecoration(
-        color: tokens.canvas,
+        color: ig.canvas,
         border: Border(
-          bottom: BorderSide(color: tokens.border, width: 1),
+          bottom: BorderSide(color: ig.border, width: 0.5),
         ),
       ),
       child: Row(
@@ -201,7 +211,7 @@ class _CommunitySelectAttachmentScreenState
             onPressed: () => Navigator.pop(context),
             icon: Icon(
               Icons.arrow_back_rounded,
-              color: tokens.textPrimary,
+              color: ig.textPrimary,
               size: 22,
             ),
           ),
@@ -210,10 +220,10 @@ class _CommunitySelectAttachmentScreenState
               'Đính kèm hoạt động',
               textAlign: TextAlign.center,
               overflow: TextOverflow.ellipsis,
-              style: TextStyle(
+              style: ig.displayTitle(
                 fontSize: 16,
                 fontWeight: FontWeight.w700,
-                color: tokens.textPrimary,
+                color: ig.textPrimary,
               ),
             ),
           ),
@@ -223,11 +233,11 @@ class _CommunitySelectAttachmentScreenState
     );
   }
 
-  Widget _buildTabSwitcher(SamanHomePalette tokens) {
+  Widget _buildTabSwitcher(SamanIgTokens ig) {
     return Container(
       padding: const EdgeInsets.all(4),
       decoration: BoxDecoration(
-        color: tokens.cardSurface,
+        color: ig.surface,
         borderRadius: BorderRadius.circular(12),
       ),
       child: Row(
@@ -238,7 +248,7 @@ class _CommunitySelectAttachmentScreenState
               icon: Icons.fitness_center_rounded,
               isActive: _currentTab == AttachmentType.workout,
               onTap: () => _onTabChanged(AttachmentType.workout),
-              tokens: tokens,
+              ig: ig,
             ),
           ),
           Expanded(
@@ -247,7 +257,7 @@ class _CommunitySelectAttachmentScreenState
               icon: Icons.restaurant_rounded,
               isActive: _currentTab == AttachmentType.meal,
               onTap: () => _onTabChanged(AttachmentType.meal),
-              tokens: tokens,
+              ig: ig,
             ),
           ),
         ],
@@ -260,7 +270,7 @@ class _CommunitySelectAttachmentScreenState
     required IconData icon,
     required bool isActive,
     required VoidCallback onTap,
-    required SamanHomePalette tokens,
+    required SamanIgTokens ig,
   }) {
     return InkWell(
       onTap: onTap,
@@ -268,11 +278,11 @@ class _CommunitySelectAttachmentScreenState
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 9),
         decoration: BoxDecoration(
-          color: isActive ? tokens.secondarySurface : Colors.transparent,
+          color: isActive ? ig.surfaceElevated : Colors.transparent,
           borderRadius: BorderRadius.circular(9),
           border: Border.all(
             color: isActive
-                ? tokens.greenAccent.withOpacity(0.3)
+                ? ig.primaryAction.withOpacity(0.4)
                 : Colors.transparent,
           ),
         ),
@@ -282,19 +292,15 @@ class _CommunitySelectAttachmentScreenState
             Icon(
               icon,
               size: 16,
-              color: isActive
-                  ? tokens.greenAccent
-                  : tokens.textSecondary,
+              color: isActive ? ig.primaryAction : ig.textSecondary,
             ),
             const SizedBox(width: 6),
             Text(
               title,
-              style: TextStyle(
+              style: ig.username(
                 fontSize: 13,
                 fontWeight: isActive ? FontWeight.w600 : FontWeight.w500,
-                color: isActive
-                    ? tokens.greenAccent
-                    : tokens.textSecondary,
+                color: isActive ? ig.primaryAction : ig.textSecondary,
               ),
             ),
           ],
@@ -305,7 +311,7 @@ class _CommunitySelectAttachmentScreenState
 
   Widget _buildActivityList(
     List<PostAttachmentSnapshot> list,
-    SamanHomePalette tokens,
+    SamanIgTokens ig,
   ) {
     if (list.isEmpty) {
       return Container(
@@ -313,7 +319,7 @@ class _CommunitySelectAttachmentScreenState
         child: Center(
           child: Text(
             'Chưa có dữ liệu hoạt động gần đây.',
-            style: TextStyle(color: tokens.textSecondary),
+            style: ig.caption(color: ig.textSecondary),
           ),
         ),
       );
@@ -326,12 +332,11 @@ class _CommunitySelectAttachmentScreenState
           padding: const EdgeInsets.only(left: 4, bottom: 8),
           child: Text(
             'Gần đây',
-            style: TextStyle(
+            style: ig.caption(
               fontSize: 13,
               fontWeight: FontWeight.w700,
-              color: tokens.textSecondary,
-              letterSpacing: 0.5,
-            ),
+              color: ig.textSecondary,
+            ).copyWith(letterSpacing: 0.5),
           ),
         ),
         ...list.map((item) {
@@ -339,14 +344,12 @@ class _CommunitySelectAttachmentScreenState
           return Container(
             margin: const EdgeInsets.only(bottom: 8),
             decoration: BoxDecoration(
-              color: isSelected
-                  ? tokens.secondarySurface
-                  : tokens.cardSurface,
+              color: isSelected ? ig.surfaceElevated : ig.surface,
               borderRadius: BorderRadius.circular(14),
               border: Border.all(
                 color: isSelected
-                    ? tokens.greenAccent.withOpacity(0.6)
-                    : tokens.border,
+                    ? ig.primaryAction.withOpacity(0.6)
+                    : ig.border,
               ),
             ),
             child: InkWell(
@@ -369,7 +372,7 @@ class _CommunitySelectAttachmentScreenState
                           errorBuilder: (_, __, ___) => Container(
                             width: 48,
                             height: 48,
-                            color: tokens.secondarySurface,
+                            color: ig.surfaceElevated,
                           ),
                         ),
                       )
@@ -378,14 +381,14 @@ class _CommunitySelectAttachmentScreenState
                         width: 48,
                         height: 48,
                         decoration: BoxDecoration(
-                          color: tokens.secondarySurface,
+                          color: ig.surfaceElevated,
                           borderRadius: BorderRadius.circular(10),
                         ),
                         child: Icon(
                           item.type == AttachmentType.workout
                               ? Icons.fitness_center_rounded
                               : Icons.restaurant_rounded,
-                          color: tokens.greenAccent,
+                          color: ig.primaryAction,
                         ),
                       ),
                     const SizedBox(width: 12),
@@ -395,18 +398,17 @@ class _CommunitySelectAttachmentScreenState
                         children: [
                           Text(
                             item.title,
-                            style: TextStyle(
+                            style: ig.username(
                               fontSize: 14,
-                              fontWeight: FontWeight.w600,
-                              color: tokens.textPrimary,
+                              color: ig.textPrimary,
                             ),
                           ),
                           const SizedBox(height: 3),
                           Text(
                             '${item.dateFormatted} • ${item.durationFormatted ?? item.category}',
-                            style: TextStyle(
+                            style: ig.caption(
                               fontSize: 12,
-                              color: tokens.textSecondary,
+                              color: ig.textSecondary,
                             ),
                           ),
                         ],
@@ -415,7 +417,7 @@ class _CommunitySelectAttachmentScreenState
                     Radio<String>(
                       value: item.id,
                       groupValue: _selectedAttachment?.id,
-                      activeColor: tokens.greenAccent,
+                      activeColor: ig.primaryAction,
                       onChanged: (val) {
                         if (!_previewLoading) _selectAttachment(item);
                       },
@@ -430,7 +432,7 @@ class _CommunitySelectAttachmentScreenState
     );
   }
 
-  Widget _buildAttachmentPreview(SamanHomePalette tokens) {
+  Widget _buildAttachmentPreview(SamanIgTokens ig) {
     final item = _selectedAttachment!;
     if (item.sharedSnapshot != null) return CommunityActivitySnapshotCard(snapshot:item);
 
@@ -441,20 +443,19 @@ class _CommunitySelectAttachmentScreenState
           padding: const EdgeInsets.only(left: 4, bottom: 8),
           child: Text(
             'Xem trước thẻ trong bài viết',
-            style: TextStyle(
+            style: ig.caption(
               fontSize: 13,
               fontWeight: FontWeight.w700,
-              color: tokens.textSecondary,
-              letterSpacing: 0.5,
-            ),
+              color: ig.textSecondary,
+            ).copyWith(letterSpacing: 0.5),
           ),
         ),
         Container(
           padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
-            color: tokens.cardSurface,
+            color: ig.surface,
             borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: tokens.border),
+            border: Border.all(color: ig.border),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -466,15 +467,15 @@ class _CommunitySelectAttachmentScreenState
                         ? Icons.fitness_center_rounded
                         : Icons.restaurant_rounded,
                     size: 16,
-                    color: tokens.greenAccent,
+                    color: ig.primaryAction,
                   ),
                   const SizedBox(width: 6),
                   Text(
                     item.category,
-                    style: TextStyle(
+                    style: ig.caption(
                       fontSize: 12,
                       fontWeight: FontWeight.w600,
-                      color: tokens.greenAccent,
+                      color: ig.primaryAction,
                     ),
                   ),
                 ],
@@ -482,10 +483,10 @@ class _CommunitySelectAttachmentScreenState
               const SizedBox(height: 6),
               Text(
                 item.title,
-                style: TextStyle(
+                style: ig.displayTitle(
                   fontSize: 15,
                   fontWeight: FontWeight.w700,
-                  color: tokens.textPrimary,
+                  color: ig.textPrimary,
                 ),
               ),
               const SizedBox(height: 8),
@@ -497,26 +498,26 @@ class _CommunitySelectAttachmentScreenState
                     _buildPreviewChip(
                       Icons.schedule_rounded,
                       item.durationFormatted!,
-                      tokens,
+                      ig,
                     ),
                   if (_includeExercises && item.exercises.isNotEmpty)
                     _buildPreviewChip(
                       Icons.format_list_bulleted_rounded,
                       '${item.exercises.length} động tác',
-                      tokens,
+                      ig,
                     ),
                   if (_includeLoadOrMacros && item.loadSummaryFormatted != null)
                     _buildPreviewChip(
                       Icons.scale_rounded,
                       item.loadSummaryFormatted!,
-                      tokens,
+                      ig,
                     ),
                   if (_includeLoadOrMacros &&
                       item.macrosSummaryFormatted != null)
                     _buildPreviewChip(
                       Icons.pie_chart_outline_rounded,
                       item.macrosSummaryFormatted!,
-                      tokens,
+                      ig,
                     ),
                 ],
               ),
@@ -530,24 +531,24 @@ class _CommunitySelectAttachmentScreenState
   Widget _buildPreviewChip(
     IconData icon,
     String label,
-    SamanHomePalette tokens,
+    SamanIgTokens ig,
   ) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: tokens.secondarySurface,
+        color: ig.surfaceElevated,
         borderRadius: BorderRadius.circular(8),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 12, color: tokens.greenAccent),
+          Icon(icon, size: 12, color: ig.primaryAction),
           const SizedBox(width: 4),
           Text(
             label,
-            style: TextStyle(
+            style: ig.caption(
               fontSize: 11,
-              color: tokens.textPrimary,
+              color: ig.textPrimary,
               fontWeight: FontWeight.w500,
             ),
           ),
@@ -556,13 +557,13 @@ class _CommunitySelectAttachmentScreenState
     );
   }
 
-  Widget _buildPrivacySettingsAccordion(SamanHomePalette tokens) {
+  Widget _buildPrivacySettingsAccordion(SamanIgTokens ig) {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: tokens.cardSurface,
+        color: ig.surface,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: tokens.border),
+        border: Border.all(color: ig.border),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -572,17 +573,17 @@ class _CommunitySelectAttachmentScreenState
               Icon(
                 Icons.shield_outlined,
                 size: 18,
-                color: tokens.greenAccent,
+                color: ig.primaryAction,
               ),
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
                   'Thông tin hiển thị & Quyền riêng tư',
                   overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
+                  style: ig.username(
                     fontSize: 14,
                     fontWeight: FontWeight.w700,
-                    color: tokens.textPrimary,
+                    color: ig.textPrimary,
                   ),
                 ),
               ),
@@ -595,9 +596,9 @@ class _CommunitySelectAttachmentScreenState
             subtitle: _currentTab == AttachmentType.meal ? context.tr('community_attachment_no_meal_duration') : 'Bật hiển thị số phút trên bài viết',
             value: _includeDuration,
             onChanged: (v) => _updatePrivacy(duration:v),
-            tokens: tokens,
+            ig: ig,
           ),
-          Divider(color: tokens.border, height: 16),
+          Divider(color: ig.border, height: 16),
           // Exercises / Items switch
           _buildSwitchRow(
             title: _currentTab == AttachmentType.workout
@@ -606,9 +607,9 @@ class _CommunitySelectAttachmentScreenState
             subtitle: 'Hiển thị các bài tập/món ăn đã thực hiện',
             value: _includeExercises,
             onChanged: (v) => _updatePrivacy(items:v),
-            tokens: tokens,
+            ig: ig,
           ),
-          Divider(color: tokens.border, height: 16),
+          Divider(color: ig.border, height: 16),
           // Load & Sets / Macros switch (DEFAULT OFF)
           _buildSwitchRow(
             title: _currentTab == AttachmentType.workout
@@ -618,7 +619,7 @@ class _CommunitySelectAttachmentScreenState
             value: _includeLoadOrMacros,
             isSensitive: true,
             onChanged: (v) => _updatePrivacy(sensitive:v),
-            tokens: tokens,
+            ig: ig,
           ),
         ],
       ),
@@ -631,7 +632,7 @@ class _CommunitySelectAttachmentScreenState
     required bool value,
     bool isSensitive = false,
     required ValueChanged<bool> onChanged,
-    required SamanHomePalette tokens,
+    required SamanIgTokens ig,
   }) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -642,20 +643,17 @@ class _CommunitySelectAttachmentScreenState
             children: [
               Text(
                 title,
-                style: TextStyle(
+                style: ig.username(
                   fontSize: 13,
-                  fontWeight: FontWeight.w600,
-                  color: tokens.textPrimary,
+                  color: ig.textPrimary,
                 ),
               ),
               const SizedBox(height: 2),
               Text(
                 subtitle,
-                style: TextStyle(
+                style: ig.caption(
                   fontSize: 11,
-                  color: isSensitive
-                      ? tokens.greenAccent
-                      : tokens.textSecondary,
+                  color: isSensitive ? ig.primaryAction : ig.textSecondary,
                 ),
               ),
             ],
@@ -663,14 +661,14 @@ class _CommunitySelectAttachmentScreenState
         ),
         Switch(
           value: value,
-          activeColor: tokens.greenAccent,
+          activeColor: ig.primaryAction,
           onChanged: _previewLoading || (_currentTab == AttachmentType.meal && title == 'Thời lượng hoạt động') ? null : onChanged,
         ),
       ],
     );
   }
 
-  Widget _buildBottomCta(BuildContext context, SamanHomePalette tokens) {
+  Widget _buildBottomCta(BuildContext context, SamanIgTokens ig) {
     return Container(
       padding: EdgeInsets.fromLTRB(
         16,
@@ -678,28 +676,15 @@ class _CommunitySelectAttachmentScreenState
         16,
         12 + MediaQuery.paddingOf(context).bottom,
       ),
-      color: tokens.canvas,
+      color: ig.canvas,
       child: SizedBox(
         width: double.infinity,
         height: 48,
         child: ElevatedButton(
           onPressed: _selectedAttachment != null && !_isLoading && !_previewLoading && _error == null ? _onAttach : null,
-          style: ElevatedButton.styleFrom(
-            backgroundColor: tokens.greenAccent,
-            foregroundColor: tokens.isDark
-                ? const Color(0xFF003824)
-                : const Color(0xFFFFFFFF),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
-            elevation: 0,
-          ),
+          style: ig.primaryButtonStyle(minHeight: 48, borderRadius: 12),
           child: const Text(
             'Đính kèm vào bài viết',
-            style: TextStyle(
-              fontSize: 15,
-              fontWeight: FontWeight.w700,
-            ),
           ),
         ),
       ),
