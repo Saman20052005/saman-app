@@ -75,7 +75,7 @@ class CommunityBottomNavigationBar extends ConsumerWidget {
         ),
         boxShadow: [
           BoxShadow(
-            color: tokens.isDark ? Colors.black45 : const Color(0x140F172A),
+            color: tokens.isDark ? Colors.black38 : const Color(0x120F172A),
             offset: const Offset(0, -2),
             blurRadius: 12,
           ),
@@ -218,7 +218,7 @@ class CommunityBottomNavigationBar extends ConsumerWidget {
                 child: Text(
                   label,
                   maxLines: 1,
-                  style: TextStyle(
+                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
                     fontSize: 11,
                     fontWeight: isActive ? FontWeight.w600 : FontWeight.w400,
                     color: isActive ? activeColor : inactiveColor,
@@ -236,13 +236,13 @@ class CommunityBottomNavigationBar extends ConsumerWidget {
   Widget _buildFabButton(BuildContext context, SamanHomePalette tokens) {
     return InkWell(
       onTap: () => _handleTabTap(context, CommunityNavTab.create),
-      borderRadius: BorderRadius.circular(14),
+      borderRadius: BorderRadius.circular(SamanHomeTokens.radiusMd),
       child: Container(
-        width: 40,
-        height: 40,
+        width: 44,
+        height: 44,
         decoration: BoxDecoration(
           color: tokens.greenAccent,
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: BorderRadius.circular(SamanHomeTokens.radiusMd),
           boxShadow: [
             BoxShadow(
               color: tokens.greenAccent.withOpacity(0.35),
@@ -253,9 +253,7 @@ class CommunityBottomNavigationBar extends ConsumerWidget {
         ),
         child: Icon(
           Icons.add_rounded,
-          color: tokens.isDark
-              ? const Color(0xFF003824)
-              : const Color(0xFFFFFFFF),
+          color: Theme.of(context).colorScheme.onPrimary,
           size: 26,
         ),
       ),

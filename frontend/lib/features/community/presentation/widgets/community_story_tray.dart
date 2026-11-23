@@ -112,12 +112,13 @@ class _SelfStoryItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
     final hasStory = selfGroup != null;
     final avatarUrl = selfGroup?.author.avatarUrl;
     final hasUnviewed = selfGroup?.hasUnviewed ?? false;
 
     return SizedBox(
-      width: 68,
+      width: 76,
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -203,7 +204,7 @@ class _SelfStoryItem extends StatelessWidget {
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               textAlign: TextAlign.center,
-              style: TextStyle(
+              style: textTheme.labelSmall?.copyWith(
                 color: tokens.textSecondary,
                 fontSize: 11.5,
                 fontWeight: FontWeight.w500,
@@ -229,6 +230,7 @@ class _StoryGroupItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
     final avatarUrl = group.author.avatarUrl;
     final initial =
         group.author.name.isNotEmpty ? group.author.name[0].toUpperCase() : 'S';
@@ -236,7 +238,7 @@ class _StoryGroupItem extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: SizedBox(
-        width: 68,
+        width: 76,
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -263,7 +265,7 @@ class _StoryGroupItem extends StatelessWidget {
                           height: double.infinity,
                           errorBuilder: (_, __, ___) => Text(
                             initial,
-                            style: TextStyle(
+                            style: textTheme.titleMedium?.copyWith(
                               color: tokens.textPrimary,
                               fontWeight: FontWeight.w700,
                               fontSize: 18,
@@ -272,7 +274,7 @@ class _StoryGroupItem extends StatelessWidget {
                         )
                       : Text(
                           initial,
-                          style: TextStyle(
+                          style: textTheme.titleMedium?.copyWith(
                             color: tokens.textPrimary,
                             fontWeight: FontWeight.w700,
                             fontSize: 18,
@@ -287,7 +289,7 @@ class _StoryGroupItem extends StatelessWidget {
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               textAlign: TextAlign.center,
-              style: TextStyle(
+              style: textTheme.labelSmall?.copyWith(
                 color: group.hasUnviewed
                     ? tokens.textPrimary
                     : tokens.textSecondary,

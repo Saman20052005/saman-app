@@ -118,6 +118,7 @@ class _CommunitySettingsScreenState
   @override
   Widget build(BuildContext context) {
     final tokens = SamanHomeTokens.of(context);
+    final textTheme = Theme.of(context).textTheme;
     final state = ref.watch(communitySettingsProvider);
     final settings = state.settings;
     final notifier = ref.read(communitySettingsProvider.notifier);
@@ -130,12 +131,13 @@ class _CommunitySettingsScreenState
         elevation: 0,
         leading: IconButton(
           onPressed: () => Navigator.of(context).maybePop(),
+          constraints: const BoxConstraints(minWidth: 44, minHeight: 44),
           icon: Icon(Icons.arrow_back_rounded, color: tokens.textPrimary),
           tooltip: 'Quay lại',
         ),
         title: Text(
           'Cài đặt cộng đồng',
-          style: TextStyle(
+          style: textTheme.titleLarge?.copyWith(
             fontSize: 18,
             fontWeight: FontWeight.w600,
             color: tokens.textPrimary,
@@ -164,7 +166,7 @@ class _CommunitySettingsScreenState
           children: [
             if (state.isLoading)
               LinearProgressIndicator(
-                minHeight: 2,
+                minHeight: 2.5,
                 color: tokens.greenAccent,
                 backgroundColor: tokens.progressTrack,
               ),
@@ -311,11 +313,17 @@ class _SectionHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final tokens = SamanHomeTokens.of(context);
+    final textTheme = Theme.of(context).textTheme;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 4),
       child: Text(
         title,
-        style: tokens.sectionHeader,
+        style: textTheme.labelSmall?.copyWith(
+          fontSize: 11,
+          fontWeight: FontWeight.w700,
+          letterSpacing: 1.1,
+          color: tokens.textSecondary,
+        ),
       ),
     );
   }
@@ -362,6 +370,7 @@ class _SettingsSwitchTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final tokens = SamanHomeTokens.of(context);
+    final textTheme = Theme.of(context).textTheme;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       child: Row(
@@ -378,7 +387,7 @@ class _SettingsSwitchTile extends StatelessWidget {
               children: [
                 Text(
                   title,
-                  style: TextStyle(
+                  style: textTheme.titleSmall?.copyWith(
                     fontSize: 14.5,
                     fontWeight: FontWeight.w600,
                     color: tokens.textPrimary,
@@ -387,7 +396,7 @@ class _SettingsSwitchTile extends StatelessWidget {
                 const SizedBox(height: 3),
                 Text(
                   subtitle,
-                  style: TextStyle(
+                  style: textTheme.bodySmall?.copyWith(
                     fontSize: 12.5,
                     color: tokens.textSecondary,
                     height: 1.35,
@@ -428,6 +437,7 @@ class _SettingsNavTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final tokens = SamanHomeTokens.of(context);
+    final textTheme = Theme.of(context).textTheme;
     return InkWell(
       onTap: onTap,
       child: Padding(
@@ -439,7 +449,7 @@ class _SettingsNavTile extends StatelessWidget {
             Expanded(
               child: Text(
                 title,
-                style: TextStyle(
+                style: textTheme.titleSmall?.copyWith(
                   fontSize: 14.5,
                   fontWeight: FontWeight.w600,
                   color: tokens.textPrimary,
@@ -449,7 +459,7 @@ class _SettingsNavTile extends StatelessWidget {
             if (trailingText != null) ...[
               Text(
                 trailingText!,
-                style: TextStyle(
+                style: textTheme.bodySmall?.copyWith(
                   fontSize: 13,
                   fontWeight: FontWeight.w500,
                   color: tokens.textSecondary,
@@ -469,10 +479,11 @@ class _SettingsNavTile extends StatelessWidget {
                 ),
                 child: Text(
                   '$badgeCount',
-                  style: TextStyle(
+                  style: textTheme.labelSmall?.copyWith(
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
                     color: tokens.textPrimary,
+                    fontFeatures: const [FontFeature.tabularFigures()],
                   ),
                 ),
               ),
@@ -508,6 +519,7 @@ class _MutedKeywordsSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final tokens = SamanHomeTokens.of(context);
+    final textTheme = Theme.of(context).textTheme;
     return Padding(
       padding: const EdgeInsets.all(16),
       child: Column(
@@ -524,7 +536,7 @@ class _MutedKeywordsSection extends StatelessWidget {
               Expanded(
                 child: Text(
                   'Từ khóa đã ẩn',
-                  style: TextStyle(
+                  style: textTheme.titleSmall?.copyWith(
                     fontSize: 14.5,
                     fontWeight: FontWeight.w600,
                     color: tokens.textPrimary,
@@ -533,10 +545,11 @@ class _MutedKeywordsSection extends StatelessWidget {
               ),
               Text(
                 '${keywords.length}/$maxKeywords',
-                style: TextStyle(
+                style: textTheme.bodySmall?.copyWith(
                   fontSize: 12,
                   fontWeight: FontWeight.w500,
                   color: tokens.textSecondary,
+                  fontFeatures: const [FontFeature.tabularFigures()],
                 ),
               ),
             ],
@@ -546,7 +559,7 @@ class _MutedKeywordsSection extends StatelessWidget {
             padding: const EdgeInsets.only(left: 32),
             child: Text(
               'Bài viết hoặc bình luận chứa từ khóa này sẽ được ẩn khỏi bảng tin của bạn.',
-              style: TextStyle(
+              style: textTheme.bodySmall?.copyWith(
                 fontSize: 12.5,
                 color: tokens.textSecondary,
                 height: 1.35,
@@ -572,7 +585,7 @@ class _MutedKeywordsSection extends StatelessWidget {
                     children: [
                       Text(
                         keyword,
-                        style: TextStyle(
+                        style: textTheme.labelMedium?.copyWith(
                           fontSize: 12.5,
                           fontWeight: FontWeight.w500,
                           color: tokens.textPrimary,
@@ -582,7 +595,8 @@ class _MutedKeywordsSection extends StatelessWidget {
                       InkWell(
                         onTap:
                             isDisabled ? null : () => onRemoveKeyword(keyword),
-                        borderRadius: BorderRadius.circular(4),
+                        borderRadius:
+                            BorderRadius.circular(SamanHomeTokens.radiusSm),
                         child: Padding(
                           padding: const EdgeInsets.all(2),
                           child: Icon(
@@ -599,9 +613,10 @@ class _MutedKeywordsSection extends StatelessWidget {
                 onTap: isDisabled ? null : onAddPressed,
                 borderRadius: BorderRadius.circular(SamanHomeTokens.radiusMd),
                 child: Container(
+                  constraints: const BoxConstraints(minHeight: 44),
                   padding: const EdgeInsets.symmetric(
                     horizontal: 12,
-                    vertical: 7,
+                    vertical: 10,
                   ),
                   decoration: BoxDecoration(
                     color: tokens.secondarySurface,
@@ -620,7 +635,7 @@ class _MutedKeywordsSection extends StatelessWidget {
                       const SizedBox(width: 4),
                       Text(
                         'Thêm từ khóa',
-                        style: TextStyle(
+                        style: textTheme.labelMedium?.copyWith(
                           fontSize: 12.5,
                           fontWeight: FontWeight.w600,
                           color: tokens.greenAccent,
@@ -684,6 +699,7 @@ class _AudiencePickerSheet extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final tokens = SamanHomeTokens.of(context);
+    final textTheme = Theme.of(context).textTheme;
     return Container(
       decoration: BoxDecoration(
         color: tokens.cardSurface,
@@ -701,22 +717,24 @@ class _AudiencePickerSheet extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const SizedBox(height: 10),
-            Container(
-              width: 36,
-              height: 4,
-              decoration: BoxDecoration(
-                color: tokens.borderHigh,
-                borderRadius: BorderRadius.circular(SamanHomeTokens.radiusPill),
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              child: Container(
+                width: 36,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: tokens.borderHigh,
+                  borderRadius: BorderRadius.circular(SamanHomeTokens.radiusPill),
+                ),
               ),
             ),
             Padding(
-              padding: const EdgeInsets.fromLTRB(16, 14, 16, 12),
+              padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
               child: Align(
                 alignment: Alignment.centerLeft,
                 child: Text(
                   title,
-                  style: TextStyle(
+                  style: textTheme.titleMedium?.copyWith(
                     fontSize: 16,
                     fontWeight: FontWeight.w700,
                     color: tokens.textPrimary,
@@ -765,6 +783,7 @@ class _AudienceOptionTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final tokens = SamanHomeTokens.of(context);
+    final textTheme = Theme.of(context).textTheme;
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(SamanHomeTokens.radiusMd),
@@ -786,7 +805,7 @@ class _AudienceOptionTile extends StatelessWidget {
                 children: [
                   Text(
                     label,
-                    style: TextStyle(
+                    style: textTheme.titleSmall?.copyWith(
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
                       color: tokens.textPrimary,
@@ -795,7 +814,7 @@ class _AudienceOptionTile extends StatelessWidget {
                   const SizedBox(height: 2),
                   Text(
                     subtitle,
-                    style: TextStyle(
+                    style: textTheme.bodySmall?.copyWith(
                       fontSize: 12,
                       color: tokens.textSecondary,
                     ),
@@ -850,6 +869,7 @@ class _AddKeywordDialogState extends State<_AddKeywordDialog> {
   @override
   Widget build(BuildContext context) {
     final tokens = SamanHomeTokens.of(context);
+    final textTheme = Theme.of(context).textTheme;
     return AlertDialog(
       backgroundColor: tokens.cardSurface,
       surfaceTintColor: Colors.transparent,
@@ -859,7 +879,7 @@ class _AddKeywordDialogState extends State<_AddKeywordDialog> {
       ),
       title: Text(
         'Thêm từ khóa ẩn',
-        style: TextStyle(
+        style: textTheme.titleMedium?.copyWith(
           fontSize: 16,
           fontWeight: FontWeight.w700,
           color: tokens.textPrimary,
@@ -869,13 +889,23 @@ class _AddKeywordDialogState extends State<_AddKeywordDialog> {
         controller: _controller,
         autofocus: true,
         maxLength: 40,
-        style: TextStyle(color: tokens.textPrimary, fontSize: 14),
+        style: textTheme.bodyMedium?.copyWith(
+          color: tokens.textPrimary,
+          fontSize: 14,
+        ),
         decoration: InputDecoration(
           hintText: 'Ví dụ: quảng cáo, spam...',
-          hintStyle: TextStyle(color: tokens.textMuted, fontSize: 13.5),
+          hintStyle: textTheme.bodySmall?.copyWith(
+            color: tokens.textMuted,
+            fontSize: 13.5,
+          ),
           filled: true,
           fillColor: tokens.secondarySurface,
-          counterStyle: TextStyle(color: tokens.textMuted, fontSize: 11),
+          counterStyle: textTheme.labelSmall?.copyWith(
+            color: tokens.textMuted,
+            fontSize: 11,
+            fontFeatures: const [FontFeature.tabularFigures()],
+          ),
           contentPadding:
               const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
           border: OutlineInputBorder(
@@ -898,25 +928,36 @@ class _AddKeywordDialogState extends State<_AddKeywordDialog> {
           onPressed: () => Navigator.of(context).pop(),
           style: TextButton.styleFrom(
             foregroundColor: tokens.textSecondary,
+            minimumSize: const Size(0, 44),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(SamanHomeTokens.radiusMd),
             ),
           ),
-          child: const Text('Hủy'),
+          child: Text(
+            'Hủy',
+            style: textTheme.labelLarge?.copyWith(
+              color: tokens.textSecondary,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
         ),
         ElevatedButton(
           onPressed: _submit,
           style: ElevatedButton.styleFrom(
             backgroundColor: tokens.greenAccent,
             foregroundColor: tokens.primaryCtaText,
+            minimumSize: const Size(0, 44),
             elevation: 0,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(SamanHomeTokens.radiusMd),
             ),
           ),
-          child: const Text(
+          child: Text(
             'Thêm',
-            style: TextStyle(fontWeight: FontWeight.w600),
+            style: textTheme.labelLarge?.copyWith(
+              color: tokens.primaryCtaText,
+              fontWeight: FontWeight.w600,
+            ),
           ),
         ),
       ],

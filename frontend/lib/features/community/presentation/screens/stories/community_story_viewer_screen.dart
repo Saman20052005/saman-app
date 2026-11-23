@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:video_player/video_player.dart';
 
+import '../../../../../screens/home/tokens/saman_home_tokens.dart';
 import '../../../../../widgets/saman_feedback_snackbar.dart';
 import '../../../domain/models/community_dm.dart';
 import '../../../domain/models/community_story.dart';
@@ -280,36 +281,68 @@ class _CommunityStoryViewerScreenState
 
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (dialogContext) => AlertDialog(
-        backgroundColor: const Color(0xFF15191E),
-        title: const Text(
-          'Xóa tin này?',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
-        ),
-        content: const Text(
-          'Tin 24h sẽ bị xóa vĩnh viễn và không thể khôi phục.',
-          style: TextStyle(color: Color(0xFFABB4BD)),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(false),
-            child: const Text(
-              'Hủy',
-              style: TextStyle(color: Color(0xFFABB4BD)),
+      builder: (dialogContext) {
+        final tokens = SamanHomeTokens.of(dialogContext);
+        final textTheme = Theme.of(dialogContext).textTheme;
+        return AlertDialog(
+          backgroundColor: tokens.cardSurface,
+          surfaceTintColor: Colors.transparent,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(SamanHomeTokens.radiusLg),
+            side: BorderSide(color: tokens.border, width: 1),
+          ),
+          title: Text(
+            'Xóa tin này?',
+            style: textTheme.titleMedium?.copyWith(
+              color: tokens.textPrimary,
+              fontWeight: FontWeight.w700,
             ),
           ),
-          TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(true),
-            child: const Text(
-              'Xóa',
-              style: TextStyle(
-                color: Color(0xFFFB7185),
-                fontWeight: FontWeight.w700,
+          content: Text(
+            'Tin 24h sẽ bị xóa vĩnh viễn và không thể khôi phục.',
+            style: textTheme.bodyMedium?.copyWith(
+              color: tokens.textSecondary,
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(false),
+              style: TextButton.styleFrom(
+                foregroundColor: tokens.textSecondary,
+                minimumSize: const Size(0, 44),
+                shape: RoundedRectangleBorder(
+                  borderRadius:
+                      BorderRadius.circular(SamanHomeTokens.radiusMd),
+                ),
+              ),
+              child: Text(
+                'Hủy',
+                style: textTheme.labelLarge?.copyWith(
+                  color: tokens.textSecondary,
+                ),
               ),
             ),
-          ),
-        ],
-      ),
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(true),
+              style: TextButton.styleFrom(
+                foregroundColor: tokens.fatRose,
+                minimumSize: const Size(0, 44),
+                shape: RoundedRectangleBorder(
+                  borderRadius:
+                      BorderRadius.circular(SamanHomeTokens.radiusMd),
+                ),
+              ),
+              child: Text(
+                'Xóa',
+                style: textTheme.labelLarge?.copyWith(
+                  color: tokens.fatRose,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+          ],
+        );
+      },
     );
 
     if (!mounted) return;
@@ -418,17 +451,19 @@ class _CommunityStoryViewerScreenState
     }
   }
 
-  Color _parseHexColor(String? hex) {
+  Color _parseHexColor(String? hex, Color fallback) {
     final cleaned = (hex ?? '').replaceFirst('#', '').trim();
     if (cleaned.length == 6) {
       final value = int.tryParse('FF$cleaned', radix: 16);
       if (value != null) return Color(value);
     }
-    return const Color(0xFF087F66);
+    return fallback;
   }
 
   @override
   Widget build(BuildContext context) {
+    final tokens = SamanHomeTokens.of(context);
+    final textTheme = Theme.of(context).textTheme;
     final group = _currentGroup;
     final story = _currentStory;
     if (group == null || story == null) {
@@ -472,7 +507,10 @@ class _CommunityStoryViewerScreenState
                       videoController: _videoController,
                       isVideoReady: _isVideoReady,
                       hasVideoError: _hasVideoError,
-                      backgroundColor: _parseHexColor(story.backgroundColor),
+                      backgroundColor: _parseHexColor(
+                        story.backgroundColor,
+                        tokens.greenAccent,
+                      ),
                     ),
                     Positioned(
                       top: 0,
@@ -521,12 +559,13 @@ class _CommunityStoryViewerScreenState
                           ),
                           decoration: BoxDecoration(
                             color: Colors.black.withOpacity(0.55),
-                            borderRadius: BorderRadius.circular(12),
+                            borderRadius:
+                                BorderRadius.circular(SamanHomeTokens.radiusMd),
                           ),
                           child: Text(
                             story.caption.trim(),
                             textAlign: TextAlign.center,
-                            style: const TextStyle(
+                            style: textTheme.bodyMedium?.copyWith(
                               color: Colors.white,
                               fontSize: 14.5,
                               fontWeight: FontWeight.w500,
@@ -618,12 +657,14 @@ class _StoryHeaderRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = SamanHomeTokens.of(context);
+    final textTheme = Theme.of(context).textTheme;
     final avatarUrl = group.author.avatarUrl;
     return Row(
       children: [
         CircleAvatar(
           radius: 18,
-          backgroundColor: const Color(0xFF1B2127),
+          backgroundColor: SamanHomeTokens.secondarySurface,
           backgroundImage:
               avatarUrl != null && avatarUrl.isNotEmpty
                   ? NetworkImage(avatarUrl)
@@ -633,7 +674,7 @@ class _StoryHeaderRow extends StatelessWidget {
                   group.author.name.isNotEmpty
                       ? group.author.name[0].toUpperCase()
                       : 'S',
-                  style: const TextStyle(
+                  style: textTheme.titleSmall?.copyWith(
                     color: Colors.white,
                     fontWeight: FontWeight.w700,
                     fontSize: 14,
@@ -654,7 +695,7 @@ class _StoryHeaderRow extends StatelessWidget {
                       group.isSelf ? 'Tin của bạn' : group.author.name,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
+                      style: textTheme.titleSmall?.copyWith(
                         color: Colors.white,
                         fontSize: 14,
                         fontWeight: FontWeight.w700,
@@ -663,17 +704,17 @@ class _StoryHeaderRow extends StatelessWidget {
                   ),
                   if (group.author.isVerified) ...[
                     const SizedBox(width: 4),
-                    const Icon(
+                    Icon(
                       Icons.verified_rounded,
                       size: 14,
-                      color: Color(0xFF5BBFA0),
+                      color: tokens.greenAccent,
                     ),
                   ],
                 ],
               ),
               Text(
                 story.timeAgo,
-                style: TextStyle(
+                style: textTheme.bodySmall?.copyWith(
                   color: Colors.white.withOpacity(0.72),
                   fontSize: 11.5,
                 ),
@@ -683,6 +724,7 @@ class _StoryHeaderRow extends StatelessWidget {
         ),
         IconButton(
           onPressed: onClose,
+          constraints: const BoxConstraints(minWidth: 44, minHeight: 44),
           icon: const Icon(Icons.close_rounded, color: Colors.white),
           tooltip: 'Đóng',
         ),
@@ -708,6 +750,7 @@ class _StoryMediaContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
     if (story.mediaType == 'text') {
       return Container(
         color: backgroundColor,
@@ -716,7 +759,7 @@ class _StoryMediaContent extends StatelessWidget {
         child: Text(
           story.caption,
           textAlign: TextAlign.center,
-          style: const TextStyle(
+          style: textTheme.headlineMedium?.copyWith(
             color: Colors.white,
             fontSize: 24,
             fontWeight: FontWeight.w700,
@@ -728,15 +771,22 @@ class _StoryMediaContent extends StatelessWidget {
 
     if (story.mediaType == 'video') {
       if (hasVideoError) {
-        return const Center(
+        return Center(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Icons.videocam_off_outlined, color: Colors.white54, size: 44),
-              SizedBox(height: 10),
+              const Icon(
+                Icons.videocam_off_outlined,
+                color: Colors.white54,
+                size: 44,
+              ),
+              const SizedBox(height: 10),
               Text(
                 'Không thể phát video này',
-                style: TextStyle(color: Colors.white70, fontSize: 14),
+                style: textTheme.bodyMedium?.copyWith(
+                  color: Colors.white70,
+                  fontSize: 14,
+                ),
               ),
             ],
           ),
@@ -772,15 +822,22 @@ class _StoryMediaContent extends StatelessWidget {
           child: CircularProgressIndicator(color: Colors.white),
         );
       },
-      errorBuilder: (context, _, __) => const Center(
+      errorBuilder: (context, _, __) => Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.broken_image_outlined, color: Colors.white54, size: 44),
-            SizedBox(height: 10),
+            const Icon(
+              Icons.broken_image_outlined,
+              color: Colors.white54,
+              size: 44,
+            ),
+            const SizedBox(height: 10),
             Text(
               'Không thể tải ảnh',
-              style: TextStyle(color: Colors.white70, fontSize: 14),
+              style: textTheme.bodyMedium?.copyWith(
+                color: Colors.white70,
+                fontSize: 14,
+              ),
             ),
           ],
         ),
@@ -812,6 +869,8 @@ class _StoryFooterBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = SamanHomeTokens.of(context);
+    final textTheme = Theme.of(context).textTheme;
     return Container(
       padding: const EdgeInsets.fromLTRB(14, 10, 14, 12),
       color: Colors.black,
@@ -826,33 +885,37 @@ class _StoryFooterBar extends StatelessWidget {
                 const SizedBox(width: 6),
                 Text(
                   '${story.viewCount} lượt xem',
-                  style: const TextStyle(
+                  style: textTheme.bodySmall?.copyWith(
                     color: Colors.white,
                     fontSize: 13.5,
                     fontWeight: FontWeight.w600,
+                    fontFeatures: const [FontFeature.tabularFigures()],
                   ),
                 ),
                 const Spacer(),
                 TextButton.icon(
                   onPressed: isDeleting ? null : onDelete,
+                  style: TextButton.styleFrom(
+                    minimumSize: const Size(0, 44),
+                  ),
                   icon: isDeleting
-                      ? const SizedBox(
+                      ? SizedBox(
                           width: 16,
                           height: 16,
                           child: CircularProgressIndicator(
                             strokeWidth: 2,
-                            color: Color(0xFFFB7185),
+                            color: tokens.fatRose,
                           ),
                         )
-                      : const Icon(
+                      : Icon(
                           Icons.delete_outline_rounded,
-                          color: Color(0xFFFB7185),
+                          color: tokens.fatRose,
                           size: 19,
                         ),
-                  label: const Text(
+                  label: Text(
                     'Xóa',
-                    style: TextStyle(
-                      color: Color(0xFFFB7185),
+                    style: textTheme.labelLarge?.copyWith(
+                      color: tokens.fatRose,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
@@ -868,11 +931,15 @@ class _StoryFooterBar extends StatelessWidget {
                     enabled: !isSendingReply,
                     textInputAction: TextInputAction.send,
                     onSubmitted: (_) => onSendReply(),
-                    style: const TextStyle(color: Colors.white, fontSize: 14),
+                    style: textTheme.bodyMedium?.copyWith(
+                      color: Colors.white,
+                      fontSize: 14,
+                    ),
                     decoration: InputDecoration(
                       hintText: 'Trả lời tin này...',
-                      hintStyle: TextStyle(
+                      hintStyle: textTheme.bodyMedium?.copyWith(
                         color: Colors.white.withOpacity(0.6),
+                        fontSize: 14,
                       ),
                       isDense: true,
                       contentPadding: const EdgeInsets.symmetric(
@@ -895,8 +962,8 @@ class _StoryFooterBar extends StatelessWidget {
                       ),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(24),
-                        borderSide: const BorderSide(
-                          color: Color(0xFF5BBFA0),
+                        borderSide: BorderSide(
+                          color: tokens.greenAccent,
                         ),
                       ),
                     ),
@@ -905,9 +972,14 @@ class _StoryFooterBar extends StatelessWidget {
                 const SizedBox(width: 8),
                 IconButton(
                   onPressed: isSendingReply ? null : onSendReply,
+                  constraints: const BoxConstraints(
+                    minWidth: 44,
+                    minHeight: 44,
+                  ),
                   style: IconButton.styleFrom(
-                    backgroundColor: const Color(0xFF5BBFA0),
+                    backgroundColor: tokens.greenAccent,
                     foregroundColor: Colors.black,
+                    minimumSize: const Size(44, 44),
                   ),
                   icon: isSendingReply
                       ? const SizedBox(

@@ -85,13 +85,13 @@ class _CommunityCreateStorySheetState
     super.dispose();
   }
 
-  Color _parseHexColor(String hex) {
+  Color _parseHexColor(String hex, Color fallback) {
     final cleaned = hex.replaceFirst('#', '').trim();
     if (cleaned.length == 6) {
       final value = int.tryParse('FF$cleaned', radix: 16);
       if (value != null) return Color(value);
     }
-    return const Color(0xFF087F66);
+    return fallback;
   }
 
   String _inferMimeType(String filename, {required bool isVideo}) {
@@ -274,6 +274,7 @@ class _CommunityCreateStorySheetState
   @override
   Widget build(BuildContext context) {
     final tokens = SamanHomeTokens.of(context);
+    final textTheme = Theme.of(context).textTheme;
     final bottomInset = MediaQuery.viewInsetsOf(context).bottom;
 
     return Padding(
@@ -299,12 +300,20 @@ class _CommunityCreateStorySheetState
                 Expanded(
                   child: Text(
                     'Tạo tin 24h',
-                    style: tokens.cardTitle.copyWith(fontSize: 18),
+                    style: textTheme.titleLarge?.copyWith(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w700,
+                      color: tokens.textPrimary,
+                    ),
                   ),
                 ),
                 IconButton(
                   onPressed:
                       _isSubmitting ? null : () => Navigator.of(context).pop(),
+                  constraints: const BoxConstraints(
+                    minWidth: 44,
+                    minHeight: 44,
+                  ),
                   icon: Icon(Icons.close_rounded, color: tokens.textSecondary),
                   tooltip: 'Đóng',
                 ),
@@ -319,7 +328,8 @@ class _CommunityCreateStorySheetState
             const SizedBox(height: 16),
             if (_mediaType == 'text') ...[
               _TextStoryPreview(
-                backgroundColor: _parseHexColor(_selectedBgHex),
+                backgroundColor:
+                    _parseHexColor(_selectedBgHex, tokens.greenAccent),
                 caption: _captionController.text,
               ),
               const SizedBox(height: 12),
@@ -327,44 +337,55 @@ class _CommunityCreateStorySheetState
                 children: [
                   Text(
                     'Màu nền',
-                    style: tokens.cardSubtitle.copyWith(
+                    style: textTheme.labelMedium?.copyWith(
+                      fontSize: 12,
                       fontWeight: FontWeight.w600,
                       color: tokens.textPrimary,
                     ),
                   ),
-                  const SizedBox(width: 12),
-                  ..._bgHexPresets.map((hex) {
-                    final selected = hex == _selectedBgHex;
-                    return Padding(
-                      padding: const EdgeInsets.only(right: 10),
-                      child: GestureDetector(
-                        onTap: _isSubmitting
-                            ? null
-                            : () => setState(() => _selectedBgHex = hex),
-                        child: Container(
-                          width: 30,
-                          height: 30,
-                          decoration: BoxDecoration(
-                            color: _parseHexColor(hex),
-                            shape: BoxShape.circle,
-                            border: Border.all(
-                              color: selected
-                                  ? tokens.greenAccent
-                                  : tokens.borderHigh,
-                              width: selected ? 2.5 : 1,
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Wrap(
+                      spacing: 4,
+                      runSpacing: 4,
+                      children: _bgHexPresets.map((hex) {
+                        final selected = hex == _selectedBgHex;
+                        return GestureDetector(
+                          onTap: _isSubmitting
+                              ? null
+                              : () => setState(() => _selectedBgHex = hex),
+                          behavior: HitTestBehavior.opaque,
+                          child: SizedBox(
+                            width: 44,
+                            height: 44,
+                            child: Center(
+                              child: Container(
+                                width: 30,
+                                height: 30,
+                                decoration: BoxDecoration(
+                                  color: _parseHexColor(hex, tokens.greenAccent),
+                                  shape: BoxShape.circle,
+                                  border: Border.all(
+                                    color: selected
+                                        ? tokens.greenAccent
+                                        : tokens.borderHigh,
+                                    width: selected ? 2.5 : 1,
+                                  ),
+                                ),
+                                child: selected
+                                    ? const Icon(
+                                        Icons.check_rounded,
+                                        size: 16,
+                                        color: Colors.white,
+                                      )
+                                    : null,
+                              ),
                             ),
                           ),
-                          child: selected
-                              ? const Icon(
-                                  Icons.check_rounded,
-                                  size: 16,
-                                  color: Colors.white,
-                                )
-                              : null,
-                        ),
-                      ),
-                    );
-                  }),
+                        );
+                      }).toList(),
+                    ),
+                  ),
                 ],
               ),
               const SizedBox(height: 12),
@@ -402,7 +423,7 @@ class _CommunityCreateStorySheetState
                   setState(() => _errorMessage = null);
                 }
               },
-              style: TextStyle(
+              style: textTheme.bodyMedium?.copyWith(
                 color: tokens.textPrimary,
                 fontSize: 14,
               ),
@@ -410,10 +431,17 @@ class _CommunityCreateStorySheetState
                 hintText: _mediaType == 'text'
                     ? 'Nhập nội dung tin của bạn...'
                     : 'Thêm chú thích (tùy chọn)...',
-                hintStyle: TextStyle(color: tokens.textMuted),
+                hintStyle: textTheme.bodyMedium?.copyWith(
+                  color: tokens.textMuted,
+                  fontSize: 14,
+                ),
                 filled: true,
                 fillColor: tokens.secondarySurface,
-                counterStyle: TextStyle(color: tokens.textMuted, fontSize: 11),
+                counterStyle: textTheme.labelSmall?.copyWith(
+                  color: tokens.textMuted,
+                  fontSize: 11,
+                  fontFeatures: const [FontFeature.tabularFigures()],
+                ),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(SamanHomeTokens.radiusMd),
                   borderSide: BorderSide(color: tokens.border),
@@ -433,7 +461,8 @@ class _CommunityCreateStorySheetState
               children: [
                 Text(
                   'Quyền xem',
-                  style: tokens.cardSubtitle.copyWith(
+                  style: textTheme.labelMedium?.copyWith(
+                    fontSize: 12,
                     fontWeight: FontWeight.w600,
                     color: tokens.textPrimary,
                   ),
@@ -442,6 +471,7 @@ class _CommunityCreateStorySheetState
                 Expanded(
                   child: Wrap(
                     spacing: 8,
+                    runSpacing: 8,
                     children: [
                       _PrivacyChip(
                         label: 'Công khai',
@@ -480,7 +510,7 @@ class _CommunityCreateStorySheetState
                 ),
                 child: Text(
                   _errorMessage!,
-                  style: TextStyle(
+                  style: textTheme.bodySmall?.copyWith(
                     color: tokens.fatRose,
                     fontSize: 12.5,
                     fontWeight: FontWeight.w500,
@@ -496,6 +526,7 @@ class _CommunityCreateStorySheetState
                 style: ElevatedButton.styleFrom(
                   backgroundColor: tokens.greenAccent,
                   foregroundColor: Colors.white,
+                  minimumSize: const Size.fromHeight(48),
                   disabledBackgroundColor:
                       tokens.greenAccent.withOpacity(0.5),
                   shape: RoundedRectangleBorder(
@@ -513,11 +544,12 @@ class _CommunityCreateStorySheetState
                           color: Colors.white,
                         ),
                       )
-                    : const Text(
+                    : Text(
                         'Đăng tin',
-                        style: TextStyle(
+                        style: textTheme.titleSmall?.copyWith(
                           fontSize: 15,
                           fontWeight: FontWeight.w700,
+                          color: Colors.white,
                         ),
                       ),
               ),
@@ -595,11 +627,13 @@ class _ModeTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
     return Expanded(
       child: GestureDetector(
         onTap: onTap,
         child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 9),
+          constraints: const BoxConstraints(minHeight: 42),
+          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 10),
           decoration: BoxDecoration(
             color: selected ? tokens.cardSurface : Colors.transparent,
             borderRadius: BorderRadius.circular(SamanHomeTokens.radiusSm),
@@ -613,13 +647,17 @@ class _ModeTab extends StatelessWidget {
                 size: 16,
                 color: selected ? tokens.greenAccent : tokens.textSecondary,
               ),
-              const SizedBox(width: 6),
-              Text(
-                label,
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
-                  color: selected ? tokens.textPrimary : tokens.textSecondary,
+              const SizedBox(width: 4),
+              Flexible(
+                child: Text(
+                  label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: textTheme.labelMedium?.copyWith(
+                    fontSize: 13,
+                    fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+                    color: selected ? tokens.textPrimary : tokens.textSecondary,
+                  ),
                 ),
               ),
             ],
@@ -641,6 +679,7 @@ class _TextStoryPreview extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
     final displayText =
         caption.trim().isEmpty ? 'Xem trước tin văn bản của bạn' : caption.trim();
     return Container(
@@ -656,7 +695,7 @@ class _TextStoryPreview extends StatelessWidget {
         maxLines: 5,
         overflow: TextOverflow.ellipsis,
         textAlign: TextAlign.center,
-        style: TextStyle(
+        style: textTheme.titleMedium?.copyWith(
           color: caption.trim().isEmpty
               ? Colors.white.withOpacity(0.7)
               : Colors.white,
@@ -699,6 +738,7 @@ class _MediaPickerBox extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -727,9 +767,9 @@ class _MediaPickerBox extends StatelessWidget {
                         borderRadius:
                             BorderRadius.circular(SamanHomeTokens.radiusPill),
                       ),
-                      child: const Text(
+                      child: Text(
                         'Đổi ảnh',
-                        style: TextStyle(
+                        style: textTheme.labelSmall?.copyWith(
                           color: Colors.white,
                           fontSize: 12,
                           fontWeight: FontWeight.w600,
@@ -758,7 +798,7 @@ class _MediaPickerBox extends StatelessWidget {
                       pickedFileName ?? emptyLabel,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
+                      style: textTheme.titleSmall?.copyWith(
                         color: pickedFileName != null
                             ? tokens.textPrimary
                             : tokens.textSecondary,
@@ -771,9 +811,10 @@ class _MediaPickerBox extends StatelessWidget {
                     const SizedBox(height: 4),
                     Text(
                       '${_formatSize(fileSizeBytes!)} • Chạm để đổi video',
-                      style: TextStyle(
+                      style: textTheme.bodySmall?.copyWith(
                         color: tokens.textMuted,
                         fontSize: 11.5,
+                        fontFeatures: const [FontFeature.tabularFigures()],
                       ),
                     ),
                   ],
@@ -801,10 +842,12 @@ class _PrivacyChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        constraints: const BoxConstraints(minHeight: 42),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         decoration: BoxDecoration(
           color: selected ? tokens.greenBadgeBg : tokens.secondarySurface,
           borderRadius: BorderRadius.circular(SamanHomeTokens.radiusPill),
@@ -821,12 +864,16 @@ class _PrivacyChip extends StatelessWidget {
               color: selected ? tokens.greenAccent : tokens.textSecondary,
             ),
             const SizedBox(width: 5),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
-                color: selected ? tokens.greenAccent : tokens.textSecondary,
+            Flexible(
+              child: Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: textTheme.labelMedium?.copyWith(
+                  fontSize: 12,
+                  fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+                  color: selected ? tokens.greenAccent : tokens.textSecondary,
+                ),
               ),
             ),
           ],

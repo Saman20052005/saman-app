@@ -77,7 +77,7 @@ class PostCardView extends ConsumerWidget {
                         },
                     child: Row(
                       children: [
-                        _buildAuthorAvatar(tokens),
+                        _buildAuthorAvatar(context, tokens),
                         const SizedBox(width: 10),
                         Flexible(
                           child: Column(
@@ -90,11 +90,15 @@ class PostCardView extends ConsumerWidget {
                                       post.author.name,
                                       maxLines: 1,
                                       overflow: TextOverflow.ellipsis,
-                                      style: TextStyle(
-                                        fontSize: 15,
-                                        fontWeight: FontWeight.w600,
-                                        color: tokens.textPrimary,
-                                      ),
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .titleMedium
+                                          ?.copyWith(
+                                            fontSize: 15,
+                                            fontWeight: FontWeight.w600,
+                                            color: tokens.textPrimary,
+                                            height: 1.25,
+                                          ),
                                     ),
                                   ),
                                   if (post.author.isVerified) ...[
@@ -115,15 +119,20 @@ class PostCardView extends ConsumerWidget {
                                       ),
                                       decoration: BoxDecoration(
                                         color: tokens.secondarySurface,
-                                        borderRadius: BorderRadius.circular(4),
+                                        borderRadius: BorderRadius.circular(
+                                          SamanHomeTokens.radiusSm,
+                                        ),
                                       ),
                                       child: Text(
                                         post.qaInfo!.categoryTag,
-                                        style: TextStyle(
-                                          fontSize: 10,
-                                          fontWeight: FontWeight.w600,
-                                          color: tokens.greenAccent,
-                                        ),
+                                        style: Theme.of(context)
+                                            .textTheme
+                                            .labelSmall
+                                            ?.copyWith(
+                                              fontSize: 10,
+                                              fontWeight: FontWeight.w600,
+                                              color: tokens.greenAccent,
+                                            ),
                                       ),
                                     ),
                                   ],
@@ -132,10 +141,13 @@ class PostCardView extends ConsumerWidget {
                               const SizedBox(height: 2),
                               Text(
                                 post.timeAgo,
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: tokens.textSecondary,
-                                ),
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .bodySmall
+                                    ?.copyWith(
+                                      fontSize: 12,
+                                      color: tokens.textSecondary,
+                                    ),
                               ),
                             ],
                           ),
@@ -145,6 +157,10 @@ class PostCardView extends ConsumerWidget {
                   ),
                 ),
                 IconButton(
+                  constraints: const BoxConstraints(
+                    minWidth: 44,
+                    minHeight: 44,
+                  ),
                   icon: Icon(
                     Icons.more_horiz_rounded,
                     color: tokens.textSecondary,
@@ -175,9 +191,9 @@ class PostCardView extends ConsumerWidget {
                     padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
                     child: Text(
                       post.caption,
-                      style: TextStyle(
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                         fontSize: 14,
-                        height: 1.45,
+                        height: 1.5,
                         color: tokens.textPrimary,
                       ),
                     ),
@@ -254,11 +270,14 @@ class PostCardView extends ConsumerWidget {
                               post.isLikeCountHidden
                                   ? context.tr('post_likes_hidden')
                                   : '${post.likeCount}',
-                              style: TextStyle(
-                                fontSize: 13,
-                                fontWeight: FontWeight.w600,
-                                color: tokens.textPrimary,
-                              ),
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .labelMedium
+                                  ?.copyWith(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w600,
+                                    color: tokens.textPrimary,
+                                  ),
                             ),
                           ],
                         ),
@@ -283,11 +302,14 @@ class PostCardView extends ConsumerWidget {
                             const SizedBox(width: 5),
                             Text(
                               '${post.commentCount}',
-                              style: TextStyle(
-                                fontSize: 13,
-                                fontWeight: FontWeight.w600,
-                                color: tokens.textPrimary,
-                              ),
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .labelMedium
+                                  ?.copyWith(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w600,
+                                    color: tokens.textPrimary,
+                                  ),
                             ),
                           ],
                         ),
@@ -314,11 +336,14 @@ class PostCardView extends ConsumerWidget {
                               const SizedBox(width: 5),
                               Text(
                                 '${post.shareCount}',
-                                style: TextStyle(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w600,
-                                  color: tokens.textPrimary,
-                                ),
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .labelMedium
+                                    ?.copyWith(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w600,
+                                      color: tokens.textPrimary,
+                                    ),
                               ),
                             ],
                           ],
@@ -334,35 +359,41 @@ class PostCardView extends ConsumerWidget {
                     onPressed: onOpenDetail,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: tokens.greenAccent,
-                      foregroundColor: tokens.isDark
-                          ? const Color(0xFF003824)
-                          : const Color(0xFFFFFFFF),
+                      foregroundColor: Theme.of(context).colorScheme.onPrimary,
+                      minimumSize: const Size(0, 44),
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
+                        borderRadius: BorderRadius.circular(
+                          SamanHomeTokens.radiusMd,
+                        ),
                       ),
                       padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 8,
+                        horizontal: 14,
+                        vertical: 10,
                       ),
                       elevation: 0,
                     ),
-                    child: const Row(
+                    child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Text(
                           'Tham gia thảo luận',
-                          style: TextStyle(
+                          style: Theme.of(context).textTheme.labelLarge?.copyWith(
                             fontSize: 12,
                             fontWeight: FontWeight.w700,
+                            color: Theme.of(context).colorScheme.onPrimary,
                           ),
                         ),
-                        SizedBox(width: 4),
-                        Icon(Icons.arrow_forward_rounded, size: 14),
+                        const SizedBox(width: 4),
+                        const Icon(Icons.arrow_forward_rounded, size: 14),
                       ],
                     ),
                   )
                 else
                   IconButton(
+                    constraints: const BoxConstraints(
+                      minWidth: 44,
+                      minHeight: 44,
+                    ),
                     icon: Icon(
                       post.isBookmarked
                           ? Icons.bookmark_rounded
@@ -388,7 +419,7 @@ class PostCardView extends ConsumerWidget {
                   if (post.likedBySummary.isNotEmpty)
                     Text(
                       post.likedBySummary,
-                      style: TextStyle(
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
                         fontSize: 12,
                         color: tokens.textSecondary,
                       ),
@@ -398,7 +429,7 @@ class PostCardView extends ConsumerWidget {
                     onTap: onOpenDetail,
                     child: Text(
                       'Xem tất cả ${post.commentCount} bình luận...',
-                      style: TextStyle(
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
                         fontSize: 13,
                         fontWeight: FontWeight.w500,
                         color: tokens.greenAccent.withOpacity(0.9),
@@ -414,7 +445,7 @@ class PostCardView extends ConsumerWidget {
     );
   }
 
-  Widget _buildAuthorAvatar(SamanHomePalette tokens) {
+  Widget _buildAuthorAvatar(BuildContext context, SamanHomePalette tokens) {
     return Container(
       width: 40,
       height: 40,
@@ -425,8 +456,7 @@ class PostCardView extends ConsumerWidget {
       child: Center(
         child: Text(
           post.author.name.isNotEmpty ? post.author.name[0] : 'S',
-          style: TextStyle(
-            fontSize: 16,
+          style: Theme.of(context).textTheme.titleMedium?.copyWith(
             fontWeight: FontWeight.w700,
             color: tokens.greenAccent,
           ),
@@ -511,7 +541,7 @@ class PostCardView extends ConsumerWidget {
                     const SizedBox(width: 5),
                     Text(
                       post.nutritionInfo!.defaultBadge,
-                      style: const TextStyle(
+                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
                         fontSize: 11,
                         fontWeight: FontWeight.w600,
                         color: Colors.white,
@@ -544,9 +574,7 @@ class PostCardView extends ConsumerWidget {
       ),
       builder: (ctx) {
         final tokens = SamanHomeTokens.of(ctx);
-        final dangerColor = tokens.isDark
-            ? Colors.redAccent
-            : const Color(0xFFDC2626);
+        final dangerColor = Theme.of(ctx).colorScheme.error;
         return SafeArea(
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -659,9 +687,7 @@ class PostCardView extends ConsumerWidget {
       context: context,
       builder: (dialogCtx) {
         final tokens = SamanHomeTokens.of(dialogCtx);
-        final dangerColor = tokens.isDark
-            ? Colors.redAccent
-            : const Color(0xFFDC2626);
+        final dangerColor = Theme.of(dialogCtx).colorScheme.error;
         return AlertDialog(
           backgroundColor: tokens.cardSurface,
           title: Text(
@@ -804,8 +830,7 @@ class PostCardView extends ConsumerWidget {
       context: context,
       builder: (dialogCtx) {
         final tokens = SamanHomeTokens.of(dialogCtx);
-        final dangerColor =
-            tokens.isDark ? Colors.redAccent : const Color(0xFFDC2626);
+        final dangerColor = Theme.of(dialogCtx).colorScheme.error;
         return AlertDialog(
           backgroundColor: tokens.cardSurface,
           title: Text(
@@ -892,8 +917,7 @@ class PostCardView extends ConsumerWidget {
               children: [
                 Text(
                   context.tr('post_report_title'),
-                  style: TextStyle(
-                    fontSize: 16,
+                  style: Theme.of(sheetCtx).textTheme.titleMedium?.copyWith(
                     fontWeight: FontWeight.w700,
                     color: sheetTokens.textPrimary,
                   ),
@@ -905,7 +929,7 @@ class PostCardView extends ConsumerWidget {
                     contentPadding: EdgeInsets.zero,
                     title: Text(
                       context.tr(r.labelKey),
-                      style: TextStyle(
+                      style: Theme.of(sheetCtx).textTheme.bodyMedium?.copyWith(
                         fontSize: 14,
                         color: sheetTokens.textPrimary,
                       ),
@@ -1185,8 +1209,7 @@ class _SharePostToDmSheetState extends ConsumerState<_SharePostToDmSheet> {
             const SizedBox(height: 14),
             Text(
               context.tr('share_post_title'),
-              style: TextStyle(
-                fontSize: 16,
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
                 fontWeight: FontWeight.w700,
                 color: tokens.textPrimary,
               ),
@@ -1194,7 +1217,7 @@ class _SharePostToDmSheetState extends ConsumerState<_SharePostToDmSheet> {
             const SizedBox(height: 2),
             Text(
               context.tr('share_post_subtitle'),
-              style: TextStyle(
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
                 fontSize: 12,
                 color: tokens.textSecondary,
               ),
@@ -1250,47 +1273,52 @@ class _SharePostToDmSheetState extends ConsumerState<_SharePostToDmSheet> {
                         conv.peer.name,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                           fontSize: 14,
                           fontWeight: FontWeight.w600,
                           color: tokens.textPrimary,
                         ),
                       ),
-                      trailing: SizedBox(
-                        height: 32,
-                        child: ElevatedButton(
-                          key: ValueKey('share-dm-send-${conv.id}'),
-                          onPressed: _sendingConversationId == null
-                              ? () => _sendToConversation(conv)
-                              : null,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: tokens.greenAccent,
-                            foregroundColor: tokens.isDark
-                                ? const Color(0xFF003824)
-                                : Colors.white,
-                            elevation: 0,
-                            padding: const EdgeInsets.symmetric(horizontal: 14),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(8),
+                      trailing: ElevatedButton(
+                        key: ValueKey('share-dm-send-${conv.id}'),
+                        onPressed: _sendingConversationId == null
+                            ? () => _sendToConversation(conv)
+                            : null,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: tokens.greenAccent,
+                          foregroundColor:
+                              Theme.of(context).colorScheme.onPrimary,
+                          minimumSize: const Size(0, 44),
+                          elevation: 0,
+                          padding: const EdgeInsets.symmetric(horizontal: 14),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(
+                              SamanHomeTokens.radiusMd,
                             ),
                           ),
-                          child: isSending
-                              ? const SizedBox(
-                                  width: 14,
-                                  height: 14,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                    color: Colors.white,
-                                  ),
-                                )
-                              : Text(
-                                  context.tr('share_post_send_btn'),
-                                  style: const TextStyle(
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w700,
-                                  ),
-                                ),
                         ),
+                        child: isSending
+                            ? SizedBox(
+                                width: 14,
+                                height: 14,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: Theme.of(context).colorScheme.onPrimary,
+                                ),
+                              )
+                            : Text(
+                                context.tr('share_post_send_btn'),
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .labelLarge
+                                    ?.copyWith(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w700,
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .onPrimary,
+                                    ),
+                              ),
                       ),
                     );
                   },
@@ -1364,7 +1392,7 @@ class _MultiPhotoCarouselState extends State<_MultiPhotoCarousel> {
             ),
             child: Text(
               '${_currentIndex + 1}/${widget.photoUrls.length}',
-              style: const TextStyle(
+              style: Theme.of(context).textTheme.labelSmall?.copyWith(
                 fontSize: 11,
                 fontWeight: FontWeight.w600,
                 color: Colors.white,

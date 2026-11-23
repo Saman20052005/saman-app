@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -58,6 +59,7 @@ class _CommunityChatThreadScreenState
   int _recordingSeconds = 0;
   DateTime? _recordingStartedAt;
   String? _activeRecordingPath;
+  String? _revealedTimeMessageId;
 
   @override
   void initState() {
@@ -188,11 +190,11 @@ class _CommunityChatThreadScreenState
                   alignment: Alignment.centerLeft,
                   child: Text(
                     'Đính kèm đa phương tiện',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w700,
-                      color: tokens.textPrimary,
-                    ),
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                          color: tokens.textPrimary,
+                        ),
                   ),
                 ),
                 const SizedBox(height: 12),
@@ -507,15 +509,16 @@ class _CommunityChatThreadScreenState
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) {
+        final dialogTextTheme = Theme.of(dialogContext).textTheme;
         return AlertDialog(
           backgroundColor: tokens.cardSurface,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(18),
             side: BorderSide(color: tokens.border),
           ),
           title: Text(
             'Thu hồi tin nhắn?',
-            style: TextStyle(
+            style: dialogTextTheme.titleMedium?.copyWith(
               fontSize: 17,
               fontWeight: FontWeight.w700,
               color: tokens.textPrimary,
@@ -523,7 +526,7 @@ class _CommunityChatThreadScreenState
           ),
           content: Text(
             'Tin nhắn này sẽ bị thu hồi cho cả hai phía trong cuộc trò chuyện.',
-            style: TextStyle(
+            style: dialogTextTheme.bodyMedium?.copyWith(
               fontSize: 14,
               color: tokens.textSecondary,
               height: 1.4,
@@ -532,9 +535,12 @@ class _CommunityChatThreadScreenState
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(dialogContext, false),
+              style: TextButton.styleFrom(
+                minimumSize: const Size(0, 44),
+              ),
               child: Text(
                 'Hủy',
-                style: TextStyle(
+                style: dialogTextTheme.labelLarge?.copyWith(
                   color: tokens.textSecondary,
                   fontWeight: FontWeight.w600,
                 ),
@@ -542,9 +548,12 @@ class _CommunityChatThreadScreenState
             ),
             TextButton(
               onPressed: () => Navigator.pop(dialogContext, true),
+              style: TextButton.styleFrom(
+                minimumSize: const Size(0, 44),
+              ),
               child: Text(
                 'Thu hồi',
-                style: TextStyle(
+                style: dialogTextTheme.labelLarge?.copyWith(
                   color: tokens.fatRose,
                   fontWeight: FontWeight.w700,
                 ),
@@ -621,6 +630,30 @@ class _CommunityChatThreadScreenState
     return '$dd/$mo/${local.year}, $timeStr';
   }
 
+  bool _needsTimeHeader(DmMessage older, DmMessage newer) {
+    final gap = newer.createdAt.difference(older.createdAt).abs();
+    if (gap.inMinutes >= 30) return true;
+    final oLocal = older.createdAt.toLocal();
+    final nLocal = newer.createdAt.toLocal();
+    return oLocal.year != nLocal.year ||
+        oLocal.month != nLocal.month ||
+        oLocal.day != nLocal.day;
+  }
+
+  bool _canGroupMessages(DmMessage older, DmMessage newer) {
+    if (older.isDeleted || newer.isDeleted) return false;
+    if (older.senderId != newer.senderId) return false;
+    if (_needsTimeHeader(older, newer)) return false;
+    return newer.createdAt.difference(older.createdAt).abs().inMinutes < 2;
+  }
+
+  void _toggleRevealedTime(String messageId) {
+    setState(() {
+      _revealedTimeMessageId =
+          _revealedTimeMessageId == messageId ? null : messageId;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     ref.listen<CommunityChatThreadState>(
@@ -649,6 +682,7 @@ class _CommunityChatThreadScreenState
     );
 
     final tokens = SamanHomeTokens.of(context);
+    final textTheme = Theme.of(context).textTheme;
     final state = ref.watch(communityChatThreadProvider(widget.conversationId));
 
     String? newestMyMessageId;
@@ -680,6 +714,7 @@ class _CommunityChatThreadScreenState
             ),
             Expanded(
               child: _buildMessagesArea(
+                context: context,
                 state: state,
                 newestMyMessageId: newestMyMessageId,
                 tokens: tokens,
@@ -704,7 +739,7 @@ class _CommunityChatThreadScreenState
                     const SizedBox(width: 10),
                     Text(
                       'Đang tải tệp đa phương tiện...',
-                      style: TextStyle(
+                      style: textTheme.labelSmall?.copyWith(
                         fontSize: 12,
                         fontWeight: FontWeight.w500,
                         color: tokens.textSecondary,
@@ -713,7 +748,11 @@ class _CommunityChatThreadScreenState
                   ],
                 ),
               ),
-            _buildComposerBar(tokens: tokens, isSending: state.isSending),
+            _buildComposerBar(
+              context: context,
+              tokens: tokens,
+              isSending: state.isSending,
+            ),
           ],
         ),
       ),
@@ -721,10 +760,13 @@ class _CommunityChatThreadScreenState
   }
 
   Widget _buildMessagesArea({
+    required BuildContext context,
     required CommunityChatThreadState state,
     required String? newestMyMessageId,
     required SamanHomePalette tokens,
   }) {
+    final textTheme = Theme.of(context).textTheme;
+
     if (state.isLoading && state.messages.isEmpty) {
       return Center(
         child: CircularProgressIndicator(color: tokens.greenAccent),
@@ -741,13 +783,13 @@ class _CommunityChatThreadScreenState
               _PeerCircleAvatar(
                 name: widget.peer.name,
                 avatarUrl: widget.peer.avatarUrl,
-                size: 64,
+                size: 68,
                 tokens: tokens,
               ),
               const SizedBox(height: 14),
               Text(
                 widget.peer.name,
-                style: TextStyle(
+                style: textTheme.titleLarge?.copyWith(
                   fontSize: 18,
                   fontWeight: FontWeight.w700,
                   color: tokens.textPrimary,
@@ -757,8 +799,8 @@ class _CommunityChatThreadScreenState
               Text(
                 'Hãy gửi lời chào để bắt đầu cuộc trò chuyện với ${widget.peer.name}.',
                 textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 13,
+                style: textTheme.bodySmall?.copyWith(
+                  fontSize: 13.5,
                   color: tokens.textSecondary,
                   height: 1.4,
                 ),
@@ -777,7 +819,7 @@ class _CommunityChatThreadScreenState
     return ListView.builder(
       controller: _scrollController,
       reverse: true,
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+      padding: const EdgeInsets.fromLTRB(12, 12, 12, 10),
       itemCount: totalCount,
       itemBuilder: (context, index) {
         if (state.peerIsTyping && index == 0) {
@@ -809,18 +851,20 @@ class _CommunityChatThreadScreenState
         final showSeen =
             isMine && msg.id == newestMyMessageId && state.peerReadAt != null;
 
-        // Since list is newest-first, older message is at msgIndex + 1.
-        bool showTimeDivider = false;
-        if (msgIndex == state.messages.length - 1) {
-          showTimeDivider = true;
-        } else {
-          final older = state.messages[msgIndex + 1];
-          final gap = msg.createdAt.difference(older.createdAt).abs();
-          if (gap.inMinutes >= 30 ||
-              msg.createdAt.toLocal().day != older.createdAt.toLocal().day) {
-            showTimeDivider = true;
-          }
-        }
+        // Since list is newest-first (0 = bottom), older message is at msgIndex + 1,
+        // newer message is at msgIndex - 1.
+        final DmMessage? olderMsg = msgIndex + 1 < state.messages.length
+            ? state.messages[msgIndex + 1]
+            : null;
+        final DmMessage? newerMsg =
+            msgIndex - 1 >= 0 ? state.messages[msgIndex - 1] : null;
+
+        final bool showTimeDivider =
+            olderMsg == null || _needsTimeHeader(olderMsg, msg);
+        final bool sameAsPrev =
+            olderMsg != null && !showTimeDivider && _canGroupMessages(olderMsg, msg);
+        final bool sameAsNext =
+            newerMsg != null && _canGroupMessages(msg, newerMsg);
 
         return Column(
           mainAxisSize: MainAxisSize.min,
@@ -828,24 +872,15 @@ class _CommunityChatThreadScreenState
           children: [
             if (showTimeDivider)
               Padding(
-                padding: const EdgeInsets.symmetric(vertical: 12),
+                padding: const EdgeInsets.only(top: 14, bottom: 10),
                 child: Center(
-                  child: Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: tokens.cardSurface,
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: tokens.border),
-                    ),
-                    child: Text(
-                      _formatDayDivider(msg.createdAt),
-                      style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w500,
-                        color: tokens.textMuted,
-                        fontFeatures: const [FontFeature.tabularFigures()],
-                      ),
+                  child: Text(
+                    _formatDayDivider(msg.createdAt),
+                    style: textTheme.labelSmall?.copyWith(
+                      fontSize: 11.5,
+                      fontWeight: FontWeight.w500,
+                      color: tokens.textMuted,
+                      fontFeatures: const [FontFeature.tabularFigures()],
                     ),
                   ),
                 ),
@@ -854,8 +889,13 @@ class _CommunityChatThreadScreenState
               message: msg,
               peer: widget.peer,
               isMine: isMine,
+              sameAsPrev: sameAsPrev,
+              sameAsNext: sameAsNext,
+              showSeenSpacing: showSeen,
+              isTimeRevealed: _revealedTimeMessageId == msg.id,
               formattedTime: _formatMessageTime(msg.createdAt),
               tokens: tokens,
+              onTapBubble: () => _toggleRevealedTime(msg.id),
               onLongPress: isMine && !msg.isDeleted
                   ? () => _confirmDeleteMessage(msg)
                   : null,
@@ -871,19 +911,13 @@ class _CommunityChatThreadScreenState
             ),
             if (showSeen)
               Padding(
-                padding: const EdgeInsets.only(top: 3, right: 4, bottom: 2),
+                padding: const EdgeInsets.only(top: 4, right: 6, bottom: 10),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
-                    Icon(
-                      Icons.done_all_rounded,
-                      size: 13,
-                      color: tokens.greenAccent,
-                    ),
-                    const SizedBox(width: 4),
                     Text(
                       'Đã xem',
-                      style: TextStyle(
+                      style: textTheme.labelSmall?.copyWith(
                         fontSize: 11,
                         fontWeight: FontWeight.w500,
                         color: tokens.textMuted,
@@ -899,49 +933,49 @@ class _CommunityChatThreadScreenState
   }
 
   Widget _buildComposerBar({
+    required BuildContext context,
     required SamanHomePalette tokens,
     required bool isSending,
   }) {
     return Container(
-      decoration: BoxDecoration(
-        color: tokens.canvas,
-        border: Border(top: BorderSide(color: tokens.border, width: 1)),
-      ),
+      color: tokens.canvas,
       child: SafeArea(
         top: false,
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(12, 8, 12, 10),
+          padding: const EdgeInsets.fromLTRB(12, 6, 12, 10),
           child: _isRecording
-              ? _buildRecordingComposer(tokens)
-              : _buildStandardComposer(tokens: tokens, isSending: isSending),
+              ? _buildRecordingComposer(context, tokens)
+              : _buildStandardComposer(
+                  context: context,
+                  tokens: tokens,
+                  isSending: isSending,
+                ),
         ),
       ),
     );
   }
 
-  Widget _buildRecordingComposer(SamanHomePalette tokens) {
+  Widget _buildRecordingComposer(
+    BuildContext context,
+    SamanHomePalette tokens,
+  ) {
+    final textTheme = Theme.of(context).textTheme;
+
     return Container(
-      height: 46,
-      padding: const EdgeInsets.symmetric(horizontal: 10),
+      constraints: const BoxConstraints(minHeight: 48),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
       decoration: BoxDecoration(
-        color: tokens.cardSurface,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: tokens.fatRose.withOpacity(0.55)),
+        color: tokens.cardSurfaceElevated,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: tokens.fatRose.withOpacity(0.45)),
       ),
       child: Row(
         children: [
-          Container(
-            width: 10,
-            height: 10,
-            decoration: BoxDecoration(
-              color: tokens.fatRose,
-              shape: BoxShape.circle,
-            ),
-          ),
+          _PulsingRecordDot(color: tokens.fatRose),
           const SizedBox(width: 10),
           Text(
             _formatRecordingTimer(_recordingSeconds),
-            style: TextStyle(
+            style: textTheme.titleSmall?.copyWith(
               fontSize: 15,
               fontWeight: FontWeight.w700,
               color: tokens.textPrimary,
@@ -953,7 +987,7 @@ class _CommunityChatThreadScreenState
             child: Text(
               'Đang ghi âm...',
               overflow: TextOverflow.ellipsis,
-              style: TextStyle(
+              style: textTheme.bodySmall?.copyWith(
                 fontSize: 13,
                 color: tokens.textSecondary,
               ),
@@ -963,28 +997,41 @@ class _CommunityChatThreadScreenState
             onPressed: _cancelVoiceRecording,
             style: TextButton.styleFrom(
               foregroundColor: tokens.fatRose,
-              padding: const EdgeInsets.symmetric(horizontal: 10),
-              minimumSize: const Size(44, 36),
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              minimumSize: const Size(44, 44),
             ),
-            child: const Text(
+            child: Text(
               'Hủy',
-              style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+              style: textTheme.labelLarge?.copyWith(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: tokens.fatRose,
+              ),
             ),
           ),
-          const SizedBox(width: 4),
-          Material(
-            color: tokens.greenAccent,
-            borderRadius: BorderRadius.circular(10),
-            child: InkWell(
-              onTap: _stopAndSendVoiceRecording,
-              borderRadius: BorderRadius.circular(10),
-              child: SizedBox(
-                width: 36,
-                height: 36,
-                child: Icon(
-                  Icons.send_rounded,
-                  size: 18,
-                  color: tokens.primaryCtaText,
+          const SizedBox(width: 2),
+          SizedBox(
+            width: 44,
+            height: 44,
+            child: Material(
+              color: Colors.transparent,
+              child: InkWell(
+                onTap: _stopAndSendVoiceRecording,
+                customBorder: const CircleBorder(),
+                child: Center(
+                  child: Container(
+                    width: 34,
+                    height: 34,
+                    decoration: BoxDecoration(
+                      color: tokens.greenAccent,
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      Icons.send_rounded,
+                      size: 18,
+                      color: tokens.primaryCtaText,
+                    ),
+                  ),
                 ),
               ),
             ),
@@ -995,118 +1042,165 @@ class _CommunityChatThreadScreenState
   }
 
   Widget _buildStandardComposer({
+    required BuildContext context,
     required SamanHomePalette tokens,
     required bool isSending,
   }) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.end,
-      children: [
-        Material(
-          color: tokens.secondarySurface,
-          borderRadius: BorderRadius.circular(12),
-          child: InkWell(
-            onTap: _isUploadingMedia ? null : _showMediaPickerSheet,
-            borderRadius: BorderRadius.circular(12),
-            child: Container(
-              width: 42,
-              height: 42,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: tokens.border),
-              ),
-              child: Icon(
-                Icons.add_rounded,
-                size: 22,
-                color: _isUploadingMedia
-                    ? tokens.textMuted
-                    : tokens.textPrimary,
-              ),
-            ),
-          ),
-        ),
-        const SizedBox(width: 8),
-        Expanded(
-          child: TextField(
-            controller: _textController,
-            focusNode: _inputFocusNode,
-            minLines: 1,
-            maxLines: 4,
-            textCapitalization: TextCapitalization.sentences,
-            textInputAction: TextInputAction.newline,
-            onChanged: _handleTextChanged,
-            style: TextStyle(
-              fontSize: 14,
-              color: tokens.textPrimary,
-              height: 1.35,
-            ),
-            decoration: InputDecoration(
-              hintText: 'Nhắn tin...',
-              hintStyle: TextStyle(
-                fontSize: 14,
-                color: tokens.textMuted,
-              ),
-              filled: true,
-              fillColor: tokens.cardSurface,
-              isDense: true,
-              contentPadding: const EdgeInsets.symmetric(
-                horizontal: 14,
-                vertical: 11,
-              ),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide(color: tokens.border),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide(color: tokens.greenAccent),
-              ),
-            ),
-          ),
-        ),
-        const SizedBox(width: 8),
-        if (_hasText)
-          Material(
-            color: tokens.greenAccent,
-            borderRadius: BorderRadius.circular(12),
-            child: InkWell(
-              onTap: isSending ? null : _sendTextMessage,
-              borderRadius: BorderRadius.circular(12),
-              child: SizedBox(
-                width: 42,
-                height: 42,
-                child: Icon(
-                  Icons.send_rounded,
-                  size: 20,
-                  color: tokens.primaryCtaText,
-                ),
-              ),
-            ),
-          )
-        else
-          Material(
-            color: tokens.secondarySurface,
-            borderRadius: BorderRadius.circular(12),
-            child: InkWell(
-              onTap: _isUploadingMedia ? null : _startVoiceRecording,
-              borderRadius: BorderRadius.circular(12),
-              child: Container(
-                width: 42,
-                height: 42,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: tokens.border),
-                ),
-                child: Icon(
-                  Icons.mic_rounded,
-                  size: 20,
-                  color: _isUploadingMedia
-                      ? tokens.textMuted
-                      : tokens.greenAccent,
+    final textTheme = Theme.of(context).textTheme;
+    final disableAnimations = MediaQuery.disableAnimationsOf(context);
+
+    return Container(
+      constraints: const BoxConstraints(minHeight: 48),
+      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+      decoration: BoxDecoration(
+        color: tokens.cardSurfaceElevated,
+        borderRadius: BorderRadius.circular(24),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: [
+          Tooltip(
+            message: 'Đính kèm ảnh hoặc video',
+            child: SizedBox(
+              width: 44,
+              height: 44,
+              child: Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  onTap: _isUploadingMedia ? null : _showMediaPickerSheet,
+                  customBorder: const CircleBorder(),
+                  child: Center(
+                    child: Container(
+                      width: 34,
+                      height: 34,
+                      decoration: BoxDecoration(
+                        color: _isUploadingMedia
+                            ? tokens.textMuted
+                            : tokens.greenAccent,
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        Icons.camera_alt_rounded,
+                        size: 18,
+                        color: tokens.primaryCtaText,
+                      ),
+                    ),
+                  ),
                 ),
               ),
             ),
           ),
-      ],
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 6),
+              child: TextField(
+                controller: _textController,
+                focusNode: _inputFocusNode,
+                minLines: 1,
+                maxLines: 4,
+                textCapitalization: TextCapitalization.sentences,
+                textInputAction: TextInputAction.newline,
+                onChanged: _handleTextChanged,
+                style: textTheme.bodyMedium?.copyWith(
+                  fontSize: 15,
+                  color: tokens.textPrimary,
+                  height: 1.35,
+                ),
+                decoration: InputDecoration(
+                  hintText: 'Nhắn tin...',
+                  hintStyle: textTheme.bodyMedium?.copyWith(
+                    fontSize: 15,
+                    color: tokens.textMuted,
+                  ),
+                  filled: false,
+                  isDense: true,
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 4,
+                    vertical: 11,
+                  ),
+                  border: InputBorder.none,
+                  enabledBorder: InputBorder.none,
+                  focusedBorder: InputBorder.none,
+                ),
+              ),
+            ),
+          ),
+          AnimatedSwitcher(
+            duration:
+                disableAnimations ? Duration.zero : const Duration(milliseconds: 160),
+            layoutBuilder: (currentChild, previousChildren) {
+              return Stack(
+                alignment: Alignment.center,
+                children: [
+                  for (final prev in previousChildren)
+                    IgnorePointer(child: prev),
+                  if (currentChild != null) currentChild,
+                ],
+              );
+            },
+            transitionBuilder: (child, animation) => FadeTransition(
+              opacity: animation,
+              child: ScaleTransition(
+                scale: Tween<double>(begin: 0.88, end: 1.0).animate(animation),
+                child: child,
+              ),
+            ),
+            child: _hasText
+                ? SizedBox(
+                    key: const ValueKey('dm-composer-send-btn'),
+                    width: 44,
+                    height: 44,
+                    child: Material(
+                      color: Colors.transparent,
+                      child: InkWell(
+                        onTap: isSending ? null : _sendTextMessage,
+                        customBorder: const CircleBorder(),
+                        child: Center(
+                          child: Container(
+                            width: 34,
+                            height: 34,
+                            decoration: BoxDecoration(
+                              color: tokens.greenAccent,
+                              shape: BoxShape.circle,
+                            ),
+                            child: Icon(
+                              Icons.send_rounded,
+                              size: 18,
+                              color: tokens.primaryCtaText,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  )
+                : Tooltip(
+                    key: const ValueKey('dm-composer-mic-btn'),
+                    message: 'Ghi âm tin nhắn thoại',
+                    child: SizedBox(
+                      width: 44,
+                      height: 44,
+                      child: Material(
+                        color: Colors.transparent,
+                        child: InkWell(
+                          onTap:
+                              _isUploadingMedia ? null : _startVoiceRecording,
+                          customBorder: const CircleBorder(),
+                          child: Center(
+                            child: Icon(
+                              Icons.mic_rounded,
+                              size: 22,
+                              color: _isUploadingMedia
+                                  ? tokens.textMuted
+                                  : tokens.textPrimary,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -1128,6 +1222,7 @@ class _ChatThreadAppBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
     final String? subtitle = peerIsTyping
         ? 'Đang nhập...'
         : (peer.showActivityStatus ? 'Đang hoạt động' : null);
@@ -1135,15 +1230,13 @@ class _ChatThreadAppBar extends StatelessWidget {
     return Container(
       height: 58,
       padding: const EdgeInsets.symmetric(horizontal: 8),
-      decoration: BoxDecoration(
-        color: tokens.canvas,
-        border: Border(bottom: BorderSide(color: tokens.border, width: 1)),
-      ),
+      color: tokens.canvas,
       child: Row(
         children: [
           IconButton(
             onPressed: onBack,
             tooltip: 'Quay lại',
+            constraints: const BoxConstraints(minWidth: 44, minHeight: 44),
             icon: Icon(
               Icons.arrow_back_rounded,
               color: tokens.textPrimary,
@@ -1153,7 +1246,7 @@ class _ChatThreadAppBar extends StatelessWidget {
           Expanded(
             child: InkWell(
               onTap: onTapPeer,
-              borderRadius: BorderRadius.circular(10),
+              borderRadius: BorderRadius.circular(12),
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
                 child: Row(
@@ -1199,8 +1292,8 @@ class _ChatThreadAppBar extends StatelessWidget {
                                   peer.name,
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
-                                  style: TextStyle(
-                                    fontSize: 15,
+                                  style: textTheme.titleSmall?.copyWith(
+                                    fontSize: 15.5,
                                     fontWeight: FontWeight.w700,
                                     color: tokens.textPrimary,
                                   ),
@@ -1221,7 +1314,7 @@ class _ChatThreadAppBar extends StatelessWidget {
                               subtitle,
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
-                              style: TextStyle(
+                              style: textTheme.labelSmall?.copyWith(
                                 fontSize: 12,
                                 fontWeight: peerIsTyping
                                     ? FontWeight.w600
@@ -1249,8 +1342,13 @@ class _MessageRow extends StatelessWidget {
   final DmMessage message;
   final DmParticipant peer;
   final bool isMine;
+  final bool sameAsPrev;
+  final bool sameAsNext;
+  final bool showSeenSpacing;
+  final bool isTimeRevealed;
   final String formattedTime;
   final SamanHomePalette tokens;
+  final VoidCallback onTapBubble;
   final VoidCallback? onLongPress;
   final ValueChanged<String> onOpenImage;
   final ValueChanged<String> onOpenVideo;
@@ -1260,8 +1358,13 @@ class _MessageRow extends StatelessWidget {
     required this.message,
     required this.peer,
     required this.isMine,
+    required this.sameAsPrev,
+    required this.sameAsNext,
+    required this.showSeenSpacing,
+    required this.isTimeRevealed,
     required this.formattedTime,
     required this.tokens,
+    required this.onTapBubble,
     required this.onLongPress,
     required this.onOpenImage,
     required this.onOpenVideo,
@@ -1270,47 +1373,72 @@ class _MessageRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final maxBubbleWidth = MediaQuery.sizeOf(context).width * 0.74;
+    final textTheme = Theme.of(context).textTheme;
+    final screenWidth = MediaQuery.sizeOf(context).width;
+    final maxBubbleWidth = screenWidth * 0.74;
+    final maxMediaWidth = screenWidth * 0.70;
+    final disableAnimations = MediaQuery.disableAnimationsOf(context);
 
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
+      padding: EdgeInsets.only(
+        bottom: showSeenSpacing ? 0 : (sameAsNext ? 2.5 : 12),
+      ),
       child: Row(
         mainAxisAlignment:
             isMine ? MainAxisAlignment.end : MainAxisAlignment.start,
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
           if (!isMine) ...[
-            _PeerCircleAvatar(
-              name: peer.name,
-              avatarUrl: peer.avatarUrl,
-              size: 28,
-              tokens: tokens,
-            ),
+            if (!sameAsNext)
+              _PeerCircleAvatar(
+                name: peer.name,
+                avatarUrl: peer.avatarUrl,
+                size: 28,
+                tokens: tokens,
+              )
+            else
+              const SizedBox(width: 28),
             const SizedBox(width: 8),
           ],
           Flexible(
             child: ConstrainedBox(
               constraints: BoxConstraints(maxWidth: maxBubbleWidth),
               child: GestureDetector(
+                behavior: HitTestBehavior.translucent,
+                onTap: onTapBubble,
                 onLongPress: onLongPress,
                 child: Column(
                   crossAxisAlignment: isMine
                       ? CrossAxisAlignment.end
                       : CrossAxisAlignment.start,
                   children: [
-                    _buildBubbleContent(context),
-                    const SizedBox(height: 3),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 4),
-                      child: Text(
-                        formattedTime,
-                        style: TextStyle(
-                          fontSize: 10,
-                          fontWeight: FontWeight.w500,
-                          color: tokens.textMuted,
-                          fontFeatures: const [FontFeature.tabularFigures()],
-                        ),
-                      ),
+                    _buildBubbleContent(context, maxMediaWidth: maxMediaWidth),
+                    AnimatedSize(
+                      duration: disableAnimations
+                          ? Duration.zero
+                          : const Duration(milliseconds: 160),
+                      curve: Curves.easeOutCubic,
+                      child: isTimeRevealed
+                          ? Padding(
+                              padding: const EdgeInsets.only(
+                                top: 4,
+                                left: 6,
+                                right: 6,
+                                bottom: 2,
+                              ),
+                              child: Text(
+                                formattedTime,
+                                style: textTheme.labelSmall?.copyWith(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w500,
+                                  color: tokens.textMuted,
+                                  fontFeatures: const [
+                                    FontFeature.tabularFigures(),
+                                  ],
+                                ),
+                              ),
+                            )
+                          : const SizedBox.shrink(),
                     ),
                   ],
                 ),
@@ -1323,22 +1451,60 @@ class _MessageRow extends StatelessWidget {
   }
 
   BorderRadius _bubbleRadius() {
+    if (isMine) {
+      return BorderRadius.only(
+        topLeft: const Radius.circular(20),
+        bottomLeft: const Radius.circular(20),
+        topRight: Radius.circular(sameAsPrev ? 5 : 20),
+        bottomRight: Radius.circular(sameAsNext ? 5 : 20),
+      );
+    }
     return BorderRadius.only(
-      topLeft: const Radius.circular(16),
-      topRight: const Radius.circular(16),
-      bottomLeft: Radius.circular(isMine ? 16 : 4),
-      bottomRight: Radius.circular(isMine ? 4 : 16),
+      topRight: const Radius.circular(20),
+      bottomRight: const Radius.circular(20),
+      topLeft: Radius.circular(sameAsPrev ? 5 : 20),
+      bottomLeft: Radius.circular(sameAsNext ? 5 : 20),
     );
   }
 
-  Widget _buildBubbleContent(BuildContext context) {
+  BoxDecoration _myBubbleDecoration() {
+    return BoxDecoration(
+      gradient: tokens.isDark
+          ? const LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [Color(0xFF087F66), Color(0xFF10B981)],
+            )
+          : null,
+      color: tokens.isDark ? null : const Color(0xFF059669),
+      borderRadius: _bubbleRadius(),
+    );
+  }
+
+  BoxDecoration _peerBubbleDecoration() {
+    return BoxDecoration(
+      color: tokens.cardSurfaceElevated,
+      borderRadius: _bubbleRadius(),
+    );
+  }
+
+  BoxDecoration _surfaceDecoration() {
+    return isMine ? _myBubbleDecoration() : _peerBubbleDecoration();
+  }
+
+  Widget _buildBubbleContent(
+    BuildContext context, {
+    required double maxMediaWidth,
+  }) {
+    final textTheme = Theme.of(context).textTheme;
+
     if (message.isDeleted) {
       return Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
         decoration: BoxDecoration(
           color: tokens.cardSurface,
           borderRadius: _bubbleRadius(),
-          border: Border.all(color: tokens.border),
+          border: Border.all(color: tokens.border, width: 0.8),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
@@ -1352,8 +1518,8 @@ class _MessageRow extends StatelessWidget {
             Flexible(
               child: Text(
                 'Tin nhắn đã bị thu hồi',
-                style: TextStyle(
-                  fontSize: 13,
+                style: textTheme.bodySmall?.copyWith(
+                  fontSize: 13.5,
                   fontStyle: FontStyle.italic,
                   color: tokens.textMuted,
                 ),
@@ -1368,11 +1534,7 @@ class _MessageRow extends StatelessWidget {
       case DmMessageType.voice:
         return Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-          decoration: BoxDecoration(
-            color: isMine ? tokens.greenAccent : tokens.cardSurface,
-            borderRadius: _bubbleRadius(),
-            border: isMine ? null : Border.all(color: tokens.border),
-          ),
+          decoration: _surfaceDecoration(),
           child: DmVoiceBubble(
             mediaUrl: message.mediaUrl ?? '',
             durationSeconds: message.durationSeconds,
@@ -1382,53 +1544,44 @@ class _MessageRow extends StatelessWidget {
         );
 
       case DmMessageType.photo:
-        return _buildPhotoBubble();
+        return _buildPhotoBubble(context, maxMediaWidth: maxMediaWidth);
 
       case DmMessageType.video:
-        return _buildVideoBubble();
+        return _buildVideoBubble(context, maxMediaWidth: maxMediaWidth);
 
       case DmMessageType.postShare:
-        return _buildPostShareBubble();
+        return _buildPostShareBubble(context, maxMediaWidth: maxMediaWidth);
 
       case DmMessageType.storyReply:
-        return _buildStoryReplyBubble();
+        return _buildStoryReplyBubble(context);
 
       case DmMessageType.text:
         return Container(
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-          decoration: BoxDecoration(
-            color: isMine ? tokens.greenAccent : tokens.cardSurface,
-            borderRadius: _bubbleRadius(),
-            border: isMine ? null : Border.all(color: tokens.border),
-          ),
+          decoration: _surfaceDecoration(),
           child: Text(
             message.content,
-            style: TextStyle(
-              fontSize: 14,
-              height: 1.4,
-              color: isMine ? tokens.primaryCtaText : tokens.textPrimary,
+            style: textTheme.bodyMedium?.copyWith(
+              fontSize: 15,
+              height: 1.35,
+              color: isMine ? Colors.white : tokens.textPrimary,
             ),
           ),
         );
     }
   }
 
-  Widget _buildStoryReplyBubble() {
-    final fgColor = isMine ? tokens.primaryCtaText : tokens.textPrimary;
-    final quoteColor = isMine
-        ? tokens.primaryCtaText.withOpacity(0.75)
-        : tokens.greenAccent;
-    final quoteBg = isMine
-        ? tokens.primaryCtaText.withOpacity(0.12)
-        : tokens.secondarySurface;
+  Widget _buildStoryReplyBubble(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+    final fgColor = isMine ? Colors.white : tokens.textPrimary;
+    final quoteColor =
+        isMine ? Colors.white.withOpacity(0.88) : tokens.greenAccent;
+    final quoteBg =
+        isMine ? Colors.white.withOpacity(0.16) : tokens.cardSurface;
 
     return Container(
-      padding: const EdgeInsets.all(10),
-      decoration: BoxDecoration(
-        color: isMine ? tokens.greenAccent : tokens.cardSurface,
-        borderRadius: _bubbleRadius(),
-        border: isMine ? null : Border.all(color: tokens.border),
-      ),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: _surfaceDecoration(),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
@@ -1437,7 +1590,7 @@ class _MessageRow extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
             decoration: BoxDecoration(
               color: quoteBg,
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(10),
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
@@ -1450,8 +1603,8 @@ class _MessageRow extends StatelessWidget {
                 const SizedBox(width: 5),
                 Text(
                   'Đã trả lời tin',
-                  style: TextStyle(
-                    fontSize: 11,
+                  style: textTheme.labelSmall?.copyWith(
+                    fontSize: 11.5,
                     fontWeight: FontWeight.w600,
                     color: quoteColor,
                   ),
@@ -1461,10 +1614,12 @@ class _MessageRow extends StatelessWidget {
           ),
           const SizedBox(height: 6),
           Text(
-            message.content.isNotEmpty ? message.content : 'Đã phản hồi tin 24h',
-            style: TextStyle(
-              fontSize: 14,
-              height: 1.4,
+            message.content.isNotEmpty
+                ? message.content
+                : 'Đã phản hồi tin 24h',
+            style: textTheme.bodyMedium?.copyWith(
+              fontSize: 15,
+              height: 1.35,
               color: fgColor,
             ),
           ),
@@ -1473,8 +1628,14 @@ class _MessageRow extends StatelessWidget {
     );
   }
 
-  Widget _buildPhotoBubble() {
+  Widget _buildPhotoBubble(
+    BuildContext context, {
+    required double maxMediaWidth,
+  }) {
+    final textTheme = Theme.of(context).textTheme;
     final url = message.mediaUrl ?? '';
+    final width = maxMediaWidth.clamp(180.0, 260.0);
+
     return Column(
       crossAxisAlignment:
           isMine ? CrossAxisAlignment.end : CrossAxisAlignment.start,
@@ -1482,12 +1643,11 @@ class _MessageRow extends StatelessWidget {
         GestureDetector(
           onTap: url.isNotEmpty ? () => onOpenImage(url) : null,
           child: Container(
-            width: 224,
-            height: 200,
+            width: width,
+            height: 210,
             decoration: BoxDecoration(
-              color: tokens.cardSurface,
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: tokens.border),
+              color: tokens.cardSurfaceElevated,
+              borderRadius: BorderRadius.circular(18),
             ),
             clipBehavior: Clip.antiAlias,
             child: url.isNotEmpty
@@ -1519,8 +1679,8 @@ class _MessageRow extends StatelessWidget {
                           const SizedBox(height: 4),
                           Text(
                             'Không thể tải ảnh',
-                            style: TextStyle(
-                              fontSize: 11,
+                            style: textTheme.labelSmall?.copyWith(
+                              fontSize: 11.5,
                               color: tokens.textMuted,
                             ),
                           ),
@@ -1540,17 +1700,14 @@ class _MessageRow extends StatelessWidget {
         if (message.content.isNotEmpty) ...[
           const SizedBox(height: 4),
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            decoration: BoxDecoration(
-              color: isMine ? tokens.greenAccent : tokens.cardSurface,
-              borderRadius: _bubbleRadius(),
-              border: isMine ? null : Border.all(color: tokens.border),
-            ),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            decoration: _surfaceDecoration(),
             child: Text(
               message.content,
-              style: TextStyle(
-                fontSize: 13,
-                color: isMine ? tokens.primaryCtaText : tokens.textPrimary,
+              style: textTheme.bodyMedium?.copyWith(
+                fontSize: 15,
+                height: 1.35,
+                color: isMine ? Colors.white : tokens.textPrimary,
               ),
             ),
           ),
@@ -1559,8 +1716,13 @@ class _MessageRow extends StatelessWidget {
     );
   }
 
-  Widget _buildVideoBubble() {
+  Widget _buildVideoBubble(
+    BuildContext context, {
+    required double maxMediaWidth,
+  }) {
+    final textTheme = Theme.of(context).textTheme;
     final url = message.mediaUrl ?? '';
+    final width = maxMediaWidth.clamp(180.0, 260.0);
     final durationLabel = message.durationSeconds != null &&
             message.durationSeconds! > 0
         ? '${message.durationSeconds!.round() ~/ 60}:${(message.durationSeconds!.round() % 60).toString().padLeft(2, '0')}'
@@ -1573,12 +1735,11 @@ class _MessageRow extends StatelessWidget {
         GestureDetector(
           onTap: url.isNotEmpty ? () => onOpenVideo(url) : null,
           child: Container(
-            width: 224,
-            height: 152,
+            width: width,
+            height: 168,
             decoration: BoxDecoration(
-              color: tokens.secondarySurface,
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: tokens.border),
+              color: tokens.cardSurfaceElevated,
+              borderRadius: BorderRadius.circular(18),
             ),
             clipBehavior: Clip.antiAlias,
             child: Stack(
@@ -1588,24 +1749,33 @@ class _MessageRow extends StatelessWidget {
                   child: Icon(
                     Icons.videocam_rounded,
                     size: 42,
-                    color: tokens.textMuted.withOpacity(0.35),
+                    color: tokens.textMuted.withOpacity(0.32),
                   ),
                 ),
                 Container(
-                  color: tokens.canvas.withOpacity(0.28),
+                  color: Colors.black.withOpacity(0.18),
                 ),
                 Center(
-                  child: Container(
-                    width: 52,
-                    height: 52,
-                    decoration: BoxDecoration(
-                      color: tokens.greenAccent,
-                      shape: BoxShape.circle,
-                    ),
-                    child: Icon(
-                      Icons.play_arrow_rounded,
-                      size: 30,
-                      color: tokens.primaryCtaText,
+                  child: ClipOval(
+                    child: BackdropFilter(
+                      filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                      child: Container(
+                        width: 54,
+                        height: 54,
+                        decoration: BoxDecoration(
+                          color: Colors.black.withOpacity(0.36),
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: Colors.white.withOpacity(0.32),
+                            width: 1,
+                          ),
+                        ),
+                        child: const Icon(
+                          Icons.play_arrow_rounded,
+                          size: 32,
+                          color: Colors.white,
+                        ),
+                      ),
                     ),
                   ),
                 ),
@@ -1616,15 +1786,15 @@ class _MessageRow extends StatelessWidget {
                     padding:
                         const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                     decoration: BoxDecoration(
-                      color: tokens.canvas.withOpacity(0.8),
-                      borderRadius: BorderRadius.circular(6),
+                      color: Colors.black.withOpacity(0.65),
+                      borderRadius: BorderRadius.circular(8),
                     ),
                     child: Text(
                       durationLabel,
-                      style: TextStyle(
+                      style: textTheme.labelSmall?.copyWith(
                         fontSize: 11,
                         fontWeight: FontWeight.w600,
-                        color: tokens.textPrimary,
+                        color: Colors.white,
                         fontFeatures: const [FontFeature.tabularFigures()],
                       ),
                     ),
@@ -1637,17 +1807,14 @@ class _MessageRow extends StatelessWidget {
         if (message.content.isNotEmpty) ...[
           const SizedBox(height: 4),
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            decoration: BoxDecoration(
-              color: isMine ? tokens.greenAccent : tokens.cardSurface,
-              borderRadius: _bubbleRadius(),
-              border: isMine ? null : Border.all(color: tokens.border),
-            ),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            decoration: _surfaceDecoration(),
             child: Text(
               message.content,
-              style: TextStyle(
-                fontSize: 13,
-                color: isMine ? tokens.primaryCtaText : tokens.textPrimary,
+              style: textTheme.bodyMedium?.copyWith(
+                fontSize: 15,
+                height: 1.35,
+                color: isMine ? Colors.white : tokens.textPrimary,
               ),
             ),
           ),
@@ -1656,63 +1823,45 @@ class _MessageRow extends StatelessWidget {
     );
   }
 
-  Widget _buildPostShareBubble() {
+  Widget _buildPostShareBubble(
+    BuildContext context, {
+    required double maxMediaWidth,
+  }) {
+    final textTheme = Theme.of(context).textTheme;
     final preview = message.sharedPostPreview;
     final postId = message.sharedPostId ?? preview?.id;
+    final cardWidth = maxMediaWidth.clamp(210.0, 256.0);
+    final hasThumbnail =
+        preview?.thumbnailUrl != null && preview!.thumbnailUrl!.isNotEmpty;
 
     return InkWell(
       onTap: postId != null && postId.isNotEmpty
           ? () => onOpenSharedPost(postId)
           : null,
-      borderRadius: BorderRadius.circular(14),
+      borderRadius: BorderRadius.circular(18),
       child: Container(
-        width: 240,
+        width: cardWidth,
         decoration: BoxDecoration(
           color: tokens.cardSurface,
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: BorderRadius.circular(18),
           border: Border.all(
-            color: isMine ? tokens.greenBadgeBorder : tokens.border,
+            color: tokens.border,
+            width: 0.6,
           ),
         ),
         clipBehavior: Clip.antiAlias,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(12, 10, 12, 8),
-              child: Row(
-                children: [
-                  Icon(
-                    Icons.article_outlined,
-                    size: 15,
-                    color: tokens.greenAccent,
-                  ),
-                  const SizedBox(width: 6),
-                  Expanded(
-                    child: Text(
-                      preview?.authorName ?? 'Bài viết cộng đồng',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w700,
-                        color: tokens.textPrimary,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            if (preview?.thumbnailUrl != null &&
-                preview!.thumbnailUrl!.isNotEmpty)
+            if (hasThumbnail)
               SizedBox(
                 width: double.infinity,
-                height: 120,
+                height: 140,
                 child: Image.network(
                   preview.thumbnailUrl!,
                   fit: BoxFit.cover,
                   errorBuilder: (_, __, ___) => Container(
-                    color: tokens.secondarySurface,
+                    color: tokens.cardSurfaceElevated,
                     child: Center(
                       child: Icon(
                         Icons.image_not_supported_outlined,
@@ -1723,10 +1872,33 @@ class _MessageRow extends StatelessWidget {
                 ),
               ),
             Padding(
-              padding: const EdgeInsets.fromLTRB(12, 8, 12, 10),
+              padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.article_outlined,
+                        size: 14,
+                        color: tokens.greenAccent,
+                      ),
+                      const SizedBox(width: 6),
+                      Expanded(
+                        child: Text(
+                          preview?.authorName ?? 'Bài viết cộng đồng',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: textTheme.titleSmall?.copyWith(
+                            fontSize: 13.5,
+                            fontWeight: FontWeight.w700,
+                            color: tokens.textPrimary,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 6),
                   Text(
                     (preview?.caption.isNotEmpty ?? false)
                         ? preview!.caption
@@ -1735,30 +1907,41 @@ class _MessageRow extends StatelessWidget {
                             : 'Xem bài viết đã chia sẻ trong cộng đồng Saman'),
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
+                    style: textTheme.bodySmall?.copyWith(
                       fontSize: 13,
                       color: tokens.textSecondary,
                       height: 1.35,
                     ),
                   ),
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      Text(
-                        'Xem bài viết',
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
+                  const SizedBox(height: 10),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 5,
+                    ),
+                    decoration: BoxDecoration(
+                      color: tokens.greenBadgeBg,
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          'Xem bài viết',
+                          style: textTheme.labelSmall?.copyWith(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: tokens.greenAccent,
+                          ),
+                        ),
+                        const SizedBox(width: 4),
+                        Icon(
+                          Icons.arrow_forward_rounded,
+                          size: 13,
                           color: tokens.greenAccent,
                         ),
-                      ),
-                      const SizedBox(width: 4),
-                      Icon(
-                        Icons.arrow_forward_rounded,
-                        size: 14,
-                        color: tokens.greenAccent,
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ],
               ),
@@ -1781,8 +1964,10 @@ class _TypingIndicatorRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6),
+      padding: const EdgeInsets.only(top: 2, bottom: 10),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
@@ -1796,21 +1981,20 @@ class _TypingIndicatorRow extends StatelessWidget {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
             decoration: BoxDecoration(
-              color: tokens.cardSurface,
+              color: tokens.cardSurfaceElevated,
               borderRadius: const BorderRadius.only(
-                topLeft: Radius.circular(16),
-                topRight: Radius.circular(16),
-                bottomRight: Radius.circular(16),
-                bottomLeft: Radius.circular(4),
+                topLeft: Radius.circular(20),
+                topRight: Radius.circular(20),
+                bottomRight: Radius.circular(20),
+                bottomLeft: Radius.circular(5),
               ),
-              border: Border.all(color: tokens.border),
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
                   'Đang nhập',
-                  style: TextStyle(
+                  style: textTheme.labelSmall?.copyWith(
                     fontSize: 12,
                     fontWeight: FontWeight.w500,
                     color: tokens.greenAccent,
@@ -1850,6 +2034,62 @@ class _TypingDot extends StatelessWidget {
   }
 }
 
+class _PulsingRecordDot extends StatefulWidget {
+  final Color color;
+
+  const _PulsingRecordDot({required this.color});
+
+  @override
+  State<_PulsingRecordDot> createState() => _PulsingRecordDotState();
+}
+
+class _PulsingRecordDotState extends State<_PulsingRecordDot>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 700),
+    )..repeat(reverse: true);
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final disableAnimations = MediaQuery.disableAnimationsOf(context);
+    if (disableAnimations) {
+      return Container(
+        width: 10,
+        height: 10,
+        decoration: BoxDecoration(
+          color: widget.color,
+          shape: BoxShape.circle,
+        ),
+      );
+    }
+
+    return FadeTransition(
+      opacity: Tween<double>(begin: 0.35, end: 1.0).animate(_controller),
+      child: Container(
+        width: 10,
+        height: 10,
+        decoration: BoxDecoration(
+          color: widget.color,
+          shape: BoxShape.circle,
+        ),
+      ),
+    );
+  }
+}
+
 class _MediaPickerOptionTile extends StatelessWidget {
   final IconData icon;
   final String title;
@@ -1867,14 +2107,17 @@ class _MediaPickerOptionTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
+      borderRadius: BorderRadius.circular(14),
       child: Container(
+        constraints: const BoxConstraints(minHeight: 56),
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
         decoration: BoxDecoration(
           color: tokens.secondarySurface,
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(14),
           border: Border.all(color: tokens.border),
         ),
         child: Row(
@@ -1895,7 +2138,7 @@ class _MediaPickerOptionTile extends StatelessWidget {
                 children: [
                   Text(
                     title,
-                    style: TextStyle(
+                    style: textTheme.titleSmall?.copyWith(
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
                       color: tokens.textPrimary,
@@ -1904,7 +2147,7 @@ class _MediaPickerOptionTile extends StatelessWidget {
                   const SizedBox(height: 2),
                   Text(
                     subtitle,
-                    style: TextStyle(
+                    style: textTheme.bodySmall?.copyWith(
                       fontSize: 12,
                       color: tokens.textSecondary,
                     ),
@@ -1939,6 +2182,7 @@ class _PeerCircleAvatar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
     final initial = name.trim().isNotEmpty ? name.trim()[0].toUpperCase() : 'S';
 
     return Container(
@@ -1957,7 +2201,7 @@ class _PeerCircleAvatar extends StatelessWidget {
               errorBuilder: (_, __, ___) => Center(
                 child: Text(
                   initial,
-                  style: TextStyle(
+                  style: textTheme.titleSmall?.copyWith(
                     fontSize: size * 0.4,
                     fontWeight: FontWeight.w700,
                     color: tokens.greenAccent,
@@ -1968,7 +2212,7 @@ class _PeerCircleAvatar extends StatelessWidget {
           : Center(
               child: Text(
                 initial,
-                style: TextStyle(
+                style: textTheme.titleSmall?.copyWith(
                   fontSize: size * 0.4,
                   fontWeight: FontWeight.w700,
                   color: tokens.greenAccent,

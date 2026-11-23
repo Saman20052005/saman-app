@@ -247,6 +247,7 @@ class _JournalArticleDetailScreenState
       surfaceTintColor: Colors.transparent,
       leading: IconButton(
         key: const ValueKey('article_detail_back_button'),
+        constraints: const BoxConstraints(minWidth: 44, minHeight: 44),
         icon: Icon(
           Icons.arrow_back_rounded,
           color: tokens.textPrimary,
@@ -262,36 +263,39 @@ class _JournalArticleDetailScreenState
       ),
       actions: [
         Padding(
-          padding: const EdgeInsets.symmetric(vertical: 10),
+          padding: const EdgeInsets.symmetric(vertical: 6),
           child: Material(
             color: Colors.transparent,
             child: InkWell(
               key: const ValueKey('article_detail_font_toggle'),
               onTap: _toggleFontSize,
               borderRadius: BorderRadius.circular(SamanHomeTokens.radiusSm),
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                decoration: BoxDecoration(
-                  color: _isLargeText
-                      ? tokens.greenBadgeBg
-                      : tokens.cardSurfaceElevated,
-                  borderRadius: BorderRadius.circular(SamanHomeTokens.radiusSm),
-                  border: Border.all(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(minWidth: 44, minHeight: 44),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
                     color: _isLargeText
-                        ? tokens.greenBadgeBorder
-                        : tokens.borderSubtle,
-                    width: 1,
+                        ? tokens.greenBadgeBg
+                        : tokens.cardSurfaceElevated,
+                    borderRadius: BorderRadius.circular(SamanHomeTokens.radiusSm),
+                    border: Border.all(
+                      color: _isLargeText
+                          ? tokens.greenBadgeBorder
+                          : tokens.borderSubtle,
+                      width: 1,
+                    ),
                   ),
-                ),
-                alignment: Alignment.center,
-                child: Text(
-                  'Aa',
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w700,
-                    color: _isLargeText
-                        ? tokens.greenAccent
-                        : tokens.textPrimary,
+                  alignment: Alignment.center,
+                  child: Text(
+                    'Aa',
+                    style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                      color: _isLargeText
+                          ? tokens.greenAccent
+                          : tokens.textPrimary,
+                    ),
                   ),
                 ),
               ),
@@ -301,6 +305,7 @@ class _JournalArticleDetailScreenState
         const SizedBox(width: 4),
         IconButton(
           key: const ValueKey('article_detail_bookmark_button'),
+          constraints: const BoxConstraints(minWidth: 44, minHeight: 44),
           icon: Icon(
             _isBookmarked
                 ? Icons.bookmark_rounded
@@ -378,7 +383,7 @@ class _JournalArticleDetailScreenState
                     Flexible(
                       child: Text(
                         '${article.readTimeMinutes} phút đọc',
-                        style: TextStyle(
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
                           fontSize: 12.5,
                           fontWeight: FontWeight.w500,
                           color: tokens.textSecondary,
@@ -392,7 +397,7 @@ class _JournalArticleDetailScreenState
                 // Article title
                 Text(
                   article.title,
-                  style: TextStyle(
+                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                     fontSize: _isLargeText ? 24 : 22,
                     fontWeight: FontWeight.w700,
                     color: tokens.textPrimary,
@@ -449,7 +454,7 @@ class _JournalArticleDetailScreenState
                     Expanded(
                       child: Text(
                         'Saman Journal • Nội dung nghiên cứu',
-                        style: TextStyle(
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
                           fontSize: 12,
                           fontWeight: FontWeight.w500,
                           color: tokens.textMuted,
@@ -500,15 +505,15 @@ class _JournalArticleDetailScreenState
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
               decoration: BoxDecoration(
                 color: tokens.greenAccent,
-                borderRadius: BorderRadius.circular(SamanHomeTokens.radiusXs),
+                borderRadius: BorderRadius.circular(SamanHomeTokens.radiusSm),
               ),
               child: Text(
                 badgeText,
-                style: TextStyle(
+                style: Theme.of(context).textTheme.labelSmall?.copyWith(
                   fontSize: 10.5,
                   fontWeight: FontWeight.w700,
                   letterSpacing: 0.8,
-                  color: tokens.isDark ? tokens.canvas : tokens.cardSurface,
+                  color: Theme.of(context).colorScheme.onPrimary,
                 ),
               ),
             ),
@@ -594,7 +599,7 @@ class _JournalArticleDetailScreenState
                   children: [
                     Text(
                       'TÓM TẮT',
-                      style: TextStyle(
+                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
                         fontSize: 10.5,
                         fontWeight: FontWeight.w700,
                         letterSpacing: 1.0,
@@ -604,7 +609,7 @@ class _JournalArticleDetailScreenState
                     const SizedBox(height: 6),
                     Text(
                       summary,
-                      style: TextStyle(
+                      style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                         fontSize: _isLargeText ? 16 : 14.5,
                         fontWeight: FontWeight.w400,
                         color: tokens.textSecondary,
@@ -645,7 +650,7 @@ class _JournalArticleDetailScreenState
             ),
             child: Text(
               heading,
-              style: TextStyle(
+              style: Theme.of(context).textTheme.titleLarge?.copyWith(
                 fontSize: 17.5,
                 fontWeight: FontWeight.w700,
                 color: tokens.textPrimary,
@@ -661,11 +666,11 @@ class _JournalArticleDetailScreenState
             padding: const EdgeInsets.only(bottom: 14),
             child: Text(
               block,
-              style: TextStyle(
+              style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                 fontSize: bodyFontSize,
                 fontWeight: FontWeight.w400,
                 color: tokens.textPrimary,
-                height: 1.68,
+                height: 1.65,
               ),
             ),
           ),
@@ -689,7 +694,7 @@ class _JournalArticleDetailScreenState
         children: [
           Text(
             'Không thể tải toàn bộ nội dung bài viết.',
-            style: TextStyle(
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
               fontSize: 14,
               fontWeight: FontWeight.w600,
               color: tokens.textPrimary,
@@ -701,6 +706,10 @@ class _JournalArticleDetailScreenState
             style: ElevatedButton.styleFrom(
               backgroundColor: tokens.actionButtonSurface,
               foregroundColor: tokens.textPrimary,
+              minimumSize: const Size(0, 44),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(SamanHomeTokens.radiusMd),
+              ),
               elevation: 0,
             ),
             child: const Text('Thử lại'),
@@ -734,8 +743,7 @@ class _JournalArticleDetailScreenState
           Text(
             'Không thể tải bài viết',
             textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: 16,
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
               fontWeight: FontWeight.w700,
               color: tokens.textPrimary,
             ),
@@ -744,8 +752,7 @@ class _JournalArticleDetailScreenState
           Text(
             _errorMessage ?? 'Vui lòng kiểm tra kết nối mạng và thử lại.',
             textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: 13,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
               color: tokens.textSecondary,
               height: 1.45,
             ),
@@ -756,6 +763,10 @@ class _JournalArticleDetailScreenState
             style: ElevatedButton.styleFrom(
               backgroundColor: tokens.actionButtonSurface,
               foregroundColor: tokens.textPrimary,
+              minimumSize: const Size(0, 44),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(SamanHomeTokens.radiusMd),
+              ),
               elevation: 0,
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
             ),
@@ -790,8 +801,7 @@ class _JournalArticleDetailScreenState
           Text(
             'Không tìm thấy bài viết',
             textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: 16,
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
               fontWeight: FontWeight.w700,
               color: tokens.textPrimary,
             ),
@@ -800,8 +810,7 @@ class _JournalArticleDetailScreenState
           Text(
             'Bài viết này có thể đã bị gỡ hoặc không còn khả dụng trong Saman Journal.',
             textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: 13,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
               color: tokens.textSecondary,
               height: 1.45,
             ),
@@ -812,6 +821,10 @@ class _JournalArticleDetailScreenState
             style: ElevatedButton.styleFrom(
               backgroundColor: tokens.actionButtonSurface,
               foregroundColor: tokens.textPrimary,
+              minimumSize: const Size(0, 44),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(SamanHomeTokens.radiusMd),
+              ),
               elevation: 0,
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
             ),

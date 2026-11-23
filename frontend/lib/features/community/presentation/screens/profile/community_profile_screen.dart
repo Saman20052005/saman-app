@@ -213,8 +213,7 @@ class _CommunityProfileScreenState
       ),
       builder: (ctx) {
         final tokens = SamanHomeTokens.of(ctx);
-        final dangerColor =
-            tokens.isDark ? Colors.redAccent : const Color(0xFFDC2626);
+        final dangerColor = Theme.of(ctx).colorScheme.error;
         return SafeArea(
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -227,7 +226,9 @@ class _CommunityProfileScreenState
                 ),
                 title: Text(
                   context.tr('profile_action_mute_user'),
-                  style: TextStyle(color: tokens.textPrimary),
+                  style: Theme.of(ctx).textTheme.bodyMedium?.copyWith(
+                    color: tokens.textPrimary,
+                  ),
                 ),
                 onTap: () async {
                   Navigator.pop(ctx);
@@ -239,7 +240,9 @@ class _CommunityProfileScreenState
                 leading: Icon(Icons.block_rounded, color: dangerColor),
                 title: Text(
                   context.tr('profile_action_block_user'),
-                  style: TextStyle(color: dangerColor),
+                  style: Theme.of(ctx).textTheme.bodyMedium?.copyWith(
+                    color: dangerColor,
+                  ),
                 ),
                 onTap: () {
                   Navigator.pop(ctx);
@@ -251,7 +254,9 @@ class _CommunityProfileScreenState
                 leading: Icon(Icons.flag_outlined, color: dangerColor),
                 title: Text(
                   context.tr('profile_action_report_user'),
-                  style: TextStyle(color: dangerColor),
+                  style: Theme.of(ctx).textTheme.bodyMedium?.copyWith(
+                    color: dangerColor,
+                  ),
                 ),
                 onTap: () {
                   Navigator.pop(ctx);
@@ -292,27 +297,30 @@ class _CommunityProfileScreenState
       context: context,
       builder: (dialogCtx) {
         final tokens = SamanHomeTokens.of(dialogCtx);
-        final dangerColor =
-            tokens.isDark ? Colors.redAccent : const Color(0xFFDC2626);
+        final dangerColor = Theme.of(dialogCtx).colorScheme.error;
         return AlertDialog(
           backgroundColor: tokens.cardSurface,
           title: Text(
             context.tr('post_block_confirm_title'),
-            style: TextStyle(
+            style: Theme.of(dialogCtx).textTheme.titleMedium?.copyWith(
               color: tokens.textPrimary,
-              fontWeight: FontWeight.bold,
+              fontWeight: FontWeight.w700,
             ),
           ),
           content: Text(
             context.tr('post_block_confirm_msg'),
-            style: TextStyle(color: tokens.textSecondary),
+            style: Theme.of(dialogCtx).textTheme.bodyMedium?.copyWith(
+              color: tokens.textSecondary,
+            ),
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(dialogCtx, false),
               child: Text(
                 context.tr('compose_discard'),
-                style: TextStyle(color: tokens.textMuted),
+                style: Theme.of(dialogCtx).textTheme.labelLarge?.copyWith(
+                  color: tokens.textMuted,
+                ),
               ),
             ),
             TextButton(
@@ -320,7 +328,9 @@ class _CommunityProfileScreenState
               onPressed: () => Navigator.pop(dialogCtx, true),
               child: Text(
                 context.tr('post_block_confirm_btn'),
-                style: TextStyle(color: dangerColor),
+                style: Theme.of(dialogCtx).textTheme.labelLarge?.copyWith(
+                  color: dangerColor,
+                ),
               ),
             ),
           ],
@@ -381,8 +391,7 @@ class _CommunityProfileScreenState
               children: [
                 Text(
                   context.tr('profile_action_report_user'),
-                  style: TextStyle(
-                    fontSize: 16,
+                  style: Theme.of(sheetCtx).textTheme.titleMedium?.copyWith(
                     fontWeight: FontWeight.w700,
                     color: sheetTokens.textPrimary,
                   ),
@@ -393,7 +402,7 @@ class _CommunityProfileScreenState
                     contentPadding: EdgeInsets.zero,
                     title: Text(
                       context.tr(r.labelKey),
-                      style: TextStyle(
+                      style: Theme.of(sheetCtx).textTheme.bodyMedium?.copyWith(
                         fontSize: 14,
                         color: sheetTokens.textPrimary,
                       ),
@@ -503,6 +512,7 @@ class _CommunityProfileScreenState
                                     child: TabBar(
                                       controller: _tabController,
                                       indicatorColor: tokens.greenAccent,
+                                      dividerColor: tokens.borderSubtle,
                                       labelColor: tokens.greenAccent,
                                       unselectedLabelColor:
                                           tokens.textSecondary,
@@ -515,6 +525,10 @@ class _CommunityProfileScreenState
                                   ),
                                   IconButton(
                                     key: const ValueKey('profile-view-toggle'),
+                                    constraints: const BoxConstraints(
+                                      minWidth: 44,
+                                      minHeight: 44,
+                                    ),
                                     onPressed: () {
                                       setState(
                                         () => _isGridView = !_isGridView,
@@ -597,6 +611,7 @@ class _CommunityProfileScreenState
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           IconButton(
+            constraints: const BoxConstraints(minWidth: 44, minHeight: 44),
             onPressed: () => Navigator.pop(context),
             icon: Icon(
               Icons.arrow_back_rounded,
@@ -609,8 +624,7 @@ class _CommunityProfileScreenState
               handleText,
               textAlign: TextAlign.center,
               overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                fontSize: 16,
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
                 fontWeight: FontWeight.w700,
                 color: tokens.textPrimary,
               ),
@@ -622,6 +636,10 @@ class _CommunityProfileScreenState
               if (_isMe)
                 IconButton(
                   key: const ValueKey('profile-settings-btn'),
+                  constraints: const BoxConstraints(
+                    minWidth: 44,
+                    minHeight: 44,
+                  ),
                   onPressed: () {
                     Navigator.pushNamed(context, AppRoutes.communitySettings);
                   },
@@ -634,6 +652,10 @@ class _CommunityProfileScreenState
               else
                 IconButton(
                   key: const ValueKey('profile-more-btn'),
+                  constraints: const BoxConstraints(
+                    minWidth: 44,
+                    minHeight: 44,
+                  ),
                   onPressed: () => _showUserOptionsSheet(context, author),
                   icon: Icon(
                     Icons.more_horiz_rounded,
@@ -684,22 +706,28 @@ class _CommunityProfileScreenState
                         errorBuilder: (_, __, ___) => Center(
                           child: Text(
                             initial,
-                            style: TextStyle(
-                              fontSize: 28,
-                              fontWeight: FontWeight.w700,
-                              color: tokens.greenAccent,
-                            ),
+                            style: Theme.of(context)
+                                .textTheme
+                                .headlineMedium
+                                ?.copyWith(
+                                  fontSize: 28,
+                                  fontWeight: FontWeight.w700,
+                                  color: tokens.greenAccent,
+                                ),
                           ),
                         ),
                       )
                     : Center(
                         child: Text(
                           initial,
-                          style: TextStyle(
-                            fontSize: 28,
-                            fontWeight: FontWeight.w700,
-                            color: tokens.greenAccent,
-                          ),
+                          style: Theme.of(context)
+                              .textTheme
+                              .headlineMedium
+                              ?.copyWith(
+                                fontSize: 28,
+                                fontWeight: FontWeight.w700,
+                                color: tokens.greenAccent,
+                              ),
                         ),
                       ),
               ),
@@ -714,11 +742,14 @@ class _CommunityProfileScreenState
                           child: Text(
                             author.name,
                             overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.w700,
-                              color: tokens.textPrimary,
-                            ),
+                            style: Theme.of(context)
+                                .textTheme
+                                .titleLarge
+                                ?.copyWith(
+                                  fontWeight: FontWeight.w700,
+                                  color: tokens.textPrimary,
+                                  height: 1.25,
+                                ),
                           ),
                         ),
                         if (author.isVerified) ...[
@@ -734,7 +765,7 @@ class _CommunityProfileScreenState
                     const SizedBox(height: 2),
                     Text(
                       author.title ?? '',
-                      style: TextStyle(
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
                         fontSize: 12,
                         color: tokens.textSecondary,
                       ),
@@ -762,18 +793,24 @@ class _CommunityProfileScreenState
                               children: [
                                 TextSpan(
                                   text: '${author.followingCount} ',
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.w700,
-                                    color: tokens.textPrimary,
-                                    fontSize: 13,
-                                  ),
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .labelMedium
+                                      ?.copyWith(
+                                        fontWeight: FontWeight.w700,
+                                        color: tokens.textPrimary,
+                                        fontSize: 13,
+                                      ),
                                 ),
                                 TextSpan(
                                   text: 'Đang theo dõi  •  ',
-                                  style: TextStyle(
-                                    color: tokens.textSecondary,
-                                    fontSize: 12,
-                                  ),
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .bodySmall
+                                      ?.copyWith(
+                                        color: tokens.textSecondary,
+                                        fontSize: 12,
+                                      ),
                                 ),
                               ],
                             ),
@@ -798,18 +835,24 @@ class _CommunityProfileScreenState
                               children: [
                                 TextSpan(
                                   text: '${author.followerCount} ',
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.w700,
-                                    color: tokens.textPrimary,
-                                    fontSize: 13,
-                                  ),
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .labelMedium
+                                      ?.copyWith(
+                                        fontWeight: FontWeight.w700,
+                                        color: tokens.textPrimary,
+                                        fontSize: 13,
+                                      ),
                                 ),
                                 TextSpan(
                                   text: 'Người theo dõi',
-                                  style: TextStyle(
-                                    color: tokens.textSecondary,
-                                    fontSize: 12,
-                                  ),
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .bodySmall
+                                      ?.copyWith(
+                                        color: tokens.textSecondary,
+                                        fontSize: 12,
+                                      ),
                                 ),
                               ],
                             ),
@@ -825,10 +868,10 @@ class _CommunityProfileScreenState
           const SizedBox(height: 12),
           Text(
             bioText,
-            style: TextStyle(
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
               fontSize: 13,
               color: tokens.textPrimary,
-              height: 1.4,
+              height: 1.5,
             ),
           ),
           if (author.interestTopics.isNotEmpty) ...[
@@ -845,12 +888,14 @@ class _CommunityProfileScreenState
                       ),
                       decoration: BoxDecoration(
                         color: tokens.secondarySurface,
-                        borderRadius: BorderRadius.circular(8),
+                        borderRadius: BorderRadius.circular(
+                          SamanHomeTokens.radiusSm,
+                        ),
                         border: Border.all(color: tokens.border),
                       ),
                       child: Text(
                         topic,
-                        style: TextStyle(
+                        style: Theme.of(context).textTheme.labelSmall?.copyWith(
                           fontSize: 11,
                           fontWeight: FontWeight.w600,
                           color: tokens.greenAccent,
@@ -879,22 +924,28 @@ class _CommunityProfileScreenState
           children: [
             Expanded(
               child: SizedBox(
-                height: 38,
+                height: 44,
                 child: isFollowing
                     ? OutlinedButton(
                         onPressed: () => _handleToggleFollow(author),
                         style: OutlinedButton.styleFrom(
                           foregroundColor: tokens.textSecondary,
                           side: BorderSide(color: tokens.border),
+                          padding: const EdgeInsets.symmetric(horizontal: 10),
                           shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10),
+                            borderRadius: BorderRadius.circular(
+                              SamanHomeTokens.radiusMd,
+                            ),
                           ),
                         ),
-                        child: const Text(
+                        child: Text(
                           'Đang theo dõi',
-                          style: TextStyle(
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: Theme.of(context).textTheme.labelLarge?.copyWith(
                             fontSize: 13,
                             fontWeight: FontWeight.w600,
+                            color: tokens.textSecondary,
                           ),
                         ),
                       )
@@ -902,17 +953,25 @@ class _CommunityProfileScreenState
                         onPressed: () => _handleToggleFollow(author),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: tokens.greenAccent,
-                          foregroundColor: tokens.isDark
-                              ? const Color(0xFF003824)
-                              : const Color(0xFFFFFFFF),
+                          foregroundColor:
+                              Theme.of(context).colorScheme.onPrimary,
+                          padding: const EdgeInsets.symmetric(horizontal: 10),
                           shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10),
+                            borderRadius: BorderRadius.circular(
+                              SamanHomeTokens.radiusMd,
+                            ),
                           ),
                           elevation: 0,
                         ),
-                        child: const Text(
+                        child: Text(
                           'Theo dõi',
-                          style: TextStyle(fontWeight: FontWeight.w700),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                            color: Theme.of(context).colorScheme.onPrimary,
+                          ),
                         ),
                       ),
               ),
@@ -920,7 +979,7 @@ class _CommunityProfileScreenState
             const SizedBox(width: 10),
             Expanded(
               child: SizedBox(
-                height: 38,
+                height: 44,
                 child: OutlinedButton.icon(
                   key: const ValueKey('profile-message-btn'),
                   onPressed: _isStartingChat
@@ -933,7 +992,9 @@ class _CommunityProfileScreenState
                   ),
                   label: Text(
                     context.tr('profile_action_message'),
-                    style: TextStyle(
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context).textTheme.labelLarge?.copyWith(
                       fontSize: 13,
                       fontWeight: FontWeight.w600,
                       color: tokens.textPrimary,
@@ -942,8 +1003,11 @@ class _CommunityProfileScreenState
                   style: OutlinedButton.styleFrom(
                     foregroundColor: tokens.textPrimary,
                     side: BorderSide(color: tokens.border),
+                    padding: const EdgeInsets.symmetric(horizontal: 10),
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
+                      borderRadius: BorderRadius.circular(
+                        SamanHomeTokens.radiusMd,
+                      ),
                     ),
                   ),
                 ),
@@ -959,8 +1023,9 @@ class _CommunityProfileScreenState
       child: Row(
         children: [
           Expanded(
+            flex: 4,
             child: SizedBox(
-              height: 36,
+              height: 44,
               child: OutlinedButton(
                 onPressed: () async {
                   await Navigator.push(
@@ -1010,54 +1075,93 @@ class _CommunityProfileScreenState
                 style: OutlinedButton.styleFrom(
                   foregroundColor: tokens.textPrimary,
                   side: BorderSide(color: tokens.border),
+                  padding: const EdgeInsets.symmetric(horizontal: 10),
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
+                    borderRadius: BorderRadius.circular(
+                      SamanHomeTokens.radiusMd,
+                    ),
                   ),
                 ),
-                child: const Text(
+                child: Text(
                   'Chỉnh sửa hồ sơ',
-                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(width: 8),
-          SizedBox(
-            height: 36,
-            child: OutlinedButton.icon(
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => const CommunitySavedScreen(),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: tokens.textPrimary,
                   ),
-                );
-              },
-              icon: const Icon(Icons.bookmark_border_rounded, size: 16),
-              label: const Text('Đã lưu', style: TextStyle(fontSize: 12)),
-              style: OutlinedButton.styleFrom(
-                foregroundColor: tokens.textSecondary,
-                side: BorderSide(color: tokens.border),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
                 ),
               ),
             ),
           ),
           const SizedBox(width: 8),
-          SizedBox(
-            height: 36,
-            child: OutlinedButton.icon(
-              onPressed: () {
-                Navigator.pushNamed(context, AppRoutes.communityDrafts);
-              },
-              icon: const Icon(Icons.edit_note_rounded, size: 16),
-              label: const Text('Bản nháp', style: TextStyle(fontSize: 12)),
-              style: OutlinedButton.styleFrom(
-                foregroundColor: tokens.textSecondary,
-                side: BorderSide(color: tokens.border),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
+          Flexible(
+            flex: 3,
+            child: SizedBox(
+              height: 44,
+              child: OutlinedButton.icon(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const CommunitySavedScreen(),
+                    ),
+                  );
+                },
+                icon: const Icon(Icons.bookmark_border_rounded, size: 16),
+                label: Text(
+                  'Đã lưu',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: tokens.textSecondary,
+                  ),
+                ),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: tokens.textSecondary,
+                  side: BorderSide(color: tokens.border),
+                  padding: const EdgeInsets.symmetric(horizontal: 10),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(
+                      SamanHomeTokens.radiusMd,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Flexible(
+            flex: 3,
+            child: SizedBox(
+              height: 44,
+              child: OutlinedButton.icon(
+                onPressed: () {
+                  Navigator.pushNamed(context, AppRoutes.communityDrafts);
+                },
+                icon: const Icon(Icons.edit_note_rounded, size: 16),
+                label: Text(
+                  'Bản nháp',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: tokens.textSecondary,
+                  ),
+                ),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: tokens.textSecondary,
+                  side: BorderSide(color: tokens.border),
+                  padding: const EdgeInsets.symmetric(horizontal: 10),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(
+                      SamanHomeTokens.radiusMd,
+                    ),
+                  ),
                 ),
               ),
             ),
@@ -1073,8 +1177,8 @@ class _CommunityProfileScreenState
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
       decoration: BoxDecoration(
         color: tokens.cardSurface,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: tokens.border),
+        borderRadius: BorderRadius.circular(SamanHomeTokens.radiusLg),
+        border: Border.all(color: tokens.borderSubtle),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
@@ -1084,13 +1188,13 @@ class _CommunityProfileScreenState
             'Buổi tập chia sẻ',
             tokens,
           ),
-          Container(width: 1, height: 24, color: tokens.border),
+          Container(width: 1, height: 24, color: tokens.borderSubtle),
           _buildStatItem(
             '${author.mealPostCount}',
             'Bữa ăn dinh dưỡng',
             tokens,
           ),
-          Container(width: 1, height: 24, color: tokens.border),
+          Container(width: 1, height: 24, color: tokens.borderSubtle),
           _buildStatItem(
             _formatCount(author.totalLikesReceived),
             'Lượt thích nhận',
@@ -1111,8 +1215,7 @@ class _CommunityProfileScreenState
         children: [
           Text(
             value,
-            style: TextStyle(
-              fontSize: 16,
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
               fontWeight: FontWeight.w700,
               color: tokens.greenAccent,
             ),
@@ -1123,7 +1226,7 @@ class _CommunityProfileScreenState
             textAlign: TextAlign.center,
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
-            style: TextStyle(
+            style: Theme.of(context).textTheme.labelSmall?.copyWith(
               fontSize: 11,
               color: tokens.textSecondary,
             ),
@@ -1141,7 +1244,9 @@ class _CommunityProfileScreenState
       return Center(
         child: Text(
           'Chưa có bài viết nào trong mục này.',
-          style: TextStyle(color: tokens.textMuted, fontSize: 13),
+          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+            color: tokens.textMuted,
+          ),
         ),
       );
     }

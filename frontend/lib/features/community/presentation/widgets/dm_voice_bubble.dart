@@ -28,7 +28,7 @@ class DmVoiceBubble extends StatefulWidget {
 }
 
 class _DmVoiceBubbleState extends State<DmVoiceBubble> {
-  static const int _barCount = 20;
+  static const int _barCount = 26;
 
   late final AudioPlayer _player;
   StreamSubscription<PlayerState>? _playerStateSub;
@@ -202,20 +202,18 @@ class _DmVoiceBubbleState extends State<DmVoiceBubble> {
   @override
   Widget build(BuildContext context) {
     final tokens = widget.tokens;
-    final fgColor = widget.isMine ? tokens.primaryCtaText : tokens.textPrimary;
-    final mutedColor = widget.isMine
-        ? tokens.primaryCtaText.withOpacity(0.72)
-        : tokens.textSecondary;
-    final activeBarColor =
-        widget.isMine ? tokens.primaryCtaText : tokens.greenAccent;
-    final inactiveBarColor = widget.isMine
-        ? tokens.primaryCtaText.withOpacity(0.28)
-        : tokens.borderHigh;
-    final playButtonBg = widget.isMine
-        ? tokens.primaryCtaText.withOpacity(0.16)
-        : tokens.greenBadgeBg;
+    final textTheme = Theme.of(context).textTheme;
+    final disableAnimations = MediaQuery.disableAnimationsOf(context);
+
+    final fgColor = widget.isMine ? Colors.white : tokens.textPrimary;
+    final mutedColor =
+        widget.isMine ? Colors.white.withOpacity(0.78) : tokens.textSecondary;
+    final activeBarColor = widget.isMine ? Colors.white : tokens.greenAccent;
+    final inactiveBarColor =
+        widget.isMine ? Colors.white.withOpacity(0.32) : tokens.borderHigh;
+    final playButtonBg = widget.isMine ? Colors.white : tokens.greenAccent;
     final playButtonIcon =
-        widget.isMine ? tokens.primaryCtaText : tokens.greenAccent;
+        widget.isMine ? const Color(0xFF059669) : tokens.primaryCtaText;
 
     final double progress = _totalDuration.inMilliseconds > 0
         ? (_position.inMilliseconds / _totalDuration.inMilliseconds)
@@ -225,48 +223,54 @@ class _DmVoiceBubbleState extends State<DmVoiceBubble> {
     final Duration displayDuration =
         (_isPlaying || _position > Duration.zero) ? _position : _totalDuration;
 
-    return SizedBox(
-      width: 212,
+    return ConstrainedBox(
+      constraints: const BoxConstraints(minWidth: 210, maxWidth: 260),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              Material(
-                color: Colors.transparent,
-                child: InkWell(
-                  onTap: _isLoading ? null : _togglePlayPause,
-                  borderRadius: BorderRadius.circular(20),
-                  child: Container(
-                    width: 36,
-                    height: 36,
-                    decoration: BoxDecoration(
-                      color: playButtonBg,
-                      shape: BoxShape.circle,
-                    ),
+              SizedBox(
+                width: 44,
+                height: 44,
+                child: Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    onTap: _isLoading ? null : _togglePlayPause,
+                    customBorder: const CircleBorder(),
                     child: Center(
-                      child: _isLoading
-                          ? SizedBox(
-                              width: 16,
-                              height: 16,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                color: playButtonIcon,
-                              ),
-                            )
-                          : Icon(
-                              _isPlaying
-                                  ? Icons.pause_rounded
-                                  : Icons.play_arrow_rounded,
-                              size: 22,
-                              color: playButtonIcon,
-                            ),
+                      child: Container(
+                        width: 34,
+                        height: 34,
+                        decoration: BoxDecoration(
+                          color: playButtonBg,
+                          shape: BoxShape.circle,
+                        ),
+                        child: Center(
+                          child: _isLoading
+                              ? SizedBox(
+                                  width: 15,
+                                  height: 15,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: playButtonIcon,
+                                  ),
+                                )
+                              : Icon(
+                                  _isPlaying
+                                      ? Icons.pause_rounded
+                                      : Icons.play_arrow_rounded,
+                                  size: 20,
+                                  color: playButtonIcon,
+                                ),
+                        ),
+                      ),
                     ),
                   ),
                 ),
               ),
-              const SizedBox(width: 10),
+              const SizedBox(width: 6),
               Expanded(
                 child: LayoutBuilder(
                   builder: (context, constraints) {
@@ -278,8 +282,14 @@ class _DmVoiceBubbleState extends State<DmVoiceBubble> {
                           details.localPosition.dx / constraints.maxWidth,
                         );
                       },
+                      onHorizontalDragUpdate: (details) {
+                        if (constraints.maxWidth <= 0) return;
+                        _seekToFraction(
+                          details.localPosition.dx / constraints.maxWidth,
+                        );
+                      },
                       child: SizedBox(
-                        height: 28,
+                        height: 32,
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           crossAxisAlignment: CrossAxisAlignment.center,
@@ -289,13 +299,16 @@ class _DmVoiceBubbleState extends State<DmVoiceBubble> {
                                 progress > 0 && progress >= barThreshold - 0.03;
                             final height = 6.0 + (_barHeights[index] * 18.0);
                             return AnimatedContainer(
-                              duration: const Duration(milliseconds: 120),
-                              width: 3,
+                              duration: disableAnimations
+                                  ? Duration.zero
+                                  : const Duration(milliseconds: 120),
+                              width: 2.5,
                               height: height,
                               decoration: BoxDecoration(
-                                color:
-                                    isFilled ? activeBarColor : inactiveBarColor,
-                                borderRadius: BorderRadius.circular(2),
+                                color: isFilled
+                                    ? activeBarColor
+                                    : inactiveBarColor,
+                                borderRadius: BorderRadius.circular(1.5),
                               ),
                             );
                           }),
@@ -308,7 +321,7 @@ class _DmVoiceBubbleState extends State<DmVoiceBubble> {
               const SizedBox(width: 10),
               Text(
                 _formatDuration(displayDuration),
-                style: TextStyle(
+                style: textTheme.labelSmall?.copyWith(
                   fontSize: 12,
                   fontWeight: FontWeight.w600,
                   color: fgColor,
@@ -318,7 +331,7 @@ class _DmVoiceBubbleState extends State<DmVoiceBubble> {
             ],
           ),
           if (_errorMessage != null) ...[
-            const SizedBox(height: 6),
+            const SizedBox(height: 4),
             GestureDetector(
               onTap: _togglePlayPause,
               child: Row(
@@ -335,7 +348,7 @@ class _DmVoiceBubbleState extends State<DmVoiceBubble> {
                       '$_errorMessage · Thử lại',
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
+                      style: textTheme.labelSmall?.copyWith(
                         fontSize: 11,
                         fontWeight: FontWeight.w500,
                         color: mutedColor,

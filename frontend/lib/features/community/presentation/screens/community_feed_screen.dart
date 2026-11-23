@@ -195,7 +195,7 @@ class _CommunityFeedScreenState extends ConsumerState<CommunityFeedScreen> {
                       : 'Bản xem trước giao diện • Dữ liệu mẫu thử nghiệm'),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: TextStyle(
+              style: Theme.of(context).textTheme.labelSmall?.copyWith(
                 fontSize: 11,
                 color: tokens.textSecondary,
                 fontWeight: FontWeight.w500,
@@ -231,27 +231,32 @@ class _CommunityFeedScreenState extends ConsumerState<CommunityFeedScreen> {
               children: [
                 InkWell(
                   onTap: () => Navigator.pop(context),
-                  borderRadius: BorderRadius.circular(20),
-                  child: Padding(
-                    padding: const EdgeInsets.all(4),
-                    child: Icon(
-                      Icons.arrow_back_rounded,
-                      color: tokens.textPrimary,
-                      size: 22,
+                  borderRadius: BorderRadius.circular(SamanHomeTokens.radiusMd),
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(
+                      minWidth: 44,
+                      minHeight: 44,
+                    ),
+                    child: Center(
+                      child: Icon(
+                        Icons.arrow_back_rounded,
+                        color: tokens.textPrimary,
+                        size: 22,
+                      ),
                     ),
                   ),
                 ),
-                const SizedBox(width: 10),
+                const SizedBox(width: 6),
                 Flexible(
                   child: Text(
                     context.tr('community_title'),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      fontSize: 18,
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
                       fontWeight: FontWeight.w700,
                       color: tokens.textPrimary,
                       letterSpacing: -0.3,
+                      height: 1.25,
                     ),
                   ),
                 ),
@@ -269,6 +274,7 @@ class _CommunityFeedScreenState extends ConsumerState<CommunityFeedScreen> {
           ),
           IconButton(
             key: const ValueKey('feed-inbox-button'),
+            constraints: const BoxConstraints(minWidth: 44, minHeight: 44),
             icon: Stack(
               clipBehavior: Clip.none,
               children: [
@@ -298,12 +304,10 @@ class _CommunityFeedScreenState extends ConsumerState<CommunityFeedScreen> {
                       alignment: Alignment.center,
                       child: Text(
                         unreadCount > 99 ? '99+' : '$unreadCount',
-                        style: TextStyle(
+                        style: Theme.of(context).textTheme.labelSmall?.copyWith(
                           fontSize: 9,
                           fontWeight: FontWeight.w700,
-                          color: tokens.isDark
-                              ? const Color(0xFF003824)
-                              : Colors.white,
+                          color: Theme.of(context).colorScheme.onPrimary,
                         ),
                       ),
                     ),
@@ -387,27 +391,25 @@ class _CommunityFeedScreenState extends ConsumerState<CommunityFeedScreen> {
           ),
         InkWell(
           onTap: onTap,
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(SamanHomeTokens.radiusMd),
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 7),
             decoration: BoxDecoration(
               color: isActive
                   ? tokens.greenAccent
                   : tokens.cardSurface,
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(SamanHomeTokens.radiusMd),
               border: isActive
                   ? null
                   : Border.all(color: tokens.border),
             ),
             child: Text(
               label,
-              style: TextStyle(
+              style: Theme.of(context).textTheme.labelLarge?.copyWith(
                 fontSize: 13,
                 fontWeight: isActive ? FontWeight.w600 : FontWeight.w500,
                 color: isActive
-                    ? (tokens.isDark
-                        ? const Color(0xFF003824)
-                        : const Color(0xFFFFFFFF))
+                    ? Theme.of(context).colorScheme.onPrimary
                     : tokens.textSecondary,
               ),
             ),
@@ -445,10 +447,10 @@ class _CommunityFeedScreenState extends ConsumerState<CommunityFeedScreen> {
                 ? context.tr('community_empty_feed')
                 : context.tr('community_all_caught_up'),
             textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: 16,
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
               fontWeight: FontWeight.w700,
               color: tokens.textPrimary,
+              height: 1.3,
             ),
           ),
           const SizedBox(height: 6),
@@ -457,10 +459,9 @@ class _CommunityFeedScreenState extends ConsumerState<CommunityFeedScreen> {
                 ? 'Share your energy or start a discussion with the community today.'
                 : 'Hãy chia sẻ năng lượng của bạn hoặc khởi tạo thảo luận cùng cộng đồng hôm nay.',
             textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: 13,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
               color: tokens.textSecondary,
-              height: 1.4,
+              height: 1.45,
             ),
           ),
         ],
@@ -487,9 +488,10 @@ class _CommunityFeedScreenState extends ConsumerState<CommunityFeedScreen> {
             const SizedBox(height: 12),
             Text(
               message,
-              style: TextStyle(
-                fontSize: 15,
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                 color: tokens.textPrimary,
+                height: 1.45,
               ),
             ),
             const SizedBox(height: 16),
@@ -497,9 +499,12 @@ class _CommunityFeedScreenState extends ConsumerState<CommunityFeedScreen> {
               onPressed: onRetry,
               style: ElevatedButton.styleFrom(
                 backgroundColor: tokens.greenAccent,
-                foregroundColor: tokens.isDark
-                    ? const Color(0xFF003824)
-                    : const Color(0xFFFFFFFF),
+                foregroundColor: Theme.of(context).colorScheme.onPrimary,
+                minimumSize: const Size(0, 44),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(SamanHomeTokens.radiusMd),
+                ),
+                elevation: 0,
               ),
               child: const Text('Thử lại'),
             ),

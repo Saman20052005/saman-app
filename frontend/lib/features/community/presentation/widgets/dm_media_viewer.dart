@@ -1,3 +1,5 @@
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
 import 'package:video_player/video_player.dart';
 
@@ -9,15 +11,15 @@ class DmMediaViewer {
   DmMediaViewer._();
 
   static const Color _viewerBg = Color(0xFF0A0B0C);
-  static const Color _viewerOverlay = Color(0x990A0B0C);
+  static const Color _viewerOverlay = Color(0x730A0B0C);
   static const Color _viewerText = Color(0xFFF3F5F4);
   static const Color _viewerMuted = Color(0xFFABB4BD);
 
   static Future<void> showImage(BuildContext context, String imageUrl) {
     return Navigator.of(context).push<void>(
       PageRouteBuilder<void>(
-        opaque: true,
-        barrierColor: _viewerBg,
+        opaque: false,
+        barrierColor: Colors.transparent,
         pageBuilder: (_, __, ___) => _DmFullScreenImagePage(imageUrl: imageUrl),
         transitionsBuilder: (_, animation, __, child) {
           return FadeTransition(opacity: animation, child: child);
@@ -29,8 +31,8 @@ class DmMediaViewer {
   static Future<void> showVideo(BuildContext context, String videoUrl) {
     return Navigator.of(context).push<void>(
       PageRouteBuilder<void>(
-        opaque: true,
-        barrierColor: _viewerBg,
+        opaque: false,
+        barrierColor: Colors.transparent,
         pageBuilder: (_, __, ___) => _DmFullScreenVideoPage(videoUrl: videoUrl),
         transitionsBuilder: (_, animation, __, child) {
           return FadeTransition(opacity: animation, child: child);
@@ -52,6 +54,7 @@ class _DmFullScreenImagePage extends StatefulWidget {
 class _DmFullScreenImagePageState extends State<_DmFullScreenImagePage> {
   final TransformationController _transformationController =
       TransformationController();
+  double _dragOffsetY = 0.0;
 
   @override
   void dispose() {
@@ -67,41 +70,73 @@ class _DmFullScreenImagePageState extends State<_DmFullScreenImagePage> {
     }
   }
 
+  bool get _isZoomedIn =>
+      _transformationController.value.getMaxScaleOnAxis() > 1.05;
+
+  void _handleVerticalDragUpdate(DragUpdateDetails details) {
+    if (_isZoomedIn) return;
+    if (details.delta.dy > 0 || _dragOffsetY > 0) {
+      setState(() {
+        _dragOffsetY = (_dragOffsetY + details.delta.dy).clamp(0.0, 320.0);
+      });
+    }
+  }
+
+  void _handleVerticalDragEnd(DragEndDetails details) {
+    if (_isZoomedIn) return;
+    final velocity = details.primaryVelocity ?? 0.0;
+    if (_dragOffsetY > 110 || velocity > 650) {
+      Navigator.of(context).pop();
+      return;
+    }
+    if (_dragOffsetY != 0.0) {
+      setState(() {
+        _dragOffsetY = 0.0;
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final accent = SamanHomeTokens.of(context).greenAccent;
+    final bgOpacity = (1.0 - (_dragOffsetY / 360.0) * 0.55).clamp(0.4, 1.0);
 
     return Scaffold(
-      backgroundColor: DmMediaViewer._viewerBg,
+      backgroundColor: DmMediaViewer._viewerBg.withOpacity(bgOpacity),
       body: Stack(
         fit: StackFit.expand,
         children: [
-          GestureDetector(
-            onDoubleTap: _handleDoubleTap,
-            child: InteractiveViewer(
-              transformationController: _transformationController,
-              minScale: 0.8,
-              maxScale: 4.0,
-              child: Center(
-                child: Image.network(
-                  widget.imageUrl,
-                  fit: BoxFit.contain,
-                  loadingBuilder: (context, child, loadingProgress) {
-                    if (loadingProgress == null) return child;
-                    final expected = loadingProgress.expectedTotalBytes;
-                    final value = expected != null && expected > 0
-                        ? loadingProgress.cumulativeBytesLoaded / expected
-                        : null;
-                    return Center(
-                      child: CircularProgressIndicator(
-                        value: value,
-                        color: accent,
-                      ),
-                    );
-                  },
-                  errorBuilder: (_, __, ___) => const _MediaErrorPlaceholder(
-                    icon: Icons.broken_image_outlined,
-                    label: 'Không thể tải hình ảnh',
+          Transform.translate(
+            offset: Offset(0, _dragOffsetY),
+            child: GestureDetector(
+              onDoubleTap: _handleDoubleTap,
+              onVerticalDragUpdate: _handleVerticalDragUpdate,
+              onVerticalDragEnd: _handleVerticalDragEnd,
+              child: InteractiveViewer(
+                transformationController: _transformationController,
+                minScale: 0.8,
+                maxScale: 4.0,
+                child: Center(
+                  child: Image.network(
+                    widget.imageUrl,
+                    fit: BoxFit.contain,
+                    loadingBuilder: (context, child, loadingProgress) {
+                      if (loadingProgress == null) return child;
+                      final expected = loadingProgress.expectedTotalBytes;
+                      final value = expected != null && expected > 0
+                          ? loadingProgress.cumulativeBytesLoaded / expected
+                          : null;
+                      return Center(
+                        child: CircularProgressIndicator(
+                          value: value,
+                          color: accent,
+                        ),
+                      );
+                    },
+                    errorBuilder: (_, __, ___) => const _MediaErrorPlaceholder(
+                      icon: Icons.broken_image_outlined,
+                      label: 'Không thể tải hình ảnh',
+                    ),
                   ),
                 ),
               ),
@@ -141,6 +176,7 @@ class _DmFullScreenVideoPageState extends State<_DmFullScreenVideoPage> {
   bool _hasError = false;
   bool _showControls = true;
   bool _isMuted = false;
+  double _dragOffsetY = 0.0;
 
   @override
   void initState() {
@@ -240,6 +276,27 @@ class _DmFullScreenVideoPageState extends State<_DmFullScreenVideoPage> {
     });
   }
 
+  void _handleVerticalDragUpdate(DragUpdateDetails details) {
+    if (details.delta.dy > 0 || _dragOffsetY > 0) {
+      setState(() {
+        _dragOffsetY = (_dragOffsetY + details.delta.dy).clamp(0.0, 320.0);
+      });
+    }
+  }
+
+  void _handleVerticalDragEnd(DragEndDetails details) {
+    final velocity = details.primaryVelocity ?? 0.0;
+    if (_dragOffsetY > 110 || velocity > 650) {
+      Navigator.of(context).pop();
+      return;
+    }
+    if (_dragOffsetY != 0.0) {
+      setState(() {
+        _dragOffsetY = 0.0;
+      });
+    }
+  }
+
   String _formatDuration(Duration duration) {
     final totalSeconds = duration.inSeconds.clamp(0, 35999);
     final minutes = totalSeconds ~/ 60;
@@ -249,6 +306,7 @@ class _DmFullScreenVideoPageState extends State<_DmFullScreenVideoPage> {
 
   @override
   Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
     final accent = SamanHomeTokens.of(context).greenAccent;
     final controller = _controller;
     final isInitialized = controller != null && controller.value.isInitialized;
@@ -260,35 +318,41 @@ class _DmFullScreenVideoPageState extends State<_DmFullScreenVideoPage> {
         ? duration.inMilliseconds.toDouble()
         : 1.0;
     final currentMs = position.inMilliseconds.toDouble().clamp(0.0, maxMs);
+    final bgOpacity = (1.0 - (_dragOffsetY / 360.0) * 0.55).clamp(0.4, 1.0);
 
     return Scaffold(
-      backgroundColor: DmMediaViewer._viewerBg,
+      backgroundColor: DmMediaViewer._viewerBg.withOpacity(bgOpacity),
       body: Stack(
         fit: StackFit.expand,
         children: [
-          GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onTap: () {
-              setState(() {
-                _showControls = !_showControls;
-              });
-            },
-            child: Center(
-              child: _isInitializing
-                  ? CircularProgressIndicator(color: accent)
-                  : _hasError || !isInitialized
-                      ? _MediaErrorPlaceholder(
-                          icon: Icons.videocam_off_outlined,
-                          label: 'Không thể phát video',
-                          onRetry: _initController,
-                          accentColor: accent,
-                        )
-                      : AspectRatio(
-                          aspectRatio: controller.value.aspectRatio > 0
-                              ? controller.value.aspectRatio
-                              : 16 / 9,
-                          child: VideoPlayer(controller),
-                        ),
+          Transform.translate(
+            offset: Offset(0, _dragOffsetY),
+            child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: () {
+                setState(() {
+                  _showControls = !_showControls;
+                });
+              },
+              onVerticalDragUpdate: _handleVerticalDragUpdate,
+              onVerticalDragEnd: _handleVerticalDragEnd,
+              child: Center(
+                child: _isInitializing
+                    ? CircularProgressIndicator(color: accent)
+                    : _hasError || !isInitialized
+                        ? _MediaErrorPlaceholder(
+                            icon: Icons.videocam_off_outlined,
+                            label: 'Không thể phát video',
+                            onRetry: _initController,
+                            accentColor: accent,
+                          )
+                        : AspectRatio(
+                            aspectRatio: controller.value.aspectRatio > 0
+                                ? controller.value.aspectRatio
+                                : 16 / 9,
+                            child: VideoPlayer(controller),
+                          ),
+              ),
             ),
           ),
           if (isBuffering && !_isInitializing && !_hasError)
@@ -299,17 +363,28 @@ class _DmFullScreenVideoPageState extends State<_DmFullScreenVideoPage> {
             Center(
               child: GestureDetector(
                 onTap: _togglePlayPause,
-                child: Container(
-                  width: 64,
-                  height: 64,
-                  decoration: const BoxDecoration(
-                    color: DmMediaViewer._viewerOverlay,
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(
-                    isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
-                    size: 36,
-                    color: DmMediaViewer._viewerText,
+                child: ClipOval(
+                  child: BackdropFilter(
+                    filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+                    child: Container(
+                      width: 64,
+                      height: 64,
+                      decoration: BoxDecoration(
+                        color: DmMediaViewer._viewerOverlay,
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: Colors.white.withOpacity(0.24),
+                          width: 1,
+                        ),
+                      ),
+                      child: Icon(
+                        isPlaying
+                            ? Icons.pause_rounded
+                            : Icons.play_arrow_rounded,
+                        size: 36,
+                        color: DmMediaViewer._viewerText,
+                      ),
+                    ),
                   ),
                 ),
               ),
@@ -329,86 +404,113 @@ class _DmFullScreenVideoPageState extends State<_DmFullScreenVideoPage> {
           ),
           if (isInitialized && _showControls)
             Positioned(
-              left: 0,
-              right: 0,
-              bottom: 0,
-              child: Container(
-                padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
-                decoration: const BoxDecoration(
-                  color: DmMediaViewer._viewerOverlay,
-                ),
-                child: SafeArea(
-                  top: false,
-                  child: Row(
-                    children: [
-                      IconButton(
-                        onPressed: _togglePlayPause,
-                        tooltip: isPlaying ? 'Tạm dừng' : 'Phát',
-                        icon: Icon(
-                          isPlaying
-                              ? Icons.pause_rounded
-                              : Icons.play_arrow_rounded,
-                          color: DmMediaViewer._viewerText,
-                          size: 24,
+              left: 16,
+              right: 16,
+              bottom: 16,
+              child: SafeArea(
+                top: false,
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(22),
+                  child: BackdropFilter(
+                    filter: ImageFilter.blur(sigmaX: 14, sigmaY: 14),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: DmMediaViewer._viewerOverlay,
+                        borderRadius: BorderRadius.circular(22),
+                        border: Border.all(
+                          color: Colors.white.withOpacity(0.14),
+                          width: 0.8,
                         ),
                       ),
-                      Text(
-                        _formatDuration(position),
-                        style: const TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w500,
-                          color: DmMediaViewer._viewerText,
-                          fontFeatures: [FontFeature.tabularFigures()],
-                        ),
-                      ),
-                      Expanded(
-                        child: SliderTheme(
-                          data: SliderTheme.of(context).copyWith(
-                            trackHeight: 3,
-                            thumbShape: const RoundSliderThumbShape(
-                              enabledThumbRadius: 6,
+                      child: Row(
+                        children: [
+                          IconButton(
+                            onPressed: _togglePlayPause,
+                            tooltip: isPlaying ? 'Tạm dừng' : 'Phát',
+                            constraints: const BoxConstraints(
+                              minWidth: 44,
+                              minHeight: 44,
                             ),
-                            overlayShape: const RoundSliderOverlayShape(
-                              overlayRadius: 14,
+                            icon: Icon(
+                              isPlaying
+                                  ? Icons.pause_rounded
+                                  : Icons.play_arrow_rounded,
+                              color: DmMediaViewer._viewerText,
+                              size: 22,
                             ),
-                            activeTrackColor: accent,
-                            inactiveTrackColor:
-                                DmMediaViewer._viewerMuted.withOpacity(0.35),
-                            thumbColor: accent,
                           ),
-                          child: Slider(
-                            min: 0.0,
-                            max: maxMs,
-                            value: currentMs,
-                            onChanged: (value) {
-                              controller.seekTo(
-                                Duration(milliseconds: value.round()),
-                              );
-                            },
+                          Text(
+                            _formatDuration(position),
+                            style: textTheme.labelSmall?.copyWith(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w500,
+                              color: DmMediaViewer._viewerText,
+                              fontFeatures: const [
+                                FontFeature.tabularFigures(),
+                              ],
+                            ),
                           ),
-                        ),
+                          Expanded(
+                            child: SliderTheme(
+                              data: SliderTheme.of(context).copyWith(
+                                trackHeight: 2.5,
+                                thumbShape: const RoundSliderThumbShape(
+                                  enabledThumbRadius: 5.5,
+                                ),
+                                overlayShape: const RoundSliderOverlayShape(
+                                  overlayRadius: 13,
+                                ),
+                                activeTrackColor: accent,
+                                inactiveTrackColor:
+                                    DmMediaViewer._viewerMuted.withOpacity(0.35),
+                                thumbColor: accent,
+                              ),
+                              child: Slider(
+                                min: 0.0,
+                                max: maxMs,
+                                value: currentMs,
+                                onChanged: (value) {
+                                  controller.seekTo(
+                                    Duration(milliseconds: value.round()),
+                                  );
+                                },
+                              ),
+                            ),
+                          ),
+                          Text(
+                            _formatDuration(duration),
+                            style: textTheme.labelSmall?.copyWith(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w500,
+                              color: DmMediaViewer._viewerMuted,
+                              fontFeatures: const [
+                                FontFeature.tabularFigures(),
+                              ],
+                            ),
+                          ),
+                          IconButton(
+                            onPressed: _toggleMute,
+                            tooltip:
+                                _isMuted ? 'Bật âm thanh' : 'Tắt âm thanh',
+                            constraints: const BoxConstraints(
+                              minWidth: 44,
+                              minHeight: 44,
+                            ),
+                            icon: Icon(
+                              _isMuted
+                                  ? Icons.volume_off_rounded
+                                  : Icons.volume_up_rounded,
+                              color: DmMediaViewer._viewerText,
+                              size: 20,
+                            ),
+                          ),
+                        ],
                       ),
-                      Text(
-                        _formatDuration(duration),
-                        style: const TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w500,
-                          color: DmMediaViewer._viewerMuted,
-                          fontFeatures: [FontFeature.tabularFigures()],
-                        ),
-                      ),
-                      IconButton(
-                        onPressed: _toggleMute,
-                        tooltip: _isMuted ? 'Bật âm thanh' : 'Tắt âm thanh',
-                        icon: Icon(
-                          _isMuted
-                              ? Icons.volume_off_rounded
-                              : Icons.volume_up_rounded,
-                          color: DmMediaViewer._viewerText,
-                          size: 22,
-                        ),
-                      ),
-                    ],
+                    ),
                   ),
                 ),
               ),
@@ -432,16 +534,27 @@ class _ViewerCircleButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: DmMediaViewer._viewerOverlay,
-      shape: const CircleBorder(),
-      child: IconButton(
-        onPressed: onPressed,
-        tooltip: tooltip,
-        icon: Icon(
-          icon,
-          color: DmMediaViewer._viewerText,
-          size: 22,
+    return ClipOval(
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+        child: Material(
+          color: DmMediaViewer._viewerOverlay,
+          shape: CircleBorder(
+            side: BorderSide(
+              color: Colors.white.withOpacity(0.22),
+              width: 0.8,
+            ),
+          ),
+          child: IconButton(
+            onPressed: onPressed,
+            tooltip: tooltip,
+            constraints: const BoxConstraints(minWidth: 44, minHeight: 44),
+            icon: Icon(
+              icon,
+              color: DmMediaViewer._viewerText,
+              size: 22,
+            ),
+          ),
         ),
       ),
     );
@@ -463,6 +576,8 @@ class _MediaErrorPlaceholder extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 24),
       child: Column(
@@ -477,7 +592,7 @@ class _MediaErrorPlaceholder extends StatelessWidget {
           Text(
             label,
             textAlign: TextAlign.center,
-            style: const TextStyle(
+            style: textTheme.bodyMedium?.copyWith(
               fontSize: 14,
               fontWeight: FontWeight.w500,
               color: DmMediaViewer._viewerText,
@@ -489,15 +604,23 @@ class _MediaErrorPlaceholder extends StatelessWidget {
               onPressed: onRetry,
               style: OutlinedButton.styleFrom(
                 foregroundColor: accentColor ?? DmMediaViewer._viewerText,
+                minimumSize: const Size(0, 46),
                 side: BorderSide(
                   color: accentColor ?? DmMediaViewer._viewerMuted,
                 ),
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
+                  borderRadius: BorderRadius.circular(12),
                 ),
               ),
               icon: const Icon(Icons.refresh_rounded, size: 18),
-              label: const Text('Thử lại'),
+              label: Text(
+                'Thử lại',
+                style: textTheme.labelLarge?.copyWith(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: accentColor ?? DmMediaViewer._viewerText,
+                ),
+              ),
             ),
           ],
         ],

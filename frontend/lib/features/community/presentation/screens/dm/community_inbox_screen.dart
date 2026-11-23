@@ -151,6 +151,7 @@ class _CommunityInboxScreenState extends ConsumerState<CommunityInboxScreen> {
   @override
   Widget build(BuildContext context) {
     final tokens = SamanHomeTokens.of(context);
+    final textTheme = Theme.of(context).textTheme;
     final state = ref.watch(communityInboxProvider);
     final notifier = ref.read(communityInboxProvider.notifier);
     final visibleConversations = _filterConversations(state.conversations);
@@ -167,64 +168,70 @@ class _CommunityInboxScreenState extends ConsumerState<CommunityInboxScreen> {
               onNewChat: _showNewChatBottomSheet,
             ),
             Padding(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
-              child: TextField(
-                controller: _searchController,
-                onChanged: (value) {
-                  setState(() {
-                    _searchQuery = value;
-                  });
-                },
-                style: TextStyle(
-                  fontSize: 14,
-                  color: tokens.textPrimary,
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 10),
+              child: Container(
+                decoration: BoxDecoration(
+                  color: tokens.cardSurfaceElevated,
+                  borderRadius: BorderRadius.circular(22),
                 ),
-                decoration: InputDecoration(
-                  hintText: 'Tìm kiếm cuộc trò chuyện...',
-                  hintStyle: TextStyle(
+                child: TextField(
+                  controller: _searchController,
+                  onChanged: (value) {
+                    setState(() {
+                      _searchQuery = value;
+                    });
+                  },
+                  style: textTheme.bodyMedium?.copyWith(
                     fontSize: 14,
-                    color: tokens.textMuted,
+                    color: tokens.textPrimary,
                   ),
-                  prefixIcon: Icon(
-                    Icons.search_rounded,
-                    size: 20,
-                    color: tokens.textSecondary,
-                  ),
-                  suffixIcon: _searchQuery.isNotEmpty
-                      ? IconButton(
-                          onPressed: () {
-                            _searchController.clear();
-                            setState(() {
-                              _searchQuery = '';
-                            });
-                          },
-                          icon: Icon(
-                            Icons.close_rounded,
-                            size: 18,
-                            color: tokens.textMuted,
-                          ),
-                        )
-                      : null,
-                  filled: true,
-                  fillColor: tokens.cardSurface,
-                  isDense: true,
-                  contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 14,
-                    vertical: 12,
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(color: tokens.border),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(color: tokens.greenAccent),
+                  decoration: InputDecoration(
+                    hintText: 'Tìm kiếm cuộc trò chuyện...',
+                    hintStyle: textTheme.bodyMedium?.copyWith(
+                      fontSize: 14,
+                      color: tokens.textMuted,
+                    ),
+                    prefixIcon: Icon(
+                      Icons.search_rounded,
+                      size: 20,
+                      color: tokens.textMuted,
+                    ),
+                    suffixIcon: _searchQuery.isNotEmpty
+                        ? IconButton(
+                            onPressed: () {
+                              _searchController.clear();
+                              setState(() {
+                                _searchQuery = '';
+                              });
+                            },
+                            constraints: const BoxConstraints(
+                              minWidth: 44,
+                              minHeight: 44,
+                            ),
+                            tooltip: 'Xóa tìm kiếm',
+                            icon: Icon(
+                              Icons.close_rounded,
+                              size: 18,
+                              color: tokens.textMuted,
+                            ),
+                          )
+                        : null,
+                    filled: false,
+                    isDense: true,
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 12,
+                    ),
+                    border: InputBorder.none,
+                    enabledBorder: InputBorder.none,
+                    focusedBorder: InputBorder.none,
                   ),
                 ),
               ),
             ),
             Expanded(
               child: _buildBody(
+                context: context,
                 state: state,
                 visibleConversations: visibleConversations,
                 notifier: notifier,
@@ -238,11 +245,14 @@ class _CommunityInboxScreenState extends ConsumerState<CommunityInboxScreen> {
   }
 
   Widget _buildBody({
+    required BuildContext context,
     required CommunityInboxState state,
     required List<DmConversation> visibleConversations,
     required CommunityInboxNotifier notifier,
     required SamanHomePalette tokens,
   }) {
+    final textTheme = Theme.of(context).textTheme;
+
     if (state.isLoading && state.conversations.isEmpty) {
       return Center(
         child: CircularProgressIndicator(color: tokens.greenAccent),
@@ -274,24 +284,36 @@ class _CommunityInboxScreenState extends ConsumerState<CommunityInboxScreen> {
                       Text(
                         state.errorMessage!,
                         textAlign: TextAlign.center,
-                        style: TextStyle(
+                        style: textTheme.titleSmall?.copyWith(
                           fontSize: 15,
                           fontWeight: FontWeight.w600,
                           color: tokens.textPrimary,
                         ),
                       ),
-                      const SizedBox(height: 14),
+                      const SizedBox(height: 16),
                       OutlinedButton.icon(
                         onPressed: notifier.loadConversations,
                         style: OutlinedButton.styleFrom(
                           foregroundColor: tokens.greenAccent,
                           side: BorderSide(color: tokens.greenAccent),
+                          minimumSize: const Size(0, 46),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 20,
+                            vertical: 12,
+                          ),
                           shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10),
+                            borderRadius: BorderRadius.circular(12),
                           ),
                         ),
                         icon: const Icon(Icons.refresh_rounded, size: 18),
-                        label: const Text('Thử lại'),
+                        label: Text(
+                          'Thử lại',
+                          style: textTheme.labelLarge?.copyWith(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: tokens.greenAccent,
+                          ),
+                        ),
                       ),
                     ],
                   ),
@@ -338,7 +360,7 @@ class _CommunityInboxScreenState extends ConsumerState<CommunityInboxScreen> {
               const SizedBox(height: 10),
               Text(
                 'Không tìm thấy cuộc trò chuyện nào',
-                style: TextStyle(
+                style: textTheme.titleSmall?.copyWith(
                   fontSize: 15,
                   fontWeight: FontWeight.w600,
                   color: tokens.textPrimary,
@@ -348,7 +370,7 @@ class _CommunityInboxScreenState extends ConsumerState<CommunityInboxScreen> {
               Text(
                 'Thử từ khóa khác hoặc bắt đầu cuộc trò chuyện mới.',
                 textAlign: TextAlign.center,
-                style: TextStyle(
+                style: textTheme.bodySmall?.copyWith(
                   fontSize: 13,
                   color: tokens.textSecondary,
                 ),
@@ -366,16 +388,11 @@ class _CommunityInboxScreenState extends ConsumerState<CommunityInboxScreen> {
       color: tokens.greenAccent,
       backgroundColor: tokens.cardSurface,
       onRefresh: notifier.loadConversations,
-      child: ListView.separated(
+      child: ListView.builder(
         controller: _scrollController,
         physics: const AlwaysScrollableScrollPhysics(),
-        padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
+        padding: const EdgeInsets.only(top: 4, bottom: 24),
         itemCount: itemCount,
-        separatorBuilder: (_, __) => Divider(
-          color: tokens.border,
-          height: 1,
-          indent: 70,
-        ),
         itemBuilder: (context, index) {
           if (index >= visibleConversations.length) {
             return Padding(
@@ -422,18 +439,18 @@ class _InboxAppBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+
     return Container(
       height: 56,
-      padding: const EdgeInsets.symmetric(horizontal: 12),
-      decoration: BoxDecoration(
-        color: tokens.canvas,
-        border: Border(bottom: BorderSide(color: tokens.border, width: 1)),
-      ),
+      padding: const EdgeInsets.symmetric(horizontal: 8),
+      color: tokens.canvas,
       child: Row(
         children: [
           IconButton(
             onPressed: onBack,
             tooltip: 'Quay lại',
+            constraints: const BoxConstraints(minWidth: 44, minHeight: 44),
             icon: Icon(
               Icons.arrow_back_rounded,
               color: tokens.textPrimary,
@@ -448,7 +465,7 @@ class _InboxAppBar extends StatelessWidget {
                   child: Text(
                     'Tin nhắn',
                     overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
+                    style: textTheme.titleLarge?.copyWith(
                       fontSize: 20,
                       fontWeight: FontWeight.w700,
                       letterSpacing: -0.3,
@@ -463,12 +480,12 @@ class _InboxAppBar extends StatelessWidget {
                         const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
                     decoration: BoxDecoration(
                       color: tokens.greenBadgeBg,
-                      borderRadius: BorderRadius.circular(8),
+                      borderRadius: BorderRadius.circular(10),
                       border: Border.all(color: tokens.greenBadgeBorder),
                     ),
                     child: Text(
                       totalUnreadCount > 99 ? '99+' : '$totalUnreadCount',
-                      style: TextStyle(
+                      style: textTheme.labelSmall?.copyWith(
                         fontSize: 11,
                         fontWeight: FontWeight.w700,
                         color: tokens.greenAccent,
@@ -483,6 +500,7 @@ class _InboxAppBar extends StatelessWidget {
           IconButton(
             onPressed: onNewChat,
             tooltip: 'Tin nhắn mới',
+            constraints: const BoxConstraints(minWidth: 44, minHeight: 44),
             icon: Icon(
               Icons.add_comment_outlined,
               color: tokens.textPrimary,
@@ -552,6 +570,7 @@ class _ConversationTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
     final hasUnread = conversation.unreadCount > 0;
     final preview = _buildPreviewData();
     final peer = conversation.peer;
@@ -560,23 +579,16 @@ class _ConversationTile extends StatelessWidget {
 
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
-        decoration: BoxDecoration(
-          color: hasUnread
-              ? tokens.greenAccent.withOpacity(0.04)
-              : Colors.transparent,
-          borderRadius: BorderRadius.circular(12),
-        ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
         child: Row(
           children: [
             Stack(
               clipBehavior: Clip.none,
               children: [
                 Container(
-                  width: 48,
-                  height: 48,
+                  width: 54,
+                  height: 54,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     color: tokens.secondarySurface,
@@ -590,8 +602,8 @@ class _ConversationTile extends StatelessWidget {
                           errorBuilder: (_, __, ___) => Center(
                             child: Text(
                               initial,
-                              style: TextStyle(
-                                fontSize: 18,
+                              style: textTheme.titleMedium?.copyWith(
+                                fontSize: 19,
                                 fontWeight: FontWeight.w700,
                                 color: tokens.greenAccent,
                               ),
@@ -601,8 +613,8 @@ class _ConversationTile extends StatelessWidget {
                       : Center(
                           child: Text(
                             initial,
-                            style: TextStyle(
-                              fontSize: 18,
+                            style: textTheme.titleMedium?.copyWith(
+                              fontSize: 19,
                               fontWeight: FontWeight.w700,
                               color: tokens.greenAccent,
                             ),
@@ -614,8 +626,8 @@ class _ConversationTile extends StatelessWidget {
                     right: 0,
                     bottom: 0,
                     child: Container(
-                      width: 13,
-                      height: 13,
+                      width: 14,
+                      height: 14,
                       decoration: BoxDecoration(
                         color: tokens.greenAccent,
                         shape: BoxShape.circle,
@@ -628,7 +640,7 @@ class _ConversationTile extends StatelessWidget {
                   ),
               ],
             ),
-            const SizedBox(width: 12),
+            const SizedBox(width: 14),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -643,7 +655,7 @@ class _ConversationTile extends StatelessWidget {
                                 peer.name,
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
-                                style: TextStyle(
+                                style: textTheme.titleSmall?.copyWith(
                                   fontSize: 15,
                                   fontWeight: hasUnread
                                       ? FontWeight.w700
@@ -666,10 +678,10 @@ class _ConversationTile extends StatelessWidget {
                       const SizedBox(width: 8),
                       Text(
                         relativeTime,
-                        style: TextStyle(
-                          fontSize: 11,
+                        style: textTheme.labelSmall?.copyWith(
+                          fontSize: 12,
                           fontWeight:
-                              hasUnread ? FontWeight.w600 : FontWeight.w500,
+                              hasUnread ? FontWeight.w600 : FontWeight.w400,
                           color: hasUnread
                               ? tokens.greenAccent
                               : tokens.textMuted,
@@ -678,7 +690,7 @@ class _ConversationTile extends StatelessWidget {
                       ),
                     ],
                   ),
-                  const SizedBox(height: 5),
+                  const SizedBox(height: 4),
                   Row(
                     children: [
                       if (preview.icon != null) ...[
@@ -686,7 +698,7 @@ class _ConversationTile extends StatelessWidget {
                           preview.icon,
                           size: 14,
                           color: hasUnread
-                              ? tokens.greenAccent
+                              ? tokens.textPrimary
                               : tokens.textSecondary,
                         ),
                         const SizedBox(width: 5),
@@ -696,10 +708,10 @@ class _ConversationTile extends StatelessWidget {
                           preview.text,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            fontSize: 13,
+                          style: textTheme.bodySmall?.copyWith(
+                            fontSize: 13.5,
                             fontWeight:
-                                hasUnread ? FontWeight.w600 : FontWeight.w400,
+                                hasUnread ? FontWeight.w700 : FontWeight.w400,
                             color: hasUnread
                                 ? tokens.textPrimary
                                 : tokens.textSecondary,
@@ -707,7 +719,7 @@ class _ConversationTile extends StatelessWidget {
                         ),
                       ),
                       if (hasUnread) ...[
-                        const SizedBox(width: 8),
+                        const SizedBox(width: 10),
                         Container(
                           constraints: const BoxConstraints(
                             minWidth: 20,
@@ -726,7 +738,7 @@ class _ConversationTile extends StatelessWidget {
                               conversation.unreadCount > 99
                                   ? '99+'
                                   : '${conversation.unreadCount}',
-                              style: TextStyle(
+                              style: textTheme.labelSmall?.copyWith(
                                 fontSize: 11,
                                 fontWeight: FontWeight.w700,
                                 color: tokens.primaryCtaText,
@@ -761,6 +773,8 @@ class _InboxEmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+
     return Center(
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 36),
@@ -769,7 +783,7 @@ class _InboxEmptyState extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
           decoration: BoxDecoration(
             color: tokens.cardSurface,
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(18),
             border: Border.all(color: tokens.border),
           ),
           child: Column(
@@ -792,7 +806,7 @@ class _InboxEmptyState extends StatelessWidget {
               Text(
                 'Chưa có cuộc trò chuyện nào',
                 textAlign: TextAlign.center,
-                style: TextStyle(
+                style: textTheme.titleMedium?.copyWith(
                   fontSize: 17,
                   fontWeight: FontWeight.w700,
                   color: tokens.textPrimary,
@@ -802,7 +816,7 @@ class _InboxEmptyState extends StatelessWidget {
               Text(
                 'Kết nối trực tiếp với huấn luyện viên và bạn bè trong cộng đồng Saman qua tin nhắn, ảnh và giọng nói.',
                 textAlign: TextAlign.center,
-                style: TextStyle(
+                style: textTheme.bodySmall?.copyWith(
                   fontSize: 13,
                   color: tokens.textSecondary,
                   height: 1.45,
@@ -811,23 +825,25 @@ class _InboxEmptyState extends StatelessWidget {
               const SizedBox(height: 20),
               SizedBox(
                 width: double.infinity,
-                height: 48,
+                height: 46,
                 child: ElevatedButton.icon(
                   onPressed: onStartChat,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: tokens.greenAccent,
                     foregroundColor: tokens.primaryCtaText,
+                    minimumSize: const Size(0, 46),
                     elevation: 0,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
                   ),
                   icon: const Icon(Icons.add_comment_outlined, size: 18),
-                  label: const Text(
+                  label: Text(
                     'Bắt đầu trò chuyện',
-                    style: TextStyle(
+                    style: textTheme.labelLarge?.copyWith(
                       fontSize: 14,
                       fontWeight: FontWeight.w700,
+                      color: tokens.primaryCtaText,
                     ),
                   ),
                 ),
@@ -899,6 +915,7 @@ class _NewChatMemberSheetState extends ConsumerState<_NewChatMemberSheet> {
   @override
   Widget build(BuildContext context) {
     final tokens = SamanHomeTokens.of(context);
+    final textTheme = Theme.of(context).textTheme;
     final maxHeight = MediaQuery.sizeOf(context).height * 0.72;
     final filtered = _query.trim().isEmpty
         ? _suggestions
@@ -929,13 +946,13 @@ class _NewChatMemberSheetState extends ConsumerState<_NewChatMemberSheet> {
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
-              const SizedBox(height: 14),
+              const SizedBox(height: 12),
               Row(
                 children: [
                   Expanded(
                     child: Text(
                       'Tin nhắn mới',
-                      style: TextStyle(
+                      style: textTheme.titleMedium?.copyWith(
                         fontSize: 17,
                         fontWeight: FontWeight.w700,
                         color: tokens.textPrimary,
@@ -944,6 +961,11 @@ class _NewChatMemberSheetState extends ConsumerState<_NewChatMemberSheet> {
                   ),
                   IconButton(
                     onPressed: () => Navigator.pop(context),
+                    tooltip: 'Đóng',
+                    constraints: const BoxConstraints(
+                      minWidth: 44,
+                      minHeight: 44,
+                    ),
                     icon: Icon(
                       Icons.close_rounded,
                       color: tokens.textSecondary,
@@ -953,36 +975,42 @@ class _NewChatMemberSheetState extends ConsumerState<_NewChatMemberSheet> {
                 ],
               ),
               const SizedBox(height: 8),
-              TextField(
-                controller: _filterController,
-                onChanged: (value) {
-                  setState(() {
-                    _query = value;
-                  });
-                },
-                style: TextStyle(fontSize: 14, color: tokens.textPrimary),
-                decoration: InputDecoration(
-                  hintText: 'Tìm thành viên để nhắn tin...',
-                  hintStyle: TextStyle(fontSize: 14, color: tokens.textMuted),
-                  prefixIcon: Icon(
-                    Icons.search_rounded,
-                    size: 19,
-                    color: tokens.textSecondary,
+              Container(
+                decoration: BoxDecoration(
+                  color: tokens.cardSurfaceElevated,
+                  borderRadius: BorderRadius.circular(22),
+                ),
+                child: TextField(
+                  controller: _filterController,
+                  onChanged: (value) {
+                    setState(() {
+                      _query = value;
+                    });
+                  },
+                  style: textTheme.bodyMedium?.copyWith(
+                    fontSize: 14,
+                    color: tokens.textPrimary,
                   ),
-                  filled: true,
-                  fillColor: tokens.secondarySurface,
-                  isDense: true,
-                  contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 10,
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(color: tokens.border),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(color: tokens.greenAccent),
+                  decoration: InputDecoration(
+                    hintText: 'Tìm thành viên để nhắn tin...',
+                    hintStyle: textTheme.bodyMedium?.copyWith(
+                      fontSize: 14,
+                      color: tokens.textMuted,
+                    ),
+                    prefixIcon: Icon(
+                      Icons.search_rounded,
+                      size: 19,
+                      color: tokens.textMuted,
+                    ),
+                    filled: false,
+                    isDense: true,
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 11,
+                    ),
+                    border: InputBorder.none,
+                    enabledBorder: InputBorder.none,
+                    focusedBorder: InputBorder.none,
                   ),
                 ),
               ),
@@ -1002,19 +1030,15 @@ class _NewChatMemberSheetState extends ConsumerState<_NewChatMemberSheet> {
                             padding: const EdgeInsets.symmetric(vertical: 32),
                             child: Text(
                               'Không có gợi ý thành viên phù hợp.',
-                              style: TextStyle(
+                              style: textTheme.bodySmall?.copyWith(
                                 fontSize: 13,
                                 color: tokens.textSecondary,
                               ),
                             ),
                           )
-                        : ListView.separated(
+                        : ListView.builder(
                             shrinkWrap: true,
                             itemCount: filtered.length,
-                            separatorBuilder: (_, __) => Divider(
-                              color: tokens.border,
-                              height: 1,
-                            ),
                             itemBuilder: (context, index) {
                               final author = filtered[index];
                               final initial = author.name.trim().isNotEmpty
@@ -1025,10 +1049,11 @@ class _NewChatMemberSheetState extends ConsumerState<_NewChatMemberSheet> {
                                   horizontal: 4,
                                   vertical: 4,
                                 ),
+                                minTileHeight: 56,
                                 onTap: () => Navigator.pop(context, author),
                                 leading: Container(
-                                  width: 42,
-                                  height: 42,
+                                  width: 44,
+                                  height: 44,
                                   decoration: BoxDecoration(
                                     shape: BoxShape.circle,
                                     color: tokens.secondarySurface,
@@ -1043,7 +1068,8 @@ class _NewChatMemberSheetState extends ConsumerState<_NewChatMemberSheet> {
                                           errorBuilder: (_, __, ___) => Center(
                                             child: Text(
                                               initial,
-                                              style: TextStyle(
+                                              style: textTheme.titleSmall
+                                                  ?.copyWith(
                                                 fontSize: 16,
                                                 fontWeight: FontWeight.w700,
                                                 color: tokens.greenAccent,
@@ -1054,7 +1080,8 @@ class _NewChatMemberSheetState extends ConsumerState<_NewChatMemberSheet> {
                                       : Center(
                                           child: Text(
                                             initial,
-                                            style: TextStyle(
+                                            style:
+                                                textTheme.titleSmall?.copyWith(
                                               fontSize: 16,
                                               fontWeight: FontWeight.w700,
                                               color: tokens.greenAccent,
@@ -1069,7 +1096,7 @@ class _NewChatMemberSheetState extends ConsumerState<_NewChatMemberSheet> {
                                         author.name,
                                         maxLines: 1,
                                         overflow: TextOverflow.ellipsis,
-                                        style: TextStyle(
+                                        style: textTheme.titleSmall?.copyWith(
                                           fontSize: 14,
                                           fontWeight: FontWeight.w600,
                                           color: tokens.textPrimary,
@@ -1092,7 +1119,7 @@ class _NewChatMemberSheetState extends ConsumerState<_NewChatMemberSheet> {
                                         author.title ?? '@${author.handle}',
                                         maxLines: 1,
                                         overflow: TextOverflow.ellipsis,
-                                        style: TextStyle(
+                                        style: textTheme.bodySmall?.copyWith(
                                           fontSize: 12,
                                           color: tokens.textSecondary,
                                         ),

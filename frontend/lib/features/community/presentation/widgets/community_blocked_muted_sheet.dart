@@ -31,6 +31,7 @@ class CommunityBlockedMutedSheet extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final tokens = SamanHomeTokens.of(context);
+    final textTheme = Theme.of(context).textTheme;
     final state = ref.watch(communitySettingsProvider);
     final users =
         mode == BlockedMutedMode.blocked ? state.blockedUsers : state.mutedUsers;
@@ -57,17 +58,19 @@ class CommunityBlockedMutedSheet extends ConsumerWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const SizedBox(height: 10),
-            Container(
-              width: 36,
-              height: 4,
-              decoration: BoxDecoration(
-                color: tokens.borderHigh,
-                borderRadius: BorderRadius.circular(SamanHomeTokens.radiusPill),
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              child: Container(
+                width: 36,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: tokens.borderHigh,
+                  borderRadius: BorderRadius.circular(SamanHomeTokens.radiusPill),
+                ),
               ),
             ),
             Padding(
-              padding: const EdgeInsets.fromLTRB(16, 14, 8, 12),
+              padding: const EdgeInsets.fromLTRB(16, 4, 8, 12),
               child: Row(
                 children: [
                   Expanded(
@@ -76,7 +79,7 @@ class CommunityBlockedMutedSheet extends ConsumerWidget {
                       children: [
                         Text(
                           title,
-                          style: TextStyle(
+                          style: textTheme.titleMedium?.copyWith(
                             fontSize: 17,
                             fontWeight: FontWeight.w700,
                             color: tokens.textPrimary,
@@ -85,9 +88,10 @@ class CommunityBlockedMutedSheet extends ConsumerWidget {
                         const SizedBox(height: 2),
                         Text(
                           '${users.length} tài khoản',
-                          style: TextStyle(
+                          style: textTheme.bodySmall?.copyWith(
                             fontSize: 12,
                             color: tokens.textSecondary,
+                            fontFeatures: const [FontFeature.tabularFigures()],
                           ),
                         ),
                       ],
@@ -95,6 +99,10 @@ class CommunityBlockedMutedSheet extends ConsumerWidget {
                   ),
                   IconButton(
                     onPressed: () => Navigator.of(context).pop(),
+                    constraints: const BoxConstraints(
+                      minWidth: 44,
+                      minHeight: 44,
+                    ),
                     icon: Icon(
                       Icons.close_rounded,
                       color: tokens.textSecondary,
@@ -193,6 +201,7 @@ class _BlockedMutedUserTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final tokens = SamanHomeTokens.of(context);
+    final textTheme = Theme.of(context).textTheme;
     final actionLabel =
         mode == BlockedMutedMode.blocked ? 'Bỏ chặn' : 'Bỏ ẩn tiếng';
     final subtitleText = (user.title != null && user.title!.trim().isNotEmpty)
@@ -223,7 +232,7 @@ class _BlockedMutedUserTile extends StatelessWidget {
                         user.name,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
+                        style: textTheme.titleSmall?.copyWith(
                           fontSize: 14,
                           fontWeight: FontWeight.w600,
                           color: tokens.textPrimary,
@@ -245,7 +254,7 @@ class _BlockedMutedUserTile extends StatelessWidget {
                   subtitleText,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
+                  style: textTheme.bodySmall?.copyWith(
                     fontSize: 12,
                     color: tokens.textSecondary,
                   ),
@@ -263,14 +272,15 @@ class _BlockedMutedUserTile extends StatelessWidget {
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(SamanHomeTokens.radiusMd),
               ),
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              minimumSize: const Size(0, 36),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              minimumSize: const Size(0, 44),
             ),
             child: Text(
               actionLabel,
-              style: const TextStyle(
+              style: textTheme.labelMedium?.copyWith(
                 fontSize: 12.5,
                 fontWeight: FontWeight.w600,
+                color: tokens.textPrimary,
               ),
             ),
           ),
@@ -288,6 +298,7 @@ class _AuthorAvatar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final tokens = SamanHomeTokens.of(context);
+    final textTheme = Theme.of(context).textTheme;
     final hasUrl =
         author.avatarUrl != null && author.avatarUrl!.trim().isNotEmpty;
     final initial = author.name.trim().isNotEmpty
@@ -302,7 +313,7 @@ class _AuthorAvatar extends StatelessWidget {
           ? null
           : Text(
               initial,
-              style: TextStyle(
+              style: textTheme.titleMedium?.copyWith(
                 fontSize: 15,
                 fontWeight: FontWeight.w700,
                 color: tokens.textPrimary,
@@ -320,6 +331,7 @@ class _EmptyBlockedMutedState extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final tokens = SamanHomeTokens.of(context);
+    final textTheme = Theme.of(context).textTheme;
     final isBlocked = mode == BlockedMutedMode.blocked;
 
     return Padding(
@@ -347,7 +359,7 @@ class _EmptyBlockedMutedState extends StatelessWidget {
                 ? 'Chưa có tài khoản nào bị chặn'
                 : 'Chưa có tài khoản nào bị ẩn tiếng',
             textAlign: TextAlign.center,
-            style: TextStyle(
+            style: textTheme.titleSmall?.copyWith(
               fontSize: 15,
               fontWeight: FontWeight.w600,
               color: tokens.textPrimary,
@@ -359,7 +371,7 @@ class _EmptyBlockedMutedState extends StatelessWidget {
                 ? 'Những người bạn chặn sẽ không thể xem bài viết hoặc nhắn tin cho bạn.'
                 : 'Bài viết và tin 24h từ những người bạn ẩn tiếng sẽ không xuất hiện trên bảng tin.',
             textAlign: TextAlign.center,
-            style: TextStyle(
+            style: textTheme.bodySmall?.copyWith(
               fontSize: 13,
               color: tokens.textSecondary,
               height: 1.4,
