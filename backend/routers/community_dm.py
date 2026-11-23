@@ -21,6 +21,8 @@ import io
 import json
 import os
 import uuid
+import weakref
+from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import Any, Dict, Iterable, List, Optional, Set, Tuple
 
@@ -207,27 +209,45 @@ async def get_required_current_user(
 # ---------------------------------------------------------------------------
 
 
+def _get_loop_lock(store: "weakref.WeakKeyDictionary[Any, asyncio.Lock]") -> asyncio.Lock:
+    """Return an asyncio.Lock bound to the currently running event loop (per-loop, GC-safe)."""
+    loop = asyncio.get_running_loop()
+    lock = store.get(loop)
+    if lock is None:
+        lock = asyncio.Lock()
+        store[loop] = lock
+    return lock
+
+
 class DmConnectionManager:
     def __init__(self) -> None:
         self._connections: Dict[str, Set[WebSocket]] = {}
-        self._lock = asyncio.Lock()
+        self._loop_locks: "weakref.WeakKeyDictionary[Any, asyncio.Lock]" = (
+            weakref.WeakKeyDictionary()
+        )
+
+    def _get_lock(self) -> asyncio.Lock:
+        return _get_loop_lock(self._loop_locks)
 
     async def connect(self, user_id: str, websocket: WebSocket) -> None:
         await websocket.accept()
-        async with self._lock:
+        async with self._get_lock():
             self._connections.setdefault(user_id, set()).add(websocket)
 
-    async def disconnect(self, user_id: str, websocket: WebSocket) -> None:
-        async with self._lock:
+    async def disconnect(self, user_id: str, websocket: WebSocket) -> bool:
+        """Remove websocket; return True if user_id now has no remaining active sockets."""
+        async with self._get_lock():
             sockets = self._connections.get(user_id)
             if not sockets:
-                return
+                return True
             sockets.discard(websocket)
             if not sockets:
                 self._connections.pop(user_id, None)
+                return True
+            return False
 
     async def send_to_user(self, user_id: str, payload: Dict[str, Any]) -> None:
-        async with self._lock:
+        async with self._get_lock():
             sockets = list(self._connections.get(user_id, ()))
 
         if not sockets:
@@ -241,7 +261,37 @@ class DmConnectionManager:
                 dead.append(ws)
 
         if dead:
-            async with self._lock:
+            async with self._get_lock():
+                user_set = self._connections.get(user_id)
+                if user_set:
+                    for ws in dead:
+                        user_set.discard(ws)
+                    if not user_set:
+                        self._connections.pop(user_id, None)
+
+    async def send_to_other_user_sockets(
+        self,
+        user_id: str,
+        exclude_websocket: WebSocket,
+        payload: Dict[str, Any],
+    ) -> None:
+        async with self._get_lock():
+            sockets = [
+                ws for ws in self._connections.get(user_id, ()) if ws is not exclude_websocket
+            ]
+
+        if not sockets:
+            return
+
+        dead: List[WebSocket] = []
+        for ws in sockets:
+            try:
+                await ws.send_json(payload)
+            except Exception:
+                dead.append(ws)
+
+        if dead:
+            async with self._get_lock():
                 user_set = self._connections.get(user_id)
                 if user_set:
                     for ws in dead:
@@ -256,6 +306,211 @@ class DmConnectionManager:
 
 
 ws_manager = DmConnectionManager()
+
+
+# ---------------------------------------------------------------------------
+# In-Memory 1-1 Audio/Video Call Signaling Registry (Phase 5A)
+# ---------------------------------------------------------------------------
+
+
+@dataclass
+class CallSession:
+    call_id: str
+    conversation_id: str
+    caller_id: str
+    callee_id: str
+    call_type: str  # "audio" | "video"
+    state: str = "ringing"  # "ringing" | "accepted" | "ended"
+    created_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
+    answered_at: Optional[datetime] = None
+    logged: bool = False
+
+
+class DmCallRegistry:
+    """In-memory 1-1 audio/video call state registry protected by asyncio.Lock."""
+
+    def __init__(self) -> None:
+        self._loop_locks: "weakref.WeakKeyDictionary[Any, asyncio.Lock]" = (
+            weakref.WeakKeyDictionary()
+        )
+        self.sessions: Dict[str, CallSession] = {}
+        self.user_active_call: Dict[str, str] = {}
+
+    def _get_lock(self) -> asyncio.Lock:
+        return _get_loop_lock(self._loop_locks)
+
+    def _clear_session_unlocked(self, session: CallSession) -> None:
+        session.state = "ended"
+        if self.user_active_call.get(session.caller_id) == session.call_id:
+            self.user_active_call.pop(session.caller_id, None)
+        if self.user_active_call.get(session.callee_id) == session.call_id:
+            self.user_active_call.pop(session.callee_id, None)
+        self.sessions.pop(session.call_id, None)
+
+    async def start_invite(
+        self,
+        *,
+        call_id: str,
+        conversation_id: str,
+        caller_id: str,
+        callee_id: str,
+        call_type: str,
+    ) -> Tuple[Optional[CallSession], Optional[str]]:
+        async with self._get_lock():
+            if call_id in self.sessions:
+                return None, "duplicate_call_id"
+            if callee_id in self.user_active_call:
+                return None, "callee_busy"
+            if caller_id in self.user_active_call:
+                return None, "caller_busy"
+
+            session = CallSession(
+                call_id=call_id,
+                conversation_id=conversation_id,
+                caller_id=caller_id,
+                callee_id=callee_id,
+                call_type=call_type,
+                state="ringing",
+                created_at=datetime.now(timezone.utc),
+                answered_at=None,
+                logged=False,
+            )
+            self.sessions[call_id] = session
+            self.user_active_call[caller_id] = call_id
+            self.user_active_call[callee_id] = call_id
+            return session, None
+
+    async def accept_call(
+        self, call_id: str, user_id: str
+    ) -> Tuple[Optional[CallSession], Optional[str]]:
+        async with self._get_lock():
+            session = self.sessions.get(call_id)
+            if session is None:
+                return None, "not_found"
+            if session.callee_id != user_id:
+                return None, "forbidden"
+            if session.state != "ringing":
+                return None, "invalid_state"
+            session.state = "accepted"
+            session.answered_at = datetime.now(timezone.utc)
+            return session, None
+
+    async def reject_call(
+        self, call_id: str, user_id: str
+    ) -> Tuple[Optional[CallSession], bool, Optional[str]]:
+        async with self._get_lock():
+            session = self.sessions.get(call_id)
+            if session is None:
+                return None, False, "not_found"
+            if session.callee_id != user_id:
+                return None, False, "forbidden"
+            if session.state != "ringing":
+                return None, False, "invalid_state"
+            should_log = not session.logged
+            session.logged = True
+            self._clear_session_unlocked(session)
+            return session, should_log, None
+
+    async def cancel_call(
+        self, call_id: str, user_id: str
+    ) -> Tuple[Optional[CallSession], bool, Optional[str]]:
+        async with self._get_lock():
+            session = self.sessions.get(call_id)
+            if session is None:
+                return None, False, "not_found"
+            if session.caller_id != user_id:
+                return None, False, "forbidden"
+            if session.state != "ringing":
+                return None, False, "invalid_state"
+            should_log = not session.logged
+            session.logged = True
+            self._clear_session_unlocked(session)
+            return session, should_log, None
+
+    async def busy_call(
+        self, call_id: str, user_id: str
+    ) -> Tuple[Optional[CallSession], bool, Optional[str]]:
+        async with self._get_lock():
+            session = self.sessions.get(call_id)
+            if session is None:
+                return None, False, "not_found"
+            if session.callee_id != user_id:
+                return None, False, "forbidden"
+            if session.state != "ringing":
+                return None, False, "invalid_state"
+            should_log = not session.logged
+            session.logged = True
+            self._clear_session_unlocked(session)
+            return session, should_log, None
+
+    async def hangup_call(
+        self, call_id: str, user_id: str
+    ) -> Tuple[Optional[CallSession], str, int, bool, Optional[str]]:
+        async with self._get_lock():
+            session = self.sessions.get(call_id)
+            if session is None:
+                return None, "missed", 0, False, "not_found"
+            if user_id not in (session.caller_id, session.callee_id):
+                return None, "missed", 0, False, "forbidden"
+            if session.state not in ("ringing", "accepted"):
+                return None, "missed", 0, False, "invalid_state"
+
+            now = datetime.now(timezone.utc)
+            if session.state == "accepted" and session.answered_at is not None:
+                duration_sec = max(0, int((now - session.answered_at).total_seconds()))
+                call_status = "completed"
+            else:
+                duration_sec = 0
+                call_status = "missed"
+
+            should_log = not session.logged
+            session.logged = True
+            self._clear_session_unlocked(session)
+            return session, call_status, duration_sec, should_log, None
+
+    async def resolve_webrtc_peer(
+        self, call_id: str, user_id: str
+    ) -> Tuple[Optional[CallSession], Optional[str], Optional[str]]:
+        async with self._get_lock():
+            session = self.sessions.get(call_id)
+            if session is None:
+                return None, None, "not_found"
+            if session.state not in ("ringing", "accepted"):
+                return None, None, "invalid_state"
+            if user_id == session.caller_id:
+                return session, session.callee_id, None
+            if user_id == session.callee_id:
+                return session, session.caller_id, None
+            return None, None, "forbidden"
+
+    async def cleanup_user_disconnect(
+        self, user_id: str
+    ) -> Optional[Tuple[CallSession, str, str, int, bool]]:
+        async with self._get_lock():
+            call_id = self.user_active_call.get(user_id)
+            if not call_id:
+                return None
+            session = self.sessions.get(call_id)
+            if session is None or session.state not in ("ringing", "accepted"):
+                self.user_active_call.pop(user_id, None)
+                return None
+
+            prev_state = session.state
+            now = datetime.now(timezone.utc)
+            if prev_state == "accepted" and session.answered_at is not None:
+                duration_sec = max(0, int((now - session.answered_at).total_seconds()))
+                call_status = "completed"
+            else:
+                duration_sec = 0
+                call_status = "missed"
+
+            should_log = not session.logged
+            session.logged = True
+            self._clear_session_unlocked(session)
+            return session, prev_state, call_status, duration_sec, should_log
+
+
+call_registry = DmCallRegistry()
 
 
 # ---------------------------------------------------------------------------
@@ -515,6 +770,9 @@ def _build_message_model(doc: Dict[str, Any]) -> DmMessageModel:
         else None
     )
 
+    raw_duration_sec = None if is_deleted else doc.get("duration_sec")
+    duration_sec = int(raw_duration_sec) if raw_duration_sec is not None else None
+
     return DmMessageModel(
         id=str(doc["_id"]),
         conversation_id=str(doc["conversation_id"]),
@@ -528,6 +786,10 @@ def _build_message_model(doc: Dict[str, Any]) -> DmMessageModel:
         reply_to_message_id=doc.get("reply_to_message_id"),
         is_deleted=is_deleted,
         created_at=_ensure_utc(doc.get("created_at")),
+        call_type=None if is_deleted else doc.get("call_type"),
+        call_status=None if is_deleted else doc.get("call_status"),
+        duration_sec=duration_sec,
+        call_id=None if is_deleted else doc.get("call_id"),
     )
 
 
@@ -617,6 +879,121 @@ def _format_last_message_preview(msg_type: str, content: str) -> str:
     if msg_type == "post_share":
         return "📌 Đã chia sẻ một bài viết"
     return content[:120]
+
+
+def _format_call_duration(duration_sec: int) -> str:
+    sec = max(0, int(duration_sec))
+    hours, rem = divmod(sec, 3600)
+    minutes, seconds = divmod(rem, 60)
+    if hours > 0:
+        return f"{hours:02d}:{minutes:02d}:{seconds:02d}"
+    return f"{minutes:02d}:{seconds:02d}"
+
+
+def _format_call_log_preview(call_type: str, call_status: str, duration_sec: int) -> str:
+    is_video = call_type == "video"
+    label = "Cuộc gọi video" if is_video else "Cuộc gọi thoại"
+    if call_status == "completed":
+        return f"{label} • {_format_call_duration(duration_sec)}"
+    if call_status == "missed":
+        return f"{label} nhỡ"
+    if call_status == "rejected":
+        return "Đã từ chối cuộc gọi video" if is_video else "Đã từ chối cuộc gọi"
+    return label
+
+
+def _persist_call_log_sync(
+    database: Any,
+    session: CallSession,
+    call_status: str,
+    duration_sec: int,
+) -> Optional[DmMessageModel]:
+    """Insert an idempotent call_log message and update conversation preview synchronously."""
+    target_db = database if database is not None else _get_db()
+    if target_db is None:
+        return None
+
+    msg_col = target_db[COLL_DM_MESSAGES]
+    conv_col = target_db[COLL_DM_CONVERSATIONS]
+
+    existing = msg_col.find_one({"type": "call_log", "call_id": session.call_id})
+    if existing is not None:
+        return _build_message_model(existing)
+
+    now = datetime.now(timezone.utc)
+    safe_duration = max(0, int(duration_sec))
+    preview_text = _format_call_log_preview(session.call_type, call_status, safe_duration)
+    request_key = f"call_log:{session.call_id}"
+
+    msg_doc: Dict[str, Any] = {
+        "_id": ObjectId(),
+        "conversation_id": session.conversation_id,
+        "sender_id": session.caller_id,
+        "type": "call_log",
+        "content": preview_text,
+        "media_url": None,
+        "duration_seconds": None,
+        "shared_post_id": None,
+        "shared_post_preview": None,
+        "reply_to_message_id": None,
+        "is_deleted": False,
+        "created_at": now,
+        "call_type": session.call_type,
+        "call_status": call_status,
+        "duration_sec": safe_duration,
+        "call_id": session.call_id,
+        "request_key": request_key,
+    }
+
+    try:
+        msg_col.insert_one(msg_doc)
+    except DuplicateKeyError:
+        existing = msg_col.find_one({"type": "call_log", "call_id": session.call_id})
+        if existing is not None:
+            return _build_message_model(existing)
+        return None
+
+    conv_filters: List[Dict[str, Any]] = [{"_id": session.conversation_id}]
+    if ObjectId.is_valid(session.conversation_id):
+        conv_filters.insert(0, {"_id": ObjectId(session.conversation_id)})
+
+    update_ops: Dict[str, Any] = {
+        "$set": {
+            "last_message_type": "call_log",
+            "last_message_preview": preview_text,
+            "last_message_at": now,
+            "updated_at": now,
+        }
+    }
+    if call_status == "missed":
+        update_ops["$inc"] = {f"unread_counts.{session.callee_id}": 1}
+
+    conv_col.update_one({"$or": conv_filters}, update_ops)
+    return _build_message_model(msg_doc)
+
+
+async def _persist_and_broadcast_call_log(
+    session: CallSession,
+    call_status: str,
+    duration_sec: int,
+) -> Optional[DmMessageModel]:
+    msg_model = await asyncio.to_thread(
+        _persist_call_log_sync,
+        _get_db(),
+        session,
+        call_status,
+        duration_sec,
+    )
+    if msg_model is not None:
+        await ws_manager.send_to_users(
+            [session.caller_id, session.callee_id],
+            {
+                "event": "message.created",
+                "conversation_id": session.conversation_id,
+                "message": msg_model.model_dump(mode="json"),
+            },
+        )
+    return msg_model
 
 
 # ---------------------------------------------------------------------------
@@ -1342,6 +1719,370 @@ def _resolve_typing_peer_sync(current_user_id: str, conversation_id: str) -> Opt
     return peer_id
 
 
+def _prepare_call_invite_sync(
+    caller_id: str, conversation_id: str
+) -> Tuple[str, str, Dict[str, Any]]:
+    """Validate conversation membership, 2-way block & who_can_dm privacy, and project caller profile."""
+    conv = _get_conversation_for_member(conversation_id, caller_id)
+    canonical_conv_id = str(conv["_id"])
+    callee_id = _get_peer_id(conv, caller_id)
+    if not callee_id or callee_id == caller_id:
+        raise HTTPException(status_code=400, detail="Không thể tự gọi cho chính mình.")
+    _enforce_dm_allowed(caller_id, callee_id)
+    caller_info = _sanitize_participant_projection(caller_id).model_dump(mode="json")
+    return canonical_conv_id, callee_id, caller_info
+
+
+_CALL_WS_EVENTS = frozenset(
+    {
+        "call.invite",
+        "call.accept",
+        "call.reject",
+        "call.cancel",
+        "call.hangup",
+        "call.busy",
+        "webrtc.offer",
+        "webrtc.answer",
+        "webrtc.ice",
+    }
+)
+
+_CALL_ERROR_DETAILS: Dict[str, str] = {
+    "not_found": "Cuộc gọi không tồn tại hoặc đã kết thúc.",
+    "forbidden": "Bạn không có quyền thực hiện thao tác trên cuộc gọi này.",
+    "invalid_state": "Trạng thái cuộc gọi không hợp lệ cho thao tác này.",
+    "invalid_payload": "Dữ liệu signaling cuộc gọi không hợp lệ.",
+}
+
+
+async def _send_call_error(
+    websocket: WebSocket,
+    call_id: str,
+    code: str,
+    detail: Optional[str] = None,
+) -> None:
+    await websocket.send_json(
+        {
+            "event": "call.error",
+            "call_id": call_id,
+            "code": code,
+            "detail": detail or _CALL_ERROR_DETAILS.get(code, "Lỗi signaling cuộc gọi."),
+        }
+    )
+
+
+async def _handle_ws_call_event(
+    websocket: WebSocket,
+    current_user_id: str,
+    event: str,
+    frame: Dict[str, Any],
+) -> None:
+    call_id = str(frame.get("call_id") or "").strip()
+    if not call_id or len(call_id) > 128:
+        await _send_call_error(websocket, call_id, "invalid_payload", "call_id là bắt buộc.")
+        return
+
+    if event == "call.invite":
+        conv_id = str(frame.get("conversation_id") or "").strip()
+        call_type = str(frame.get("call_type") or "").strip().lower()
+        if not conv_id or call_type not in ("audio", "video"):
+            await _send_call_error(
+                websocket,
+                call_id,
+                "invalid_payload",
+                "conversation_id và call_type ('audio' hoặc 'video') là bắt buộc.",
+            )
+            return
+
+        try:
+            canonical_conv_id, callee_id, caller_info = await asyncio.to_thread(
+                _prepare_call_invite_sync, current_user_id, conv_id
+            )
+        except HTTPException as exc:
+            if exc.status_code == 403:
+                code = "forbidden"
+            elif exc.status_code == 404:
+                code = "not_found"
+            elif exc.status_code == 400:
+                code = "invalid_payload"
+            else:
+                code = "server_error"
+            await _send_call_error(websocket, call_id, code, str(exc.detail))
+            return
+
+        session, err = await call_registry.start_invite(
+            call_id=call_id,
+            conversation_id=canonical_conv_id,
+            caller_id=current_user_id,
+            callee_id=callee_id,
+            call_type=call_type,
+        )
+        if err == "duplicate_call_id":
+            await _send_call_error(
+                websocket,
+                call_id,
+                "invalid_state",
+                "call_id đang tồn tại trong một cuộc gọi khác.",
+            )
+            return
+        if err == "callee_busy":
+            await websocket.send_json(
+                {
+                    "event": "call.busy",
+                    "call_id": call_id,
+                    "conversation_id": canonical_conv_id,
+                    "by_user_id": callee_id,
+                }
+            )
+            busy_session = CallSession(
+                call_id=call_id,
+                conversation_id=canonical_conv_id,
+                caller_id=current_user_id,
+                callee_id=callee_id,
+                call_type=call_type,
+                state="ended",
+                logged=True,
+            )
+            await _persist_and_broadcast_call_log(busy_session, "missed", 0)
+            return
+        if err == "caller_busy":
+            await websocket.send_json(
+                {
+                    "event": "call.busy",
+                    "call_id": call_id,
+                    "conversation_id": canonical_conv_id,
+                    "by_user_id": current_user_id,
+                }
+            )
+            return
+
+        assert session is not None
+        await ws_manager.send_to_user(
+            callee_id,
+            {
+                "event": "call.invite",
+                "call_id": session.call_id,
+                "conversation_id": session.conversation_id,
+                "call_type": session.call_type,
+                "caller": caller_info,
+            },
+        )
+        return
+
+    if event == "call.accept":
+        session, err = await call_registry.accept_call(call_id, current_user_id)
+        if err or session is None:
+            await _send_call_error(websocket, call_id, err or "invalid_state")
+            return
+        await ws_manager.send_to_user(
+            session.caller_id,
+            {
+                "event": "call.accept",
+                "call_id": session.call_id,
+                "conversation_id": session.conversation_id,
+                "by_user_id": current_user_id,
+            },
+        )
+        await ws_manager.send_to_other_user_sockets(
+            current_user_id,
+            websocket,
+            {
+                "event": "call.handled_elsewhere",
+                "call_id": session.call_id,
+                "conversation_id": session.conversation_id,
+            },
+        )
+        return
+
+    if event == "call.reject":
+        session, should_log, err = await call_registry.reject_call(call_id, current_user_id)
+        if err or session is None:
+            await _send_call_error(websocket, call_id, err or "invalid_state")
+            return
+        await ws_manager.send_to_user(
+            session.caller_id,
+            {
+                "event": "call.reject",
+                "call_id": session.call_id,
+                "conversation_id": session.conversation_id,
+                "by_user_id": current_user_id,
+            },
+        )
+        await ws_manager.send_to_other_user_sockets(
+            current_user_id,
+            websocket,
+            {
+                "event": "call.handled_elsewhere",
+                "call_id": session.call_id,
+                "conversation_id": session.conversation_id,
+            },
+        )
+        if should_log:
+            await _persist_and_broadcast_call_log(session, "rejected", 0)
+        return
+
+    if event == "call.cancel":
+        session, should_log, err = await call_registry.cancel_call(call_id, current_user_id)
+        if err or session is None:
+            await _send_call_error(websocket, call_id, err or "invalid_state")
+            return
+        await ws_manager.send_to_user(
+            session.callee_id,
+            {
+                "event": "call.cancel",
+                "call_id": session.call_id,
+                "conversation_id": session.conversation_id,
+                "by_user_id": current_user_id,
+            },
+        )
+        if should_log:
+            await _persist_and_broadcast_call_log(session, "missed", 0)
+        return
+
+    if event == "call.hangup":
+        session, call_status, duration_sec, should_log, err = await call_registry.hangup_call(
+            call_id, current_user_id
+        )
+        if err or session is None:
+            await _send_call_error(websocket, call_id, err or "invalid_state")
+            return
+        peer_id = (
+            session.callee_id if current_user_id == session.caller_id else session.caller_id
+        )
+        await ws_manager.send_to_user(
+            peer_id,
+            {
+                "event": "call.hangup",
+                "call_id": session.call_id,
+                "conversation_id": session.conversation_id,
+                "by_user_id": current_user_id,
+                "duration_sec": duration_sec,
+            },
+        )
+        if should_log:
+            await _persist_and_broadcast_call_log(session, call_status, duration_sec)
+        return
+
+    if event == "call.busy":
+        session, should_log, err = await call_registry.busy_call(call_id, current_user_id)
+        if err or session is None:
+            await _send_call_error(websocket, call_id, err or "invalid_state")
+            return
+        await ws_manager.send_to_user(
+            session.caller_id,
+            {
+                "event": "call.busy",
+                "call_id": session.call_id,
+                "conversation_id": session.conversation_id,
+                "by_user_id": current_user_id,
+            },
+        )
+        await ws_manager.send_to_other_user_sockets(
+            current_user_id,
+            websocket,
+            {
+                "event": "call.handled_elsewhere",
+                "call_id": session.call_id,
+                "conversation_id": session.conversation_id,
+            },
+        )
+        if should_log:
+            await _persist_and_broadcast_call_log(session, "missed", 0)
+        return
+
+    if event in ("webrtc.offer", "webrtc.answer"):
+        sdp = frame.get("sdp")
+        if not isinstance(sdp, str) or not sdp.strip():
+            await _send_call_error(
+                websocket, call_id, "invalid_payload", "sdp là bắt buộc cho WebRTC offer/answer."
+            )
+            return
+        session, peer_id, err = await call_registry.resolve_webrtc_peer(call_id, current_user_id)
+        if err or session is None or peer_id is None:
+            await _send_call_error(websocket, call_id, err or "invalid_state")
+            return
+        default_sdp_type = "offer" if event == "webrtc.offer" else "answer"
+        sdp_type = str(frame.get("sdp_type") or default_sdp_type)
+        await ws_manager.send_to_user(
+            peer_id,
+            {
+                "event": event,
+                "call_id": session.call_id,
+                "conversation_id": session.conversation_id,
+                "from_user_id": current_user_id,
+                "sdp": sdp,
+                "sdp_type": sdp_type,
+            },
+        )
+        return
+
+    if event == "webrtc.ice":
+        if frame.get("candidate") is None:
+            await _send_call_error(
+                websocket, call_id, "invalid_payload", "candidate là bắt buộc cho webrtc.ice."
+            )
+            return
+        session, peer_id, err = await call_registry.resolve_webrtc_peer(call_id, current_user_id)
+        if err or session is None or peer_id is None:
+            await _send_call_error(websocket, call_id, err or "invalid_state")
+            return
+        await ws_manager.send_to_user(
+            peer_id,
+            {
+                "event": "webrtc.ice",
+                "call_id": session.call_id,
+                "conversation_id": session.conversation_id,
+                "from_user_id": current_user_id,
+                "candidate": frame.get("candidate"),
+                "sdp_mid": frame.get("sdp_mid"),
+                "sdp_mline_index": frame.get("sdp_mline_index"),
+            },
+        )
+        return
+
+
+_BACKGROUND_CALL_TASKS: Set["asyncio.Future[Any]"] = set()
+
+
+def _on_call_cleanup_done(task: "asyncio.Future[Any]") -> None:
+    _BACKGROUND_CALL_TASKS.discard(task)
+    if not task.cancelled():
+        task.exception()  # retrieve to avoid "exception never retrieved" warnings
+
+
+async def _cleanup_user_call_on_disconnect(user_id: str) -> None:
+    result = await call_registry.cleanup_user_disconnect(user_id)
+    if result is None:
+        return
+    session, prev_state, call_status, duration_sec, should_log = result
+    peer_id = session.callee_id if user_id == session.caller_id else session.caller_id
+
+    if prev_state == "ringing" and user_id == session.caller_id:
+        await ws_manager.send_to_user(
+            peer_id,
+            {
+                "event": "call.cancel",
+                "call_id": session.call_id,
+                "conversation_id": session.conversation_id,
+                "by_user_id": user_id,
+            },
+        )
+    else:
+        await ws_manager.send_to_user(
+            peer_id,
+            {
+                "event": "call.hangup",
+                "call_id": session.call_id,
+                "conversation_id": session.conversation_id,
+                "by_user_id": user_id,
+                "duration_sec": duration_sec,
+            },
+        )
+
+    if should_log:
+        await _persist_and_broadcast_call_log(session, call_status, duration_sec)
+
+
 def _extract_ws_token(websocket: WebSocket) -> Optional[str]:
     token = websocket.query_params.get("token")
     if token and token.strip():
@@ -1406,7 +2147,15 @@ async def dm_chat_websocket(websocket: WebSocket):
                             "is_typing": is_typing,
                         },
                     )
+            elif event in _CALL_WS_EVENTS:
+                await _handle_ws_call_event(websocket, current_user_id, event, frame)
     except WebSocketDisconnect:
         pass
     finally:
-        await ws_manager.disconnect(current_user_id, websocket)
+        was_last_socket = await asyncio.shield(ws_manager.disconnect(current_user_id, websocket))
+        if was_last_socket:
+            # Detached task: survives cancellation of this handler task (server shutdown,
+            # TestClient exit) so the peer is still notified and the call_log persisted.
+            cleanup_task = asyncio.ensure_future(_cleanup_user_call_on_disconnect(current_user_id))
+            _BACKGROUND_CALL_TASKS.add(cleanup_task)
+            cleanup_task.add_done_callback(_on_call_cleanup_done)

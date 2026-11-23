@@ -187,6 +187,104 @@ class CommunityDmWsService {
     });
   }
 
+  void sendCallInvite({
+    required String callId,
+    required String conversationId,
+    required String callType,
+  }) {
+    if (!_isConnected || _channel == null) return;
+    _sendRaw({
+      'event': 'call.invite',
+      'call_id': callId,
+      'conversation_id': conversationId,
+      'call_type': callType,
+    });
+  }
+
+  void sendCallAccept({required String callId}) {
+    if (!_isConnected || _channel == null) return;
+    _sendRaw({
+      'event': 'call.accept',
+      'call_id': callId,
+    });
+  }
+
+  void sendCallReject({required String callId}) {
+    if (!_isConnected || _channel == null) return;
+    _sendRaw({
+      'event': 'call.reject',
+      'call_id': callId,
+    });
+  }
+
+  void sendCallCancel({required String callId}) {
+    if (!_isConnected || _channel == null) return;
+    _sendRaw({
+      'event': 'call.cancel',
+      'call_id': callId,
+    });
+  }
+
+  void sendCallHangup({required String callId}) {
+    if (!_isConnected || _channel == null) return;
+    _sendRaw({
+      'event': 'call.hangup',
+      'call_id': callId,
+    });
+  }
+
+  void sendCallBusy({required String callId}) {
+    if (!_isConnected || _channel == null) return;
+    _sendRaw({
+      'event': 'call.busy',
+      'call_id': callId,
+    });
+  }
+
+  void sendWebRtcOffer({
+    required String callId,
+    required String sdp,
+    String sdpType = 'offer',
+  }) {
+    if (!_isConnected || _channel == null) return;
+    _sendRaw({
+      'event': 'webrtc.offer',
+      'call_id': callId,
+      'sdp': sdp,
+      'sdp_type': sdpType,
+    });
+  }
+
+  void sendWebRtcAnswer({
+    required String callId,
+    required String sdp,
+    String sdpType = 'answer',
+  }) {
+    if (!_isConnected || _channel == null) return;
+    _sendRaw({
+      'event': 'webrtc.answer',
+      'call_id': callId,
+      'sdp': sdp,
+      'sdp_type': sdpType,
+    });
+  }
+
+  void sendWebRtcIce({
+    required String callId,
+    required String candidate,
+    String? sdpMid,
+    int? sdpMlineIndex,
+  }) {
+    if (!_isConnected || _channel == null) return;
+    _sendRaw({
+      'event': 'webrtc.ice',
+      'call_id': callId,
+      'candidate': candidate,
+      'sdp_mid': sdpMid,
+      'sdp_mline_index': sdpMlineIndex,
+    });
+  }
+
   void _sendRaw(Map<String, dynamic> payload) {
     try {
       _channel?.sink.add(jsonEncode(payload));

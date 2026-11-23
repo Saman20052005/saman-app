@@ -9,15 +9,19 @@ import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:record/record.dart';
 
+import '../../../../../config/app_translations.dart';
 import '../../../../../config/routes.dart';
 import '../../../../../widgets/saman_feedback_snackbar.dart';
 import '../../../data/datasources/community_dm_ws_service.dart';
 import '../../../domain/models/community_dm.dart';
+import '../../providers/community_call_provider.dart';
 import '../../providers/community_dm_provider.dart';
 import '../../providers/community_providers.dart';
 import '../../tokens/saman_ig_tokens.dart';
+import '../../widgets/community_call_host_listener.dart';
 import '../../widgets/dm_media_viewer.dart';
 import '../../widgets/dm_voice_bubble.dart';
+import 'community_call_screen.dart';
 
 /// R17 Messenger-Lite 1-on-1 real-time chat thread screen.
 /// Supports text, voice notes (record + playback), photos, videos,
@@ -659,6 +663,37 @@ class _CommunityChatThreadScreenState
     });
   }
 
+  Future<void> _startCall(String callType) async {
+    final ok = await ref.read(communityCallProvider.notifier).startCall(
+          conversationId: widget.conversationId,
+          peer: widget.peer,
+          callType: callType,
+        );
+    if (!mounted) return;
+    if (!ok) {
+      final callState = ref.read(communityCallProvider);
+      final err = callState.errorMessage;
+      if (err != null && err.isNotEmpty) {
+        SamanFeedbackSnackBar.show(
+          context,
+          message: err,
+          type: FeedbackType.warning,
+        );
+      }
+      ref.read(communityCallProvider.notifier).dismissEndedState();
+      return;
+    }
+    if (!CommunityCallScreen.isPresented && mounted) {
+      CommunityCallScreen.isPresented = true;
+      await Navigator.of(context).push<void>(
+        MaterialPageRoute<void>(
+          fullscreenDialog: true,
+          builder: (_) => const CommunityCallScreen(),
+        ),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     ref.listen<CommunityChatThreadState>(
@@ -698,68 +733,72 @@ class _CommunityChatThreadScreenState
       }
     }
 
-    return Scaffold(
-      backgroundColor: ig.canvas,
-      body: SafeArea(
-        bottom: false,
-        child: Column(
-          children: [
-            _ChatThreadAppBar(
-              peer: widget.peer,
-              peerIsTyping: state.peerIsTyping,
-              ig: ig,
-              onBack: () => Navigator.pop(context),
-              onTapPeer: () {
-                Navigator.pushNamed(
-                  context,
-                  AppRoutes.communityProfile,
-                  arguments: widget.peer.id,
-                );
-              },
-            ),
-            Expanded(
-              child: _buildMessagesArea(
-                context: context,
-                state: state,
-                newestMyMessageId: newestMyMessageId,
+    return CommunityCallHostListener(
+      child: Scaffold(
+        backgroundColor: ig.canvas,
+        body: SafeArea(
+          bottom: false,
+          child: Column(
+            children: [
+              _ChatThreadAppBar(
+                peer: widget.peer,
+                peerIsTyping: state.peerIsTyping,
                 ig: ig,
+                onBack: () => Navigator.pop(context),
+                onTapPeer: () {
+                  Navigator.pushNamed(
+                    context,
+                    AppRoutes.communityProfile,
+                    arguments: widget.peer.id,
+                  );
+                },
+                onStartAudioCall: () => _startCall('audio'),
+                onStartVideoCall: () => _startCall('video'),
               ),
-            ),
-            if (_isUploadingMedia)
-              Container(
-                width: double.infinity,
-                color: ig.surface,
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-                child: Row(
-                  children: [
-                    SizedBox(
-                      width: 14,
-                      height: 14,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        color: ig.primaryAction,
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    Text(
-                      'Đang tải tệp đa phương tiện...',
-                      style: textTheme.labelSmall?.copyWith(
-                        fontFamily: SamanIgTokens.fontFamily,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w500,
-                        color: ig.textSecondary,
-                      ),
-                    ),
-                  ],
+              Expanded(
+                child: _buildMessagesArea(
+                  context: context,
+                  state: state,
+                  newestMyMessageId: newestMyMessageId,
+                  ig: ig,
                 ),
               ),
-            _buildComposerBar(
-              context: context,
-              ig: ig,
-              isSending: state.isSending,
-            ),
-          ],
+              if (_isUploadingMedia)
+                Container(
+                  width: double.infinity,
+                  color: ig.surface,
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                  child: Row(
+                    children: [
+                      SizedBox(
+                        width: 14,
+                        height: 14,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: ig.primaryAction,
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Text(
+                        'Đang tải tệp đa phương tiện...',
+                        style: textTheme.labelSmall?.copyWith(
+                          fontFamily: SamanIgTokens.fontFamily,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
+                          color: ig.textSecondary,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              _buildComposerBar(
+                context: context,
+                ig: ig,
+                isSending: state.isSending,
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -917,6 +956,7 @@ class _CommunityChatThreadScreenState
                   arguments: postId,
                 );
               },
+              onCallAgain: _startCall,
             ),
             if (showSeen)
               Padding(
@@ -1218,6 +1258,8 @@ class _ChatThreadAppBar extends StatelessWidget {
   final SamanIgTokens ig;
   final VoidCallback onBack;
   final VoidCallback onTapPeer;
+  final VoidCallback onStartAudioCall;
+  final VoidCallback onStartVideoCall;
 
   const _ChatThreadAppBar({
     required this.peer,
@@ -1225,6 +1267,8 @@ class _ChatThreadAppBar extends StatelessWidget {
     required this.ig,
     required this.onBack,
     required this.onTapPeer,
+    required this.onStartAudioCall,
+    required this.onStartVideoCall,
   });
 
   @override
@@ -1341,6 +1385,28 @@ class _ChatThreadAppBar extends StatelessWidget {
               ),
             ),
           ),
+          IconButton(
+            key: const Key('call-audio-button'),
+            onPressed: onStartAudioCall,
+            tooltip: context.tr('community_call_audio'),
+            constraints: const BoxConstraints(minWidth: 44, minHeight: 44),
+            icon: Icon(
+              Icons.call_outlined,
+              color: ig.textPrimary,
+              size: 22,
+            ),
+          ),
+          IconButton(
+            key: const Key('call-video-button'),
+            onPressed: onStartVideoCall,
+            tooltip: context.tr('community_call_video'),
+            constraints: const BoxConstraints(minWidth: 44, minHeight: 44),
+            icon: Icon(
+              Icons.videocam_outlined,
+              color: ig.textPrimary,
+              size: 24,
+            ),
+          ),
         ],
       ),
     );
@@ -1362,6 +1428,7 @@ class _MessageRow extends StatelessWidget {
   final ValueChanged<String> onOpenImage;
   final ValueChanged<String> onOpenVideo;
   final ValueChanged<String> onOpenSharedPost;
+  final ValueChanged<String>? onCallAgain;
 
   const _MessageRow({
     required this.message,
@@ -1378,6 +1445,7 @@ class _MessageRow extends StatelessWidget {
     required this.onOpenImage,
     required this.onOpenVideo,
     required this.onOpenSharedPost,
+    this.onCallAgain,
   });
 
   @override
@@ -1559,6 +1627,9 @@ class _MessageRow extends StatelessWidget {
       case DmMessageType.storyReply:
         return _buildStoryReplyBubble(context);
 
+      case DmMessageType.callLog:
+        return _buildCallLogBubble(context);
+
       case DmMessageType.text:
         return Container(
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
@@ -1574,6 +1645,136 @@ class _MessageRow extends StatelessWidget {
           ),
         );
     }
+  }
+
+  Widget _buildCallLogBubble(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+    final status = (message.callStatus ?? '').toLowerCase();
+    final isVideo = (message.callType ?? '').toLowerCase() == 'video';
+    final isMissedOrRejected = status == 'missed' || status == 'rejected';
+    final iconColor = isMissedOrRejected ? ig.danger : ig.textPrimary;
+
+    final IconData leadingIcon;
+    if (isVideo) {
+      leadingIcon = isMissedOrRejected
+          ? Icons.videocam_off_outlined
+          : Icons.videocam_outlined;
+    } else {
+      leadingIcon = isMissedOrRejected
+          ? Icons.phone_missed_rounded
+          : Icons.call_outlined;
+    }
+
+    final String titleText;
+    if (status == 'missed') {
+      titleText = isVideo
+          ? context.tr('community_call_missed_video')
+          : context.tr('community_call_missed_audio');
+    } else if (status == 'rejected') {
+      titleText = isVideo
+          ? context.tr('community_call_rejected_video')
+          : context.tr('community_call_rejected_audio');
+    } else {
+      titleText = isVideo
+          ? context.tr('community_call_video')
+          : context.tr('community_call_audio');
+    }
+
+    final String subtitleText;
+    if (status == 'completed') {
+      subtitleText = formatDmCallDuration(message.durationSec);
+    } else if (message.content.trim().isNotEmpty &&
+        message.content.trim() != titleText) {
+      subtitleText = message.content.trim();
+    } else {
+      subtitleText = isMissedOrRejected
+          ? context.tr('community_call_again')
+          : formatDmCallDuration(message.durationSec);
+    }
+
+    return Container(
+      key: ValueKey('call-log-bubble-${message.id}'),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: BoxDecoration(
+        color: ig.surface,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: ig.border, width: 0.5),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 38,
+            height: 38,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: isMissedOrRejected
+                  ? ig.danger.withOpacity(0.14)
+                  : ig.surfaceElevated,
+            ),
+            child: Icon(
+              leadingIcon,
+              size: 19,
+              color: iconColor,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Flexible(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  titleText,
+                  style: textTheme.titleSmall?.copyWith(
+                    fontFamily: SamanIgTokens.fontFamily,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                    color: isMissedOrRejected ? ig.danger : ig.textPrimary,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  subtitleText,
+                  style: textTheme.bodySmall?.copyWith(
+                    fontFamily: SamanIgTokens.fontFamily,
+                    fontSize: 12.5,
+                    color: ig.textSecondary,
+                    fontFeatures: const [FontFeature.tabularFigures()],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          if (onCallAgain != null) ...[
+            const SizedBox(width: 12),
+            TextButton(
+              key: ValueKey('call-log-again-${message.id}'),
+              onPressed: () => onCallAgain!(isVideo ? 'video' : 'audio'),
+              style: TextButton.styleFrom(
+                foregroundColor: ig.primaryAction,
+                backgroundColor: ig.primaryAction.withOpacity(0.12),
+                minimumSize: const Size(44, 36),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(18),
+                ),
+              ),
+              child: Text(
+                context.tr('community_call_again'),
+                style: textTheme.labelMedium?.copyWith(
+                  fontFamily: SamanIgTokens.fontFamily,
+                  fontSize: 12.5,
+                  fontWeight: FontWeight.w700,
+                  color: ig.primaryAction,
+                ),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
   }
 
   Widget _buildStoryReplyBubble(BuildContext context) {

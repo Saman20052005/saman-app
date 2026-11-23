@@ -120,16 +120,20 @@ class CommunityInboxNotifier extends StateNotifier<CommunityInboxState> {
       }
       final existing = state.conversations[idx];
       final isFromPeer = msg.senderId != _repository.activeUserId;
-      final preview = msg.content.isNotEmpty
-          ? msg.content
-          : msg.type.toApiValue();
+      final preview = msg.type == DmMessageType.callLog
+          ? formatDmCallLogPreview(msg)
+          : (msg.content.isNotEmpty ? msg.content : msg.type.toApiValue());
+      final shouldIncrementUnread = msg.type == DmMessageType.callLog
+          ? (isFromPeer && (msg.callStatus ?? '').toLowerCase() == 'missed')
+          : isFromPeer;
       final updated = existing.copyWith(
         lastMessagePreview: preview,
         lastMessageType: msg.type.toApiValue(),
         lastMessageAt: msg.createdAt,
         updatedAt: msg.createdAt,
-        unreadCount:
-            isFromPeer ? existing.unreadCount + 1 : existing.unreadCount,
+        unreadCount: shouldIncrementUnread
+            ? existing.unreadCount + 1
+            : existing.unreadCount,
       );
       final next = List<DmConversation>.from(state.conversations)
         ..removeAt(idx)

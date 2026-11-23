@@ -8,6 +8,7 @@ import '../providers/community_providers.dart';
 import '../providers/community_social_providers.dart';
 import '../tokens/saman_ig_tokens.dart';
 import '../widgets/community_bottom_navigation_bar.dart';
+import '../widgets/community_call_host_listener.dart';
 import '../widgets/community_story_tray.dart';
 import '../widgets/post_card_view.dart';
 import 'community_post_detail_screen.dart';
@@ -29,6 +30,7 @@ class _CommunityFeedScreenState extends ConsumerState<CommunityFeedScreen> {
       if (!mounted) return;
       ref.read(communityStoriesProvider.notifier).loadStories();
       ref.read(communityDmUnreadProvider.notifier).loadUnreadCount();
+      ref.read(communityDmWsServiceProvider).connect();
     });
   }
 
@@ -41,127 +43,129 @@ class _CommunityFeedScreenState extends ConsumerState<CommunityFeedScreen> {
     final dmUnreadCount = ref.watch(communityDmUnreadProvider);
     final showStoryTray = feedState.activeFilter != CommunityFeedFilter.qa;
 
-    return Scaffold(
-      backgroundColor: ig.canvas,
-      body: SafeArea(
-        bottom: false,
-        child: Column(
-          children: [
-            // Top App Bar
-            _buildTopAppBar(context, ig, dmUnreadCount),
+    return CommunityCallHostListener(
+      child: Scaffold(
+        backgroundColor: ig.canvas,
+        body: SafeArea(
+          bottom: false,
+          child: Column(
+            children: [
+              // Top App Bar
+              _buildTopAppBar(context, ig, dmUnreadCount),
 
-            // Honest Preview Notice Banner
-            if (!isRemote) _buildPreviewNoticeBanner(context, isRemote, ig),
+              // Honest Preview Notice Banner
+              if (!isRemote) _buildPreviewNoticeBanner(context, isRemote, ig),
 
-            // Feed Category Tabs
-            _buildCategoryTabs(context, feedState.activeFilter, (filter) {
-              feedNotifier.setFilter(filter);
-            }, ig),
+              // Feed Category Tabs
+              _buildCategoryTabs(context, feedState.activeFilter, (filter) {
+                feedNotifier.setFilter(filter);
+              }, ig),
 
-            // Feed Content
-            Expanded(
-              child: feedState.isLoading
-                  ? Center(
-                      child: CircularProgressIndicator(
-                        color: ig.primaryAction,
-                      ),
-                    )
-                  : feedState.errorMessage != null
-                      ? _buildErrorView(feedState.errorMessage!, () {
-                          feedNotifier.refresh();
-                        }, ig)
-                      : RefreshIndicator(
+              // Feed Content
+              Expanded(
+                child: feedState.isLoading
+                    ? Center(
+                        child: CircularProgressIndicator(
                           color: ig.primaryAction,
-                          backgroundColor: ig.surface,
-                          onRefresh: () async {
-                            await Future.wait([
-                              feedNotifier.refresh(),
-                              ref
-                                  .read(communityStoriesProvider.notifier)
-                                  .loadStories(),
-                              ref
-                                  .read(communityDmUnreadProvider.notifier)
-                                  .loadUnreadCount(),
-                            ]);
-                          },
-                          child: ListView.builder(
-                            padding: const EdgeInsets.only(bottom: 24),
-                            itemCount: (showStoryTray ? 1 : 0) +
-                                feedState.posts.length +
-                                1,
-                            itemBuilder: (context, index) {
-                              if (showStoryTray && index == 0) {
-                                return const CommunityStoryTray();
-                              }
-                              final postIndex =
-                                  showStoryTray ? index - 1 : index;
-                              if (postIndex < feedState.posts.length) {
-                                final post = feedState.posts[postIndex];
-                                return PostCardView(
-                                  post: post,
-                                  onLikeToggle: () async {
-                                    try {
-                                      await feedNotifier.toggleLike(post.id);
-                                    } catch (_) {
-                                      if (context.mounted) {
-                                        ScaffoldMessenger.of(context).showSnackBar(
-                                          const SnackBar(
-                                            content: Text('Không thể cập nhật lượt thích. Vui lòng thử lại.'),
-                                            duration: Duration(seconds: 2),
-                                          ),
-                                        );
-                                      }
-                                    }
-                                  },
-                                  onBookmarkToggle: () async {
-                                    try {
-                                      await feedNotifier.toggleBookmark(post.id);
-                                    } catch (_) {
-                                      if (context.mounted) {
-                                        ScaffoldMessenger.of(context).showSnackBar(
-                                          const SnackBar(
-                                            content: Text('Không thể lưu bài viết. Vui lòng thử lại.'),
-                                            duration: Duration(seconds: 2),
-                                          ),
-                                        );
-                                      }
-                                    }
-                                  },
-                                  onOpenDetail: () {
-                                    if (post.type == CommunityPostType.qa) {
-                                      Navigator.push(
-                                        context,
-                                        MaterialPageRoute(
-                                          builder: (_) => CommunityQuestionDetailScreen(
-                                            questionId: post.id,
-                                            initialPost: post,
-                                          ),
-                                        ),
-                                      );
-                                    } else {
-                                      Navigator.push(
-                                        context,
-                                        MaterialPageRoute(
-                                          builder: (_) => CommunityPostDetailScreen(
-                                            postId: post.id,
-                                          ),
-                                        ),
-                                      );
-                                    }
-                                  },
-                                );
-                              }
-                              // End of Feed delight card
-                              return _buildEndOfFeedCard(context, ig, isEmpty: feedState.posts.isEmpty);
-                            },
-                          ),
                         ),
-            ),
-          ],
+                      )
+                    : feedState.errorMessage != null
+                        ? _buildErrorView(feedState.errorMessage!, () {
+                            feedNotifier.refresh();
+                          }, ig)
+                        : RefreshIndicator(
+                            color: ig.primaryAction,
+                            backgroundColor: ig.surface,
+                            onRefresh: () async {
+                              await Future.wait([
+                                feedNotifier.refresh(),
+                                ref
+                                    .read(communityStoriesProvider.notifier)
+                                    .loadStories(),
+                                ref
+                                    .read(communityDmUnreadProvider.notifier)
+                                    .loadUnreadCount(),
+                              ]);
+                            },
+                            child: ListView.builder(
+                              padding: const EdgeInsets.only(bottom: 24),
+                              itemCount: (showStoryTray ? 1 : 0) +
+                                  feedState.posts.length +
+                                  1,
+                              itemBuilder: (context, index) {
+                                if (showStoryTray && index == 0) {
+                                  return const CommunityStoryTray();
+                                }
+                                final postIndex =
+                                    showStoryTray ? index - 1 : index;
+                                if (postIndex < feedState.posts.length) {
+                                  final post = feedState.posts[postIndex];
+                                  return PostCardView(
+                                    post: post,
+                                    onLikeToggle: () async {
+                                      try {
+                                        await feedNotifier.toggleLike(post.id);
+                                      } catch (_) {
+                                        if (context.mounted) {
+                                          ScaffoldMessenger.of(context).showSnackBar(
+                                            const SnackBar(
+                                              content: Text('Không thể cập nhật lượt thích. Vui lòng thử lại.'),
+                                              duration: Duration(seconds: 2),
+                                            ),
+                                          );
+                                        }
+                                      }
+                                    },
+                                    onBookmarkToggle: () async {
+                                      try {
+                                        await feedNotifier.toggleBookmark(post.id);
+                                      } catch (_) {
+                                        if (context.mounted) {
+                                          ScaffoldMessenger.of(context).showSnackBar(
+                                            const SnackBar(
+                                              content: Text('Không thể lưu bài viết. Vui lòng thử lại.'),
+                                              duration: Duration(seconds: 2),
+                                            ),
+                                          );
+                                        }
+                                      }
+                                    },
+                                    onOpenDetail: () {
+                                      if (post.type == CommunityPostType.qa) {
+                                        Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                            builder: (_) => CommunityQuestionDetailScreen(
+                                              questionId: post.id,
+                                              initialPost: post,
+                                            ),
+                                          ),
+                                        );
+                                      } else {
+                                        Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                            builder: (_) => CommunityPostDetailScreen(
+                                              postId: post.id,
+                                            ),
+                                          ),
+                                        );
+                                      }
+                                    },
+                                  );
+                                }
+                                // End of Feed delight card
+                                return _buildEndOfFeedCard(context, ig, isEmpty: feedState.posts.isEmpty);
+                              },
+                            ),
+                          ),
+              ),
+            ],
+          ),
         ),
-      ),
-      bottomNavigationBar: const CommunityBottomNavigationBar(
-        currentTab: CommunityNavTab.feed,
+        bottomNavigationBar: const CommunityBottomNavigationBar(
+          currentTab: CommunityNavTab.feed,
+        ),
       ),
     );
   }

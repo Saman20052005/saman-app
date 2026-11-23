@@ -7,6 +7,7 @@ import '../../../domain/models/community_dm.dart';
 import '../../providers/community_dm_provider.dart';
 import '../../providers/community_providers.dart';
 import '../../tokens/saman_ig_tokens.dart';
+import '../../widgets/community_call_host_listener.dart';
 import 'community_chat_thread_screen.dart';
 
 /// R16 Messenger-Lite Inbox screen.
@@ -156,91 +157,93 @@ class _CommunityInboxScreenState extends ConsumerState<CommunityInboxScreen> {
     final notifier = ref.read(communityInboxProvider.notifier);
     final visibleConversations = _filterConversations(state.conversations);
 
-    return Scaffold(
-      backgroundColor: ig.canvas,
-      body: SafeArea(
-        child: Column(
-          children: [
-            _InboxAppBar(
-              totalUnreadCount: state.totalUnreadCount,
-              ig: ig,
-              onBack: () => Navigator.pop(context),
-              onNewChat: _showNewChatBottomSheet,
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 10),
-              child: Container(
-                decoration: BoxDecoration(
-                  color: ig.surfaceElevated,
-                  borderRadius: BorderRadius.circular(22),
-                ),
-                child: TextField(
-                  controller: _searchController,
-                  onChanged: (value) {
-                    setState(() {
-                      _searchQuery = value;
-                    });
-                  },
-                  style: textTheme.bodyMedium?.copyWith(
-                    fontFamily: SamanIgTokens.fontFamily,
-                    fontSize: 14,
-                    color: ig.textPrimary,
+    return CommunityCallHostListener(
+      child: Scaffold(
+        backgroundColor: ig.canvas,
+        body: SafeArea(
+          child: Column(
+            children: [
+              _InboxAppBar(
+                totalUnreadCount: state.totalUnreadCount,
+                ig: ig,
+                onBack: () => Navigator.pop(context),
+                onNewChat: _showNewChatBottomSheet,
+              ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 10),
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: ig.surfaceElevated,
+                    borderRadius: BorderRadius.circular(22),
                   ),
-                  decoration: InputDecoration(
-                    hintText: 'Tìm kiếm cuộc trò chuyện...',
-                    hintStyle: textTheme.bodyMedium?.copyWith(
+                  child: TextField(
+                    controller: _searchController,
+                    onChanged: (value) {
+                      setState(() {
+                        _searchQuery = value;
+                      });
+                    },
+                    style: textTheme.bodyMedium?.copyWith(
                       fontFamily: SamanIgTokens.fontFamily,
                       fontSize: 14,
-                      color: ig.textMuted,
+                      color: ig.textPrimary,
                     ),
-                    prefixIcon: Icon(
-                      Icons.search_rounded,
-                      size: 20,
-                      color: ig.textMuted,
+                    decoration: InputDecoration(
+                      hintText: 'Tìm kiếm cuộc trò chuyện...',
+                      hintStyle: textTheme.bodyMedium?.copyWith(
+                        fontFamily: SamanIgTokens.fontFamily,
+                        fontSize: 14,
+                        color: ig.textMuted,
+                      ),
+                      prefixIcon: Icon(
+                        Icons.search_rounded,
+                        size: 20,
+                        color: ig.textMuted,
+                      ),
+                      suffixIcon: _searchQuery.isNotEmpty
+                          ? IconButton(
+                              onPressed: () {
+                                _searchController.clear();
+                                setState(() {
+                                  _searchQuery = '';
+                                });
+                              },
+                              constraints: const BoxConstraints(
+                                minWidth: 44,
+                                minHeight: 44,
+                              ),
+                              tooltip: 'Xóa tìm kiếm',
+                              icon: Icon(
+                                Icons.close_rounded,
+                                size: 18,
+                                color: ig.textMuted,
+                              ),
+                            )
+                          : null,
+                      filled: false,
+                      isDense: true,
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 12,
+                      ),
+                      border: InputBorder.none,
+                      enabledBorder: InputBorder.none,
+                      focusedBorder: InputBorder.none,
                     ),
-                    suffixIcon: _searchQuery.isNotEmpty
-                        ? IconButton(
-                            onPressed: () {
-                              _searchController.clear();
-                              setState(() {
-                                _searchQuery = '';
-                              });
-                            },
-                            constraints: const BoxConstraints(
-                              minWidth: 44,
-                              minHeight: 44,
-                            ),
-                            tooltip: 'Xóa tìm kiếm',
-                            icon: Icon(
-                              Icons.close_rounded,
-                              size: 18,
-                              color: ig.textMuted,
-                            ),
-                          )
-                        : null,
-                    filled: false,
-                    isDense: true,
-                    contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 12,
-                    ),
-                    border: InputBorder.none,
-                    enabledBorder: InputBorder.none,
-                    focusedBorder: InputBorder.none,
                   ),
                 ),
               ),
-            ),
-            Expanded(
-              child: _buildBody(
-                context: context,
-                state: state,
-                visibleConversations: visibleConversations,
-                notifier: notifier,
-                ig: ig,
+              Expanded(
+                child: _buildBody(
+                  context: context,
+                  state: state,
+                  visibleConversations: visibleConversations,
+                  notifier: notifier,
+                  ig: ig,
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -569,6 +572,12 @@ class _ConversationTile extends StatelessWidget {
           text: raw.isEmpty || raw == 'story_reply'
               ? 'Đã trả lời tin'
               : raw,
+        );
+      case 'call_log':
+        final isVideoCall = raw.toLowerCase().contains('video');
+        return (
+          icon: isVideoCall ? Icons.videocam_outlined : Icons.call_outlined,
+          text: raw.isEmpty || raw == 'call_log' ? 'Cuộc gọi' : raw,
         );
       default:
         return (

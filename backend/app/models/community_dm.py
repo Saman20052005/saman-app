@@ -23,7 +23,7 @@ class DmMessageModel(BaseModel):
     id: str
     conversation_id: str
     sender_id: str
-    type: Literal["text", "voice", "photo", "video", "post_share", "story_reply"]
+    type: Literal["text", "voice", "photo", "video", "post_share", "story_reply", "call_log"]
     content: str = ""
     media_url: Optional[str] = None
     duration_seconds: Optional[float] = None
@@ -32,6 +32,10 @@ class DmMessageModel(BaseModel):
     reply_to_message_id: Optional[str] = None
     is_deleted: bool = False
     created_at: datetime
+    call_type: Optional[Literal["audio", "video"]] = None
+    call_status: Optional[Literal["completed", "missed", "rejected"]] = None
+    duration_sec: Optional[int] = None
+    call_id: Optional[str] = None
 
 
 class DmConversationModel(BaseModel):
