@@ -1,7 +1,12 @@
 import 'dart:async';
 import 'package:dio/dio.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:health_ai_app/config/app_theme.dart';
+import 'package:health_ai_app/config/app_translations.dart';
+import 'package:health_ai_app/screens/nutrition/widgets/nutrition_water_card.dart';
 import 'package:health_ai_app/utils/auth_helper.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:health_ai_app/features/nutrition/data/repositories/nutrition_repository_impl.dart';
@@ -688,5 +693,163 @@ void main() {
     expect(h.amount, 750);
     expect(h.waterState.value?.currentWater, 750);
     expect(h.waterState.value?.waterVersion, 3);
+  });
+
+  group('NutritionWaterCard custom ml widget tests', () {
+    Widget buildCardHarness({
+      required ThemeData theme,
+      Locale locale = const Locale('en'),
+      VoidCallback? onAddWater,
+      ValueChanged<int>? onAddCustomWater,
+      bool isUpdating = false,
+    }) {
+      return MaterialApp(
+        theme: theme,
+        locale: locale,
+        supportedLocales: const [Locale('en'), Locale('vi')],
+        localizationsDelegates: const [
+          GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+        ],
+        home: Scaffold(
+          body: Padding(
+            padding: const EdgeInsets.all(16),
+            child: NutritionWaterCard(
+              currentWater: 500,
+              targetWater: 2400,
+              isUpdating: isUpdating,
+              onAddWater: onAddWater,
+              onAddCustomWater: onAddCustomWater,
+            ),
+          ),
+        ),
+      );
+    }
+
+    testWidgets('+ 250 ml button still invokes onAddWater', (tester) async {
+      var quickAddCalls = 0;
+      final customAmounts = <int>[];
+
+      await tester.pumpWidget(buildCardHarness(
+        theme: SamanTheme.dark(),
+        onAddWater: () => quickAddCalls++,
+        onAddCustomWater: customAmounts.add,
+      ));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('250 ml'));
+      await tester.pump();
+
+      expect(quickAddCalls, 1);
+      expect(customAmounts, isEmpty);
+    });
+
+    testWidgets(
+        'custom button opens sheet, quick chip +350 ml and manual 450 ml submit',
+        (tester) async {
+      final customAmounts = <int>[];
+
+      await tester.pumpWidget(buildCardHarness(
+        theme: SamanTheme.dark(),
+        locale: const Locale('en'),
+        onAddWater: () {},
+        onAddCustomWater: customAmounts.add,
+      ));
+      await tester.pumpAndSettle();
+
+      // 1. Tap custom input trigger -> select +350 ml chip -> submit
+      await tester.tap(find.byKey(const ValueKey('water_custom_input_button')));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('+350 ml'));
+      await tester.pump();
+      await tester.tap(find.byKey(const ValueKey('water_custom_submit_button')));
+      await tester.pumpAndSettle();
+
+      expect(customAmounts, [350]);
+
+      // 2. Open again -> enter 450 -> submit
+      await tester.tap(find.byKey(const ValueKey('water_custom_input_button')));
+      await tester.pumpAndSettle();
+
+      await tester.enterText(
+          find.byKey(const ValueKey('water_custom_ml_input')), '450');
+      await tester.pump();
+      await tester.tap(find.byKey(const ValueKey('water_custom_submit_button')));
+      await tester.pumpAndSettle();
+
+      expect(customAmounts, [350, 450]);
+    });
+
+    testWidgets(
+        'rejects empty, 0, and 5001 with error message and keeps sheet open',
+        (tester) async {
+      final customAmounts = <int>[];
+      final expectedError = AppTranslations.text(
+        'water_custom_error_invalid',
+        const Locale('vi'),
+      );
+
+      await tester.pumpWidget(buildCardHarness(
+        theme: SamanTheme.light(),
+        locale: const Locale('vi'),
+        onAddWater: () {},
+        onAddCustomWater: customAmounts.add,
+      ));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const ValueKey('water_custom_input_button')));
+      await tester.pumpAndSettle();
+
+      // Empty
+      await tester.tap(find.byKey(const ValueKey('water_custom_submit_button')));
+      await tester.pump();
+      expect(find.text(expectedError), findsOneWidget);
+      expect(customAmounts, isEmpty);
+
+      // 0
+      await tester.enterText(
+          find.byKey(const ValueKey('water_custom_ml_input')), '0');
+      await tester.tap(find.byKey(const ValueKey('water_custom_submit_button')));
+      await tester.pump();
+      expect(find.text(expectedError), findsOneWidget);
+      expect(customAmounts, isEmpty);
+
+      // 5001
+      await tester.enterText(
+          find.byKey(const ValueKey('water_custom_ml_input')), '5001');
+      await tester.tap(find.byKey(const ValueKey('water_custom_submit_button')));
+      await tester.pump();
+      expect(find.text(expectedError), findsOneWidget);
+      expect(customAmounts, isEmpty);
+      expect(find.byKey(const ValueKey('water_custom_ml_input')), findsOneWidget);
+    });
+
+    for (final width in [320.0, 360.0]) {
+      for (final isDark in [false, true]) {
+        testWidgets(
+            'renders without overflow in ${isDark ? 'dark' : 'light'} mode at ${width.toInt()}px',
+            (tester) async {
+          tester.view.physicalSize = Size(width * 2.0, 800 * 2.0);
+          tester.view.devicePixelRatio = 2.0;
+          addTearDown(tester.view.resetPhysicalSize);
+          addTearDown(tester.view.resetDevicePixelRatio);
+
+          await tester.pumpWidget(buildCardHarness(
+            theme: isDark ? SamanTheme.dark() : SamanTheme.light(),
+            onAddWater: () {},
+            onAddCustomWater: (_) {},
+          ));
+          await tester.pumpAndSettle();
+          expect(tester.takeException(), isNull);
+
+          await tester
+              .tap(find.byKey(const ValueKey('water_custom_input_button')));
+          await tester.pumpAndSettle();
+          expect(tester.takeException(), isNull);
+        });
+      }
+    }
   });
 }

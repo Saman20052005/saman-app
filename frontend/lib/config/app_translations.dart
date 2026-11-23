@@ -937,6 +937,15 @@ class AppTranslations {
       'finish_workout': 'Finish Workout',
       'sets_completed': 'Sets Completed',
       'workout_summary_title': 'Workout Summary',
+      'water_custom_tooltip': 'Custom amount',
+      'water_custom_title': 'Custom water intake',
+      'water_custom_subtitle':
+          'Add a custom amount to today\'s hydration log (1–5,000 ml).',
+      'water_custom_hint': 'Enter amount (ml)',
+      'water_custom_quick_label': 'Quick select',
+      'water_custom_submit': 'Add water',
+      'water_custom_cancel': 'Cancel',
+      'water_custom_error_invalid': 'Enter an amount between 1 and 5,000 ml',
     },
     'vi': {
       // Home Screen
@@ -1769,6 +1778,15 @@ class AppTranslations {
       'finish_workout': 'Hoàn thành buổi tập',
       'sets_completed': 'Hiệp đã hoàn thành',
       'workout_summary_title': 'Tổng kết buổi tập',
+      'water_custom_tooltip': 'Nhập số ml tùy chỉnh',
+      'water_custom_title': 'Nhập lượng nước',
+      'water_custom_subtitle':
+          'Thêm lượng nước tùy chỉnh vào nhật ký hôm nay (1–5.000 ml).',
+      'water_custom_hint': 'Nhập số ml',
+      'water_custom_quick_label': 'Chọn nhanh',
+      'water_custom_submit': 'Thêm nước',
+      'water_custom_cancel': 'Hủy',
+      'water_custom_error_invalid': 'Vui lòng nhập từ 1 đến 5.000 ml',
     },
   };
 

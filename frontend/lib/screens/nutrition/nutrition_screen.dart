@@ -469,7 +469,7 @@ class _NutritionScreenState extends ConsumerState<NutritionScreen> {
 
 
 
-  Future<void> _handleAddWater(int currentWater) async {
+  Future<void> _handleAddWater({int amountMl = 250}) async {
 
     if (_isWaterUpdating) return;
 
@@ -487,7 +487,7 @@ class _NutritionScreenState extends ConsumerState<NutritionScreen> {
 
     try {
 
-      await ref.read(nutritionProvider.notifier).addWater(250, date: dateStr);
+      await ref.read(nutritionProvider.notifier).addWater(amountMl, date: dateStr);
 
     } catch (e) {
 
@@ -1418,7 +1418,9 @@ class _NutritionScreenState extends ConsumerState<NutritionScreen> {
 
           isUpdating: _isWaterUpdating,
 
-          onAddWater: () => _handleAddWater(effectivePlan.currentWater),
+          onAddWater: _handleAddWater,
+
+          onAddCustomWater: (ml) => _handleAddWater(amountMl: ml),
 
         ),
 
