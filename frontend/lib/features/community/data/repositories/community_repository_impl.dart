@@ -9,6 +9,9 @@ import '../../domain/models/community_post.dart';
 import '../../domain/models/draft_post.dart';
 import '../../domain/models/post_attachment_snapshot.dart';
 import '../../domain/models/question_answer.dart';
+import '../../domain/models/community_settings.dart';
+import '../../domain/models/community_story.dart';
+import '../../domain/models/community_dm.dart';
 import '../../domain/repositories/community_repository.dart';
 import '../datasources/community_fake_datasource.dart';
 import '../datasources/community_remote_datasource.dart';
@@ -771,5 +774,293 @@ class CommunityRepositoryImpl implements CommunityRepository {
   Future<bool> upvoteAnswer(String questionId, String answerId) async {
     final old = await getAnswer(questionId, answerId);
     return (await setAnswerHelpful(questionId, answerId, !old.isUpvoted)).isUpvoted;
+  }
+
+  // --- Wave 4: Social Settings, Block/Mute/Report, Stories 24h, Share ---
+
+  @override
+  Future<CommunitySettings> getSettings() async {
+    if (isRemote) {
+      return _remoteDatasource!.getSettings();
+    }
+    return _fakeDatasource.getSettings();
+  }
+
+  @override
+  Future<CommunitySettings> updateSettings({
+    bool? isPrivateAccount,
+    String? whoCanDm,
+    String? whoCanComment,
+    bool? hideLikeCounts,
+    bool? showActivityStatus,
+    List<String>? mutedKeywords,
+  }) async {
+    if (isRemote) {
+      final body = <String, dynamic>{
+        if (isPrivateAccount != null) 'is_private_account': isPrivateAccount,
+        if (whoCanDm != null) 'who_can_dm': whoCanDm,
+        if (whoCanComment != null) 'who_can_comment': whoCanComment,
+        if (hideLikeCounts != null) 'hide_like_counts': hideLikeCounts,
+        if (showActivityStatus != null) 'show_activity_status': showActivityStatus,
+        if (mutedKeywords != null) 'muted_keywords': mutedKeywords,
+      };
+      return _remoteDatasource!.updateSettings(body);
+    }
+    return _fakeDatasource.updateSettings(
+      isPrivateAccount: isPrivateAccount,
+      whoCanDm: whoCanDm,
+      whoCanComment: whoCanComment,
+      hideLikeCounts: hideLikeCounts,
+      showActivityStatus: showActivityStatus,
+      mutedKeywords: mutedKeywords,
+    );
+  }
+
+  @override
+  Future<bool> blockUser(String targetUserId) async {
+    if (isRemote) {
+      final blocked = await _remoteDatasource!.blockUser(targetUserId);
+      if (blocked) {
+        _remoteFollowedAuthorIds.remove(targetUserId);
+      }
+      return blocked;
+    }
+    return _fakeDatasource.blockUser(targetUserId);
+  }
+
+  @override
+  Future<bool> unblockUser(String targetUserId) async {
+    if (isRemote) {
+      return _remoteDatasource!.unblockUser(targetUserId);
+    }
+    return _fakeDatasource.unblockUser(targetUserId);
+  }
+
+  @override
+  Future<List<CommunityAuthor>> getBlockedUsers() async {
+    if (isRemote) {
+      return _remoteDatasource!.getBlockedUsers();
+    }
+    return _fakeDatasource.getBlockedUsers();
+  }
+
+  @override
+  Future<bool> muteUser(String targetUserId) async {
+    if (isRemote) {
+      return _remoteDatasource!.muteUser(targetUserId);
+    }
+    return _fakeDatasource.muteUser(targetUserId);
+  }
+
+  @override
+  Future<bool> unmuteUser(String targetUserId) async {
+    if (isRemote) {
+      return _remoteDatasource!.unmuteUser(targetUserId);
+    }
+    return _fakeDatasource.unmuteUser(targetUserId);
+  }
+
+  @override
+  Future<List<CommunityAuthor>> getMutedUsers() async {
+    if (isRemote) {
+      return _remoteDatasource!.getMutedUsers();
+    }
+    return _fakeDatasource.getMutedUsers();
+  }
+
+  @override
+  Future<CommunityReportReceipt> reportContent({
+    required String targetType,
+    required String targetId,
+    required String reason,
+    String details = '',
+  }) async {
+    if (isRemote) {
+      return _remoteDatasource!.reportContent(
+        targetType: targetType,
+        targetId: targetId,
+        reason: reason,
+        details: details,
+      );
+    }
+    return _fakeDatasource.reportContent(
+      targetType: targetType,
+      targetId: targetId,
+      reason: reason,
+      details: details,
+    );
+  }
+
+  @override
+  Future<List<CommunityStoryAuthorGroup>> getStories() async {
+    if (isRemote) {
+      return _remoteDatasource!.getStories();
+    }
+    return _fakeDatasource.getStories();
+  }
+
+  @override
+  Future<CommunityStory> createStory({
+    required String mediaType,
+    String? mediaUrl,
+    String caption = '',
+    String? backgroundColor,
+    String privacy = 'public',
+  }) async {
+    if (isRemote) {
+      return _remoteDatasource!.createStory(
+        mediaType: mediaType,
+        mediaUrl: mediaUrl,
+        caption: caption,
+        backgroundColor: backgroundColor,
+        privacy: privacy,
+      );
+    }
+    return _fakeDatasource.createStory(
+      mediaType: mediaType,
+      mediaUrl: mediaUrl,
+      caption: caption,
+      backgroundColor: backgroundColor,
+      privacy: privacy,
+    );
+  }
+
+  @override
+  Future<int> markStoryViewed(String storyId) async {
+    if (isRemote) {
+      return _remoteDatasource!.markStoryViewed(storyId);
+    }
+    return _fakeDatasource.markStoryViewed(storyId);
+  }
+
+  @override
+  Future<bool> deleteStory(String storyId) async {
+    if (isRemote) {
+      return _remoteDatasource!.deleteStory(storyId);
+    }
+    return _fakeDatasource.deleteStory(storyId);
+  }
+
+  @override
+  Future<int> sharePost(String postId) async {
+    if (isRemote) {
+      return _remoteDatasource!.sharePost(postId);
+    }
+    return _fakeDatasource.sharePost(postId);
+  }
+
+  // --- Wave 4: Direct Messages (Messenger-Lite) ---
+
+  @override
+  Future<DmConversation> createOrGetConversation(String targetUserId) async {
+    if (isRemote) {
+      return _remoteDatasource!.createOrGetConversation(targetUserId);
+    }
+    return _fakeDatasource.createOrGetConversation(targetUserId);
+  }
+
+  @override
+  Future<DmConversationsPage> getConversations({
+    int limit = 20,
+    String? cursor,
+  }) async {
+    if (isRemote) {
+      return _remoteDatasource!.getConversations(limit: limit, cursor: cursor);
+    }
+    return _fakeDatasource.getConversations();
+  }
+
+  @override
+  Future<DmMessagesPage> getMessages(
+    String conversationId, {
+    int limit = 30,
+    String? cursor,
+  }) async {
+    if (isRemote) {
+      return _remoteDatasource!.getMessages(
+        conversationId,
+        limit: limit,
+        cursor: cursor,
+      );
+    }
+    return _fakeDatasource.getMessages(conversationId);
+  }
+
+  @override
+  Future<DmMessage> sendMessage({
+    required String conversationId,
+    required DmMessageType type,
+    String content = '',
+    String? mediaUrl,
+    double? durationSeconds,
+    String? sharedPostId,
+    String? replyToMessageId,
+    String? idempotencyKey,
+  }) async {
+    if (isRemote) {
+      return _remoteDatasource!.sendMessage(
+        conversationId: conversationId,
+        type: type,
+        content: content,
+        mediaUrl: mediaUrl,
+        durationSeconds: durationSeconds,
+        sharedPostId: sharedPostId,
+        replyToMessageId: replyToMessageId,
+        idempotencyKey: idempotencyKey,
+      );
+    }
+    return _fakeDatasource.sendMessage(
+      conversationId: conversationId,
+      type: type,
+      content: content,
+      mediaUrl: mediaUrl,
+      durationSeconds: durationSeconds,
+      sharedPostId: sharedPostId,
+      replyToMessageId: replyToMessageId,
+    );
+  }
+
+  @override
+  Future<void> markConversationRead(String conversationId) async {
+    if (isRemote) {
+      return _remoteDatasource!.markConversationRead(conversationId);
+    }
+    _fakeDatasource.markConversationRead(conversationId);
+  }
+
+  @override
+  Future<bool> deleteMessage(String messageId) async {
+    if (isRemote) {
+      return _remoteDatasource!.deleteMessage(messageId);
+    }
+    return _fakeDatasource.deleteMessage(messageId);
+  }
+
+  @override
+  Future<int> getDmUnreadCount() async {
+    if (isRemote) {
+      return _remoteDatasource!.getDmUnreadCount();
+    }
+    return _fakeDatasource.getDmUnreadCount();
+  }
+
+  @override
+  Future<DmMediaUploadResult> uploadDmMedia({
+    required List<int> bytes,
+    required String filename,
+    required String mimeType,
+  }) async {
+    if (isRemote) {
+      return _remoteDatasource!.uploadDmMedia(
+        bytes: bytes,
+        filename: filename,
+        mimeType: mimeType,
+      );
+    }
+    return _fakeDatasource.uploadDmMedia(
+      bytes: bytes,
+      filename: filename,
+      mimeType: mimeType,
+    );
   }
 }

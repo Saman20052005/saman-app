@@ -180,6 +180,8 @@ class CommunityPostModel(BaseModel):
     qa_info: Optional[PostQaInfoModel] = None
     like_count: int = 0
     comment_count: int = 0
+    share_count: int = 0
+    is_like_count_hidden: bool = False
     is_liked: bool = False
     is_bookmarked: bool = False
     liked_by_names: List[str] = []
@@ -365,3 +367,105 @@ class CommunityCommentsResponse(BaseModel):
 class CommunityCommentMutationResponse(BaseModel):
     comment: CommunityCommentModel
     comment_count: int
+
+
+# --- WAVE 4: SOCIAL SETTINGS, BLOCK/MUTE/REPORT, STORIES 24H, SHARE ---
+
+
+class CommunitySettingsModel(BaseModel):
+    is_private_account: bool = False
+    who_can_dm: Literal["everyone", "followers", "nobody"] = "everyone"
+    who_can_comment: Literal["everyone", "followers", "nobody"] = "everyone"
+    hide_like_counts: bool = False
+    show_activity_status: bool = True
+    muted_keywords: List[str] = Field(default_factory=list, max_length=20)
+
+
+class UpdateCommunitySettingsRequest(BaseModel):
+    is_private_account: Optional[StrictBool] = None
+    who_can_dm: Optional[Literal["everyone", "followers", "nobody"]] = None
+    who_can_comment: Optional[Literal["everyone", "followers", "nobody"]] = None
+    hide_like_counts: Optional[StrictBool] = None
+    show_activity_status: Optional[StrictBool] = None
+    muted_keywords: Optional[List[str]] = Field(None, max_length=20)
+    model_config = {"extra": "forbid"}
+
+
+class BlockStatusResponse(BaseModel):
+    target_user_id: str
+    is_blocked: bool
+
+
+class MuteStatusResponse(BaseModel):
+    target_user_id: str
+    is_muted: bool
+
+
+class CommunityBlockedUsersResponse(BaseModel):
+    items: List[CommunityAuthorModel] = Field(default_factory=list)
+    total_count: int = 0
+
+
+class CreateReportRequest(BaseModel):
+    target_type: Literal["post", "comment", "answer", "user"]
+    target_id: str = Field(..., min_length=1, max_length=128)
+    reason: Literal["spam", "harassment", "misinformation", "inappropriate", "other"]
+    details: str = Field("", max_length=1000)
+    model_config = {"extra": "forbid"}
+
+
+class ReportReceiptResponse(BaseModel):
+    report_id: str
+    target_type: Literal["post", "comment", "answer", "user"]
+    target_id: str
+    reason: Literal["spam", "harassment", "misinformation", "inappropriate", "other"]
+    status: str = "received"
+    created_at: datetime
+    already_reported: bool = False
+
+
+class CreateStoryRequest(BaseModel):
+    media_type: Literal["photo", "video", "text"]
+    media_url: Optional[str] = None
+    caption: str = Field("", max_length=500)
+    background_color: Optional[str] = Field(None, max_length=32)
+    privacy: Literal["public", "followers_only"] = "public"
+    model_config = {"extra": "forbid"}
+
+
+class CommunityStoryModel(BaseModel):
+    id: str
+    author_id: str
+    media_type: Literal["photo", "video", "text"]
+    media_url: Optional[str] = None
+    caption: str = ""
+    background_color: Optional[str] = None
+    privacy: Literal["public", "followers_only"] = "public"
+    created_at: datetime
+    expires_at: datetime
+    time_ago: str = "Vừa xong"
+    view_count: int = 0
+    is_viewed: bool = False
+
+
+class CommunityStoryAuthorGroupModel(BaseModel):
+    author: CommunityAuthorModel
+    is_self: bool = False
+    has_unviewed: bool = False
+    latest_created_at: Optional[datetime] = None
+    stories: List[CommunityStoryModel] = Field(default_factory=list)
+
+
+class CommunityStoriesFeedResponse(BaseModel):
+    items: List[CommunityStoryAuthorGroupModel] = Field(default_factory=list)
+
+
+class StoryViewResponse(BaseModel):
+    story_id: str
+    is_viewed: bool = True
+    view_count: int = 0
+
+
+class PostShareResponse(BaseModel):
+    post_id: str
+    share_count: int

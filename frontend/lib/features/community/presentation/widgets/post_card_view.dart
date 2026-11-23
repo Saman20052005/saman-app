@@ -1,10 +1,15 @@
+import 'dart:async';
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../../../../config/app_translations.dart';
 import '../../../../screens/home/tokens/saman_home_tokens.dart';
+import '../../domain/models/community_dm.dart';
 import '../../domain/models/community_post.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../providers/community_dm_provider.dart';
 import '../providers/community_providers.dart';
+import '../providers/community_social_providers.dart';
 import '../screens/profile/community_profile_screen.dart';
 import 'community_question_card.dart';
 import 'kinetic_workout_attachment_card.dart';
@@ -206,8 +211,10 @@ class PostCardView extends ConsumerWidget {
               spacing: 8,
               runSpacing: 8,
               children: [
-                Row(
-                  mainAxisSize: MainAxisSize.min,
+                Wrap(
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  spacing: 14,
+                  runSpacing: 4,
                   children: [
                     // Like button
                     InkWell(
@@ -217,6 +224,7 @@ class PostCardView extends ConsumerWidget {
                         padding: const EdgeInsets.symmetric(
                             horizontal: 6, vertical: 4),
                         child: Row(
+                          mainAxisSize: MainAxisSize.min,
                           children: [
                             Icon(
                               post.isLiked
@@ -229,7 +237,9 @@ class PostCardView extends ConsumerWidget {
                             ),
                             const SizedBox(width: 5),
                             Text(
-                              '${post.likeCount}',
+                              post.isLikeCountHidden
+                                  ? context.tr('post_likes_hidden')
+                                  : '${post.likeCount}',
                               style: TextStyle(
                                 fontSize: 13,
                                 fontWeight: FontWeight.w600,
@@ -240,7 +250,6 @@ class PostCardView extends ConsumerWidget {
                         ),
                       ),
                     ),
-                    const SizedBox(width: 14),
 
                     // Comment button
                     InkWell(
@@ -250,6 +259,7 @@ class PostCardView extends ConsumerWidget {
                         padding: const EdgeInsets.symmetric(
                             horizontal: 6, vertical: 4),
                         child: Row(
+                          mainAxisSize: MainAxisSize.min,
                           children: [
                             Icon(
                               Icons.mode_comment_outlined,
@@ -269,18 +279,37 @@ class PostCardView extends ConsumerWidget {
                         ),
                       ),
                     ),
-                    const SizedBox(width: 14),
 
                     // Share button
-                    IconButton(
-                      icon: Icon(
-                        Icons.send_rounded,
-                        size: 20,
-                        color: tokens.textSecondary,
+                    InkWell(
+                      key: ValueKey('post-share-button-${post.id}'),
+                      onTap: onShare ?? () => _showShareToDmSheet(context, ref),
+                      borderRadius: BorderRadius.circular(8),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 6, vertical: 4),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              Icons.send_rounded,
+                              size: 20,
+                              color: tokens.textSecondary,
+                            ),
+                            if (post.shareCount > 0) ...[
+                              const SizedBox(width: 5),
+                              Text(
+                                '${post.shareCount}',
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w600,
+                                  color: tokens.textPrimary,
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
                       ),
-                      onPressed: onShare ?? () => _showShareToast(context),
-                      padding: EdgeInsets.zero,
-                      constraints: const BoxConstraints(),
                     ),
                   ],
                 ),
@@ -412,8 +441,13 @@ class PostCardView extends ConsumerWidget {
   }
 
   Widget _buildPhotoAttachment(BuildContext context, SamanHomePalette tokens) {
-    return InkWell(
+    return _DoubleTapHeartOverlay(
       onTap: onOpenDetail,
+      onDoubleTap: () {
+        if (!post.isLiked) {
+          onLikeToggle?.call();
+        }
+      },
       child: AspectRatio(
         aspectRatio: 4 / 3,
         child: Stack(
@@ -488,9 +522,13 @@ class PostCardView extends ConsumerWidget {
 
   void _showPostOptionsSheet(BuildContext context, WidgetRef ref) {
     final sheetBg = SamanHomeTokens.of(context).cardSurface;
-    final effectiveUserId = currentUserId ?? ref.read(communityRepositoryProvider).activeUserId;
-    final isAuthor = effectiveUserId != null && (post.author.id == effectiveUserId || effectiveUserId == 'me');
+    final effectiveUserId =
+        currentUserId ?? ref.read(communityRepositoryProvider).activeUserId;
+    final isAuthor = effectiveUserId != null &&
+        (post.author.id == effectiveUserId || effectiveUserId == 'me');
     final canDelete = isAuthor || onDelete != null;
+    final isOtherAuthor = effectiveUserId == null ||
+        (post.author.id != effectiveUserId && post.author.id != 'me');
 
     showModalBottomSheet(
       context: context,
@@ -555,10 +593,44 @@ class PostCardView extends ConsumerWidget {
                 ),
                 onTap: () {
                   Navigator.pop(ctx);
-                  onShare?.call();
+                  if (onShare != null) {
+                    onShare!.call();
+                  } else {
+                    _showShareToDmSheet(context, ref);
+                  }
                 },
               ),
+              if (isOtherAuthor) ...[
+                ListTile(
+                  key: const ValueKey('post-options-mute-tile'),
+                  leading: Icon(
+                    Icons.volume_off_outlined,
+                    color: tokens.textPrimary,
+                  ),
+                  title: Text(
+                    context.tr('post_action_mute_author'),
+                    style: TextStyle(color: tokens.textPrimary),
+                  ),
+                  onTap: () async {
+                    Navigator.pop(ctx);
+                    await _handleMuteAuthor(context, ref);
+                  },
+                ),
+                ListTile(
+                  key: const ValueKey('post-options-block-tile'),
+                  leading: Icon(Icons.block_rounded, color: dangerColor),
+                  title: Text(
+                    context.tr('post_action_block_author'),
+                    style: TextStyle(color: dangerColor),
+                  ),
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    _showBlockAuthorConfirmation(context, ref);
+                  },
+                ),
+              ],
               ListTile(
+                key: const ValueKey('post-options-report-tile'),
                 leading: Icon(Icons.flag_outlined, color: dangerColor),
                 title: Text(
                   context.tr('post_action_report'),
@@ -566,15 +638,7 @@ class PostCardView extends ConsumerWidget {
                 ),
                 onTap: () {
                   Navigator.pop(ctx);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(
-                        Localizations.maybeLocaleOf(context)?.languageCode == 'en'
-                            ? 'Thank you for reporting this content.'
-                            : 'Cảm ơn bạn đã phản hồi nội dung này.',
-                      ),
-                    ),
-                  );
+                  _showReportReasonSheet(context, ref);
                 },
               ),
             ],
@@ -702,12 +766,549 @@ class PostCardView extends ConsumerWidget {
     }
   }
 
-  void _showShareToast(BuildContext context) {
+  Future<void> _handleMuteAuthor(BuildContext context, WidgetRef ref) async {
+    try {
+      await ref
+          .read(communitySettingsProvider.notifier)
+          .muteUser(post.author.id);
+      await ref.read(communityFeedProvider.notifier).refresh();
+      if (context.mounted) {
+        SamanFeedbackSnackBar.show(
+          context,
+          message: context.tr('post_mute_success'),
+          type: FeedbackType.info,
+        );
+      }
+    } catch (_) {
+      if (context.mounted) {
+        SamanFeedbackSnackBar.show(
+          context,
+          message: context.tr('post_report_error'),
+          type: FeedbackType.error,
+        );
+      }
+    }
+  }
+
+  Future<void> _showBlockAuthorConfirmation(
+    BuildContext context,
+    WidgetRef ref,
+  ) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogCtx) {
+        final tokens = SamanHomeTokens.of(dialogCtx);
+        final dangerColor =
+            tokens.isDark ? Colors.redAccent : const Color(0xFFDC2626);
+        return AlertDialog(
+          backgroundColor: tokens.cardSurface,
+          title: Text(
+            context.tr('post_block_confirm_title'),
+            style: TextStyle(
+              color: tokens.textPrimary,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          content: Text(
+            context.tr('post_block_confirm_msg'),
+            style: TextStyle(color: tokens.textSecondary),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogCtx, false),
+              child: Text(
+                context.tr('compose_discard'),
+                style: TextStyle(color: tokens.textMuted),
+              ),
+            ),
+            TextButton(
+              key: const ValueKey('confirm-block-author-button'),
+              onPressed: () => Navigator.pop(dialogCtx, true),
+              child: Text(
+                context.tr('post_block_confirm_btn'),
+                style: TextStyle(color: dangerColor),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (confirmed == true && context.mounted) {
+      try {
+        await ref
+            .read(communitySettingsProvider.notifier)
+            .blockUser(post.author.id);
+        await ref.read(communityFeedProvider.notifier).refresh();
+        if (context.mounted) {
+          SamanFeedbackSnackBar.show(
+            context,
+            message: context.tr('post_block_success'),
+            type: FeedbackType.info,
+          );
+        }
+      } catch (_) {
+        if (context.mounted) {
+          SamanFeedbackSnackBar.show(
+            context,
+            message: context.tr('post_report_error'),
+            type: FeedbackType.error,
+          );
+        }
+      }
+    }
+  }
+
+  void _showReportReasonSheet(BuildContext context, WidgetRef ref) {
+    final tokens = SamanHomeTokens.of(context);
+    final reasons = <({String key, String labelKey})>[
+      (key: 'spam', labelKey: 'post_report_reason_spam'),
+      (key: 'harassment', labelKey: 'post_report_reason_harassment'),
+      (key: 'misinformation', labelKey: 'post_report_reason_misinformation'),
+      (key: 'inappropriate', labelKey: 'post_report_reason_inappropriate'),
+      (key: 'other', labelKey: 'post_report_reason_other'),
+    ];
+
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: tokens.cardSurface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (sheetCtx) {
+        final sheetTokens = SamanHomeTokens.of(sheetCtx);
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  context.tr('post_report_title'),
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                    color: sheetTokens.textPrimary,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                ...reasons.map(
+                  (r) => ListTile(
+                    key: ValueKey('report-reason-${r.key}'),
+                    contentPadding: EdgeInsets.zero,
+                    title: Text(
+                      context.tr(r.labelKey),
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: sheetTokens.textPrimary,
+                      ),
+                    ),
+                    trailing: Icon(
+                      Icons.chevron_right_rounded,
+                      color: sheetTokens.textSecondary,
+                    ),
+                    onTap: () async {
+                      Navigator.pop(sheetCtx);
+                      try {
+                        await ref
+                            .read(communitySettingsProvider.notifier)
+                            .reportContent(
+                              targetType: 'post',
+                              targetId: post.id,
+                              reason: r.key,
+                            );
+                        if (context.mounted) {
+                          SamanFeedbackSnackBar.show(
+                            context,
+                            message: context.tr('post_report_success'),
+                            type: FeedbackType.success,
+                          );
+                        }
+                      } catch (_) {
+                        if (context.mounted) {
+                          SamanFeedbackSnackBar.show(
+                            context,
+                            message: context.tr('post_report_error'),
+                            type: FeedbackType.error,
+                          );
+                        }
+                      }
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  void _showShareToDmSheet(BuildContext context, WidgetRef ref) {
+    final tokens = SamanHomeTokens.of(context);
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: tokens.cardSurface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (_) => _SharePostToDmSheet(post: post),
+    );
+  }
+}
+
+class _DoubleTapHeartOverlay extends StatefulWidget {
+  final Widget child;
+  final VoidCallback? onTap;
+  final VoidCallback? onDoubleTap;
+
+  const _DoubleTapHeartOverlay({
+    required this.child,
+    this.onTap,
+    this.onDoubleTap,
+  });
+
+  @override
+  State<_DoubleTapHeartOverlay> createState() => _DoubleTapHeartOverlayState();
+}
+
+class _DoubleTapHeartOverlayState extends State<_DoubleTapHeartOverlay>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+  late final Animation<double> _scale;
+  late final Animation<double> _opacity;
+  bool _showHeart = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 650),
+    );
+    _scale = TweenSequence<double>([
+      TweenSequenceItem(
+        tween: Tween<double>(begin: 0.4, end: 1.25)
+            .chain(CurveTween(curve: Curves.easeOutBack)),
+        weight: 45,
+      ),
+      TweenSequenceItem(
+        tween: Tween<double>(begin: 1.25, end: 1.0)
+            .chain(CurveTween(curve: Curves.easeInOut)),
+        weight: 25,
+      ),
+      TweenSequenceItem(
+        tween: ConstantTween<double>(1.0),
+        weight: 30,
+      ),
+    ]).animate(_controller);
+    _opacity = TweenSequence<double>([
+      TweenSequenceItem(tween: Tween<double>(begin: 0.0, end: 1.0), weight: 20),
+      TweenSequenceItem(tween: ConstantTween<double>(1.0), weight: 50),
+      TweenSequenceItem(tween: Tween<double>(begin: 1.0, end: 0.0), weight: 30),
+    ]).animate(_controller);
+    _controller.addStatusListener((status) {
+      if (status == AnimationStatus.completed && mounted) {
+        setState(() => _showHeart = false);
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _handleDoubleTap() {
+    widget.onDoubleTap?.call();
+    setState(() => _showHeart = true);
+    _controller.forward(from: 0);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: widget.onTap,
+      onDoubleTap: _handleDoubleTap,
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          widget.child,
+          if (_showHeart)
+            IgnorePointer(
+              child: AnimatedBuilder(
+                animation: _controller,
+                builder: (context, _) {
+                  return Opacity(
+                    opacity: _opacity.value,
+                    child: Transform.scale(
+                      scale: _scale.value,
+                      child: const Icon(
+                        Icons.favorite_rounded,
+                        key: ValueKey('double-tap-heart-icon'),
+                        size: 84,
+                        color: Colors.white,
+                        shadows: [
+                          Shadow(
+                            color: Colors.black38,
+                            blurRadius: 16,
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SharePostToDmSheet extends ConsumerStatefulWidget {
+  final CommunityPost post;
+
+  const _SharePostToDmSheet({required this.post});
+
+  @override
+  ConsumerState<_SharePostToDmSheet> createState() =>
+      _SharePostToDmSheetState();
+}
+
+class _SharePostToDmSheetState extends ConsumerState<_SharePostToDmSheet> {
+  String? _sendingConversationId;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final inboxState = ref.read(communityInboxProvider);
+      if (inboxState.conversations.isEmpty && !inboxState.isLoading) {
+        ref.read(communityInboxProvider.notifier).loadConversations();
+      }
+    });
+  }
+
+  Future<void> _sendToConversation(DmConversation conv) async {
+    if (_sendingConversationId != null) return;
+    setState(() => _sendingConversationId = conv.id);
+    try {
+      final msg = await ref
+          .read(communityChatThreadProvider(conv.id).notifier)
+          .sendMessage(
+            type: DmMessageType.postShare,
+            sharedPostId: widget.post.id,
+          );
+      if (msg != null) {
+        unawaited(
+          ref
+              .read(communityRepositoryProvider)
+              .sharePost(widget.post.id)
+              .catchError((_) => widget.post.shareCount),
+        );
+      }
+      if (!mounted) return;
+      Navigator.pop(context);
+      SamanFeedbackSnackBar.show(
+        context,
+        message: msg != null
+            ? context.tr('share_post_sent_success')
+            : context.tr('share_post_send_error'),
+        type: msg != null ? FeedbackType.success : FeedbackType.error,
+      );
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _sendingConversationId = null);
+      SamanFeedbackSnackBar.show(
+        context,
+        message: context.tr('share_post_send_error'),
+        type: FeedbackType.error,
+      );
+    }
+  }
+
+  Future<void> _copyLink() async {
+    await Clipboard.setData(
+      ClipboardData(text: 'https://saman.app/community/post/${widget.post.id}'),
+    );
+    unawaited(
+      ref
+          .read(communityRepositoryProvider)
+          .sharePost(widget.post.id)
+          .catchError((_) => widget.post.shareCount),
+    );
+    if (!mounted) return;
+    Navigator.pop(context);
     SamanFeedbackSnackBar.show(
       context,
-      message: 'Đã sao chép liên kết bài viết vào clipboard.',
+      message: context.tr('share_link_copied'),
       type: FeedbackType.info,
       duration: const Duration(seconds: 2),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final tokens = SamanHomeTokens.of(context);
+    final inboxState = ref.watch(communityInboxProvider);
+    final conversations = inboxState.conversations;
+
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: tokens.borderHigh,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            const SizedBox(height: 14),
+            Text(
+              context.tr('share_post_title'),
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w700,
+                color: tokens.textPrimary,
+              ),
+            ),
+            const SizedBox(height: 2),
+            Text(
+              context.tr('share_post_subtitle'),
+              style: TextStyle(
+                fontSize: 12,
+                color: tokens.textSecondary,
+              ),
+            ),
+            const SizedBox(height: 12),
+            if (inboxState.isLoading && conversations.isEmpty)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 20),
+                child: Center(
+                  child: CircularProgressIndicator(color: tokens.greenAccent),
+                ),
+              )
+            else if (conversations.isEmpty)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                child: Center(
+                  child: Text(
+                    context.tr('share_post_empty_threads'),
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: tokens.textSecondary,
+                    ),
+                  ),
+                ),
+              )
+            else
+              ConstrainedBox(
+                constraints: const BoxConstraints(maxHeight: 240),
+                child: ListView.separated(
+                  shrinkWrap: true,
+                  itemCount: conversations.length,
+                  separatorBuilder: (_, __) =>
+                      Divider(height: 1, color: tokens.border),
+                  itemBuilder: (ctx, index) {
+                    final conv = conversations[index];
+                    final isSending = _sendingConversationId == conv.id;
+                    final initial = conv.peer.name.isNotEmpty
+                        ? conv.peer.name[0].toUpperCase()
+                        : 'S';
+                    return ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      leading: CircleAvatar(
+                        backgroundColor: tokens.secondarySurface,
+                        child: Text(
+                          initial,
+                          style: TextStyle(
+                            color: tokens.greenAccent,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                      title: Text(
+                        conv.peer.name,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: tokens.textPrimary,
+                        ),
+                      ),
+                      trailing: SizedBox(
+                        height: 32,
+                        child: ElevatedButton(
+                          key: ValueKey('share-dm-send-${conv.id}'),
+                          onPressed: _sendingConversationId == null
+                              ? () => _sendToConversation(conv)
+                              : null,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: tokens.greenAccent,
+                            foregroundColor: tokens.isDark
+                                ? const Color(0xFF003824)
+                                : Colors.white,
+                            elevation: 0,
+                            padding: const EdgeInsets.symmetric(horizontal: 14),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                          ),
+                          child: isSending
+                              ? const SizedBox(
+                                  width: 14,
+                                  height: 14,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: Colors.white,
+                                  ),
+                                )
+                              : Text(
+                                  context.tr('share_post_send_btn'),
+                                  style: const TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+            const SizedBox(height: 8),
+            Divider(height: 1, color: tokens.border),
+            ListTile(
+              key: const ValueKey('share-copy-link-tile'),
+              contentPadding: EdgeInsets.zero,
+              leading: Icon(Icons.link_rounded, color: tokens.textPrimary),
+              title: Text(
+                context.tr('share_copy_link'),
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                  color: tokens.textPrimary,
+                ),
+              ),
+              onTap: _copyLink,
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

@@ -113,4 +113,83 @@ def ensure_community_indexes(db):
         ),
     ]
 
+    user_settings = db["community_user_settings"]
+    created["community_user_settings"] = [
+        user_settings.create_index(
+            [("user_id", 1)],
+            unique=True,
+            name="idx_user_settings_unique",
+        ),
+    ]
+
+    blocks = db["community_blocks"]
+    created["community_blocks"] = [
+        blocks.create_index(
+            [("blocker_id", 1), ("blocked_id", 1)],
+            unique=True,
+            name="idx_block_unique",
+        ),
+        blocks.create_index(
+            [("blocked_id", 1)],
+            name="idx_blocked_reverse",
+        ),
+    ]
+
+    mutes = db["community_mutes"]
+    created["community_mutes"] = [
+        mutes.create_index(
+            [("muter_id", 1), ("muted_id", 1)],
+            unique=True,
+            name="idx_mute_unique",
+        ),
+    ]
+
+    reports = db["community_reports"]
+    created["community_reports"] = [
+        reports.create_index(
+            [("reporter_id", 1), ("target_type", 1), ("target_id", 1)],
+            unique=True,
+            name="idx_report_unique",
+        ),
+    ]
+
+    stories = db["community_stories"]
+    try:
+        stories_ttl_idx = stories.create_index(
+            [("expires_at", 1)],
+            expireAfterSeconds=0,
+            name="idx_stories_ttl_expires",
+        )
+    except TypeError as exc:
+        if "expireAfterSeconds" not in str(exc):
+            raise
+        stories_ttl_idx = stories.create_index(
+            [("expires_at", 1)],
+            name="idx_stories_ttl_expires",
+        )
+    created["community_stories"] = [
+        stories_ttl_idx,
+        stories.create_index(
+            [("user_id", 1), ("created_at", -1)],
+            name="idx_stories_user_created",
+        ),
+    ]
+
+    story_views = db["community_story_views"]
+    created["community_story_views"] = [
+        story_views.create_index(
+            [("story_id", 1), ("viewer_id", 1)],
+            unique=True,
+            name="idx_story_view_unique",
+        ),
+    ]
+
+    post_shares = db["community_post_shares"]
+    created["community_post_shares"] = [
+        post_shares.create_index(
+            [("post_id", 1), ("user_id", 1)],
+            name="idx_post_shares_lookup",
+        ),
+    ]
+
     return created

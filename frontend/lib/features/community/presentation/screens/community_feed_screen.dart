@@ -1,23 +1,45 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../config/app_translations.dart';
+import '../../../../config/routes.dart';
 import '../../../../screens/home/tokens/saman_home_tokens.dart';
 import '../../domain/models/community_post.dart';
+import '../providers/community_dm_provider.dart';
 import '../providers/community_providers.dart';
+import '../providers/community_social_providers.dart';
 import '../widgets/community_bottom_navigation_bar.dart';
+import '../widgets/community_story_tray.dart';
 import '../widgets/post_card_view.dart';
 import 'community_post_detail_screen.dart';
 import 'qa/community_question_detail_screen.dart';
 
-class CommunityFeedScreen extends ConsumerWidget {
+class CommunityFeedScreen extends ConsumerStatefulWidget {
   const CommunityFeedScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<CommunityFeedScreen> createState() =>
+      _CommunityFeedScreenState();
+}
+
+class _CommunityFeedScreenState extends ConsumerState<CommunityFeedScreen> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      ref.read(communityStoriesProvider.notifier).loadStories();
+      ref.read(communityDmUnreadProvider.notifier).loadUnreadCount();
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final tokens = SamanHomeTokens.of(context);
     final feedState = ref.watch(communityFeedProvider);
     final feedNotifier = ref.read(communityFeedProvider.notifier);
     final isRemote = ref.watch(useRemoteCommunityProvider);
+    final dmUnreadCount = ref.watch(communityDmUnreadProvider);
+    final showStoryTray = feedState.activeFilter != CommunityFeedFilter.qa;
 
     return Scaffold(
       backgroundColor: tokens.canvas,
@@ -26,7 +48,7 @@ class CommunityFeedScreen extends ConsumerWidget {
         child: Column(
           children: [
             // Top App Bar
-            _buildTopAppBar(context, tokens),
+            _buildTopAppBar(context, tokens, dmUnreadCount),
 
             // Honest Preview Notice Banner
             if (!isRemote) _buildPreviewNoticeBanner(context, isRemote, tokens),
@@ -51,13 +73,30 @@ class CommunityFeedScreen extends ConsumerWidget {
                       : RefreshIndicator(
                           color: tokens.greenAccent,
                           backgroundColor: tokens.cardSurface,
-                          onRefresh: () => feedNotifier.refresh(),
+                          onRefresh: () async {
+                            await Future.wait([
+                              feedNotifier.refresh(),
+                              ref
+                                  .read(communityStoriesProvider.notifier)
+                                  .loadStories(),
+                              ref
+                                  .read(communityDmUnreadProvider.notifier)
+                                  .loadUnreadCount(),
+                            ]);
+                          },
                           child: ListView.builder(
                             padding: const EdgeInsets.only(bottom: 24),
-                            itemCount: feedState.posts.length + 1,
+                            itemCount: (showStoryTray ? 1 : 0) +
+                                feedState.posts.length +
+                                1,
                             itemBuilder: (context, index) {
-                              if (index < feedState.posts.length) {
-                                final post = feedState.posts[index];
+                              if (showStoryTray && index == 0) {
+                                return const CommunityStoryTray();
+                              }
+                              final postIndex =
+                                  showStoryTray ? index - 1 : index;
+                              if (postIndex < feedState.posts.length) {
+                                final post = feedState.posts[postIndex];
                                 return PostCardView(
                                   post: post,
                                   onLikeToggle: () async {
@@ -168,7 +207,11 @@ class CommunityFeedScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildTopAppBar(BuildContext context, SamanHomePalette tokens) {
+  Widget _buildTopAppBar(
+    BuildContext context,
+    SamanHomePalette tokens,
+    int unreadCount,
+  ) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
       decoration: BoxDecoration(
@@ -225,6 +268,7 @@ class CommunityFeedScreen extends ConsumerWidget {
             ),
           ),
           IconButton(
+            key: const ValueKey('feed-inbox-button'),
             icon: Stack(
               clipBehavior: Clip.none,
               children: [
@@ -233,31 +277,41 @@ class CommunityFeedScreen extends ConsumerWidget {
                   color: tokens.textSecondary,
                   size: 22,
                 ),
-                Positioned(
-                  top: -1,
-                  right: -1,
-                  child: Container(
-                    width: 7,
-                    height: 7,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: tokens.greenAccent,
+                if (unreadCount > 0)
+                  Positioned(
+                    top: -5,
+                    right: -6,
+                    child: Container(
+                      key: const ValueKey('feed-inbox-unread-badge'),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 4,
+                        vertical: 1,
+                      ),
+                      constraints: const BoxConstraints(
+                        minWidth: 16,
+                        minHeight: 16,
+                      ),
+                      decoration: BoxDecoration(
+                        color: tokens.greenAccent,
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      alignment: Alignment.center,
+                      child: Text(
+                        unreadCount > 99 ? '99+' : '$unreadCount',
+                        style: TextStyle(
+                          fontSize: 9,
+                          fontWeight: FontWeight.w700,
+                          color: tokens.isDark
+                              ? const Color(0xFF003824)
+                              : Colors.white,
+                        ),
+                      ),
                     ),
                   ),
-                ),
               ],
             ),
             onPressed: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(
-                    Localizations.maybeLocaleOf(context)?.languageCode == 'en'
-                        ? 'Community inbox will open in the next checkpoint.'
-                        : 'Hộp thư cộng đồng sẽ mở ở checkpoint tiếp theo.',
-                  ),
-                  duration: const Duration(seconds: 2),
-                ),
-              );
+              Navigator.pushNamed(context, AppRoutes.communityInbox);
             },
           ),
         ],
@@ -319,8 +373,7 @@ class CommunityFeedScreen extends ConsumerWidget {
   }) {
     return Stack(
       children: [
-        if (legacyVietnameseText != null &&
-            Localizations.maybeLocaleOf(context)?.languageCode != 'vi')
+        if (legacyVietnameseText != null && legacyVietnameseText != label)
           SizedBox(
             width: 0,
             height: 0,

@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'dart:math';
 import 'community_composer_provider.dart';
+import 'community_social_providers.dart';
+import 'community_dm_provider.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../providers/profile_provider.dart';
@@ -1163,6 +1165,16 @@ void resetCommunityStateForUser(WidgetRef ref, [String? userId]) {
   ref.invalidate(communityQuestionComposerProvider);
   ref.invalidate(communityNotificationsProvider);
   ref.invalidate(communityDraftsProvider);
+  unawaited(ref.read(communityDmWsServiceProvider).disconnect());
+  ref.read(communitySettingsProvider.notifier).resetForUser(userId);
+  ref.read(communityStoriesProvider.notifier).resetForUser(userId);
+  ref.read(communityInboxProvider.notifier).resetForUser(userId);
+  ref.read(communityDmUnreadProvider.notifier).resetForUser(userId);
+  ref.invalidate(communitySettingsProvider);
+  ref.invalidate(communityStoriesProvider);
+  ref.invalidate(communityInboxProvider);
+  ref.invalidate(communityChatThreadProvider);
+  ref.invalidate(communityDmUnreadProvider);
 }
 
 void resetCommunityStateInContainer(ProviderContainer container, [String? userId]) {
@@ -1183,6 +1195,16 @@ void resetCommunityStateInContainer(ProviderContainer container, [String? userId
   container.invalidate(communityQuestionComposerProvider);
   container.invalidate(communityNotificationsProvider);
   container.invalidate(communityDraftsProvider);
+  unawaited(container.read(communityDmWsServiceProvider).disconnect());
+  container.read(communitySettingsProvider.notifier).resetForUser(userId);
+  container.read(communityStoriesProvider.notifier).resetForUser(userId);
+  container.read(communityInboxProvider.notifier).resetForUser(userId);
+  container.read(communityDmUnreadProvider.notifier).resetForUser(userId);
+  container.invalidate(communitySettingsProvider);
+  container.invalidate(communityStoriesProvider);
+  container.invalidate(communityInboxProvider);
+  container.invalidate(communityChatThreadProvider);
+  container.invalidate(communityDmUnreadProvider);
 }
 
 final communitySavedProvider =

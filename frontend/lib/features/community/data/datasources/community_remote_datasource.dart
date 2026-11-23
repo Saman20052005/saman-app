@@ -9,6 +9,9 @@ import '../../domain/models/community_discover_item.dart';
 import '../../domain/models/community_post.dart';
 import '../../domain/models/question_answer.dart';
 import '../../domain/models/post_attachment_snapshot.dart';
+import '../../domain/models/community_settings.dart';
+import '../../domain/models/community_story.dart';
+import '../../domain/models/community_dm.dart';
 
 abstract class CommunityRemoteDatasource {
   Future<List<CommunityPost>> getFeedPosts({
@@ -618,6 +621,8 @@ class CommunityRemoteDatasourceImpl implements CommunityRemoteDatasource {
       qaInfo: qa,
       likeCount: json['like_count'] as int? ?? 0,
       commentCount: json['comment_count'] as int? ?? comments.length,
+      shareCount: json['share_count'] as int? ?? 0,
+      isLikeCountHidden: json['is_like_count_hidden'] as bool? ?? false,
       isLiked: json['is_liked'] as bool? ?? false,
       isBookmarked: json['is_bookmarked'] as bool? ?? false,
       likedByNames: List<String>.from(json['liked_by_names'] as List<dynamic>? ?? []),
@@ -633,6 +638,9 @@ class CommunityRemoteDatasourceImpl implements CommunityRemoteDatasource {
     }
     if (url.startsWith('/')) {
       return '${ApiConfig.baseUrl}$url';
+    }
+    if (url.startsWith('static/')) {
+      return '${ApiConfig.baseUrl}/$url';
     }
     return url;
   }
@@ -867,5 +875,537 @@ class CommunityRemoteDatasourceImpl implements CommunityRemoteDatasource {
       isUpvoted: json['is_upvoted'] as bool? ?? false,
       isPinnedBest: json['is_pinned_best'] as bool? ?? false,
     );
+  }
+
+  // --- Wave 4: Social Settings, Block/Mute/Report, Stories 24h, Share ---
+
+  Future<CommunitySettings> getSettings() async {
+    final response = await dio.get('/api/community/settings');
+    return CommunitySettings.fromJson(
+      Map<String, dynamic>.from(response.data as Map),
+    );
+  }
+
+  Future<CommunitySettings> updateSettings(Map<String, dynamic> body) async {
+    final response = await dio.patch('/api/community/settings', data: body);
+    return CommunitySettings.fromJson(
+      Map<String, dynamic>.from(response.data as Map),
+    );
+  }
+
+  Future<bool> blockUser(String targetUserId) async {
+    final response = await dio.put('/api/community/users/$targetUserId/block');
+    final data = Map<String, dynamic>.from(response.data as Map);
+    return data['is_blocked'] as bool? ?? true;
+  }
+
+  Future<bool> unblockUser(String targetUserId) async {
+    final response = await dio.delete('/api/community/users/$targetUserId/block');
+    final data = Map<String, dynamic>.from(response.data as Map);
+    return data['is_blocked'] as bool? ?? false;
+  }
+
+  Future<List<CommunityAuthor>> getBlockedUsers() async {
+    final response = await dio.get('/api/community/settings/blocked');
+    final data = Map<String, dynamic>.from(response.data as Map);
+    final items = data['items'] as List<dynamic>? ?? const [];
+    return items
+        .map((raw) => _parseAuthor(Map<String, dynamic>.from(raw as Map)))
+        .toList();
+  }
+
+  Future<bool> muteUser(String targetUserId) async {
+    final response = await dio.put('/api/community/users/$targetUserId/mute');
+    final data = Map<String, dynamic>.from(response.data as Map);
+    return data['is_muted'] as bool? ?? true;
+  }
+
+  Future<bool> unmuteUser(String targetUserId) async {
+    final response = await dio.delete('/api/community/users/$targetUserId/mute');
+    final data = Map<String, dynamic>.from(response.data as Map);
+    return data['is_muted'] as bool? ?? false;
+  }
+
+  Future<List<CommunityAuthor>> getMutedUsers() async {
+    final response = await dio.get('/api/community/settings/muted');
+    final data = Map<String, dynamic>.from(response.data as Map);
+    final items = data['items'] as List<dynamic>? ?? const [];
+    return items
+        .map((raw) => _parseAuthor(Map<String, dynamic>.from(raw as Map)))
+        .toList();
+  }
+
+  Future<CommunityReportReceipt> reportContent({
+    required String targetType,
+    required String targetId,
+    required String reason,
+    String details = '',
+  }) async {
+    final response = await dio.post(
+      '/api/community/reports',
+      data: {
+        'target_type': targetType,
+        'target_id': targetId,
+        'reason': reason,
+        'details': details,
+      },
+    );
+    return CommunityReportReceipt.fromJson(
+      Map<String, dynamic>.from(response.data as Map),
+    );
+  }
+
+  CommunityStory _parseStory(Map<String, dynamic> json) {
+    final createdAt = DateTime.tryParse(json['created_at'] as String? ?? '') ??
+        DateTime.now().toUtc();
+    final expiresAt = DateTime.tryParse(json['expires_at'] as String? ?? '') ??
+        createdAt.add(const Duration(hours: 24));
+    return CommunityStory(
+      id: json['id'] as String? ?? '',
+      userId: (json['user_id'] ?? json['author_id'] ?? '') as String,
+      mediaType: json['media_type'] as String? ?? 'text',
+      mediaUrl: _resolveMediaUrl(json['media_url'] as String?),
+      caption: json['caption'] as String? ?? '',
+      backgroundColor: json['background_color'] as String?,
+      privacy: json['privacy'] as String? ?? 'public',
+      viewCount: (json['view_count'] as num?)?.toInt() ?? 0,
+      isViewed: json['is_viewed'] as bool? ?? false,
+      timeAgo: json['time_ago'] as String? ?? 'Vừa xong',
+      createdAt: createdAt,
+      expiresAt: expiresAt,
+    );
+  }
+
+  Future<List<CommunityStoryAuthorGroup>> getStories() async {
+    final response = await dio.get('/api/community/stories');
+    final data = Map<String, dynamic>.from(response.data as Map);
+    final itemsRaw = data['items'] as List<dynamic>? ?? const [];
+    return itemsRaw.map((raw) {
+      final group = Map<String, dynamic>.from(raw as Map);
+      final storiesRaw = group['stories'] as List<dynamic>? ?? const [];
+      return CommunityStoryAuthorGroup(
+        author: _parseAuthor(
+          Map<String, dynamic>.from(group['author'] as Map? ?? const {}),
+        ),
+        isSelf: group['is_self'] as bool? ?? false,
+        hasUnviewed: group['has_unviewed'] as bool? ?? false,
+        latestCreatedAt: group['latest_created_at'] != null
+            ? DateTime.tryParse(group['latest_created_at'].toString())
+            : null,
+        stories: storiesRaw
+            .map((s) => _parseStory(Map<String, dynamic>.from(s as Map)))
+            .toList(),
+      );
+    }).toList();
+  }
+
+  Future<CommunityStory> createStory({
+    required String mediaType,
+    String? mediaUrl,
+    String caption = '',
+    String? backgroundColor,
+    String privacy = 'public',
+  }) async {
+    final response = await dio.post(
+      '/api/community/stories',
+      data: {
+        'media_type': mediaType,
+        if (mediaUrl != null) 'media_url': mediaUrl,
+        'caption': caption,
+        if (backgroundColor != null) 'background_color': backgroundColor,
+        'privacy': privacy,
+      },
+    );
+    return _parseStory(Map<String, dynamic>.from(response.data as Map));
+  }
+
+  Future<int> markStoryViewed(String storyId) async {
+    final response = await dio.post('/api/community/stories/$storyId/view');
+    final data = Map<String, dynamic>.from(response.data as Map);
+    return (data['view_count'] as num?)?.toInt() ?? 0;
+  }
+
+  Future<bool> deleteStory(String storyId) async {
+    final response = await dio.delete('/api/community/stories/$storyId');
+    final data = Map<String, dynamic>.from(response.data as Map);
+    return data['success'] as bool? ?? true;
+  }
+
+  Future<int> sharePost(String postId) async {
+    final response = await dio.post('/api/community/posts/$postId/share');
+    final data = Map<String, dynamic>.from(response.data as Map);
+    return (data['share_count'] as num?)?.toInt() ?? 0;
+  }
+
+  // --- Wave 4: Direct Messages (Messenger-Lite) ---
+
+  DmConversation _parseConversation(Map<String, dynamic> json) {
+    final peerRaw = Map<String, dynamic>.from(json['peer'] as Map? ?? const {});
+    final peer = DmParticipant(
+      id: peerRaw['id'] as String? ?? '',
+      name: peerRaw['name'] as String? ?? 'Saman Athlete',
+      avatarUrl: _resolveMediaUrl(peerRaw['avatar_url'] as String?),
+      isVerified: peerRaw['is_verified'] as bool? ?? false,
+      showActivityStatus: peerRaw['show_activity_status'] as bool? ?? true,
+    );
+    return DmConversation(
+      id: json['id'] as String? ?? '',
+      peer: peer,
+      lastMessagePreview: json['last_message_preview'] as String? ?? '',
+      lastMessageType: json['last_message_type'] as String?,
+      lastMessageAt: json['last_message_at'] != null
+          ? DateTime.tryParse(json['last_message_at'].toString())
+          : null,
+      unreadCount: (json['unread_count'] as num?)?.toInt() ?? 0,
+      updatedAt: DateTime.tryParse(json['updated_at'] as String? ?? '') ??
+          DateTime.now().toUtc(),
+    );
+  }
+
+  Future<DmConversation> createOrGetConversation(String targetUserId) async {
+    final response = await dio.post(
+      '/api/community/dm/conversations',
+      data: {'target_user_id': targetUserId},
+    );
+    return _parseConversation(
+      Map<String, dynamic>.from(response.data as Map),
+    );
+  }
+
+  Future<DmConversationsPage> getConversations({
+    int limit = 20,
+    String? cursor,
+  }) async {
+    final response = await dio.get(
+      '/api/community/dm/conversations',
+      queryParameters: {
+        'limit': limit,
+        if (cursor != null) 'cursor': cursor,
+      },
+    );
+    final data = Map<String, dynamic>.from(response.data as Map);
+    final itemsRaw = data['items'] as List<dynamic>? ?? const [];
+    return DmConversationsPage(
+      items: itemsRaw
+          .map((raw) => _parseConversation(Map<String, dynamic>.from(raw as Map)))
+          .toList(),
+      totalUnreadCount: (data['total_unread_count'] as num?)?.toInt() ?? 0,
+      nextCursor: data['next_cursor'] as String?,
+    );
+  }
+
+  Future<DmMessagesPage> getMessages(
+    String conversationId, {
+    int limit = 30,
+    String? cursor,
+  }) async {
+    final response = await dio.get(
+      '/api/community/dm/conversations/$conversationId/messages',
+      queryParameters: {
+        'limit': limit,
+        if (cursor != null) 'cursor': cursor,
+      },
+    );
+    final data = Map<String, dynamic>.from(response.data as Map);
+    final itemsRaw = data['items'] as List<dynamic>? ?? const [];
+    return DmMessagesPage(
+      items: itemsRaw
+          .map(
+            (raw) => dmMessageFromJson(
+              Map<String, dynamic>.from(raw as Map),
+              resolveMediaUrl: _resolveMediaUrl,
+            ),
+          )
+          .toList(),
+      nextCursor: data['next_cursor'] as String?,
+    );
+  }
+
+  Future<DmMessage> sendMessage({
+    required String conversationId,
+    required DmMessageType type,
+    String content = '',
+    String? mediaUrl,
+    double? durationSeconds,
+    String? sharedPostId,
+    String? replyToMessageId,
+    String? idempotencyKey,
+  }) async {
+    final response = await dio.post(
+      '/api/community/dm/conversations/$conversationId/messages',
+      data: {
+        'type': type.toApiValue(),
+        'content': content,
+        if (mediaUrl != null) 'media_url': mediaUrl,
+        if (durationSeconds != null) 'duration_seconds': durationSeconds,
+        if (sharedPostId != null) 'shared_post_id': sharedPostId,
+        if (replyToMessageId != null) 'reply_to_message_id': replyToMessageId,
+      },
+      options: idempotencyKey != null
+          ? Options(headers: {'X-Idempotency-Key': idempotencyKey})
+          : null,
+    );
+    return dmMessageFromJson(
+      Map<String, dynamic>.from(response.data as Map),
+      resolveMediaUrl: _resolveMediaUrl,
+    );
+  }
+
+  Future<void> markConversationRead(String conversationId) async {
+    await dio.post('/api/community/dm/conversations/$conversationId/read');
+  }
+
+  Future<bool> deleteMessage(String messageId) async {
+    final response = await dio.delete('/api/community/dm/messages/$messageId');
+    final data = Map<String, dynamic>.from(response.data as Map);
+    return data['is_deleted'] as bool? ?? true;
+  }
+
+  Future<int> getDmUnreadCount() async {
+    final response = await dio.get('/api/community/dm/unread-count');
+    final data = Map<String, dynamic>.from(response.data as Map);
+    return (data['unread_count'] as num?)?.toInt() ?? 0;
+  }
+
+  Future<DmMediaUploadResult> uploadDmMedia({
+    required List<int> bytes,
+    required String filename,
+    required String mimeType,
+  }) async {
+    final formData = FormData.fromMap({
+      'file': MultipartFile.fromBytes(
+        bytes,
+        filename: filename,
+        contentType: MediaType.parse(mimeType),
+      ),
+    });
+    final response = await dio.post(
+      '/api/community/dm/media/upload',
+      data: formData,
+    );
+    final raw = Map<String, dynamic>.from(response.data as Map);
+    final result = DmMediaUploadResult.fromJson(raw);
+    return DmMediaUploadResult(
+      mediaUrl: _resolveMediaUrl(result.mediaUrl) ?? result.mediaUrl,
+      mediaKind: result.mediaKind,
+      contentType: result.contentType,
+      fileName: result.fileName,
+      sizeBytes: result.sizeBytes,
+    );
+  }
+}
+
+extension CommunityRemoteDatasourceWave4Extension on CommunityRemoteDatasource {
+  Future<CommunitySettings> getSettings() {
+    if (this is CommunityRemoteDatasourceImpl) {
+      return (this as CommunityRemoteDatasourceImpl).getSettings();
+    }
+    throw UnsupportedError('Settings not supported by this datasource double');
+  }
+
+  Future<CommunitySettings> updateSettings(Map<String, dynamic> body) {
+    if (this is CommunityRemoteDatasourceImpl) {
+      return (this as CommunityRemoteDatasourceImpl).updateSettings(body);
+    }
+    throw UnsupportedError('Settings not supported by this datasource double');
+  }
+
+  Future<bool> blockUser(String targetUserId) {
+    if (this is CommunityRemoteDatasourceImpl) {
+      return (this as CommunityRemoteDatasourceImpl).blockUser(targetUserId);
+    }
+    throw UnsupportedError('Block not supported by this datasource double');
+  }
+
+  Future<bool> unblockUser(String targetUserId) {
+    if (this is CommunityRemoteDatasourceImpl) {
+      return (this as CommunityRemoteDatasourceImpl).unblockUser(targetUserId);
+    }
+    throw UnsupportedError('Unblock not supported by this datasource double');
+  }
+
+  Future<List<CommunityAuthor>> getBlockedUsers() {
+    if (this is CommunityRemoteDatasourceImpl) {
+      return (this as CommunityRemoteDatasourceImpl).getBlockedUsers();
+    }
+    throw UnsupportedError('Blocked list not supported by this datasource double');
+  }
+
+  Future<bool> muteUser(String targetUserId) {
+    if (this is CommunityRemoteDatasourceImpl) {
+      return (this as CommunityRemoteDatasourceImpl).muteUser(targetUserId);
+    }
+    throw UnsupportedError('Mute not supported by this datasource double');
+  }
+
+  Future<bool> unmuteUser(String targetUserId) {
+    if (this is CommunityRemoteDatasourceImpl) {
+      return (this as CommunityRemoteDatasourceImpl).unmuteUser(targetUserId);
+    }
+    throw UnsupportedError('Unmute not supported by this datasource double');
+  }
+
+  Future<List<CommunityAuthor>> getMutedUsers() {
+    if (this is CommunityRemoteDatasourceImpl) {
+      return (this as CommunityRemoteDatasourceImpl).getMutedUsers();
+    }
+    throw UnsupportedError('Muted list not supported by this datasource double');
+  }
+
+  Future<CommunityReportReceipt> reportContent({
+    required String targetType,
+    required String targetId,
+    required String reason,
+    String details = '',
+  }) {
+    if (this is CommunityRemoteDatasourceImpl) {
+      return (this as CommunityRemoteDatasourceImpl).reportContent(
+        targetType: targetType,
+        targetId: targetId,
+        reason: reason,
+        details: details,
+      );
+    }
+    throw UnsupportedError('Report not supported by this datasource double');
+  }
+
+  Future<List<CommunityStoryAuthorGroup>> getStories() {
+    if (this is CommunityRemoteDatasourceImpl) {
+      return (this as CommunityRemoteDatasourceImpl).getStories();
+    }
+    throw UnsupportedError('Stories not supported by this datasource double');
+  }
+
+  Future<CommunityStory> createStory({
+    required String mediaType,
+    String? mediaUrl,
+    String caption = '',
+    String? backgroundColor,
+    String privacy = 'public',
+  }) {
+    if (this is CommunityRemoteDatasourceImpl) {
+      return (this as CommunityRemoteDatasourceImpl).createStory(
+        mediaType: mediaType,
+        mediaUrl: mediaUrl,
+        caption: caption,
+        backgroundColor: backgroundColor,
+        privacy: privacy,
+      );
+    }
+    throw UnsupportedError('Create story not supported by this datasource double');
+  }
+
+  Future<int> markStoryViewed(String storyId) {
+    if (this is CommunityRemoteDatasourceImpl) {
+      return (this as CommunityRemoteDatasourceImpl).markStoryViewed(storyId);
+    }
+    throw UnsupportedError('Story view not supported by this datasource double');
+  }
+
+  Future<bool> deleteStory(String storyId) {
+    if (this is CommunityRemoteDatasourceImpl) {
+      return (this as CommunityRemoteDatasourceImpl).deleteStory(storyId);
+    }
+    throw UnsupportedError('Delete story not supported by this datasource double');
+  }
+
+  Future<int> sharePost(String postId) {
+    if (this is CommunityRemoteDatasourceImpl) {
+      return (this as CommunityRemoteDatasourceImpl).sharePost(postId);
+    }
+    throw UnsupportedError('Share post not supported by this datasource double');
+  }
+
+  Future<DmConversation> createOrGetConversation(String targetUserId) {
+    if (this is CommunityRemoteDatasourceImpl) {
+      return (this as CommunityRemoteDatasourceImpl).createOrGetConversation(targetUserId);
+    }
+    throw UnsupportedError('DM not supported by this datasource double');
+  }
+
+  Future<DmConversationsPage> getConversations({int limit = 20, String? cursor}) {
+    if (this is CommunityRemoteDatasourceImpl) {
+      return (this as CommunityRemoteDatasourceImpl).getConversations(
+        limit: limit,
+        cursor: cursor,
+      );
+    }
+    throw UnsupportedError('DM not supported by this datasource double');
+  }
+
+  Future<DmMessagesPage> getMessages(
+    String conversationId, {
+    int limit = 30,
+    String? cursor,
+  }) {
+    if (this is CommunityRemoteDatasourceImpl) {
+      return (this as CommunityRemoteDatasourceImpl).getMessages(
+        conversationId,
+        limit: limit,
+        cursor: cursor,
+      );
+    }
+    throw UnsupportedError('DM not supported by this datasource double');
+  }
+
+  Future<DmMessage> sendMessage({
+    required String conversationId,
+    required DmMessageType type,
+    String content = '',
+    String? mediaUrl,
+    double? durationSeconds,
+    String? sharedPostId,
+    String? replyToMessageId,
+    String? idempotencyKey,
+  }) {
+    if (this is CommunityRemoteDatasourceImpl) {
+      return (this as CommunityRemoteDatasourceImpl).sendMessage(
+        conversationId: conversationId,
+        type: type,
+        content: content,
+        mediaUrl: mediaUrl,
+        durationSeconds: durationSeconds,
+        sharedPostId: sharedPostId,
+        replyToMessageId: replyToMessageId,
+        idempotencyKey: idempotencyKey,
+      );
+    }
+    throw UnsupportedError('DM not supported by this datasource double');
+  }
+
+  Future<void> markConversationRead(String conversationId) {
+    if (this is CommunityRemoteDatasourceImpl) {
+      return (this as CommunityRemoteDatasourceImpl).markConversationRead(conversationId);
+    }
+    throw UnsupportedError('DM not supported by this datasource double');
+  }
+
+  Future<bool> deleteMessage(String messageId) {
+    if (this is CommunityRemoteDatasourceImpl) {
+      return (this as CommunityRemoteDatasourceImpl).deleteMessage(messageId);
+    }
+    throw UnsupportedError('DM not supported by this datasource double');
+  }
+
+  Future<int> getDmUnreadCount() {
+    if (this is CommunityRemoteDatasourceImpl) {
+      return (this as CommunityRemoteDatasourceImpl).getDmUnreadCount();
+    }
+    throw UnsupportedError('DM not supported by this datasource double');
+  }
+
+  Future<DmMediaUploadResult> uploadDmMedia({
+    required List<int> bytes,
+    required String filename,
+    required String mimeType,
+  }) {
+    if (this is CommunityRemoteDatasourceImpl) {
+      return (this as CommunityRemoteDatasourceImpl).uploadDmMedia(
+        bytes: bytes,
+        filename: filename,
+        mimeType: mimeType,
+      );
+    }
+    throw UnsupportedError('DM media upload not supported by this datasource double');
   }
 }

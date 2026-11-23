@@ -21,7 +21,7 @@ import io
 import os
 import re
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List, Literal, Optional, Union
 from fastapi import Request, APIRouter, Depends, Header, HTTPException, Query, File, UploadFile
 from starlette.routing import Route
@@ -33,12 +33,17 @@ from pymongo.errors import DuplicateKeyError
 
 from backend.app.database import db
 from backend.app.models.community import (
+    BlockStatusResponse,
     CreateCommunityCommentRequest,
+    CreateReportRequest,
+    CreateStoryRequest,
     PublishTextPostRequest,
     PublishQuestionRequest,
     PublishAttachmentPostRequest,
     PublishPhotoPostRequest,
     MediaUploadResponse,
+    MuteStatusResponse,
+    CommunityBlockedUsersResponse,
     CommunityCommentsResponse,
     CommunityCommentMutationResponse,
     CommunityAuthorModel,
@@ -54,6 +59,10 @@ from backend.app.models.community import (
     CommunityNotificationsResponse,
     CommunityPostModel,
     CommunitySavedResponse,
+    CommunitySettingsModel,
+    CommunityStoriesFeedResponse,
+    CommunityStoryAuthorGroupModel,
+    CommunityStoryModel,
     CommunityTrendingTopicModel,
     CommunityVisualGridItemModel,
     ExerciseThumbnailPreviewModel,
@@ -64,12 +73,16 @@ from backend.app.models.community import (
     NotificationsReadAllResponse,
     PostNutritionInfoModel,
     PostQaInfoModel,
+    PostShareResponse,
     PostWorkoutAttachmentModel,
     QuestionAnswerModel,
     QuestionAnswersResponse,
     CreateQuestionAnswerRequest,
     QuestionAnswerReceipt,
+    ReportReceiptResponse,
+    StoryViewResponse,
     UpdateCommunityProfileRequest,
+    UpdateCommunitySettingsRequest,
 )
 
 from backend.auth.config import JWT_ALGORITHM, JWT_SECRET
@@ -121,6 +134,202 @@ def get_users_collection():
     if db is not None:
         return db["users"]
     return None
+
+
+def _safe_db_collection(name: str):
+    if db is None:
+        return None
+    try:
+        return db[name]
+    except Exception:
+        return None
+
+
+def get_community_user_settings_collection():
+    return _safe_db_collection("community_user_settings")
+
+
+def get_community_blocks_collection():
+    return _safe_db_collection("community_blocks")
+
+
+def get_community_mutes_collection():
+    return _safe_db_collection("community_mutes")
+
+
+def get_community_reports_collection():
+    return _safe_db_collection("community_reports")
+
+
+def get_community_stories_collection():
+    return _safe_db_collection("community_stories")
+
+
+def get_community_story_views_collection():
+    return _safe_db_collection("community_story_views")
+
+
+def get_community_post_shares_collection():
+    return _safe_db_collection("community_post_shares")
+
+
+_DEFAULT_COMMUNITY_SETTINGS: Dict[str, Any] = {
+    "is_private_account": False,
+    "who_can_dm": "everyone",
+    "who_can_comment": "everyone",
+    "hide_like_counts": False,
+    "show_activity_status": True,
+    "muted_keywords": [],
+}
+
+
+def _build_settings_model(doc: Optional[Dict[str, Any]]) -> CommunitySettingsModel:
+    merged = dict(_DEFAULT_COMMUNITY_SETTINGS)
+    if isinstance(doc, dict):
+        for key in _DEFAULT_COMMUNITY_SETTINGS:
+            if key in doc and doc[key] is not None:
+                merged[key] = doc[key]
+    merged["muted_keywords"] = [str(k) for k in (merged.get("muted_keywords") or [])][:20]
+    return CommunitySettingsModel(**merged)
+
+
+def _get_user_settings_doc(user_id: Optional[str]) -> Dict[str, Any]:
+    merged = dict(_DEFAULT_COMMUNITY_SETTINGS)
+    if not user_id or user_id == "unknown":
+        return merged
+    col = get_community_user_settings_collection()
+    if col is None:
+        return merged
+    doc = col.find_one({"user_id": str(user_id)})
+    if isinstance(doc, dict):
+        for key in _DEFAULT_COMMUNITY_SETTINGS:
+            if key in doc and doc[key] is not None:
+                merged[key] = doc[key]
+    return merged
+
+
+def _get_user_settings_map(user_ids: List[str]) -> Dict[str, Dict[str, Any]]:
+    result: Dict[str, Dict[str, Any]] = {}
+    clean_ids = list({str(uid) for uid in user_ids if uid and str(uid) != "unknown"})
+    if not clean_ids:
+        return result
+    col = get_community_user_settings_collection()
+    if col is None:
+        return result
+    for doc in col.find({"user_id": {"$in": clean_ids}}):
+        uid = str(doc.get("user_id") or "")
+        if not uid:
+            continue
+        merged = dict(_DEFAULT_COMMUNITY_SETTINGS)
+        for key in _DEFAULT_COMMUNITY_SETTINGS:
+            if key in doc and doc[key] is not None:
+                merged[key] = doc[key]
+        result[uid] = merged
+    return result
+
+
+def _get_blocked_user_ids(viewer_id: Optional[str]) -> set[str]:
+    """Return 2-way blocked user IDs (both blocked by viewer and blocking viewer)."""
+    if not viewer_id:
+        return set()
+    col = get_community_blocks_collection()
+    if col is None:
+        return set()
+    vid = str(viewer_id)
+    blocked: set[str] = set()
+    for doc in col.find({"$or": [{"blocker_id": vid}, {"blocked_id": vid}]}):
+        blocker_id = str(doc.get("blocker_id") or "")
+        blocked_id = str(doc.get("blocked_id") or "")
+        if blocker_id == vid and blocked_id:
+            blocked.add(blocked_id)
+        elif blocked_id == vid and blocker_id:
+            blocked.add(blocker_id)
+    blocked.discard(vid)
+    return blocked
+
+
+def _is_blocked_between(user_a: Optional[str], user_b: Optional[str]) -> bool:
+    if not user_a or not user_b:
+        return False
+    a = str(user_a)
+    b = str(user_b)
+    if a == b:
+        return False
+    col = get_community_blocks_collection()
+    if col is None:
+        return False
+    return bool(
+        col.find_one({
+            "$or": [
+                {"blocker_id": a, "blocked_id": b},
+                {"blocker_id": b, "blocked_id": a},
+            ]
+        })
+    )
+
+
+def _get_muted_user_ids(viewer_id: Optional[str]) -> set[str]:
+    """Return 1-way muted user IDs muted by viewer."""
+    if not viewer_id:
+        return set()
+    col = get_community_mutes_collection()
+    if col is None:
+        return set()
+    vid = str(viewer_id)
+    muted = {
+        str(doc.get("muted_id"))
+        for doc in col.find({"muter_id": vid})
+        if doc.get("muted_id")
+    }
+    muted.discard(vid)
+    return muted
+
+
+def _get_excluded_user_ids(viewer_id: Optional[str], include_muted: bool = True) -> set[str]:
+    """
+    Returns user IDs to exclude for viewer_id:
+    - Always includes 2-way blocks (users viewer blocked + users who blocked viewer).
+    - Includes 1-way mutes when include_muted=True (for feed/discover/stories).
+    """
+    if not viewer_id:
+        return set()
+    excluded = _get_blocked_user_ids(viewer_id)
+    if include_muted:
+        excluded |= _get_muted_user_ids(viewer_id)
+    excluded.discard(str(viewer_id))
+    return excluded
+
+
+def _extract_doc_author_id(doc: Dict[str, Any]) -> str:
+    return str(
+        doc.get("author_id")
+        or doc.get("user_id")
+        or (doc.get("author") or {}).get("id")
+        or (doc.get("author") or {}).get("_id")
+        or ""
+    )
+
+
+def _validate_media_url(raw_url: str, field_label: str = "Media URL") -> str:
+    if not isinstance(raw_url, str):
+        raise HTTPException(status_code=422, detail=f"{field_label} must be a string")
+    url = raw_url.strip()
+    if not url:
+        raise HTTPException(status_code=422, detail=f"{field_label} must not be empty")
+    if url.startswith("/static/community/"):
+        remainder = url[len("/static/community/"):]
+        if not remainder or "/" in remainder or "\\" in remainder or ".." in remainder:
+            raise HTTPException(status_code=422, detail=f"Invalid {field_label}")
+    elif url.startswith("http://") or url.startswith("https://"):
+        scheme_len = 8 if url.startswith("https://") else 7
+        if len(url) <= scheme_len or any(ch.isspace() for ch in url):
+            raise HTTPException(status_code=422, detail=f"Invalid HTTP(S) {field_label}")
+    else:
+        raise HTTPException(
+            status_code=422,
+            detail=f"{field_label} must start with /static/community/ or http(s)://",
+        )
+    return url
 
 
 async def get_required_current_user(
@@ -432,15 +641,24 @@ def _sanitize_qa(qa_doc: Optional[Dict[str, Any]]) -> Optional[PostQaInfoModel]:
     )
 
 
-def _sanitize_comments(raw_comments: List[Dict[str, Any]], current_user_id: Optional[str]) -> List[CommunityCommentModel]:
+def _sanitize_comments(
+    raw_comments: List[Dict[str, Any]],
+    current_user_id: Optional[str],
+    blocked_ids: Optional[set[str]] = None,
+) -> List[CommunityCommentModel]:
     out: List[CommunityCommentModel] = []
     for c in raw_comments:
         if not isinstance(c, dict) or c.get("is_deleted", False):
             continue
 
-        author = _sanitize_author_projection(c.get("author"), current_user_id)
+        raw_author = c.get("author") or {}
+        cmt_author_id = str(raw_author.get("id") or raw_author.get("_id") or c.get("user_id") or "")
+        if blocked_ids and cmt_author_id and cmt_author_id in blocked_ids:
+            continue
+
+        author = _sanitize_author_projection(raw_author, current_user_id)
         replies_raw = c.get("replies") or []
-        replies_sanitized = _sanitize_comments(replies_raw, current_user_id)
+        replies_sanitized = _sanitize_comments(replies_raw, current_user_id, blocked_ids=blocked_ids)
 
         out.append(
             CommunityCommentModel(
@@ -466,6 +684,8 @@ def _build_post_model(
     override_like_count: Optional[int] = None,
     followed_author_ids: Optional[set[str]] = None,
     author_follower_counts: Optional[Dict[str, int]] = None,
+    override_share_count: Optional[int] = None,
+    author_hide_like_counts: Optional[bool] = None,
 ) -> CommunityPostModel:
     post_id = str(doc.get("id") or doc.get("_id"))
     post_type = str(doc.get("type", "photo"))
@@ -489,20 +709,38 @@ def _build_post_model(
     caption = str(doc.get("caption", ""))
     photo_urls = [str(u) for u in doc.get("photo_urls", [])]
 
+    blocked_ids = _get_blocked_user_ids(current_user_id)
+
     nutrition = _sanitize_nutrition(doc.get("nutrition_info"))
     workout = _sanitize_attachment(doc.get("workout_attachment"))
     qa = _sanitize_qa(doc.get("qa_info"))
     if post_type == "qa" and qa is not None:
         answers_col = get_community_answers_collection()
         if answers_col is not None:
-            qa.respondent_count = answers_col.count_documents({"question_id": post_id, "is_deleted": {"$ne": True}})
+            ans_query: Dict[str, Any] = {"question_id": post_id, "is_deleted": {"$ne": True}}
+            if blocked_ids:
+                ans_query["user_id"] = {"$nin": list(blocked_ids)}
+                ans_query["author.id"] = {"$nin": list(blocked_ids)}
+            qa.respondent_count = answers_col.count_documents(ans_query)
             qa.respondents_summary = str(qa.respondent_count)
 
     # Persistent comments use their own paginated endpoint. No cached counter writes.
     comments_col = get_community_comments_collection()
-    comments = _sanitize_comments(doc.get("comments") or [], current_user_id)
-    comment_count = (comments_col.count_documents({"post_id": post_id}) + len(_legacy_comment_docs(doc))
-                     if comments_col is not None else int(doc.get("comment_count", len(comments))))
+    comments = _sanitize_comments(doc.get("comments") or [], current_user_id, blocked_ids=blocked_ids)
+    legacy_docs = _legacy_comment_docs(doc)
+    if blocked_ids:
+        legacy_docs = [
+            d for d in legacy_docs
+            if str(d.get("user_id") or (d.get("author") or {}).get("id") or "") not in blocked_ids
+        ]
+    if comments_col is not None:
+        cmt_query: Dict[str, Any] = {"post_id": post_id}
+        if blocked_ids:
+            cmt_query["user_id"] = {"$nin": list(blocked_ids)}
+            cmt_query["author.id"] = {"$nin": list(blocked_ids)}
+        comment_count = comments_col.count_documents(cmt_query) + len(legacy_docs)
+    else:
+        comment_count = int(doc.get("comment_count", len(comments)))
 
     # User interactions (bookmarked/liked)
     liked_by_ids = [str(x) for x in (doc.get("liked_by_ids") or [])]
@@ -523,6 +761,30 @@ def _build_post_model(
 
     final_like_count = override_like_count if override_like_count is not None else int(doc.get("like_count", 0))
 
+    # Enforce author's hide_like_counts privacy setting (author always sees own like_count)
+    if author_hide_like_counts is None:
+        author_settings = _get_user_settings_doc(author_id) if author_id and author_id != "unknown" else None
+        hide_likes_setting = bool(author_settings.get("hide_like_counts", False)) if author_settings else False
+    else:
+        hide_likes_setting = bool(author_hide_like_counts)
+
+    is_viewer_author = bool(current_user_id and author_id and current_user_id == author_id)
+    is_like_count_hidden = hide_likes_setting and not is_viewer_author
+    if is_like_count_hidden:
+        final_like_count = 0
+
+    # Authoritative share_count from community_post_shares
+    if override_share_count is not None:
+        final_share_count = override_share_count
+    else:
+        shares_col = get_community_post_shares_collection()
+        if shares_col is not None:
+            target_pids = list({p for p in [post_id, str(doc.get("id") or ""), str(doc.get("_id") or "")] if p})
+            c = shares_col.count_documents({"post_id": {"$in": target_pids}})
+            final_share_count = c if c > 0 else int(doc.get("share_count", 0))
+        else:
+            final_share_count = int(doc.get("share_count", 0))
+
     from backend.app.services.community_attachment_service import public_snapshot
     return CommunityPostModel(
         id=post_id,
@@ -539,6 +801,8 @@ def _build_post_model(
         attachment_snapshot=public_snapshot(doc.get("attachment_snapshot")),
         like_count=final_like_count,
         comment_count=comment_count,
+        share_count=final_share_count,
+        is_like_count_hidden=is_like_count_hidden,
         is_liked=is_liked,
         is_bookmarked=is_bookmarked,
         liked_by_names=list(doc.get("liked_by_names", [])),
@@ -578,7 +842,10 @@ def _check_post_audience(doc: Dict[str, Any], current_user_id: Optional[str]) ->
     if doc.get("is_deleted", False) or doc.get("status") == "unpublished":
         raise HTTPException(status_code=404, detail="Post not found")
     privacy = doc.get("privacy", "public")
-    author_id = str(doc.get("author_id") or (doc.get("author") or {}).get("id"))
+    author_id = str(doc.get("author_id") or (doc.get("author") or {}).get("id") or "")
+    if current_user_id and author_id and current_user_id != author_id:
+        if _is_blocked_between(current_user_id, author_id):
+            raise HTTPException(status_code=404, detail="Post not found")
     if privacy == "private":
         if not current_user_id or current_user_id != author_id:
             raise HTTPException(status_code=404, detail="Post not found")
@@ -619,10 +886,15 @@ async def get_community_feed(
 
     current_user_id = str(current_user["_id"]) if current_user else None
     follows_col = get_community_follows_collection()
+    excluded_ids = _get_excluded_user_ids(current_user_id, include_muted=True)
 
     followed_ids: List[str] = []
     if current_user_id and follows_col is not None:
-        followed_ids = [str(f["following_id"]) for f in follows_col.find({"follower_id": current_user_id})]
+        followed_ids = [
+            str(f["following_id"])
+            for f in follows_col.find({"follower_id": current_user_id})
+            if str(f["following_id"]) not in excluded_ids
+        ]
 
     if norm_tab == "following":
         if not current_user_id or not followed_ids:
@@ -667,6 +939,15 @@ async def get_community_feed(
     if norm_tab == "qa":
         query["type"] = "qa"
 
+    # Block (2-way) & Mute (1-way) filter (only wrap query when non-empty to preserve query shape)
+    if excluded_ids:
+        excluded_list = list(excluded_ids)
+        exclude_filter = {
+            "author_id": {"$nin": excluded_list},
+            "author.id": {"$nin": excluded_list},
+        }
+        query = {"$and": [query, exclude_filter]}
+
     # Cursor filter
     if cursor:
         cursor_dt, cursor_id = _decode_cursor(cursor)
@@ -686,6 +967,8 @@ async def get_community_feed(
     # Fetch 1 extra to determine next_cursor
     cursor_res = col.find(query).sort(sort_order).limit(limit + 1)
     docs = list(cursor_res)
+    if excluded_ids:
+        docs = [d for d in docs if _extract_doc_author_id(d) not in excluded_ids]
 
     has_more = len(docs) > limit
     results_docs = docs[:limit]
@@ -752,6 +1035,24 @@ async def get_community_feed(
             for f in follows_col.find({"follower_id": current_user_id, "following_id": {"$in": author_ids}}):
                 followed_author_set.add(str(f["following_id"]))
 
+    author_settings_map = _get_user_settings_map(author_ids)
+
+    authoritative_share_counts: Dict[str, int] = {}
+    shares_col = get_community_post_shares_collection()
+    if shares_col is not None and results_docs:
+        all_share_pids: List[str] = []
+        for d in results_docs:
+            if d.get("id"):
+                all_share_pids.append(str(d["id"]))
+            if d.get("_id"):
+                all_share_pids.append(str(d["_id"]))
+        if all_share_pids:
+            for agg in shares_col.aggregate([
+                {"$match": {"post_id": {"$in": list(set(all_share_pids))}}},
+                {"$group": {"_id": "$post_id", "count": {"$sum": 1}}},
+            ]):
+                authoritative_share_counts[str(agg["_id"])] = int(agg["count"])
+
     items = []
     for d in results_docs:
         pid = str(d.get("id") or d.get("_id"))
@@ -763,6 +1064,15 @@ async def get_community_feed(
             auth_cnt = authoritative_like_counts[doc_id]
         elif d.get("interaction_version", 0) > 0:
             auth_cnt = 0
+        share_cnt = None
+        if pid in authoritative_share_counts:
+            share_cnt = authoritative_share_counts[pid]
+        elif doc_id and doc_id in authoritative_share_counts:
+            share_cnt = authoritative_share_counts[doc_id]
+        elif shares_col is not None:
+            share_cnt = int(d.get("share_count", 0))
+        a_id = str(d.get("author_id") or (d.get("author") or {}).get("id") or (d.get("author") or {}).get("_id") or "")
+        hide_likes = bool(author_settings_map.get(a_id, _DEFAULT_COMMUNITY_SETTINGS).get("hide_like_counts", False))
         items.append(_build_post_model(
             d,
             current_user_id,
@@ -771,6 +1081,8 @@ async def get_community_feed(
             override_like_count=auth_cnt,
             followed_author_ids=followed_author_set if current_user_id else set(),
             author_follower_counts=author_follower_counts,
+            override_share_count=share_cnt,
+            author_hide_like_counts=hide_likes,
         ))
 
     next_cursor = None
@@ -1153,6 +1465,7 @@ async def get_saved_posts(
     liked_set = {str(i["post_id"]) for i in liked_inters}
     saved_set = set(post_ids)
 
+    blocked_ids = _get_blocked_user_ids(current_user_id)
     valid_items: List[CommunityPostModel] = []
     for pid in post_ids:
         p_doc = posts_by_id.get(pid)
@@ -1163,9 +1476,11 @@ async def get_saved_posts(
         if p_doc.get("is_deleted", False) or p_doc.get("status") == "unpublished":
             continue
 
-        # Check audience at read time
+        # Check audience & 2-way block at read time
         privacy = p_doc.get("privacy", "public")
         author_id = str(p_doc.get("author_id") or (p_doc.get("author") or {}).get("id"))
+        if author_id in blocked_ids:
+            continue
         if privacy == "private":
             if current_user_id != author_id:
                 continue
@@ -1246,17 +1561,28 @@ def get_question_answers(question_id: str, limit: int = Query(20, ge=1, le=50),
     viewer_id = str(user["_id"]) if user else None
     _, qid = _answer_question(question_id, viewer_id)
     col = _answer_col()
-    query = {"question_id": qid, "is_deleted": {"$ne": True}}
+    blocked_ids = _get_blocked_user_ids(viewer_id)
+    query: Dict[str, Any] = {"question_id": qid, "is_deleted": {"$ne": True}}
+    if blocked_ids:
+        blocked_list = list(blocked_ids)
+        query["user_id"] = {"$nin": blocked_list}
+        query["author.id"] = {"$nin": blocked_list}
     if cursor:
         dt, aid = _decode_cursor(cursor)
         if not ObjectId.is_valid(aid):
             raise HTTPException(400, "Invalid pagination cursor")
         query["$or"] = [{"created_at": {"$gt": dt}}, {"created_at": dt, "_id": {"$gt": ObjectId(aid)}}]
     docs = list(col.find(query).sort([("created_at", 1), ("_id", 1)]).limit(limit + 1))
+    if blocked_ids:
+        docs = [d for d in docs if _extract_doc_author_id(d) not in blocked_ids]
     more = len(docs) > limit
     docs = docs[:limit]
     items = [_public_answer(d, viewer_id) for d in docs]
-    count = col.count_documents({"question_id": qid, "is_deleted": {"$ne": True}})
+    count_query: Dict[str, Any] = {"question_id": qid, "is_deleted": {"$ne": True}}
+    if blocked_ids:
+        count_query["user_id"] = {"$nin": list(blocked_ids)}
+        count_query["author.id"] = {"$nin": list(blocked_ids)}
+    count = col.count_documents(count_query)
     _answer_question(question_id, viewer_id)
     return QuestionAnswersResponse(items=items, answer_count=count,
         next_cursor=_encode_cursor(docs[-1]["created_at"], str(docs[-1]["_id"])) if more else None)
@@ -1319,7 +1645,11 @@ def get_question_answer(question_id: str, answer_id: str,
     user = _canonical_comment_user(current_user)
     uid = str(user["_id"]) if user else None
     _, qid = _answer_question(question_id, uid)
-    answer = _public_answer(_answer_doc(qid, answer_id), uid)
+    ans_doc = _answer_doc(qid, answer_id)
+    ans_author_id = _extract_doc_author_id(ans_doc)
+    if uid and ans_author_id and _is_blocked_between(uid, ans_author_id):
+        raise HTTPException(404, "Answer not found")
+    answer = _public_answer(ans_doc, uid)
     _answer_question(question_id, uid)
     return answer
 
@@ -1377,6 +1707,9 @@ async def follow_author(
     target_info = _find_author_doc(author_id)
     if not target_info:
         raise HTTPException(status_code=404, detail="Author not found")
+
+    if _is_blocked_between(current_user_id, author_id):
+        raise HTTPException(status_code=403, detail="Cannot follow this user due to block")
 
     follows_col = get_community_follows_collection()
     if follows_col is None:
@@ -1466,6 +1799,9 @@ async def get_community_author_profile(
     if not target_id:
         raise HTTPException(status_code=401, detail="Authentication required")
 
+    if current_user_id and target_id != current_user_id and _is_blocked_between(current_user_id, target_id):
+        raise HTTPException(status_code=404, detail="Author not found")
+
     return _build_author_profile_response(
         target_id=target_id,
         current_user=current_user,
@@ -1492,13 +1828,20 @@ async def get_author_followers(
     if not target_info and target_id != current_user_id:
         raise HTTPException(status_code=404, detail="Author not found")
 
+    if current_user_id and target_id != current_user_id and _is_blocked_between(current_user_id, target_id):
+        raise HTTPException(status_code=404, detail="Author not found")
+
     follows_col = get_community_follows_collection()
     if follows_col is None:
         return CommunityFollowListResponse(items=[], next_cursor=None, total_count=0)
 
+    blocked_ids = _get_blocked_user_ids(current_user_id)
     total_count = follows_col.count_documents({"following_id": target_id})
 
     query: Dict[str, Any] = {"following_id": target_id}
+    if blocked_ids:
+        query["follower_id"] = {"$nin": list(blocked_ids)}
+        total_count = follows_col.count_documents(query)
     if cursor:
         cursor_dt, cursor_id = _decode_cursor(cursor)
         query["$or"] = [
@@ -1577,9 +1920,16 @@ async def get_author_following(
     if follows_col is None:
         return CommunityFollowListResponse(items=[], next_cursor=None, total_count=0)
 
+    if current_user_id and target_id != current_user_id and _is_blocked_between(current_user_id, target_id):
+        raise HTTPException(status_code=404, detail="Author not found")
+
+    blocked_ids = _get_blocked_user_ids(current_user_id)
     total_count = follows_col.count_documents({"follower_id": target_id})
 
     query: Dict[str, Any] = {"follower_id": target_id}
+    if blocked_ids:
+        query["following_id"] = {"$nin": list(blocked_ids)}
+        total_count = follows_col.count_documents(query)
     if cursor:
         cursor_dt, cursor_id = _decode_cursor(cursor)
         query["$or"] = [
@@ -1713,8 +2063,15 @@ def get_post_comments(
     viewer_id = str(current_user["_id"]) if current_user else None
     post, canonical_id = _comment_post(post_id, viewer_id)
     col = _comments_collection()
-    query = {"post_id": canonical_id}
+    blocked_ids = _get_blocked_user_ids(viewer_id)
+    query: Dict[str, Any] = {"post_id": canonical_id}
+    if blocked_ids:
+        blocked_list = list(blocked_ids)
+        query["user_id"] = {"$nin": blocked_list}
+        query["author.id"] = {"$nin": blocked_list}
     legacy = _legacy_comment_docs(post)
+    if blocked_ids:
+        legacy = [d for d in legacy if _extract_doc_author_id(d) not in blocked_ids]
     if cursor:
         dt, cid = _decode_cursor(cursor)
         if dt.tzinfo is None:
@@ -1725,14 +2082,23 @@ def get_post_comments(
         elif dt != datetime(1970, 1, 1, tzinfo=timezone.utc):
             raise HTTPException(400, "Invalid pagination cursor")
     legacy.sort(key=lambda d: (d["created_at"], str(d["_id"])))
-    docs = (legacy + list(col.find(query).sort([("created_at", 1), ("_id", 1)]).limit(limit + 1)))[:limit + 1]
+    db_docs = list(col.find(query).sort([("created_at", 1), ("_id", 1)]).limit(limit + 1))
+    if blocked_ids:
+        db_docs = [d for d in db_docs if _extract_doc_author_id(d) not in blocked_ids]
+    docs = (legacy + db_docs)[:limit + 1]
     more = len(docs) > limit
     docs = docs[:limit]
     _comment_post(post_id, viewer_id)  # Revalidate before returning nested/public data.
+    count_query: Dict[str, Any] = {"post_id": canonical_id}
+    all_legacy = _legacy_comment_docs(post)
+    if blocked_ids:
+        count_query["user_id"] = {"$nin": list(blocked_ids)}
+        count_query["author.id"] = {"$nin": list(blocked_ids)}
+        all_legacy = [d for d in all_legacy if _extract_doc_author_id(d) not in blocked_ids]
     return CommunityCommentsResponse(
         items=[_public_comment(d, post, viewer_id) for d in docs],
         next_cursor=_encode_cursor(docs[-1]["created_at"], str(docs[-1]["_id"])) if more else None,
-        comment_count=col.count_documents({"post_id": canonical_id}) + len(_legacy_comment_docs(post)),
+        comment_count=col.count_documents(count_query) + len(all_legacy),
     )
 
 
@@ -1745,9 +2111,30 @@ def create_post_comment(
 ):
     current_user = _canonical_comment_user(current_user)
     user_id = str(current_user["_id"])
+    raw_post = _find_post_doc(post_id)
+    if raw_post and not raw_post.get("is_deleted", False) and raw_post.get("status") in (None, "published"):
+        raw_author_id = str(raw_post.get("author_id") or (raw_post.get("author") or {}).get("id") or "")
+        if raw_author_id and raw_author_id != user_id and _is_blocked_between(user_id, raw_author_id):
+            if raw_post.get("privacy", "public") == "private":
+                raise HTTPException(404, "Post not found")
+            raise HTTPException(403, "Cannot comment on this user's post due to block")
     post, canonical_id = _comment_post(post_id, user_id)
     if post.get("type") == "qa" or not post.get("allow_comments", True):
         raise HTTPException(409, "Comments disabled")
+    post_author_id = str(post.get("author_id") or (post.get("author") or {}).get("id") or "")
+    if post_author_id and post_author_id != user_id:
+        author_settings = _get_user_settings_doc(post_author_id)
+        who_can_comment = author_settings.get("who_can_comment", "everyone")
+        if who_can_comment == "nobody":
+            raise HTTPException(403, "Author does not allow comments")
+        if who_can_comment == "followers":
+            follows_col = get_community_follows_collection()
+            is_follower = bool(
+                follows_col is not None
+                and follows_col.find_one({"follower_id": user_id, "following_id": post_author_id})
+            )
+            if not is_follower:
+                raise HTTPException(403, "Only followers can comment on this post")
     content = body.content.strip()
     if not content:
         raise HTTPException(422, "Comment must not be blank")
@@ -1769,6 +2156,9 @@ def create_post_comment(
             parent = next((d for d in _legacy_comment_docs(post) if str(d["_id"]) == body.parent_comment_id), None)
         if not parent:
             raise HTTPException(404, "Parent comment not found")
+        parent_author_id_chk = _extract_doc_author_id(parent)
+        if parent_author_id_chk and parent_author_id_chk != user_id and _is_blocked_between(user_id, parent_author_id_chk):
+            raise HTTPException(403, "Cannot reply to a blocked user's comment")
         if parent.get("parent_comment_id"):
             raise HTTPException(422, "Only one reply level is supported")
     inserted_new_comment = False
@@ -2253,6 +2643,24 @@ def _hydrate_post_docs(
             for f in follows_col.find({"follower_id": current_user_id, "following_id": {"$in": author_ids}}):
                 followed_author_set.add(str(f["following_id"]))
 
+    author_settings_map = _get_user_settings_map(author_ids)
+
+    authoritative_share_counts: Dict[str, int] = {}
+    shares_col = get_community_post_shares_collection()
+    if shares_col is not None and results_docs:
+        all_share_pids: List[str] = []
+        for d in results_docs:
+            if d.get("id"):
+                all_share_pids.append(str(d["id"]))
+            if d.get("_id"):
+                all_share_pids.append(str(d["_id"]))
+        if all_share_pids:
+            for agg in shares_col.aggregate([
+                {"$match": {"post_id": {"$in": list(set(all_share_pids))}}},
+                {"$group": {"_id": "$post_id", "count": {"$sum": 1}}},
+            ]):
+                authoritative_share_counts[str(agg["_id"])] = int(agg["count"])
+
     items: List[CommunityPostModel] = []
     for d in results_docs:
         pid = str(d.get("id") or d.get("_id"))
@@ -2264,6 +2672,15 @@ def _hydrate_post_docs(
             auth_cnt = authoritative_like_counts[doc_id]
         elif d.get("interaction_version", 0) > 0:
             auth_cnt = 0
+        share_cnt = None
+        if pid in authoritative_share_counts:
+            share_cnt = authoritative_share_counts[pid]
+        elif doc_id and doc_id in authoritative_share_counts:
+            share_cnt = authoritative_share_counts[doc_id]
+        elif shares_col is not None:
+            share_cnt = int(d.get("share_count", 0))
+        a_id = str(d.get("author_id") or (d.get("author") or {}).get("id") or (d.get("author") or {}).get("_id") or "")
+        hide_likes = bool(author_settings_map.get(a_id, _DEFAULT_COMMUNITY_SETTINGS).get("hide_like_counts", False))
         items.append(_build_post_model(
             d,
             current_user_id,
@@ -2272,6 +2689,8 @@ def _hydrate_post_docs(
             override_like_count=auth_cnt,
             followed_author_ids=followed_author_set if current_user_id else set(),
             author_follower_counts=author_follower_counts,
+            override_share_count=share_cnt,
+            author_hide_like_counts=hide_likes,
         ))
     return items
 
@@ -2543,6 +2962,9 @@ async def get_author_posts(
     if not target_info and target_id != current_user_id:
         raise HTTPException(status_code=404, detail="Author not found")
 
+    if current_user_id and target_id != current_user_id and _is_blocked_between(current_user_id, target_id):
+        raise HTTPException(status_code=404, detail="Author not found")
+
     posts_col = get_community_posts_collection()
     if posts_col is None:
         return CommunityFeedResponse(items=[], next_cursor=None)
@@ -2809,6 +3231,7 @@ async def get_community_discover(
     interactions_col = get_community_interactions_collection()
     follows_col = get_community_follows_collection()
     users_col = get_users_collection()
+    excluded_ids = _get_excluded_user_ids(current_user_id, include_muted=True)
 
     grid_items: List[CommunityVisualGridItemModel] = []
     trending_topics: List[CommunityTrendingTopicModel] = []
@@ -2821,6 +3244,13 @@ async def get_community_discover(
             {"status": {"$in": ["published", None]}},
             {"photo_urls.0": {"$exists": True}},
         ]
+
+        if excluded_ids:
+            excluded_list = list(excluded_ids)
+            and_clauses.append({
+                "author_id": {"$nin": excluded_list},
+                "author.id": {"$nin": excluded_list},
+            })
 
         topic_clause = _build_discover_topic_clause(active_topic)
         if topic_clause is not None:
@@ -2848,6 +3278,8 @@ async def get_community_discover(
         for d in raw_grid_docs:
             if not _is_public_discover_post(d):
                 continue
+            if excluded_ids and _extract_doc_author_id(d) in excluded_ids:
+                continue
             valid_photos = [
                 str(u).strip()
                 for u in (d.get("photo_urls") or [])
@@ -2856,6 +3288,9 @@ async def get_community_discover(
             if not valid_photos:
                 continue
             grid_docs.append((d, valid_photos))
+
+        grid_author_ids = [_extract_doc_author_id(d) for d, _ in grid_docs]
+        grid_author_settings = _get_user_settings_map(grid_author_ids)
 
         authoritative_like_counts: Dict[str, int] = {}
         if interactions_col is not None and grid_docs:
@@ -2883,6 +3318,13 @@ async def get_community_discover(
             elif d.get("interaction_version", 0) > 0:
                 auth_cnt = 0
             final_like_count = auth_cnt if auth_cnt is not None else int(d.get("like_count", 0))
+            d_author_id = _extract_doc_author_id(d)
+            if (
+                d_author_id
+                and d_author_id != current_user_id
+                and bool(grid_author_settings.get(d_author_id, _DEFAULT_COMMUNITY_SETTINGS).get("hide_like_counts", False))
+            ):
+                final_like_count = 0
 
             alt_text = (
                 str(d.get("caption") or "").strip()
@@ -2908,6 +3350,10 @@ async def get_community_discover(
             "status": {"$in": ["published", None]},
             "topic": {"$exists": True, "$ne": ""},
         }
+        if excluded_ids:
+            excluded_list = list(excluded_ids)
+            trending_match["author_id"] = {"$nin": excluded_list}
+            trending_match["author.id"] = {"$nin": excluded_list}
         topic_counts: Dict[str, int] = {}
         for agg in posts_col.aggregate([
             {"$match": trending_match},
@@ -2960,9 +3406,12 @@ async def get_community_discover(
         seen_uids: set[str] = set()
         for u in raw_users:
             uid = str(u.get("_id") or u.get("id") or "")
+            alt_uid = str(u.get("id") or "")
             if not uid or uid in seen_uids:
                 continue
-            if current_user_id and (uid == current_user_id or str(u.get("id") or "") == current_user_id):
+            if current_user_id and (uid == current_user_id or alt_uid == current_user_id):
+                continue
+            if excluded_ids and (uid in excluded_ids or (alt_uid and alt_uid in excluded_ids)):
                 continue
             seen_uids.add(uid)
             candidate_users.append((uid, u))
@@ -3004,3 +3453,673 @@ async def get_community_discover(
         trending_topics=trending_topics,
         recommended_creators=recommended_creators,
     )
+
+
+# --- WAVE 4: SOCIAL SETTINGS, BLOCK/MUTE/REPORT, STORIES 24H & POST SHARE ---
+
+
+@router.get("/settings", response_model=CommunitySettingsModel)
+async def get_community_settings(
+    current_user: Dict[str, Any] = Depends(get_required_current_user),
+):
+    uid = str(current_user["_id"])
+    col = get_community_user_settings_collection()
+    if col is None:
+        return _build_settings_model(None)
+    doc = col.find_one({"user_id": uid})
+    return _build_settings_model(doc)
+
+
+@router.patch("/settings", response_model=CommunitySettingsModel)
+async def update_community_settings(
+    body: UpdateCommunitySettingsRequest,
+    current_user: Dict[str, Any] = Depends(get_required_current_user),
+):
+    uid = str(current_user["_id"])
+    col = get_community_user_settings_collection()
+    if col is None:
+        raise HTTPException(status_code=503, detail="Database unavailable")
+
+    existing = col.find_one({"user_id": uid})
+    merged = dict(_DEFAULT_COMMUNITY_SETTINGS)
+    if isinstance(existing, dict):
+        for key in _DEFAULT_COMMUNITY_SETTINGS:
+            if key in existing and existing[key] is not None:
+                merged[key] = existing[key]
+
+    if body.is_private_account is not None:
+        merged["is_private_account"] = bool(body.is_private_account)
+    if body.who_can_dm is not None:
+        merged["who_can_dm"] = body.who_can_dm
+    if body.who_can_comment is not None:
+        merged["who_can_comment"] = body.who_can_comment
+    if body.hide_like_counts is not None:
+        merged["hide_like_counts"] = bool(body.hide_like_counts)
+    if body.show_activity_status is not None:
+        merged["show_activity_status"] = bool(body.show_activity_status)
+    if body.muted_keywords is not None:
+        cleaned_keywords: List[str] = []
+        seen_kw: set[str] = set()
+        for raw_kw in body.muted_keywords:
+            kw = str(raw_kw).strip()
+            if not kw:
+                continue
+            if len(kw) > 64:
+                raise HTTPException(status_code=422, detail="Muted keyword must be at most 64 characters")
+            kw_low = kw.lower()
+            if kw_low not in seen_kw:
+                seen_kw.add(kw_low)
+                cleaned_keywords.append(kw)
+        if len(cleaned_keywords) > 20:
+            raise HTTPException(status_code=422, detail="At most 20 muted keywords are allowed")
+        merged["muted_keywords"] = cleaned_keywords
+
+    now = datetime.now(timezone.utc)
+    col.update_one(
+        {"user_id": uid},
+        {
+            "$set": {
+                "user_id": uid,
+                **merged,
+                "updated_at": now,
+            },
+            "$setOnInsert": {
+                "created_at": now,
+            },
+        },
+        upsert=True,
+    )
+    return _build_settings_model(merged)
+
+
+@router.put("/users/{target_user_id}/block", response_model=BlockStatusResponse)
+async def block_community_user(
+    target_user_id: str,
+    current_user: Dict[str, Any] = Depends(get_required_current_user),
+):
+    uid = str(current_user["_id"])
+    if target_user_id == uid or target_user_id == "me":
+        raise HTTPException(status_code=400, detail="Cannot block yourself")
+
+    target_info = _find_author_doc(target_user_id)
+    if not target_info:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    blocks_col = get_community_blocks_collection()
+    if blocks_col is None:
+        raise HTTPException(status_code=503, detail="Database unavailable")
+
+    try:
+        blocks_col.insert_one({
+            "_id": ObjectId(),
+            "blocker_id": uid,
+            "blocked_id": target_user_id,
+            "created_at": datetime.now(timezone.utc),
+        })
+    except DuplicateKeyError:
+        pass
+
+    follows_col = get_community_follows_collection()
+    if follows_col is not None:
+        if hasattr(follows_col, "delete_many"):
+            follows_col.delete_many({
+                "$or": [
+                    {"follower_id": uid, "following_id": target_user_id},
+                    {"follower_id": target_user_id, "following_id": uid},
+                ]
+            })
+        else:
+            follows_col.delete_one({"follower_id": uid, "following_id": target_user_id})
+            follows_col.delete_one({"follower_id": target_user_id, "following_id": uid})
+
+    return BlockStatusResponse(target_user_id=target_user_id, is_blocked=True)
+
+
+@router.delete("/users/{target_user_id}/block", response_model=BlockStatusResponse)
+async def unblock_community_user(
+    target_user_id: str,
+    current_user: Dict[str, Any] = Depends(get_required_current_user),
+):
+    uid = str(current_user["_id"])
+    if target_user_id == uid or target_user_id == "me":
+        raise HTTPException(status_code=400, detail="Cannot unblock yourself")
+
+    blocks_col = get_community_blocks_collection()
+    if blocks_col is None:
+        raise HTTPException(status_code=503, detail="Database unavailable")
+
+    blocks_col.delete_one({"blocker_id": uid, "blocked_id": target_user_id})
+    return BlockStatusResponse(target_user_id=target_user_id, is_blocked=False)
+
+
+@router.get("/settings/blocked", response_model=CommunityBlockedUsersResponse)
+async def list_blocked_users(
+    current_user: Dict[str, Any] = Depends(get_required_current_user),
+):
+    uid = str(current_user["_id"])
+    blocks_col = get_community_blocks_collection()
+    if blocks_col is None:
+        return CommunityBlockedUsersResponse(items=[], total_count=0)
+
+    docs = list(blocks_col.find({"blocker_id": uid}).sort([("created_at", -1), ("_id", -1)]))
+    items: List[CommunityAuthorModel] = []
+    for d in docs:
+        target_id = str(d.get("blocked_id") or "")
+        if not target_id:
+            continue
+        info = _find_author_doc(target_id) or {"id": target_id, "name": "Saman Athlete"}
+        items.append(
+            _sanitize_author_projection(
+                info,
+                current_user_id=uid,
+                is_following=False,
+            )
+        )
+    return CommunityBlockedUsersResponse(items=items, total_count=len(items))
+
+
+@router.put("/users/{target_user_id}/mute", response_model=MuteStatusResponse)
+async def mute_community_user(
+    target_user_id: str,
+    current_user: Dict[str, Any] = Depends(get_required_current_user),
+):
+    uid = str(current_user["_id"])
+    if target_user_id == uid or target_user_id == "me":
+        raise HTTPException(status_code=400, detail="Cannot mute yourself")
+
+    target_info = _find_author_doc(target_user_id)
+    if not target_info:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    mutes_col = get_community_mutes_collection()
+    if mutes_col is None:
+        raise HTTPException(status_code=503, detail="Database unavailable")
+
+    try:
+        mutes_col.insert_one({
+            "_id": ObjectId(),
+            "muter_id": uid,
+            "muted_id": target_user_id,
+            "created_at": datetime.now(timezone.utc),
+        })
+    except DuplicateKeyError:
+        pass
+
+    return MuteStatusResponse(target_user_id=target_user_id, is_muted=True)
+
+
+@router.delete("/users/{target_user_id}/mute", response_model=MuteStatusResponse)
+async def unmute_community_user(
+    target_user_id: str,
+    current_user: Dict[str, Any] = Depends(get_required_current_user),
+):
+    uid = str(current_user["_id"])
+    if target_user_id == uid or target_user_id == "me":
+        raise HTTPException(status_code=400, detail="Cannot unmute yourself")
+
+    mutes_col = get_community_mutes_collection()
+    if mutes_col is None:
+        raise HTTPException(status_code=503, detail="Database unavailable")
+
+    mutes_col.delete_one({"muter_id": uid, "muted_id": target_user_id})
+    return MuteStatusResponse(target_user_id=target_user_id, is_muted=False)
+
+
+@router.get("/settings/muted", response_model=CommunityBlockedUsersResponse)
+async def list_muted_users(
+    current_user: Dict[str, Any] = Depends(get_required_current_user),
+):
+    uid = str(current_user["_id"])
+    mutes_col = get_community_mutes_collection()
+    if mutes_col is None:
+        return CommunityBlockedUsersResponse(items=[], total_count=0)
+
+    docs = list(mutes_col.find({"muter_id": uid}).sort([("created_at", -1), ("_id", -1)]))
+    items: List[CommunityAuthorModel] = []
+    for d in docs:
+        target_id = str(d.get("muted_id") or "")
+        if not target_id:
+            continue
+        info = _find_author_doc(target_id) or {"id": target_id, "name": "Saman Athlete"}
+        items.append(_sanitize_author_projection(info, current_user_id=uid))
+    return CommunityBlockedUsersResponse(items=items, total_count=len(items))
+
+
+def _verify_report_target_exists(target_type: str, target_id: str) -> None:
+    if target_type == "post":
+        post = _find_post_doc(target_id)
+        if not post or post.get("is_deleted", False) or post.get("status") == "unpublished":
+            raise HTTPException(status_code=404, detail="Report target not found")
+        return
+
+    if target_type == "comment":
+        col = get_community_comments_collection()
+        if col is None:
+            raise HTTPException(status_code=503, detail="Database unavailable")
+        filters: List[Dict[str, Any]] = [{"id": target_id}, {"_id": target_id}]
+        if ObjectId.is_valid(target_id):
+            filters.append({"_id": ObjectId(target_id)})
+        if not col.find_one({"$or": filters}):
+            raise HTTPException(status_code=404, detail="Report target not found")
+        return
+
+    if target_type == "answer":
+        col = get_community_answers_collection()
+        if col is None:
+            raise HTTPException(status_code=503, detail="Database unavailable")
+        filters = [{"id": target_id}, {"_id": target_id}]
+        if ObjectId.is_valid(target_id):
+            filters.append({"_id": ObjectId(target_id)})
+        if not col.find_one({"is_deleted": {"$ne": True}, "$or": filters}):
+            raise HTTPException(status_code=404, detail="Report target not found")
+        return
+
+    if target_type == "user":
+        if not _find_author_doc(target_id):
+            raise HTTPException(status_code=404, detail="Report target not found")
+        return
+
+    raise HTTPException(status_code=422, detail="Unsupported report target type")
+
+
+@router.post("/reports", response_model=ReportReceiptResponse)
+async def create_community_report(
+    body: CreateReportRequest,
+    current_user: Dict[str, Any] = Depends(get_required_current_user),
+):
+    uid = str(current_user["_id"])
+    target_id = body.target_id.strip()
+    if not target_id:
+        raise HTTPException(status_code=422, detail="target_id must not be blank")
+
+    if body.target_type == "user" and target_id in (uid, "me"):
+        raise HTTPException(status_code=400, detail="Cannot report yourself")
+
+    reports_col = get_community_reports_collection()
+    if reports_col is None:
+        raise HTTPException(status_code=503, detail="Database unavailable")
+
+    _verify_report_target_exists(body.target_type, target_id)
+
+    identity = {
+        "reporter_id": uid,
+        "target_type": body.target_type,
+        "target_id": target_id,
+    }
+    existing = reports_col.find_one(identity)
+    if existing is not None:
+        created_at = existing.get("created_at") or datetime.now(timezone.utc)
+        if isinstance(created_at, datetime) and created_at.tzinfo is None:
+            created_at = created_at.replace(tzinfo=timezone.utc)
+        return ReportReceiptResponse(
+            report_id=str(existing.get("id") or existing["_id"]),
+            target_type=existing.get("target_type", body.target_type),
+            target_id=str(existing.get("target_id", target_id)),
+            reason=existing.get("reason", body.reason),
+            status=str(existing.get("status", "received")),
+            created_at=created_at,
+            already_reported=True,
+        )
+
+    now = datetime.now(timezone.utc)
+    doc = {
+        "_id": ObjectId(),
+        **identity,
+        "reason": body.reason,
+        "details": body.details.strip(),
+        "status": "received",
+        "created_at": now,
+    }
+    already_reported = False
+    try:
+        reports_col.insert_one(doc)
+    except DuplicateKeyError:
+        existing = reports_col.find_one(identity)
+        if existing is not None:
+            doc = existing
+            already_reported = True
+
+    created_at = doc.get("created_at") or now
+    if isinstance(created_at, datetime) and created_at.tzinfo is None:
+        created_at = created_at.replace(tzinfo=timezone.utc)
+    return ReportReceiptResponse(
+        report_id=str(doc.get("id") or doc["_id"]),
+        target_type=doc.get("target_type", body.target_type),
+        target_id=str(doc.get("target_id", target_id)),
+        reason=doc.get("reason", body.reason),
+        status=str(doc.get("status", "received")),
+        created_at=created_at,
+        already_reported=already_reported,
+    )
+
+
+def _normalize_utc_dt(value: Any) -> Optional[datetime]:
+    if value is None:
+        return None
+    if isinstance(value, str):
+        try:
+            value = datetime.fromisoformat(value)
+        except ValueError:
+            return None
+    if isinstance(value, datetime):
+        if value.tzinfo is None:
+            return value.replace(tzinfo=timezone.utc)
+        return value.astimezone(timezone.utc)
+    return None
+
+
+def _find_story_doc(story_id: str) -> Optional[Dict[str, Any]]:
+    col = get_community_stories_collection()
+    if col is None:
+        return None
+    filters: List[Dict[str, Any]] = [{"id": story_id}, {"_id": story_id}]
+    if ObjectId.is_valid(story_id):
+        filters.append({"_id": ObjectId(story_id)})
+    return col.find_one({"$or": filters})
+
+
+def _can_view_story(
+    story_doc: Dict[str, Any],
+    viewer_id: Optional[str],
+    now: Optional[datetime] = None,
+    followed_ids: Optional[set[str]] = None,
+) -> bool:
+    if not story_doc or story_doc.get("is_deleted", False):
+        return False
+    check_now = now or datetime.now(timezone.utc)
+    expires_at = _normalize_utc_dt(story_doc.get("expires_at"))
+    if expires_at is None or expires_at <= check_now:
+        return False
+
+    author_id = str(story_doc.get("user_id") or "")
+    if not author_id:
+        return False
+    if viewer_id and viewer_id == author_id:
+        return True
+    if viewer_id and _is_blocked_between(viewer_id, author_id):
+        return False
+
+    privacy = story_doc.get("privacy", "public")
+    if privacy == "public":
+        return True
+    if privacy == "followers_only":
+        if not viewer_id:
+            return False
+        if followed_ids is not None:
+            return author_id in followed_ids
+        follows_col = get_community_follows_collection()
+        return bool(
+            follows_col is not None
+            and follows_col.find_one({"follower_id": viewer_id, "following_id": author_id})
+        )
+    return False
+
+
+def _build_story_model(
+    doc: Dict[str, Any],
+    view_count: int = 0,
+    is_viewed: bool = False,
+) -> CommunityStoryModel:
+    created_at = _normalize_utc_dt(doc.get("created_at")) or datetime.now(timezone.utc)
+    expires_at = _normalize_utc_dt(doc.get("expires_at")) or (created_at + timedelta(hours=24))
+    return CommunityStoryModel(
+        id=str(doc.get("id") or doc["_id"]),
+        author_id=str(doc.get("user_id") or ""),
+        media_type=doc.get("media_type", "text"),
+        media_url=doc.get("media_url"),
+        caption=str(doc.get("caption") or ""),
+        background_color=doc.get("background_color"),
+        privacy=doc.get("privacy", "public"),
+        created_at=created_at,
+        expires_at=expires_at,
+        time_ago=_format_time_ago(created_at),
+        view_count=view_count,
+        is_viewed=is_viewed,
+    )
+
+
+@router.post("/stories", response_model=CommunityStoryModel)
+async def create_community_story(
+    body: CreateStoryRequest,
+    current_user: Dict[str, Any] = Depends(get_required_current_user),
+):
+    uid = str(current_user["_id"])
+    stories_col = get_community_stories_collection()
+    if stories_col is None:
+        raise HTTPException(status_code=503, detail="Database unavailable")
+
+    caption = body.caption.strip()
+    clean_media_url: Optional[str] = None
+
+    if body.media_type in ("photo", "video"):
+        if not body.media_url or not body.media_url.strip():
+            raise HTTPException(
+                status_code=422,
+                detail=f"media_url is required for {body.media_type} stories",
+            )
+        clean_media_url = _validate_media_url(body.media_url, field_label="Story media_url")
+    else:
+        if not caption:
+            raise HTTPException(status_code=422, detail="caption must not be blank for text stories")
+        if body.media_url and body.media_url.strip():
+            clean_media_url = _validate_media_url(body.media_url, field_label="Story media_url")
+
+    now = datetime.now(timezone.utc)
+    expires_at = now + timedelta(hours=24)
+    doc = {
+        "_id": ObjectId(),
+        "user_id": uid,
+        "author": {
+            "id": uid,
+            "name": current_user.get("name") or current_user.get("full_name") or "Saman Athlete",
+            "avatar_url": current_user.get("avatar_url") or current_user.get("avatar") or current_user.get("custom_avatar"),
+            "title": current_user.get("title") or "Thành viên Saman",
+            "is_verified": bool(current_user.get("is_verified", False)),
+        },
+        "media_type": body.media_type,
+        "media_url": clean_media_url,
+        "caption": caption,
+        "background_color": body.background_color.strip() if body.background_color else None,
+        "privacy": body.privacy,
+        "is_deleted": False,
+        "created_at": now,
+        "expires_at": expires_at,
+    }
+    stories_col.insert_one(doc)
+    return _build_story_model(doc, view_count=0, is_viewed=False)
+
+
+@router.get("/stories", response_model=CommunityStoriesFeedResponse)
+async def get_community_stories(
+    current_user: Optional[Dict[str, Any]] = Depends(get_optional_current_user),
+):
+    stories_col = get_community_stories_collection()
+    if stories_col is None:
+        return CommunityStoriesFeedResponse(items=[])
+
+    current_user_id = str(current_user["_id"]) if current_user else None
+    now = datetime.now(timezone.utc)
+    excluded_ids = _get_excluded_user_ids(current_user_id, include_muted=True)
+
+    follows_col = get_community_follows_collection()
+    followed_ids: set[str] = set()
+    if current_user_id and follows_col is not None:
+        followed_ids = {
+            str(f["following_id"])
+            for f in follows_col.find({"follower_id": current_user_id})
+            if str(f["following_id"]) not in excluded_ids
+        }
+
+    query: Dict[str, Any] = {
+        "expires_at": {"$gt": now},
+        "is_deleted": {"$ne": True},
+    }
+    if excluded_ids:
+        query["user_id"] = {"$nin": list(excluded_ids)}
+
+    raw_stories = list(stories_col.find(query).sort([("created_at", 1), ("_id", 1)]))
+
+    visible_docs: List[Dict[str, Any]] = []
+    for doc in raw_stories:
+        author_id = str(doc.get("user_id") or "")
+        if not author_id or author_id in excluded_ids:
+            continue
+        if not _can_view_story(doc, current_user_id, now=now, followed_ids=followed_ids):
+            continue
+        visible_docs.append(doc)
+
+    if not visible_docs:
+        return CommunityStoriesFeedResponse(items=[])
+
+    story_ids = [str(d.get("id") or d["_id"]) for d in visible_docs]
+    views_col = get_community_story_views_collection()
+    view_counts: Dict[str, int] = {}
+    viewed_story_ids: set[str] = set()
+    if views_col is not None and story_ids:
+        for agg in views_col.aggregate([
+            {"$match": {"story_id": {"$in": story_ids}}},
+            {"$group": {"_id": "$story_id", "count": {"$sum": 1}}},
+        ]):
+            view_counts[str(agg["_id"])] = int(agg["count"])
+        if current_user_id:
+            for v in views_col.find({"viewer_id": current_user_id, "story_id": {"$in": story_ids}}):
+                viewed_story_ids.add(str(v["story_id"]))
+
+    grouped_docs: Dict[str, List[Dict[str, Any]]] = {}
+    for doc in visible_docs:
+        aid = str(doc["user_id"])
+        grouped_docs.setdefault(aid, []).append(doc)
+
+    groups: List[CommunityStoryAuthorGroupModel] = []
+    for aid, author_docs in grouped_docs.items():
+        author_info = _find_author_doc(aid) or author_docs[-1].get("author") or {"id": aid, "name": "Saman Athlete"}
+        author_model = _sanitize_author_projection(
+            author_info,
+            current_user_id=current_user_id,
+            is_following=(aid in followed_ids) if current_user_id else False,
+        )
+        story_models: List[CommunityStoryModel] = []
+        for sdoc in author_docs:
+            sid = str(sdoc.get("id") or sdoc["_id"])
+            story_models.append(
+                _build_story_model(
+                    sdoc,
+                    view_count=view_counts.get(sid, 0),
+                    is_viewed=(sid in viewed_story_ids),
+                )
+            )
+        is_self = bool(current_user_id and aid == current_user_id)
+        has_unviewed = any(not s.is_viewed for s in story_models)
+        latest_dt = max(s.created_at for s in story_models)
+        groups.append(
+            CommunityStoryAuthorGroupModel(
+                author=author_model,
+                is_self=is_self,
+                has_unviewed=has_unviewed,
+                latest_created_at=latest_dt,
+                stories=story_models,
+            )
+        )
+
+    groups.sort(
+        key=lambda g: (
+            0 if g.is_self else 1,
+            0 if g.has_unviewed else 1,
+            -(g.latest_created_at.timestamp() if g.latest_created_at else 0.0),
+        )
+    )
+    return CommunityStoriesFeedResponse(items=groups)
+
+
+@router.post("/stories/{story_id}/view", response_model=StoryViewResponse)
+async def view_community_story(
+    story_id: str,
+    current_user: Dict[str, Any] = Depends(get_required_current_user),
+):
+    uid = str(current_user["_id"])
+    views_col = get_community_story_views_collection()
+    if views_col is None:
+        raise HTTPException(status_code=503, detail="Database unavailable")
+
+    story_doc = _find_story_doc(story_id)
+    if not story_doc or not _can_view_story(story_doc, uid):
+        raise HTTPException(status_code=404, detail="Story not found")
+
+    canonical_story_id = str(story_doc.get("id") or story_doc["_id"])
+    now = datetime.now(timezone.utc)
+    views_col.update_one(
+        {"story_id": canonical_story_id, "viewer_id": uid},
+        {
+            "$setOnInsert": {
+                "story_id": canonical_story_id,
+                "viewer_id": uid,
+                "viewed_at": now,
+            }
+        },
+        upsert=True,
+    )
+    view_count = views_col.count_documents({"story_id": canonical_story_id})
+    return StoryViewResponse(
+        story_id=canonical_story_id,
+        is_viewed=True,
+        view_count=view_count,
+    )
+
+
+@router.delete("/stories/{story_id}")
+async def delete_community_story(
+    story_id: str,
+    current_user: Dict[str, Any] = Depends(get_required_current_user),
+):
+    uid = str(current_user["_id"])
+    stories_col = get_community_stories_collection()
+    if stories_col is None:
+        raise HTTPException(status_code=503, detail="Database unavailable")
+
+    story_doc = _find_story_doc(story_id)
+    if not story_doc or story_doc.get("is_deleted", False):
+        raise HTTPException(status_code=404, detail="Story not found")
+    if str(story_doc.get("user_id") or "") != uid:
+        raise HTTPException(status_code=404, detail="Story not found")
+
+    canonical_story_id = str(story_doc.get("id") or story_doc["_id"])
+    stories_col.update_one(
+        {"_id": story_doc["_id"]},
+        {"$set": {"is_deleted": True, "deleted_at": datetime.now(timezone.utc)}},
+    )
+    return {"success": True, "story_id": canonical_story_id}
+
+
+@router.post("/posts/{post_id}/share", response_model=PostShareResponse)
+async def share_community_post(
+    post_id: str,
+    current_user: Dict[str, Any] = Depends(get_required_current_user),
+):
+    uid = str(current_user["_id"])
+    posts_col = get_community_posts_collection()
+    shares_col = get_community_post_shares_collection()
+    if posts_col is None or shares_col is None:
+        raise HTTPException(status_code=503, detail="Database unavailable")
+
+    doc = _find_post_doc(post_id)
+    if not doc:
+        raise HTTPException(status_code=404, detail="Post not found")
+
+    _check_post_audience(doc, uid)
+    canonical_post_id = str(doc.get("id") or doc["_id"])
+
+    shares_col.insert_one({
+        "_id": ObjectId(),
+        "post_id": canonical_post_id,
+        "user_id": uid,
+        "created_at": datetime.now(timezone.utc),
+    })
+
+    share_count = shares_col.count_documents({"post_id": canonical_post_id})
+    if hasattr(posts_col, "update_one"):
+        posts_col.update_one(
+            {"_id": doc["_id"]},
+            {"$set": {"share_count": share_count}},
+        )
+
+    return PostShareResponse(post_id=canonical_post_id, share_count=share_count)

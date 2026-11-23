@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../../../config/app_translations.dart';
 import '../../../../../config/routes.dart';
 import '../../../../../providers/profile_provider.dart';
 import '../../../../../screens/home/tokens/saman_home_tokens.dart';
 import '../../../../../widgets/saman_feedback_snackbar.dart';
 import '../../../domain/models/community_author.dart';
 import '../../../domain/models/community_post.dart';
+import '../../providers/community_dm_provider.dart';
 import '../../providers/community_providers.dart';
+import '../../providers/community_social_providers.dart';
 import '../../widgets/community_bottom_navigation_bar.dart';
 import '../../widgets/create_content_bottom_sheet.dart';
 import '../../widgets/post_card_view.dart';
@@ -86,6 +89,7 @@ class _CommunityProfileScreenState
   }
 
   bool _isTogglingFollow = false;
+  bool _isStartingChat = false;
 
   Future<void> _handleToggleFollow(CommunityAuthor author) async {
     if (_isTogglingFollow) return;
@@ -169,6 +173,270 @@ class _CommunityProfileScreenState
         arguments: post.id,
       );
     }
+  }
+
+  Future<void> _handleStartChat(CommunityAuthor author) async {
+    if (_isStartingChat) return;
+    setState(() => _isStartingChat = true);
+    try {
+      final conv = await ref
+          .read(communityInboxProvider.notifier)
+          .createOrGetConversation(author.id);
+      if (!mounted) return;
+      await Navigator.pushNamed(
+        context,
+        AppRoutes.communityChat,
+        arguments: conv,
+      );
+    } catch (_) {
+      if (mounted) {
+        SamanFeedbackSnackBar.show(
+          context,
+          message: 'Không thể bắt đầu cuộc trò chuyện với ${author.name}.',
+          type: FeedbackType.error,
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isStartingChat = false);
+      }
+    }
+  }
+
+  void _showUserOptionsSheet(BuildContext context, CommunityAuthor author) {
+    final sheetBg = SamanHomeTokens.of(context).cardSurface;
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: sheetBg,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) {
+        final tokens = SamanHomeTokens.of(ctx);
+        final dangerColor =
+            tokens.isDark ? Colors.redAccent : const Color(0xFFDC2626);
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                key: const ValueKey('profile-options-mute-tile'),
+                leading: Icon(
+                  Icons.volume_off_outlined,
+                  color: tokens.textPrimary,
+                ),
+                title: Text(
+                  context.tr('profile_action_mute_user'),
+                  style: TextStyle(color: tokens.textPrimary),
+                ),
+                onTap: () async {
+                  Navigator.pop(ctx);
+                  await _handleMuteUser(author);
+                },
+              ),
+              ListTile(
+                key: const ValueKey('profile-options-block-tile'),
+                leading: Icon(Icons.block_rounded, color: dangerColor),
+                title: Text(
+                  context.tr('profile_action_block_user'),
+                  style: TextStyle(color: dangerColor),
+                ),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _showBlockUserConfirmation(author);
+                },
+              ),
+              ListTile(
+                key: const ValueKey('profile-options-report-tile'),
+                leading: Icon(Icons.flag_outlined, color: dangerColor),
+                title: Text(
+                  context.tr('profile_action_report_user'),
+                  style: TextStyle(color: dangerColor),
+                ),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _showReportUserReasonSheet(author);
+                },
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> _handleMuteUser(CommunityAuthor author) async {
+    try {
+      await ref.read(communitySettingsProvider.notifier).muteUser(author.id);
+      await ref.read(communityFeedProvider.notifier).refresh();
+      if (mounted) {
+        SamanFeedbackSnackBar.show(
+          context,
+          message: context.tr('post_mute_success'),
+          type: FeedbackType.info,
+        );
+      }
+    } catch (_) {
+      if (mounted) {
+        SamanFeedbackSnackBar.show(
+          context,
+          message: context.tr('post_report_error'),
+          type: FeedbackType.error,
+        );
+      }
+    }
+  }
+
+  Future<void> _showBlockUserConfirmation(CommunityAuthor author) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogCtx) {
+        final tokens = SamanHomeTokens.of(dialogCtx);
+        final dangerColor =
+            tokens.isDark ? Colors.redAccent : const Color(0xFFDC2626);
+        return AlertDialog(
+          backgroundColor: tokens.cardSurface,
+          title: Text(
+            context.tr('post_block_confirm_title'),
+            style: TextStyle(
+              color: tokens.textPrimary,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          content: Text(
+            context.tr('post_block_confirm_msg'),
+            style: TextStyle(color: tokens.textSecondary),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogCtx, false),
+              child: Text(
+                context.tr('compose_discard'),
+                style: TextStyle(color: tokens.textMuted),
+              ),
+            ),
+            TextButton(
+              key: const ValueKey('profile-confirm-block-button'),
+              onPressed: () => Navigator.pop(dialogCtx, true),
+              child: Text(
+                context.tr('post_block_confirm_btn'),
+                style: TextStyle(color: dangerColor),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (confirmed == true && mounted) {
+      try {
+        await ref.read(communitySettingsProvider.notifier).blockUser(author.id);
+        await ref.read(communityFeedProvider.notifier).refresh();
+        if (mounted) {
+          SamanFeedbackSnackBar.show(
+            context,
+            message: context.tr('post_block_success'),
+            type: FeedbackType.info,
+          );
+          if (Navigator.canPop(context)) {
+            Navigator.pop(context);
+          }
+        }
+      } catch (_) {
+        if (mounted) {
+          SamanFeedbackSnackBar.show(
+            context,
+            message: context.tr('post_report_error'),
+            type: FeedbackType.error,
+          );
+        }
+      }
+    }
+  }
+
+  void _showReportUserReasonSheet(CommunityAuthor author) {
+    final tokens = SamanHomeTokens.of(context);
+    final reasons = <({String key, String labelKey})>[
+      (key: 'spam', labelKey: 'post_report_reason_spam'),
+      (key: 'harassment', labelKey: 'post_report_reason_harassment'),
+      (key: 'misinformation', labelKey: 'post_report_reason_misinformation'),
+      (key: 'inappropriate', labelKey: 'post_report_reason_inappropriate'),
+      (key: 'other', labelKey: 'post_report_reason_other'),
+    ];
+
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: tokens.cardSurface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (sheetCtx) {
+        final sheetTokens = SamanHomeTokens.of(sheetCtx);
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  context.tr('profile_action_report_user'),
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                    color: sheetTokens.textPrimary,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                ...reasons.map(
+                  (r) => ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    title: Text(
+                      context.tr(r.labelKey),
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: sheetTokens.textPrimary,
+                      ),
+                    ),
+                    trailing: Icon(
+                      Icons.chevron_right_rounded,
+                      color: sheetTokens.textSecondary,
+                    ),
+                    onTap: () async {
+                      Navigator.pop(sheetCtx);
+                      try {
+                        await ref
+                            .read(communitySettingsProvider.notifier)
+                            .reportContent(
+                              targetType: 'user',
+                              targetId: author.id,
+                              reason: r.key,
+                            );
+                        if (mounted) {
+                          SamanFeedbackSnackBar.show(
+                            context,
+                            message: context.tr('post_report_success'),
+                            type: FeedbackType.success,
+                          );
+                        }
+                      } catch (_) {
+                        if (mounted) {
+                          SamanFeedbackSnackBar.show(
+                            context,
+                            message: context.tr('post_report_error'),
+                            type: FeedbackType.error,
+                          );
+                        }
+                      }
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
   }
 
   @override
@@ -348,13 +616,32 @@ class _CommunityProfileScreenState
               ),
             ),
           ),
-          IconButton(
-            onPressed: () {},
-            icon: Icon(
-              Icons.share_outlined,
-              color: tokens.textPrimary,
-              size: 20,
-            ),
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (_isMe)
+                IconButton(
+                  key: const ValueKey('profile-settings-btn'),
+                  onPressed: () {
+                    Navigator.pushNamed(context, AppRoutes.communitySettings);
+                  },
+                  icon: Icon(
+                    Icons.settings_outlined,
+                    color: tokens.textPrimary,
+                    size: 22,
+                  ),
+                )
+              else
+                IconButton(
+                  key: const ValueKey('profile-more-btn'),
+                  onPressed: () => _showUserOptionsSheet(context, author),
+                  icon: Icon(
+                    Icons.more_horiz_rounded,
+                    color: tokens.textPrimary,
+                    size: 22,
+                  ),
+                ),
+            ],
           ),
         ],
       ),
@@ -588,41 +875,81 @@ class _CommunityProfileScreenState
       final isFollowing = author.isFollowing;
       return Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16),
-        child: SizedBox(
-          width: double.infinity,
-          height: 38,
-          child: isFollowing
-              ? OutlinedButton(
-                  onPressed: () => _handleToggleFollow(author),
+        child: Row(
+          children: [
+            Expanded(
+              child: SizedBox(
+                height: 38,
+                child: isFollowing
+                    ? OutlinedButton(
+                        onPressed: () => _handleToggleFollow(author),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: tokens.textSecondary,
+                          side: BorderSide(color: tokens.border),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                        ),
+                        child: const Text(
+                          'Đang theo dõi',
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      )
+                    : ElevatedButton(
+                        onPressed: () => _handleToggleFollow(author),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: tokens.greenAccent,
+                          foregroundColor: tokens.isDark
+                              ? const Color(0xFF003824)
+                              : const Color(0xFFFFFFFF),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          elevation: 0,
+                        ),
+                        child: const Text(
+                          'Theo dõi',
+                          style: TextStyle(fontWeight: FontWeight.w700),
+                        ),
+                      ),
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: SizedBox(
+                height: 38,
+                child: OutlinedButton.icon(
+                  key: const ValueKey('profile-message-btn'),
+                  onPressed: _isStartingChat
+                      ? null
+                      : () => _handleStartChat(author),
+                  icon: Icon(
+                    Icons.chat_bubble_outline_rounded,
+                    size: 16,
+                    color: tokens.textPrimary,
+                  ),
+                  label: Text(
+                    context.tr('profile_action_message'),
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: tokens.textPrimary,
+                    ),
+                  ),
                   style: OutlinedButton.styleFrom(
-                    foregroundColor: tokens.textSecondary,
+                    foregroundColor: tokens.textPrimary,
                     side: BorderSide(color: tokens.border),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(10),
                     ),
                   ),
-                  child: const Text(
-                    'Đang theo dõi',
-                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
-                  ),
-                )
-              : ElevatedButton(
-                  onPressed: () => _handleToggleFollow(author),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: tokens.greenAccent,
-                    foregroundColor: tokens.isDark
-                        ? const Color(0xFF003824)
-                        : const Color(0xFFFFFFFF),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    elevation: 0,
-                  ),
-                  child: const Text(
-                    'Theo dõi',
-                    style: TextStyle(fontWeight: FontWeight.w700),
-                  ),
                 ),
+              ),
+            ),
+          ],
         ),
       );
     }

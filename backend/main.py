@@ -24,6 +24,10 @@ from backend.routers import (
     payment_router,
 )
 from backend.routers.analytics import router as analytics_router
+from backend.routers.community_dm import (
+    router as community_dm_router,
+    ws_router as community_dm_ws_router,
+)
 
 # Configure logging
 logging.basicConfig(
@@ -108,6 +112,15 @@ async def lifespan(app: FastAPI):
                 ensure_community_indexes(application_db)
         except (PyMongoError, RuntimeError) as exc:
             logger.warning("Community index setup unavailable: %s", type(exc).__name__)
+
+        try:
+            from backend.app.database import db as application_db
+            from backend.app.database_community_dm import ensure_community_dm_indexes
+
+            if application_db is not None:
+                ensure_community_dm_indexes(application_db)
+        except (PyMongoError, RuntimeError) as exc:
+            logger.warning("Community DM index setup unavailable: %s", type(exc).__name__)
 
         try:
             from backend.app.database import db as application_db
@@ -263,6 +276,8 @@ if "journal_router" in globals() and journal_router:
     app.include_router(journal_router)
 if "community_router" in globals() and community_router:
     app.include_router(community_router)
+app.include_router(community_dm_router)
+app.include_router(community_dm_ws_router)
 if "payment_router" in globals() and payment_router:
     app.include_router(payment_router)
 app.include_router(analytics_router)
