@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:flutter_facebook_auth/flutter_facebook_auth.dart';
@@ -21,6 +22,7 @@ class LoginState {
   final String? errorMessage;
   final bool isSuccess;
   final String? successMessage;
+  final bool isGuestLogin;
 
   /// One-shot trigger: set only on the state emitted right after an operation
   /// succeeded (and, for [AuthOutcome.authenticated], after auth data was
@@ -32,6 +34,7 @@ class LoginState {
     this.errorMessage,
     this.isSuccess = false,
     this.successMessage,
+    this.isGuestLogin = false,
     this.outcome,
   });
 
@@ -40,6 +43,7 @@ class LoginState {
     String? errorMessage,
     bool? isSuccess,
     String? successMessage,
+    bool? isGuestLogin,
     AuthOutcome? outcome,
   }) {
     return LoginState(
@@ -47,6 +51,7 @@ class LoginState {
       errorMessage: errorMessage, // Reset error khi state mới
       isSuccess: isSuccess ?? false, // Reset success trigger
       successMessage: successMessage,
+      isGuestLogin: isGuestLogin ?? false,
       outcome: outcome, // Reset outcome trigger
     );
   }
@@ -55,6 +60,14 @@ class LoginState {
 class LoginController extends StateNotifier<LoginState> {
   LoginController() : super(LoginState());
   static const _storage = FlutterSecureStorage();
+
+  static const String socialLoginInterruptedMessage =
+      'Đăng nhập tạm thời gián đoạn. Vui lòng dùng Đăng nhập Email/Mật khẩu hoặc Guest Mode (nếu có)';
+
+  static const String _guestEmail = 'guest@saman.ai';
+  static const String _guestPassword = 'GuestPassword123!';
+  static const String _guestFullName = 'Saman Guest';
+  static const String _guestFallbackToken = 'guest_dev_mode_token';
 
   // Google config
   final GoogleSignIn _googleSignIn = GoogleSignIn(
@@ -260,6 +273,22 @@ class LoginController extends StateNotifier<LoginState> {
   }
 
   // --- 2. SOCIAL LOGIN HANDLERS ---
+  static bool _isUserCancelledSocialError(Object error) {
+    if (error is PlatformException) {
+      final code = error.code.toLowerCase();
+      if (code.contains('cancel') || code == 'sign_in_canceled') {
+        return true;
+      }
+    }
+    if (error is SignInWithAppleAuthorizationException &&
+        error.code == AuthorizationErrorCode.canceled) {
+      return true;
+    }
+    final text = error.toString().toLowerCase();
+    return text.contains('sign_in_canceled') ||
+        text.contains('authorizationerrorcode.canceled');
+  }
+
   Future<void> signInWithGoogle() async {
     try {
       final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
@@ -280,9 +309,32 @@ class LoginController extends StateNotifier<LoginState> {
       } else {
         throw Exception('No Google Token found');
       }
-    } catch (e) {
+    } on PlatformException catch (e) {
+      debugPrint('[AUTH] Google Sign-In PlatformException: ${e.code} - ${e.message}');
+      if (_isUserCancelledSocialError(e)) {
+        state = state.copyWith(isLoading: false);
+        return;
+      }
       state = state.copyWith(
-          isLoading: false, errorMessage: 'Google Sign In Error: $e');
+        isLoading: false,
+        errorMessage: socialLoginInterruptedMessage,
+      );
+    } on MissingPluginException catch (e) {
+      debugPrint('[AUTH] Google Sign-In MissingPluginException: $e');
+      state = state.copyWith(
+        isLoading: false,
+        errorMessage: socialLoginInterruptedMessage,
+      );
+    } catch (e) {
+      debugPrint('[AUTH] Google Sign-In Error: $e');
+      if (_isUserCancelledSocialError(e)) {
+        state = state.copyWith(isLoading: false);
+        return;
+      }
+      state = state.copyWith(
+        isLoading: false,
+        errorMessage: socialLoginInterruptedMessage,
+      );
     }
   }
 
@@ -290,18 +342,44 @@ class LoginController extends StateNotifier<LoginState> {
     try {
       final LoginResult result = await FacebookAuth.instance
           .login(permissions: ['public_profile', 'email']);
-      if (result.status == LoginStatus.success) {
+      if (result.status == LoginStatus.success && result.accessToken != null) {
         state = state.copyWith(isLoading: true);
         await _authenticateSocialWithBackend(
           provider: 'facebook',
           token: result.accessToken!.token,
         );
-      } else if (result.status == LoginStatus.failed) {
-        throw Exception(result.message);
+      } else if (result.status == LoginStatus.cancelled) {
+        state = state.copyWith(isLoading: false);
+        return;
+      } else {
+        throw Exception(result.message ?? 'Facebook login failed');
       }
+    } on PlatformException catch (e) {
+      debugPrint('[AUTH] Facebook Sign-In PlatformException: ${e.code} - ${e.message}');
+      if (_isUserCancelledSocialError(e)) {
+        state = state.copyWith(isLoading: false);
+        return;
+      }
+      state = state.copyWith(
+        isLoading: false,
+        errorMessage: socialLoginInterruptedMessage,
+      );
+    } on MissingPluginException catch (e) {
+      debugPrint('[AUTH] Facebook Sign-In MissingPluginException: $e');
+      state = state.copyWith(
+        isLoading: false,
+        errorMessage: socialLoginInterruptedMessage,
+      );
     } catch (e) {
-      state =
-          state.copyWith(isLoading: false, errorMessage: 'Facebook Error: $e');
+      debugPrint('[AUTH] Facebook Sign-In Error: $e');
+      if (_isUserCancelledSocialError(e)) {
+        state = state.copyWith(isLoading: false);
+        return;
+      }
+      state = state.copyWith(
+        isLoading: false,
+        errorMessage: socialLoginInterruptedMessage,
+      );
     }
   }
 
@@ -329,12 +407,121 @@ class LoginController extends StateNotifier<LoginState> {
       } else {
         throw Exception('Apple Sign In failed: No Identity Token');
       }
-    } catch (e) {
-      if (!e.toString().contains('canceled')) {
-        state =
-            state.copyWith(isLoading: false, errorMessage: 'Apple Error: $e');
+    } on PlatformException catch (e) {
+      debugPrint('[AUTH] Apple Sign-In PlatformException: ${e.code} - ${e.message}');
+      if (_isUserCancelledSocialError(e)) {
+        state = state.copyWith(isLoading: false);
+        return;
       }
+      state = state.copyWith(
+        isLoading: false,
+        errorMessage: socialLoginInterruptedMessage,
+      );
+    } on MissingPluginException catch (e) {
+      debugPrint('[AUTH] Apple Sign-In MissingPluginException: $e');
+      state = state.copyWith(
+        isLoading: false,
+        errorMessage: socialLoginInterruptedMessage,
+      );
+    } catch (e) {
+      debugPrint('[AUTH] Apple Sign-In Error: $e');
+      if (_isUserCancelledSocialError(e)) {
+        state = state.copyWith(isLoading: false);
+        return;
+      }
+      state = state.copyWith(
+        isLoading: false,
+        errorMessage: socialLoginInterruptedMessage,
+      );
     }
+  }
+
+  // --- 2B. GUEST / DEV MODE LOGIN ---
+  Future<void> signInAsGuest() async {
+    state = state.copyWith(isLoading: true);
+    String tokenToPersist = _guestFallbackToken;
+
+    try {
+      final loginResponse = await ApiClient.dio
+          .post(
+            ApiConfig.loginEndpoint,
+            data: {
+              'email': _guestEmail,
+              'password': _guestPassword,
+            },
+            options: Options(
+              contentType: Headers.jsonContentType,
+              validateStatus: (status) => status != null && status < 500,
+            ),
+          )
+          .timeout(const Duration(seconds: 3));
+
+      if (loginResponse.statusCode == 200) {
+        final data = loginResponse.data is String
+            ? jsonDecode(loginResponse.data as String)
+            : loginResponse.data;
+        final token = data is Map ? data['access_token']?.toString() : null;
+        if (token != null && token.isNotEmpty) {
+          tokenToPersist = token;
+        }
+      } else if (loginResponse.statusCode == 401 ||
+          loginResponse.statusCode == 404) {
+        await ApiClient.dio
+            .post(
+              ApiConfig.registerEndpoint,
+              data: {
+                'email': _guestEmail,
+                'password': _guestPassword,
+                'full_name': _guestFullName,
+              },
+              options: Options(
+                contentType: Headers.jsonContentType,
+                validateStatus: (status) => status != null && status < 500,
+              ),
+            )
+            .timeout(const Duration(seconds: 3));
+
+        final retryLogin = await ApiClient.dio
+            .post(
+              ApiConfig.loginEndpoint,
+              data: {
+                'email': _guestEmail,
+                'password': _guestPassword,
+              },
+              options: Options(
+                contentType: Headers.jsonContentType,
+                validateStatus: (status) => status != null && status < 500,
+              ),
+            )
+            .timeout(const Duration(seconds: 3));
+
+        if (retryLogin.statusCode == 200) {
+          final data = retryLogin.data is String
+              ? jsonDecode(retryLogin.data as String)
+              : retryLogin.data;
+          final token = data is Map ? data['access_token']?.toString() : null;
+          if (token != null && token.isNotEmpty) {
+            tokenToPersist = token;
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint('[AUTH] Guest backend auth skipped, using local guest session: $e');
+    }
+
+    try {
+      await _saveAuthData(tokenToPersist, _guestEmail, _guestFullName);
+    } catch (e) {
+      debugPrint('[AUTH] Guest storage write warning: $e');
+    }
+
+    state = state.copyWith(
+      isLoading: false,
+      isSuccess: true,
+      isGuestLogin: true,
+      successMessage: 'Welcome to Saman Guest Mode!',
+      outcome: AuthOutcome.authenticated,
+    );
   }
 
   // --- 3. HELPER: SOCIAL AUTH BACKEND ---

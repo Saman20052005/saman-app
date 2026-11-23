@@ -25,6 +25,7 @@ class ExerciseDetailScreen extends ConsumerWidget {
   }
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final t = SamanWorkoutTokens.of(context);
     final isDumbbellBenchPress =
         exercise.id == 'db-bench-press' || exercise.slug == 'dumbbell-bench-press';
 
@@ -45,7 +46,7 @@ class ExerciseDetailScreen extends ConsumerWidget {
 
     return Scaffold(
       key: ValueKey('exercise_detail_${exercise.id}'),
-      backgroundColor: SamanWorkoutTokens.canvas,
+      backgroundColor: t.canvas,
       body: SafeArea(
         child: Column(
           children: [
@@ -66,24 +67,24 @@ class ExerciseDetailScreen extends ConsumerWidget {
                       width: 36,
                       height: 36,
                       decoration: BoxDecoration(
-                        color: SamanWorkoutTokens.cardSurface,
+                        color: t.cardSurface,
                         shape: BoxShape.circle,
-                        border: Border.all(color: SamanWorkoutTokens.border),
+                        border: Border.all(color: t.border),
                       ),
-                      child: const Center(
+                      child: Center(
                         child: Icon(
                           Icons.arrow_back_ios_new,
                           size: 14,
-                          color: SamanWorkoutTokens.textPrimary,
+                          color: t.textPrimary,
                         ),
                       ),
                     ),
                   ),
                   const SizedBox(width: 8),
-                  const Text(
+                  Text(
                     'Exercise Library',
                     style: TextStyle(
-                      color: SamanWorkoutTokens.textSecondary,
+                      color: t.textSecondary,
                       fontSize: 14,
                       fontWeight: FontWeight.w500,
                     ),
@@ -93,10 +94,10 @@ class ExerciseDetailScreen extends ConsumerWidget {
                     exercise.muscleGroup.isNotEmpty
                         ? exercise.muscleGroup.toUpperCase()
                         : 'EXERCISE',
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontFamily: 'monospace',
                       fontSize: 11,
-                      color: SamanWorkoutTokens.textMuted,
+                      color: t.textMuted,
                       fontWeight: FontWeight.w600,
                       letterSpacing: 0.8,
                     ),
@@ -112,20 +113,20 @@ class ExerciseDetailScreen extends ConsumerWidget {
                   SamanWorkoutTokens.spacingLg,
                   SamanWorkoutTokens.spacingSm,
                   SamanWorkoutTokens.spacingLg,
-                  100, // Space for fixed bottom CTA
+                  32,
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     // A. Instructional Video Preview (16:9)
-                    _buildVideoPreview(context),
+                    _buildVideoPreview(context, t),
                     const SizedBox(height: SamanWorkoutTokens.spacingLg),
 
                     // B. Title & Subtitle
                     Text(
                       exercise.name,
-                      style: const TextStyle(
-                        color: SamanWorkoutTokens.textPrimary,
+                      style: TextStyle(
+                        color: t.textPrimary,
                         fontSize: 26,
                         fontWeight: FontWeight.w700,
                         letterSpacing: -0.5,
@@ -138,8 +139,8 @@ class ExerciseDetailScreen extends ConsumerWidget {
                           : (exercise.nameVi.isNotEmpty
                               ? exercise.nameVi
                               : 'Instructional movement guidance and cues.'),
-                      style: const TextStyle(
-                        color: SamanWorkoutTokens.textSecondary,
+                      style: TextStyle(
+                        color: t.textSecondary,
                         fontSize: 14,
                         height: 1.4,
                       ),
@@ -148,20 +149,20 @@ class ExerciseDetailScreen extends ConsumerWidget {
 
                     // C. Taxonomy Card
                     _buildTaxonomyCard(
-                        primaryMuscle, secondaryMuscles, equipmentStr),
+                        primaryMuscle, secondaryMuscles, equipmentStr, t),
                     const SizedBox(height: SamanWorkoutTokens.spacingXl),
 
                     // D. How to Perform (3 Phases for Bench Press, readable cues for others)
-                    _buildHowToPerform(isDumbbellBenchPress),
+                    _buildHowToPerform(isDumbbellBenchPress, t),
 
                     // E. Form Cues (only for benchmark Dumbbell Bench Press)
                     if (isDumbbellBenchPress) ...[
                       const SizedBox(height: SamanWorkoutTokens.spacingXl),
-                      _buildFormCues(isDumbbellBenchPress),
+                      _buildFormCues(isDumbbellBenchPress, t),
                     ],
 
                     // F. Common Mistakes
-                    _buildCommonMistakes(isDumbbellBenchPress),
+                    _buildCommonMistakes(isDumbbellBenchPress, t),
                   ],
                 ),
               ),
@@ -171,42 +172,52 @@ class ExerciseDetailScreen extends ConsumerWidget {
       ),
 
       // 3. Fixed Bottom Floating CTA Bar
-      bottomSheet: Container(
-        color: SamanWorkoutTokens.canvas,
-        padding: const EdgeInsets.fromLTRB(
-          SamanWorkoutTokens.spacingLg,
-          0,
-          SamanWorkoutTokens.spacingLg,
-          20,
+      bottomNavigationBar: Container(
+        decoration: BoxDecoration(
+          color: t.canvas,
+          border: Border(
+            top: BorderSide(color: t.border, width: 1),
+          ),
         ),
-        child: SizedBox(
-          width: double.infinity,
-          height: 48,
-          child: ElevatedButton(
-            key: const ValueKey('exercise_detail_start_button'),
-            onPressed: () => _handleStartExercise(context),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: SamanWorkoutTokens.buttonPrimary,
-              foregroundColor: SamanWorkoutTokens.buttonPrimaryText,
-              shape: RoundedRectangleBorder(
-                borderRadius:
-                    BorderRadius.circular(SamanWorkoutTokens.radiusMd),
-              ),
-              elevation: 4,
+        child: SafeArea(
+          top: false,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(
+              SamanWorkoutTokens.spacingLg,
+              12,
+              SamanWorkoutTokens.spacingLg,
+              16,
             ),
-            child: const Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(
-                  'Start exercise',
-                  style: TextStyle(
-                    fontWeight: FontWeight.w600,
-                    fontSize: 15,
+            child: SizedBox(
+              width: double.infinity,
+              height: 48,
+              child: ElevatedButton(
+                key: const ValueKey('exercise_detail_start_button'),
+                onPressed: () => _handleStartExercise(context),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: t.buttonPrimary,
+                  foregroundColor: t.buttonPrimaryText,
+                  shape: RoundedRectangleBorder(
+                    borderRadius:
+                        BorderRadius.circular(SamanWorkoutTokens.radiusMd),
                   ),
+                  elevation: 4,
                 ),
-                SizedBox(width: 6),
-                Icon(Icons.arrow_forward, size: 16),
-              ],
+                child: const Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      'Start exercise',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 15,
+                      ),
+                    ),
+                    SizedBox(width: 6),
+                    Icon(Icons.arrow_forward, size: 16),
+                  ],
+                ),
+              ),
             ),
           ),
         ),
@@ -214,14 +225,14 @@ class ExerciseDetailScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildVideoPreview(BuildContext context) {
+  Widget _buildVideoPreview(BuildContext context, SamanWorkoutPalette t) {
     final previewContent = Container(
       width: double.infinity,
       height: exercisePosterSource(exercise.thumbnailUrl).isEmpty ? 180 : 200,
       decoration: BoxDecoration(
-        color: SamanWorkoutTokens.cardSurface,
+        color: t.cardSurface,
         borderRadius: BorderRadius.circular(SamanWorkoutTokens.radiusLg),
-        border: Border.all(color: SamanWorkoutTokens.border),
+        border: Border.all(color: t.border),
       ),
       clipBehavior: Clip.antiAlias,
       child: Stack(
@@ -268,14 +279,14 @@ class ExerciseDetailScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildTaxonomyCard(
-      String primary, String secondary, String equipment) {
+  Widget _buildTaxonomyCard(String primary, String secondary, String equipment,
+      SamanWorkoutPalette t) {
     return Container(
       padding: const EdgeInsets.all(SamanWorkoutTokens.spacingMd),
       decoration: BoxDecoration(
-        color: SamanWorkoutTokens.cardSurface,
+        color: t.cardSurface,
         borderRadius: BorderRadius.circular(SamanWorkoutTokens.radiusLg),
-        border: Border.all(color: SamanWorkoutTokens.border),
+        border: Border.all(color: t.border),
       ),
       child: Column(
         children: [
@@ -283,22 +294,22 @@ class ExerciseDetailScreen extends ConsumerWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
+              Text(
                 'PRIMARY',
                 style: TextStyle(
                   fontFamily: 'monospace',
                   fontSize: 11,
                   fontWeight: FontWeight.w600,
                   letterSpacing: 1.0,
-                  color: SamanWorkoutTokens.textMuted,
+                  color: t.textMuted,
                 ),
               ),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
                 decoration: BoxDecoration(
-                  color: SamanWorkoutTokens.emeraldBadgeBg,
+                  color: t.emeraldBadgeBg,
                   borderRadius: BorderRadius.circular(999),
-                  border: Border.all(color: SamanWorkoutTokens.emeraldBadgeBorder),
+                  border: Border.all(color: t.emeraldBadgeBorder),
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
@@ -306,16 +317,16 @@ class ExerciseDetailScreen extends ConsumerWidget {
                     Container(
                       width: 5,
                       height: 5,
-                      decoration: const BoxDecoration(
-                        color: SamanWorkoutTokens.emeraldAccent,
+                      decoration: BoxDecoration(
+                        color: t.emeraldAccent,
                         shape: BoxShape.circle,
                       ),
                     ),
                     const SizedBox(width: 5),
                     Text(
                       primary,
-                      style: const TextStyle(
-                        color: SamanWorkoutTokens.emeraldAccent,
+                      style: TextStyle(
+                        color: t.emeraldAccent,
                         fontSize: 12,
                         fontWeight: FontWeight.w600,
                       ),
@@ -325,57 +336,57 @@ class ExerciseDetailScreen extends ConsumerWidget {
               ),
             ],
           ),
-          const Padding(
-            padding: EdgeInsets.symmetric(vertical: 10),
-            child: Divider(height: 1, color: SamanWorkoutTokens.borderSubtle),
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 10),
+            child: Divider(height: 1, color: t.borderSubtle),
           ),
 
           // Secondary
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
+              Text(
                 'SECONDARY',
                 style: TextStyle(
                   fontFamily: 'monospace',
                   fontSize: 11,
                   fontWeight: FontWeight.w600,
                   letterSpacing: 1.0,
-                  color: SamanWorkoutTokens.textMuted,
+                  color: t.textMuted,
                 ),
               ),
               Text(
                 secondary,
-                style: const TextStyle(
-                  color: SamanWorkoutTokens.textPrimary,
+                style: TextStyle(
+                  color: t.textPrimary,
                   fontSize: 12,
                 ),
               ),
             ],
           ),
-          const Padding(
-            padding: EdgeInsets.symmetric(vertical: 10),
-            child: Divider(height: 1, color: SamanWorkoutTokens.borderSubtle),
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 10),
+            child: Divider(height: 1, color: t.borderSubtle),
           ),
 
           // Equipment
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
+              Text(
                 'EQUIPMENT',
                 style: TextStyle(
                   fontFamily: 'monospace',
                   fontSize: 11,
                   fontWeight: FontWeight.w600,
                   letterSpacing: 1.0,
-                  color: SamanWorkoutTokens.textMuted,
+                  color: t.textMuted,
                 ),
               ),
               Text(
                 equipment,
-                style: const TextStyle(
-                  color: SamanWorkoutTokens.textPrimary,
+                style: TextStyle(
+                  color: t.textPrimary,
                   fontSize: 12,
                 ),
               ),
@@ -386,7 +397,7 @@ class ExerciseDetailScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildHowToPerform(bool isDumbbellBenchPress) {
+  Widget _buildHowToPerform(bool isDumbbellBenchPress, SamanWorkoutPalette t) {
     if (isDumbbellBenchPress) {
       const steps = [
         (
@@ -405,7 +416,7 @@ class ExerciseDetailScreen extends ConsumerWidget {
           'Push them up with control until your arms are extended.'
         ),
       ];
-      return _renderPhases(steps);
+      return _renderPhases(steps, t);
     }
 
     if (exercise.cues.isNotEmpty) {
@@ -415,20 +426,20 @@ class ExerciseDetailScreen extends ConsumerWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
+              Text(
                 'How to perform',
                 style: TextStyle(
-                  color: SamanWorkoutTokens.textPrimary,
+                  color: t.textPrimary,
                   fontSize: 16,
                   fontWeight: FontWeight.w600,
                 ),
               ),
               Text(
                 '${exercise.cues.length} STEPS',
-                style: const TextStyle(
+                style: TextStyle(
                   fontFamily: 'monospace',
                   fontSize: 10,
-                  color: SamanWorkoutTokens.textMuted,
+                  color: t.textMuted,
                   fontWeight: FontWeight.w600,
                   letterSpacing: 0.8,
                 ),
@@ -446,10 +457,10 @@ class ExerciseDetailScreen extends ConsumerWidget {
                   width: double.infinity,
                   padding: const EdgeInsets.all(SamanWorkoutTokens.spacingMd),
                   decoration: BoxDecoration(
-                    color: SamanWorkoutTokens.cardSurface,
+                    color: t.cardSurface,
                     borderRadius:
                         BorderRadius.circular(SamanWorkoutTokens.radiusMd),
-                    border: Border.all(color: SamanWorkoutTokens.border),
+                    border: Border.all(color: t.border),
                   ),
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -458,18 +469,18 @@ class ExerciseDetailScreen extends ConsumerWidget {
                         width: 24,
                         height: 24,
                         decoration: BoxDecoration(
-                          color: SamanWorkoutTokens.surfaceElevated,
+                          color: t.surfaceElevated,
                           shape: BoxShape.circle,
-                          border: Border.all(color: SamanWorkoutTokens.border),
+                          border: Border.all(color: t.border),
                         ),
                         child: Center(
                           child: Text(
                             stepNumber,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontFamily: 'monospace',
                               fontSize: 11,
                               fontWeight: FontWeight.w700,
-                              color: SamanWorkoutTokens.emeraldAccent,
+                              color: t.emeraldAccent,
                             ),
                           ),
                         ),
@@ -478,8 +489,8 @@ class ExerciseDetailScreen extends ConsumerWidget {
                       Expanded(
                         child: Text(
                           cue,
-                          style: const TextStyle(
-                            color: SamanWorkoutTokens.textPrimary,
+                          style: TextStyle(
+                            color: t.textPrimary,
                             fontSize: 13,
                             height: 1.4,
                           ),
@@ -498,10 +509,10 @@ class ExerciseDetailScreen extends ConsumerWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
+        Text(
           'How to perform',
           style: TextStyle(
-            color: SamanWorkoutTokens.textPrimary,
+            color: t.textPrimary,
             fontSize: 16,
             fontWeight: FontWeight.w600,
           ),
@@ -511,14 +522,14 @@ class ExerciseDetailScreen extends ConsumerWidget {
           width: double.infinity,
           padding: const EdgeInsets.all(SamanWorkoutTokens.spacingMd),
           decoration: BoxDecoration(
-            color: SamanWorkoutTokens.cardSurface,
+            color: t.cardSurface,
             borderRadius: BorderRadius.circular(SamanWorkoutTokens.radiusMd),
-            border: Border.all(color: SamanWorkoutTokens.border),
+            border: Border.all(color: t.border),
           ),
-          child: const Text(
+          child: Text(
             'Movement instructions are being prepared for this exercise.',
             style: TextStyle(
-              color: SamanWorkoutTokens.textSecondary,
+              color: t.textSecondary,
               fontSize: 13,
             ),
           ),
@@ -527,27 +538,28 @@ class ExerciseDetailScreen extends ConsumerWidget {
     );
   }
 
-  Widget _renderPhases(List<(String, String, String)> steps) {
+  Widget _renderPhases(
+      List<(String, String, String)> steps, SamanWorkoutPalette t) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            const Text(
+            Text(
               'How to perform',
               style: TextStyle(
-                color: SamanWorkoutTokens.textPrimary,
+                color: t.textPrimary,
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
               ),
             ),
             Text(
               '${steps.length} PHASES',
-              style: const TextStyle(
+              style: TextStyle(
                 fontFamily: 'monospace',
                 fontSize: 10,
-                color: SamanWorkoutTokens.textMuted,
+                color: t.textMuted,
                 fontWeight: FontWeight.w600,
                 letterSpacing: 0.8,
               ),
@@ -563,10 +575,10 @@ class ExerciseDetailScreen extends ConsumerWidget {
               child: Container(
                 padding: const EdgeInsets.all(SamanWorkoutTokens.spacingMd),
                 decoration: BoxDecoration(
-                  color: SamanWorkoutTokens.cardSurface,
+                  color: t.cardSurface,
                   borderRadius:
                       BorderRadius.circular(SamanWorkoutTokens.radiusMd),
-                  border: Border.all(color: SamanWorkoutTokens.border),
+                  border: Border.all(color: t.border),
                 ),
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -575,18 +587,18 @@ class ExerciseDetailScreen extends ConsumerWidget {
                       width: 24,
                       height: 24,
                       decoration: BoxDecoration(
-                        color: SamanWorkoutTokens.surfaceElevated,
+                        color: t.surfaceElevated,
                         borderRadius:
                             BorderRadius.circular(SamanWorkoutTokens.radiusXs),
                         border:
-                            Border.all(color: SamanWorkoutTokens.borderSubtle),
+                            Border.all(color: t.borderSubtle),
                       ),
                       child: Center(
                         child: Text(
                           s.$1,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontFamily: 'monospace',
-                            color: SamanWorkoutTokens.textPrimary,
+                            color: t.textPrimary,
                             fontSize: 12,
                             fontWeight: FontWeight.w600,
                           ),
@@ -600,8 +612,8 @@ class ExerciseDetailScreen extends ConsumerWidget {
                         children: [
                           Text(
                             s.$2,
-                            style: const TextStyle(
-                              color: SamanWorkoutTokens.textPrimary,
+                            style: TextStyle(
+                              color: t.textPrimary,
                               fontSize: 13,
                               fontWeight: FontWeight.w600,
                             ),
@@ -609,8 +621,8 @@ class ExerciseDetailScreen extends ConsumerWidget {
                           const SizedBox(height: 2),
                           Text(
                             s.$3,
-                            style: const TextStyle(
-                              color: SamanWorkoutTokens.textSecondary,
+                            style: TextStyle(
+                              color: t.textSecondary,
                               fontSize: 13,
                               height: 1.4,
                             ),
@@ -628,24 +640,24 @@ class ExerciseDetailScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildFormCues(bool isDumbbellBenchPress) {
+  Widget _buildFormCues(bool isDumbbellBenchPress, SamanWorkoutPalette t) {
     if (isDumbbellBenchPress) {
       const cues = [
         'Keep your feet planted',
         'Keep your wrists straight',
         'Move slowly and stay in control',
       ];
-      return _renderCues(cues);
+      return _renderCues(cues, t);
     }
 
     if (exercise.cues.isEmpty) {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
+          Text(
             'Form cues',
             style: TextStyle(
-              color: SamanWorkoutTokens.textPrimary,
+              color: t.textPrimary,
               fontSize: 16,
               fontWeight: FontWeight.w600,
             ),
@@ -655,14 +667,14 @@ class ExerciseDetailScreen extends ConsumerWidget {
             width: double.infinity,
             padding: const EdgeInsets.all(SamanWorkoutTokens.spacingMd),
             decoration: BoxDecoration(
-              color: SamanWorkoutTokens.cardSurface,
+              color: t.cardSurface,
               borderRadius: BorderRadius.circular(SamanWorkoutTokens.radiusMd),
-              border: Border.all(color: SamanWorkoutTokens.border),
+              border: Border.all(color: t.border),
             ),
-            child: const Text(
+            child: Text(
               'Form cues are being documented for this exercise.',
               style: TextStyle(
-                color: SamanWorkoutTokens.textSecondary,
+                color: t.textSecondary,
                 fontSize: 13,
               ),
             ),
@@ -671,17 +683,17 @@ class ExerciseDetailScreen extends ConsumerWidget {
       );
     }
 
-    return _renderCues(exercise.cues);
+    return _renderCues(exercise.cues, t);
   }
 
-  Widget _renderCues(List<String> cues) {
+  Widget _renderCues(List<String> cues, SamanWorkoutPalette t) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
+        Text(
           'Form cues',
           style: TextStyle(
-            color: SamanWorkoutTokens.textPrimary,
+            color: t.textPrimary,
             fontSize: 16,
             fontWeight: FontWeight.w600,
           ),
@@ -691,9 +703,9 @@ class ExerciseDetailScreen extends ConsumerWidget {
         Container(
           padding: const EdgeInsets.all(SamanWorkoutTokens.spacingMd),
           decoration: BoxDecoration(
-            color: SamanWorkoutTokens.cardSurface,
+            color: t.cardSurface,
             borderRadius: BorderRadius.circular(SamanWorkoutTokens.radiusMd),
-            border: Border.all(color: SamanWorkoutTokens.border),
+            border: Border.all(color: t.border),
           ),
           child: Column(
             children: List.generate(cues.length, (index) {
@@ -705,17 +717,17 @@ class ExerciseDetailScreen extends ConsumerWidget {
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
-                      const Icon(
+                      Icon(
                         Icons.check,
                         size: 16,
-                        color: SamanWorkoutTokens.emeraldAccent,
+                        color: t.emeraldAccent,
                       ),
                       const SizedBox(width: 10),
                       Expanded(
                         child: Text(
                           cue,
-                          style: const TextStyle(
-                            color: SamanWorkoutTokens.textPrimary,
+                          style: TextStyle(
+                            color: t.textPrimary,
                             fontSize: 13,
                           ),
                         ),
@@ -723,10 +735,10 @@ class ExerciseDetailScreen extends ConsumerWidget {
                     ],
                   ),
                   if (!isLast)
-                    const Padding(
-                      padding: EdgeInsets.symmetric(vertical: 10),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 10),
                       child: Divider(
-                          height: 1, color: SamanWorkoutTokens.borderSubtle),
+                          height: 1, color: t.borderSubtle),
                     ),
                 ],
               );
@@ -737,7 +749,8 @@ class ExerciseDetailScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildCommonMistakes(bool isDumbbellBenchPress) {
+  Widget _buildCommonMistakes(
+      bool isDumbbellBenchPress, SamanWorkoutPalette t) {
     if (isDumbbellBenchPress || exercise.commonMistakes.isEmpty) {
       return const SizedBox.shrink();
     }
@@ -746,10 +759,10 @@ class ExerciseDetailScreen extends ConsumerWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const SizedBox(height: SamanWorkoutTokens.spacingXl),
-        const Text(
+        Text(
           'Common mistakes',
           style: TextStyle(
-            color: SamanWorkoutTokens.textPrimary,
+            color: t.textPrimary,
             fontSize: 16,
             fontWeight: FontWeight.w600,
           ),
@@ -758,9 +771,9 @@ class ExerciseDetailScreen extends ConsumerWidget {
         Container(
           padding: const EdgeInsets.all(SamanWorkoutTokens.spacingMd),
           decoration: BoxDecoration(
-            color: SamanWorkoutTokens.cardSurface,
+            color: t.cardSurface,
             borderRadius: BorderRadius.circular(SamanWorkoutTokens.radiusMd),
-            border: Border.all(color: SamanWorkoutTokens.border),
+            border: Border.all(color: t.border),
           ),
           child: Column(
             children: List.generate(exercise.commonMistakes.length, (index) {
@@ -772,17 +785,17 @@ class ExerciseDetailScreen extends ConsumerWidget {
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
-                      const Icon(
+                      Icon(
                         Icons.close,
                         size: 16,
-                        color: Colors.redAccent,
+                        color: t.isDark ? Colors.redAccent : t.crimsonAccent,
                       ),
                       const SizedBox(width: 10),
                       Expanded(
                         child: Text(
                           mistake,
-                          style: const TextStyle(
-                            color: SamanWorkoutTokens.textPrimary,
+                          style: TextStyle(
+                            color: t.textPrimary,
                             fontSize: 13,
                           ),
                         ),
@@ -790,10 +803,10 @@ class ExerciseDetailScreen extends ConsumerWidget {
                     ],
                   ),
                   if (!isLast)
-                    const Padding(
-                      padding: EdgeInsets.symmetric(vertical: 10),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 10),
                       child: Divider(
-                          height: 1, color: SamanWorkoutTokens.borderSubtle),
+                          height: 1, color: t.borderSubtle),
                     ),
                 ],
               );

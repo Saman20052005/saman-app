@@ -15,9 +15,10 @@ class ShopDemoExplanationSheet extends StatelessWidget {
   final ShopProduct product;
 
   static Future<void> show(BuildContext context, ShopProduct product) {
+    final t = ShopTheme.of(context);
     return showModalBottomSheet(
       context: context,
-      backgroundColor: ShopTheme.surfaceCard,
+      backgroundColor: t.surfaceCard,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(
           top: Radius.circular(ShopTheme.radiusXl),
@@ -30,6 +31,7 @@ class ShopDemoExplanationSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = ShopTheme.of(context);
     return SafeArea(
       child: Padding(
         padding: const EdgeInsets.fromLTRB(
@@ -48,7 +50,7 @@ class ShopDemoExplanationSheet extends StatelessWidget {
                 width: 36,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: ShopTheme.textMuted.withOpacity(0.4),
+                  color: t.textMuted.withOpacity(0.4),
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
@@ -58,16 +60,16 @@ class ShopDemoExplanationSheet extends StatelessWidget {
             // Header title
             Row(
               children: [
-                const Icon(
+                Icon(
                   Icons.info_outline_rounded,
-                  color: ShopTheme.emerald,
+                  color: t.emerald,
                   size: 20,
                 ),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
                     ShopTranslations.of(context, 'demo_sheet_title'),
-                    style: ShopTheme.headerTitle.copyWith(fontSize: 18),
+                    style: t.headerTitle.copyWith(fontSize: 18),
                   ),
                 ),
               ],
@@ -80,21 +82,21 @@ class ShopDemoExplanationSheet extends StatelessWidget {
               style: ShopTheme.fontManrope(
                 fontSize: 13,
                 fontWeight: FontWeight.w400,
-                color: ShopTheme.textSecondary,
+                color: t.textSecondary,
                 height: 1.45,
               ),
             ),
             const SizedBox(height: 24),
 
-            // Off-white primary close button
+            // Primary close button
             SizedBox(
               width: double.infinity,
               height: 48,
               child: ElevatedButton(
                 onPressed: () => Navigator.of(context).pop(),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: ShopTheme.ctaSurface,
-                  foregroundColor: ShopTheme.ctaText,
+                  backgroundColor: t.ctaSurface,
+                  foregroundColor: t.ctaText,
                   elevation: 0,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(ShopTheme.radiusMd),
@@ -102,7 +104,7 @@ class ShopDemoExplanationSheet extends StatelessWidget {
                 ),
                 child: Text(
                   ShopTranslations.of(context, 'demo_sheet_close'),
-                  style: ShopTheme.ctaButtonText,
+                  style: t.ctaButtonText,
                 ),
               ),
             ),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../config/app_translations.dart';
 import '../tokens/saman_home_tokens.dart';
 
 /// Weekly Consistency (Performance Chart Panel) for Saman Home.
@@ -38,6 +39,7 @@ class WeeklyConsistencyCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = SamanHomeTokens.of(context);
     return Padding(
       padding: const EdgeInsets.symmetric(
         horizontal: SamanHomeTokens.spacingLg,
@@ -45,10 +47,10 @@ class WeeklyConsistencyCard extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(SamanHomeTokens.spacingLg),
         decoration: BoxDecoration(
-          color: SamanHomeTokens.cardSurface,
+          color: tokens.cardSurface,
           borderRadius: BorderRadius.circular(SamanHomeTokens.radiusXl),
           border: Border.all(
-            color: SamanHomeTokens.border,
+            color: tokens.border,
             width: 1,
           ),
         ),
@@ -59,22 +61,22 @@ class WeeklyConsistencyCard extends StatelessWidget {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Flexible(
+                Flexible(
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Icon(
                         Icons.trending_up_rounded,
                         size: 16,
-                        color: SamanHomeTokens.greenAccent,
+                        color: tokens.greenAccent,
                       ),
-                      SizedBox(width: 6),
+                      const SizedBox(width: 6),
                       Flexible(
                         child: Text(
-                          'WEEKLY CONSISTENCY',
+                          context.tr('weekly_consistency_title'),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: SamanHomeTokens.sectionHeader,
+                          style: tokens.sectionHeader,
                         ),
                       ),
                     ],
@@ -82,11 +84,11 @@ class WeeklyConsistencyCard extends StatelessWidget {
                 ),
                 const SizedBox(width: 8),
                 Text(
-                  '$completedSessions / $targetSessions sessions',
-                  style: const TextStyle(
+                  '$completedSessions / $targetSessions ${context.tr('sessions_unit')}',
+                  style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w600,
-                    color: SamanHomeTokens.textWhite,
+                    color: tokens.textWhite,
                   ),
                 ),
               ],
@@ -96,10 +98,10 @@ class WeeklyConsistencyCard extends StatelessWidget {
             // ─── 2. 3-Column Summary Metrics ─────────────────────────
             Container(
               padding: const EdgeInsets.symmetric(vertical: 10),
-              decoration: const BoxDecoration(
+              decoration: BoxDecoration(
                 border: Border.symmetric(
                   horizontal: BorderSide(
-                    color: SamanHomeTokens.borderSubtle,
+                    color: tokens.borderSubtle,
                     width: 1,
                   ),
                 ),
@@ -108,25 +110,25 @@ class WeeklyConsistencyCard extends StatelessWidget {
                 children: [
                   Expanded(
                     child: _SummaryMetricColumn(
-                      label: 'SESSIONS',
+                      label: context.tr('sessions_label'),
                       value: '$completedSessions / $targetSessions',
-                      valueColor: SamanHomeTokens.textWhite,
+                      valueColor: tokens.textWhite,
                       showRightBorder: true,
                     ),
                   ),
                   Expanded(
                     child: _SummaryMetricColumn(
-                      label: 'COMPLETION',
+                      label: context.tr('completion_label'),
                       value: '$completionPercentage%',
-                      valueColor: SamanHomeTokens.greenAccent,
+                      valueColor: tokens.greenAccent,
                       showRightBorder: true,
                     ),
                   ),
                   Expanded(
                     child: _SummaryMetricColumn(
-                      label: 'STREAK',
-                      value: '$streakDays days',
-                      valueColor: SamanHomeTokens.textWhite,
+                      label: context.tr('streak_label'),
+                      value: '$streakDays ${context.tr('days_unit')}',
+                      valueColor: tokens.textWhite,
                       showRightBorder: false,
                     ),
                   ),
@@ -144,6 +146,7 @@ class WeeklyConsistencyCard extends StatelessWidget {
                   actualPoints: actualActivityPoints,
                   targetPoints: targetActivityPoints,
                   activeDayIndex: activeDayIndex,
+                  palette: tokens,
                 ),
               ),
             ),
@@ -153,8 +156,8 @@ class WeeklyConsistencyCard extends StatelessWidget {
             _XAxisDayLabels(activeDayIndex: activeDayIndex),
             const SizedBox(height: SamanHomeTokens.spacingMd),
 
-            const Divider(
-              color: SamanHomeTokens.borderSubtle,
+            Divider(
+              color: tokens.borderSubtle,
               height: 1,
               thickness: 1,
             ),
@@ -169,13 +172,13 @@ class WeeklyConsistencyCard extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Text(
-                        'NEXT SESSION',
+                      Text(
+                        context.tr('next_session_label'),
                         style: TextStyle(
                           fontSize: 10,
                           fontWeight: FontWeight.w600,
                           letterSpacing: 0.8,
-                          color: SamanHomeTokens.textMuted,
+                          color: tokens.textSecondary,
                         ),
                       ),
                       const SizedBox(height: 2),
@@ -183,10 +186,10 @@ class WeeklyConsistencyCard extends StatelessWidget {
                         nextSessionTitle,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w500,
-                          color: SamanHomeTokens.textWhite,
+                          color: tokens.textPrimary,
                         ),
                       ),
                     ],
@@ -199,8 +202,8 @@ class WeeklyConsistencyCard extends StatelessWidget {
                     onTap: onViewProgressTap,
                     borderRadius:
                         BorderRadius.circular(SamanHomeTokens.radiusSm),
-                    child: const Padding(
-                      padding: EdgeInsets.symmetric(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
                         horizontal: 4,
                         vertical: 2,
                       ),
@@ -208,14 +211,14 @@ class WeeklyConsistencyCard extends StatelessWidget {
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Text(
-                            'View progress',
-                            style: SamanHomeTokens.linkText,
+                            context.tr('view_progress'),
+                            style: tokens.linkText,
                           ),
-                          SizedBox(width: 2),
+                          const SizedBox(width: 2),
                           Icon(
                             Icons.arrow_forward_rounded,
                             size: 13,
-                            color: SamanHomeTokens.textSecondary,
+                            color: tokens.textSecondary,
                           ),
                         ],
                       ),
@@ -246,12 +249,13 @@ class _SummaryMetricColumn extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = SamanHomeTokens.of(context);
     return Container(
       decoration: showRightBorder
-          ? const BoxDecoration(
+          ? BoxDecoration(
               border: Border(
                 right: BorderSide(
-                  color: SamanHomeTokens.borderSubtle,
+                  color: tokens.borderSubtle,
                   width: 1,
                 ),
               ),
@@ -263,11 +267,11 @@ class _SummaryMetricColumn extends StatelessWidget {
         children: [
           Text(
             label,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 10,
               fontWeight: FontWeight.w600,
               letterSpacing: 0.8,
-              color: SamanHomeTokens.textMuted,
+              color: tokens.textMuted,
             ),
           ),
           const SizedBox(height: 2),
@@ -295,40 +299,40 @@ class _XAxisDayLabels extends StatelessWidget {
 
   final int activeDayIndex;
 
-  static const List<String> _days = [
-    'Mon',
-    'Tue',
-    'Wed',
-    'Thu',
-    'Fri',
-    'Sat',
-    'Sun'
-  ];
+  List<String> _days(BuildContext context) => [
+        context.tr('day_mon_short'),
+        context.tr('day_tue_short'),
+        context.tr('day_wed_short'),
+        context.tr('day_thu_short'),
+        context.tr('day_fri_short'),
+        context.tr('day_sat_short'),
+        context.tr('day_sun_short'),
+      ];
 
   @override
   Widget build(BuildContext context) {
+    final tokens = SamanHomeTokens.of(context);
+    final days = _days(context);
     return LayoutBuilder(
       builder: (context, constraints) {
         final totalWidth = constraints.maxWidth;
-        final cellWidth = totalWidth / _days.length;
+        final cellWidth = totalWidth / days.length;
 
         return SizedBox(
           width: totalWidth,
           child: Row(
-            children: List.generate(_days.length, (index) {
+            children: List.generate(days.length, (index) {
               final isToday = index == activeDayIndex;
               return SizedBox(
                 width: cellWidth,
                 child: Center(
                   child: Text(
-                    _days[index],
+                    days[index],
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       fontSize: 11,
                       fontWeight: isToday ? FontWeight.w700 : FontWeight.w400,
-                      color: isToday
-                          ? SamanHomeTokens.textWhite
-                          : SamanHomeTokens.textMuted,
+                      color: isToday ? tokens.textWhite : tokens.textMuted,
                     ),
                   ),
                 ),
@@ -347,11 +351,13 @@ class _WeeklySplineChartPainter extends CustomPainter {
     required this.actualPoints,
     required this.targetPoints,
     required this.activeDayIndex,
+    required this.palette,
   });
 
   final List<double> actualPoints;
   final List<double> targetPoints;
   final int activeDayIndex;
+  final SamanHomePalette palette;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -361,7 +367,7 @@ class _WeeklySplineChartPainter extends CustomPainter {
 
     // ─── 1. Background Grid Lines ─────────────────────────────────────
     final gridPaint = Paint()
-      ..color = SamanHomeTokens.chartGrid
+      ..color = palette.chartGrid
       ..strokeWidth = 1
       ..style = PaintingStyle.stroke;
 
@@ -396,7 +402,7 @@ class _WeeklySplineChartPainter extends CustomPainter {
     // ─── 2. Target Spline (Dashed Gray Curve) ─────────────────────────
     final targetPath = _createSmoothSplinePath(targetOffsets);
     final targetPaint = Paint()
-      ..color = SamanHomeTokens.chartTargetDashed
+      ..color = palette.chartTargetDashed
       ..strokeWidth = 1.4
       ..style = PaintingStyle.stroke;
 
@@ -405,7 +411,7 @@ class _WeeklySplineChartPainter extends CustomPainter {
     // ─── 3. Actual Spline (Solid Emerald Curve) ───────────────────────
     final actualPath = _createSmoothSplinePath(actualOffsets);
     final actualPaint = Paint()
-      ..color = SamanHomeTokens.chartActualLine
+      ..color = palette.chartActualLine
       ..strokeWidth = 2.0
       ..strokeCap = StrokeCap.round
       ..strokeJoin = StrokeJoin.round
@@ -415,7 +421,7 @@ class _WeeklySplineChartPainter extends CustomPainter {
 
     // ─── 4. Data Dots & Active Day Indicator ──────────────────────────
     final dotPaint = Paint()
-      ..color = SamanHomeTokens.chartActualLine
+      ..color = palette.chartActualLine
       ..style = PaintingStyle.fill;
 
     for (int i = 0; i < actualOffsets.length; i++) {
@@ -423,19 +429,19 @@ class _WeeklySplineChartPainter extends CustomPainter {
       if (i == activeDayIndex) {
         // Outer halo
         final haloPaint = Paint()
-          ..color = SamanHomeTokens.chartActualLine
+          ..color = palette.chartActualLine
           ..strokeWidth = 2.0
           ..style = PaintingStyle.stroke;
         final bgPaint = Paint()
-          ..color = SamanHomeTokens.cardSurface
+          ..color = palette.cardSurface
           ..style = PaintingStyle.fill;
 
         canvas.drawCircle(point, 5.0, bgPaint);
         canvas.drawCircle(point, 5.0, haloPaint);
 
-        // Center white dot
+        // Center dot
         final centerDot = Paint()
-          ..color = SamanHomeTokens.textWhite
+          ..color = palette.textWhite
           ..style = PaintingStyle.fill;
         canvas.drawCircle(point, 2.5, centerDot);
       } else {
@@ -510,6 +516,10 @@ class _WeeklySplineChartPainter extends CustomPainter {
   bool shouldRepaint(covariant _WeeklySplineChartPainter oldDelegate) {
     return oldDelegate.actualPoints != actualPoints ||
         oldDelegate.targetPoints != targetPoints ||
-        oldDelegate.activeDayIndex != activeDayIndex;
+        oldDelegate.activeDayIndex != activeDayIndex ||
+        oldDelegate.palette.isDark != palette.isDark ||
+        oldDelegate.palette.chartActualLine != palette.chartActualLine ||
+        oldDelegate.palette.chartGrid != palette.chartGrid ||
+        oldDelegate.palette.cardSurface != palette.cardSurface;
   }
 }

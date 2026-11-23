@@ -88,7 +88,7 @@ class _ExerciseListScreenState extends ConsumerState<ExerciseListScreen> {
                       borderSide: BorderSide.none,
                     ),
                     filled: true,
-                    fillColor: Colors.grey[100],
+                    fillColor: Theme.of(context).colorScheme.surfaceContainerHighest,
                   ),
                 ),
                 const SizedBox(height: 12),
@@ -188,6 +188,7 @@ class _ExerciseListScreenState extends ConsumerState<ExerciseListScreen> {
 
   Widget _buildFilterChip(String value, String label) {
     final isSelected = ref.watch(exerciseFiltersProvider).difficulty == value;
+    final colorScheme = Theme.of(context).colorScheme;
     return Padding(
       padding: const EdgeInsets.only(right: 8),
       child: FilterChip(
@@ -196,16 +197,16 @@ class _ExerciseListScreenState extends ConsumerState<ExerciseListScreen> {
         onSelected: (_) {
           ref.read(exerciseFiltersProvider.notifier).setDifficulty(value);
         },
-        backgroundColor: Colors.grey[100],
+        backgroundColor: colorScheme.surfaceContainerHighest,
         selectedColor: value == 'all'
-            ? AppColors.primary
+            ? colorScheme.primary
             : value == 'beginner'
                 ? AppColors.success
                 : value == 'intermediate'
                     ? AppColors.warning
-                    : AppColors.error,
+                    : colorScheme.error,
         labelStyle: TextStyle(
-          color: isSelected ? Colors.white : Colors.black,
+          color: isSelected ? colorScheme.onPrimary : colorScheme.onSurface,
           fontWeight: isSelected ? FontWeight.w600 : null,
         ),
       ),

@@ -111,6 +111,8 @@ class ActiveExerciseInfo {
   final int draftReps;
   final SetUnit unit;
   final int? draftSeconds;
+  final Map<String, dynamic>? cvFormSummary;
+  final LastExercisePerformance? lastPerformance;
 
   const ActiveExerciseInfo({
     required this.id,
@@ -124,6 +126,8 @@ class ActiveExerciseInfo {
     required this.draftReps,
     this.unit = SetUnit.reps,
     this.draftSeconds,
+    this.cvFormSummary,
+    this.lastPerformance,
   });
 
   bool get canLogSet => activeSet != null &&
@@ -143,6 +147,7 @@ class ActiveExerciseInfo {
 
   ActiveExerciseInfo copyWith({
     String? id,
+    String? slug,
     String? name,
     String? subtitle,
     String? imageUrl,
@@ -153,10 +158,12 @@ class ActiveExerciseInfo {
     SetUnit? unit,
     int? draftSeconds,
     bool clearDraftSeconds = false,
+    Map<String, dynamic>? cvFormSummary,
+    LastExercisePerformance? lastPerformance,
   }) {
     return ActiveExerciseInfo(
       id: id ?? this.id,
-      slug: slug,
+      slug: slug ?? this.slug,
       name: name ?? this.name,
       subtitle: subtitle ?? this.subtitle,
       imageUrl: imageUrl ?? this.imageUrl,
@@ -166,6 +173,8 @@ class ActiveExerciseInfo {
       draftReps: draftReps ?? this.draftReps,
       unit: unit ?? this.unit,
       draftSeconds: clearDraftSeconds ? null : draftSeconds ?? this.draftSeconds,
+      cvFormSummary: cvFormSummary ?? this.cvFormSummary,
+      lastPerformance: lastPerformance ?? this.lastPerformance,
     );
   }
 }

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../config/api_config.dart';
 import '../../../../providers/profile_provider.dart';
@@ -52,16 +53,36 @@ final shopRepositoryProvider = Provider<ShopRepository>((ref) {
 });
 
 /// Central provider for Wishlist repository.
-/// Depends directly on root `sharedPreferencesProvider`.
+/// Injects SharedPreferences, dio, and dynamic auth state sync.
 final shopWishlistRepositoryProvider = Provider<ShopWishlistRepository>((ref) {
   final prefs = ref.watch(sharedPreferencesProvider);
-  return SharedPreferencesShopWishlistRepository(prefs);
+  final dio = ref.watch(dioProvider);
+  final confirmedUserId =
+      ref.watch(profileProvider.select((s) => s.confirmedUserId));
+  final isAuthenticated =
+      confirmedUserId != null && confirmedUserId.isNotEmpty;
+
+  final repo = SharedPreferencesShopWishlistRepository(
+    prefs,
+    dio: dio,
+    syncEnabled: isAuthenticated,
+  );
+
+  if (isAuthenticated) {
+    unawaited(repo.syncFromRemote());
+  }
+
+  ref.onDispose(repo.dispose);
+  return repo;
 });
 
 /// Reactive stream provider for wishlisted product IDs.
-final savedProductIdsStreamProvider = StreamProvider<List<String>>((ref) {
+/// Uses async* to yield local cached IDs first and then stream updates.
+final savedProductIdsStreamProvider =
+    StreamProvider<List<String>>((ref) async* {
   final wishlistRepo = ref.watch(shopWishlistRepositoryProvider);
-  return wishlistRepo.watchSavedProductIds();
+  yield await wishlistRepo.getSavedProductIds();
+  yield* wishlistRepo.watchSavedProductIds();
 });
 
 /// Central provider for external shopping launcher.

@@ -16,9 +16,9 @@ class SamanAvatar extends StatelessWidget {
     this.avatarUrl,
     this.size = 52.0,
     this.borderWidth = 1.0,
-    this.borderColor = const Color(0xFF26282F),
-    this.backgroundColor = const Color(0xFF212328),
-    this.textColor = Colors.white,
+    this.borderColor,
+    this.backgroundColor,
+    this.textColor,
     this.fontSize,
   });
 
@@ -26,9 +26,9 @@ class SamanAvatar extends StatelessWidget {
   final String? avatarUrl;
   final double size;
   final double borderWidth;
-  final Color borderColor;
-  final Color backgroundColor;
-  final Color textColor;
+  final Color? borderColor;
+  final Color? backgroundColor;
+  final Color? textColor;
   final double? fontSize;
 
   static String getInitials(String name) {
@@ -43,6 +43,14 @@ class SamanAvatar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final resolvedBorderColor = borderColor ??
+        (isDark ? const Color(0xFF26282F) : const Color(0xFFE2E8F0));
+    final resolvedBackgroundColor = backgroundColor ??
+        (isDark ? const Color(0xFF212328) : const Color(0xFFF1F5F9));
+    final resolvedTextColor =
+        textColor ?? (isDark ? Colors.white : const Color(0xFF0F172A));
+
     final initials = getInitials(name);
     final calculatedFontSize = fontSize ?? (size * 0.35).clamp(10.0, 32.0);
 
@@ -52,7 +60,7 @@ class SamanAvatar extends StatelessWidget {
         style: TextStyle(
           fontSize: calculatedFontSize,
           fontWeight: FontWeight.w700,
-          color: textColor,
+          color: resolvedTextColor,
           letterSpacing: 0.5,
         ),
       ),
@@ -65,9 +73,9 @@ class SamanAvatar extends StatelessWidget {
       height: size,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        color: backgroundColor,
+        color: resolvedBackgroundColor,
         border: Border.all(
-          color: borderColor,
+          color: resolvedBorderColor,
           width: borderWidth,
         ),
       ),

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import '../../../../config/app_theme.dart';
 
 class ReportWeekNavigator extends StatelessWidget {
   final DateTime weekMonday;
@@ -42,6 +43,14 @@ class ReportWeekNavigator extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final p = SamanPalette.of(context);
+    final isDark = p.isDark;
+    final cardBg = isDark ? const Color(0xFF16171A) : p.surface;
+    final borderCol = isDark ? const Color(0xFF26282F) : p.border;
+    final iconCol = isDark ? const Color(0xFFA1A1AA) : p.textSecondary;
+    final disabledIconCol = isDark ? const Color(0xFF52525B) : const Color(0xFFCBD5E1);
+    final titleCol = isDark ? const Color(0xFFE5E7EB) : p.textPrimary;
+    final subtleCol = isDark ? const Color(0xFF71717A) : p.textMuted;
     final canGoNext = onNext != null;
 
     return Padding(
@@ -49,9 +58,9 @@ class ReportWeekNavigator extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
         decoration: BoxDecoration(
-          color: const Color(0xFF16171A),
+          color: cardBg,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: const Color(0xFF26282F)),
+          border: Border.all(color: borderCol),
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -66,9 +75,9 @@ class ReportWeekNavigator extends StatelessWidget {
                   width: 32,
                   height: 32,
                   alignment: Alignment.center,
-                  child: const Icon(
+                  child: Icon(
                     Icons.chevron_left_rounded,
-                    color: Color(0xFFA1A1AA),
+                    color: iconCol,
                     size: 20,
                   ),
                 ),
@@ -88,32 +97,32 @@ class ReportWeekNavigator extends StatelessWidget {
                       mainAxisAlignment: MainAxisAlignment.center,
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Icon(
+                        Icon(
                           Icons.calendar_today_outlined,
                           size: 13,
-                          color: Color(0xFFA1A1AA),
+                          color: iconCol,
                         ),
                         const SizedBox(width: 6),
                         Flexible(
                           child: Text(
                             _formatWeekRange(),
                             overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 12,
                               fontWeight: FontWeight.w600,
                               letterSpacing: -0.2,
-                              color: Color(0xFFE5E7EB),
+                              color: titleCol,
                             ),
                           ),
                         ),
                         if (_isThisWeek) ...[
                           const SizedBox(width: 4),
-                          const Text(
+                          Text(
                             '· This week',
                             style: TextStyle(
                               fontSize: 10,
                               fontWeight: FontWeight.w500,
-                              color: Color(0xFF71717A),
+                              color: subtleCol,
                             ),
                           ),
                         ],
@@ -136,9 +145,7 @@ class ReportWeekNavigator extends StatelessWidget {
                   alignment: Alignment.center,
                   child: Icon(
                     Icons.chevron_right_rounded,
-                    color: canGoNext
-                        ? const Color(0xFFA1A1AA)
-                        : const Color(0xFF52525B),
+                    color: canGoNext ? iconCol : disabledIconCol,
                     size: 20,
                   ),
                 ),

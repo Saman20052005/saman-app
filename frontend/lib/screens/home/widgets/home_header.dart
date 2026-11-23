@@ -26,6 +26,7 @@ class HomeHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = SamanHomeTokens.of(context);
     return Padding(
       padding: const EdgeInsets.symmetric(
         horizontal: SamanHomeTokens.spacingLg,
@@ -43,14 +44,14 @@ class HomeHeader extends StatelessWidget {
                   'Hello, $userName',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: SamanHomeTokens.screenTitle,
+                  style: tokens.screenTitle,
                 ),
                 const SizedBox(height: 2),
                 Text(
                   dateSubtitle,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: SamanHomeTokens.headerSubtitle,
+                  style: tokens.headerSubtitle,
                 ),
               ],
             ),
@@ -59,7 +60,7 @@ class HomeHeader extends StatelessWidget {
           _HeaderSquareButton(
             icon: Icons.notifications_outlined,
             hasBadge: hasUnreadNotifications,
-            badgeColor: SamanHomeTokens.greenAccent,
+            badgeColor: tokens.greenAccent,
             tooltip: 'Notifications',
             onTap: onNotificationTap,
           ),
@@ -79,19 +80,20 @@ class _HeaderSquareButton extends StatelessWidget {
   const _HeaderSquareButton({
     required this.icon,
     this.hasBadge = false,
-    this.badgeColor = SamanHomeTokens.greenAccent,
+    this.badgeColor,
     this.tooltip,
     this.onTap,
   });
 
   final IconData icon;
   final bool hasBadge;
-  final Color badgeColor;
+  final Color? badgeColor;
   final String? tooltip;
   final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
+    final tokens = SamanHomeTokens.of(context);
     final button = Material(
       color: Colors.transparent,
       child: InkWell(
@@ -101,10 +103,10 @@ class _HeaderSquareButton extends StatelessWidget {
           width: 38,
           height: 38,
           decoration: BoxDecoration(
-            color: SamanHomeTokens.cardSurface,
+            color: tokens.secondarySurface,
             borderRadius: BorderRadius.circular(SamanHomeTokens.radiusMd),
             border: Border.all(
-              color: SamanHomeTokens.border,
+              color: tokens.border,
               width: 1,
             ),
           ),
@@ -114,7 +116,7 @@ class _HeaderSquareButton extends StatelessWidget {
               Icon(
                 icon,
                 size: 19,
-                color: SamanHomeTokens.textSecondary,
+                color: tokens.textSecondary,
               ),
               if (hasBadge)
                 Positioned(
@@ -124,10 +126,10 @@ class _HeaderSquareButton extends StatelessWidget {
                     width: 6,
                     height: 6,
                     decoration: BoxDecoration(
-                      color: badgeColor,
+                      color: badgeColor ?? tokens.mintAccent,
                       shape: BoxShape.circle,
                       border: Border.all(
-                        color: SamanHomeTokens.cardSurface,
+                        color: tokens.secondarySurface,
                         width: 1.5,
                       ),
                     ),

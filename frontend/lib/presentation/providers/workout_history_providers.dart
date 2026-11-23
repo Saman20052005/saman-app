@@ -7,6 +7,8 @@ import '../../data/repositories/exercise_repository_impl.dart';
 import '../../services/api_client.dart';
 import 'active_workout_providers.dart';
 
+import '../../controllers/chat_controller.dart';
+import '../../providers/nutrition_provider.dart';
 import '../../utils/auth_helper.dart';
 
 part 'workout_history_providers.g.dart';
@@ -77,6 +79,8 @@ class ActiveSessionSaver extends _$ActiveSessionSaver {
             secondsCompleted: set.unit == SetUnit.seconds ? set.seconds : null,
             weightKg: set.weightKg!,
             isCompleted: true,
+            cvDetected: exercise.cvFormSummary != null,
+            cvFormSummary: exercise.cvFormSummary,
           ),
     ];
     final draft = WorkoutSession(
@@ -133,6 +137,7 @@ class ActiveSessionSaver extends _$ActiveSessionSaver {
           _saveStatus = SessionSaveStatus.saved;
           state = const AsyncValue.data(null);
           ref.invalidate(workoutHistoryProvider);
+          await _syncNutritionAndDailyBrief();
           return true;
         } else {
           _saveStatus = SessionSaveStatus.conflict;
@@ -156,7 +161,19 @@ class ActiveSessionSaver extends _$ActiveSessionSaver {
     _saveStatus = SessionSaveStatus.saved;
     state = const AsyncValue.data(null);
     ref.invalidate(workoutHistoryProvider);
+    await _syncNutritionAndDailyBrief();
     return true;
+  }
+
+  Future<void> _syncNutritionAndDailyBrief() async {
+    try {
+      await ref.read(nutritionProvider.notifier).refreshCurrentPlan();
+    } catch (_) {}
+    try {
+      await ref
+          .read(chatControllerProvider.notifier)
+          .loadDailyBrief(force: true);
+    } catch (_) {}
   }
 
   bool _isConflictError(Object error) {
@@ -192,13 +209,38 @@ class ActiveSessionSaver extends _$ActiveSessionSaver {
     return true;
   }
 }
+
+final workoutLastPerformancesProvider = FutureProvider.autoDispose
+    .family<Map<String, LastExercisePerformance>, String>((ref, idsCsv) async {
+  final ids = idsCsv
+      .split(',')
+      .map((s) => s.trim())
+      .where((s) => s.isNotEmpty)
+      .toList();
+  if (ids.isEmpty) return const {};
+  try {
+    final repo = ref.watch(workoutSessionRepositoryProvider);
+    return await repo.getLastPerformances(ids);
+  } catch (_) {
+    return const {};
+  }
+});
 @riverpod
 class LastWeightProvider extends _$LastWeightProvider {
   @override
   double build(String exerciseId) {
-    // TODO: Implement logic to get last weight from history
-    // For now, return 0.0 as default
+    final active = ref.watch(activeWorkoutSessionProvider);
+    for (final ex in active.exercises) {
+      if (ex.id == exerciseId ||
+          (ex.slug.isNotEmpty && ex.slug == exerciseId)) {
+        if (ex.lastPerformance != null) {
+          return ex.lastPerformance!.lastWeightKg;
+        }
+      }
+    }
     return 0.0;
+
+
   }
 }
 

@@ -22,3 +22,4 @@ email-validator>=2.0
 PyJWT>=2.8
 huggingface_hub
 cloudinary
+certifi>=2024.2.2

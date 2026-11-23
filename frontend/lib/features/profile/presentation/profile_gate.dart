@@ -75,6 +75,9 @@ class _ProfileGateState extends ConsumerState<ProfileGate> {
     }
     // Transient states (loading/error) carry no identity: same session keeps Main.
     final current = state.userId;
+    if (owner == 'guest_dev_user' && current != null && current.isNotEmpty) {
+      return true;
+    }
     return current == null || current == owner;
   }
 

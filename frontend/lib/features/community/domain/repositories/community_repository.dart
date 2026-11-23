@@ -6,6 +6,9 @@ import '../models/draft_post.dart';
 import '../models/post_attachment_snapshot.dart';
 import '../models/community_notification.dart';
 import '../models/question_answer.dart';
+import '../models/community_settings.dart';
+import '../models/community_story.dart';
+import '../models/community_dm.dart';
 
 abstract class CommunityRepository {
   /// Retrieves feed posts according to the active filter (`forYou`, `following`, `qa`).
@@ -94,6 +97,28 @@ abstract class CommunityRepository {
   /// Marks a notification as read (R11).
   Future<void> markNotificationRead(String id);
 
+  /// Marks all notifications as read (R11).
+  Future<void> markAllNotificationsRead();
+
+  /// Retrieves posts authored by [authorId] (R09).
+  Future<List<CommunityPost>> getAuthorPosts(
+    String authorId, {
+    String tab = 'all',
+    String? cursor,
+  });
+
+  /// Updates the current user's community profile.
+  Future<CommunityAuthor> updateProfile({
+    String? name,
+    String? handle,
+    String? title,
+    String? bio,
+    List<String>? interestTopics,
+    String? avatarUrl,
+    String? localAvatarPath,
+    bool removeAvatar = false,
+  });
+
   /// Retrieves author profile and their posts (R09).
   Future<CommunityAuthor> getAuthorProfile(String authorId);
 
@@ -119,4 +144,65 @@ abstract class CommunityRepository {
 
   /// Upvotes an answer (R15).
   Future<bool> upvoteAnswer(String questionId, String answerId);
+
+  // Wave 4: Social Settings, Block/Mute/Report, Stories 24h, Share
+  Future<CommunitySettings> getSettings();
+  Future<CommunitySettings> updateSettings({
+    bool? isPrivateAccount,
+    String? whoCanDm,
+    String? whoCanComment,
+    bool? hideLikeCounts,
+    bool? showActivityStatus,
+    List<String>? mutedKeywords,
+  });
+  Future<bool> blockUser(String targetUserId);
+  Future<bool> unblockUser(String targetUserId);
+  Future<List<CommunityAuthor>> getBlockedUsers();
+  Future<bool> muteUser(String targetUserId);
+  Future<bool> unmuteUser(String targetUserId);
+  Future<List<CommunityAuthor>> getMutedUsers();
+  Future<CommunityReportReceipt> reportContent({
+    required String targetType,
+    required String targetId,
+    required String reason,
+    String details = '',
+  });
+  Future<List<CommunityStoryAuthorGroup>> getStories();
+  Future<CommunityStory> createStory({
+    required String mediaType,
+    String? mediaUrl,
+    String caption = '',
+    String? backgroundColor,
+    String privacy = 'public',
+  });
+  Future<int> markStoryViewed(String storyId);
+  Future<bool> deleteStory(String storyId);
+  Future<int> sharePost(String postId);
+
+  // Wave 4: Direct Messages (Messenger-Lite)
+  Future<DmConversation> createOrGetConversation(String targetUserId);
+  Future<DmConversationsPage> getConversations({int limit = 20, String? cursor});
+  Future<DmMessagesPage> getMessages(
+    String conversationId, {
+    int limit = 30,
+    String? cursor,
+  });
+  Future<DmMessage> sendMessage({
+    required String conversationId,
+    required DmMessageType type,
+    String content = '',
+    String? mediaUrl,
+    double? durationSeconds,
+    String? sharedPostId,
+    String? replyToMessageId,
+    String? idempotencyKey,
+  });
+  Future<void> markConversationRead(String conversationId);
+  Future<bool> deleteMessage(String messageId);
+  Future<int> getDmUnreadCount();
+  Future<DmMediaUploadResult> uploadDmMedia({
+    required List<int> bytes,
+    required String filename,
+    required String mimeType,
+  });
 }

@@ -9,6 +9,12 @@ class CommunityAuthor {
   final int followingCount;
   final int postCount;
   final bool isFollowing;
+  final String? handle;
+  final String? bio;
+  final List<String> interestTopics;
+  final int workoutPostCount;
+  final int mealPostCount;
+  final int totalLikesReceived;
 
   const CommunityAuthor({
     required this.id,
@@ -20,6 +26,12 @@ class CommunityAuthor {
     this.followingCount = 0,
     this.postCount = 0,
     this.isFollowing = false,
+    this.handle,
+    this.bio,
+    this.interestTopics = const [],
+    this.workoutPostCount = 0,
+    this.mealPostCount = 0,
+    this.totalLikesReceived = 0,
   });
 
   CommunityAuthor copyWith({
@@ -32,6 +44,12 @@ class CommunityAuthor {
     int? followingCount,
     int? postCount,
     bool? isFollowing,
+    String? handle,
+    String? bio,
+    List<String>? interestTopics,
+    int? workoutPostCount,
+    int? mealPostCount,
+    int? totalLikesReceived,
   }) {
     return CommunityAuthor(
       id: id ?? this.id,
@@ -43,6 +61,12 @@ class CommunityAuthor {
       followingCount: followingCount ?? this.followingCount,
       postCount: postCount ?? this.postCount,
       isFollowing: isFollowing ?? this.isFollowing,
+      handle: handle ?? this.handle,
+      bio: bio ?? this.bio,
+      interestTopics: interestTopics ?? this.interestTopics,
+      workoutPostCount: workoutPostCount ?? this.workoutPostCount,
+      mealPostCount: mealPostCount ?? this.mealPostCount,
+      totalLikesReceived: totalLikesReceived ?? this.totalLikesReceived,
     );
   }
 }

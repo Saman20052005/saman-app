@@ -8,12 +8,13 @@ import 'package:health_ai_app/features/profile/domain/entities/profile_entity.da
 import 'package:health_ai_app/features/profile/domain/entities/profile_snapshot.dart';
 import 'package:health_ai_app/providers/profile_provider.dart';
 import 'package:health_ai_app/screens/chat/widgets/saman_chat_drawer.dart';
+import 'package:health_ai_app/screens/chat/widgets/saman_account_popup_menu.dart';
 import 'package:health_ai_app/screens/chat/widgets/history_analytics_sheet.dart';
 import 'package:health_ai_app/screens/chat_screen.dart';
-import 'package:health_ai_app/screens/profile_screen.dart';
 import 'package:health_ai_app/services/analytics_service.dart';
 
-class _MockChatNotifier extends StateNotifier<ChatState> implements ChatController {
+class _MockChatNotifier extends StateNotifier<ChatState>
+    implements ChatController {
   final List<String> sentMessages = [];
   bool clearChatCalled = false;
   bool newConversationCalled = false;
@@ -32,13 +33,17 @@ class _MockChatNotifier extends StateNotifier<ChatState> implements ChatControll
                 ChatConversationSummary(
                   id: 'c2',
                   title: 'Kế hoạch dinh dưỡng TDEE',
-                  updatedAt: DateTime.now().subtract(const Duration(days: 1)).toIso8601String(),
+                  updatedAt: DateTime.now()
+                      .subtract(const Duration(days: 1))
+                      .toIso8601String(),
                 ),
                 for (int i = 3; i <= 20; i++)
                   ChatConversationSummary(
                     id: 'c$i',
                     title: 'Lịch sử hội thoại thứ $i về bài tập và chế độ ăn',
-                    updatedAt: DateTime.now().subtract(Duration(days: i)).toIso8601String(),
+                    updatedAt: DateTime.now()
+                        .subtract(Duration(days: i))
+                        .toIso8601String(),
                   ),
               ],
               activeConversationId: 'c1',
@@ -93,7 +98,8 @@ class _MockChatNotifier extends StateNotifier<ChatState> implements ChatControll
   }
 
   @override
-  Future<void> analyzeFoodPhoto(XFile file, {String? caption, String? mode}) async {}
+  Future<void> analyzeFoodPhoto(XFile file,
+      {String? caption, String? mode}) async {}
 
   @override
   void markMealLogged() {}
@@ -150,7 +156,9 @@ Widget _buildSidebarTestApp({
 
 void main() {
   group('CP-02 · Saman Coach Sidebar & Drawer Acceptance Matrix', () {
-    testWidgets('1. Desktop Viewport (1024x768): Permanent sidebar rendered, drawer is null', (tester) async {
+    testWidgets(
+        '1. Desktop Viewport (1024x768): Permanent sidebar rendered, drawer is null',
+        (tester) async {
       tester.view.physicalSize = const Size(1024 * 2, 768 * 2);
       tester.view.devicePixelRatio = 2.0;
       addTearDown(() {
@@ -170,8 +178,16 @@ void main() {
 
       // Verify Coach tools section
       expect(find.text('Coach tools'), findsOneWidget);
-      expect(find.descendant(of: find.byType(SamanChatDrawer), matching: find.text('Phân tích lịch sử')), findsOneWidget);
-      expect(find.descendant(of: find.byType(SamanChatDrawer), matching: find.text('Phân tích ảnh món ăn')), findsOneWidget);
+      expect(
+          find.descendant(
+              of: find.byType(SamanChatDrawer),
+              matching: find.text('Phân tích lịch sử')),
+          findsOneWidget);
+      expect(
+          find.descendant(
+              of: find.byType(SamanChatDrawer),
+              matching: find.text('Phân tích ảnh món ăn')),
+          findsOneWidget);
       expect(find.text('Weekly review'), findsNothing);
       expect(find.text('Workout analysis'), findsNothing);
 
@@ -188,7 +204,8 @@ void main() {
       expect(find.byTooltip('Coach Menu'), findsNothing);
     });
 
-    testWidgets('2. Desktop Viewport: Collapse into Icon Rail and Expand back', (tester) async {
+    testWidgets('2. Desktop Viewport: Collapse into Icon Rail and Expand back',
+        (tester) async {
       tester.view.physicalSize = const Size(1024 * 2, 768 * 2);
       tester.view.devicePixelRatio = 2.0;
       addTearDown(() {
@@ -225,7 +242,9 @@ void main() {
       expect(find.text('Buổi tập thân trên hôm nay'), findsOneWidget);
     });
 
-    testWidgets('3. Mobile Viewport (390x844): Slide-out drawer opens, selects thread and closes', (tester) async {
+    testWidgets(
+        '3. Mobile Viewport (390x844): Slide-out drawer opens, selects thread and closes',
+        (tester) async {
       tester.view.physicalSize = const Size(390 * 3, 844 * 3);
       tester.view.devicePixelRatio = 3.0;
       addTearDown(() {
@@ -264,7 +283,8 @@ void main() {
       expect(find.byType(SamanChatDrawer), findsNothing);
     });
 
-    testWidgets('4. New conversation button triggers newConversation()', (tester) async {
+    testWidgets('4. New conversation button triggers newConversation()',
+        (tester) async {
       tester.view.physicalSize = const Size(1024 * 2, 768 * 2);
       tester.view.devicePixelRatio = 2.0;
       addTearDown(() {
@@ -285,7 +305,9 @@ void main() {
       expect(mockChat.newConversationCalled, isTrue);
     });
 
-    testWidgets('5. Dynamic Resize across 840px breakpoint: switches cleanly between sidebar and drawer', (tester) async {
+    testWidgets(
+        '5. Dynamic Resize across 840px breakpoint: switches cleanly between sidebar and drawer',
+        (tester) async {
       // Start with Desktop size (900x700)
       tester.view.physicalSize = const Size(900 * 2, 700 * 2);
       tester.view.devicePixelRatio = 2.0;
@@ -319,7 +341,9 @@ void main() {
       expect(find.byTooltip('Coach Menu'), findsNothing);
     });
 
-    testWidgets('6. Long conversation list scrolls independently while account row remains pinned', (tester) async {
+    testWidgets(
+        '6. Long conversation list scrolls independently while account row remains pinned',
+        (tester) async {
       tester.view.physicalSize = const Size(1024 * 2, 768 * 2);
       tester.view.devicePixelRatio = 2.0;
       addTearDown(() {
@@ -344,7 +368,8 @@ void main() {
       expect(find.text('sa***@test.com'), findsOneWidget);
     });
 
-    testWidgets('7. Tapping account row navigates to ProfileScreen', (tester) async {
+    testWidgets('7. Tapping account row opens floating account menu',
+        (tester) async {
       tester.view.physicalSize = const Size(1024 * 2, 768 * 2);
       tester.view.devicePixelRatio = 2.0;
       addTearDown(() {
@@ -361,11 +386,12 @@ void main() {
       await tester.tap(accountTapTarget);
       await tester.pumpAndSettle();
 
-      // Profile screen is pushed
-      expect(find.byType(ProfileScreen), findsOneWidget);
+      // Floating account popup menu is opened
+      expect(find.byType(SamanAccountPopupMenu), findsOneWidget);
     });
 
-    testWidgets('8. Fast switching between thread A and thread B', (tester) async {
+    testWidgets('8. Fast switching between thread A and thread B',
+        (tester) async {
       tester.view.physicalSize = const Size(1024 * 2, 768 * 2);
       tester.view.devicePixelRatio = 2.0;
       addTearDown(() {
@@ -388,7 +414,9 @@ void main() {
       expect(mockChat.loadedConversationId, 'c1');
     });
 
-    testWidgets('9. Desktop: Toggle expand -> rail -> expand preserves draft text and scroll position', (tester) async {
+    testWidgets(
+        '9. Desktop: Toggle expand -> rail -> expand preserves draft text and scroll position',
+        (tester) async {
       tester.view.physicalSize = const Size(1024 * 2, 768 * 2);
       tester.view.devicePixelRatio = 2.0;
       addTearDown(() {
@@ -421,7 +449,9 @@ void main() {
       expect(find.text('Bản thảo câu hỏi về chế độ ăn...'), findsOneWidget);
     });
 
-    testWidgets('10. New conversation reset does not create canonical thread until message sent', (tester) async {
+    testWidgets(
+        '10. New conversation reset does not create canonical thread until message sent',
+        (tester) async {
       tester.view.physicalSize = const Size(1024 * 2, 768 * 2);
       tester.view.devicePixelRatio = 2.0;
       addTearDown(() {
@@ -433,7 +463,8 @@ void main() {
       await tester.pumpWidget(_buildSidebarTestApp(chatNotifier: mockChat));
       await tester.pumpAndSettle();
 
-      final initialConversationsCount = mockChat.state.recentConversations.length;
+      final initialConversationsCount =
+          mockChat.state.recentConversations.length;
 
       // Click New conversation
       await tester.tap(find.widgetWithText(InkWell, 'New conversation'));
@@ -442,10 +473,13 @@ void main() {
       // Verified: messages cleared, activeConversationId cleared, but NO new thread added
       expect(mockChat.state.messages, isEmpty);
       expect(mockChat.state.activeConversationId, isNull);
-      expect(mockChat.state.recentConversations.length, equals(initialConversationsCount));
+      expect(mockChat.state.recentConversations.length,
+          equals(initialConversationsCount));
     });
 
-    testWidgets('11. Coach tools: Phân tích lịch sử and Phân tích ảnh món ăn entry points', (tester) async {
+    testWidgets(
+        '11. Coach tools: Phân tích lịch sử and Phân tích ảnh món ăn entry points',
+        (tester) async {
       tester.view.physicalSize = const Size(1024 * 2, 768 * 2);
       tester.view.devicePixelRatio = 2.0;
       addTearDown(() {
@@ -458,8 +492,12 @@ void main() {
       await tester.pumpAndSettle();
 
       // Verify both approved tools exist in sidebar
-      final historyTool = find.descendant(of: find.byType(SamanChatDrawer), matching: find.text('Phân tích lịch sử'));
-      final photoTool = find.descendant(of: find.byType(SamanChatDrawer), matching: find.text('Phân tích ảnh món ăn'));
+      final historyTool = find.descendant(
+          of: find.byType(SamanChatDrawer),
+          matching: find.text('Phân tích lịch sử'));
+      final photoTool = find.descendant(
+          of: find.byType(SamanChatDrawer),
+          matching: find.text('Phân tích ảnh món ăn'));
 
       expect(historyTool, findsOneWidget);
       expect(photoTool, findsOneWidget);
@@ -478,7 +516,9 @@ void main() {
       await tester.pump(const Duration(milliseconds: 300));
     });
 
-    testWidgets('12. Settings gear icon and Saman preferences opens Persona bottom sheet', (tester) async {
+    testWidgets(
+        '12. Settings gear icon and Saman preferences opens Persona bottom sheet',
+        (tester) async {
       tester.view.physicalSize = const Size(1024 * 2, 768 * 2);
       tester.view.devicePixelRatio = 2.0;
       addTearDown(() {
@@ -490,10 +530,16 @@ void main() {
       await tester.pumpWidget(_buildSidebarTestApp(chatNotifier: mockChat));
       await tester.pumpAndSettle();
 
-      // Tap gear icon on pinned account row
+      // Tap gear icon on pinned account row -> opens floating account menu
       final gearBtn = find.byTooltip('Tùy chọn Saman');
       expect(gearBtn, findsOneWidget);
       await tester.tap(gearBtn);
+      await tester.pumpAndSettle();
+
+      expect(find.byType(SamanAccountPopupMenu), findsOneWidget);
+
+      // Tap Cá nhân hóa Coach in the floating menu
+      await tester.tap(find.text('Cá nhân hóa Coach'));
       await tester.pumpAndSettle();
 
       // Persona preferences dialog is shown

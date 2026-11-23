@@ -121,6 +121,8 @@ class PlanDto {
         return Icons.fitness_center;
       case 'psychology':
         return Icons.psychology;
+      case 'psychology_outlined':
+        return Icons.psychology_outlined;
       default:
         return Icons.star_border;
     }
@@ -265,10 +267,19 @@ class CatalogResponseDto {
         }
       }
 
-      final monthlyAmount = (monthlyPrice?.amountCents ?? 0) ~/ 100;
-      final yearlyAmount = (yearlyPrice?.amountCents ?? 0) ~/ 100;
-      final equivAmount =
-          ((yearlyPrice?.yearlyEquivalentMonthlyCents ?? (yearlyPrice?.amountCents ?? 0) ~/ 12)) ~/ 100;
+      final effectiveCurrency =
+          (monthlyPrice?.currency ?? yearlyPrice?.currency ?? currency)
+              .toUpperCase();
+      final isZeroDecimal = effectiveCurrency == 'VND';
+
+      final rawMonthly = monthlyPrice?.amountCents ?? 0;
+      final rawYearly = yearlyPrice?.amountCents ?? 0;
+      final rawEquiv =
+          yearlyPrice?.yearlyEquivalentMonthlyCents ?? (rawYearly ~/ 12);
+
+      final monthlyAmount = isZeroDecimal ? rawMonthly : rawMonthly ~/ 100;
+      final yearlyAmount = isZeroDecimal ? rawYearly : rawYearly ~/ 100;
+      final equivAmount = isZeroDecimal ? rawEquiv : rawEquiv ~/ 100;
 
       final isPurchasable = monthlyPrice?.purchasable ?? false;
 
@@ -279,6 +290,7 @@ class CatalogResponseDto {
         heroDescription: planDto.heroDescription.isNotEmpty
             ? planDto.heroDescription
             : baseline.heroDescription,
+        currency: effectiveCurrency,
         monthlyPrice: monthlyAmount,
         yearlyPrice: yearlyAmount,
         yearlyEquivalentMonthlyPrice: equivAmount,

@@ -9,6 +9,7 @@ import 'package:health_ai_app/presentation/screens/workout_home_screen.dart';
 import 'package:health_ai_app/presentation/screens/workout_review_screen.dart';
 import 'package:health_ai_app/presentation/providers/exercise_providers.dart';
 import 'package:health_ai_app/presentation/providers/workout_history_providers.dart';
+import 'package:health_ai_app/screens/home/widgets/saman_bottom_navigation_bar.dart';
 
 import 'workout_exercise_catalog_test.dart'
     show expectedCategoryIds, allCatalogExercises;
@@ -818,10 +819,15 @@ void main() {
     expect(find.byType(ExerciseLibraryScreen), findsOneWidget);
 
     // 2. In Library bottom bar, tap Workout tab (index 1)
-    final bottomNavWorkout = find.descendant(
+    final bottomNavBar = find.descendant(
       of: find.byType(ExerciseLibraryScreen),
-      matching: find.text('Workout'),
+      matching: find.byType(SamanBottomNavigationBar),
     );
+    expect(bottomNavBar, findsOneWidget);
+    final bottomNavWorkout = find.descendant(
+      of: bottomNavBar,
+      matching: find.byType(InkResponse),
+    ).at(1);
     expect(bottomNavWorkout, findsOneWidget);
     await tester.tap(bottomNavWorkout);
     await tester.pump();

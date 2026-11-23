@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../config/routes.dart';
+import '../../../../screens/home/tokens/saman_home_tokens.dart';
 import '../../domain/models/journey_models.dart';
 import '../providers/journey_providers.dart';
+import '../../../../widgets/saman_feedback_snackbar.dart';
 
 class WalletRewardsScreen extends ConsumerStatefulWidget {
   const WalletRewardsScreen({super.key});
@@ -23,7 +25,24 @@ class _WalletRewardsScreenState extends ConsumerState<WalletRewardsScreen> {
   }
 
   void _showConfirmBottomSheet(BuildContext context, RewardItem reward, WalletState walletState) {
-    final messenger = ScaffoldMessenger.of(context);
+    final tokens = SamanHomeTokens.of(context);
+    final sheetBg =
+        tokens.isDark ? const Color(0xFF16171B) : tokens.cardSurface;
+    final borderColor =
+        tokens.isDark ? const Color(0xFF26282F) : tokens.border;
+    final textPrimary =
+        tokens.isDark ? const Color(0xFFF3F4F6) : tokens.textPrimary;
+    final textSecondary =
+        tokens.isDark ? const Color(0xFF94979E) : tokens.textSecondary;
+    final summaryBg =
+        tokens.isDark ? const Color(0xFF0C0D0E) : tokens.secondarySurface;
+    final cyanColor =
+        tokens.isDark ? const Color(0xFF38BDF8) : const Color(0xFF0284C7);
+    final ctaBg =
+        tokens.isDark ? const Color(0xFFF9FAFB) : const Color(0xFF059669);
+    final ctaFg =
+        tokens.isDark ? const Color(0xFF0C0D0E) : Colors.white;
+
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
@@ -33,10 +52,10 @@ class _WalletRewardsScreenState extends ConsumerState<WalletRewardsScreen> {
 
         return Container(
           padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
-          decoration: const BoxDecoration(
-            color: Color(0xFF16171B),
-            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-            border: Border(top: BorderSide(color: Color(0xFF26282F), width: 1)),
+          decoration: BoxDecoration(
+            color: sheetBg,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+            border: Border(top: BorderSide(color: borderColor, width: 1)),
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -46,26 +65,26 @@ class _WalletRewardsScreenState extends ConsumerState<WalletRewardsScreen> {
                 width: 40,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: const Color(0xFF26282F),
+                  color: borderColor,
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
               const SizedBox(height: 18),
               Text(
                 'Đổi ${reward.title}?',
-                style: const TextStyle(
-                  fontFamily: 'Space Grotesk',
+                style: TextStyle(
+                  fontFamily: 'Manrope',
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
-                  color: Color(0xFFF3F4F6),
+                  color: textPrimary,
                 ),
               ),
               const SizedBox(height: 4),
               Text(
                 'Sử dụng ${reward.pointsCost} điểm',
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 13,
-                  color: Color(0xFF94979E),
+                  color: textSecondary,
                 ),
               ),
               const SizedBox(height: 18),
@@ -75,24 +94,24 @@ class _WalletRewardsScreenState extends ConsumerState<WalletRewardsScreen> {
                 width: double.infinity,
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF0C0D0E),
+                  color: summaryBg,
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: const Color(0xFF26282F), width: 1),
+                  border: Border.all(color: borderColor, width: 1),
                 ),
                 alignment: Alignment.center,
                 child: Text.rich(
                   TextSpan(
                     text: 'Sau khi đổi: ',
-                    style: const TextStyle(fontSize: 13, color: Color(0xFF94979E)),
+                    style: TextStyle(fontSize: 13, color: textSecondary),
                     children: [
                       TextSpan(
                         text: '$newPoints điểm',
-                        style: const TextStyle(fontWeight: FontWeight.w600, color: Color(0xFFF3F4F6)),
+                        style: TextStyle(fontWeight: FontWeight.w600, color: textPrimary),
                       ),
                       const TextSpan(text: ' · '),
                       TextSpan(
                         text: '$newCredits lượt AI',
-                        style: const TextStyle(fontWeight: FontWeight.w600, color: Color(0xFF38BDF8)),
+                        style: TextStyle(fontWeight: FontWeight.w600, color: cyanColor),
                       ),
                     ],
                   ),
@@ -112,44 +131,23 @@ class _WalletRewardsScreenState extends ConsumerState<WalletRewardsScreen> {
                         .redeemReward(reward);
                     if (!mounted) return;
                     if (success) {
-                      messenger.showSnackBar(
-                        SnackBar(
-                          backgroundColor: const Color(0xFF212328),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            side: const BorderSide(color: Color(0x4D10B981)),
-                          ),
-                          content: Row(
-                            children: [
-                              const Icon(Icons.check_circle_rounded, color: Color(0xFF10B981), size: 20),
-                              const SizedBox(width: 10),
-                              Expanded(
-                                child: Text(
-                                  'Đã đổi thành công ${reward.title}.',
-                                  style: const TextStyle(color: Color(0xFFF3F4F6), fontSize: 13),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
+                      SamanFeedbackSnackBar.show(
+                        context,
+                        message: 'Đã đổi thành công ${reward.title}.',
+                        type: FeedbackType.success,
                       );
                     } else {
                       final err = ref.read(walletControllerProvider).errorMessage ?? 'Đổi quà thất bại.';
-                      messenger.showSnackBar(
-                        SnackBar(
-                          backgroundColor: const Color(0xFF212328),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            side: const BorderSide(color: Color(0x4DEF4444)),
-                          ),
-                          content: Text(err, style: const TextStyle(color: Color(0xFFF3F4F6))),
-                        ),
+                      SamanFeedbackSnackBar.show(
+                        context,
+                        message: err,
+                        type: FeedbackType.error,
                       );
                     }
                   },
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFF9FAFB),
-                    foregroundColor: const Color(0xFF0C0D0E),
+                    backgroundColor: ctaBg,
+                    foregroundColor: ctaFg,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     elevation: 0,
                   ),
@@ -159,7 +157,7 @@ class _WalletRewardsScreenState extends ConsumerState<WalletRewardsScreen> {
               const SizedBox(height: 8),
               TextButton(
                 onPressed: () => Navigator.of(ctx).pop(),
-                child: const Text('Để sau', style: TextStyle(color: Color(0xFF94979E), fontSize: 13)),
+                child: Text('Để sau', style: TextStyle(color: textSecondary, fontSize: 13)),
               ),
             ],
           ),
@@ -170,6 +168,34 @@ class _WalletRewardsScreenState extends ConsumerState<WalletRewardsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = SamanHomeTokens.of(context);
+    final scaffoldBg =
+        tokens.isDark ? const Color(0xFF0C0D0E) : tokens.canvas;
+    final cardBg =
+        tokens.isDark ? const Color(0xFF16171B) : tokens.cardSurface;
+    final borderColor =
+        tokens.isDark ? const Color(0xFF26282F) : tokens.border;
+    final textPrimary =
+        tokens.isDark ? const Color(0xFFF3F4F6) : tokens.textPrimary;
+    final textSecondary =
+        tokens.isDark ? const Color(0xFF94979E) : tokens.textSecondary;
+    final emerald =
+        tokens.isDark ? const Color(0xFF10B981) : tokens.greenAccent;
+    final cyanColor =
+        tokens.isDark ? const Color(0xFF38BDF8) : const Color(0xFF0284C7);
+    final selectedOfferBg =
+        tokens.isDark ? const Color(0x0810B981) : const Color(0x0D059669);
+    final unselectedRadioBorder =
+        tokens.isDark ? const Color(0xFF383A42) : tokens.borderHigh;
+    final ctaBg =
+        tokens.isDark ? const Color(0xFFF9FAFB) : const Color(0xFF059669);
+    final ctaFg =
+        tokens.isDark ? const Color(0xFF0C0D0E) : Colors.white;
+    final ctaDisabledBg =
+        tokens.isDark ? const Color(0xFF212328) : tokens.secondarySurface;
+    final ctaDisabledFg =
+        tokens.isDark ? const Color(0xFF94979E) : tokens.textMuted;
+
     final walletState = ref.watch(walletControllerProvider);
     final bottomInset = MediaQuery.paddingOf(context).bottom;
 
@@ -188,7 +214,7 @@ class _WalletRewardsScreenState extends ConsumerState<WalletRewardsScreen> {
         !walletState.isRedeeming;
 
     return Scaffold(
-      backgroundColor: const Color(0xFF0C0D0E),
+      backgroundColor: scaffoldBg,
       body: SafeArea(
         bottom: false,
         child: Column(
@@ -202,7 +228,7 @@ class _WalletRewardsScreenState extends ConsumerState<WalletRewardsScreen> {
                   Row(
                     children: [
                       IconButton(
-                        icon: const Icon(Icons.arrow_back, color: Color(0xFF94979E)),
+                        icon: Icon(Icons.arrow_back, color: textSecondary),
                         onPressed: () {
                           if (Navigator.of(context).canPop()) {
                             Navigator.of(context).pop();
@@ -212,36 +238,36 @@ class _WalletRewardsScreenState extends ConsumerState<WalletRewardsScreen> {
                         },
                       ),
                       const SizedBox(width: 4),
-                      const Text(
+                      Text(
                         'Ví điểm & Lượt AI',
                         style: TextStyle(
-                          fontFamily: 'Space Grotesk',
+                          fontFamily: 'Manrope',
                           fontSize: 22,
                           fontWeight: FontWeight.w600,
-                          color: Color(0xFFF3F4F6),
+                          color: textPrimary,
                           letterSpacing: -0.5,
                         ),
                       ),
                     ],
                   ),
                   IconButton(
-                    icon: const Icon(Icons.info_outline_rounded, color: Color(0xFF94979E), size: 20),
+                    icon: Icon(Icons.info_outline_rounded, color: textSecondary, size: 20),
                     onPressed: () {
                       showDialog(
                         context: context,
                         builder: (_) => AlertDialog(
-                          backgroundColor: const Color(0xFF16171B),
+                          backgroundColor: cardBg,
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                          title: const Text('Thông tin đổi điểm', style: TextStyle(color: Color(0xFFF3F4F6), fontSize: 16)),
-                          content: const Text(
+                          title: Text('Thông tin đổi điểm', style: TextStyle(color: textPrimary, fontSize: 16)),
+                          content: Text(
                             'Điểm Saman Points (SP) được tích lũy khi bạn hoàn thành đầy đủ nhiệm vụ mỗi ngày (+20 điểm/ngày). '
-                            'Hạ tầng quy đổi lượt AI đang trong giai đoạn kết nối và sẽ mở trong phiên bản tiếp theo.',
-                            style: TextStyle(color: Color(0xFF94979E), fontSize: 13, height: 1.4),
+                            'Khi đổi điểm lấy lượt AI, hệ thống sẽ cộng trực tiếp lượt bonus vào hạn mức AI hôm nay của bạn (Core 3, Pro 3, Food Vision).',
+                            style: TextStyle(color: textSecondary, fontSize: 13, height: 1.4),
                           ),
                           actions: [
                             TextButton(
                               onPressed: () => Navigator.pop(context),
-                              child: const Text('Đã hiểu', style: TextStyle(color: Color(0xFF10B981))),
+                              child: Text('Đã hiểu', style: TextStyle(color: emerald)),
                             ),
                           ],
                         ),
@@ -255,8 +281,8 @@ class _WalletRewardsScreenState extends ConsumerState<WalletRewardsScreen> {
             // MAIN SCROLLABLE CONTENT
             Expanded(
               child: RefreshIndicator(
-                color: const Color(0xFF10B981),
-                backgroundColor: const Color(0xFF16171B),
+                color: emerald,
+                backgroundColor: cardBg,
                 onRefresh: () => ref.read(walletControllerProvider.notifier).loadWalletData(),
                 child: SingleChildScrollView(
                   physics: const AlwaysScrollableScrollPhysics(),
@@ -268,23 +294,23 @@ class _WalletRewardsScreenState extends ConsumerState<WalletRewardsScreen> {
                       // 1. DUAL BALANCE CARD
                       Column(
                         children: [
-                          const Text(
+                          Text(
                             'Điểm tích lũy',
                             style: TextStyle(
                               fontSize: 12,
                               fontWeight: FontWeight.w500,
-                              color: Color(0xFF94979E),
+                              color: textSecondary,
                               letterSpacing: 0.5,
                             ),
                           ),
                           const SizedBox(height: 4),
                           Text(
                             '${walletState.balance}',
-                            style: const TextStyle(
-                              fontFamily: 'Space Grotesk',
+                            style: TextStyle(
+                              fontFamily: 'Manrope',
                               fontSize: 48,
                               fontWeight: FontWeight.bold,
-                              color: Color(0xFFF3F4F6),
+                              color: textPrimary,
                               letterSpacing: -1.0,
                             ),
                           ),
@@ -292,29 +318,29 @@ class _WalletRewardsScreenState extends ConsumerState<WalletRewardsScreen> {
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
                             decoration: BoxDecoration(
-                              color: const Color(0xFF16171B),
+                              color: cardBg,
                               borderRadius: BorderRadius.circular(20),
-                              border: Border.all(color: const Color(0xFF26282F), width: 1),
+                              border: Border.all(color: borderColor, width: 1),
                             ),
                             child: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                const Icon(Icons.smart_toy_rounded, color: Color(0xFF38BDF8), size: 15),
+                                Icon(Icons.smart_toy_rounded, color: cyanColor, size: 15),
                                 const SizedBox(width: 6),
                                 Text(
                                   '${walletState.aiCredits} lượt AI',
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                     fontSize: 12,
                                     fontWeight: FontWeight.w600,
-                                    color: Color(0xFFF3F4F6),
+                                    color: textPrimary,
                                   ),
                                 ),
                                 const SizedBox(width: 4),
-                                const Text(
+                                Text(
                                   'khả dụng',
                                   style: TextStyle(
                                     fontSize: 12,
-                                    color: Color(0xFF94979E),
+                                    color: textSecondary,
                                   ),
                                 ),
                               ],
@@ -328,28 +354,28 @@ class _WalletRewardsScreenState extends ConsumerState<WalletRewardsScreen> {
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text(
+                          Text(
                             'Đổi lượt AI',
                             style: TextStyle(
-                              fontFamily: 'Space Grotesk',
+                              fontFamily: 'Manrope',
                               fontSize: 15,
                               fontWeight: FontWeight.w600,
-                              color: Color(0xFFF3F4F6),
+                              color: textPrimary,
                             ),
                           ),
                           const SizedBox(height: 2),
-                          const Text(
+                          Text(
                             'Dùng điểm để đổi lượt phân tích AI.',
-                            style: TextStyle(fontSize: 12, color: Color(0xFF94979E)),
+                            style: TextStyle(fontSize: 12, color: textSecondary),
                           ),
                           const SizedBox(height: 12),
 
                           // Offers List
                           Container(
                             decoration: BoxDecoration(
-                              color: const Color(0xFF16171B),
+                              color: cardBg,
                               borderRadius: BorderRadius.circular(16),
-                              border: Border.all(color: const Color(0xFF26282F), width: 1),
+                              border: Border.all(color: borderColor, width: 1),
                             ),
                             child: ClipRRect(
                               borderRadius: BorderRadius.circular(16),
@@ -357,7 +383,7 @@ class _WalletRewardsScreenState extends ConsumerState<WalletRewardsScreen> {
                                 shrinkWrap: true,
                                 physics: const NeverScrollableScrollPhysics(),
                                 itemCount: walletState.catalog.length,
-                                separatorBuilder: (_, __) => const Divider(color: Color(0xFF26282F), height: 1),
+                                separatorBuilder: (_, __) => Divider(color: borderColor, height: 1),
                                 itemBuilder: (context, index) {
                                   final item = walletState.catalog[index];
                                   final isSelected = selected?.id == item.id;
@@ -368,16 +394,11 @@ class _WalletRewardsScreenState extends ConsumerState<WalletRewardsScreen> {
                                     onTap: isAvailable
                                         ? () => setState(() => _selectedReward = item)
                                         : () {
-                                            ScaffoldMessenger.of(context).hideCurrentSnackBar();
-                                            ScaffoldMessenger.of(context).showSnackBar(
-                                              SnackBar(
-                                                backgroundColor: const Color(0xFF212328),
-                                                duration: const Duration(seconds: 2),
-                                                content: Text(
-                                                  '${item.title}: Gói đổi sắp ra mắt (đang kết nối hạ tầng AI quota)',
-                                                  style: const TextStyle(fontSize: 13, color: Color(0xFFF3F4F6)),
-                                                ),
-                                              ),
+                                            SamanFeedbackSnackBar.show(
+                                              context,
+                                              message: '${item.title}: ${item.statusNote}',
+                                              type: FeedbackType.info,
+                                              duration: const Duration(seconds: 2),
                                             );
                                           },
                                     child: Opacity(
@@ -385,7 +406,7 @@ class _WalletRewardsScreenState extends ConsumerState<WalletRewardsScreen> {
                                       child: Container(
                                         padding: const EdgeInsets.all(16),
                                         color: isSelected && isAvailable
-                                            ? const Color(0x0810B981)
+                                            ? selectedOfferBg
                                             : Colors.transparent,
                                         child: Row(
                                           children: [
@@ -397,8 +418,8 @@ class _WalletRewardsScreenState extends ConsumerState<WalletRewardsScreen> {
                                                 shape: BoxShape.circle,
                                                 border: Border.all(
                                                   color: isSelected && isAvailable
-                                                      ? const Color(0xFF10B981)
-                                                      : const Color(0xFF383A42),
+                                                      ? emerald
+                                                      : unselectedRadioBorder,
                                                   width: 1.5,
                                                 ),
                                               ),
@@ -407,9 +428,9 @@ class _WalletRewardsScreenState extends ConsumerState<WalletRewardsScreen> {
                                                       child: Container(
                                                         width: 10,
                                                         height: 10,
-                                                        decoration: const BoxDecoration(
+                                                        decoration: BoxDecoration(
                                                           shape: BoxShape.circle,
-                                                          color: Color(0xFF10B981),
+                                                          color: emerald,
                                                         ),
                                                       ),
                                                     )
@@ -424,10 +445,10 @@ class _WalletRewardsScreenState extends ConsumerState<WalletRewardsScreen> {
                                                 children: [
                                                   Text(
                                                     item.title,
-                                                    style: const TextStyle(
+                                                    style: TextStyle(
                                                       fontSize: 14,
                                                       fontWeight: FontWeight.w500,
-                                                      color: Color(0xFFF3F4F6),
+                                                      color: textPrimary,
                                                     ),
                                                   ),
                                                   const SizedBox(height: 2),
@@ -439,9 +460,7 @@ class _WalletRewardsScreenState extends ConsumerState<WalletRewardsScreen> {
                                                             : item.description),
                                                     style: TextStyle(
                                                       fontSize: 12,
-                                                      color: !isAvailable || !hasEnoughPoints
-                                                          ? const Color(0xFF94979E)
-                                                          : const Color(0xFF94979E),
+                                                      color: textSecondary,
                                                     ),
                                                   ),
                                                 ],
@@ -455,8 +474,8 @@ class _WalletRewardsScreenState extends ConsumerState<WalletRewardsScreen> {
                                                 fontSize: 13,
                                                 fontWeight: FontWeight.w600,
                                                 color: hasEnoughPoints && isAvailable
-                                                    ? const Color(0xFFF3F4F6)
-                                                    : const Color(0xFF94979E),
+                                                    ? textPrimary
+                                                    : textSecondary,
                                               ),
                                             ),
                                           ],
@@ -469,9 +488,9 @@ class _WalletRewardsScreenState extends ConsumerState<WalletRewardsScreen> {
                             ),
                           ),
                           const SizedBox(height: 8),
-                          const Text(
-                            'Điểm thưởng Saman Points ghi nhận kỷ luật rèn luyện của bạn. Tính năng quy đổi lượt AI đang trong quá trình kết nối hạ tầng.',
-                            style: TextStyle(fontSize: 11, color: Color(0xFF94979E), height: 1.4),
+                          Text(
+                            'Đổi điểm Saman Points để cộng trực tiếp lượt bonus vào hạn mức AI hôm nay (Core 3, Pro 3, Food Vision).',
+                            style: TextStyle(fontSize: 11, color: textSecondary, height: 1.4),
                           ),
                         ],
                       ),
@@ -481,13 +500,13 @@ class _WalletRewardsScreenState extends ConsumerState<WalletRewardsScreen> {
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text(
+                          Text(
                             'Lịch sử giao dịch',
                             style: TextStyle(
-                              fontFamily: 'Space Grotesk',
+                              fontFamily: 'Manrope',
                               fontSize: 15,
                               fontWeight: FontWeight.w600,
-                              color: Color(0xFFF3F4F6),
+                              color: textPrimary,
                             ),
                           ),
                           const SizedBox(height: 12),
@@ -497,26 +516,26 @@ class _WalletRewardsScreenState extends ConsumerState<WalletRewardsScreen> {
                               width: double.infinity,
                               padding: const EdgeInsets.all(28),
                               decoration: BoxDecoration(
-                                color: const Color(0xFF16171B),
+                                color: cardBg,
                                 borderRadius: BorderRadius.circular(16),
-                                border: Border.all(color: const Color(0xFF26282F), width: 1),
+                                border: Border.all(color: borderColor, width: 1),
                               ),
-                              child: const Column(
+                              child: Column(
                                 children: [
-                                  Icon(Icons.receipt_long_rounded, color: Color(0xFF94979E), size: 28),
-                                  SizedBox(height: 8),
+                                  Icon(Icons.receipt_long_rounded, color: textSecondary, size: 28),
+                                  const SizedBox(height: 8),
                                   Text(
                                     'Chưa có giao dịch nào',
                                     style: TextStyle(
                                       fontSize: 13,
                                       fontWeight: FontWeight.w500,
-                                      color: Color(0xFFF3F4F6),
+                                      color: textPrimary,
                                     ),
                                   ),
-                                  SizedBox(height: 4),
+                                  const SizedBox(height: 4),
                                   Text(
                                     'Điểm thưởng và lịch sử đổi lượt AI sẽ xuất hiện tại đây.',
-                                    style: TextStyle(fontSize: 12, color: Color(0xFF94979E)),
+                                    style: TextStyle(fontSize: 12, color: textSecondary),
                                     textAlign: TextAlign.center,
                                   ),
                                 ],
@@ -525,9 +544,9 @@ class _WalletRewardsScreenState extends ConsumerState<WalletRewardsScreen> {
                           else
                             Container(
                               decoration: BoxDecoration(
-                                color: const Color(0xFF16171B),
+                                color: cardBg,
                                 borderRadius: BorderRadius.circular(16),
-                                border: Border.all(color: const Color(0xFF26282F), width: 1),
+                                border: Border.all(color: borderColor, width: 1),
                               ),
                               child: ClipRRect(
                                 borderRadius: BorderRadius.circular(16),
@@ -535,7 +554,7 @@ class _WalletRewardsScreenState extends ConsumerState<WalletRewardsScreen> {
                                   shrinkWrap: true,
                                   physics: const NeverScrollableScrollPhysics(),
                                   itemCount: walletState.transactions.length,
-                                  separatorBuilder: (_, __) => const Divider(color: Color(0xFF26282F), height: 1),
+                                  separatorBuilder: (_, __) => Divider(color: borderColor, height: 1),
                                   itemBuilder: (context, index) {
                                     final tx = walletState.transactions[index];
                                     final isPositive = tx.amount > 0;
@@ -551,18 +570,18 @@ class _WalletRewardsScreenState extends ConsumerState<WalletRewardsScreen> {
                                               children: [
                                                 Text(
                                                   tx.description,
-                                                  style: const TextStyle(
+                                                  style: TextStyle(
                                                     fontSize: 13,
                                                     fontWeight: FontWeight.w500,
-                                                    color: Color(0xFFF3F4F6),
+                                                    color: textPrimary,
                                                   ),
                                                 ),
                                                 const SizedBox(height: 2),
                                                 Text(
                                                   tx.createdAt.split('T').first,
-                                                  style: const TextStyle(
+                                                  style: TextStyle(
                                                     fontSize: 11,
-                                                    color: Color(0xFF94979E),
+                                                    color: textSecondary,
                                                   ),
                                                 ),
                                               ],
@@ -573,9 +592,7 @@ class _WalletRewardsScreenState extends ConsumerState<WalletRewardsScreen> {
                                             style: TextStyle(
                                               fontSize: 13,
                                               fontWeight: FontWeight.w600,
-                                              color: isPositive
-                                                  ? const Color(0xFF10B981)
-                                                  : const Color(0xFFF3F4F6),
+                                              color: isPositive ? emerald : textPrimary,
                                             ),
                                           ),
                                         ],
@@ -597,9 +614,9 @@ class _WalletRewardsScreenState extends ConsumerState<WalletRewardsScreen> {
             // STICKY BOTTOM PRIMARY ACTION
             Container(
               padding: EdgeInsets.fromLTRB(20, 12, 20, 16 + bottomInset),
-              decoration: const BoxDecoration(
-                color: Color(0xFF0C0D0E),
-                border: Border(top: BorderSide(color: Color(0xFF26282F), width: 1)),
+              decoration: BoxDecoration(
+                color: scaffoldBg,
+                border: Border(top: BorderSide(color: borderColor, width: 1)),
               ),
               child: SizedBox(
                 width: double.infinity,
@@ -609,23 +626,23 @@ class _WalletRewardsScreenState extends ConsumerState<WalletRewardsScreen> {
                       ? () => _showConfirmBottomSheet(context, selected, walletState)
                       : null,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFF9FAFB),
-                    foregroundColor: const Color(0xFF0C0D0E),
-                    disabledBackgroundColor: const Color(0xFF212328),
-                    disabledForegroundColor: const Color(0xFF94979E),
+                    backgroundColor: ctaBg,
+                    foregroundColor: ctaFg,
+                    disabledBackgroundColor: ctaDisabledBg,
+                    disabledForegroundColor: ctaDisabledFg,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                     elevation: 0,
                   ),
                   child: walletState.isRedeeming
-                      ? const SizedBox(
+                      ? SizedBox(
                           width: 20,
                           height: 20,
-                          child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF0C0D0E)),
+                          child: CircularProgressIndicator(strokeWidth: 2, color: ctaFg),
                         )
                       : Text(
                           selected != null && selected.isAvailable
                               ? 'Đổi ${selected.title} với ${selected.pointsCost} điểm'
-                              : 'Các gói đổi sắp ra mắt',
+                              : 'Chọn gói khả dụng để đổi',
                           style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
                         ),
                 ),

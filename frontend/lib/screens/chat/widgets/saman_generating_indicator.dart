@@ -48,6 +48,7 @@ class _SamanGeneratingIndicatorState extends State<SamanGeneratingIndicator>
 
   @override
   Widget build(BuildContext context) {
+    final t = SamanChatTokens.of(context);
     final disableAnimations =
         MediaQuery.maybeOf(context)?.disableAnimations ?? false;
 
@@ -58,15 +59,15 @@ class _SamanGeneratingIndicatorState extends State<SamanGeneratingIndicator>
         mainAxisSize: MainAxisSize.min,
         children: [
           // 1. Identity row: Small S monogram + "Saman"
-          const Row(
+          Row(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              SamanMonogram.chat(),
-              SizedBox(width: 8.0),
+              const SamanMonogram.chat(),
+              const SizedBox(width: 8.0),
               Text(
                 'Saman',
-                style: SamanChatTokens.assistantName,
+                style: t.assistantName,
               ),
             ],
           ),
@@ -77,10 +78,10 @@ class _SamanGeneratingIndicatorState extends State<SamanGeneratingIndicator>
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 14.0, vertical: 10.0),
             decoration: BoxDecoration(
-              color: SamanChatTokens.surface,
+              color: t.surface,
               borderRadius: BorderRadius.circular(12.0),
               border: Border.all(
-                color: SamanChatTokens.borderSubtle,
+                color: t.borderSubtle,
                 width: 1.0,
               ),
             ),
@@ -113,7 +114,7 @@ class _SamanGeneratingIndicatorState extends State<SamanGeneratingIndicator>
           // 3. Natural supporting coach note
           Text(
             widget.supportingText,
-            style: SamanChatTokens.assistantHelper,
+            style: t.assistantHelper,
           ),
         ],
       ),
@@ -134,12 +135,13 @@ class _PulsingDot extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = SamanChatTokens.of(context);
     if (disableAnimations) {
       return Container(
         width: 6,
         height: 6,
-        decoration: const BoxDecoration(
-          color: SamanChatTokens.textSecondary,
+        decoration: BoxDecoration(
+          color: t.textSecondary,
           shape: BoxShape.circle,
         ),
       );
@@ -159,8 +161,8 @@ class _PulsingDot extends StatelessWidget {
       child: Container(
         width: 6,
         height: 6,
-        decoration: const BoxDecoration(
-          color: SamanChatTokens.textSecondary,
+        decoration: BoxDecoration(
+          color: t.textSecondary,
           shape: BoxShape.circle,
         ),
       ),

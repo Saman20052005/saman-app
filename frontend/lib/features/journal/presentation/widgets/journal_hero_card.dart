@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../../screens/home/tokens/saman_home_tokens.dart';
 import '../../domain/models/journal_article.dart';
-import 'journal_preview_sheet.dart';
+import '../screens/journal_article_detail_screen.dart';
 
 /// Featured editorial story card (Hero) in Saman Journal Discover (R01).
 class JournalHeroCard extends StatelessWidget {
@@ -16,29 +16,28 @@ class JournalHeroCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = SamanHomeTokens.of(context);
     return Material(
       color: Colors.transparent,
       child: InkWell(
         onTap: onTap ??
             () {
-              JournalPreviewSheet.show(
-                context,
-                title: article.title,
-                categoryLabel: article.badgeLabel ?? 'Phục hồi',
-                description: article.contentBody ?? article.summary,
-                metricLabel: '${article.readTimeMinutes} phút đọc',
-                imageAsset: article.coverImageAsset,
-                notice:
-                    'Chế độ xem trước nội dung nghiên cứu. Màn đọc toàn văn đầy đủ sẽ được hoàn thiện trong giai đoạn kế tiếp.',
+              Navigator.of(context).push(
+                MaterialPageRoute<void>(
+                  builder: (_) => JournalArticleDetailScreen(
+                    articleId: article.id,
+                    initialArticle: article,
+                  ),
+                ),
               );
             },
         borderRadius: BorderRadius.circular(SamanHomeTokens.radiusLg),
         child: Container(
           decoration: BoxDecoration(
-            color: SamanHomeTokens.cardSurface,
+            color: tokens.cardSurface,
             borderRadius: BorderRadius.circular(SamanHomeTokens.radiusLg),
             border: Border.all(
-              color: SamanHomeTokens.borderSubtle,
+              color: tokens.borderSubtle,
               width: 1,
             ),
           ),
@@ -56,12 +55,12 @@ class JournalHeroCard extends StatelessWidget {
                       article.coverImageAsset,
                       fit: BoxFit.cover,
                       errorBuilder: (_, __, ___) => Container(
-                        color: SamanHomeTokens.cardSurfaceElevated,
-                        child: const Center(
+                        color: tokens.cardSurfaceElevated,
+                        child: Center(
                           child: Icon(
                             Icons.article_outlined,
                             size: 40,
-                            color: SamanHomeTokens.textSecondary,
+                            color: tokens.textSecondary,
                           ),
                         ),
                       ),
@@ -75,8 +74,8 @@ class JournalHeroCard extends StatelessWidget {
                             end: Alignment.bottomCenter,
                             colors: [
                               Colors.transparent,
-                              SamanHomeTokens.cardSurface.withOpacity(0.4),
-                              SamanHomeTokens.cardSurface,
+                              tokens.cardSurface.withOpacity(0.4),
+                              tokens.cardSurface,
                             ],
                             stops: const [0.3, 0.7, 1.0],
                           ),
@@ -93,15 +92,17 @@ class JournalHeroCard extends StatelessWidget {
                           vertical: 4,
                         ),
                         decoration: BoxDecoration(
-                          color: SamanHomeTokens.greenAccent,
+                          color: tokens.greenAccent,
                           borderRadius: BorderRadius.circular(SamanHomeTokens.radiusXs),
                         ),
                         child: Text(
                           (article.badgeLabel ?? 'Phục hồi').toUpperCase(),
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 10.5,
                             fontWeight: FontWeight.w700,
-                            color: Color(0xFF003824),
+                            color: tokens.isDark
+                                ? const Color(0xFF003824)
+                                : const Color(0xFFFFFFFF),
                             letterSpacing: 0.8,
                           ),
                         ),
@@ -119,10 +120,10 @@ class JournalHeroCard extends StatelessWidget {
                   children: [
                     Text(
                       article.title,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 19,
                         fontWeight: FontWeight.w700,
-                        color: SamanHomeTokens.textWhite,
+                        color: tokens.textWhite,
                         height: 1.3,
                         letterSpacing: -0.3,
                       ),
@@ -132,10 +133,10 @@ class JournalHeroCard extends StatelessWidget {
                     const SizedBox(height: 6),
                     Text(
                       article.summary,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 13.5,
                         fontWeight: FontWeight.w400,
-                        color: SamanHomeTokens.textSecondary,
+                        color: tokens.textSecondary,
                         height: 1.4,
                       ),
                       maxLines: 2,
@@ -144,18 +145,18 @@ class JournalHeroCard extends StatelessWidget {
                     const SizedBox(height: 10),
                     Row(
                       children: [
-                        const Icon(
+                        Icon(
                           Icons.schedule_rounded,
                           size: 14,
-                          color: SamanHomeTokens.textSecondary,
+                          color: tokens.textSecondary,
                         ),
                         const SizedBox(width: 4),
                         Text(
                           '${article.readTimeMinutes} phút đọc',
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.w500,
-                            color: SamanHomeTokens.textSecondary,
+                            color: tokens.textSecondary,
                           ),
                         ),
                       ],

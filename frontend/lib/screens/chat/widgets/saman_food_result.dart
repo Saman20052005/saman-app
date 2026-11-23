@@ -24,6 +24,7 @@ class SamanFoodResult extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = SamanChatTokens.of(context);
     return Align(
       alignment: Alignment.centerLeft,
       child: Padding(
@@ -33,14 +34,14 @@ class SamanFoodResult extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             // Assistant identity header
-            const Row(
+            Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                SamanMonogram.chat(),
-                SizedBox(width: 8.0),
+                const SamanMonogram.chat(),
+                const SizedBox(width: 8.0),
                 Text(
                   'Saman',
-                  style: SamanChatTokens.assistantName,
+                  style: t.assistantName,
                 ),
               ],
             ),
@@ -49,10 +50,10 @@ class SamanFoodResult extends StatelessWidget {
             // Conversational lead-in
             Text(
               'This looks like ${result.foodName.toLowerCase()}. Here is the estimated nutrition profile based on the portion size.',
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w400,
-                color: SamanChatTokens.textWhite,
+                color: t.textWhite,
                 height: 1.45,
               ),
             ),

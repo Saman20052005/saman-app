@@ -39,6 +39,7 @@ class JournalArticleModel(BaseModel):
         None, description="Editorial source or synthetic test label"
     )
     created_at: Optional[str] = None
+    is_bookmarked: bool = False
 
 
 class JournalArticlesResponse(BaseModel):
@@ -86,3 +87,55 @@ class JournalSearchResponse(BaseModel):
     items: List[JournalSearchResultItemModel]
     total: int
     advice_tip: Optional[JournalAdviceTipModel] = None
+
+
+class JournalReadingProgressModel(BaseModel):
+    article_id: str
+    title: str
+    progress_percent: float = Field(..., ge=0.0, le=1.0)
+    remaining_minutes: int = Field(..., ge=0, le=120)
+    cover_image_asset: str
+    summary: str = ""
+    updated_at: Optional[str] = None
+
+
+class JournalReadingProgressUpsertRequest(BaseModel):
+    progress_percent: float = Field(..., ge=0.0, le=1.0)
+    remaining_minutes: int = Field(..., ge=0, le=120)
+
+
+class JournalReadingProgressResponse(BaseModel):
+    progress: Optional[JournalReadingProgressModel] = None
+
+
+class JournalBookmarkToggleResponse(BaseModel):
+    article_id: str
+    is_bookmarked: bool
+
+
+class JournalLibraryEntryModel(BaseModel):
+    id: str
+    title: str
+    item_count_label: str
+    category: str
+    cover_image_asset: str
+    route_description: str
+    count: int = 0
+
+
+class JournalLibrarySummaryResponse(BaseModel):
+    entries: List[JournalLibraryEntryModel]
+
+
+class JournalGuidedSeriesModel(BaseModel):
+    id: str
+    title: str
+    subtitle: str
+    badge_label: str
+    total_lessons: int
+    cover_image_asset: str
+    lessons: List[JournalArticleModel] = Field(default_factory=list)
+
+
+class JournalGuidedSeriesResponse(BaseModel):
+    series: Optional[JournalGuidedSeriesModel] = None

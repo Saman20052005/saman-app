@@ -91,6 +91,8 @@ class NutritionRepositoryImpl implements INutritionRepository {
       totalCarbsConsumed: dailyPlan.totalCarbsConsumed,
       totalFatConsumed: dailyPlan.totalFatConsumed,
       rolloverCalories: dailyPlan.rolloverCalories,
+      dayMode: dailyPlan.dayMode,
+      dynamicTarget: dailyPlan.dynamicTarget ?? generatedPlan.dynamicTarget,
     );
   }
 
@@ -282,5 +284,159 @@ class NutritionRepositoryImpl implements INutritionRepository {
     final data = await _remoteDataSource.getFoodById(foodId);
     if (data == null) return null;
     return FoodDto.fromJson(data).toEntity();
+  }
+
+  @override
+  Future<List<RecentMealSummary>> getRecentMeals({
+    int days = 14,
+    int limit = 10,
+  }) async {
+    final rawList = await _remoteDataSource.getRecentMeals(
+      days: days,
+      limit: limit,
+    );
+    return rawList.map((e) => RecentMealSummary.fromJson(e)).toList();
+  }
+
+  @override
+  Future<bool> quickRelogMeal({
+    required String sourceLogId,
+    String? mealType,
+    String? date,
+  }) async {
+    return await _remoteDataSource.quickRelogMeal(
+      sourceLogId: sourceLogId,
+      mealType: mealType,
+      date: date,
+    );
+  }
+
+  @override
+  Future<List<Supplement>> getSupplements(String dateStr) async {
+    final rawList = await _remoteDataSource.getSupplements(dateStr);
+    return rawList.map((e) => Supplement.fromJson(e)).toList();
+  }
+
+  @override
+  Future<Supplement> addSupplement(Map<String, dynamic> body) async {
+    final data = await _remoteDataSource.addSupplement(body);
+    final payload = data['supplement'] is Map
+        ? Map<String, dynamic>.from(data['supplement'] as Map)
+        : (data['log'] is Map
+            ? Map<String, dynamic>.from(data['log'] as Map)
+            : data);
+    return Supplement.fromJson(payload);
+  }
+
+  @override
+  Future<bool> deleteSupplement(String logId) async {
+    return await _remoteDataSource.deleteSupplement(logId);
+  }
+
+  @override
+  Future<List<RecipeModel>> getRecipes() async {
+    final rawList = await _remoteDataSource.getRecipes();
+    return rawList.map((e) => RecipeModel.fromJson(e)).toList();
+  }
+
+  @override
+  Future<RecipeModel> createRecipe(Map<String, dynamic> body) async {
+    final data = await _remoteDataSource.createRecipe(body);
+    final payload = data['recipe'] is Map
+        ? Map<String, dynamic>.from(data['recipe'] as Map)
+        : data;
+    return RecipeModel.fromJson(payload);
+  }
+
+  @override
+  Future<bool> deleteRecipe(String recipeId) async {
+    return await _remoteDataSource.deleteRecipe(recipeId);
+  }
+
+  @override
+  Future<bool> logRecipe(
+    String recipeId, {
+    String? date,
+    String mealType = 'snack',
+    double servingsConsumed = 1.0,
+  }) async {
+    return await _remoteDataSource.logRecipe(
+      recipeId,
+      date: date,
+      mealType: mealType,
+      servingsConsumed: servingsConsumed,
+    );
+  }
+
+  @override
+  Future<BarcodeLookupResult> lookupBarcode(String barcode) async {
+    final cleanBarcode = barcode.trim();
+    final data = await _remoteDataSource.lookupBarcode(cleanBarcode);
+    return _parseBarcodeLookupResult(
+      data,
+      fallbackBarcode: cleanBarcode,
+      defaultSource: 'open_food_facts',
+    );
+  }
+
+  @override
+  Future<BarcodeLookupResult> analyzeNutritionLabel({
+    required String barcode,
+    required XFile imageFile,
+    String? productName,
+    String? idempotencyKey,
+  }) async {
+    final cleanBarcode = barcode.trim();
+    final data = await _remoteDataSource.analyzeNutritionLabel(
+      barcode: cleanBarcode,
+      imageFile: imageFile,
+      productName: productName,
+      idempotencyKey: idempotencyKey,
+    );
+    return _parseBarcodeLookupResult(
+      data,
+      fallbackBarcode: cleanBarcode,
+      defaultSource: 'ai_label',
+    );
+  }
+
+  BarcodeLookupResult _parseBarcodeLookupResult(
+    Map<String, dynamic> data, {
+    required String fallbackBarcode,
+    required String defaultSource,
+  }) {
+    final Map<String, dynamic> foodJson = data['food'] is Map
+        ? Map<String, dynamic>.from(data['food'] as Map)
+        : Map<String, dynamic>.from(data);
+    if ((foodJson['id'] == null || foodJson['id'].toString().isEmpty) &&
+        (foodJson['_id'] == null || foodJson['_id'].toString().isEmpty) &&
+        data['food_id'] != null) {
+      foodJson['id'] = data['food_id'].toString();
+    }
+    final food = FoodDto.fromJson(foodJson).toEntity();
+    final rawGrams = data['suggested_grams'] ?? data['suggestedGrams'];
+    int suggestedGrams = 100;
+    if (rawGrams is num && rawGrams > 0) {
+      suggestedGrams = rawGrams.round();
+    } else if (rawGrams is String) {
+      final parsed = double.tryParse(rawGrams);
+      if (parsed != null && parsed > 0) {
+        suggestedGrams = parsed.round();
+      }
+    }
+    final rawBarcode = data['barcode']?.toString().trim();
+    final rawSource = data['source']?.toString().trim();
+    return BarcodeLookupResult(
+      food: food,
+      barcode: (rawBarcode != null && rawBarcode.isNotEmpty)
+          ? rawBarcode
+          : fallbackBarcode,
+      brand: data['brand']?.toString(),
+      servingSize: (data['serving_size'] ?? data['servingSize'])?.toString(),
+      suggestedGrams: suggestedGrams,
+      source: (rawSource != null && rawSource.isNotEmpty)
+          ? rawSource
+          : defaultSource,
+    );
   }
 }

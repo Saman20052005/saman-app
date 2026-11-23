@@ -95,6 +95,7 @@ class MembershipOverviewScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final t = MembershipTokens.of(context);
     final billingPeriod = ref.watch(billingPeriodProvider);
     final plans = ref.watch(membershipCatalogProvider);
 
@@ -106,7 +107,7 @@ class MembershipOverviewScreen extends ConsumerWidget {
         ref.watch(accountMembershipProvider);
 
     return Scaffold(
-      backgroundColor: MembershipTokens.canvas,
+      backgroundColor: t.canvas,
       appBar: MembershipAppBar(
         title: context.tr('membership_title'),
         onBack: onBack,
@@ -122,26 +123,37 @@ class MembershipOverviewScreen extends ConsumerWidget {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               // 1. Introduction Header
-              _buildIntroSection(context),
+              _buildIntroSection(
+                context,
+                t,
+                hasPurchasable: plans.any((p) => p.purchasable),
+              ),
               const SizedBox(height: 16),
 
               // 2. Account Current Status Card
-              _buildCurrentAccountCard(context, accountMembership),
+              _buildCurrentAccountCard(
+                context,
+                t,
+                accountMembership,
+                plans: plans,
+                period: billingPeriod,
+              ),
               const SizedBox(height: 20),
 
               // 3. Billing Selector
-              const BillingPeriodSelector(
+              BillingPeriodSelector(
                 isInsideCard: false,
-                showDisclaimer: true,
+                showDisclaimer: !plans.any((p) => p.purchasable),
               ),
               const SizedBox(height: 20),
 
               // 4. Plan Cards (Free, Plus, Pro, Ultra)
-              _buildFreePlanCard(context, freePlan),
+              _buildFreePlanCard(context, t, freePlan),
               const SizedBox(height: 16),
 
               _buildPaidPlanCard(
                 context: context,
+                t: t,
                 plan: plusPlan,
                 period: billingPeriod,
               ),
@@ -149,6 +161,7 @@ class MembershipOverviewScreen extends ConsumerWidget {
 
               _buildPaidPlanCard(
                 context: context,
+                t: t,
                 plan: proPlan,
                 period: billingPeriod,
                 isRecommended: true,
@@ -157,17 +170,22 @@ class MembershipOverviewScreen extends ConsumerWidget {
 
               _buildPaidPlanCard(
                 context: context,
+                t: t,
                 plan: ultraPlan,
                 period: billingPeriod,
               ),
               const SizedBox(height: 24),
 
               // 5. Compare All Plans Banner / CTA
-              _buildCompareCtaSection(context),
+              _buildCompareCtaSection(context, t),
               const SizedBox(height: 24),
 
               // 6. Quiet Footer Disclaimers
-              _buildFooter(context),
+              _buildFooter(
+                context,
+                t,
+                hasPurchasable: plans.any((p) => p.purchasable),
+              ),
               const SizedBox(height: 16),
             ],
           ),
@@ -176,26 +194,32 @@ class MembershipOverviewScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildIntroSection(BuildContext context) {
+  Widget _buildIntroSection(
+    BuildContext context,
+    MembershipPalette t, {
+    bool hasPurchasable = false,
+  }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
           decoration: BoxDecoration(
-            color: MembershipTokens.card,
+            color: t.card,
             borderRadius: BorderRadius.circular(6),
             border: Border.all(
-              color: MembershipTokens.border,
+              color: t.border,
               width: 1.0,
             ),
           ),
           child: Text(
-            context.tr('membership_preview_badge'),
-            style: MembershipTokens.mono(
+            hasPurchasable
+                ? 'SAMAN MEMBERSHIP'
+                : context.tr('membership_preview_badge'),
+            style: t.mono(
               fontSize: 11,
               fontWeight: FontWeight.w600,
-              color: MembershipTokens.textMuted,
+              color: t.textMuted,
               letterSpacing: 0.5,
             ),
           ),
@@ -203,20 +227,20 @@ class MembershipOverviewScreen extends ConsumerWidget {
         const SizedBox(height: 12),
         Text(
           context.tr('membership_hero_title'),
-          style: MembershipTokens.headline(
+          style: t.headline(
             fontSize: 26,
             fontWeight: FontWeight.w700,
-            color: MembershipTokens.textPrimary,
+            color: t.textPrimary,
             letterSpacing: -0.5,
           ),
         ),
         const SizedBox(height: 6),
         Text(
           context.tr('membership_hero_desc'),
-          style: MembershipTokens.body(
+          style: t.body(
             fontSize: 14,
             fontWeight: FontWeight.w400,
-            color: MembershipTokens.textMuted,
+            color: t.textMuted,
             height: 1.4,
           ),
         ),
@@ -224,15 +248,23 @@ class MembershipOverviewScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildCurrentAccountCard(BuildContext context, [dynamic account]) {
+  Widget _buildCurrentAccountCard(
+    BuildContext context,
+    MembershipPalette t,
+    dynamic account, {
+    List<MembershipPlan>? plans,
+    BillingPeriod period = BillingPeriod.monthly,
+  }) {
+    final errorColor =
+        t.isDark ? const Color(0xFFEF4444) : const Color(0xFFDC2626);
     if (account is AccountMembershipState && account.isUnknown) {
       return Container(
         padding: const EdgeInsets.all(14.0),
         decoration: BoxDecoration(
-          color: MembershipTokens.card,
+          color: t.card,
           borderRadius: BorderRadius.circular(MembershipTokens.cardRadius),
           border: Border.all(
-            color: const Color(0x33EF4444),
+            color: errorColor.withOpacity(0.2),
             width: 1.0,
           ),
         ),
@@ -243,17 +275,17 @@ class MembershipOverviewScreen extends ConsumerWidget {
               width: 36,
               height: 36,
               decoration: BoxDecoration(
-                color: const Color(0x1AEF4444),
+                color: errorColor.withOpacity(0.1),
                 borderRadius: BorderRadius.circular(10),
                 border: Border.all(
-                  color: const Color(0x33EF4444),
+                  color: errorColor.withOpacity(0.2),
                   width: 1.0,
                 ),
               ),
-              child: const Icon(
+              child: Icon(
                 Icons.cloud_off_outlined,
                 size: 20,
-                color: Color(0xFFEF4444),
+                color: errorColor,
               ),
             ),
             const SizedBox(width: 12),
@@ -263,20 +295,20 @@ class MembershipOverviewScreen extends ConsumerWidget {
                 children: [
                   Text(
                     'STATUS: SERVICE UNAVAILABLE',
-                    style: MembershipTokens.mono(
+                    style: t.mono(
                       fontSize: 11,
                       fontWeight: FontWeight.w600,
-                      color: const Color(0xFFEF4444),
+                      color: errorColor,
                       letterSpacing: 0.5,
                     ),
                   ),
                   const SizedBox(height: 4),
                   Text(
                     'Could not verify membership status. Please check your network connection.',
-                    style: MembershipTokens.body(
+                    style: t.body(
                       fontSize: 12,
                       fontWeight: FontWeight.w400,
-                      color: MembershipTokens.textMuted,
+                      color: t.textMuted,
                       height: 1.35,
                     ),
                   ),
@@ -292,10 +324,10 @@ class MembershipOverviewScreen extends ConsumerWidget {
       return Container(
         padding: const EdgeInsets.all(14.0),
         decoration: BoxDecoration(
-          color: MembershipTokens.card,
+          color: t.card,
           borderRadius: BorderRadius.circular(MembershipTokens.cardRadius),
           border: Border.all(
-            color: MembershipTokens.border,
+            color: t.border,
             width: 1.0,
           ),
         ),
@@ -306,17 +338,17 @@ class MembershipOverviewScreen extends ConsumerWidget {
               width: 36,
               height: 36,
               decoration: BoxDecoration(
-                color: MembershipTokens.surfaceHigh,
+                color: t.surfaceHigh,
                 borderRadius: BorderRadius.circular(10),
                 border: Border.all(
-                  color: MembershipTokens.border,
+                  color: t.border,
                   width: 1.0,
                 ),
               ),
-              child: const Icon(
+              child: Icon(
                 Icons.account_circle_outlined,
                 size: 20,
-                color: MembershipTokens.textMuted,
+                color: t.textMuted,
               ),
             ),
             const SizedBox(width: 12),
@@ -326,20 +358,20 @@ class MembershipOverviewScreen extends ConsumerWidget {
                 children: [
                   Text(
                     'ACCOUNT: NOT SIGNED IN',
-                    style: MembershipTokens.mono(
+                    style: t.mono(
                       fontSize: 11,
                       fontWeight: FontWeight.w600,
-                      color: MembershipTokens.textMuted,
+                      color: t.textMuted,
                       letterSpacing: 0.5,
                     ),
                   ),
                   const SizedBox(height: 4),
                   Text(
                     'Sign in to view your membership benefits and quota limits.',
-                    style: MembershipTokens.body(
+                    style: t.body(
                       fontSize: 12,
                       fontWeight: FontWeight.w400,
-                      color: MembershipTokens.textMuted,
+                      color: t.textMuted,
                       height: 1.35,
                     ),
                   ),
@@ -372,10 +404,10 @@ class MembershipOverviewScreen extends ConsumerWidget {
     return Container(
       padding: const EdgeInsets.all(14.0),
       decoration: BoxDecoration(
-        color: MembershipTokens.card,
+        color: t.card,
         borderRadius: BorderRadius.circular(MembershipTokens.cardRadius),
         border: Border.all(
-          color: MembershipTokens.border,
+          color: t.border,
           width: 1.0,
         ),
       ),
@@ -386,17 +418,17 @@ class MembershipOverviewScreen extends ConsumerWidget {
             width: 36,
             height: 36,
             decoration: BoxDecoration(
-              color: const Color(0x1A10B981),
+              color: t.accentBg,
               borderRadius: BorderRadius.circular(10),
               border: Border.all(
-                color: const Color(0x3310B981),
+                color: t.accentBorder,
                 width: 1.0,
               ),
             ),
-            child: const Icon(
+            child: Icon(
               Icons.check_circle_outline,
               size: 20,
-              color: MembershipTokens.accent,
+              color: t.accent,
             ),
           ),
           const SizedBox(width: 12),
@@ -413,21 +445,26 @@ class MembershipOverviewScreen extends ConsumerWidget {
                             ? context.tr('current_plan_free_badge')
                             : 'CURRENT PLAN: $tierName',
                         overflow: TextOverflow.ellipsis,
-                        style: MembershipTokens.mono(
+                        style: t.mono(
                           fontSize: 11,
                           fontWeight: FontWeight.w600,
-                          color: MembershipTokens.accent,
+                          color: t.accent,
                           letterSpacing: 0.5,
                         ),
                       ),
                     ),
                     const SizedBox(width: 6),
                     Text(
-                      '\$0',
-                      style: MembershipTokens.mono(
+                      (plans ?? MembershipCatalog.plans)
+                          .firstWhere(
+                            (p) => p.tier == tier,
+                            orElse: () => MembershipCatalog.getPlan(tier),
+                          )
+                          .priceDisplay(period),
+                      style: t.mono(
                         fontSize: 12,
                         fontWeight: FontWeight.w600,
-                        color: MembershipTokens.textPrimary,
+                        color: t.textPrimary,
                       ),
                     ),
                   ],
@@ -435,10 +472,10 @@ class MembershipOverviewScreen extends ConsumerWidget {
                 const SizedBox(height: 4),
                 Text(
                   usageText,
-                  style: MembershipTokens.body(
+                  style: t.body(
                     fontSize: 12,
                     fontWeight: FontWeight.w400,
-                    color: MembershipTokens.textMuted,
+                    color: t.textMuted,
                     height: 1.35,
                   ),
                 ),
@@ -450,14 +487,15 @@ class MembershipOverviewScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildFreePlanCard(BuildContext context, MembershipPlan plan) {
+  Widget _buildFreePlanCard(
+      BuildContext context, MembershipPalette t, MembershipPlan plan) {
     return Container(
       padding: const EdgeInsets.all(18.0),
       decoration: BoxDecoration(
-        color: MembershipTokens.card,
+        color: t.card,
         borderRadius: BorderRadius.circular(MembershipTokens.cardRadius),
         border: Border.all(
-          color: MembershipTokens.border,
+          color: t.border,
           width: 1.0,
         ),
       ),
@@ -473,19 +511,19 @@ class MembershipOverviewScreen extends ConsumerWidget {
                   children: [
                     Text(
                       plan.name,
-                      style: MembershipTokens.headline(
+                      style: t.headline(
                         fontSize: 20,
                         fontWeight: FontWeight.w700,
-                        color: MembershipTokens.textPrimary,
+                        color: t.textPrimary,
                       ),
                     ),
                     const SizedBox(height: 2),
                     Text(
                       plan.subtitle,
-                      style: MembershipTokens.body(
+                      style: t.body(
                         fontSize: 13,
                         fontWeight: FontWeight.w400,
-                        color: MembershipTokens.textMuted,
+                        color: t.textMuted,
                       ),
                     ),
                   ],
@@ -495,19 +533,19 @@ class MembershipOverviewScreen extends ConsumerWidget {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
-                  color: MembershipTokens.surfaceHigh,
+                  color: t.surfaceHigh,
                   borderRadius: BorderRadius.circular(6),
                   border: Border.all(
-                    color: MembershipTokens.border,
+                    color: t.border,
                     width: 1.0,
                   ),
                 ),
                 child: Text(
                   context.tr('current_badge'),
-                  style: MembershipTokens.mono(
+                  style: t.mono(
                     fontSize: 10,
                     fontWeight: FontWeight.w600,
-                    color: MembershipTokens.textMuted,
+                    color: t.textMuted,
                     letterSpacing: 0.5,
                   ),
                 ),
@@ -522,20 +560,20 @@ class MembershipOverviewScreen extends ConsumerWidget {
             textBaseline: TextBaseline.alphabetic,
             children: [
               Text(
-                '\$0',
-                style: MembershipTokens.mono(
+                plan.priceDisplay(BillingPeriod.monthly),
+                style: t.mono(
                   fontSize: 24,
                   fontWeight: FontWeight.w700,
-                  color: MembershipTokens.textPrimary,
+                  color: t.textPrimary,
                 ),
               ),
               const SizedBox(width: 6),
               Text(
                 'Free forever',
-                style: MembershipTokens.body(
+                style: t.body(
                   fontSize: 13,
                   fontWeight: FontWeight.w400,
-                  color: MembershipTokens.textMuted,
+                  color: t.textMuted,
                 ),
               ),
             ],
@@ -543,39 +581,43 @@ class MembershipOverviewScreen extends ConsumerWidget {
           const SizedBox(height: 8),
           Text(
             plan.heroDescription,
-            style: MembershipTokens.body(
+            style: t.body(
               fontSize: 13,
               fontWeight: FontWeight.w400,
-              color: MembershipTokens.textMuted,
+              color: t.textMuted,
               height: 1.35,
             ),
           ),
           const SizedBox(height: 16),
-          const Divider(color: MembershipTokens.border, height: 1),
+          Divider(color: t.border, height: 1),
           const SizedBox(height: 14),
 
           // Free Key Inclusions
           _buildBenefitRow(
+            t: t,
             icon: Icons.check,
-            iconColor: MembershipTokens.textPrimary,
+            iconColor: t.textPrimary,
             text: 'Nutrition logging',
           ),
           const SizedBox(height: 8),
           _buildBenefitRow(
+            t: t,
             icon: Icons.check,
-            iconColor: MembershipTokens.textPrimary,
+            iconColor: t.textPrimary,
             text: 'Manual workout tracking',
           ),
           const SizedBox(height: 8),
           _buildBenefitRow(
+            t: t,
             icon: Icons.check,
-            iconColor: MembershipTokens.textPrimary,
+            iconColor: t.textPrimary,
             text: 'Free food photo analysis',
           ),
           const SizedBox(height: 8),
           _buildBenefitRow(
+            t: t,
             icon: Icons.check,
-            iconColor: MembershipTokens.textPrimary,
+            iconColor: t.textPrimary,
             text: 'Basic health metrics',
           ),
           const SizedBox(height: 16),
@@ -585,11 +627,11 @@ class MembershipOverviewScreen extends ConsumerWidget {
             width: double.infinity,
             height: 44,
             decoration: BoxDecoration(
-              color: MembershipTokens.surfaceHigh,
+              color: t.surfaceHigh,
               borderRadius:
                   BorderRadius.circular(MembershipTokens.buttonRadius),
               border: Border.all(
-                color: MembershipTokens.border,
+                color: t.border,
                 width: 1.0,
               ),
             ),
@@ -598,10 +640,10 @@ class MembershipOverviewScreen extends ConsumerWidget {
               mainAxisAlignment: MainAxisAlignment.center,
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Icon(
+                Icon(
                   Icons.check,
                   size: 16,
-                  color: MembershipTokens.accent,
+                  color: t.accent,
                 ),
                 const SizedBox(width: 6),
                 Flexible(
@@ -609,10 +651,10 @@ class MembershipOverviewScreen extends ConsumerWidget {
                     context.tr('your_active_plan'),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: MembershipTokens.body(
+                    style: t.body(
                       fontSize: 14,
                       fontWeight: FontWeight.w500,
-                      color: MembershipTokens.textMuted,
+                      color: t.textMuted,
                     ),
                   ),
                 ),
@@ -626,6 +668,7 @@ class MembershipOverviewScreen extends ConsumerWidget {
 
   Widget _buildPaidPlanCard({
     required BuildContext context,
+    required MembershipPalette t,
     required MembershipPlan plan,
     required BillingPeriod period,
     bool isRecommended = false,
@@ -636,12 +679,10 @@ class MembershipOverviewScreen extends ConsumerWidget {
     return Container(
       padding: const EdgeInsets.all(18.0),
       decoration: BoxDecoration(
-        color: MembershipTokens.card,
+        color: t.card,
         borderRadius: BorderRadius.circular(MembershipTokens.cardRadius),
         border: Border.all(
-          color: isRecommended
-              ? MembershipTokens.accent.withOpacity(0.4)
-              : MembershipTokens.border,
+          color: isRecommended ? t.accent.withOpacity(0.4) : t.border,
           width: isRecommended ? 1.5 : 1.0,
         ),
       ),
@@ -657,21 +698,19 @@ class MembershipOverviewScreen extends ConsumerWidget {
                   children: [
                     Text(
                       plan.name,
-                      style: MembershipTokens.headline(
+                      style: t.headline(
                         fontSize: 20,
                         fontWeight: FontWeight.w700,
-                        color: MembershipTokens.textPrimary,
+                        color: t.textPrimary,
                       ),
                     ),
                     const SizedBox(height: 2),
                     Text(
                       plan.subtitle,
-                      style: MembershipTokens.body(
+                      style: t.body(
                         fontSize: 13,
                         fontWeight: FontWeight.w400,
-                        color: isRecommended
-                            ? MembershipTokens.accent
-                            : MembershipTokens.textMuted,
+                        color: isRecommended ? t.accent : t.textMuted,
                       ),
                     ),
                   ],
@@ -688,48 +727,49 @@ class MembershipOverviewScreen extends ConsumerWidget {
                         vertical: 4,
                       ),
                       decoration: BoxDecoration(
-                        color: MembershipTokens.accentBg,
+                        color: t.accentBg,
                         borderRadius: BorderRadius.circular(6),
                         border: Border.all(
-                          color: MembershipTokens.accentBorder,
+                          color: t.accentBorder,
                           width: 1.0,
                         ),
                       ),
                       child: Text(
                         context.tr('recommended_badge'),
-                        style: MembershipTokens.mono(
+                        style: t.mono(
                           fontSize: 10,
                           fontWeight: FontWeight.w600,
-                          color: MembershipTokens.accent,
+                          color: t.accent,
                           letterSpacing: 0.5,
                         ),
                       ),
                     ),
                     const SizedBox(height: 4),
                   ],
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 4,
-                    ),
-                    decoration: BoxDecoration(
-                      color: MembershipTokens.surfaceHigh,
-                      borderRadius: BorderRadius.circular(6),
-                      border: Border.all(
-                        color: MembershipTokens.border,
-                        width: 1.0,
+                  if (!plan.purchasable)
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: t.surfaceHigh,
+                        borderRadius: BorderRadius.circular(6),
+                        border: Border.all(
+                          color: t.border,
+                          width: 1.0,
+                        ),
+                      ),
+                      child: Text(
+                        context.tr('coming_soon_badge'),
+                        style: t.mono(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w600,
+                          color: t.textMuted,
+                          letterSpacing: 0.5,
+                        ),
                       ),
                     ),
-                    child: Text(
-                      context.tr('coming_soon_badge'),
-                      style: MembershipTokens.mono(
-                        fontSize: 10,
-                        fontWeight: FontWeight.w600,
-                        color: MembershipTokens.textMuted,
-                        letterSpacing: 0.5,
-                      ),
-                    ),
-                  ),
                 ],
               ),
             ],
@@ -737,56 +777,58 @@ class MembershipOverviewScreen extends ConsumerWidget {
           const SizedBox(height: 14),
 
           // Price Tag
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.baseline,
-            textBaseline: TextBaseline.alphabetic,
-            children: [
-              Text(
-                priceText,
-                style: MembershipTokens.mono(
-                  fontSize: 24,
-                  fontWeight: FontWeight.w700,
-                  color: isRecommended
-                      ? MembershipTokens.accent
-                      : MembershipTokens.textPrimary,
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerLeft,
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.baseline,
+              textBaseline: TextBaseline.alphabetic,
+              children: [
+                Text(
+                  priceText,
+                  style: t.mono(
+                    fontSize: 24,
+                    fontWeight: FontWeight.w700,
+                    color: isRecommended ? t.accent : t.textPrimary,
+                  ),
                 ),
-              ),
-              const SizedBox(width: 4),
-              Text(
-                unitText,
-                style: MembershipTokens.body(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w400,
-                  color: MembershipTokens.textMuted,
+                const SizedBox(width: 4),
+                Text(
+                  unitText,
+                  style: t.body(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w400,
+                    color: t.textMuted,
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
           if (period.isYearly) ...[
             const SizedBox(height: 2),
             Text(
               plan.yearlyEquivalentText,
-              style: MembershipTokens.body(
+              style: t.body(
                 fontSize: 12,
                 fontWeight: FontWeight.w500,
                 color: isRecommended
-                    ? MembershipTokens.accent.withOpacity(0.9)
-                    : MembershipTokens.textMuted,
+                    ? t.accent.withOpacity(0.9)
+                    : t.textMuted,
               ),
             ),
           ],
           const SizedBox(height: 8),
           Text(
             plan.heroDescription,
-            style: MembershipTokens.body(
+            style: t.body(
               fontSize: 13,
               fontWeight: FontWeight.w400,
-              color: MembershipTokens.textMuted,
+              color: t.textMuted,
               height: 1.35,
             ),
           ),
           const SizedBox(height: 16),
-          const Divider(color: MembershipTokens.border, height: 1),
+          Divider(color: t.border, height: 1),
           const SizedBox(height: 14),
 
           // Key Planned Benefits from catalog
@@ -794,10 +836,9 @@ class MembershipOverviewScreen extends ConsumerWidget {
             return Padding(
               padding: const EdgeInsets.only(bottom: 8.0),
               child: _buildBenefitRow(
-                icon: Icons.schedule,
-                iconColor: isRecommended
-                    ? MembershipTokens.accent
-                    : const Color(0xFF10B981),
+                t: t,
+                icon: b.isPlanned ? Icons.schedule : Icons.check,
+                iconColor: t.accent,
                 text: b.title,
                 subtext: b.description,
               ),
@@ -810,10 +851,10 @@ class MembershipOverviewScreen extends ConsumerWidget {
             padding: const EdgeInsets.only(left: 28.0),
             child: Text(
               'AI Allowance: ${plan.aiAllowanceText}',
-              style: MembershipTokens.mono(
+              style: t.mono(
                 fontSize: 11,
                 fontWeight: FontWeight.w500,
-                color: MembershipTokens.textMuted,
+                color: t.textMuted,
               ),
             ),
           ),
@@ -831,6 +872,7 @@ class MembershipOverviewScreen extends ConsumerWidget {
   }
 
   Widget _buildBenefitRow({
+    required MembershipPalette t,
     required IconData icon,
     required Color iconColor,
     required String text,
@@ -844,10 +886,10 @@ class MembershipOverviewScreen extends ConsumerWidget {
           height: 20,
           margin: const EdgeInsets.only(top: 1),
           decoration: BoxDecoration(
-            color: MembershipTokens.surfaceHigh,
+            color: t.surfaceHigh,
             borderRadius: BorderRadius.circular(6),
             border: Border.all(
-              color: MembershipTokens.border,
+              color: t.border,
               width: 1.0,
             ),
           ),
@@ -865,20 +907,20 @@ class MembershipOverviewScreen extends ConsumerWidget {
             children: [
               Text(
                 text,
-                style: MembershipTokens.body(
+                style: t.body(
                   fontSize: 13,
                   fontWeight: FontWeight.w500,
-                  color: MembershipTokens.textPrimary,
+                  color: t.textPrimary,
                 ),
               ),
               if (subtext != null) ...[
                 const SizedBox(height: 1),
                 Text(
                   subtext,
-                  style: MembershipTokens.body(
+                  style: t.body(
                     fontSize: 11,
                     fontWeight: FontWeight.w400,
-                    color: MembershipTokens.textMuted,
+                    color: t.textMuted,
                     height: 1.3,
                   ),
                 ),
@@ -890,14 +932,14 @@ class MembershipOverviewScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildCompareCtaSection(BuildContext context) {
+  Widget _buildCompareCtaSection(BuildContext context, MembershipPalette t) {
     return Container(
       padding: const EdgeInsets.all(16.0),
       decoration: BoxDecoration(
-        color: MembershipTokens.card,
+        color: t.card,
         borderRadius: BorderRadius.circular(MembershipTokens.cardRadius),
         border: Border.all(
-          color: MembershipTokens.border,
+          color: t.border,
           width: 1.0,
         ),
       ),
@@ -910,18 +952,18 @@ class MembershipOverviewScreen extends ConsumerWidget {
                 width: 32,
                 height: 32,
                 decoration: BoxDecoration(
-                  color: MembershipTokens.surfaceHigh,
+                  color: t.surfaceHigh,
                   borderRadius: BorderRadius.circular(8),
                   border: Border.all(
-                    color: MembershipTokens.border,
+                    color: t.border,
                     width: 1.0,
                   ),
                 ),
                 alignment: Alignment.center,
-                child: const Icon(
+                child: Icon(
                   Icons.table_chart_outlined,
                   size: 18,
-                  color: MembershipTokens.accent,
+                  color: t.accent,
                 ),
               ),
               const SizedBox(width: 10),
@@ -931,18 +973,18 @@ class MembershipOverviewScreen extends ConsumerWidget {
                   children: [
                     Text(
                       'Feature Matrix',
-                      style: MembershipTokens.headline(
+                      style: t.headline(
                         fontSize: 15,
                         fontWeight: FontWeight.w600,
-                        color: MembershipTokens.textPrimary,
+                        color: t.textPrimary,
                       ),
                     ),
                     Text(
                       'Side-by-side comparison across all 4 tiers',
-                      style: MembershipTokens.body(
+                      style: t.body(
                         fontSize: 12,
                         fontWeight: FontWeight.w400,
-                        color: MembershipTokens.textMuted,
+                        color: t.textMuted,
                       ),
                     ),
                   ],
@@ -957,9 +999,9 @@ class MembershipOverviewScreen extends ConsumerWidget {
             child: OutlinedButton(
               onPressed: () => _navigateToCompare(context),
               style: OutlinedButton.styleFrom(
-                foregroundColor: MembershipTokens.textPrimary,
-                side: const BorderSide(
-                  color: MembershipTokens.borderStrong,
+                foregroundColor: t.textPrimary,
+                side: BorderSide(
+                  color: t.borderStrong,
                   width: 1.0,
                 ),
                 shape: RoundedRectangleBorder(
@@ -977,18 +1019,18 @@ class MembershipOverviewScreen extends ConsumerWidget {
                       context.tr('compare_all_plans_btn'),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: MembershipTokens.body(
+                      style: t.body(
                         fontSize: 14,
                         fontWeight: FontWeight.w600,
-                        color: MembershipTokens.textPrimary,
+                        color: t.textPrimary,
                       ),
                     ),
                   ),
                   const SizedBox(width: 6),
-                  const Icon(
+                  Icon(
                     Icons.arrow_forward_rounded,
                     size: 16,
-                    color: MembershipTokens.textPrimary,
+                    color: t.textPrimary,
                   ),
                 ],
               ),
@@ -999,30 +1041,38 @@ class MembershipOverviewScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildFooter(BuildContext context) {
+  Widget _buildFooter(
+    BuildContext context,
+    MembershipPalette t, {
+    bool hasPurchasable = false,
+  }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
         Text(
-          context.tr('demo_pricing_disclaimer'),
-          style: MembershipTokens.mono(
+          hasPurchasable
+              ? 'Giá niêm yết VNĐ · Thanh toán tự động qua VietQR / PayOS.'
+              : context.tr('demo_pricing_disclaimer'),
+          style: t.mono(
             fontSize: 11,
             fontWeight: FontWeight.w400,
-            color: MembershipTokens.textMuted,
+            color: t.textMuted,
           ),
           textAlign: TextAlign.center,
         ),
-        const SizedBox(height: 6),
-        Text(
-          context.tr('paid_notice_footer'),
-          style: MembershipTokens.body(
-            fontSize: 12,
-            fontWeight: FontWeight.w400,
-            color: MembershipTokens.textMuted,
-            height: 1.35,
+        if (!hasPurchasable) ...[
+          const SizedBox(height: 6),
+          Text(
+            context.tr('paid_notice_footer'),
+            style: t.body(
+              fontSize: 12,
+              fontWeight: FontWeight.w400,
+              color: t.textMuted,
+              height: 1.35,
+            ),
+            textAlign: TextAlign.center,
           ),
-          textAlign: TextAlign.center,
-        ),
+        ],
       ],
     );
   }

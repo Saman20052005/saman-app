@@ -24,39 +24,52 @@ class ShopCategoryTabs extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = ShopTheme.of(context);
     return Container(
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         border: Border(
           bottom: BorderSide(
-            color: ShopTheme.borderDivider,
+            color: t.borderDivider,
             width: 1,
           ),
         ),
       ),
       padding: const EdgeInsets.only(bottom: 2.0),
-      child: SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        physics: const BouncingScrollPhysics(),
-        child: Row(
-          children: [
-            // "Tất cả" (All) tab
-            _CategoryTabItem(
-              label: ShopTranslations.of(context, 'category_all'),
-              isSelected: selectedCategoryId == null,
-              onTap: () => onCategorySelected(null),
-            ),
-            const SizedBox(width: 24),
-
-            // Dynamic categories from repository
-            for (int i = 0; i < categories.length; i++) ...[
+      child: ShaderMask(
+        shaderCallback: (Rect bounds) {
+          return const LinearGradient(
+            begin: Alignment.centerLeft,
+            end: Alignment.centerRight,
+            colors: [Colors.white, Colors.white, Colors.transparent],
+            stops: [0.0, 0.92, 1.0],
+          ).createShader(bounds);
+        },
+        blendMode: BlendMode.dstIn,
+        child: SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          physics: const BouncingScrollPhysics(),
+          padding: const EdgeInsets.only(right: 16.0),
+          child: Row(
+            children: [
+              // "Tất cả" (All) tab
               _CategoryTabItem(
-                label: _getLocalizedCategoryName(context, categories[i]),
-                isSelected: selectedCategoryId == categories[i].id,
-                onTap: () => onCategorySelected(categories[i].id),
+                label: ShopTranslations.of(context, 'category_all'),
+                isSelected: selectedCategoryId == null,
+                onTap: () => onCategorySelected(null),
               ),
-              if (i < categories.length - 1) const SizedBox(width: 24),
+              const SizedBox(width: 18),
+
+              // Dynamic categories from repository
+              for (int i = 0; i < categories.length; i++) ...[
+                _CategoryTabItem(
+                  label: _getLocalizedCategoryName(context, categories[i]),
+                  isSelected: selectedCategoryId == categories[i].id,
+                  onTap: () => onCategorySelected(categories[i].id),
+                ),
+                if (i < categories.length - 1) const SizedBox(width: 18),
+              ],
             ],
-          ],
+          ),
         ),
       ),
     );
@@ -89,6 +102,7 @@ class _CategoryTabItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = ShopTheme.of(context);
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(ShopTheme.radiusSm),
@@ -99,14 +113,14 @@ class _CategoryTabItem extends StatelessWidget {
           children: [
             Text(
               label,
-              style: isSelected ? ShopTheme.tabActive : ShopTheme.tabInactive,
+              style: isSelected ? t.tabActive : t.tabInactive,
             ),
             const SizedBox(height: 6),
             Container(
               height: 1.5,
               width: isSelected ? 24 : 0,
               decoration: BoxDecoration(
-                color: isSelected ? ShopTheme.textPrimary : Colors.transparent,
+                color: isSelected ? t.textPrimary : Colors.transparent,
                 borderRadius: BorderRadius.circular(1.0),
               ),
             ),

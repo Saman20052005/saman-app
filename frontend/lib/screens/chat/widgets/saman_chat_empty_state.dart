@@ -29,6 +29,7 @@ class SamanChatEmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = SamanChatTokens.of(context);
     return LayoutBuilder(
       builder: (context, constraints) {
         return SingleChildScrollView(
@@ -50,17 +51,17 @@ class SamanChatEmptyState extends StatelessWidget {
                       children: [
                         const SamanMonogram.hero(),
                         const SizedBox(height: 12.0),
-                        const Text(
+                        Text(
                           'Your coach is ready',
-                          style: SamanChatTokens.heroTitle,
+                          style: t.heroTitle,
                           textAlign: TextAlign.center,
                         ),
                         const SizedBox(height: 4.0),
                         ConstrainedBox(
                           constraints: const BoxConstraints(maxWidth: 320.0),
-                          child: const Text(
+                          child: Text(
                             'Ask about training, meals, recovery, or what to do next.',
-                            style: SamanChatTokens.heroSubtitle,
+                            style: t.heroSubtitle,
                             textAlign: TextAlign.center,
                           ),
                         ),

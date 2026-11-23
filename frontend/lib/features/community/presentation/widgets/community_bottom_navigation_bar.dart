@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../../config/routes.dart';
 import '../../../../screens/home/tokens/saman_home_tokens.dart';
+import '../providers/community_providers.dart';
 import 'create_content_bottom_sheet.dart';
 
 enum CommunityNavTab {
@@ -10,14 +13,16 @@ enum CommunityNavTab {
   profile,
 }
 
-class CommunityBottomNavigationBar extends StatelessWidget {
+class CommunityBottomNavigationBar extends ConsumerWidget {
   final CommunityNavTab currentTab;
   final ValueChanged<CommunityNavTab>? onTabSelected;
+  final bool? hasUnreadBadge;
 
   const CommunityBottomNavigationBar({
     super.key,
     required this.currentTab,
     this.onTabSelected,
+    this.hasUnreadBadge,
   });
 
   void _handleTabTap(BuildContext context, CommunityNavTab tab) {
@@ -28,40 +33,50 @@ class CommunityBottomNavigationBar extends StatelessWidget {
     }
     switch (tab) {
       case CommunityNavTab.feed:
-        Navigator.pushReplacementNamed(context, '/community/feed');
+        Navigator.pushReplacementNamed(context, AppRoutes.communityFeed);
         break;
       case CommunityNavTab.discover:
-        Navigator.pushReplacementNamed(context, '/community/discover');
+        Navigator.pushReplacementNamed(context, AppRoutes.communityDiscover);
         break;
       case CommunityNavTab.create:
         CreateContentBottomSheet.show(context);
         break;
       case CommunityNavTab.notifications:
-        Navigator.pushNamed(context, '/community/notifications');
+        Navigator.pushNamed(context, AppRoutes.communityNotifications);
         break;
       case CommunityNavTab.profile:
-        Navigator.pushNamed(context, '/community/profile');
+        Navigator.pushNamed(context, AppRoutes.communityProfile);
         break;
     }
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final tokens = SamanHomeTokens.of(context);
     final bottomInset = MediaQuery.paddingOf(context).bottom;
+    final hasScope =
+        context.findAncestorWidgetOfExactType<UncontrolledProviderScope>() !=
+            null;
+    final bool showNotificationsBadge = hasUnreadBadge ??
+        (hasScope
+            ? ref.watch(
+                communityNotificationsProvider.select((s) => s.unreadCount > 0),
+              )
+            : false);
 
     return Container(
       decoration: BoxDecoration(
-        color: const Color(0xFF121314).withOpacity(0.95),
-        border: const Border(
+        color: tokens.canvas.withOpacity(0.95),
+        border: Border(
           top: BorderSide(
-            color: Color(0xFF292A2B),
+            color: tokens.border,
             width: 1,
           ),
         ),
-        boxShadow: const [
+        boxShadow: [
           BoxShadow(
-            color: Colors.black45,
-            offset: Offset(0, -2),
+            color: tokens.isDark ? Colors.black38 : const Color(0x120F172A),
+            offset: const Offset(0, -2),
             blurRadius: 12,
           ),
         ],
@@ -84,6 +99,7 @@ class CommunityBottomNavigationBar extends StatelessWidget {
                 icon: Icons.dynamic_feed_rounded,
                 label: 'Bảng tin',
                 isActive: currentTab == CommunityNavTab.feed,
+                tokens: tokens,
               ),
             ),
             Expanded(
@@ -93,11 +109,12 @@ class CommunityBottomNavigationBar extends StatelessWidget {
                 icon: Icons.explore_rounded,
                 label: 'Khám phá',
                 isActive: currentTab == CommunityNavTab.discover,
+                tokens: tokens,
               ),
             ),
             Expanded(
               child: Center(
-                child: _buildFabButton(context),
+                child: _buildFabButton(context, tokens),
               ),
             ),
             Expanded(
@@ -107,7 +124,8 @@ class CommunityBottomNavigationBar extends StatelessWidget {
                 icon: Icons.notifications_rounded,
                 label: 'Thông báo',
                 isActive: currentTab == CommunityNavTab.notifications,
-                hasBadge: true,
+                hasBadge: showNotificationsBadge,
+                tokens: tokens,
               ),
             ),
             Expanded(
@@ -118,6 +136,7 @@ class CommunityBottomNavigationBar extends StatelessWidget {
                 label: 'Cá nhân',
                 isActive: currentTab == CommunityNavTab.profile,
                 isAvatar: true,
+                tokens: tokens,
               ),
             ),
           ],
@@ -132,11 +151,13 @@ class CommunityBottomNavigationBar extends StatelessWidget {
     required IconData icon,
     required String label,
     required bool isActive,
+    required SamanHomePalette tokens,
     bool hasBadge = false,
     bool isAvatar = false,
   }) {
-    const activeColor = SamanHomeTokens.greenAccent;
-    final inactiveColor = const Color(0xFFBBCAAF).withOpacity(0.7);
+    final activeColor = tokens.greenAccent;
+    final inactiveColor =
+        tokens.textSecondary.withOpacity(tokens.isDark ? 0.7 : 0.85);
 
     return InkWell(
       onTap: () => _handleTabTap(context, tab),
@@ -157,7 +178,7 @@ class CommunityBottomNavigationBar extends StatelessWidget {
                       shape: BoxShape.circle,
                       color: isActive
                           ? activeColor.withOpacity(0.2)
-                          : const Color(0xFF343536),
+                          : tokens.secondarySurface,
                       border: Border.all(
                         color: isActive ? activeColor : Colors.transparent,
                         width: 1.5,
@@ -182,9 +203,9 @@ class CommunityBottomNavigationBar extends StatelessWidget {
                     child: Container(
                       width: 7,
                       height: 7,
-                      decoration: const BoxDecoration(
+                      decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        color: SamanHomeTokens.greenAccent,
+                        color: tokens.greenAccent,
                       ),
                     ),
                   ),
@@ -197,7 +218,7 @@ class CommunityBottomNavigationBar extends StatelessWidget {
                 child: Text(
                   label,
                   maxLines: 1,
-                  style: TextStyle(
+                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
                     fontSize: 11,
                     fontWeight: isActive ? FontWeight.w600 : FontWeight.w400,
                     color: isActive ? activeColor : inactiveColor,
@@ -212,27 +233,27 @@ class CommunityBottomNavigationBar extends StatelessWidget {
     );
   }
 
-  Widget _buildFabButton(BuildContext context) {
+  Widget _buildFabButton(BuildContext context, SamanHomePalette tokens) {
     return InkWell(
       onTap: () => _handleTabTap(context, CommunityNavTab.create),
-      borderRadius: BorderRadius.circular(14),
+      borderRadius: BorderRadius.circular(SamanHomeTokens.radiusMd),
       child: Container(
-        width: 40,
-        height: 40,
+        width: 44,
+        height: 44,
         decoration: BoxDecoration(
-          color: SamanHomeTokens.greenAccent,
-          borderRadius: BorderRadius.circular(14),
+          color: tokens.greenAccent,
+          borderRadius: BorderRadius.circular(SamanHomeTokens.radiusMd),
           boxShadow: [
             BoxShadow(
-              color: SamanHomeTokens.greenAccent.withOpacity(0.35),
+              color: tokens.greenAccent.withOpacity(0.35),
               blurRadius: 8,
               offset: const Offset(0, 3),
             ),
           ],
         ),
-        child: const Icon(
+        child: Icon(
           Icons.add_rounded,
-          color: Color(0xFF003824),
+          color: Theme.of(context).colorScheme.onPrimary,
           size: 26,
         ),
       ),

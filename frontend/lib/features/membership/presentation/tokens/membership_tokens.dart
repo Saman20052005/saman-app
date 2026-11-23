@@ -54,7 +54,7 @@ abstract final class MembershipTokens {
     double? height,
     double? letterSpacing,
   }) {
-    return GoogleFonts.inter(
+    return GoogleFonts.manrope(
       fontSize: fontSize,
       fontWeight: fontWeight,
       color: color,
@@ -80,4 +80,136 @@ abstract final class MembershipTokens {
       fontFeatures: tabular ? const [FontFeature.tabularFigures()] : null,
     );
   }
+
+  /// Adaptive Light / Dark palette resolved from the active [ThemeData.brightness].
+  static MembershipPalette of(BuildContext context) {
+    return Theme.of(context).brightness == Brightness.dark
+        ? MembershipPalette.dark
+        : MembershipPalette.light;
+  }
+}
+
+/// Adaptive token snapshot for Membership screens (1-to-1 Light / Dark parity).
+@immutable
+class MembershipPalette {
+  const MembershipPalette({
+    required this.isDark,
+    required this.canvas,
+    required this.card,
+    required this.cardHover,
+    required this.border,
+    required this.borderStrong,
+    required this.surfaceHigh,
+    required this.textPrimary,
+    required this.textMuted,
+    required this.textSubtle,
+    required this.accent,
+    required this.accentBg,
+    required this.accentBorder,
+    required this.primaryCtaBg,
+    required this.primaryCtaPressed,
+    required this.primaryCtaText,
+  });
+
+  final bool isDark;
+  final Color canvas;
+  final Color card;
+  final Color cardHover;
+  final Color border;
+  final Color borderStrong;
+  final Color surfaceHigh;
+  final Color textPrimary;
+  final Color textMuted;
+  final Color textSubtle;
+  final Color accent;
+  final Color accentBg;
+  final Color accentBorder;
+  final Color primaryCtaBg;
+  final Color primaryCtaPressed;
+  final Color primaryCtaText;
+
+  static const MembershipPalette dark = MembershipPalette(
+    isDark: true,
+    canvas: MembershipTokens.canvas,
+    card: MembershipTokens.card,
+    cardHover: MembershipTokens.cardHover,
+    border: MembershipTokens.border,
+    borderStrong: MembershipTokens.borderStrong,
+    surfaceHigh: MembershipTokens.surfaceHigh,
+    textPrimary: MembershipTokens.textPrimary,
+    textMuted: MembershipTokens.textMuted,
+    textSubtle: MembershipTokens.textSubtle,
+    accent: MembershipTokens.accent,
+    accentBg: MembershipTokens.accentBg,
+    accentBorder: MembershipTokens.accentBorder,
+    primaryCtaBg: MembershipTokens.primaryCtaBg,
+    primaryCtaPressed: MembershipTokens.primaryCtaPressed,
+    primaryCtaText: MembershipTokens.primaryCtaText,
+  );
+
+  static const MembershipPalette light = MembershipPalette(
+    isDark: false,
+    canvas: Color(0xFFF8FAFC),
+    card: Color(0xFFFFFFFF),
+    cardHover: Color(0xFFF1F5F9),
+    border: Color(0xFFE2E8F0),
+    borderStrong: Color(0xFFCBD5E1),
+    surfaceHigh: Color(0xFFF1F5F9),
+    textPrimary: Color(0xFF0F172A),
+    textMuted: Color(0xFF475569),
+    textSubtle: Color(0xFF64748B),
+    accent: Color(0xFF059669),
+    accentBg: Color(0x1A059669),
+    accentBorder: Color(0x33059669),
+    primaryCtaBg: Color(0xFF0F172A),
+    primaryCtaPressed: Color(0xFF1E293B),
+    primaryCtaText: Color(0xFFFFFFFF),
+  );
+
+  TextStyle headline({
+    double fontSize = 18.0,
+    FontWeight fontWeight = FontWeight.w600,
+    Color? color,
+    double? height,
+    double? letterSpacing,
+  }) =>
+      MembershipTokens.headline(
+        fontSize: fontSize,
+        fontWeight: fontWeight,
+        color: color ?? textPrimary,
+        height: height,
+        letterSpacing: letterSpacing,
+      );
+
+  TextStyle body({
+    double fontSize = 14.0,
+    FontWeight fontWeight = FontWeight.w400,
+    Color? color,
+    double? height,
+    double? letterSpacing,
+  }) =>
+      MembershipTokens.body(
+        fontSize: fontSize,
+        fontWeight: fontWeight,
+        color: color ?? textPrimary,
+        height: height,
+        letterSpacing: letterSpacing,
+      );
+
+  TextStyle mono({
+    double fontSize = 12.0,
+    FontWeight fontWeight = FontWeight.w500,
+    Color? color,
+    double? height,
+    double? letterSpacing,
+    bool tabular = true,
+  }) =>
+      MembershipTokens.mono(
+        fontSize: fontSize,
+        fontWeight: fontWeight,
+        color: color ?? textPrimary,
+        height: height,
+        letterSpacing: letterSpacing,
+        tabular: tabular,
+      );
 }

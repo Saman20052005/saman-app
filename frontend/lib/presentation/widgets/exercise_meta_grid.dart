@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../data/models/exercise.dart';
 import '../../core/constants/app_dimens.dart';
-import '../../core/constants/app_colors.dart';
 
 class ExerciseMetaGrid extends StatelessWidget {
   final Exercise exercise;
@@ -56,15 +55,17 @@ class _MetaItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Colors.grey[100],
+        color: colorScheme.surface,
         borderRadius: BorderRadius.circular(AppDimens.radiusM),
+        border: Border.all(color: colorScheme.outline),
       ),
       child: Row(
         children: [
-          Icon(icon, size: 20, color: AppColors.primary),
+          Icon(icon, size: 20, color: colorScheme.primary),
           const SizedBox(width: 8),
           Expanded(
             child: Column(
@@ -72,11 +73,14 @@ class _MetaItem extends StatelessWidget {
               children: [
                 Text(
                   label,
-                  style: const TextStyle(fontSize: 12, color: Colors.grey),
+                  style: TextStyle(fontSize: 12, color: colorScheme.secondary),
                 ),
                 Text(
                   value,
-                  style: const TextStyle(fontWeight: FontWeight.w600),
+                  style: TextStyle(
+                    fontWeight: FontWeight.w600,
+                    color: colorScheme.onSurface,
+                  ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),

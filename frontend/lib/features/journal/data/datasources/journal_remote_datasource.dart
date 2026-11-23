@@ -35,6 +35,25 @@ abstract class JournalRemoteDatasource {
     JournalSearchCategory category = JournalSearchCategory.all,
     int limit = 20,
   });
+
+  Future<JournalReadingProgress?> getReadingProgress();
+
+  Future<void> saveReadingProgress({
+    required String articleId,
+    required double progressPercent,
+    required int remainingMinutes,
+  });
+
+  Future<List<JournalArticle>> getBookmarkedArticles();
+
+  Future<bool> toggleBookmark({
+    required String articleId,
+    required bool desiredState,
+  });
+
+  Future<List<JournalLibraryEntry>> getLibrarySummary();
+
+  Future<JournalGuidedSeries?> getGuidedSeries();
 }
 
 class JournalRemoteDatasourceImpl implements JournalRemoteDatasource {
@@ -174,6 +193,161 @@ class JournalRemoteDatasourceImpl implements JournalRemoteDatasource {
     );
   }
 
+  @override
+  Future<JournalReadingProgress?> getReadingProgress() async {
+    final response = await dio.get('/api/journal/reading-progress');
+    if (response.statusCode != 200) {
+      throw DioException(
+        requestOptions: response.requestOptions,
+        response: response,
+        error: 'Failed to fetch reading progress: HTTP ${response.statusCode}',
+      );
+    }
+    final data = response.data as Map<String, dynamic>;
+    final rawProgress = data['progress'] as Map<String, dynamic>?;
+    if (rawProgress == null) return null;
+
+    final progressVal = (rawProgress['progress_percent'] as num?)?.toDouble() ?? 0.0;
+    final remainingMin = (rawProgress['remaining_minutes'] as int?) ?? 0;
+    return JournalReadingProgress(
+      articleId: (rawProgress['article_id'] as String?) ?? '',
+      title: (rawProgress['title'] as String?) ?? '',
+      progressPercent: progressVal,
+      remainingMinutes: remainingMin,
+      coverImageAsset: (rawProgress['cover_image_asset'] as String?) ??
+          'assets/images/home_journal_recovery.jpg',
+      summary: (rawProgress['summary'] as String?) ??
+          'Đã đọc ${(progressVal * 100).round()}% • Còn $remainingMin phút',
+    );
+  }
+
+  @override
+  Future<void> saveReadingProgress({
+    required String articleId,
+    required double progressPercent,
+    required int remainingMinutes,
+  }) async {
+    final response = await dio.put(
+      '/api/journal/reading-progress/$articleId',
+      data: {
+        'progress_percent': progressPercent,
+        'remaining_minutes': remainingMinutes,
+      },
+    );
+    if (response.statusCode != 200) {
+      throw DioException(
+        requestOptions: response.requestOptions,
+        response: response,
+        error: 'Failed to update reading progress: HTTP ${response.statusCode}',
+      );
+    }
+  }
+
+  @override
+  Future<List<JournalArticle>> getBookmarkedArticles() async {
+    final response = await dio.get('/api/journal/bookmarks');
+    if (response.statusCode != 200) {
+      throw DioException(
+        requestOptions: response.requestOptions,
+        response: response,
+        error: 'Failed to fetch bookmarks: HTTP ${response.statusCode}',
+      );
+    }
+    final data = response.data as Map<String, dynamic>;
+    final rawArticles = (data['articles'] as List<dynamic>?) ?? [];
+    return rawArticles
+        .map((a) => _parseArticle(a as Map<String, dynamic>).copyWith(isBookmarked: true))
+        .toList();
+  }
+
+  @override
+  Future<bool> toggleBookmark({
+    required String articleId,
+    required bool desiredState,
+  }) async {
+    final Response response;
+    if (desiredState) {
+      response = await dio.put('/api/journal/bookmarks/$articleId');
+    } else {
+      response = await dio.delete('/api/journal/bookmarks/$articleId');
+    }
+    if (response.statusCode != 200) {
+      throw DioException(
+        requestOptions: response.requestOptions,
+        response: response,
+        error: 'Failed to toggle bookmark: HTTP ${response.statusCode}',
+      );
+    }
+    final data = response.data as Map<String, dynamic>;
+    return (data['is_bookmarked'] as bool?) ?? desiredState;
+  }
+
+  @override
+  Future<List<JournalLibraryEntry>> getLibrarySummary() async {
+    final response = await dio.get('/api/journal/library-summary');
+    if (response.statusCode != 200) {
+      throw DioException(
+        requestOptions: response.requestOptions,
+        response: response,
+        error: 'Failed to fetch library summary: HTTP ${response.statusCode}',
+      );
+    }
+    final data = response.data as Map<String, dynamic>;
+    final rawEntries = (data['entries'] as List<dynamic>?) ?? [];
+    return rawEntries.map((e) {
+      final map = e as Map<String, dynamic>;
+      final cat = (map['category'] as String?) ?? 'all';
+      final count = (map['count'] as int?) ?? 0;
+      final icon = cat == 'exercises'
+          ? Icons.fitness_center_rounded
+          : Icons.restaurant_rounded;
+      return JournalLibraryEntry(
+        id: (map['id'] as String?) ?? '',
+        title: (map['title'] as String?) ?? '',
+        itemCountLabel: (map['item_count_label'] as String?) ?? '$count mục',
+        icon: icon,
+        coverImageAsset: (map['cover_image_asset'] as String?) ??
+            (cat == 'exercises'
+                ? 'assets/images/workout.jpg'
+                : 'assets/images/nutrition.jpg'),
+        routeDescription: map['route_description'] as String?,
+        count: count,
+        category: cat,
+      );
+    }).toList();
+  }
+
+  @override
+  Future<JournalGuidedSeries?> getGuidedSeries() async {
+    final response = await dio.get('/api/journal/guided-series');
+    if (response.statusCode != 200) {
+      throw DioException(
+        requestOptions: response.requestOptions,
+        response: response,
+        error: 'Failed to fetch guided series: HTTP ${response.statusCode}',
+      );
+    }
+    final data = response.data as Map<String, dynamic>;
+    final rawSeries = data['series'] as Map<String, dynamic>?;
+    if (rawSeries == null) return null;
+
+    final rawLessons = (rawSeries['lessons'] as List<dynamic>?) ?? [];
+    final lessons = rawLessons
+        .map((l) => _parseArticle(l as Map<String, dynamic>))
+        .toList();
+
+    return JournalGuidedSeries(
+      id: (rawSeries['id'] as String?) ?? 'series_foundation',
+      title: (rawSeries['title'] as String?) ?? 'Bắt đầu cùng Saman',
+      subtitle: (rawSeries['subtitle'] as String?) ?? '',
+      badgeLabel: (rawSeries['badge_label'] as String?) ?? 'Chuỗi hướng dẫn',
+      totalLessons: (rawSeries['total_lessons'] as int?) ?? lessons.length,
+      coverImageAsset: (rawSeries['cover_image_asset'] as String?) ??
+          'assets/images/home_hero_leg_day.jpg',
+      lessons: lessons,
+    );
+  }
+
   JournalArticle _parseArticle(Map<String, dynamic> json) {
     return JournalArticle(
       id: (json['id'] as String?) ?? '',
@@ -186,6 +360,7 @@ class JournalRemoteDatasourceImpl implements JournalRemoteDatasource {
       badgeLabel: json['badge_label'] as String?,
       isFeatured: (json['is_featured'] as bool?) ?? false,
       contentBody: json['content_body'] as String?,
+      isBookmarked: (json['is_bookmarked'] as bool?) ?? false,
     );
   }
 

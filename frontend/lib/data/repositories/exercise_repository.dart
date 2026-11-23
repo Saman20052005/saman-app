@@ -26,4 +26,8 @@ abstract class ExerciseRepository {
   Future<Exercise> getExerciseById(String id);
 
   Future<WorkoutSession> getSessionById(String sessionId);
+
+  Future<Map<String, LastExercisePerformance>> getLastPerformances(
+    List<String> exerciseIds,
+  );
 }

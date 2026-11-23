@@ -64,9 +64,9 @@ class _SamanCommunityPreviewAppState extends State<SamanCommunityPreviewApp> {
     return MaterialApp(
       title: 'Saman Community & Journal Runtime Preview',
       debugShowCheckedModeBanner: false,
-      theme: SamanTheme.dark(),
+      theme: SamanTheme.light(),
       darkTheme: SamanTheme.dark(),
-      themeMode: ThemeMode.dark,
+      themeMode: ThemeMode.system,
       locale: _locale,
       supportedLocales: const [Locale('vi'), Locale('en')],
       localizationsDelegates: const [
@@ -77,8 +77,9 @@ class _SamanCommunityPreviewAppState extends State<SamanCommunityPreviewApp> {
       initialRoute: AppRoutes.communityFeed,
       onGenerateRoute: (settings) => AppRoutes.onGenerateRoute(settings),
       builder: (context, child) {
+        final tokens = SamanHomeTokens.of(context);
         return Scaffold(
-          backgroundColor: const Color(0xFF121314),
+          backgroundColor: tokens.canvas,
           body: Column(
             children: [
               _buildTopPreviewBanner(context),

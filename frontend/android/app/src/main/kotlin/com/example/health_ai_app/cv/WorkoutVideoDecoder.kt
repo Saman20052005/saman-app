@@ -13,8 +13,8 @@ import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicLong
 
 /**
- * Inference-paced replay. Selected frames stay on the Surface until Flutter has
- * rendered their pose; video PTS is independent of elapsed processing time.
+ * Real-time video replay decoder synchronized to presentationTimeUs.
+ * Decoupled from MediaPipe inference so video renders smoothly at native FPS.
  */
 class WorkoutVideoDecoder(
     private val videoFile: File,
@@ -26,9 +26,6 @@ class WorkoutVideoDecoder(
     companion object {
         private const val TAG = "WorkoutVideoDecoder"
         private const val TIMEOUT_US = 10_000L
-        private const val SAMPLE_INTERVAL_US = 100_000L
-        private const val FRAME_TIMEOUT_MS = 8_000L
-        private const val POSE_DISPLAY_MS = 150L
     }
 
     interface VideoDecoderListener {
@@ -41,10 +38,9 @@ class WorkoutVideoDecoder(
 
     private val isRunning = AtomicBoolean(false)
     private var workerThread: Thread? = null
-    private val frameGate = WorkoutReplayFrameGate(sessionGen)
 
     fun acknowledgeFrame(generation: Long, ptsMs: Long, phase: String): Boolean =
-        frameGate.acknowledge(generation, ptsMs, phase)
+        generation == sessionGen
 
     val latestRenderedPtsUs = AtomicLong(0L)
     val totalFramesRendered = AtomicLong(0L)
@@ -62,7 +58,6 @@ class WorkoutVideoDecoder(
 
     fun stop() {
         isRunning.set(false)
-        frameGate.cancel()
         workerThread?.interrupt()
         workerThread = null
     }
@@ -115,7 +110,9 @@ class WorkoutVideoDecoder(
             codec = MediaCodec.createDecoderByType(mime).apply {
                 configure(format, surface, null, 0)
                 setOnFrameRenderedListener({ _, ptsUs, renderNs ->
-                    Log.i(TAG, "[CV_CODEC_RENDER] sessionGen=$sessionGen ptsUs=$ptsUs renderMonotonicNs=$renderNs")
+                    if (totalFramesRendered.get() <= 3L) {
+                        Log.i(TAG, "[CV_CODEC_RENDER] sessionGen=$sessionGen ptsUs=$ptsUs renderMonotonicNs=$renderNs")
+                    }
                 }, Handler(Looper.getMainLooper()))
                 start()
             }
@@ -123,7 +120,8 @@ class WorkoutVideoDecoder(
             val bufferInfo = MediaCodec.BufferInfo()
             var isEos = false
             val playbackStartNs = SystemClock.elapsedRealtimeNanos()
-            var nextSamplePtsUs = 1L // Avoid an initial empty Surface timestamp of zero.
+            var firstPtsUs = -1L
+            var firstFrameWallClockNs = -1L
             var decodedFrameCount = 0L
             var frameCount = 0L
 
@@ -147,7 +145,7 @@ class WorkoutVideoDecoder(
                     }
                 }
 
-                // Decode all frames, presenting at most one sample per 100ms of video PTS.
+                // 2. Drain output buffer and render at real-time video PTS speed (30-60 FPS)
                 val outIndex = codec.dequeueOutputBuffer(bufferInfo, TIMEOUT_US)
                 if (outIndex >= 0) {
                     if ((bufferInfo.flags and MediaCodec.BUFFER_FLAG_END_OF_STREAM) != 0) {
@@ -160,36 +158,32 @@ class WorkoutVideoDecoder(
 
                     val framePtsUs = bufferInfo.presentationTimeUs
                     decodedFrameCount++
-                    if (framePtsUs < nextSamplePtsUs) {
+
+                    if (bufferInfo.size <= 0) {
                         codec.releaseOutputBuffer(outIndex, false)
                         continue
                     }
-                    nextSamplePtsUs = framePtsUs + SAMPLE_INTERVAL_US
-                    val framePtsMs = framePtsUs / 1000L
 
-                    // Clear the old Flutter overlay BEFORE changing the displayed video frame.
-                    frameGate.begin(framePtsMs, "clear")
-                    listener.onFramePreparing(sessionGen, framePtsUs)
-                    if (!frameGate.await(framePtsMs, "clear", FRAME_TIMEOUT_MS)) {
-                        if (isRunning.get()) listener.onError(sessionGen, "Replay timed out waiting for Flutter to clear the previous pose.")
-                        break
+                    if (firstPtsUs < 0L) {
+                        firstPtsUs = framePtsUs
+                        firstFrameWallClockNs = SystemClock.elapsedRealtimeNanos()
+                    } else {
+                        val mediaElapsedNs = (framePtsUs - firstPtsUs).coerceAtLeast(0L) * 1_000L
+                        val targetWallClockNs = firstFrameWallClockNs + mediaElapsedNs
+                        val waitNs = targetWallClockNs - SystemClock.elapsedRealtimeNanos()
+                        if (waitNs > 1_000_000L) {
+                            Thread.sleep(waitNs / 1_000_000L, (waitNs % 1_000_000L).toInt())
+                        }
                     }
-                    frameGate.begin(framePtsMs, "pose")
 
                     // Register frame PTS in session provenance table BEFORE releasing buffer to Surface
                     latestRenderedPtsUs.set(framePtsUs)
                     listener.onFrameRendered(sessionGen, framePtsUs)
 
-                    // Default Surface timestamp is BufferInfo.presentationTimeUs, not a wall-clock deadline.
+                    // Always release frame with render=true in real-time, decoupled from MediaPipe inference
                     codec.releaseOutputBuffer(outIndex, true)
                     frameCount++
                     totalFramesRendered.set(frameCount)
-                    if (!frameGate.await(framePtsMs, "pose", FRAME_TIMEOUT_MS)) {
-                        if (isRunning.get()) listener.onError(sessionGen, "Replay timed out waiting for the matching pose to render.")
-                        break
-                    }
-                    // Give the user time to see this exact pair. This is intentional slow replay.
-                    Thread.sleep(POSE_DISPLAY_MS)
                 }
             }
         } catch (_: InterruptedException) {

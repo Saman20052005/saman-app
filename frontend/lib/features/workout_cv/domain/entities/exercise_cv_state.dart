@@ -1,5 +1,7 @@
 import 'pose_landmark.dart';
+import '../services/cv_form_summary_calculator.dart';
 import '../services/lat_pulldown_baseline.dart';
+import '../services/workout_cv_exercise_registry.dart';
 
 enum ReplayAnalysisStatus { waiting, analyzing, insufficientData, finished, error }
 
@@ -47,6 +49,7 @@ class ExerciseCvState {
   // Shared camera/replay analysis. Session-only; never written to workout sets.
   final LatPulldownPhase analysisPhase;
   final List<LatPulldownRepEvent> replayRepEvents;
+  final int abortCount;
 
   const ExerciseCvState({
     this.trackingStatus = TrackingStatus.uninitialized,
@@ -79,10 +82,24 @@ class ExerciseCvState {
     this.replayAnalysisStatus = ReplayAnalysisStatus.waiting,
     this.replayRepEvents = const [],
     this.analysisPhase = LatPulldownPhase.notReady,
+    this.abortCount = 0,
   });
 
   int get completedReps => replayRepEvents.length;
-  String get repCountLabel => 'Số lần kéo: $completedReps';
+  String get repCountLabel {
+    final module = WorkoutCvExerciseRegistry.resolveModule(
+      id: exerciseId,
+      slug: exerciseSlug,
+    );
+    if (module == CvExerciseModule.latPulldown ||
+        module == CvExerciseModule.pullUp ||
+        module == null) {
+      return 'Số lần kéo: $completedReps';
+    }
+    return 'Số rep: $completedReps';
+  }
+  CvFormSummary get formSummary =>
+      CvFormSummaryCalculator.compute(reps: replayRepEvents, abortCount: abortCount);
   String get replayAnalysisLabel {
     switch (replayAnalysisStatus) {
       case ReplayAnalysisStatus.waiting:
@@ -137,6 +154,7 @@ class ExerciseCvState {
     ReplayAnalysisStatus? replayAnalysisStatus,
     List<LatPulldownRepEvent>? replayRepEvents,
     LatPulldownPhase? analysisPhase,
+    int? abortCount,
   }) {
     return ExerciseCvState(
       trackingStatus: trackingStatus ?? this.trackingStatus,
@@ -169,6 +187,7 @@ class ExerciseCvState {
       replayAnalysisStatus: replayAnalysisStatus ?? this.replayAnalysisStatus,
       replayRepEvents: replayRepEvents ?? this.replayRepEvents,
       analysisPhase: analysisPhase ?? this.analysisPhase,
+      abortCount: abortCount ?? this.abortCount,
     );
   }
 

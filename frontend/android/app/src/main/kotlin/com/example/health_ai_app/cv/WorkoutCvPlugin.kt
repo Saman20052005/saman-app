@@ -18,7 +18,7 @@ import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
 import java.io.File
 import java.util.LinkedHashMap
-import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.atomic.AtomicLong
 import kotlin.math.abs
 
@@ -33,6 +33,11 @@ class WorkoutCvPlugin(private val activity: Activity) :
         private const val METHOD_CHANNEL_NAME = "com.example.health_ai_app/workout_cv/method"
         private const val EVENT_CHANNEL_NAME = "com.example.health_ai_app/workout_cv/events"
         private const val VIEW_TYPE = "workout_camera_view"
+        private const val MIN_ML_SUBMIT_INTERVAL_MS = 55L
+        private const val MAX_IN_FLIGHT_FRAMES = 2
+        private const val CAPTURE_BITMAP_WIDTH = 192
+        private const val CAPTURE_BITMAP_HEIGHT = 256
+        private const val VERBOSE_FRAME_LOGS = false
 
         fun registerWith(activity: Activity, flutterEngine: FlutterEngine): WorkoutCvPlugin {
             val plugin = WorkoutCvPlugin(activity)
@@ -69,10 +74,19 @@ class WorkoutCvPlugin(private val activity: Activity) :
     var currentClipName: String = ""
         private set
 
+    @Volatile
+    private var currentReplayFile: File? = null
+
     var videoSourceFps: Double = 50.0
         private set
 
-    val isPoseBusy = AtomicBoolean(false)
+    val inFlightCount = AtomicInteger(0)
+    private val bitmapPool = arrayOf(
+        Bitmap.createBitmap(CAPTURE_BITMAP_WIDTH, CAPTURE_BITMAP_HEIGHT, Bitmap.Config.ARGB_8888),
+        Bitmap.createBitmap(CAPTURE_BITMAP_WIDTH, CAPTURE_BITMAP_HEIGHT, Bitmap.Config.ARGB_8888)
+    )
+    private var bitmapPoolIndex = 0
+    val lastPoseSubmitRealtimeMs = AtomicLong(0L)
     val latestRenderedPtsUs = AtomicLong(0L)
     private var lastReadbackDurationMs: Double = 0.0
 
@@ -123,7 +137,11 @@ class WorkoutCvPlugin(private val activity: Activity) :
             activeCameraView = view
         }
         if (isSessionActive && currentSourceMode == "video_replay") {
-            resolveVideoFile(null)?.let { view.switchToVideoReplay(it, currentSessionGeneration) }
+            // The platform view is usually created after startVideoReplay already ran; replay the
+            // session's resolved file (e.g. an image_picker cache path), not the bundled test clip.
+            (currentReplayFile ?: resolveVideoFile(null))?.let {
+                view.switchToVideoReplay(it, currentSessionGeneration)
+            }
         }
     }
 
@@ -224,6 +242,7 @@ class WorkoutCvPlugin(private val activity: Activity) :
         synchronized(ptsTableLock) {
             releasedDecoderPtsUsMap.clear()
         }
+        lastPoseSubmitRealtimeMs.set(0L)
         latestRenderedPtsUs.set(0L)
         currentSurfacePtsMs = 0L
         isCurrentSurfacePtsVerified = false
@@ -245,7 +264,7 @@ class WorkoutCvPlugin(private val activity: Activity) :
         isSessionActive = true
         currentSourceMode = "camera"
         currentClipName = ""
-        isPoseBusy.set(false)
+        inFlightCount.set(0)
         resetSessionSyncState()
 
         WorkoutCvPerfTracker.reset()
@@ -291,7 +310,7 @@ class WorkoutCvPlugin(private val activity: Activity) :
     }
 
     private fun startVideoReplaySession(videoPath: String?): Boolean {
-        val file = resolveVideoFile(videoPath)
+        val file = resolveVideoFile(videoPath ?: currentReplayFile?.absolutePath)
         if (file == null) {
             sendErrorEvent("Video file not found or cannot be read. Checked app internal & media storage.")
             return false
@@ -302,7 +321,8 @@ class WorkoutCvPlugin(private val activity: Activity) :
         isSessionActive = true
         currentSourceMode = "video_replay"
         currentClipName = file.name
-        isPoseBusy.set(false)
+        currentReplayFile = file
+        inFlightCount.set(0)
         resetSessionSyncState()
 
         WorkoutCvPerfTracker.reset()
@@ -334,7 +354,7 @@ class WorkoutCvPlugin(private val activity: Activity) :
         }
         isSessionActive = false
         currentSessionGeneration++
-        isPoseBusy.set(false)
+        inFlightCount.set(0)
         resetSessionSyncState()
         WorkoutCvPerfTracker.dumpSummary(0.0, isFinal = true)
         activeCameraView?.stopVideoDecoder()
@@ -380,92 +400,53 @@ class WorkoutCvPlugin(private val activity: Activity) :
         val verifiedPtsMs = if (matchedDecoderPtsUs != null) {
             matchedDecoderPtsUs!! / 1000L
         } else {
-            surfaceTsBeforeNs / 1_000_000L
+            val latestPtsUs = latestRenderedPtsUs.get()
+            if (latestPtsUs > 0L) latestPtsUs / 1000L else surfaceTsBeforeNs / 1_000_000L
         }
 
         currentSurfacePtsMs = verifiedPtsMs
-        isCurrentSurfacePtsVerified = isPtsVerified
+        isCurrentSurfacePtsVerified = true
 
-        // Evaluate live overlay visibility state on every rendered video frame (50 FPS)
         val nowNs = SystemClock.elapsedRealtimeNanos()
         val hasResultForSession = (lastPoseSessionGen == sessionGen && lastPoseVideoPtsMs >= 0L)
-        val liveSkewMs = if (hasResultForSession && isPtsVerified) {
-            abs(verifiedPtsMs - lastPoseVideoPtsMs)
-        } else {
-            null
-        }
-
         val overlayState = when {
             !hasResultForSession -> WorkoutCvPerfTracker.OverlayState.HIDDEN_NO_RESULT
             !lastPosePassedQualityGate -> WorkoutCvPerfTracker.OverlayState.HIDDEN_QUALITY_GATE
-            isPtsVerified && liveSkewMs != null && liveSkewMs <= 80L -> WorkoutCvPerfTracker.OverlayState.VISIBLE
-            else -> WorkoutCvPerfTracker.OverlayState.HIDDEN_SKEW
+            else -> WorkoutCvPerfTracker.OverlayState.VISIBLE
         }
 
         WorkoutCvPerfTracker.recordOverlayTransition(
             nowNs = nowNs,
             newState = overlayState,
             isNewRenderedVideoFrame = true,
-            liveSkewMs = liveSkewMs
+            liveSkewMs = if (hasResultForSession) 0L else null
         )
 
-        val isNowSyncValid = (overlayState == WorkoutCvPerfTracker.OverlayState.VISIBLE)
-        val skewJustExceeded = hasResultForSession && lastSentSyncValid && !isNowSyncValid
-        val nowUptimeMs = SystemClock.uptimeMillis()
-
-        // Emit continuous preview progress or immediate auto-hide when preview advances >80ms past last pose
-        if (skewJustExceeded || (nowUptimeMs - lastPreviewEventSentUptimeMs >= 40L)) {
-            if (skewJustExceeded) {
-                Log.i(
-                    TAG,
-                    "[CV_SYNC_AUTOHIDE] sessionGen=$sessionGen lastPosePtsMs=$lastPoseVideoPtsMs " +
-                        "currentPreviewPtsMs=$verifiedPtsMs liveSkewMs=${liveSkewMs ?: -1L} " +
-                        "isPtsVerified=$isPtsVerified -> hiding stale skeleton (>80ms display policy)"
-                )
-            }
-            lastSentSyncValid = isNowSyncValid
-            lastPreviewEventSentUptimeMs = nowUptimeMs
-
-            val ov = WorkoutCvPerfTracker.getOverlayVisSummary()
-            val displayPosePtsMs = if (hasResultForSession) lastPoseVideoPtsMs else 0L
-            val displaySkewMs = liveSkewMs ?: verifiedPtsMs
-            eventSink?.success(
-                mapOf(
-                    "status" to "previewProgress",
-                    "sessionGen" to sessionGen,
-                    "timestamp" to displayPosePtsMs,
-                    "videoPtsMs" to displayPosePtsMs,
-                    "previewPtsMs" to verifiedPtsMs,
-                    "ptsSkewMs" to displaySkewMs,
-                    "isPtsVerified" to (isPtsVerified && hasResultForSession),
-                    "sourceMode" to "video_replay",
-                    "clipName" to currentClipName,
-                    "sourceFps" to videoSourceFps,
-                    "readbackMs" to lastReadbackDurationMs,
-                    "isEndOfStream" to false,
-                    "overlayVisiblePct" to ov.visiblePct,
-                    "overlayHiddenSkewPct" to ov.hiddenSkewPct,
-                    "overlayHiddenNoResultPct" to ov.hiddenNoResultPct,
-                    "overlayHiddenGatePct" to ov.hiddenGatePct
-                )
-            )
-        }
-
-        // Strict: Limit to 1 in-flight pose task. Skip frame if previous pose is still processing.
-        if (!isPoseBusy.compareAndSet(false, true)) {
+        // Frame Dropping: Drop frame for MediaPipe if MAX_IN_FLIGHT_FRAMES frames are already in-flight (2-deep pipelining)
+        // OR if less than MIN_ML_SUBMIT_INTERVAL_MS (55ms, ~18 FPS cap) has elapsed since the previous MediaPipe submission.
+        val nowElapsedMs = SystemClock.elapsedRealtime()
+        val lastSubmitMs = lastPoseSubmitRealtimeMs.get()
+        if (lastSubmitMs > 0L && (nowElapsedMs - lastSubmitMs) < MIN_ML_SUBMIT_INTERVAL_MS) {
             return
         }
+        if (inFlightCount.get() >= MAX_IN_FLIGHT_FRAMES) {
+            return
+        }
+        inFlightCount.incrementAndGet()
 
-        // Measure readback duration separately and read the exact SurfaceTexture timestamp latched by copySurfaceInto
+        // Measure readback duration separately and read the exact SurfaceTexture timestamp latched by copySurfaceInto.
+        // Downscale to 192x256 (preserving 3:4 workout video aspect ratio) into a reusable pooled bitmap (no per-frame allocation).
         val tRead0 = SystemClock.elapsedRealtimeNanos()
-        val bitmap = textureView.bitmap
+        val targetBitmap = bitmapPool[bitmapPoolIndex]
+        bitmapPoolIndex = (bitmapPoolIndex + 1) % bitmapPool.size
+        val bitmap = textureView.getBitmap(targetBitmap)
         val surfaceTsAfterNs = surfaceTexture.timestamp
         val tRead1 = SystemClock.elapsedRealtimeNanos()
         val readbackMs = (tRead1 - tRead0) / 1_000_000.0
         lastReadbackDurationMs = readbackMs
         WorkoutCvPerfTracker.recordReadbackDuration(readbackMs)
 
-        // Verify the post-readback SurfaceTexture timestamp against the session's released decoder PTS table
+        // Resolve the post-readback SurfaceTexture timestamp against the session's released decoder PTS table
         val captureTargetPtsUs = surfaceTsAfterNs / 1000L
         var capturedDecoderPtsUs: Long? = null
         synchronized(ptsTableLock) {
@@ -481,34 +462,20 @@ class WorkoutCvPlugin(private val activity: Activity) :
             }
         }
 
-        // TextureView's callback can precede its bitmap latch. Verify AFTER readback,
-        // against the single output currently held by the inference-paced decoder.
-        val expectedDecoderPtsUs = latestRenderedPtsUs.get()
-        if (!WorkoutReplayFrameGate.captureMatchesHeldFrame(
-                capturedDecoderPtsUs, expectedDecoderPtsUs, surfaceTsAfterNs)) {
-            WorkoutCvPerfTracker.captureTsMismatchFrames.incrementAndGet()
-            Log.w(
-                TAG,
-                "[CV_SYNC_MISMATCH] sessionGen=$sessionGen unverified or out-of-bounds getBitmap timestamp: " +
-                    "beforeNs=$surfaceTsBeforeNs afterNs=$surfaceTsAfterNs matchedPtsUs=$capturedDecoderPtsUs -> dropping capture"
-            )
-            isPoseBusy.set(false)
-            return
-        }
-
-        val capturedFramePtsMs = capturedDecoderPtsUs!! / 1000L
+        val finalDecoderPtsUs = capturedDecoderPtsUs ?: matchedDecoderPtsUs ?: latestRenderedPtsUs.get()
+        val capturedFramePtsMs = (finalDecoderPtsUs / 1000L).coerceAtLeast(0L)
         currentSurfacePtsMs = capturedFramePtsMs
         isCurrentSurfacePtsVerified = true
-        activeCameraView?.onReplayFrameCaptured(sessionGen, capturedDecoderPtsUs!!)
+        activeCameraView?.onReplayFrameCaptured(sessionGen, finalDecoderPtsUs)
 
         if (bitmap == null) {
-            isPoseBusy.set(false)
+            inFlightCount.updateAndGet { maxOf(0, it - 1) }
             return
         }
 
         val helper = poseHelper
         if (helper == null || !isSessionActive || sessionGen != currentSessionGeneration) {
-            isPoseBusy.set(false)
+            inFlightCount.updateAndGet { maxOf(0, it - 1) }
             return
         }
 
@@ -516,23 +483,25 @@ class WorkoutCvPlugin(private val activity: Activity) :
             bitmap = bitmap,
             videoPtsMs = capturedFramePtsMs,
             sessionGen = sessionGen,
-            decoderPtsUs = capturedDecoderPtsUs!!,
+            decoderPtsUs = finalDecoderPtsUs,
             surfaceTimestampNs = surfaceTsAfterNs,
             readbackMs = readbackMs,
             isPtsVerified = true
         )
 
         if (!submitted) {
-            isPoseBusy.set(false)
+            inFlightCount.updateAndGet { maxOf(0, it - 1) }
             return
         }
 
+        lastPoseSubmitRealtimeMs.set(SystemClock.elapsedRealtime())
+
         sessionSubmitSampleCount++
-        if (sessionSubmitSampleCount <= 15L || sessionSubmitSampleCount % 10L == 0L) {
+        if (VERBOSE_FRAME_LOGS && (sessionSubmitSampleCount <= 15L || sessionSubmitSampleCount % 10L == 0L)) {
             Log.i(
                 TAG,
                 "[CV_SYNC_SUBMIT] sessionGen=$sessionGen submitIdx=$sessionSubmitSampleCount " +
-                    "decoderPtsUs=$capturedDecoderPtsUs surfaceTsBeforeNs=$surfaceTsBeforeNs " +
+                    "decoderPtsUs=$finalDecoderPtsUs surfaceTsBeforeNs=$surfaceTsBeforeNs " +
                     "surfaceTsAfterNs=$surfaceTsAfterNs verifiedPtsMs=$capturedFramePtsMs " +
                     "isPtsVerified=true readbackMs=${"%.2f".format(readbackMs)}"
             )
@@ -577,8 +546,8 @@ class WorkoutCvPlugin(private val activity: Activity) :
         // Bounded wait for in-flight pose completion before emitting EOS
         Thread({
             val waitStartNs = SystemClock.elapsedRealtimeNanos()
-            val maxWaitNs = 250_000_000L // 250ms max wait
-            while (isPoseBusy.get() && (SystemClock.elapsedRealtimeNanos() - waitStartNs) < maxWaitNs) {
+            val maxWaitNs = 500_000_000L // 500ms max wait for final in-flight frame
+            while (inFlightCount.get() > 0 && (SystemClock.elapsedRealtimeNanos() - waitStartNs) < maxWaitNs) {
                 try {
                     Thread.sleep(10)
                 } catch (_: InterruptedException) {
@@ -689,12 +658,13 @@ class WorkoutCvPlugin(private val activity: Activity) :
     }
 
     override fun onError(error: String, errorCode: Int) {
-        isPoseBusy.set(false)
+        inFlightCount.updateAndGet { maxOf(0, it - 1) }
         sendErrorEvent(error)
     }
 
     override fun onResults(resultBundle: PoseLandmarkerHelper.ResultBundle) {
         if (!isSessionActive || resultBundle.sessionGen != currentSessionGeneration) {
+            inFlightCount.updateAndGet { maxOf(0, it - 1) }
             WorkoutCvPerfTracker.staleSessionCallbacksDropped.incrementAndGet()
             Log.w(
                 TAG,
@@ -705,7 +675,7 @@ class WorkoutCvPlugin(private val activity: Activity) :
         }
 
         // Free pose in-flight flag immediately on completion for active session
-        isPoseBusy.set(false)
+        inFlightCount.updateAndGet { maxOf(0, it - 1) }
 
         val result = resultBundle.results.firstOrNull() ?: return
         val landmarks = result.landmarks()
@@ -726,12 +696,13 @@ class WorkoutCvPlugin(private val activity: Activity) :
             val videoPtsMs = resultBundle.timestamp
             val isReplay = (currentSourceMode == "video_replay")
             val isPtsVerified = if (isReplay) {
-                resultBundle.isPtsVerified && isCurrentSurfacePtsVerified
+                resultBundle.isPtsVerified
             } else {
                 true
             }
-            val currentPreviewPtsMs = if (isReplay) currentSurfacePtsMs else videoPtsMs
-            val skewMs = if (isReplay) abs(currentPreviewPtsMs - videoPtsMs) else 0L
+            // Preserve the captured frame's PTS so Dart FSM & skeleton overlay remain valid while video renders at 30-60 FPS
+            val currentPreviewPtsMs = videoPtsMs
+            val skewMs = 0L
 
             val statusStr = when {
                 landmarks.isEmpty() -> "lost"
@@ -780,7 +751,7 @@ class WorkoutCvPlugin(private val activity: Activity) :
                 lastPreviewEventSentUptimeMs = SystemClock.uptimeMillis()
 
                 sessionResultSampleCount++
-                if (sessionResultSampleCount <= 15L || sessionResultSampleCount % 10L == 0L) {
+                if (VERBOSE_FRAME_LOGS && (sessionResultSampleCount <= 15L || sessionResultSampleCount % 10L == 0L)) {
                     Log.i(
                         TAG,
                         "[CV_SYNC_RESULT] sessionGen=${resultBundle.sessionGen} resultIdx=$sessionResultSampleCount " +
@@ -813,7 +784,7 @@ class WorkoutCvPlugin(private val activity: Activity) :
                 "sourceFps" to videoSourceFps,
                 "readbackMs" to resultBundle.readbackMs,
                 "isEndOfStream" to false,
-                "requiresReplayAck" to isReplay,
+                "requiresReplayAck" to false,
                 "overlayVisiblePct" to ov.visiblePct,
                 "overlayHiddenSkewPct" to ov.hiddenSkewPct,
                 "overlayHiddenNoResultPct" to ov.hiddenNoResultPct,

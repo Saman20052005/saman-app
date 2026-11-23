@@ -1,4 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../../providers/profile_provider.dart';
+import '../../../../utils/auth_helper.dart';
 import '../../data/repositories/journey_repository.dart';
 import '../../domain/models/journey_models.dart';
 
@@ -50,7 +52,25 @@ class JourneyController extends StateNotifier<JourneyState> {
   final Ref _ref;
 
   JourneyController(this._repository, this._ref) : super(const JourneyState()) {
-    loadActiveJourney();
+    final isRealRepo = _repository is JourneyRepositoryImpl;
+    final hasSession = !isRealRepo ||
+        (_ref.read(profileProvider).confirmedUserId?.isNotEmpty ?? false);
+    if (!_ref.read(authLoggingOutProvider) && hasSession) {
+      loadActiveJourney();
+    }
+    if (isRealRepo) {
+      _ref.listen<String?>(
+        profileProvider.select((s) => s.confirmedUserId),
+        (prev, next) {
+          if ((prev == null || prev.isEmpty) &&
+              next != null &&
+              next.isNotEmpty &&
+              !_ref.read(authLoggingOutProvider)) {
+            loadActiveJourney();
+          }
+        },
+      );
+    }
   }
 
   Future<void> loadActiveJourney() async {

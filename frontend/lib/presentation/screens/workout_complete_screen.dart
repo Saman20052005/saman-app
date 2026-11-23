@@ -35,35 +35,36 @@ class WorkoutCompleteScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final t = SamanWorkoutTokens.of(context);
     final sessionAsync = ref.watch(sessionDetailProvider(sessionId));
 
     return Scaffold(
-      backgroundColor: SamanWorkoutTokens.canvas,
+      backgroundColor: t.canvas,
       appBar: AppBar(
-        backgroundColor: SamanWorkoutTokens.canvas,
+        backgroundColor: t.canvas,
         elevation: 0,
         scrolledUnderElevation: 0,
         leadingWidth: 120,
         leading: InkWell(
           key: const ValueKey('workout_complete_back_button'),
           onTap: () => Navigator.of(context).pop(),
-          child: const Padding(
-            padding: EdgeInsetsDirectional.only(start: 16),
+          child: Padding(
+            padding: const EdgeInsetsDirectional.only(start: 16),
             child: Row(
               children: [
                 Icon(
                   Icons.arrow_back_ios_new,
                   size: 16,
-                  color: SamanWorkoutTokens.textSecondary,
+                  color: t.textSecondary,
                 ),
-                SizedBox(width: 6),
+                const SizedBox(width: 6),
                 Flexible(
                   child: Text(
                     'Workout',
                     style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w500,
-                      color: SamanWorkoutTokens.textSecondary,
+                      color: t.textSecondary,
                     ),
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -80,21 +81,21 @@ class WorkoutCompleteScreen extends ConsumerWidget {
                 padding:
                     const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
-                  color: SamanWorkoutTokens.emeraldBadgeBg,
+                  color: t.emeraldBadgeBg,
                   borderRadius:
                       BorderRadius.circular(SamanWorkoutTokens.radiusPill),
                   border: Border.all(
-                    color: SamanWorkoutTokens.emeraldBadgeBorder,
+                    color: t.emeraldBadgeBorder,
                   ),
                 ),
-                child: const Row(
+                child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     CircleAvatar(
                       radius: 3,
-                      backgroundColor: SamanWorkoutTokens.emeraldAccent,
+                      backgroundColor: t.emeraldAccent,
                     ),
-                    SizedBox(width: 6),
+                    const SizedBox(width: 6),
                     Text(
                       'SESSION COMPLETE',
                       style: TextStyle(
@@ -102,7 +103,7 @@ class WorkoutCompleteScreen extends ConsumerWidget {
                         fontSize: 10,
                         fontWeight: FontWeight.bold,
                         letterSpacing: 0.8,
-                        color: SamanWorkoutTokens.emeraldAccent,
+                        color: t.emeraldAccent,
                       ),
                     ),
                   ],
@@ -194,15 +195,15 @@ class WorkoutCompleteScreen extends ConsumerWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Photographic Cinematic Hero
+                    // Photographic Cinematic Hero (dark scrim preserved across Light/Dark)
                     Container(
                       height: 190,
                       width: double.infinity,
                       decoration: BoxDecoration(
-                        color: SamanWorkoutTokens.cardSurface,
+                        color: t.cardSurface,
                         borderRadius:
                             BorderRadius.circular(SamanWorkoutTokens.radiusLg),
-                        border: Border.all(color: SamanWorkoutTokens.border),
+                        border: Border.all(color: t.border),
                       ),
                       clipBehavior: Clip.antiAlias,
                       child: Stack(
@@ -212,12 +213,12 @@ class WorkoutCompleteScreen extends ConsumerWidget {
                             'assets/images/home_workout_upper.jpg',
                             fit: BoxFit.cover,
                             errorBuilder: (_, __, ___) => Container(
-                              color: SamanWorkoutTokens.cardSurface,
-                              child: const Center(
+                              color: t.cardSurface,
+                              child: Center(
                                 child: Icon(
                                   Icons.fitness_center,
                                   size: 56,
-                                  color: SamanWorkoutTokens.border,
+                                  color: t.border,
                                 ),
                               ),
                             ),
@@ -228,8 +229,8 @@ class WorkoutCompleteScreen extends ConsumerWidget {
                                 begin: Alignment.bottomCenter,
                                 end: Alignment.topCenter,
                                 colors: [
-                                  SamanWorkoutTokens.canvas.withOpacity(0.95),
-                                  SamanWorkoutTokens.canvas.withOpacity(0.6),
+                                  const Color(0xFF0C0D0E).withOpacity(0.95),
+                                  const Color(0xFF0C0D0E).withOpacity(0.6),
                                   Colors.transparent,
                                 ],
                               ),
@@ -304,10 +305,10 @@ class WorkoutCompleteScreen extends ConsumerWidget {
                     Container(
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
-                        color: SamanWorkoutTokens.cardSurface,
+                        color: t.cardSurface,
                         borderRadius:
                             BorderRadius.circular(SamanWorkoutTokens.radiusMd),
-                        border: Border.all(color: SamanWorkoutTokens.border),
+                        border: Border.all(color: t.border),
                       ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -318,14 +319,14 @@ class WorkoutCompleteScreen extends ConsumerWidget {
                               Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  const Text(
+                                  Text(
                                     'VOLUME LIFTED',
                                     style: TextStyle(
                                       fontFamily: 'monospace',
                                       fontSize: 11,
                                       fontWeight: FontWeight.w600,
                                       letterSpacing: 0.8,
-                                      color: SamanWorkoutTokens.textSecondary,
+                                      color: t.textSecondary,
                                     ),
                                   ),
                                   const SizedBox(height: 4),
@@ -336,23 +337,21 @@ class WorkoutCompleteScreen extends ConsumerWidget {
                                     children: [
                                       Text(
                                         _formatVolume(totalVolume),
-                                        style: const TextStyle(
+                                        style: TextStyle(
                                           fontFamily: 'monospace',
                                           fontSize: 32,
                                           fontWeight: FontWeight.bold,
                                           letterSpacing: -1,
-                                          color:
-                                              SamanWorkoutTokens.emeraldAccent,
+                                          color: t.emeraldAccent,
                                         ),
                                       ),
                                       const SizedBox(width: 4),
-                                      const Text(
+                                      Text(
                                         'kg',
                                         style: TextStyle(
                                           fontFamily: 'monospace',
                                           fontSize: 13,
-                                          color:
-                                              SamanWorkoutTokens.textSecondary,
+                                          color: t.textSecondary,
                                         ),
                                       ),
                                     ],
@@ -362,14 +361,14 @@ class WorkoutCompleteScreen extends ConsumerWidget {
                               Column(
                                 crossAxisAlignment: CrossAxisAlignment.end,
                                 children: [
-                                  const Text(
+                                  Text(
                                     'ACTIVE DURATION',
                                     style: TextStyle(
                                       fontFamily: 'monospace',
                                       fontSize: 11,
                                       fontWeight: FontWeight.w600,
                                       letterSpacing: 0.8,
-                                      color: SamanWorkoutTokens.textSecondary,
+                                      color: t.textSecondary,
                                     ),
                                   ),
                                   const SizedBox(height: 4),
@@ -380,22 +379,21 @@ class WorkoutCompleteScreen extends ConsumerWidget {
                                     children: [
                                       Text(
                                         durationText,
-                                        style: const TextStyle(
+                                        style: TextStyle(
                                           fontFamily: 'monospace',
                                           fontSize: 32,
                                           fontWeight: FontWeight.bold,
                                           letterSpacing: -0.5,
-                                          color: SamanWorkoutTokens.textPrimary,
+                                          color: t.textPrimary,
                                         ),
                                       ),
                                       const SizedBox(width: 4),
-                                      const Text(
+                                      Text(
                                         'min',
                                         style: TextStyle(
                                           fontFamily: 'monospace',
                                           fontSize: 13,
-                                          color:
-                                              SamanWorkoutTokens.textSecondary,
+                                          color: t.textSecondary,
                                         ),
                                       ),
                                     ],
@@ -405,26 +403,25 @@ class WorkoutCompleteScreen extends ConsumerWidget {
                             ],
                           ),
                           const SizedBox(height: 14),
-                          const Divider(
-                            color: SamanWorkoutTokens.border,
+                          Divider(
+                            color: t.border,
                             height: 1,
                           ),
                           const SizedBox(height: 12),
                           Row(
                             children: [
-                              const CircleAvatar(
+                              CircleAvatar(
                                 radius: 3,
-                                backgroundColor:
-                                    SamanWorkoutTokens.textSecondary,
+                                backgroundColor: t.textSecondary,
                               ),
                               const SizedBox(width: 8),
                               Expanded(
                                 child: Text(
                                   '${session.exerciseLogs.length} ${session.exerciseLogs.length == 1 ? 'set' : 'sets'} logged • $distinctExerciseCount ${distinctExerciseCount == 1 ? 'exercise' : 'exercises'}',
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                     fontSize: 13,
                                     fontWeight: FontWeight.w500,
-                                    color: SamanWorkoutTokens.textSecondary,
+                                    color: t.textSecondary,
                                   ),
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
@@ -441,23 +438,23 @@ class WorkoutCompleteScreen extends ConsumerWidget {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const Text(
+                        Text(
                           'WHAT YOU TRAINED',
                           style: TextStyle(
                             fontFamily: 'monospace',
                             fontSize: 11,
                             fontWeight: FontWeight.w600,
                             letterSpacing: 0.8,
-                            color: SamanWorkoutTokens.textSecondary,
+                            color: t.textSecondary,
                           ),
                         ),
                         Text(
                           '$distinctExerciseCount ${distinctExerciseCount == 1 ? 'exercise' : 'exercises'}',
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontFamily: 'monospace',
                             fontSize: 11,
                             fontWeight: FontWeight.w600,
-                            color: SamanWorkoutTokens.textSecondary,
+                            color: t.textSecondary,
                           ),
                         ),
                       ],
@@ -467,6 +464,7 @@ class WorkoutCompleteScreen extends ConsumerWidget {
                     // Exercise Journal Cards
                     for (final entry in groupedLogs.entries) ...[
                       _buildJournalCard(
+                        t: t,
                         exerciseId: entry.key,
                         logs: entry.value,
                         exerciseVolume: exerciseVolumes[entry.key] ?? 0.0,
@@ -482,6 +480,7 @@ class WorkoutCompleteScreen extends ConsumerWidget {
                     if (totalVolume > 0 && groupedLogs.isNotEmpty) ...[
                       const SizedBox(height: 10),
                       _buildVolumeBreakdown(
+                        t: t,
                         groupedLogs: groupedLogs,
                         exerciseVolumes: exerciseVolumes,
                         totalVolume: totalVolume,
@@ -495,27 +494,27 @@ class WorkoutCompleteScreen extends ConsumerWidget {
                     Container(
                       padding: const EdgeInsets.all(14),
                       decoration: BoxDecoration(
-                        color: SamanWorkoutTokens.cardSurface,
+                        color: t.cardSurface,
                         borderRadius:
                             BorderRadius.circular(SamanWorkoutTokens.radiusMd),
-                        border: Border.all(color: SamanWorkoutTokens.border),
+                        border: Border.all(color: t.border),
                       ),
-                      child: const Row(
+                      child: Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Icon(
                             Icons.info_outline,
                             size: 18,
-                            color: SamanWorkoutTokens.textSecondary,
+                            color: t.textSecondary,
                           ),
-                          SizedBox(width: 10),
+                          const SizedBox(width: 10),
                           Expanded(
                             child: Text(
                               'View this session in your workout history.',
                               style: TextStyle(
                                 fontSize: 13,
                                 height: 1.4,
-                                color: SamanWorkoutTokens.textSecondary,
+                                color: t.textSecondary,
                               ),
                             ),
                           ),
@@ -534,9 +533,9 @@ class WorkoutCompleteScreen extends ConsumerWidget {
                 child: Container(
                   padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
                   decoration: BoxDecoration(
-                    color: SamanWorkoutTokens.canvas.withOpacity(0.95),
-                    border: const Border(
-                      top: BorderSide(color: SamanWorkoutTokens.border),
+                    color: t.canvas.withOpacity(0.95),
+                    border: Border(
+                      top: BorderSide(color: t.border),
                     ),
                   ),
                   child: SafeArea(
@@ -557,9 +556,8 @@ class WorkoutCompleteScreen extends ConsumerWidget {
                               );
                             },
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: SamanWorkoutTokens.buttonPrimary,
-                              foregroundColor:
-                                  SamanWorkoutTokens.buttonPrimaryText,
+                              backgroundColor: t.buttonPrimary,
+                              foregroundColor: t.buttonPrimaryText,
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(
                                     SamanWorkoutTokens.radiusMd),
@@ -589,11 +587,11 @@ class WorkoutCompleteScreen extends ConsumerWidget {
                         TextButton(
                           key: const ValueKey('workout_complete_done_button'),
                           onPressed: () => Navigator.of(context).pop(),
-                          child: const Text(
+                          child: Text(
                             'Back to Workout',
                             style: TextStyle(
                               fontSize: 14,
-                              color: SamanWorkoutTokens.textSecondary,
+                              color: t.textSecondary,
                             ),
                           ),
                         ),
@@ -605,16 +603,15 @@ class WorkoutCompleteScreen extends ConsumerWidget {
             ],
           );
         },
-        loading: () => const Center(
+        loading: () => Center(
           child: CircularProgressIndicator(
-            valueColor:
-                AlwaysStoppedAnimation<Color>(SamanWorkoutTokens.emeraldAccent),
+            valueColor: AlwaysStoppedAnimation<Color>(t.emeraldAccent),
           ),
         ),
         error: (err, stack) => Center(
           child: Text(
             'Failed to load session: $err',
-            style: const TextStyle(color: SamanWorkoutTokens.crimsonAccent),
+            style: TextStyle(color: t.crimsonAccent),
           ),
         ),
       ),
@@ -622,6 +619,7 @@ class WorkoutCompleteScreen extends ConsumerWidget {
   }
 
   Widget _buildJournalCard({
+    required SamanWorkoutPalette t,
     required String exerciseId,
     required List<ExerciseSetLog> logs,
     required double exerciseVolume,
@@ -631,9 +629,9 @@ class WorkoutCompleteScreen extends ConsumerWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: SamanWorkoutTokens.cardSurface,
+        color: t.cardSurface,
         borderRadius: BorderRadius.circular(SamanWorkoutTokens.radiusLg),
-        border: Border.all(color: SamanWorkoutTokens.border),
+        border: Border.all(color: t.border),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -648,10 +646,10 @@ class WorkoutCompleteScreen extends ConsumerWidget {
                   children: [
                     Text(
                       name,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
-                        color: SamanWorkoutTokens.textPrimary,
+                        color: t.textPrimary,
                       ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
@@ -660,18 +658,18 @@ class WorkoutCompleteScreen extends ConsumerWidget {
                       const SizedBox(height: 2),
                       Text(
                         category,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 12,
-                          color: SamanWorkoutTokens.textSecondary,
+                          color: t.textSecondary,
                         ),
                       ),
                     ],
                     const SizedBox(height: 4),
                     Text(
                       '${logs.length} ${logs.length == 1 ? 'set' : 'sets'}',
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 12,
-                        color: SamanWorkoutTokens.textSecondary,
+                        color: t.textSecondary,
                       ),
                     ),
                   ],
@@ -682,20 +680,20 @@ class WorkoutCompleteScreen extends ConsumerWidget {
                 children: [
                   Text(
                     _formatVolume(exerciseVolume),
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontFamily: 'monospace',
                       fontSize: 15,
                       fontWeight: FontWeight.bold,
-                      color: SamanWorkoutTokens.emeraldAccent,
+                      color: t.emeraldAccent,
                     ),
                   ),
                   const SizedBox(width: 2),
-                  const Text(
+                  Text(
                     'kg total',
                     style: TextStyle(
                       fontFamily: 'monospace',
                       fontSize: 12,
-                      color: SamanWorkoutTokens.textSecondary,
+                      color: t.textSecondary,
                     ),
                   ),
                 ],
@@ -708,15 +706,15 @@ class WorkoutCompleteScreen extends ConsumerWidget {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
             decoration: BoxDecoration(
-              color: SamanWorkoutTokens.surfaceElevated,
+              color: t.surfaceElevated,
               borderRadius: BorderRadius.circular(SamanWorkoutTokens.radiusSm),
             ),
             child: Column(
               children: [
                 for (int i = 0; i < logs.length; i++) ...[
                   if (i > 0)
-                    const Divider(
-                      color: SamanWorkoutTokens.border,
+                    Divider(
+                      color: t.border,
                       height: 12,
                     ),
                   Builder(
@@ -733,11 +731,11 @@ class WorkoutCompleteScreen extends ConsumerWidget {
                                   width: 44,
                                   child: Text(
                                     'SET ${log.setNumber}',
-                                    style: const TextStyle(
+                                    style: TextStyle(
                                       fontFamily: 'monospace',
                                       fontSize: 11,
                                       fontWeight: FontWeight.w600,
-                                      color: SamanWorkoutTokens.textSecondary,
+                                      color: t.textSecondary,
                                     ),
                                   ),
                                 ),
@@ -745,10 +743,10 @@ class WorkoutCompleteScreen extends ConsumerWidget {
                                   child: Text(
                                     log.effectiveUnit == SetUnit.seconds ? '${log.secondsCompleted} s'
                                         : '${_formatWeight(log.weightKg)} kg × ${log.repsCompleted} reps',
-                                    style: const TextStyle(
+                                    style: TextStyle(
                                       fontFamily: 'monospace',
                                       fontSize: 13,
-                                      color: SamanWorkoutTokens.textPrimary,
+                                      color: t.textPrimary,
                                     ),
                                     overflow: TextOverflow.ellipsis,
                                   ),
@@ -759,10 +757,10 @@ class WorkoutCompleteScreen extends ConsumerWidget {
                           const SizedBox(width: 8),
                           Text(
                             '${_formatVolume(setVolume)} kg',
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontFamily: 'monospace',
                               fontSize: 13,
-                              color: SamanWorkoutTokens.textSecondary,
+                              color: t.textSecondary,
                             ),
                           ),
                         ],
@@ -779,6 +777,7 @@ class WorkoutCompleteScreen extends ConsumerWidget {
   }
 
   Widget _buildVolumeBreakdown({
+    required SamanWorkoutPalette t,
     required Map<String, List<ExerciseSetLog>> groupedLogs,
     required Map<String, double> exerciseVolumes,
     required double totalVolume,
@@ -786,19 +785,19 @@ class WorkoutCompleteScreen extends ConsumerWidget {
   }) {
     final entries = groupedLogs.entries
         .where((entry) => (exerciseVolumes[entry.key] ?? 0) > 0).toList();
-    const segmentColors = [
-      SamanWorkoutTokens.tealAccent,
-      SamanWorkoutTokens.emeraldAccent,
-      SamanWorkoutTokens.tealLightAccent,
-      SamanWorkoutTokens.amberAccent,
+    final segmentColors = [
+      t.tealAccent,
+      t.emeraldAccent,
+      t.tealLightAccent,
+      t.amberAccent,
     ];
 
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: SamanWorkoutTokens.cardSurface,
+        color: t.cardSurface,
         borderRadius: BorderRadius.circular(SamanWorkoutTokens.radiusMd),
-        border: Border.all(color: SamanWorkoutTokens.border),
+        border: Border.all(color: t.border),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -806,23 +805,23 @@ class WorkoutCompleteScreen extends ConsumerWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
+              Text(
                 'VOLUME BY EXERCISE',
                 style: TextStyle(
                   fontFamily: 'monospace',
                   fontSize: 11,
                   fontWeight: FontWeight.w600,
                   letterSpacing: 0.8,
-                  color: SamanWorkoutTokens.textSecondary,
+                  color: t.textSecondary,
                 ),
               ),
               Text(
                 '${_formatVolume(totalVolume)} kg total',
-                style: const TextStyle(
+                style: TextStyle(
                   fontFamily: 'monospace',
                   fontSize: 11,
                   fontWeight: FontWeight.bold,
-                  color: SamanWorkoutTokens.textPrimary,
+                  color: t.textPrimary,
                 ),
               ),
             ],
@@ -885,9 +884,9 @@ class WorkoutCompleteScreen extends ConsumerWidget {
                                 Expanded(
                                   child: Text(
                                     exName,
-                                    style: const TextStyle(
+                                    style: TextStyle(
                                       fontSize: 13,
-                                      color: SamanWorkoutTokens.textPrimary,
+                                      color: t.textPrimary,
                                     ),
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
@@ -899,10 +898,10 @@ class WorkoutCompleteScreen extends ConsumerWidget {
                           const SizedBox(width: 8),
                           Text(
                             '${_formatVolume(exVol)} kg (${pct.toStringAsFixed(1)}%)',
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontFamily: 'monospace',
                               fontSize: 12,
-                              color: SamanWorkoutTokens.textSecondary,
+                              color: t.textSecondary,
                             ),
                           ),
                         ],

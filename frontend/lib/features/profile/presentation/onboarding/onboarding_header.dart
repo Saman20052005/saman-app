@@ -14,6 +14,7 @@ class OnboardingHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final p = OnboardingTokens.of(context);
     return Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -38,16 +39,16 @@ class OnboardingHeader extends StatelessWidget {
                     width: 36,
                     height: 36,
                     decoration: BoxDecoration(
-                      color: OnboardingTokens.surface,
+                      color: p.surface,
                       borderRadius:
                           BorderRadius.circular(OnboardingTokens.radiusButton),
-                      border: Border.all(color: OnboardingTokens.borderDefault),
+                      border: Border.all(color: p.borderDefault),
                     ),
                     alignment: Alignment.center,
-                    child: const Icon(
+                    child: Icon(
                       Icons.arrow_back,
                       size: 18,
-                      color: OnboardingTokens.textPrimary,
+                      color: p.textPrimary,
                     ),
                   ),
                 ),
@@ -55,10 +56,10 @@ class OnboardingHeader extends StatelessWidget {
               // Step counter
               Text(
                 'Step $step of 5',
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w500,
-                  color: OnboardingTokens.textSecondary,
+                  color: p.textSecondary,
                   letterSpacing: 0.2,
                 ),
               ),
@@ -76,11 +77,11 @@ class OnboardingHeader extends StatelessWidget {
               final segmentStep = index + 1;
               Color segmentColor;
               if (segmentStep < step) {
-                segmentColor = OnboardingTokens.progressCompleted;
+                segmentColor = p.progressCompleted;
               } else if (segmentStep == step) {
-                segmentColor = OnboardingTokens.progressActive;
+                segmentColor = p.progressActive;
               } else {
-                segmentColor = OnboardingTokens.progressUpcoming;
+                segmentColor = p.progressUpcoming;
               }
 
               return Expanded(

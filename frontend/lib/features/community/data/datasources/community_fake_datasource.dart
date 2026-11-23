@@ -6,6 +6,9 @@ import '../../domain/models/community_post.dart';
 import '../../domain/models/draft_post.dart';
 import '../../domain/models/post_attachment_snapshot.dart';
 import '../../domain/models/question_answer.dart';
+import '../../domain/models/community_settings.dart';
+import '../../domain/models/community_story.dart';
+import '../../domain/models/community_dm.dart';
 
 /// In-memory fake datasource for Saman Community (JCOM-02).
 /// Maintains reactive state across Feed, Discover, and Post Detail.
@@ -14,6 +17,13 @@ class CommunityFakeDatasource {
 
   static final Map<String, List<DraftPost>> _sharedUserDrafts = {};
   static final Map<String, Set<String>> _sharedUserBookmarks = {};
+
+  CommunitySettings _settings = const CommunitySettings();
+  final Set<String> _blockedUserIds = <String>{};
+  final Set<String> _mutedUserIds = <String>{};
+  final List<CommunityStoryAuthorGroup> _storyGroups = [];
+  final Map<String, DmConversation> _conversations = {};
+  final Map<String, List<DmMessage>> _messagesByConv = {};
 
   static void resetStorage() {
     _sharedUserDrafts.clear();
@@ -27,7 +37,12 @@ class CommunityFakeDatasource {
     name: 'Linh Nguyễn',
     isVerified: true,
     title: 'Thành viên chia sẻ (Mẫu)',
+    bio:
+        'Yêu thích rèn luyện thể chất và dinh dưỡng cân bằng. Chia sẻ hành trình tập luyện thực tế mỗi ngày cùng Saman.',
     followerCount: 1250,
+    workoutPostCount: 42,
+    mealPostCount: 18,
+    totalLikesReceived: 1200,
   );
 
   static const CommunityAuthor authorKhang = CommunityAuthor(
@@ -432,12 +447,38 @@ class CommunityFakeDatasource {
     return newComment;
   }
 
-  CommunityDiscoverData getDiscoverData({String topic = 'all'}) {
+  CommunityDiscoverData getDiscoverData({
+    String topic = 'all',
+    String? searchQuery,
+  }) {
+    final query = searchQuery?.trim().toLowerCase() ?? '';
+    final allGrid = _defaultGridItems();
+    final allTrending = _defaultTrendingTopics();
+    final allCreators = List<CommunityAuthor>.unmodifiable(_creators);
+
+    if (query.isEmpty) {
+      return CommunityDiscoverData(
+        activeTopic: topic,
+        gridItems: allGrid,
+        trendingTopics: allTrending,
+        recommendedCreators: allCreators,
+      );
+    }
+
     return CommunityDiscoverData(
       activeTopic: topic,
-      gridItems: _defaultGridItems(),
-      trendingTopics: _defaultTrendingTopics(),
-      recommendedCreators: List.unmodifiable(_creators),
+      gridItems: allGrid
+          .where((item) => (item.altText ?? '').toLowerCase().contains(query))
+          .toList(),
+      trendingTopics: allTrending
+          .where((t) => t.hashtag.toLowerCase().contains(query))
+          .toList(),
+      recommendedCreators: allCreators
+          .where((c) =>
+              c.name.toLowerCase().contains(query) ||
+              (c.title ?? '').toLowerCase().contains(query) ||
+              (c.handle ?? '').toLowerCase().contains(query))
+          .toList(),
     );
   }
 
@@ -702,12 +743,74 @@ class CommunityFakeDatasource {
     }
   }
 
+  void markAllNotificationsRead() {
+    for (var i = 0; i < _notifications.length; i++) {
+      if (_notifications[i].isUnread) {
+        _notifications[i] = _notifications[i].copyWith(isUnread: false);
+      }
+    }
+  }
+
+  CommunityAuthor? _customMyProfile;
+
   CommunityAuthor getAuthorProfile(String authorId) {
-    if (authorId == 'author_linh' || authorId == 'me') return authorLinh;
+    if (authorId == 'author_linh' || authorId == 'me') {
+      return _customMyProfile ?? authorLinh;
+    }
     if (authorId == 'author_khang') return authorKhang;
     if (authorId == 'creator_long') return creatorLong;
     if (authorId == 'creator_mai') return creatorMai;
-    return authorLinh;
+    return _customMyProfile ?? authorLinh;
+  }
+
+  List<CommunityPost> getAuthorPosts(
+    String authorId, {
+    String tab = 'all',
+  }) {
+    final bookmarks = _sharedUserBookmarks[currentUserId] ?? const <String>{};
+    final isMe = authorId == 'me' || authorId == 'author_linh';
+    final filtered = _posts.where((p) {
+      final matchesAuthor = isMe
+          ? (p.author.id == 'me' || p.author.id == 'author_linh')
+          : p.author.id == authorId;
+      if (!matchesAuthor) return false;
+      if (tab == 'workout') {
+        return p.type == CommunityPostType.workout ||
+            p.workoutAttachment != null;
+      }
+      if (tab == 'meal') {
+        return p.type == CommunityPostType.meal || p.nutritionInfo != null;
+      }
+      if (tab == 'qa') {
+        return p.type == CommunityPostType.qa;
+      }
+      return true;
+    });
+    return filtered
+        .map((p) => p.copyWith(isBookmarked: bookmarks.contains(p.id)))
+        .toList();
+  }
+
+  CommunityAuthor updateProfile({
+    String? name,
+    String? handle,
+    String? title,
+    String? bio,
+    List<String>? interestTopics,
+    String? avatarUrl,
+    bool removeAvatar = false,
+  }) {
+    final base = _customMyProfile ?? authorLinh;
+    final updated = base.copyWith(
+      name: name ?? base.name,
+      handle: handle ?? base.handle,
+      title: title ?? base.title,
+      bio: bio ?? base.bio,
+      interestTopics: interestTopics ?? base.interestTopics,
+      avatarUrl: removeAvatar ? null : (avatarUrl ?? base.avatarUrl),
+    );
+    _customMyProfile = updated;
+    return updated;
   }
 
   List<CommunityAuthor> getFollowers(String authorId) {
@@ -763,6 +866,278 @@ class CommunityFakeDatasource {
       return newUpvoted;
     }
     return false;
+  }
+
+  // --- Wave 4 Fake Implementations ---
+
+  CommunitySettings getSettings() => _settings;
+
+  CommunitySettings updateSettings({
+    bool? isPrivateAccount,
+    String? whoCanDm,
+    String? whoCanComment,
+    bool? hideLikeCounts,
+    bool? showActivityStatus,
+    List<String>? mutedKeywords,
+  }) {
+    _settings = _settings.copyWith(
+      isPrivateAccount: isPrivateAccount,
+      whoCanDm: whoCanDm,
+      whoCanComment: whoCanComment,
+      hideLikeCounts: hideLikeCounts,
+      showActivityStatus: showActivityStatus,
+      mutedKeywords: mutedKeywords,
+    );
+    return _settings;
+  }
+
+  bool blockUser(String targetUserId) {
+    _blockedUserIds.add(targetUserId);
+    return true;
+  }
+
+  bool unblockUser(String targetUserId) {
+    _blockedUserIds.remove(targetUserId);
+    return false;
+  }
+
+  List<CommunityAuthor> getBlockedUsers() {
+    return _blockedUserIds.map(getAuthorProfile).toList();
+  }
+
+  bool muteUser(String targetUserId) {
+    _mutedUserIds.add(targetUserId);
+    return true;
+  }
+
+  bool unmuteUser(String targetUserId) {
+    _mutedUserIds.remove(targetUserId);
+    return false;
+  }
+
+  List<CommunityAuthor> getMutedUsers() {
+    return _mutedUserIds.map(getAuthorProfile).toList();
+  }
+
+  CommunityReportReceipt reportContent({
+    required String targetType,
+    required String targetId,
+    required String reason,
+    String details = '',
+  }) {
+    return CommunityReportReceipt(
+      reportId: 'report_${DateTime.now().millisecondsSinceEpoch}',
+      targetType: targetType,
+      targetId: targetId,
+      reason: reason,
+      status: 'received',
+      createdAt: DateTime.now().toUtc(),
+      alreadyReported: false,
+    );
+  }
+
+  List<CommunityStoryAuthorGroup> getStories() {
+    return List.unmodifiable(_storyGroups);
+  }
+
+  CommunityStory createStory({
+    required String mediaType,
+    String? mediaUrl,
+    String caption = '',
+    String? backgroundColor,
+    String privacy = 'public',
+  }) {
+    final now = DateTime.now().toUtc();
+    final story = CommunityStory(
+      id: 'story_${now.millisecondsSinceEpoch}',
+      userId: currentUserId,
+      mediaType: mediaType,
+      mediaUrl: mediaUrl,
+      caption: caption,
+      backgroundColor: backgroundColor,
+      privacy: privacy,
+      createdAt: now,
+      expiresAt: now.add(const Duration(hours: 24)),
+    );
+    final selfIdx = _storyGroups.indexWhere((g) => g.isSelf);
+    if (selfIdx != -1) {
+      final existing = _storyGroups[selfIdx];
+      _storyGroups[selfIdx] = existing.copyWith(
+        stories: [...existing.stories, story],
+        hasUnviewed: true,
+        latestCreatedAt: now,
+      );
+    } else {
+      _storyGroups.insert(
+        0,
+        CommunityStoryAuthorGroup(
+          author: getAuthorProfile('me'),
+          stories: [story],
+          hasUnviewed: true,
+          isSelf: true,
+          latestCreatedAt: now,
+        ),
+      );
+    }
+    return story;
+  }
+
+  int markStoryViewed(String storyId) {
+    for (var i = 0; i < _storyGroups.length; i++) {
+      final group = _storyGroups[i];
+      final sIdx = group.stories.indexWhere((s) => s.id == storyId);
+      if (sIdx != -1) {
+        final s = group.stories[sIdx];
+        final updatedStory = s.copyWith(
+          isViewed: true,
+          viewCount: s.isViewed ? s.viewCount : s.viewCount + 1,
+        );
+        final nextStories = List<CommunityStory>.from(group.stories);
+        nextStories[sIdx] = updatedStory;
+        _storyGroups[i] = group.copyWith(
+          stories: nextStories,
+          hasUnviewed: nextStories.any((st) => !st.isViewed),
+        );
+        return updatedStory.viewCount;
+      }
+    }
+    return 1;
+  }
+
+  bool deleteStory(String storyId) {
+    for (var i = 0; i < _storyGroups.length; i++) {
+      final group = _storyGroups[i];
+      final nextStories = group.stories.where((s) => s.id != storyId).toList();
+      if (nextStories.length != group.stories.length) {
+        if (nextStories.isEmpty) {
+          _storyGroups.removeAt(i);
+        } else {
+          _storyGroups[i] = group.copyWith(stories: nextStories);
+        }
+        return true;
+      }
+    }
+    return false;
+  }
+
+  int sharePost(String postId) {
+    final idx = _posts.indexWhere((p) => p.id == postId);
+    if (idx != -1) {
+      final updated = _posts[idx].copyWith(shareCount: _posts[idx].shareCount + 1);
+      _posts[idx] = updated;
+      return updated.shareCount;
+    }
+    return 1;
+  }
+
+  DmConversation createOrGetConversation(String targetUserId) {
+    final existing = _conversations.values.where((c) => c.peer.id == targetUserId).toList();
+    if (existing.isNotEmpty) return existing.first;
+    final author = getAuthorProfile(targetUserId);
+    final now = DateTime.now().toUtc();
+    final conv = DmConversation(
+      id: 'conv_$targetUserId',
+      peer: DmParticipant(
+        id: author.id,
+        name: author.name,
+        avatarUrl: author.avatarUrl,
+        isVerified: author.isVerified,
+      ),
+      updatedAt: now,
+    );
+    _conversations[conv.id] = conv;
+    _messagesByConv.putIfAbsent(conv.id, () => []);
+    return conv;
+  }
+
+  DmConversationsPage getConversations() {
+    final items = _conversations.values.toList()
+      ..sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
+    final totalUnread = items.fold<int>(0, (sum, c) => sum + c.unreadCount);
+    return DmConversationsPage(items: items, totalUnreadCount: totalUnread);
+  }
+
+  DmMessagesPage getMessages(String conversationId) {
+    final msgs = List<DmMessage>.from(_messagesByConv[conversationId] ?? const []);
+    return DmMessagesPage(items: msgs);
+  }
+
+  DmMessage sendMessage({
+    required String conversationId,
+    required DmMessageType type,
+    String content = '',
+    String? mediaUrl,
+    double? durationSeconds,
+    String? sharedPostId,
+    String? replyToMessageId,
+  }) {
+    final now = DateTime.now().toUtc();
+    final msg = DmMessage(
+      id: 'msg_${now.millisecondsSinceEpoch}',
+      conversationId: conversationId,
+      senderId: currentUserId,
+      type: type,
+      content: content,
+      mediaUrl: mediaUrl,
+      durationSeconds: durationSeconds,
+      sharedPostId: sharedPostId,
+      replyToMessageId: replyToMessageId,
+      createdAt: now,
+    );
+    _messagesByConv.putIfAbsent(conversationId, () => []).insert(0, msg);
+    final conv = _conversations[conversationId];
+    if (conv != null) {
+      _conversations[conversationId] = conv.copyWith(
+        lastMessagePreview: content.isNotEmpty ? content : type.toApiValue(),
+        lastMessageType: type.toApiValue(),
+        lastMessageAt: now,
+        updatedAt: now,
+      );
+    }
+    return msg;
+  }
+
+  void markConversationRead(String conversationId) {
+    final conv = _conversations[conversationId];
+    if (conv != null) {
+      _conversations[conversationId] = conv.copyWith(unreadCount: 0);
+    }
+  }
+
+  bool deleteMessage(String messageId) {
+    for (final entry in _messagesByConv.entries) {
+      final idx = entry.value.indexWhere((m) => m.id == messageId);
+      if (idx != -1) {
+        entry.value[idx] = entry.value[idx].copyWith(
+          isDeleted: true,
+          content: '',
+          mediaUrl: null,
+        );
+        return true;
+      }
+    }
+    return false;
+  }
+
+  int getDmUnreadCount() {
+    return _conversations.values.fold<int>(0, (sum, c) => sum + c.unreadCount);
+  }
+
+  DmMediaUploadResult uploadDmMedia({
+    required List<int> bytes,
+    required String filename,
+    required String mimeType,
+  }) {
+    final kind = mimeType.startsWith('audio/')
+        ? 'audio'
+        : (mimeType.startsWith('video/') ? 'video' : 'image');
+    return DmMediaUploadResult(
+      mediaUrl: '/static/community_dm/$filename',
+      mediaKind: kind,
+      contentType: mimeType,
+      fileName: filename,
+      sizeBytes: bytes.length,
+    );
   }
 
   static List<CommunityNotification> _defaultNotifications() {

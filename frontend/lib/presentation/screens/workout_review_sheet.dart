@@ -10,6 +10,7 @@ class WorkoutReviewSheet extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final t = SamanWorkoutTokens.of(context);
     final session = ref.watch(activeWorkoutSessionProvider);
     final saving = ref.watch(activeSessionSaverProvider);
     return PopScope(
@@ -20,7 +21,7 @@ class WorkoutReviewSheet extends ConsumerWidget {
               const EdgeInsetsDirectional.all(SamanWorkoutTokens.spacingLg),
           child: DefaultTextStyle(
             style: Theme.of(context).textTheme.bodyLarge!.copyWith(
-                  color: SamanWorkoutTokens.textPrimary,
+                  color: t.textPrimary,
                 ),
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -42,8 +43,8 @@ class WorkoutReviewSheet extends ConsumerWidget {
                 FilledButton(
                   key: const ValueKey('save_session_button'),
                   style: FilledButton.styleFrom(
-                    backgroundColor: SamanWorkoutTokens.buttonPrimary,
-                    foregroundColor: SamanWorkoutTokens.buttonPrimaryText,
+                    backgroundColor: t.buttonPrimary,
+                    foregroundColor: t.buttonPrimaryText,
                   ),
                   onPressed: saving.isLoading || session.completedSetsCount == 0
                       ? null
@@ -61,7 +62,7 @@ class WorkoutReviewSheet extends ConsumerWidget {
                   key:
                       const ValueKey('active_workout_review_understood_button'),
                   style: TextButton.styleFrom(
-                    foregroundColor: SamanWorkoutTokens.textSecondary,
+                    foregroundColor: t.textSecondary,
                   ),
                   onPressed: saving.isLoading
                       ? null

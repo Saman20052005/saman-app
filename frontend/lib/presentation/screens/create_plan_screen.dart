@@ -93,49 +93,50 @@ class _CreatePlanScreenState extends ConsumerState<CreatePlanScreen> {
   }
 
   Future<bool> _showDiscardDialog(BuildContext context) async {
+    final t = SamanWorkoutTokens.of(context);
     final confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: SamanWorkoutTokens.cardSurface,
+        backgroundColor: t.cardSurface,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(SamanWorkoutTokens.radiusLg),
-          side: const BorderSide(color: SamanWorkoutTokens.border),
+          side: BorderSide(color: t.border),
         ),
-        title: const Text(
+        title: Text(
           'Discard changes?',
           style: TextStyle(
             fontFamily: 'Space Grotesk',
             fontSize: 18,
             fontWeight: FontWeight.w700,
-            color: SamanWorkoutTokens.textPrimary,
+            color: t.textPrimary,
           ),
         ),
-        content: const Text(
+        content: Text(
           'You have unsaved changes. Are you sure you want to exit?',
           style: TextStyle(
             fontFamily: 'Inter',
             fontSize: 14,
-            color: SamanWorkoutTokens.textSecondary,
+            color: t.textSecondary,
           ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: const Text(
+            child: Text(
               'Keep editing',
               style: TextStyle(
                 fontFamily: 'Inter',
-                color: SamanWorkoutTokens.textSecondary,
+                color: t.textSecondary,
               ),
             ),
           ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text(
+            child: Text(
               'Discard',
               style: TextStyle(
                 fontFamily: 'Inter',
-                color: Colors.redAccent,
+                color: t.isDark ? Colors.redAccent : t.crimsonAccent,
                 fontWeight: FontWeight.w600,
               ),
             ),
@@ -165,6 +166,7 @@ class _CreatePlanScreenState extends ConsumerState<CreatePlanScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final t = SamanWorkoutTokens.of(context);
     final state = ref.watch(createPlanNotifierProvider);
     final notifier = ref.read(createPlanNotifierProvider.notifier);
 
@@ -179,7 +181,7 @@ class _CreatePlanScreenState extends ConsumerState<CreatePlanScreen> {
         }
       },
       child: Scaffold(
-        backgroundColor: SamanWorkoutTokens.canvas,
+        backgroundColor: t.canvas,
         resizeToAvoidBottomInset: true,
         body: SafeArea(
           bottom: false,
@@ -196,10 +198,10 @@ class _CreatePlanScreenState extends ConsumerState<CreatePlanScreen> {
                       child: Row(
                         children: [
                           IconButton(
-                            icon: const Icon(
+                            icon: Icon(
                               Icons.close_rounded,
                               size: 22,
-                              color: SamanWorkoutTokens.textSecondary,
+                              color: t.textSecondary,
                             ),
                             padding: EdgeInsets.zero,
                             constraints: const BoxConstraints(
@@ -215,11 +217,11 @@ class _CreatePlanScreenState extends ConsumerState<CreatePlanScreen> {
                               widget.planToEdit != null
                                   ? 'Edit plan'
                                   : 'Create plan',
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontFamily: 'Space Grotesk',
                                 fontSize: 20,
                                 fontWeight: FontWeight.w700,
-                                color: SamanWorkoutTokens.textPrimary,
+                                color: t.textPrimary,
                               ),
                               overflow: TextOverflow.ellipsis,
                             ),
@@ -234,21 +236,20 @@ class _CreatePlanScreenState extends ConsumerState<CreatePlanScreen> {
                         vertical: 4,
                       ),
                       decoration: BoxDecoration(
-                        color:
-                            SamanWorkoutTokens.surfaceElevated.withOpacity(0.8),
+                        color: t.surfaceElevated.withOpacity(0.8),
                         borderRadius: BorderRadius.circular(
                           SamanWorkoutTokens.radiusPill,
                         ),
                         border: Border.all(
-                          color: SamanWorkoutTokens.border.withOpacity(0.4),
+                          color: t.border.withOpacity(0.4),
                         ),
                       ),
-                      child: const Text(
+                      child: Text(
                         'Demo mode',
                         style: TextStyle(
                           fontFamily: 'JetBrains Mono',
                           fontSize: 11,
-                          color: SamanWorkoutTokens.textSecondary,
+                          color: t.textSecondary,
                         ),
                       ),
                     ),
@@ -259,9 +260,9 @@ class _CreatePlanScreenState extends ConsumerState<CreatePlanScreen> {
               // Main Scrollable Form Area
               Expanded(
                 child: _isLoading
-                    ? const Center(
+                    ? Center(
                         child: CircularProgressIndicator(
-                          color: SamanWorkoutTokens.textPrimary,
+                          color: t.textPrimary,
                           strokeWidth: 2.5,
                         ),
                       )
@@ -279,8 +280,7 @@ class _CreatePlanScreenState extends ConsumerState<CreatePlanScreen> {
                                   SamanWorkoutTokens.radiusLg,
                                 ),
                                 border: Border.all(
-                                  color: SamanWorkoutTokens.border
-                                      .withOpacity(0.5),
+                                  color: t.border.withOpacity(0.5),
                                 ),
                               ),
                               clipBehavior: Clip.antiAlias,
@@ -292,7 +292,7 @@ class _CreatePlanScreenState extends ConsumerState<CreatePlanScreen> {
                                       fit: BoxFit.cover,
                                       alignment: Alignment.center,
                                       errorBuilder: (_, __, ___) => Container(
-                                        color: SamanWorkoutTokens.cardSurface,
+                                        color: t.cardSurface,
                                       ),
                                     ),
                                   ),
@@ -304,7 +304,7 @@ class _CreatePlanScreenState extends ConsumerState<CreatePlanScreen> {
                                           end: Alignment.topCenter,
                                           stops: const [0.0, 0.6, 1.0],
                                           colors: [
-                                            SamanWorkoutTokens.canvas
+                                            const Color(0xFF0C0D0E)
                                                 .withOpacity(0.9),
                                             Colors.transparent,
                                             Colors.black.withOpacity(0.3),
@@ -324,8 +324,8 @@ class _CreatePlanScreenState extends ConsumerState<CreatePlanScreen> {
                             const SizedBox(height: 20),
 
                             // Plan Name Section
-                            const Padding(
-                              padding: EdgeInsets.only(left: 4, bottom: 8),
+                            Padding(
+                              padding: const EdgeInsets.only(left: 4, bottom: 8),
                               child: Text(
                                 'PLAN NAME',
                                 style: TextStyle(
@@ -333,27 +333,27 @@ class _CreatePlanScreenState extends ConsumerState<CreatePlanScreen> {
                                   fontSize: 10,
                                   fontWeight: FontWeight.w600,
                                   letterSpacing: 1.2,
-                                  color: SamanWorkoutTokens.textSecondary,
+                                  color: t.textSecondary,
                                 ),
                               ),
                             ),
                             TextField(
                               controller: _nameController,
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontFamily: 'Inter',
                                 fontSize: 14,
-                                color: SamanWorkoutTokens.textPrimary,
+                                color: t.textPrimary,
                               ),
-                              cursorColor: SamanWorkoutTokens.emeraldAccent,
+                              cursorColor: t.emeraldAccent,
                               decoration: InputDecoration(
                                 hintText: 'e.g. Upper Body Strength',
-                                hintStyle: const TextStyle(
+                                hintStyle: TextStyle(
                                   fontFamily: 'Inter',
                                   fontSize: 14,
-                                  color: SamanWorkoutTokens.textSecondary,
+                                  color: t.textSecondary,
                                 ),
                                 filled: true,
-                                fillColor: SamanWorkoutTokens.cardSurface,
+                                fillColor: t.cardSurface,
                                 contentPadding: const EdgeInsets.symmetric(
                                   horizontal: 16,
                                   vertical: 14,
@@ -362,8 +362,8 @@ class _CreatePlanScreenState extends ConsumerState<CreatePlanScreen> {
                                   borderRadius: BorderRadius.circular(
                                     SamanWorkoutTokens.radiusMd,
                                   ),
-                                  borderSide: const BorderSide(
-                                    color: SamanWorkoutTokens.border,
+                                  borderSide: BorderSide(
+                                    color: t.border,
                                   ),
                                 ),
                                 focusedBorder: OutlineInputBorder(
@@ -371,8 +371,7 @@ class _CreatePlanScreenState extends ConsumerState<CreatePlanScreen> {
                                     SamanWorkoutTokens.radiusMd,
                                   ),
                                   borderSide: BorderSide(
-                                    color: SamanWorkoutTokens.emeraldAccent
-                                        .withOpacity(0.6),
+                                    color: t.emeraldAccent.withOpacity(0.6),
                                   ),
                                 ),
                               ),
@@ -386,13 +385,13 @@ class _CreatePlanScreenState extends ConsumerState<CreatePlanScreen> {
                                 Expanded(
                                   child: Row(
                                     children: [
-                                      const Text(
+                                      Text(
                                         'Exercises',
                                         style: TextStyle(
                                           fontFamily: 'Inter',
                                           fontSize: 16,
                                           fontWeight: FontWeight.w600,
-                                          color: SamanWorkoutTokens.textPrimary,
+                                          color: t.textPrimary,
                                         ),
                                       ),
                                       const SizedBox(width: 8),
@@ -402,20 +401,18 @@ class _CreatePlanScreenState extends ConsumerState<CreatePlanScreen> {
                                           vertical: 2,
                                         ),
                                         decoration: BoxDecoration(
-                                          color:
-                                              SamanWorkoutTokens.surfaceElevated,
+                                          color: t.surfaceElevated,
                                           borderRadius: BorderRadius.circular(
                                             SamanWorkoutTokens.radiusXs,
                                           ),
                                         ),
                                         child: Text(
                                           '${state.exercises.length}',
-                                          style: const TextStyle(
+                                          style: TextStyle(
                                             fontFamily: 'JetBrains Mono',
                                             fontSize: 12,
                                             fontWeight: FontWeight.w500,
-                                            color:
-                                                SamanWorkoutTokens.textSecondary,
+                                            color: t.textSecondary,
                                           ),
                                         ),
                                       ),
@@ -433,13 +430,13 @@ class _CreatePlanScreenState extends ConsumerState<CreatePlanScreen> {
                                     tapTargetSize:
                                         MaterialTapTargetSize.shrinkWrap,
                                   ),
-                                  child: const Text(
+                                  child: Text(
                                     '+ Add',
                                     style: TextStyle(
                                       fontFamily: 'Inter',
                                       fontSize: 14,
                                       fontWeight: FontWeight.w600,
-                                      color: SamanWorkoutTokens.emeraldAccent,
+                                      color: t.emeraldAccent,
                                     ),
                                   ),
                                 ),
@@ -449,10 +446,11 @@ class _CreatePlanScreenState extends ConsumerState<CreatePlanScreen> {
 
                             // Empty Card or Populated Exercises List
                             state.exercises.isEmpty
-                                ? _buildEmptyExercisesCard(context)
+                                ? _buildEmptyExercisesCard(context, t)
                                 : _buildPopulatedExercisesList(
                                     state.exercises,
                                     notifier,
+                                    t,
                                   ),
                           ],
                         ),
@@ -460,7 +458,7 @@ class _CreatePlanScreenState extends ConsumerState<CreatePlanScreen> {
               ),
 
               // Sticky Bottom Save Plan CTA
-              _buildStickyBottom(context, state, notifier),
+              _buildStickyBottom(context, state, notifier, t),
             ],
           ),
         ),
@@ -468,14 +466,15 @@ class _CreatePlanScreenState extends ConsumerState<CreatePlanScreen> {
     );
   }
 
-  Widget _buildEmptyExercisesCard(BuildContext context) {
+  Widget _buildEmptyExercisesCard(
+      BuildContext context, SamanWorkoutPalette t) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 20),
       decoration: BoxDecoration(
-        color: SamanWorkoutTokens.cardSurface,
+        color: t.cardSurface,
         borderRadius: BorderRadius.circular(SamanWorkoutTokens.radiusXl),
-        border: Border.all(color: SamanWorkoutTokens.border),
+        border: Border.all(color: t.border),
       ),
       child: Column(
         children: [
@@ -483,34 +482,34 @@ class _CreatePlanScreenState extends ConsumerState<CreatePlanScreen> {
             width: 52,
             height: 52,
             decoration: BoxDecoration(
-              color: SamanWorkoutTokens.surfaceElevated,
+              color: t.surfaceElevated,
               borderRadius: BorderRadius.circular(SamanWorkoutTokens.radiusMd),
             ),
             alignment: Alignment.center,
-            child: const Icon(
+            child: Icon(
               Icons.fitness_center_rounded,
               size: 24,
-              color: SamanWorkoutTokens.textPrimary,
+              color: t.textPrimary,
             ),
           ),
           const SizedBox(height: 16),
-          const Text(
+          Text(
             'Add your first exercise',
             style: TextStyle(
               fontFamily: 'Space Grotesk',
               fontSize: 16,
               fontWeight: FontWeight.w600,
-              color: SamanWorkoutTokens.textPrimary,
+              color: t.textPrimary,
             ),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 6),
-          const Text(
+          Text(
             'Choose exercises from your library.',
             style: TextStyle(
               fontFamily: 'Inter',
               fontSize: 12,
-              color: SamanWorkoutTokens.textSecondary,
+              color: t.textSecondary,
             ),
             textAlign: TextAlign.center,
           ),
@@ -520,8 +519,8 @@ class _CreatePlanScreenState extends ConsumerState<CreatePlanScreen> {
             child: ElevatedButton(
               onPressed: () => _navigateToLibrary(context),
               style: ElevatedButton.styleFrom(
-                backgroundColor: SamanWorkoutTokens.surfaceElevated,
-                foregroundColor: SamanWorkoutTokens.textPrimary,
+                backgroundColor: t.surfaceElevated,
+                foregroundColor: t.textPrimary,
                 elevation: 0,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(
@@ -530,7 +529,7 @@ class _CreatePlanScreenState extends ConsumerState<CreatePlanScreen> {
                 ),
                 padding: const EdgeInsets.symmetric(horizontal: 20),
               ),
-              child: const Stack(
+              child: Stack(
                 alignment: Alignment.center,
                 children: [
                   Row(
@@ -539,21 +538,21 @@ class _CreatePlanScreenState extends ConsumerState<CreatePlanScreen> {
                       Icon(
                         Icons.search_rounded,
                         size: 16,
-                        color: SamanWorkoutTokens.textSecondary,
+                        color: t.textSecondary,
                       ),
-                      SizedBox(width: 8),
+                      const SizedBox(width: 8),
                       Text(
                         'Browse library',
                         style: TextStyle(
                           fontFamily: 'Inter',
                           fontSize: 14,
                           fontWeight: FontWeight.w500,
-                          color: SamanWorkoutTokens.textPrimary,
+                          color: t.textPrimary,
                         ),
                       ),
                     ],
                   ),
-                  Positioned.fill(
+                  const Positioned.fill(
                     child: Center(
                       child: Text(
                         'Mở Library',
@@ -576,6 +575,7 @@ class _CreatePlanScreenState extends ConsumerState<CreatePlanScreen> {
   Widget _buildPopulatedExercisesList(
     List<Exercise> exercises,
     CreatePlanNotifier notifier,
+    SamanWorkoutPalette t,
   ) {
     return ReorderableListView.builder(
       shrinkWrap: true,
@@ -593,9 +593,9 @@ class _CreatePlanScreenState extends ConsumerState<CreatePlanScreen> {
             exercise: exercise,
             onTap: () {},
             trailing: IconButton(
-              icon: const Icon(
+              icon: Icon(
                 Icons.delete_outline_rounded,
-                color: Colors.redAccent,
+                color: t.isDark ? Colors.redAccent : t.crimsonAccent,
                 size: 20,
               ),
               onPressed: () => notifier.removeExercise(exercise.id),
@@ -610,10 +610,12 @@ class _CreatePlanScreenState extends ConsumerState<CreatePlanScreen> {
     BuildContext context,
     CreatePlanState state,
     CreatePlanNotifier notifier,
+    SamanWorkoutPalette t,
   ) {
     final isValid =
         state.exercises.isNotEmpty && _nameController.text.trim().isNotEmpty;
     final canSave = isValid && !state.isSaving && !_isSavingLocally;
+    final disabledBg = t.isDark ? const Color(0xFF1F2126) : t.surfaceElevated;
 
     return Container(
       padding: EdgeInsets.fromLTRB(
@@ -628,8 +630,8 @@ class _CreatePlanScreenState extends ConsumerState<CreatePlanScreen> {
           end: Alignment.topCenter,
           stops: const [0.0, 0.7, 1.0],
           colors: [
-            SamanWorkoutTokens.canvas,
-            SamanWorkoutTokens.canvas.withOpacity(0.95),
+            t.canvas,
+            t.canvas.withOpacity(0.95),
             Colors.transparent,
           ],
         ),
@@ -642,7 +644,9 @@ class _CreatePlanScreenState extends ConsumerState<CreatePlanScreen> {
               padding: const EdgeInsets.only(bottom: 8),
               child: Text(
                 state.error!,
-                style: const TextStyle(color: Colors.redAccent, fontSize: 13),
+                style: TextStyle(
+                    color: t.isDark ? Colors.redAccent : t.crimsonAccent,
+                    fontSize: 13),
                 textAlign: TextAlign.center,
               ),
             ),
@@ -666,10 +670,8 @@ class _CreatePlanScreenState extends ConsumerState<CreatePlanScreen> {
                     }
                   : null,
               style: ElevatedButton.styleFrom(
-                backgroundColor: isValid
-                    ? SamanWorkoutTokens.buttonPrimary
-                    : const Color(0xFF1F2126),
-                disabledBackgroundColor: const Color(0xFF1F2126),
+                backgroundColor: isValid ? t.buttonPrimary : disabledBg,
+                disabledBackgroundColor: disabledBg,
                 elevation: 0,
                 shadowColor: Colors.transparent,
                 shape: RoundedRectangleBorder(
@@ -680,12 +682,12 @@ class _CreatePlanScreenState extends ConsumerState<CreatePlanScreen> {
                 padding: EdgeInsets.zero,
               ),
               child: state.isSaving || _isSavingLocally
-                  ? const SizedBox(
+                  ? SizedBox(
                       width: 20,
                       height: 20,
                       child: CircularProgressIndicator(
                         strokeWidth: 2,
-                        color: SamanWorkoutTokens.buttonPrimaryText,
+                        color: t.buttonPrimaryText,
                       ),
                     )
                   : Stack(
@@ -698,8 +700,8 @@ class _CreatePlanScreenState extends ConsumerState<CreatePlanScreen> {
                             fontSize: 15,
                             fontWeight: FontWeight.w600,
                             color: isValid
-                                ? SamanWorkoutTokens.buttonPrimaryText
-                                : SamanWorkoutTokens.textSecondary,
+                                ? t.buttonPrimaryText
+                                : t.textSecondary,
                           ),
                         ),
                         const Positioned.fill(

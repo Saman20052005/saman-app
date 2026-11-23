@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import '../../../config/app_theme.dart';
+import '../../home/tokens/saman_home_tokens.dart';
 
 /// Tactile water card with 8-segment ratio meter & +250ml quick action.
 class NutritionWaterCard extends StatelessWidget {
@@ -20,6 +22,18 @@ class NutritionWaterCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final palette = SamanPalette.of(context);
+    final tokens = SamanHomeTokens.of(context);
+    final isDark = palette.isDark;
+    final cardBg = isDark ? const Color(0xFF16171B) : tokens.cardSurface;
+    final borderCol = isDark ? const Color(0xFF26282F) : tokens.border;
+    final pillBg = isDark ? const Color(0xFF212328) : tokens.cardSurfaceElevated;
+    final waterAccent = isDark ? const Color(0xFF4EDEAF) : tokens.waterCyan;
+    final inkPrimary = isDark ? const Color(0xFFF3F4F6) : tokens.textPrimary;
+    final inkMuted = isDark ? const Color(0xFF9CA3AF) : tokens.textSecondary;
+    final inkRemaining = isDark ? const Color(0xFFCBD5E1) : tokens.textSecondary;
+    final emptySegment = isDark ? const Color(0xFF26282F) : tokens.progressTrack;
+
     final bool isTargetValid = hasTarget && targetWater > 0;
     final int remaining = isTargetValid ? targetWater - currentWater : 0;
     final bool goalReached = isTargetValid && remaining <= 0;
@@ -34,9 +48,9 @@ class NutritionWaterCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFF16171B),
+        color: cardBg,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFF26282F)),
+        border: Border.all(color: borderCol),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -45,21 +59,21 @@ class NutritionWaterCard extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Row(
+              Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Icon(
                     Icons.water_drop_rounded,
                     size: 18,
-                    color: Color(0xFF4EDEAF),
+                    color: waterAccent,
                   ),
-                  SizedBox(width: 6),
+                  const SizedBox(width: 6),
                   Text(
                     'WATER',
                     style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w700,
-                      color: Color(0xFF9CA3AF),
+                      color: inkMuted,
                       letterSpacing: 1.2,
                     ),
                   ),
@@ -79,8 +93,8 @@ class NutritionWaterCard extends StatelessWidget {
                     fontSize: 11,
                     fontWeight: FontWeight.w500,
                     color: isTargetValid && goalReached
-                        ? const Color(0xFF4EDEAF)
-                        : const Color(0xFFCBD5E1),
+                        ? waterAccent
+                        : inkRemaining,
                   ),
                 ),
               ),
@@ -107,10 +121,10 @@ class NutritionWaterCard extends StatelessWidget {
                         children: [
                           Text(
                             numberFormat.format(currentWater),
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 24,
                               fontWeight: FontWeight.w700,
-                              color: Color(0xFFF3F4F6),
+                              color: inkPrimary,
                               letterSpacing: -0.5,
                             ),
                           ),
@@ -119,9 +133,9 @@ class NutritionWaterCard extends StatelessWidget {
                             isTargetValid
                                 ? '/ ${numberFormat.format(targetWater)} ml'
                                 : '/ — ml',
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 12,
-                              color: Color(0xFF9CA3AF),
+                              color: inkMuted,
                               fontWeight: FontWeight.w500,
                             ),
                           ),
@@ -133,9 +147,9 @@ class NutritionWaterCard extends StatelessWidget {
                       isTargetValid
                           ? '$percentage% of daily hydration'
                           : 'Hydration goal not set',
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 11,
-                        color: Color(0xFF9CA3AF),
+                        color: inkMuted,
                       ),
                     ),
                   ],
@@ -153,35 +167,35 @@ class NutritionWaterCard extends StatelessWidget {
                     constraints: const BoxConstraints(minWidth: 44, minHeight: 44),
                     padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                     decoration: BoxDecoration(
-                      color: const Color(0xFF212328),
+                      color: pillBg,
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: const Color(0xFF26282F)),
+                      border: Border.all(color: borderCol),
                     ),
                     child: Center(
                       child: isUpdating
-                          ? const SizedBox(
+                          ? SizedBox(
                               width: 16,
                               height: 16,
                               child: CircularProgressIndicator(
                                 strokeWidth: 2,
-                                color: Color(0xFF4EDEAF),
+                                color: waterAccent,
                               ),
                             )
-                          : const Row(
+                          : Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
                                 Icon(
                                   Icons.add,
                                   size: 16,
-                                  color: Color(0xFF4EDEAF),
+                                  color: waterAccent,
                                 ),
-                                SizedBox(width: 6),
+                                const SizedBox(width: 6),
                                 Text(
                                   '250 ml',
                                   style: TextStyle(
                                     fontSize: 12,
                                     fontWeight: FontWeight.w600,
-                                    color: Color(0xFFF3F4F6),
+                                    color: inkPrimary,
                                   ),
                                 ),
                               ],
@@ -208,14 +222,14 @@ class NutritionWaterCard extends StatelessWidget {
               BoxBorder? border;
 
               if (isFullyFilled) {
-                segmentColor = const Color(0xFF4EDEAF);
+                segmentColor = waterAccent;
               } else if (isPartiallyFilled) {
-                segmentColor = const Color(0xFF4EDEAF).withOpacity(0.25);
+                segmentColor = waterAccent.withOpacity(0.25);
                 border = Border.all(
-                  color: const Color(0xFF4EDEAF).withOpacity(0.6),
+                  color: waterAccent.withOpacity(0.6),
                 );
               } else {
-                segmentColor = const Color(0xFF26282F);
+                segmentColor = emptySegment;
               }
 
               return Expanded(

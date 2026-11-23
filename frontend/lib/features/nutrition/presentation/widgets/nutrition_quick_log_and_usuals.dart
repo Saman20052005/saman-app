@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../config/app_translations.dart';
+import '../../../../models/nutrition_model.dart';
+import '../../../../providers/nutrition_provider.dart';
 import '../../../../theme/nutrition_home_theme.dart';
 import '../../data/food_image_manifest.dart';
 import '../providers/nutrition_usual_foods_provider.dart';
@@ -11,16 +13,19 @@ class NutritionQuickLogAndUsuals extends ConsumerWidget {
     required this.selectedDate,
     required this.onQuickLog,
     required this.onReviewPortion,
+    this.onQuickRelogMeal,
     super.key,
   });
 
   final DateTime selectedDate;
   final void Function(String mealType) onQuickLog;
   final void Function(UsualFoodItem food) onReviewPortion;
+  final Future<void> Function(RecentMealSummary meal)? onQuickRelogMeal;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final usualsState = ref.watch(usualFoodsProvider);
+    final recentMealsAsync = ref.watch(recentMealsProvider);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -41,6 +46,22 @@ class NutritionQuickLogAndUsuals extends ConsumerWidget {
               ref.read(usualFoodsProvider.notifier).toggleFavorite(food),
           onReviewPortion: onReviewPortion,
           onRetry: () => ref.read(usualFoodsProvider.notifier).retry(),
+        ),
+
+        // 3. Recent Meals · 1-Tap Relog Panel
+        recentMealsAsync.when(
+          data: (meals) {
+            if (meals.isEmpty) return const SizedBox.shrink();
+            return Padding(
+              padding: const EdgeInsets.only(top: 16),
+              child: _RecentMealsSection(
+                meals: meals.take(5).toList(),
+                onQuickRelogMeal: onQuickRelogMeal,
+              ),
+            );
+          },
+          loading: () => const SizedBox.shrink(),
+          error: (_, __) => const SizedBox.shrink(),
         ),
       ],
     );
@@ -106,7 +127,7 @@ class NutritionQuickLogCard extends StatelessWidget {
           context.tr('quick_log_subtitle'),
           style: s.caption.copyWith(
             fontSize: 13,
-            color: const Color(0xFF9CA3AF),
+            color: s.isDark ? const Color(0xFF9CA3AF) : s.muted,
           ),
         ),
         const SizedBox(height: 12),
@@ -204,6 +225,9 @@ class _QuickLogButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final s = NutritionHomeStyle.of(context);
+    final cardBg = s.isDark ? const Color(0xFF16171B) : s.surface;
+    final borderCol = s.isDark ? const Color(0xFF26282F) : s.border;
+    final accentCol = s.isDark ? const Color(0xFF10B981) : s.accent;
 
     return Material(
       color: Colors.transparent,
@@ -213,9 +237,9 @@ class _QuickLogButton extends StatelessWidget {
         borderRadius: BorderRadius.circular(14),
         child: Ink(
           decoration: BoxDecoration(
-            color: const Color(0xFF16171B),
+            color: cardBg,
             borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: const Color(0xFF26282F), width: 1),
+            border: Border.all(color: borderCol, width: 1),
           ),
           child: ConstrainedBox(
             constraints: const BoxConstraints(minHeight: 68),
@@ -227,7 +251,7 @@ class _QuickLogButton extends StatelessWidget {
                   Icon(
                     icon,
                     size: 22,
-                    color: const Color(0xFF10B981),
+                    color: accentCol,
                   ),
                   const SizedBox(height: 6),
                   FittedBox(
@@ -319,27 +343,30 @@ class NutritionYourUsualsCard extends StatelessWidget {
 
         // Content States
         if (state.isLoading)
-          _buildLoadingSkeleton()
+          _buildLoadingSkeleton(s)
         else if (state.error != null)
-          _buildErrorView(context)
+          _buildErrorView(context, s)
         else if (items.isEmpty)
-          _buildEmptyView(context)
+          _buildEmptyView(context, s)
         else
           _buildPopulatedList(items),
       ],
     );
   }
 
-  Widget _buildLoadingSkeleton() {
+  Widget _buildLoadingSkeleton(NutritionHomeStyle s) {
+    final cardBg = s.isDark ? const Color(0xFF16171B) : s.surface;
+    final borderCol = s.isDark ? const Color(0xFF26282F) : s.border;
+
     return Row(
       children: [
         Expanded(
           child: Container(
             height: 60,
             decoration: BoxDecoration(
-              color: const Color(0xFF16171B),
+              color: cardBg,
               borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: const Color(0xFF26282F)),
+              border: Border.all(color: borderCol),
             ),
           ),
         ),
@@ -348,9 +375,9 @@ class NutritionYourUsualsCard extends StatelessWidget {
           child: Container(
             height: 60,
             decoration: BoxDecoration(
-              color: const Color(0xFF16171B),
+              color: cardBg,
               borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: const Color(0xFF26282F)),
+              border: Border.all(color: borderCol),
             ),
           ),
         ),
@@ -358,29 +385,36 @@ class NutritionYourUsualsCard extends StatelessWidget {
     );
   }
 
-  Widget _buildErrorView(BuildContext context) {
+  Widget _buildErrorView(BuildContext context, NutritionHomeStyle s) {
+    final cardBg = s.isDark ? const Color(0xFF16171B) : s.surface;
+    final borderCol = s.isDark ? const Color(0xFF26282F) : s.border;
+    final errorIconCol =
+        s.isDark ? const Color(0xFFF87171) : const Color(0xFFDC2626);
+    final mutedCol = s.isDark ? const Color(0xFF9CA3AF) : s.muted;
+    final accentCol = s.isDark ? const Color(0xFF10B981) : s.accent;
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
-        color: const Color(0xFF16171B),
+        color: cardBg,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(0xFF26282F)),
+        border: Border.all(color: borderCol),
       ),
       child: Row(
         children: [
-          const Icon(Icons.info_outline, size: 18, color: Color(0xFFF87171)),
+          Icon(Icons.info_outline, size: 18, color: errorIconCol),
           const SizedBox(width: 8),
           Expanded(
             child: Text(
               context.tr('your_usuals_error'),
-              style: const TextStyle(fontSize: 12, color: Color(0xFF9CA3AF)),
+              style: TextStyle(fontSize: 12, color: mutedCol),
             ),
           ),
           TextButton(
             onPressed: onRetry,
             style: TextButton.styleFrom(
-              foregroundColor: const Color(0xFF10B981),
+              foregroundColor: accentCol,
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
               minimumSize: const Size(48, 36),
             ),
@@ -391,7 +425,7 @@ class NutritionYourUsualsCard extends StatelessWidget {
     );
   }
 
-  Widget _buildEmptyView(BuildContext context) {
+  Widget _buildEmptyView(BuildContext context, NutritionHomeStyle s) {
     final isRecent = state.selectedTab == UsualsTab.recent;
     final title = isRecent
         ? context.tr('your_usuals_empty_recent_title')
@@ -402,18 +436,22 @@ class NutritionYourUsualsCard extends StatelessWidget {
     final icon = isRecent
         ? Icons.history_toggle_off_rounded
         : Icons.favorite_border_rounded;
+    final cardBg = s.isDark ? const Color(0xFF16171B) : s.surface;
+    final borderCol = s.isDark ? const Color(0xFF26282F) : s.border;
+    final titleCol = s.isDark ? const Color(0xFFE5E7EB) : s.ink;
+    final mutedCol = s.isDark ? const Color(0xFF9CA3AF) : s.muted;
 
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
       decoration: BoxDecoration(
-        color: const Color(0xFF16171B),
+        color: cardBg,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(0xFF26282F)),
+        border: Border.all(color: borderCol),
       ),
       child: Row(
         children: [
-          Icon(icon, size: 22, color: const Color(0xFF6B7280)),
+          Icon(icon, size: 22, color: mutedCol),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
@@ -422,18 +460,18 @@ class NutritionYourUsualsCard extends StatelessWidget {
               children: [
                 Text(
                   title,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w600,
-                    color: Color(0xFFE5E7EB),
+                    color: titleCol,
                   ),
                 ),
                 const SizedBox(height: 2),
                 Text(
                   desc,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 11,
-                    color: Color(0xFF9CA3AF),
+                    color: mutedCol,
                   ),
                 ),
               ],
@@ -505,6 +543,10 @@ class _TabButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final s = NutritionHomeStyle.of(context);
+    final accentCol = s.isDark ? const Color(0xFF10B981) : s.accent;
+    final mutedCol = s.isDark ? const Color(0xFF9CA3AF) : s.muted;
+
     return Material(
       color: Colors.transparent,
       child: InkWell(
@@ -520,9 +562,7 @@ class _TabButton extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 13,
                   fontWeight: isActive ? FontWeight.w600 : FontWeight.w500,
-                  color: isActive
-                      ? const Color(0xFF10B981)
-                      : const Color(0xFF9CA3AF),
+                  color: isActive ? accentCol : mutedCol,
                 ),
               ),
               const SizedBox(height: 2),
@@ -530,7 +570,7 @@ class _TabButton extends StatelessWidget {
                 height: 2,
                 width: 24,
                 decoration: BoxDecoration(
-                  color: isActive ? const Color(0xFF10B981) : Colors.transparent,
+                  color: isActive ? accentCol : Colors.transparent,
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
@@ -557,6 +597,14 @@ class _UsualFoodCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final s = NutritionHomeStyle.of(context);
+    final cardBg = s.isDark ? const Color(0xFF16171B) : s.surface;
+    final thumbBg = s.isDark ? const Color(0xFF212328) : const Color(0xFFF1F5F9);
+    final borderCol = s.isDark ? const Color(0xFF26282F) : s.border;
+    final titleCol = s.isDark ? const Color(0xFFF9FAFB) : s.ink;
+    final mutedCol = s.isDark ? const Color(0xFF9CA3AF) : s.muted;
+    final thumbIconCol = s.isDark ? const Color(0xFF6B7280) : s.muted;
+    final accentCol = s.isDark ? const Color(0xFF10B981) : s.accent;
     final imageAsset = foodImageAssetFor(food.name);
 
     return Material(
@@ -568,9 +616,9 @@ class _UsualFoodCard extends StatelessWidget {
         child: Ink(
           padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(
-            color: const Color(0xFF16171B),
+            color: cardBg,
             borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: const Color(0xFF26282F), width: 1),
+            border: Border.all(color: borderCol, width: 1),
           ),
           child: Row(
             children: [
@@ -579,9 +627,9 @@ class _UsualFoodCard extends StatelessWidget {
                 width: 44,
                 height: 44,
                 decoration: BoxDecoration(
-                  color: const Color(0xFF212328),
+                  color: thumbBg,
                   borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: const Color(0xFF26282F)),
+                  border: Border.all(color: borderCol),
                 ),
                 clipBehavior: Clip.antiAlias,
                 child: imageAsset != null
@@ -591,19 +639,19 @@ class _UsualFoodCard extends StatelessWidget {
                         height: 44,
                         fit: BoxFit.cover,
                         excludeFromSemantics: true,
-                        errorBuilder: (_, __, ___) => const Center(
+                        errorBuilder: (_, __, ___) => Center(
                           child: Icon(
                             Icons.restaurant_outlined,
                             size: 18,
-                            color: Color(0xFF6B7280),
+                            color: thumbIconCol,
                           ),
                         ),
                       )
-                    : const Center(
+                    : Center(
                         child: Icon(
                           Icons.restaurant_outlined,
                           size: 18,
-                          color: Color(0xFF6B7280),
+                          color: thumbIconCol,
                         ),
                       ),
               ),
@@ -619,10 +667,10 @@ class _UsualFoodCard extends StatelessWidget {
                       food.name,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.w600,
-                        color: Color(0xFFF9FAFB),
+                        color: titleCol,
                       ),
                     ),
                     const SizedBox(height: 2),
@@ -630,9 +678,9 @@ class _UsualFoodCard extends StatelessWidget {
                       context.tr('your_usuals_review_portion'),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 11,
-                        color: Color(0xFF9CA3AF),
+                        color: mutedCol,
                       ),
                     ),
                   ],
@@ -648,22 +696,195 @@ class _UsualFoodCard extends StatelessWidget {
                 tooltip: isFavorite ? 'Bỏ yêu thích' : 'Yêu thích',
                 icon: Icon(
                   isFavorite ? Icons.favorite : Icons.favorite_border,
-                  color: isFavorite
-                      ? const Color(0xFF10B981)
-                      : const Color(0xFF6B7280),
+                  color: isFavorite ? accentCol : mutedCol,
                 ),
                 onPressed: onToggleFavorite,
               ),
 
               // Chevron Right
-              const Icon(
+              Icon(
                 Icons.chevron_right,
                 size: 16,
-                color: Color(0xFF6B7280),
+                color: mutedCol,
               ),
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _RecentMealsSection extends StatefulWidget {
+  const _RecentMealsSection({
+    required this.meals,
+    this.onQuickRelogMeal,
+  });
+
+  final List<RecentMealSummary> meals;
+  final Future<void> Function(RecentMealSummary meal)? onQuickRelogMeal;
+
+  @override
+  State<_RecentMealsSection> createState() => _RecentMealsSectionState();
+}
+
+class _RecentMealsSectionState extends State<_RecentMealsSection> {
+  final Set<String> _reloggingIds = {};
+
+  Future<void> _handleRelog(RecentMealSummary meal) async {
+    final callback = widget.onQuickRelogMeal;
+    if (callback == null || _reloggingIds.contains(meal.sourceLogId)) return;
+
+    setState(() => _reloggingIds.add(meal.sourceLogId));
+    try {
+      await callback(meal);
+    } finally {
+      if (mounted) {
+        setState(() => _reloggingIds.remove(meal.sourceLogId));
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final s = NutritionHomeStyle.of(context);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              'Bữa gần đây',
+              style: s.section.copyWith(
+                fontSize: 16,
+                fontWeight: FontWeight.w700,
+                color: s.ink,
+                letterSpacing: -0.2,
+              ),
+            ),
+            Text(
+              '1 chạm',
+              style: s.caption.copyWith(
+                fontSize: 12,
+                fontWeight: FontWeight.w500,
+                color: s.isDark ? const Color(0xFF10B981) : s.accent,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 10),
+        Column(
+          children: [
+            for (int i = 0; i < widget.meals.length; i++) ...[
+              if (i > 0) const SizedBox(height: 8),
+              _RecentMealCard(
+                meal: widget.meals[i],
+                isRelogging: _reloggingIds.contains(widget.meals[i].sourceLogId),
+                onRelog: widget.onQuickRelogMeal != null
+                    ? () => _handleRelog(widget.meals[i])
+                    : null,
+              ),
+            ],
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+class _RecentMealCard extends StatelessWidget {
+  const _RecentMealCard({
+    required this.meal,
+    required this.isRelogging,
+    this.onRelog,
+  });
+
+  final RecentMealSummary meal;
+  final bool isRelogging;
+  final VoidCallback? onRelog;
+
+  @override
+  Widget build(BuildContext context) {
+    final s = NutritionHomeStyle.of(context);
+    final cardBg = s.isDark ? const Color(0xFF16171B) : s.surface;
+    final borderCol = s.isDark ? const Color(0xFF26282F) : s.border;
+    final titleCol = s.isDark ? const Color(0xFFF9FAFB) : s.ink;
+    final mutedCol = s.isDark ? const Color(0xFF9CA3AF) : s.muted;
+    final accentCol = s.isDark ? const Color(0xFF10B981) : s.accent;
+    final subtitle = meal.mealType.isNotEmpty
+        ? '${meal.mealType} • ${meal.totalCalories} kcal'
+        : '${meal.totalCalories} kcal';
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: cardBg,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: borderCol, width: 1),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  meal.title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: titleCol,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  subtitle,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: mutedCol,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+          if (isRelogging)
+            SizedBox(
+              width: 36,
+              height: 36,
+              child: Center(
+                child: SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: accentCol,
+                  ),
+                ),
+              ),
+            )
+          else
+            IconButton(
+              key: ValueKey('relog_btn_${meal.sourceLogId}'),
+              iconSize: 22,
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+              tooltip: 'Ghi nhanh bữa này',
+              icon: Icon(
+                Icons.add_circle_outline,
+                color: accentCol,
+              ),
+              onPressed: onRelog,
+            ),
+        ],
       ),
     );
   }

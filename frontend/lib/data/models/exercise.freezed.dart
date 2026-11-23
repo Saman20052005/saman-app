@@ -607,6 +607,7 @@ mixin _$ExerciseSetLog {
   bool get isCompleted => throw _privateConstructorUsedError;
   int? get restTakenSeconds => throw _privateConstructorUsedError;
   bool get cvDetected => throw _privateConstructorUsedError;
+  Map<String, dynamic>? get cvFormSummary => throw _privateConstructorUsedError;
 
   @JsonKey(ignore: true)
   $ExerciseSetLogCopyWith<ExerciseSetLog> get copyWith =>
@@ -629,7 +630,8 @@ abstract class $ExerciseSetLogCopyWith<$Res> {
       double weightKg,
       bool isCompleted,
       int? restTakenSeconds,
-      bool cvDetected});
+      bool cvDetected,
+      Map<String, dynamic>? cvFormSummary});
 }
 
 /// @nodoc
@@ -655,6 +657,7 @@ class _$ExerciseSetLogCopyWithImpl<$Res, $Val extends ExerciseSetLog>
     Object? isCompleted = null,
     Object? restTakenSeconds = freezed,
     Object? cvDetected = null,
+    Object? cvFormSummary = freezed,
   }) {
     return _then(_value.copyWith(
       exerciseId: null == exerciseId
@@ -697,6 +700,10 @@ class _$ExerciseSetLogCopyWithImpl<$Res, $Val extends ExerciseSetLog>
           ? _value.cvDetected
           : cvDetected // ignore: cast_nullable_to_non_nullable
               as bool,
+      cvFormSummary: freezed == cvFormSummary
+          ? _value.cvFormSummary
+          : cvFormSummary // ignore: cast_nullable_to_non_nullable
+              as Map<String, dynamic>?,
     ) as $Val);
   }
 }
@@ -719,7 +726,8 @@ abstract class _$$ExerciseSetLogImplCopyWith<$Res>
       double weightKg,
       bool isCompleted,
       int? restTakenSeconds,
-      bool cvDetected});
+      bool cvDetected,
+      Map<String, dynamic>? cvFormSummary});
 }
 
 /// @nodoc
@@ -743,6 +751,7 @@ class __$$ExerciseSetLogImplCopyWithImpl<$Res>
     Object? isCompleted = null,
     Object? restTakenSeconds = freezed,
     Object? cvDetected = null,
+    Object? cvFormSummary = freezed,
   }) {
     return _then(_$ExerciseSetLogImpl(
       exerciseId: null == exerciseId
@@ -785,6 +794,10 @@ class __$$ExerciseSetLogImplCopyWithImpl<$Res>
           ? _value.cvDetected
           : cvDetected // ignore: cast_nullable_to_non_nullable
               as bool,
+      cvFormSummary: freezed == cvFormSummary
+          ? _value._cvFormSummary
+          : cvFormSummary // ignore: cast_nullable_to_non_nullable
+              as Map<String, dynamic>?,
     ));
   }
 }
@@ -802,8 +815,10 @@ class _$ExerciseSetLogImpl extends _ExerciseSetLog {
       required this.weightKg,
       this.isCompleted = false,
       this.restTakenSeconds,
-      this.cvDetected = false})
-      : super._();
+      this.cvDetected = false,
+      final Map<String, dynamic>? cvFormSummary})
+      : _cvFormSummary = cvFormSummary,
+        super._();
 
   factory _$ExerciseSetLogImpl.fromJson(Map<String, dynamic> json) =>
       _$$ExerciseSetLogImplFromJson(json);
@@ -830,10 +845,19 @@ class _$ExerciseSetLogImpl extends _ExerciseSetLog {
   @override
   @JsonKey()
   final bool cvDetected;
+  final Map<String, dynamic>? _cvFormSummary;
+  @override
+  Map<String, dynamic>? get cvFormSummary {
+    final value = _cvFormSummary;
+    if (value == null) return null;
+    if (_cvFormSummary is EqualUnmodifiableMapView) return _cvFormSummary;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableMapView(value);
+  }
 
   @override
   String toString() {
-    return 'ExerciseSetLog(exerciseId: $exerciseId, exerciseSlug: $exerciseSlug, setNumber: $setNumber, repsCompleted: $repsCompleted, unit: $unit, secondsCompleted: $secondsCompleted, weightKg: $weightKg, isCompleted: $isCompleted, restTakenSeconds: $restTakenSeconds, cvDetected: $cvDetected)';
+    return 'ExerciseSetLog(exerciseId: $exerciseId, exerciseSlug: $exerciseSlug, setNumber: $setNumber, repsCompleted: $repsCompleted, unit: $unit, secondsCompleted: $secondsCompleted, weightKg: $weightKg, isCompleted: $isCompleted, restTakenSeconds: $restTakenSeconds, cvDetected: $cvDetected, cvFormSummary: $cvFormSummary)';
   }
 
   @override
@@ -859,7 +883,9 @@ class _$ExerciseSetLogImpl extends _ExerciseSetLog {
             (identical(other.restTakenSeconds, restTakenSeconds) ||
                 other.restTakenSeconds == restTakenSeconds) &&
             (identical(other.cvDetected, cvDetected) ||
-                other.cvDetected == cvDetected));
+                other.cvDetected == cvDetected) &&
+            const DeepCollectionEquality()
+                .equals(other._cvFormSummary, _cvFormSummary));
   }
 
   @JsonKey(ignore: true)
@@ -875,7 +901,8 @@ class _$ExerciseSetLogImpl extends _ExerciseSetLog {
       weightKg,
       isCompleted,
       restTakenSeconds,
-      cvDetected);
+      cvDetected,
+      const DeepCollectionEquality().hash(_cvFormSummary));
 
   @JsonKey(ignore: true)
   @override
@@ -896,7 +923,8 @@ abstract class _ExerciseSetLog extends ExerciseSetLog {
       required final double weightKg,
       final bool isCompleted,
       final int? restTakenSeconds,
-      final bool cvDetected}) = _$ExerciseSetLogImpl;
+      final bool cvDetected,
+      final Map<String, dynamic>? cvFormSummary}) = _$ExerciseSetLogImpl;
   _ExerciseSetLog._() : super._();
 
   factory _ExerciseSetLog.fromJson(Map<String, dynamic> json) =
@@ -922,6 +950,8 @@ abstract class _ExerciseSetLog extends ExerciseSetLog {
   int? get restTakenSeconds;
   @override
   bool get cvDetected;
+  @override
+  Map<String, dynamic>? get cvFormSummary;
   @override
   @JsonKey(ignore: true)
   _$$ExerciseSetLogImplCopyWith<_$ExerciseSetLogImpl> get copyWith =>

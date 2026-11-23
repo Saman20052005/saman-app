@@ -38,6 +38,7 @@ class JournalCommunityDoorwayCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = SamanHomeTokens.of(context);
     return Material(
       color: Colors.transparent,
       child: InkWell(
@@ -47,10 +48,10 @@ class JournalCommunityDoorwayCard extends StatelessWidget {
         child: Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: SamanHomeTokens.cardSurface,
+            color: tokens.cardSurface,
             borderRadius: BorderRadius.circular(SamanHomeTokens.radiusLg),
             border: Border.all(
-              color: SamanHomeTokens.borderSubtle,
+              color: tokens.borderSubtle,
               width: 1,
             ),
           ),
@@ -67,20 +68,20 @@ class JournalCommunityDoorwayCard extends StatelessWidget {
                           width: 32,
                           height: 32,
                           decoration: BoxDecoration(
-                            color: SamanHomeTokens.greenBadgeBg,
+                            color: tokens.greenBadgeBg,
                             shape: BoxShape.circle,
                             border: Border.all(
-                              color: SamanHomeTokens.greenBadgeBorder,
+                              color: tokens.greenBadgeBorder,
                             ),
                           ),
-                          child: const Icon(
+                          child: Icon(
                             Icons.forum_outlined,
                             size: 16,
-                            color: SamanHomeTokens.greenAccent,
+                            color: tokens.greenAccent,
                           ),
                         ),
                         const SizedBox(width: 10),
-                        const Flexible(
+                        Flexible(
                           child: Text(
                             'Saman Community',
                             maxLines: 1,
@@ -88,7 +89,7 @@ class JournalCommunityDoorwayCard extends StatelessWidget {
                             style: TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.w700,
-                              color: SamanHomeTokens.textWhite,
+                              color: tokens.textWhite,
                             ),
                           ),
                         ),
@@ -102,30 +103,30 @@ class JournalCommunityDoorwayCard extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: 8),
-              const Text(
+              Text(
                 'Chia sẻ hành trình. Cùng nhau tiến bộ.',
                 style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w400,
-                  color: SamanHomeTokens.textSecondary,
+                  color: tokens.textSecondary,
                 ),
               ),
               const SizedBox(height: 14),
-              const Row(
+              Row(
                 children: [
                   Text(
                     'Khám phá cộng đồng',
                     style: TextStyle(
                       fontSize: 12.5,
                       fontWeight: FontWeight.w600,
-                      color: SamanHomeTokens.greenAccent,
+                      color: tokens.greenAccent,
                     ),
                   ),
-                  SizedBox(width: 4),
+                  const SizedBox(width: 4),
                   Icon(
                     Icons.arrow_forward_rounded,
                     size: 14,
-                    color: SamanHomeTokens.greenAccent,
+                    color: tokens.greenAccent,
                   ),
                 ],
               ),
@@ -142,6 +143,7 @@ class _AvatarCluster extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = SamanHomeTokens.of(context);
     return SizedBox(
       width: 58,
       height: 24,
@@ -149,22 +151,40 @@ class _AvatarCluster extends StatelessWidget {
         children: [
           Positioned(
             left: 0,
-            child: _buildAvatarCircle(const Color(0xFF343842), 'A'),
+            child: _buildAvatarCircle(
+              tokens,
+              tokens.isDark ? const Color(0xFF343842) : tokens.secondarySurface,
+              'A',
+            ),
           ),
           Positioned(
             left: 16,
-            child: _buildAvatarCircle(const Color(0xFF283430), 'B'),
+            child: _buildAvatarCircle(
+              tokens,
+              tokens.isDark ? const Color(0xFF283430) : tokens.ambientMoodGlow,
+              'B',
+            ),
           ),
           Positioned(
             left: 32,
-            child: _buildAvatarCircle(SamanHomeTokens.greenAccent, 'C', isAccent: true),
+            child: _buildAvatarCircle(
+              tokens,
+              tokens.greenAccent,
+              'C',
+              isAccent: true,
+            ),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildAvatarCircle(Color bg, String label, {bool isAccent = false}) {
+  Widget _buildAvatarCircle(
+    SamanHomePalette tokens,
+    Color bg,
+    String label, {
+    bool isAccent = false,
+  }) {
     return Container(
       width: 24,
       height: 24,
@@ -172,7 +192,7 @@ class _AvatarCluster extends StatelessWidget {
         color: bg,
         shape: BoxShape.circle,
         border: Border.all(
-          color: SamanHomeTokens.cardSurface,
+          color: tokens.cardSurface,
           width: 1.5,
         ),
       ),
@@ -180,7 +200,9 @@ class _AvatarCluster extends StatelessWidget {
         child: Icon(
           Icons.person_rounded,
           size: 13,
-          color: isAccent ? const Color(0xFF003824) : SamanHomeTokens.textWhite,
+          color: isAccent
+              ? (tokens.isDark ? const Color(0xFF003824) : const Color(0xFFFFFFFF))
+              : tokens.textWhite,
         ),
       ),
     );

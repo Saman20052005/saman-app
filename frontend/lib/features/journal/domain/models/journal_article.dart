@@ -33,6 +33,7 @@ class JournalArticle {
     this.badgeLabel,
     this.isFeatured = false,
     this.contentBody,
+    this.isBookmarked = false,
   });
 
   final String id;
@@ -44,6 +45,33 @@ class JournalArticle {
   final String? badgeLabel;
   final bool isFeatured;
   final String? contentBody;
+  final bool isBookmarked;
+
+  JournalArticle copyWith({
+    String? id,
+    String? title,
+    String? summary,
+    JournalTopic? topic,
+    int? readTimeMinutes,
+    String? coverImageAsset,
+    String? badgeLabel,
+    bool? isFeatured,
+    String? contentBody,
+    bool? isBookmarked,
+  }) {
+    return JournalArticle(
+      id: id ?? this.id,
+      title: title ?? this.title,
+      summary: summary ?? this.summary,
+      topic: topic ?? this.topic,
+      readTimeMinutes: readTimeMinutes ?? this.readTimeMinutes,
+      coverImageAsset: coverImageAsset ?? this.coverImageAsset,
+      badgeLabel: badgeLabel ?? this.badgeLabel,
+      isFeatured: isFeatured ?? this.isFeatured,
+      contentBody: contentBody ?? this.contentBody,
+      isBookmarked: isBookmarked ?? this.isBookmarked,
+    );
+  }
 
   @override
   bool operator ==(Object other) =>
@@ -86,6 +114,8 @@ class JournalLibraryEntry {
     required this.icon,
     required this.coverImageAsset,
     this.routeDescription,
+    this.count,
+    this.category,
   });
 
   final String id;
@@ -94,6 +124,8 @@ class JournalLibraryEntry {
   final IconData icon;
   final String coverImageAsset;
   final String? routeDescription;
+  final int? count;
+  final String? category;
 }
 
 /// Guided onboarding or foundation series.
@@ -105,6 +137,7 @@ class JournalGuidedSeries {
     required this.badgeLabel,
     required this.totalLessons,
     required this.coverImageAsset,
+    this.lessons = const [],
   });
 
   final String id;
@@ -113,4 +146,5 @@ class JournalGuidedSeries {
   final String badgeLabel;
   final int totalLessons;
   final String coverImageAsset;
+  final List<JournalArticle> lessons;
 }

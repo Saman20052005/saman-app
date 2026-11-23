@@ -21,7 +21,7 @@ class SamanWorkoutTokens {
   // ─── Typography & Content Colors ─────────────────────────────────────
   static const Color textPrimary = Color(0xFFF9FAFB);
   static const Color textSecondary = Color(0xFF94979E);
-  static const Color textMuted = Color(0xFF71717A);
+  static const Color textMuted = Color(0xFF9CA3AF);
   static const Color textSub = Color(0xFFCBD5E1);
 
   // ─── Semantic Accents ────────────────────────────────────────────────
@@ -48,4 +48,109 @@ class SamanWorkoutTokens {
   static const double spacingLg = 16.0;
   static const double spacingXl = 20.0;
   static const double spacingXxl = 24.0;
+
+  /// Adaptive Light / Dark palette resolved from the active [ThemeData.brightness].
+  static SamanWorkoutPalette of(BuildContext context) {
+    return Theme.of(context).brightness == Brightness.dark
+        ? SamanWorkoutPalette.dark
+        : SamanWorkoutPalette.light;
+  }
+}
+
+/// Adaptive token snapshot for Saman Workout screens (1-to-1 Light / Dark parity).
+@immutable
+class SamanWorkoutPalette {
+  const SamanWorkoutPalette({
+    required this.isDark,
+    required this.canvas,
+    required this.cardSurface,
+    required this.surfaceElevated,
+    required this.buttonPrimary,
+    required this.buttonPrimaryText,
+    required this.border,
+    required this.borderSubtle,
+    required this.borderHover,
+    required this.divider,
+    required this.textPrimary,
+    required this.textSecondary,
+    required this.textMuted,
+    required this.textSub,
+    required this.emeraldAccent,
+    required this.emeraldBadgeBg,
+    required this.emeraldBadgeBorder,
+    required this.amberAccent,
+    required this.tealAccent,
+    required this.tealLightAccent,
+    required this.crimsonAccent,
+  });
+
+  final bool isDark;
+  final Color canvas;
+  final Color cardSurface;
+  final Color surfaceElevated;
+  final Color buttonPrimary;
+  final Color buttonPrimaryText;
+  final Color border;
+  final Color borderSubtle;
+  final Color borderHover;
+  final Color divider;
+  final Color textPrimary;
+  final Color textSecondary;
+  final Color textMuted;
+  final Color textSub;
+  final Color emeraldAccent;
+  final Color emeraldBadgeBg;
+  final Color emeraldBadgeBorder;
+  final Color amberAccent;
+  final Color tealAccent;
+  final Color tealLightAccent;
+  final Color crimsonAccent;
+
+  static const SamanWorkoutPalette dark = SamanWorkoutPalette(
+    isDark: true,
+    canvas: SamanWorkoutTokens.canvas,
+    cardSurface: SamanWorkoutTokens.cardSurface,
+    surfaceElevated: SamanWorkoutTokens.surfaceElevated,
+    buttonPrimary: SamanWorkoutTokens.buttonPrimary,
+    buttonPrimaryText: SamanWorkoutTokens.buttonPrimaryText,
+    border: SamanWorkoutTokens.border,
+    borderSubtle: SamanWorkoutTokens.borderSubtle,
+    borderHover: SamanWorkoutTokens.borderHover,
+    divider: SamanWorkoutTokens.divider,
+    textPrimary: SamanWorkoutTokens.textPrimary,
+    textSecondary: SamanWorkoutTokens.textSecondary,
+    textMuted: SamanWorkoutTokens.textMuted,
+    textSub: SamanWorkoutTokens.textSub,
+    emeraldAccent: SamanWorkoutTokens.emeraldAccent,
+    emeraldBadgeBg: SamanWorkoutTokens.emeraldBadgeBg,
+    emeraldBadgeBorder: SamanWorkoutTokens.emeraldBadgeBorder,
+    amberAccent: SamanWorkoutTokens.amberAccent,
+    tealAccent: SamanWorkoutTokens.tealAccent,
+    tealLightAccent: SamanWorkoutTokens.tealLightAccent,
+    crimsonAccent: SamanWorkoutTokens.crimsonAccent,
+  );
+
+  static const SamanWorkoutPalette light = SamanWorkoutPalette(
+    isDark: false,
+    canvas: Color(0xFFF8FAFC),
+    cardSurface: Color(0xFFFFFFFF),
+    surfaceElevated: Color(0xFFF1F5F9),
+    buttonPrimary: Color(0xFF0F172A),
+    buttonPrimaryText: Color(0xFFFFFFFF),
+    border: Color(0xFFE2E8F0),
+    borderSubtle: Color(0xFFE2E8F0),
+    borderHover: Color(0xFFCBD5E1),
+    divider: Color(0xFFE2E8F0),
+    textPrimary: Color(0xFF0F172A),
+    textSecondary: Color(0xFF475569),
+    textMuted: Color(0xFF64748B),
+    textSub: Color(0xFF334155),
+    emeraldAccent: Color(0xFF059669),
+    emeraldBadgeBg: Color(0x1A059669),
+    emeraldBadgeBorder: Color(0x33059669),
+    amberAccent: Color(0xFFD97706),
+    tealAccent: Color(0xFF0D9488),
+    tealLightAccent: Color(0xFF0F766E),
+    crimsonAccent: Color(0xFFDC2626),
+  );
 }

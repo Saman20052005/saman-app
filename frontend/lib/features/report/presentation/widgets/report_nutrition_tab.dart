@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:health_ai_app/features/report/domain/entities/weekly_report_entity.dart';
+import '../../../../config/app_theme.dart';
 import 'calories_consumed_chart_card.dart';
 
 class ReportNutritionTab extends StatelessWidget {
@@ -55,6 +56,19 @@ class ReportNutritionTab extends StatelessWidget {
         ? (waterLiters / targetWaterLiters).clamp(0.0, 1.0)
         : 0.0;
 
+    final p = SamanPalette.of(context);
+    final isDark = p.isDark;
+    final cardBg = isDark ? const Color(0xFF16171A) : p.surface;
+    final borderCol = isDark ? const Color(0xFF26282F) : p.border;
+    final headingCol = isDark ? const Color(0xFFD1D5DB) : p.textPrimary;
+    final valueCol = isDark ? Colors.white : p.textPrimary;
+    final subCol = isDark ? const Color(0xFFA1A1AA) : p.textSecondary;
+    final emerald = isDark ? const Color(0xFF10B981) : p.accent;
+    final amber = isDark ? const Color(0xFFF59E0B) : p.amber;
+    final violet = isDark ? const Color(0xFFA855F7) : const Color(0xFF9333EA);
+    final waterTrack = isDark ? const Color(0xFF26282F) : p.border;
+    final waterFill = isDark ? const Color(0xFFE5E7EB) : p.cyan;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -62,9 +76,9 @@ class ReportNutritionTab extends StatelessWidget {
         Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: const Color(0xFF16171A),
+            color: cardBg,
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: const Color(0xFF26282F)),
+            border: Border.all(color: borderCol),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -72,7 +86,7 @@ class ReportNutritionTab extends StatelessWidget {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Expanded(
+                  Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -82,17 +96,17 @@ class ReportNutritionTab extends StatelessWidget {
                             fontSize: 11,
                             fontWeight: FontWeight.w700,
                             letterSpacing: 0.8,
-                            color: Color(0xFFD1D5DB),
+                            color: headingCol,
                           ),
                         ),
-                        SizedBox(height: 2),
+                        const SizedBox(height: 2),
                         Text(
                           'Macro split & calorie adherence',
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(
                             fontSize: 11,
-                            color: Color(0xFFA1A1AA),
+                            color: subCol,
                           ),
                         ),
                       ],
@@ -103,18 +117,18 @@ class ReportNutritionTab extends StatelessWidget {
                     padding:
                         const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                     decoration: BoxDecoration(
-                      color: const Color(0xFF10B981).withOpacity(0.1),
+                      color: emerald.withOpacity(0.1),
                       borderRadius: BorderRadius.circular(999),
                       border: Border.all(
-                        color: const Color(0xFF10B981).withOpacity(0.2),
+                        color: emerald.withOpacity(0.2),
                       ),
                     ),
                     child: Text(
                       '${report.daysLogged} of 7 logged',
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 10.5,
                         fontWeight: FontWeight.w600,
-                        color: Color(0xFF10B981),
+                        color: emerald,
                       ),
                     ),
                   ),
@@ -132,7 +146,7 @@ class ReportNutritionTab extends StatelessWidget {
                       current: report.avgProtein.round(),
                       target: report.targetProtein,
                       ratio: proteinRatio,
-                      color: const Color(0xFF10B981),
+                      color: emerald,
                     ),
                   ),
                   const SizedBox(width: 8),
@@ -144,7 +158,7 @@ class ReportNutritionTab extends StatelessWidget {
                       current: report.avgCarbs.round(),
                       target: report.targetCarbs,
                       ratio: carbsRatio,
-                      color: const Color(0xFFF59E0B),
+                      color: amber,
                     ),
                   ),
                   const SizedBox(width: 8),
@@ -156,7 +170,7 @@ class ReportNutritionTab extends StatelessWidget {
                       current: report.avgFat.round(),
                       target: report.targetFat,
                       ratio: fatRatio,
-                      color: const Color(0xFFA855F7),
+                      color: violet,
                     ),
                   ),
                 ],
@@ -180,9 +194,9 @@ class ReportNutritionTab extends StatelessWidget {
         Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: const Color(0xFF16171A),
+            color: cardBg,
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: const Color(0xFF26282F)),
+            border: Border.all(color: borderCol),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -194,7 +208,7 @@ class ReportNutritionTab extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text(
+                        Text(
                           'PROTEIN INTAKE DISTRIBUTION',
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
@@ -202,7 +216,7 @@ class ReportNutritionTab extends StatelessWidget {
                             fontSize: 11,
                             fontWeight: FontWeight.w700,
                             letterSpacing: 0.8,
-                            color: Color(0xFF10B981),
+                            color: emerald,
                           ),
                         ),
                         const SizedBox(height: 4),
@@ -212,21 +226,21 @@ class ReportNutritionTab extends StatelessWidget {
                           children: [
                             Text(
                               '${report.avgProtein.round()}g',
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 22,
                                 fontWeight: FontWeight.w700,
-                                color: Colors.white,
+                                color: valueCol,
                               ),
                             ),
                             const SizedBox(width: 4),
-                            const Flexible(
+                            Flexible(
                               child: Text(
                                 'daily avg',
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                                 style: TextStyle(
                                   fontSize: 12,
-                                  color: Color(0xFFA1A1AA),
+                                  color: subCol,
                                 ),
                               ),
                             ),
@@ -240,18 +254,18 @@ class ReportNutritionTab extends StatelessWidget {
                     padding:
                         const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                     decoration: BoxDecoration(
-                      color: const Color(0xFF10B981).withOpacity(0.1),
+                      color: emerald.withOpacity(0.1),
                       borderRadius: BorderRadius.circular(6),
                       border: Border.all(
-                        color: const Color(0xFF10B981).withOpacity(0.2),
+                        color: emerald.withOpacity(0.2),
                       ),
                     ),
                     child: Text(
                       'Target ${report.targetProtein}g',
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 11,
                         fontWeight: FontWeight.w600,
-                        color: Color(0xFF10B981),
+                        color: emerald,
                       ),
                     ),
                   ),
@@ -260,10 +274,10 @@ class ReportNutritionTab extends StatelessWidget {
               const SizedBox(height: 10),
               Text(
                 proteinObservation,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 11.5,
                   height: 1.4,
-                  color: Color(0xFFA1A1AA),
+                  color: subCol,
                 ),
               ),
             ],
@@ -275,9 +289,9 @@ class ReportNutritionTab extends StatelessWidget {
         Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: const Color(0xFF16171A),
+            color: cardBg,
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: const Color(0xFF26282F)),
+            border: Border.all(color: borderCol),
           ),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -286,13 +300,13 @@ class ReportNutritionTab extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
+                    Text(
                       'AVERAGE WATER HYDRATION',
                       style: TextStyle(
                         fontSize: 10.5,
                         fontWeight: FontWeight.w600,
                         letterSpacing: 0.6,
-                        color: Color(0xFFA1A1AA),
+                        color: subCol,
                       ),
                     ),
                     const SizedBox(height: 4),
@@ -303,19 +317,19 @@ class ReportNutritionTab extends StatelessWidget {
                           waterLiters > 0
                               ? '${waterLiters.toStringAsFixed(1)} L'
                               : '—',
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.w700,
-                            color: Colors.white,
+                            color: valueCol,
                           ),
                         ),
                         if (waterLiters > 0 && targetWaterLiters > 0) ...[
                           const SizedBox(width: 4),
                           Text(
                             '/ ${targetWaterLiters.toStringAsFixed(1)} L',
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 11.5,
-                              color: Color(0xFFA1A1AA),
+                              color: subCol,
                             ),
                           ),
                         ],
@@ -330,7 +344,7 @@ class ReportNutritionTab extends StatelessWidget {
                   width: 90,
                   height: 6,
                   decoration: BoxDecoration(
-                    color: const Color(0xFF26282F),
+                    color: waterTrack,
                     borderRadius: BorderRadius.circular(999),
                   ),
                   alignment: Alignment.centerLeft,
@@ -338,7 +352,7 @@ class ReportNutritionTab extends StatelessWidget {
                     widthFactor: waterRatio,
                     child: Container(
                       decoration: BoxDecoration(
-                        color: const Color(0xFFE5E7EB),
+                        color: waterFill,
                         borderRadius: BorderRadius.circular(999),
                       ),
                     ),
@@ -369,12 +383,19 @@ class _MacroProgressTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final p = SamanPalette.of(context);
+    final isDark = p.isDark;
+    final tileBg = isDark ? const Color(0xFF101114) : p.surfaceElevated;
+    final tileBorder = isDark ? const Color(0xFF23252A) : p.border;
+    final valueCol = isDark ? Colors.white : p.textPrimary;
+    final mutedCol = isDark ? const Color(0xFF71717A) : p.textMuted;
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 8),
       decoration: BoxDecoration(
-        color: const Color(0xFF101114),
+        color: tileBg,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFF23252A)),
+        border: Border.all(color: tileBorder),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -397,18 +418,18 @@ class _MacroProgressTile extends StatelessWidget {
             children: [
               Text(
                 '${current}g',
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 14.5,
                   fontWeight: FontWeight.w700,
-                  color: Colors.white,
+                  color: valueCol,
                 ),
               ),
               if (target > 0)
                 Text(
                   '/ ${target}g',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 10,
-                    color: Color(0xFF71717A),
+                    color: mutedCol,
                   ),
                 ),
             ],
@@ -417,7 +438,7 @@ class _MacroProgressTile extends StatelessWidget {
           Container(
             height: 4,
             decoration: BoxDecoration(
-              color: const Color(0xFF23252A),
+              color: tileBorder,
               borderRadius: BorderRadius.circular(2),
             ),
             alignment: Alignment.centerLeft,

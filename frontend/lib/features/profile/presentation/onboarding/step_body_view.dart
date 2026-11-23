@@ -115,8 +115,9 @@ class _StepBodyViewState extends State<StepBodyView> {
 
   @override
   Widget build(BuildContext context) {
+    final p = OnboardingTokens.of(context);
     return Scaffold(
-      backgroundColor: OnboardingTokens.canvas,
+      backgroundColor: p.canvas,
       body: SafeArea(
         child: Stack(
           children: [
@@ -142,9 +143,9 @@ class _StepBodyViewState extends State<StepBodyView> {
                           begin: Alignment.topCenter,
                           end: Alignment.bottomCenter,
                           colors: [
-                            OnboardingTokens.canvas.withOpacity(0.3),
-                            OnboardingTokens.canvas.withOpacity(0.7),
-                            OnboardingTokens.canvas,
+                            p.canvas.withOpacity(0.3),
+                            p.canvas.withOpacity(0.7),
+                            p.canvas,
                           ],
                         ),
                       ),
@@ -156,8 +157,8 @@ class _StepBodyViewState extends State<StepBodyView> {
                           end: Alignment.centerLeft,
                           colors: [
                             Colors.transparent,
-                            OnboardingTokens.canvas.withOpacity(0.6),
-                            OnboardingTokens.canvas,
+                            p.canvas.withOpacity(0.6),
+                            p.canvas,
                           ],
                         ),
                       ),
@@ -184,35 +185,35 @@ class _StepBodyViewState extends State<StepBodyView> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         const SizedBox(height: 16),
-                        const Text(
+                        Text(
                           'Your body measurements',
                           style: TextStyle(
                             fontSize: 28,
                             fontWeight: FontWeight.w700,
-                            color: OnboardingTokens.textPrimary,
+                            color: p.textPrimary,
                             height: 1.15,
                             letterSpacing: -0.5,
                           ),
                         ),
                         const SizedBox(height: 8),
-                        const Text(
+                        Text(
                           'Enter your current height and weight.',
                           style: TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.w400,
-                            color: OnboardingTokens.textSecondary,
+                            color: p.textSecondary,
                             height: 1.4,
                           ),
                         ),
                         const SizedBox(height: 28),
 
                         // Height Input
-                        const Text(
+                        Text(
                           'HEIGHT',
                           style: TextStyle(
                             fontSize: 11,
                             fontWeight: FontWeight.w600,
-                            color: OnboardingTokens.textSecondary,
+                            color: p.textSecondary,
                             letterSpacing: 0.8,
                           ),
                         ),
@@ -221,10 +222,10 @@ class _StepBodyViewState extends State<StepBodyView> {
                           height: 60,
                           padding: const EdgeInsets.symmetric(horizontal: 16),
                           decoration: BoxDecoration(
-                            color: OnboardingTokens.surface,
+                            color: p.surface,
                             borderRadius:
                                 BorderRadius.circular(OnboardingTokens.radiusCard),
-                            border: Border.all(color: OnboardingTokens.borderDefault),
+                            border: Border.all(color: p.borderDefault),
                           ),
                           child: Row(
                             crossAxisAlignment: CrossAxisAlignment.center,
@@ -244,13 +245,13 @@ class _StepBodyViewState extends State<StepBodyView> {
                                       RegExp(r'[0-9.,]'),
                                     ),
                                   ],
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                     fontSize: 22,
                                     fontWeight: FontWeight.w600,
-                                    color: OnboardingTokens.textPrimary,
+                                    color: p.textPrimary,
                                     letterSpacing: -0.2,
                                   ),
-                                  cursorColor: OnboardingTokens.textPrimary,
+                                  cursorColor: p.textPrimary,
                                   decoration: InputDecoration(
                                     filled: true,
                                     fillColor: Colors.transparent,
@@ -262,10 +263,10 @@ class _StepBodyViewState extends State<StepBodyView> {
                                     hintText: _heightFocusNode.hasFocus
                                         ? null
                                         : 'Enter height',
-                                    hintStyle: const TextStyle(
+                                    hintStyle: TextStyle(
                                       fontSize: 15,
                                       fontWeight: FontWeight.w400,
-                                      color: OnboardingTokens.textDisabled,
+                                      color: p.textDisabled,
                                     ),
                                     isDense: true,
                                     contentPadding:
@@ -273,12 +274,12 @@ class _StepBodyViewState extends State<StepBodyView> {
                                   ),
                                 ),
                               ),
-                              const Text(
+                              Text(
                                 'cm',
                                 style: TextStyle(
                                   fontSize: 14,
                                   fontWeight: FontWeight.w500,
-                                  color: OnboardingTokens.textSecondary,
+                                  color: p.textSecondary,
                                 ),
                               ),
                             ],
@@ -287,12 +288,12 @@ class _StepBodyViewState extends State<StepBodyView> {
                         const SizedBox(height: 20),
 
                         // Weight Input
-                        const Text(
+                        Text(
                           'WEIGHT',
                           style: TextStyle(
                             fontSize: 11,
                             fontWeight: FontWeight.w600,
-                            color: OnboardingTokens.textSecondary,
+                            color: p.textSecondary,
                             letterSpacing: 0.8,
                           ),
                         ),
@@ -301,10 +302,10 @@ class _StepBodyViewState extends State<StepBodyView> {
                           height: 60,
                           padding: const EdgeInsets.symmetric(horizontal: 16),
                           decoration: BoxDecoration(
-                            color: OnboardingTokens.surface,
+                            color: p.surface,
                             borderRadius:
                                 BorderRadius.circular(OnboardingTokens.radiusCard),
-                            border: Border.all(color: OnboardingTokens.borderDefault),
+                            border: Border.all(color: p.borderDefault),
                           ),
                           child: Row(
                             crossAxisAlignment: CrossAxisAlignment.center,
@@ -324,13 +325,13 @@ class _StepBodyViewState extends State<StepBodyView> {
                                       RegExp(r'[0-9.,]'),
                                     ),
                                   ],
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                     fontSize: 22,
                                     fontWeight: FontWeight.w600,
-                                    color: OnboardingTokens.textPrimary,
+                                    color: p.textPrimary,
                                     letterSpacing: -0.2,
                                   ),
-                                  cursorColor: OnboardingTokens.textPrimary,
+                                  cursorColor: p.textPrimary,
                                   decoration: InputDecoration(
                                     filled: true,
                                     fillColor: Colors.transparent,
@@ -342,10 +343,10 @@ class _StepBodyViewState extends State<StepBodyView> {
                                     hintText: _weightFocusNode.hasFocus
                                         ? null
                                         : 'Enter weight',
-                                    hintStyle: const TextStyle(
+                                    hintStyle: TextStyle(
                                       fontSize: 15,
                                       fontWeight: FontWeight.w400,
-                                      color: OnboardingTokens.textDisabled,
+                                      color: p.textDisabled,
                                     ),
                                     isDense: true,
                                     contentPadding:
@@ -353,12 +354,12 @@ class _StepBodyViewState extends State<StepBodyView> {
                                   ),
                                 ),
                               ),
-                              const Text(
+                              Text(
                                 'kg',
                                 style: TextStyle(
                                   fontSize: 14,
                                   fontWeight: FontWeight.w500,
-                                  color: OnboardingTokens.textSecondary,
+                                  color: p.textSecondary,
                                 ),
                               ),
                             ],

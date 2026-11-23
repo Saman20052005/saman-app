@@ -9,6 +9,7 @@ class ShopSkeletonLoadingView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = ShopTheme.of(context);
     return GridView.builder(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
@@ -26,7 +27,7 @@ class ShopSkeletonLoadingView extends StatelessWidget {
             aspectRatio: 4 / 5,
             child: Container(
               decoration: BoxDecoration(
-                color: ShopTheme.surfaceElevated,
+                color: t.surfaceElevated,
                 borderRadius: BorderRadius.circular(ShopTheme.radiusMd),
               ),
             ),
@@ -36,7 +37,7 @@ class ShopSkeletonLoadingView extends StatelessWidget {
             height: 14,
             width: double.infinity,
             decoration: BoxDecoration(
-              color: ShopTheme.surfaceElevated,
+              color: t.surfaceElevated,
               borderRadius: BorderRadius.circular(4),
             ),
           ),
@@ -45,7 +46,7 @@ class ShopSkeletonLoadingView extends StatelessWidget {
             height: 14,
             width: 80,
             decoration: BoxDecoration(
-              color: ShopTheme.surfaceElevated,
+              color: t.surfaceElevated,
               borderRadius: BorderRadius.circular(4),
             ),
           ),
@@ -61,6 +62,7 @@ class ShopEmptyCatalogView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = ShopTheme.of(context);
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 48, horizontal: 24),
       alignment: Alignment.center,
@@ -70,14 +72,14 @@ class ShopEmptyCatalogView extends StatelessWidget {
           Container(
             width: 56,
             height: 56,
-            decoration: const BoxDecoration(
-              color: ShopTheme.surfaceCard,
+            decoration: BoxDecoration(
+              color: t.surfaceCard,
               shape: BoxShape.circle,
             ),
-            child: const Icon(
+            child: Icon(
               Icons.storefront_outlined,
               size: 26,
-              color: ShopTheme.textSecondary,
+              color: t.textSecondary,
             ),
           ),
           const SizedBox(height: 16),
@@ -86,7 +88,7 @@ class ShopEmptyCatalogView extends StatelessWidget {
             style: ShopTheme.fontManrope(
               fontSize: 16,
               fontWeight: FontWeight.w600,
-              color: ShopTheme.textPrimary,
+              color: t.textPrimary,
             ),
             textAlign: TextAlign.center,
           ),
@@ -96,7 +98,7 @@ class ShopEmptyCatalogView extends StatelessWidget {
             style: ShopTheme.fontManrope(
               fontSize: 12.5,
               fontWeight: FontWeight.w400,
-              color: ShopTheme.textSecondary,
+              color: t.textSecondary,
             ),
             textAlign: TextAlign.center,
           ),
@@ -117,6 +119,7 @@ class ShopNoResultsView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = ShopTheme.of(context);
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 24),
       alignment: Alignment.center,
@@ -126,14 +129,14 @@ class ShopNoResultsView extends StatelessWidget {
           Container(
             width: 52,
             height: 52,
-            decoration: const BoxDecoration(
-              color: ShopTheme.surfaceCard,
+            decoration: BoxDecoration(
+              color: t.surfaceCard,
               shape: BoxShape.circle,
             ),
-            child: const Icon(
+            child: Icon(
               Icons.search_off_rounded,
               size: 24,
-              color: ShopTheme.textSecondary,
+              color: t.textSecondary,
             ),
           ),
           const SizedBox(height: 14),
@@ -142,7 +145,7 @@ class ShopNoResultsView extends StatelessWidget {
             style: ShopTheme.fontManrope(
               fontSize: 15,
               fontWeight: FontWeight.w600,
-              color: ShopTheme.textPrimary,
+              color: t.textPrimary,
             ),
             textAlign: TextAlign.center,
           ),
@@ -152,7 +155,7 @@ class ShopNoResultsView extends StatelessWidget {
             style: ShopTheme.fontManrope(
               fontSize: 12,
               fontWeight: FontWeight.w400,
-              color: ShopTheme.textSecondary,
+              color: t.textSecondary,
             ),
             textAlign: TextAlign.center,
           ),
@@ -160,8 +163,8 @@ class ShopNoResultsView extends StatelessWidget {
           OutlinedButton(
             onPressed: onResetFilters,
             style: OutlinedButton.styleFrom(
-              foregroundColor: ShopTheme.textPrimary,
-              side: const BorderSide(color: ShopTheme.borderSubtle),
+              foregroundColor: t.textPrimary,
+              side: BorderSide(color: t.borderSubtle),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(ShopTheme.radiusPill),
               ),
@@ -172,7 +175,7 @@ class ShopNoResultsView extends StatelessWidget {
               style: ShopTheme.fontManrope(
                 fontSize: 12.5,
                 fontWeight: FontWeight.w500,
-                color: ShopTheme.textPrimary,
+                color: t.textPrimary,
               ),
             ),
           ),
@@ -195,6 +198,7 @@ class ShopFirstPageErrorView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = ShopTheme.of(context);
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 48, horizontal: 24),
       alignment: Alignment.center,
@@ -205,13 +209,13 @@ class ShopFirstPageErrorView extends StatelessWidget {
             width: 52,
             height: 52,
             decoration: BoxDecoration(
-              color: ShopTheme.errorRed.withOpacity(0.12),
+              color: t.errorRed.withOpacity(0.12),
               shape: BoxShape.circle,
             ),
-            child: const Icon(
+            child: Icon(
               Icons.error_outline_rounded,
               size: 26,
-              color: ShopTheme.errorRed,
+              color: t.errorRed,
             ),
           ),
           const SizedBox(height: 14),
@@ -220,7 +224,7 @@ class ShopFirstPageErrorView extends StatelessWidget {
             style: ShopTheme.fontManrope(
               fontSize: 15,
               fontWeight: FontWeight.w600,
-              color: ShopTheme.textPrimary,
+              color: t.textPrimary,
             ),
             textAlign: TextAlign.center,
           ),
@@ -231,7 +235,7 @@ class ShopFirstPageErrorView extends StatelessWidget {
             style: ShopTheme.fontManrope(
               fontSize: 12,
               fontWeight: FontWeight.w400,
-              color: ShopTheme.textSecondary,
+              color: t.textSecondary,
             ),
             textAlign: TextAlign.center,
           ),
@@ -239,8 +243,8 @@ class ShopFirstPageErrorView extends StatelessWidget {
           ElevatedButton(
             onPressed: onRetry,
             style: ElevatedButton.styleFrom(
-              backgroundColor: ShopTheme.ctaSurface,
-              foregroundColor: ShopTheme.ctaText,
+              backgroundColor: t.ctaSurface,
+              foregroundColor: t.ctaText,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(ShopTheme.radiusPill),
               ),
@@ -251,7 +255,7 @@ class ShopFirstPageErrorView extends StatelessWidget {
               style: ShopTheme.fontManrope(
                 fontSize: 13,
                 fontWeight: FontWeight.w600,
-                color: ShopTheme.ctaText,
+                color: t.ctaText,
               ),
             ),
           ),
@@ -276,16 +280,17 @@ class ShopLoadMoreFooter extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = ShopTheme.of(context);
     if (isLoadingMore) {
-      return const Padding(
-        padding: EdgeInsets.symmetric(vertical: 24),
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 24),
         child: Center(
           child: SizedBox(
             width: 20,
             height: 20,
             child: CircularProgressIndicator(
               strokeWidth: 2,
-              valueColor: AlwaysStoppedAnimation<Color>(ShopTheme.textMuted),
+              valueColor: AlwaysStoppedAnimation<Color>(t.textMuted),
             ),
           ),
         ),
@@ -302,10 +307,10 @@ class ShopLoadMoreFooter extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.center,
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(
+              Icon(
                 Icons.refresh_rounded,
                 size: 16,
-                color: ShopTheme.warningAmber,
+                color: t.warningAmber,
               ),
               const SizedBox(width: 8),
               Flexible(
@@ -315,7 +320,7 @@ class ShopLoadMoreFooter extends StatelessWidget {
                   style: ShopTheme.fontManrope(
                     fontSize: 12,
                     fontWeight: FontWeight.w500,
-                    color: ShopTheme.warningAmber,
+                    color: t.warningAmber,
                   ),
                 ),
               ),

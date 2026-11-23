@@ -135,8 +135,16 @@ class StepReviewView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final p = OnboardingTokens.of(context);
+    final errorBg =
+        p.isDark ? const Color(0xFF2C1E21) : const Color(0xFFFEF2F2);
+    final errorBorder =
+        p.isDark ? const Color(0xFFE57373) : const Color(0xFFDC2626);
+    final errorText =
+        p.isDark ? const Color(0xFFFFCDD2) : const Color(0xFF991B1B);
+
     return Scaffold(
-      backgroundColor: OnboardingTokens.canvas,
+      backgroundColor: p.canvas,
       body: SafeArea(
         child: Stack(
           children: [
@@ -162,9 +170,9 @@ class StepReviewView extends StatelessWidget {
                           begin: Alignment.topCenter,
                           end: Alignment.bottomCenter,
                           colors: [
-                            OnboardingTokens.canvas.withOpacity(0.3),
-                            OnboardingTokens.canvas.withOpacity(0.7),
-                            OnboardingTokens.canvas,
+                            p.canvas.withOpacity(0.3),
+                            p.canvas.withOpacity(0.7),
+                            p.canvas,
                           ],
                         ),
                       ),
@@ -176,8 +184,8 @@ class StepReviewView extends StatelessWidget {
                           end: Alignment.centerLeft,
                           colors: [
                             Colors.transparent,
-                            OnboardingTokens.canvas.withOpacity(0.6),
-                            OnboardingTokens.canvas,
+                            p.canvas.withOpacity(0.6),
+                            p.canvas,
                           ],
                         ),
                       ),
@@ -204,23 +212,23 @@ class StepReviewView extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         const SizedBox(height: 16),
-                        const Text(
+                        Text(
                           'Take a final look',
                           style: TextStyle(
                             fontSize: 26,
                             fontWeight: FontWeight.w700,
-                            color: OnboardingTokens.textPrimary,
+                            color: p.textPrimary,
                             height: 1.15,
                             letterSpacing: -0.5,
                           ),
                         ),
                         const SizedBox(height: 8),
-                        const Text(
+                        Text(
                           'Check your details before you continue.',
                           style: TextStyle(
                             fontSize: 13,
                             fontWeight: FontWeight.w400,
-                            color: OnboardingTokens.textSecondary,
+                            color: p.textSecondary,
                             height: 1.4,
                           ),
                         ),
@@ -262,9 +270,8 @@ class StepReviewView extends StatelessWidget {
                                           begin: Alignment.centerLeft,
                                           end: Alignment.centerRight,
                                           colors: [
-                                            OnboardingTokens.surface,
-                                            OnboardingTokens.surface
-                                                .withOpacity(0.6),
+                                            p.surface,
+                                            p.surface.withOpacity(0.6),
                                             Colors.transparent,
                                           ],
                                         ),
@@ -282,12 +289,12 @@ class StepReviewView extends StatelessWidget {
                                       mainAxisAlignment:
                                           MainAxisAlignment.spaceBetween,
                                       children: [
-                                        const Text(
+                                        Text(
                                           'YOUR GOAL',
                                           style: TextStyle(
                                             fontSize: 11,
                                             fontWeight: FontWeight.w600,
-                                            color: OnboardingTokens.textSecondary,
+                                            color: p.textSecondary,
                                             letterSpacing: 0.8,
                                           ),
                                         ),
@@ -302,18 +309,18 @@ class StepReviewView extends StatelessWidget {
                                     const SizedBox(height: 10),
                                     Text(
                                       _goalTitle(goal),
-                                      style: const TextStyle(
+                                      style: TextStyle(
                                         fontSize: 18,
                                         fontWeight: FontWeight.w700,
-                                        color: OnboardingTokens.textPrimary,
+                                        color: p.textPrimary,
                                       ),
                                     ),
                                     const SizedBox(height: 2),
                                     Text(
                                       _goalSubtitle(goal),
-                                      style: const TextStyle(
+                                      style: TextStyle(
                                         fontSize: 12,
-                                        color: OnboardingTokens.textSecondary,
+                                        color: p.textSecondary,
                                       ),
                                     ),
                                   ],
@@ -335,12 +342,12 @@ class StepReviewView extends StatelessWidget {
                                   mainAxisAlignment:
                                       MainAxisAlignment.spaceBetween,
                                   children: [
-                                    const Text(
+                                    Text(
                                       'ABOUT YOU',
                                       style: TextStyle(
                                         fontSize: 11,
                                         fontWeight: FontWeight.w600,
-                                        color: OnboardingTokens.textSecondary,
+                                        color: p.textSecondary,
                                         letterSpacing: 0.8,
                                       ),
                                     ),
@@ -356,8 +363,8 @@ class StepReviewView extends StatelessWidget {
                                   label: 'Age',
                                   value: age != null ? '$age years' : '—',
                                 ),
-                                const Divider(
-                                  color: OnboardingTokens.divider,
+                                Divider(
+                                  color: p.divider,
                                   height: 16,
                                 ),
                                 _DataRow(
@@ -381,12 +388,12 @@ class StepReviewView extends StatelessWidget {
                                   mainAxisAlignment:
                                       MainAxisAlignment.spaceBetween,
                                   children: [
-                                    const Text(
+                                    Text(
                                       'BODY MEASUREMENTS',
                                       style: TextStyle(
                                         fontSize: 11,
                                         fontWeight: FontWeight.w600,
-                                        color: OnboardingTokens.textSecondary,
+                                        color: p.textSecondary,
                                         letterSpacing: 0.8,
                                       ),
                                     ),
@@ -404,8 +411,8 @@ class StepReviewView extends StatelessWidget {
                                       ? '${BiometricInputParser.formatBiometric(height, rawText: rawHeightText)} cm'
                                       : '—',
                                 ),
-                                const Divider(
-                                  color: OnboardingTokens.divider,
+                                Divider(
+                                  color: p.divider,
                                   height: 16,
                                 ),
                                 _DataRow(
@@ -431,12 +438,12 @@ class StepReviewView extends StatelessWidget {
                                   mainAxisAlignment:
                                       MainAxisAlignment.spaceBetween,
                                   children: [
-                                    const Text(
+                                    Text(
                                       'ACTIVITY LEVEL',
                                       style: TextStyle(
                                         fontSize: 11,
                                         fontWeight: FontWeight.w600,
-                                        color: OnboardingTokens.textSecondary,
+                                        color: p.textSecondary,
                                         letterSpacing: 0.8,
                                       ),
                                     ),
@@ -451,19 +458,19 @@ class StepReviewView extends StatelessWidget {
                                 const SizedBox(height: 10),
                                 Text(
                                   activityChoice?.title ?? 'Not selected',
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                     fontSize: 15,
                                     fontWeight: FontWeight.w600,
-                                    color: OnboardingTokens.textPrimary,
+                                    color: p.textPrimary,
                                   ),
                                 ),
                                 const SizedBox(height: 2),
                                 Text(
                                   activityChoice?.subtitle ??
                                       'Please choose your activity level.',
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                     fontSize: 12,
-                                    color: OnboardingTokens.textSecondary,
+                                    color: p.textSecondary,
                                   ),
                                 ),
                               ],
@@ -478,10 +485,10 @@ class StepReviewView extends StatelessWidget {
                             width: double.infinity,
                             padding: const EdgeInsets.all(12),
                             decoration: BoxDecoration(
-                              color: const Color(0xFF2C1E21),
+                              color: errorBg,
                               borderRadius: BorderRadius.circular(
                                   OnboardingTokens.radiusCard),
-                              border: Border.all(color: const Color(0xFFE57373)),
+                              border: Border.all(color: errorBorder),
                             ),
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
@@ -489,17 +496,17 @@ class StepReviewView extends StatelessWidget {
                                 Row(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    const Padding(
-                                      padding: EdgeInsets.only(top: 2),
+                                    Padding(
+                                      padding: const EdgeInsets.only(top: 2),
                                       child: Icon(Icons.error_outline,
-                                          size: 16, color: Color(0xFFE57373)),
+                                          size: 16, color: errorBorder),
                                     ),
                                     const SizedBox(width: 8),
                                     Expanded(
                                       child: Text(
                                         errorMessage!,
-                                        style: const TextStyle(
-                                          color: Color(0xFFFFCDD2),
+                                        style: TextStyle(
+                                          color: errorText,
                                           fontSize: 13,
                                           fontWeight: FontWeight.w500,
                                         ),
@@ -515,14 +522,13 @@ class StepReviewView extends StatelessWidget {
                                       key: const Key(
                                           'onboarding_check_again_button'),
                                       onPressed: onCheckAgain,
-                                      icon: const Icon(Icons.refresh,
-                                          size: 16, color: Colors.white),
-                                      label: const Text('Kiểm tra lại',
+                                      icon: Icon(Icons.refresh,
+                                          size: 16, color: p.ctaText),
+                                      label: Text('Kiểm tra lại',
                                           style:
-                                              TextStyle(color: Colors.white)),
+                                              TextStyle(color: p.ctaText)),
                                       style: ElevatedButton.styleFrom(
-                                        backgroundColor:
-                                            OnboardingTokens.ctaBackground,
+                                        backgroundColor: p.ctaBackground,
                                         padding: const EdgeInsets.symmetric(
                                             horizontal: 14, vertical: 6),
                                       ),
@@ -537,14 +543,13 @@ class StepReviewView extends StatelessWidget {
                                       key: const Key(
                                           'onboarding_check_status_button'),
                                       onPressed: onReconcile,
-                                      icon: const Icon(Icons.sync,
-                                          size: 16, color: Colors.white),
-                                      label: const Text('Kiểm tra trạng thái',
+                                      icon: Icon(Icons.sync,
+                                          size: 16, color: p.ctaText),
+                                      label: Text('Kiểm tra trạng thái',
                                           style:
-                                              TextStyle(color: Colors.white)),
+                                              TextStyle(color: p.ctaText)),
                                       style: ElevatedButton.styleFrom(
-                                        backgroundColor:
-                                            OnboardingTokens.ctaBackground,
+                                        backgroundColor: p.ctaBackground,
                                         padding: const EdgeInsets.symmetric(
                                             horizontal: 14, vertical: 6),
                                       ),
@@ -558,14 +563,13 @@ class StepReviewView extends StatelessWidget {
                                       key: const Key(
                                           'onboarding_reload_profile_button'),
                                       onPressed: onReload,
-                                      icon: const Icon(Icons.refresh,
-                                          size: 16, color: Colors.white),
-                                      label: const Text('Tải lại hồ sơ',
+                                      icon: Icon(Icons.refresh,
+                                          size: 16, color: p.ctaText),
+                                      label: Text('Tải lại hồ sơ',
                                           style:
-                                              TextStyle(color: Colors.white)),
+                                              TextStyle(color: p.ctaText)),
                                       style: ElevatedButton.styleFrom(
-                                        backgroundColor:
-                                            OnboardingTokens.ctaBackground,
+                                        backgroundColor: p.ctaBackground,
                                         padding: const EdgeInsets.symmetric(
                                             horizontal: 14, vertical: 6),
                                       ),
@@ -579,14 +583,13 @@ class StepReviewView extends StatelessWidget {
                                       key: const Key(
                                           'onboarding_logout_button'),
                                       onPressed: onLogout,
-                                      icon: const Icon(Icons.logout,
-                                          size: 16, color: Colors.white),
-                                      label: const Text('Đăng xuất',
+                                      icon: Icon(Icons.logout,
+                                          size: 16, color: p.ctaText),
+                                      label: Text('Đăng xuất',
                                           style:
-                                              TextStyle(color: Colors.white)),
+                                              TextStyle(color: p.ctaText)),
                                       style: ElevatedButton.styleFrom(
-                                        backgroundColor:
-                                            OnboardingTokens.ctaBackground,
+                                        backgroundColor: p.ctaBackground,
                                         padding: const EdgeInsets.symmetric(
                                             horizontal: 14, vertical: 6),
                                       ),
@@ -614,14 +617,13 @@ class StepReviewView extends StatelessWidget {
                           height: OnboardingTokens.ctaHeight,
                           alignment: Alignment.center,
                           decoration: BoxDecoration(
-                            color: OnboardingTokens.ctaDisabledBg
-                                .withOpacity(0.6),
+                            color: p.ctaDisabledBg.withOpacity(0.6),
                             borderRadius: BorderRadius.circular(
                                 OnboardingTokens.radiusButton),
                             border: Border.all(
-                                color: OnboardingTokens.ctaDisabledBorder),
+                                color: p.ctaDisabledBorder),
                           ),
-                          child: const Row(
+                          child: Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
                               SizedBox(
@@ -630,14 +632,14 @@ class StepReviewView extends StatelessWidget {
                                 child: CircularProgressIndicator(
                                   strokeWidth: 2,
                                   valueColor: AlwaysStoppedAnimation<Color>(
-                                      OnboardingTokens.textPrimary),
+                                      p.textPrimary),
                                 ),
                               ),
-                              SizedBox(width: 10),
+                              const SizedBox(width: 10),
                               Text(
                                 'Đang lưu...',
                                 style: TextStyle(
-                                  color: OnboardingTokens.textPrimary,
+                                  color: p.textPrimary,
                                   fontSize: 15,
                                   fontWeight: FontWeight.w600,
                                 ),
@@ -668,13 +670,14 @@ class _ReviewCardContainer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final p = OnboardingTokens.of(context);
     return Container(
       width: double.infinity,
       clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
-        color: OnboardingTokens.surface,
+        color: p.surface,
         borderRadius: BorderRadius.circular(OnboardingTokens.radiusCard),
-        border: Border.all(color: OnboardingTokens.borderDefault),
+        border: Border.all(color: p.borderDefault),
       ),
       child: child,
     );
@@ -694,6 +697,7 @@ class _EditButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final p = OnboardingTokens.of(context);
     return Material(
       color: Colors.transparent,
       child: InkWell(
@@ -705,11 +709,11 @@ class _EditButton extends StatelessWidget {
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
             decoration: BoxDecoration(
-              color: const Color(0xFF212328),
+              color: p.isDark ? const Color(0xFF212328) : p.surfaceSelected,
               borderRadius: BorderRadius.circular(OnboardingTokens.radiusTag),
-              border: Border.all(color: OnboardingTokens.borderDefault),
+              border: Border.all(color: p.borderDefault),
             ),
-            child: const Row(
+            child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
@@ -717,14 +721,14 @@ class _EditButton extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 11,
                     fontWeight: FontWeight.w500,
-                    color: OnboardingTokens.textPrimary,
+                    color: p.textPrimary,
                   ),
                 ),
-                SizedBox(width: 4),
+                const SizedBox(width: 4),
                 Icon(
                   Icons.edit_outlined,
                   size: 12,
-                  color: OnboardingTokens.textSecondary,
+                  color: p.textSecondary,
                 ),
               ],
             ),
@@ -746,22 +750,23 @@ class _DataRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final p = OnboardingTokens.of(context);
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         Text(
           label,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 13,
-            color: OnboardingTokens.textSecondary,
+            color: p.textSecondary,
           ),
         ),
         Text(
           value,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 14,
             fontWeight: FontWeight.w600,
-            color: OnboardingTokens.textPrimary,
+            color: p.textPrimary,
           ),
         ),
       ],

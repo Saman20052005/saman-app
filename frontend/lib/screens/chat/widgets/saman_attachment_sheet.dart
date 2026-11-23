@@ -20,27 +20,32 @@ class SamanAttachmentResult {
 class SamanAttachmentSheet extends StatefulWidget {
   final ValueChanged<ImageSource>? onSelectSource;
   final ValueChanged<SamanAttachmentResult>? onSelect;
+  final VoidCallback? onAttachLatestWorkout;
   final String initialMode;
 
   const SamanAttachmentSheet({
     super.key,
     this.onSelectSource,
     this.onSelect,
-    this.initialMode = 'standard',
+    this.onAttachLatestWorkout,
+    this.initialMode = 'advanced',
   });
 
   static Future<SamanAttachmentResult?> show(
     BuildContext context, {
-    String initialMode = 'standard',
+    String initialMode = 'advanced',
+    VoidCallback? onAttachLatestWorkout,
   }) {
+    final t = SamanChatTokens.of(context);
     return showModalBottomSheet<SamanAttachmentResult>(
       context: context,
-      backgroundColor: SamanChatTokens.canvas,
+      backgroundColor: t.canvas,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(16.0)),
       ),
       builder: (context) => SamanAttachmentSheet(
         initialMode: initialMode,
+        onAttachLatestWorkout: onAttachLatestWorkout,
         onSelect: (result) => Navigator.pop(context, result),
       ),
     );
@@ -70,7 +75,10 @@ class _SamanAttachmentSheetState extends State<SamanAttachmentSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final t = SamanChatTokens.of(context);
     final isAdvanced = _selectedMode == 'advanced';
+    final advancedColor =
+        t.isDark ? const Color(0xFFFF8A3D) : const Color(0xFFEA580C);
 
     return SafeArea(
       child: Padding(
@@ -85,21 +93,21 @@ class _SamanAttachmentSheetState extends State<SamanAttachmentSheet> {
                 width: 36,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: SamanChatTokens.borderSubtle,
+                  color: t.borderSubtle,
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
             ),
             const SizedBox(height: 16.0),
 
-            const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 4.0),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 4.0),
               child: Text(
                 'Add attachment',
                 style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
-                  color: SamanChatTokens.textWhite,
+                  color: t.textWhite,
                 ),
               ),
             ),
@@ -110,9 +118,9 @@ class _SamanAttachmentSheetState extends State<SamanAttachmentSheet> {
               width: double.infinity,
               padding: const EdgeInsets.all(4),
               decoration: BoxDecoration(
-                color: SamanChatTokens.surface,
+                color: t.surface,
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: SamanChatTokens.borderSubtle),
+                border: Border.all(color: t.borderSubtle),
               ),
               child: Row(
                 children: [
@@ -122,10 +130,10 @@ class _SamanAttachmentSheetState extends State<SamanAttachmentSheet> {
                       child: Container(
                         padding: const EdgeInsets.symmetric(vertical: 8),
                         decoration: BoxDecoration(
-                          color: !isAdvanced ? SamanChatTokens.canvas : Colors.transparent,
+                          color: !isAdvanced ? t.canvas : Colors.transparent,
                           borderRadius: BorderRadius.circular(8),
                           border: !isAdvanced
-                              ? Border.all(color: SamanChatTokens.greenAccent.withOpacity(0.5))
+                              ? Border.all(color: t.greenAccent.withOpacity(0.5))
                               : null,
                         ),
                         alignment: Alignment.center,
@@ -134,7 +142,7 @@ class _SamanAttachmentSheetState extends State<SamanAttachmentSheet> {
                           style: TextStyle(
                             fontSize: 12,
                             fontWeight: !isAdvanced ? FontWeight.w600 : FontWeight.w500,
-                            color: !isAdvanced ? SamanChatTokens.textWhite : SamanChatTokens.textSecondary,
+                            color: !isAdvanced ? t.textWhite : t.textSecondary,
                           ),
                         ),
                       ),
@@ -147,10 +155,10 @@ class _SamanAttachmentSheetState extends State<SamanAttachmentSheet> {
                       child: Container(
                         padding: const EdgeInsets.symmetric(vertical: 8),
                         decoration: BoxDecoration(
-                          color: isAdvanced ? SamanChatTokens.canvas : Colors.transparent,
+                          color: isAdvanced ? t.canvas : Colors.transparent,
                           borderRadius: BorderRadius.circular(8),
                           border: isAdvanced
-                              ? Border.all(color: const Color(0xFFFF8A3D).withOpacity(0.6))
+                              ? Border.all(color: advancedColor.withOpacity(0.6))
                               : null,
                         ),
                         alignment: Alignment.center,
@@ -162,27 +170,27 @@ class _SamanAttachmentSheetState extends State<SamanAttachmentSheet> {
                               mainAxisSize: MainAxisSize.min,
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
-                                const Text(
+                                Text(
                                   '✨ AI nâng cao',
                                   style: TextStyle(
                                     fontSize: 12,
                                     fontWeight: FontWeight.w600,
-                                    color: Color(0xFFFF8A3D),
+                                    color: advancedColor,
                                   ),
                                 ),
                                 const SizedBox(width: 4),
                                 Container(
                                   padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
                                   decoration: BoxDecoration(
-                                    color: const Color(0x33FF8A3D),
+                                    color: advancedColor.withOpacity(0.20),
                                     borderRadius: BorderRadius.circular(4),
                                   ),
-                                  child: const Text(
+                                  child: Text(
                                     'Thử nghiệm',
                                     style: TextStyle(
                                       fontSize: 9,
                                       fontWeight: FontWeight.w500,
-                                      color: Color(0xFFFF8A3D),
+                                      color: advancedColor,
                                     ),
                                   ),
                                 ),
@@ -203,9 +211,9 @@ class _SamanAttachmentSheetState extends State<SamanAttachmentSheet> {
                 isAdvanced
                     ? 'Hỗ trợ món ăn phức hợp & món Việt Nam (Gemini)'
                     : 'Phù hợp đĩa đơn lẻ (Food-101 + Dữ liệu tham chiếu)',
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 11,
-                  color: SamanChatTokens.textMuted,
+                  color: t.textMuted,
                 ),
               ),
             ),
@@ -216,7 +224,7 @@ class _SamanAttachmentSheetState extends State<SamanAttachmentSheet> {
               icon: Icons.photo_camera_rounded,
               title: 'Take food photo',
               subtitle: 'Estimate calories & macros from camera',
-              iconColor: SamanChatTokens.greenAccent,
+              iconColor: t.greenAccent,
               onTap: () => _handleSelect(ImageSource.camera),
             ),
 
@@ -227,9 +235,25 @@ class _SamanAttachmentSheetState extends State<SamanAttachmentSheet> {
               icon: Icons.image_rounded,
               title: 'Upload image',
               subtitle: 'Choose photo from your device library',
-              iconColor: SamanChatTokens.textSecondary,
+              iconColor: t.textSecondary,
               onTap: () => _handleSelect(ImageSource.gallery),
             ),
+
+            if (widget.onAttachLatestWorkout != null) ...[
+              const SizedBox(height: 6.0),
+              _AttachmentOptionRow(
+                icon: Icons.fitness_center_outlined,
+                title: 'Đính kèm buổi tập gần nhất',
+                subtitle: 'Gửi ngữ cảnh buổi tập vào hội thoại',
+                iconColor: t.greenAccent,
+                onTap: () {
+                  if (Navigator.canPop(context)) {
+                    Navigator.pop(context);
+                  }
+                  widget.onAttachLatestWorkout!();
+                },
+              ),
+            ],
           ],
         ),
       ),
@@ -254,12 +278,13 @@ class _AttachmentOptionRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = SamanChatTokens.of(context);
     return Container(
       decoration: BoxDecoration(
-        color: SamanChatTokens.surface,
+        color: t.surface,
         borderRadius: BorderRadius.circular(12.0),
         border: Border.all(
-          color: SamanChatTokens.borderSubtle,
+          color: t.borderSubtle,
           width: 1.0,
         ),
       ),
@@ -274,7 +299,7 @@ class _AttachmentOptionRow extends StatelessWidget {
                 width: 36,
                 height: 36,
                 decoration: BoxDecoration(
-                  color: SamanChatTokens.canvas,
+                  color: t.canvas,
                   borderRadius: BorderRadius.circular(8.0),
                 ),
                 alignment: Alignment.center,
@@ -292,27 +317,27 @@ class _AttachmentOptionRow extends StatelessWidget {
                   children: [
                     Text(
                       title,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w600,
-                        color: SamanChatTokens.textWhite,
+                        color: t.textWhite,
                       ),
                     ),
                     const SizedBox(height: 2.0),
                     Text(
                       subtitle,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 11,
-                        color: SamanChatTokens.textMuted,
+                        color: t.textMuted,
                       ),
                     ),
                   ],
                 ),
               ),
-              const Icon(
+              Icon(
                 Icons.chevron_right_rounded,
                 size: 18,
-                color: SamanChatTokens.textMuted,
+                color: t.textMuted,
               ),
             ],
           ),

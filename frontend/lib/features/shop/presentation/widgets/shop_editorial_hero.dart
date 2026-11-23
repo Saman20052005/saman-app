@@ -22,13 +22,14 @@ class ShopEditorialHero extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = ShopTheme.of(context);
     return Container(
       constraints: const BoxConstraints(minHeight: 185),
       decoration: BoxDecoration(
-        color: ShopTheme.surfaceCard,
+        color: t.surfaceCard,
         borderRadius: BorderRadius.circular(ShopTheme.radiusXl),
         border: Border.all(
-          color: ShopTheme.borderSubtle,
+          color: t.borderSubtle,
           width: 1,
         ),
       ),
@@ -51,15 +52,15 @@ class ShopEditorialHero extends StatelessWidget {
                       children: [
                         Text(
                           ShopTranslations.of(context, 'hero_title'),
-                          style: ShopTheme.heroTitle,
-                          maxLines: 2,
+                          style: t.heroTitle,
+                          maxLines: 3,
                           overflow: TextOverflow.ellipsis,
                         ),
                         const SizedBox(height: 6),
                         Text(
                           ShopTranslations.of(context, 'hero_subtitle'),
-                          style: ShopTheme.heroSubtitle,
-                          maxLines: 2,
+                          style: t.heroSubtitle,
+                          maxLines: 3,
                           overflow: TextOverflow.ellipsis,
                         ),
                       ],
@@ -76,15 +77,15 @@ class ShopEditorialHero extends StatelessWidget {
                           Flexible(
                             child: Text(
                               ShopTranslations.of(context, 'hero_explore'),
-                              style: ShopTheme.heroAction,
+                              style: t.heroAction,
                               overflow: TextOverflow.ellipsis,
                             ),
                           ),
                           const SizedBox(width: 4),
-                          const Icon(
+                          Icon(
                             Icons.arrow_forward_rounded,
                             size: 13,
-                            color: ShopTheme.textPrimary,
+                            color: t.textPrimary,
                           ),
                         ],
                       ),
@@ -105,12 +106,12 @@ class ShopEditorialHero extends StatelessWidget {
                   _heroAsset,
                   fit: BoxFit.cover,
                   errorBuilder: (_, __, ___) => Container(
-                    color: ShopTheme.surfaceElevated,
+                    color: t.surfaceElevated,
                     alignment: Alignment.center,
-                    child: const Icon(
+                    child: Icon(
                       Icons.fitness_center_rounded,
                       size: 28,
-                      color: ShopTheme.textMuted,
+                      color: t.textMuted,
                     ),
                   ),
                 ),
@@ -122,8 +123,8 @@ class ShopEditorialHero extends StatelessWidget {
                         begin: Alignment.centerLeft,
                         end: Alignment.centerRight,
                         colors: [
-                          ShopTheme.surfaceCard,
-                          ShopTheme.surfaceCard.withOpacity(0.5),
+                          t.surfaceCard,
+                          t.surfaceCard.withOpacity(0.5),
                           Colors.transparent,
                         ],
                         stops: const [0.0, 0.25, 1.0],

@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import '../../../config/app_translations.dart';
 import '../../../controllers/chat_controller.dart';
 import '../tokens/saman_chat_tokens.dart';
 
@@ -28,6 +29,7 @@ class SamanChatComposer extends StatefulWidget {
   final VoidCallback? onVoiceTap;
   final VoidCallback? onAttachFoodPhoto;
   final VoidCallback? onOpenAnalytics;
+  final VoidCallback? onAttachLatestWorkout;
   final AIMode activeMode;
   final ValueChanged<AIMode>? onModeSelected;
   final String? hintText;
@@ -44,6 +46,7 @@ class SamanChatComposer extends StatefulWidget {
     this.onVoiceTap,
     this.onAttachFoodPhoto,
     this.onOpenAnalytics,
+    this.onAttachLatestWorkout,
     this.activeMode = AIMode.core3,
     this.onModeSelected,
   });
@@ -101,9 +104,14 @@ class _SamanChatComposerState extends State<SamanChatComposer> with WidgetsBindi
   @override
   void didChangeMetrics() {
     super.didChangeMetrics();
-    if (_isToolsMenuOpen || _isModeMenuOpen) {
-      _closeAllPopovers();
+    if (!mounted || _activeOverlay == null) {
+      return;
     }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        _activeOverlay?.markNeedsBuild();
+      }
+    });
   }
 
   @override
@@ -147,15 +155,27 @@ class _SamanChatComposerState extends State<SamanChatComposer> with WidgetsBindi
 
   void _openToolsMenu() {
     _closeAllPopovers();
-    final renderBox = _toolsKey.currentContext?.findRenderObject() as RenderBox?;
-    final offset = renderBox?.localToGlobal(Offset.zero) ?? Offset.zero;
-    final screenHeight = MediaQuery.sizeOf(context).height;
-    final keyboardHeight = MediaQuery.viewInsetsOf(context).bottom;
-    final spaceBelow = screenHeight - keyboardHeight - (offset.dy + (renderBox?.size.height ?? 36.0));
-    final opensUpward = spaceBelow < 180.0 || keyboardHeight > 0;
+    FocusManager.instance.primaryFocus?.unfocus();
 
     _activeOverlay = OverlayEntry(
-      builder: (context) {
+      builder: (overlayContext) {
+        final renderBox = _toolsKey.currentContext?.findRenderObject() as RenderBox?;
+        final offset = (renderBox != null && renderBox.attached)
+            ? renderBox.localToGlobal(Offset.zero)
+            : Offset.zero;
+        final targetHeight = (renderBox != null && renderBox.attached)
+            ? renderBox.size.height
+            : 36.0;
+        final mediaQuery = MediaQuery.of(overlayContext);
+        final screenHeight = mediaQuery.size.height;
+        final topSafe = mediaQuery.padding.top + 8.0;
+        final bottomSafe = mediaQuery.padding.bottom + mediaQuery.viewInsets.bottom + 8.0;
+        final spaceAbove = offset.dy - topSafe;
+        final spaceBelow = screenHeight - (offset.dy + targetHeight) - bottomSafe;
+        final effectiveOpensUpward = spaceAbove >= 180.0 || spaceAbove >= spaceBelow;
+
+        final t = SamanChatTokens.of(overlayContext);
+
         return Stack(
           children: [
             // Barrier
@@ -170,9 +190,9 @@ class _SamanChatComposerState extends State<SamanChatComposer> with WidgetsBindi
               child: CompositedTransformFollower(
                 link: _toolsLayerLink,
                 showWhenUnlinked: false,
-                targetAnchor: opensUpward ? Alignment.topLeft : Alignment.bottomLeft,
-                followerAnchor: opensUpward ? Alignment.bottomLeft : Alignment.topLeft,
-                offset: Offset(0, opensUpward ? -8.0 : 8.0),
+                targetAnchor: effectiveOpensUpward ? Alignment.topLeft : Alignment.bottomLeft,
+                followerAnchor: effectiveOpensUpward ? Alignment.bottomLeft : Alignment.topLeft,
+                offset: Offset(0, effectiveOpensUpward ? -8.0 : 8.0),
                 child: FocusScope(
                   autofocus: true,
                   onKeyEvent: (node, event) {
@@ -186,21 +206,23 @@ class _SamanChatComposerState extends State<SamanChatComposer> with WidgetsBindi
                   child: Material(
                     color: Colors.transparent,
                     child: _AnimatedPopoverCard(
-                      opensUpward: opensUpward,
+                      opensUpward: effectiveOpensUpward,
                       child: Container(
                         width: 250.0,
                       decoration: BoxDecoration(
-                        color: SamanChatTokens.surfaceElevated,
+                        color: t.isDark ? t.surfaceElevated : t.surface,
                         borderRadius: BorderRadius.circular(14.0),
                         border: Border.all(
-                          color: SamanChatTokens.borderSubtle,
+                          color: t.borderSubtle,
                           width: 1.0,
                         ),
-                        boxShadow: const [
+                        boxShadow: [
                           BoxShadow(
-                            color: Color(0x66000000),
+                            color: t.isDark
+                                ? const Color(0x66000000)
+                                : const Color(0x1A0F172A),
                             blurRadius: 16.0,
-                            offset: Offset(0, 6),
+                            offset: const Offset(0, 6),
                           ),
                         ],
                       ),
@@ -210,6 +232,7 @@ class _SamanChatComposerState extends State<SamanChatComposer> with WidgetsBindi
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             _buildPopoverItem(
+                              palette: t,
                               icon: Icons.add_a_photo_outlined,
                               title: 'Phân tích ảnh món ăn',
                               subtitle: 'Standard & Advanced AI',
@@ -222,18 +245,46 @@ class _SamanChatComposerState extends State<SamanChatComposer> with WidgetsBindi
                                 }
                               },
                             ),
-                            const Divider(
+                            Divider(
                               height: 1.0,
                               thickness: 1.0,
-                              color: SamanChatTokens.borderSubtle,
+                              color: t.borderSubtle,
                             ),
                             _buildPopoverItem(
+                              palette: t,
                               icon: Icons.insights_outlined,
                               title: 'Phân tích lịch sử',
                               subtitle: '7, 14, 30 ngày',
                               onTap: () {
                                 _closeAllPopovers();
                                 widget.onOpenAnalytics?.call();
+                              },
+                            ),
+                            Divider(
+                              height: 1.0,
+                              thickness: 1.0,
+                              color: t.borderSubtle,
+                            ),
+                            _buildPopoverItem(
+                              palette: t,
+                              icon: Icons.fitness_center_outlined,
+                              title: 'Đính kèm buổi tập gần nhất',
+                              subtitle: 'Gửi ngữ cảnh buổi tập vào hội thoại',
+                              onTap: () {
+                                _closeAllPopovers();
+                                if (widget.onAttachLatestWorkout != null) {
+                                  widget.onAttachLatestWorkout!();
+                                } else {
+                                  const prompt =
+                                      'Hãy phân tích buổi tập gần nhất của tôi và gợi ý cách phục hồi / điều chỉnh tiếp theo.';
+                                  widget.controller.value = const TextEditingValue(
+                                    text: prompt,
+                                    selection: TextSelection.collapsed(
+                                      offset: prompt.length,
+                                    ),
+                                  );
+                                  _effectiveFocusNode.requestFocus();
+                                }
                               },
                             ),
                           ],
@@ -264,56 +315,28 @@ class _SamanChatComposerState extends State<SamanChatComposer> with WidgetsBindi
 
   void _openModeMenu() {
     _closeAllPopovers();
+    FocusManager.instance.primaryFocus?.unfocus();
     final renderBox = _modeKey.currentContext?.findRenderObject() as RenderBox?;
     final offset = renderBox?.localToGlobal(Offset.zero) ?? Offset.zero;
-    final screenHeight = MediaQuery.sizeOf(context).height;
-    final keyboardHeight = MediaQuery.viewInsetsOf(context).bottom;
-    final spaceBelow = screenHeight - keyboardHeight - (offset.dy + (renderBox?.size.height ?? 36.0));
-    final opensUpward = spaceBelow < 220.0 || keyboardHeight > 0;
+    final targetSize = renderBox?.size ?? const Size(72.0, 36.0);
+    final mediaQuery = MediaQuery.of(context);
+    final screenHeight = mediaQuery.size.height;
+    final topSafe = mediaQuery.padding.top + 8.0;
+    final bottomSafe = mediaQuery.padding.bottom + mediaQuery.viewInsets.bottom + 8.0;
+    final spaceAbove = offset.dy - topSafe;
+    final spaceBelow = screenHeight - (offset.dy + targetSize.height) - bottomSafe;
+    final opensUpward = spaceAbove >= 220.0 || spaceAbove >= spaceBelow;
 
     _activeOverlay = OverlayEntry(
-      builder: (context) {
+      builder: (overlayContext) {
         return _ModeMenuOverlay(
+          targetKey: _modeKey,
           targetOffset: offset,
-          targetSize: renderBox?.size ?? const Size(72.0, 36.0),
+          targetSize: targetSize,
           opensUpward: opensUpward,
           onClose: _closeAllPopovers,
-          onSelectMedium: () {
-            _closeAllPopovers();
-            _effectiveFocusNode.requestFocus();
-          },
-          onSwift3Tapped: () {
-            _closeAllPopovers();
-            ScaffoldMessenger.of(context).hideCurrentSnackBar();
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Chế độ Swift 3 đang được hiệu chuẩn, vui lòng trải nghiệm Core 3.'),
-                duration: Duration(seconds: 2),
-                behavior: SnackBarBehavior.floating,
-              ),
-            );
-          },
-          onPro3Tapped: () {
-            _closeAllPopovers();
-            ScaffoldMessenger.of(context).hideCurrentSnackBar();
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Chế độ Pro 3 sẽ ra mắt trong bản cập nhật tới.'),
-                duration: Duration(seconds: 2),
-                behavior: SnackBarBehavior.floating,
-              ),
-            );
-          },
-          onLockedThinkingLevelTapped: (level) {
-            ScaffoldMessenger.of(context).hideCurrentSnackBar();
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Mức suy luận này chưa được mở'),
-                duration: Duration(seconds: 2),
-                behavior: SnackBarBehavior.floating,
-              ),
-            );
-          },
+          activeMode: widget.activeMode,
+          onModeSelected: widget.onModeSelected,
           onRequestFocusComposer: () {
             _effectiveFocusNode.requestFocus();
           },
@@ -326,6 +349,7 @@ class _SamanChatComposerState extends State<SamanChatComposer> with WidgetsBindi
   }
 
 Widget _buildPopoverItem({
+    required SamanChatPalette palette,
     required IconData icon,
     required String title,
     required String subtitle,
@@ -336,14 +360,14 @@ Widget _buildPopoverItem({
       label: '$title: $subtitle',
       child: InkWell(
         onTap: onTap,
-        hoverColor: SamanChatTokens.actionRowHoverBg,
-        focusColor: SamanChatTokens.actionRowFocusBg,
-        highlightColor: SamanChatTokens.actionRowPressedBg,
+        hoverColor: palette.actionRowHoverBg,
+        focusColor: palette.actionRowFocusBg,
+        highlightColor: palette.actionRowPressedBg,
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 14.0, vertical: 11.0),
           child: Row(
             children: [
-              Icon(icon, size: 20.0, color: SamanChatTokens.textWhite),
+              Icon(icon, size: 20.0, color: palette.textWhite),
               const SizedBox(width: 12.0),
               Expanded(
                 child: Column(
@@ -352,18 +376,18 @@ Widget _buildPopoverItem({
                   children: [
                     Text(
                       title,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 13.5,
                         fontWeight: FontWeight.w600,
-                        color: SamanChatTokens.textWhite,
+                        color: palette.textWhite,
                       ),
                     ),
                     const SizedBox(height: 2.0),
                     Text(
                       subtitle,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 11.5,
-                        color: SamanChatTokens.textMuted,
+                        color: palette.textMuted,
                       ),
                     ),
                   ],
@@ -377,6 +401,7 @@ Widget _buildPopoverItem({
   }
 
   Widget _buildToolsButton({required bool disableAnimations}) {
+    final t = SamanChatTokens.of(context);
     return CompositedTransformTarget(
       link: _toolsLayerLink,
       child: Semantics(
@@ -393,16 +418,18 @@ Widget _buildPopoverItem({
                 child: InkWell(
                   key: _toolsKey,
                   borderRadius: BorderRadius.circular(18.0),
-                  hoverColor: SamanChatTokens.actionRowHoverBg,
-                  focusColor: SamanChatTokens.actionRowFocusBg,
-                  highlightColor: SamanChatTokens.actionRowPressedBg,
+                  hoverColor: t.actionRowHoverBg,
+                  focusColor: t.actionRowFocusBg,
+                  highlightColor: t.actionRowPressedBg,
                   onTap: _toggleToolsMenu,
                   child: AnimatedContainer(
                     duration: disableAnimations ? Duration.zero : const Duration(milliseconds: 140),
                     width: 36.0,
                     height: 36.0,
                     decoration: BoxDecoration(
-                      color: _isToolsMenuOpen ? SamanChatTokens.surface : SamanChatTokens.iconContainerBg,
+                      color: _isToolsMenuOpen
+                          ? (t.isDark ? t.surface : t.borderSubtle)
+                          : t.iconContainerBg,
                       shape: BoxShape.circle,
                     ),
                     alignment: Alignment.center,
@@ -415,7 +442,7 @@ Widget _buildPopoverItem({
                       child: Icon(
                         _isToolsMenuOpen ? Icons.close_rounded : Icons.add_rounded,
                         key: ValueKey(_isToolsMenuOpen ? 'tools_close_icon' : 'tools_add_icon'),
-                        color: _isToolsMenuOpen ? SamanChatTokens.textWhite : SamanChatTokens.textSecondary,
+                        color: _isToolsMenuOpen ? t.textWhite : t.textSecondary,
                         size: 20.0,
                       ),
                     ),
@@ -429,38 +456,59 @@ Widget _buildPopoverItem({
     );
   }
 
+  String _modeTitle(BuildContext context, AIMode mode) {
+    return switch (mode) {
+      AIMode.swift3 => context.tr('model_swift_3_title'),
+      AIMode.core3 => context.tr('model_core_3_title'),
+      AIMode.pro3 => context.tr('model_pro_3_title'),
+    };
+  }
+
   Widget _buildModeButton({required bool disableAnimations}) {
+    final t = SamanChatTokens.of(context);
     return CompositedTransformTarget(
       link: _modeLayerLink,
       child: Semantics(
         button: true,
-        label: 'Chế độ AI: Core 3. ',
+        label: 'AI: ${_modeTitle(context, widget.activeMode)}. ',
         child: Material(
           color: Colors.transparent,
           child: InkWell(
             key: _modeKey,
+            canRequestFocus: false,
             borderRadius: BorderRadius.circular(16.0),
-            hoverColor: SamanChatTokens.actionRowHoverBg,
-            focusColor: SamanChatTokens.actionRowFocusBg,
-            highlightColor: SamanChatTokens.actionRowPressedBg,
+            hoverColor: t.actionRowHoverBg,
+            focusColor: t.actionRowFocusBg,
+            highlightColor: t.actionRowPressedBg,
             onTap: _toggleModeMenu,
             child: Container(
               height: 48.0,
               padding: const EdgeInsets.symmetric(horizontal: 10.0),
               decoration: BoxDecoration(
-                color: _isModeMenuOpen ? const Color(0x1FFFFFFF) : Colors.transparent,
+                color: _isModeMenuOpen
+                    ? (t.isDark ? const Color(0x1FFFFFFF) : t.surfaceElevated)
+                    : Colors.transparent,
                 borderRadius: BorderRadius.circular(16.0),
               ),
               alignment: Alignment.center,
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
+                  Container(
+                    width: 6.0,
+                    height: 6.0,
+                    margin: const EdgeInsets.only(right: 6.0),
+                    decoration: BoxDecoration(
+                      color: t.greenAccent,
+                      shape: BoxShape.circle,
+                    ),
+                  ),
                   Text(
-                    'Core 3',
+                    _modeTitle(context, widget.activeMode),
                     style: TextStyle(
                       fontSize: 13.0,
                       fontWeight: FontWeight.w600,
-                      color: _isModeMenuOpen ? SamanChatTokens.textWhite : SamanChatTokens.textSecondary,
+                      color: _isModeMenuOpen ? t.textWhite : t.textSecondary,
                     ),
                   ),
                   const SizedBox(width: 2.0),
@@ -474,7 +522,7 @@ Widget _buildPopoverItem({
                       _isModeMenuOpen ? Icons.keyboard_arrow_up_rounded : Icons.keyboard_arrow_down_rounded,
                       key: ValueKey(_isModeMenuOpen ? 'mode_chevron_up' : 'mode_chevron_down'),
                       size: 18.0,
-                      color: _isModeMenuOpen ? SamanChatTokens.textWhite : SamanChatTokens.textSecondary,
+                      color: _isModeMenuOpen ? t.textWhite : t.textSecondary,
                     ),
                   ),
                 ],
@@ -487,6 +535,7 @@ Widget _buildPopoverItem({
   }
 
   Widget _buildLoadingIndicator() {
+    final t = SamanChatTokens.of(context);
     return Semantics(
       label: widget.loadingHintText ?? 'Saman đang phản hồi',
       child: SizedBox(
@@ -497,20 +546,20 @@ Widget _buildPopoverItem({
             width: 34.0,
             height: 34.0,
             decoration: BoxDecoration(
-              color: SamanChatTokens.composerStopBg,
+              color: t.composerStopBg,
               shape: BoxShape.circle,
               border: Border.all(
-                color: SamanChatTokens.borderSubtle,
+                color: t.borderSubtle,
                 width: 1.0,
               ),
             ),
             alignment: Alignment.center,
-            child: const SizedBox(
+            child: SizedBox(
               width: 16.0,
               height: 16.0,
               child: CircularProgressIndicator(
                 strokeWidth: 2.0,
-                color: SamanChatTokens.textSecondary,
+                color: t.textSecondary,
               ),
             ),
           ),
@@ -523,6 +572,7 @@ Widget _buildPopoverItem({
     if (widget.isLoading) {
       return _buildLoadingIndicator();
     }
+    final t = SamanChatTokens.of(context);
     return Semantics(
       button: true,
       enabled: canSend,
@@ -535,9 +585,9 @@ Widget _buildPopoverItem({
             color: Colors.transparent,
             child: InkWell(
               borderRadius: BorderRadius.circular(18.0),
-              hoverColor: SamanChatTokens.actionRowHoverBg,
-              focusColor: SamanChatTokens.actionRowFocusBg,
-              highlightColor: SamanChatTokens.actionRowPressedBg,
+              hoverColor: t.actionRowHoverBg,
+              focusColor: t.actionRowFocusBg,
+              highlightColor: t.actionRowPressedBg,
               onTap: canSend ? widget.onSend : null,
               child: AnimatedContainer(
                 duration: disableAnimations ? Duration.zero : const Duration(milliseconds: 140),
@@ -545,13 +595,13 @@ Widget _buildPopoverItem({
                 height: 36.0,
                 decoration: BoxDecoration(
                   color: canSend
-                      ? SamanChatTokens.greenAccent
-                      : SamanChatTokens.composerSendDisabledBg,
+                      ? (t.isDark ? t.greenAccent : t.composerSendBg)
+                      : t.composerSendDisabledBg,
                   shape: BoxShape.circle,
                   boxShadow: canSend
                       ? [
                           BoxShadow(
-                            color: SamanChatTokens.greenAccent.withOpacity(0.35),
+                            color: t.greenAccent.withOpacity(t.isDark ? 0.35 : 0.25),
                             offset: const Offset(0, 2),
                             blurRadius: 6.0,
                           ),
@@ -562,8 +612,8 @@ Widget _buildPopoverItem({
                 child: Icon(
                   Icons.arrow_upward_rounded,
                   color: canSend
-                      ? Colors.white
-                      : SamanChatTokens.composerSendDisabledIcon,
+                      ? (t.isDark ? const Color(0xFF052E16) : t.composerSendIcon)
+                      : t.composerSendDisabledIcon,
                   size: 20.0,
                 ),
               ),
@@ -575,13 +625,14 @@ Widget _buildPopoverItem({
   }
 
   Widget _buildInputField({required bool isSingleLine, required bool canSend}) {
+    final t = SamanChatTokens.of(context);
     return TextField(
       key: _textFieldKey,
       focusNode: _effectiveFocusNode,
       controller: widget.controller,
       enabled: true,
-      style: SamanChatTokens.composerInput,
-      cursorColor: SamanChatTokens.textWhite,
+      style: t.composerInput,
+      cursorColor: t.textWhite,
       textCapitalization: TextCapitalization.sentences,
       keyboardType: TextInputType.multiline,
       textInputAction: TextInputAction.send,
@@ -592,8 +643,10 @@ Widget _buildPopoverItem({
         filled: true,
         fillColor: Colors.transparent,
         hoverColor: Colors.transparent,
-        hintText: widget.hintText ?? 'Hỏi Saman về dinh dưỡng, bài tập, phục hồi...',
-        hintStyle: SamanChatTokens.composerHint,
+        hintText: widget.hintText ?? 'Hỏi Saman...',
+        hintStyle: t.composerHint.copyWith(
+          color: t.isDark ? const Color(0xFF9CA3AF) : t.textMuted,
+        ),
         isDense: true,
         contentPadding: isSingleLine
             ? const EdgeInsets.symmetric(horizontal: 8.0, vertical: 10.0)
@@ -617,6 +670,7 @@ Widget _buildPopoverItem({
   Widget build(BuildContext context) {
     final canSend = !widget.isLoading && _hasText;
     final disableAnimations = MediaQuery.maybeOf(context)?.disableAnimations ?? false;
+    final t = SamanChatTokens.of(context);
 
     return Focus(
       onKeyEvent: (node, event) {
@@ -648,16 +702,18 @@ Widget _buildPopoverItem({
             ? const EdgeInsets.fromLTRB(14.0, 10.0, 12.0, 8.0)
             : const EdgeInsets.symmetric(horizontal: 6.0, vertical: 4.0),
         decoration: BoxDecoration(
-          color: SamanChatTokens.composerBg,
+          color: t.composerBg,
           borderRadius: BorderRadius.circular(_hasText ? 22.0 : 26.0),
           border: Border.all(
-            color: SamanChatTokens.composerBorder,
+            color: t.composerBorder,
             width: 1.0,
           ),
-          boxShadow: const [
+          boxShadow: [
             BoxShadow(
-              color: Color(0x33000000),
-              offset: Offset(0, 4),
+              color: t.isDark
+                  ? const Color(0x33000000)
+                  : const Color(0x140F172A),
+              offset: const Offset(0, 4),
               blurRadius: 16,
             ),
           ],
@@ -778,25 +834,23 @@ class _AnimatedPopoverCardState extends State<_AnimatedPopoverCard>
 }
 
 class _ModeMenuOverlay extends StatefulWidget {
+  final GlobalKey targetKey;
   final Offset targetOffset;
   final Size targetSize;
   final bool opensUpward;
   final VoidCallback onClose;
-  final VoidCallback onSelectMedium;
-  final VoidCallback onSwift3Tapped;
-  final VoidCallback onPro3Tapped;
-  final ValueChanged<String> onLockedThinkingLevelTapped;
+  final AIMode activeMode;
+  final ValueChanged<AIMode>? onModeSelected;
   final VoidCallback onRequestFocusComposer;
 
   const _ModeMenuOverlay({
+    required this.targetKey,
     required this.targetOffset,
     required this.targetSize,
     required this.opensUpward,
     required this.onClose,
-    required this.onSelectMedium,
-    required this.onSwift3Tapped,
-    required this.onPro3Tapped,
-    required this.onLockedThinkingLevelTapped,
+    required this.activeMode,
+    this.onModeSelected,
     required this.onRequestFocusComposer,
   });
 
@@ -811,19 +865,12 @@ class _ModeMenuOverlayState extends State<_ModeMenuOverlay> {
   Timer? _openDebounceTimer;
   Timer? _closeGraceTimer;
   late final FocusNode _triggerFocusNode;
-  late final FocusScopeNode _overlayFocusScopeNode;
   final GlobalKey _triggerKey = GlobalKey();
 
   @override
   void initState() {
     super.initState();
     _triggerFocusNode = FocusNode();
-    _overlayFocusScopeNode = FocusScopeNode();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) {
-        _triggerFocusNode.requestFocus();
-      }
-    });
   }
 
   @override
@@ -831,26 +878,53 @@ class _ModeMenuOverlayState extends State<_ModeMenuOverlay> {
     _openDebounceTimer?.cancel();
     _closeGraceTimer?.cancel();
     _triggerFocusNode.dispose();
-    _overlayFocusScopeNode.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    final screenSize = MediaQuery.sizeOf(context);
+    final mediaQuery = MediaQuery.of(context);
+    final screenSize = mediaQuery.size;
     final isDesktop = screenSize.width >= 600.0;
     const mainMenuWidth = 270.0;
     const submenuWidth = 240.0;
     const gap = 6.0;
 
-    final modeRight = widget.targetOffset.dx + widget.targetSize.width;
+    final targetBox = widget.targetKey.currentContext?.findRenderObject() as RenderBox?;
+    final targetOffset = (targetBox != null && targetBox.attached)
+        ? targetBox.localToGlobal(Offset.zero)
+        : widget.targetOffset;
+    final targetSize = (targetBox != null && targetBox.attached)
+        ? targetBox.size
+        : widget.targetSize;
+
+    final modeRight = targetOffset.dx + targetSize.width;
     double mainMenuLeft = modeRight - mainMenuWidth;
     mainMenuLeft = mainMenuLeft.clamp(12.0, screenSize.width - mainMenuWidth - 12.0);
     final mainMenuRight = mainMenuLeft + mainMenuWidth;
 
-    final opensUpward = widget.opensUpward;
-    final double? mainMenuTop = opensUpward ? null : widget.targetOffset.dy + widget.targetSize.height + 8.0;
-    final double? mainMenuBottom = opensUpward ? (screenSize.height - widget.targetOffset.dy + 8.0) : null;
+    final topSafe = mediaQuery.padding.top + 8.0;
+    final bottomSafe = mediaQuery.padding.bottom + mediaQuery.viewInsets.bottom + 8.0;
+
+    final spaceAbove = targetOffset.dy - topSafe;
+    final spaceBelow = screenSize.height - (targetOffset.dy + targetSize.height) - bottomSafe;
+    final effectiveOpensUpward = spaceAbove >= 220.0 || spaceAbove >= spaceBelow;
+
+    final double? mainMenuTop = effectiveOpensUpward
+        ? null
+        : (targetOffset.dy + targetSize.height + 8.0).clamp(
+            topSafe,
+            (screenSize.height - bottomSafe - 80.0).clamp(topSafe, screenSize.height),
+          );
+    final double? mainMenuBottom = effectiveOpensUpward
+        ? (screenSize.height - targetOffset.dy + 8.0).clamp(
+            bottomSafe,
+            (screenSize.height - topSafe - 80.0).clamp(bottomSafe, screenSize.height),
+          )
+        : null;
+    final double maxMenuHeight = effectiveOpensUpward
+        ? (screenSize.height - mainMenuBottom! - topSafe).clamp(120.0, screenSize.height * 0.65)
+        : (screenSize.height - mainMenuTop! - bottomSafe).clamp(120.0, screenSize.height * 0.65);
 
     final spaceToRight = screenSize.width - mainMenuRight;
     final openToRight = spaceToRight >= (submenuWidth + 12.0);
@@ -865,34 +939,17 @@ class _ModeMenuOverlayState extends State<_ModeMenuOverlay> {
       resolvedSubmenuTop = null;
     }
 
-    return FocusScope(
-      node: _overlayFocusScopeNode,
-      autofocus: true,
-      onKeyEvent: (node, event) {
-        if (event is KeyDownEvent && event.logicalKey == LogicalKeyboardKey.escape) {
-          if (_isThinkingSubmenuOpen) {
-            setState(() => _isThinkingSubmenuOpen = false);
-            _triggerFocusNode.requestFocus();
-            return KeyEventResult.handled;
-          }
-          widget.onClose();
-          widget.onRequestFocusComposer();
-          return KeyEventResult.handled;
+    return PopScope(
+      canPop: false,
+      onPopInvoked: (didPop) {
+        if (didPop) return;
+        if (_isThinkingSubmenuOpen) {
+          setState(() => _isThinkingSubmenuOpen = false);
+          return;
         }
-        return KeyEventResult.ignored;
+        widget.onClose();
       },
-      child: PopScope(
-        canPop: false,
-        onPopInvoked: (didPop) {
-          if (didPop) return;
-          if (_isThinkingSubmenuOpen) {
-            setState(() => _isThinkingSubmenuOpen = false);
-            return;
-          }
-          widget.onClose();
-          widget.onRequestFocusComposer();
-        },
-        child: Stack(
+      child: Stack(
           children: [
             // 1. Barrier
             Positioned.fill(
@@ -911,10 +968,15 @@ class _ModeMenuOverlayState extends State<_ModeMenuOverlay> {
               child: Material(
                 color: Colors.transparent,
                 child: _AnimatedPopoverCard(
-                  opensUpward: opensUpward,
-                  child: isDesktop
-                      ? _buildDesktopMainMenu()
-                      : (_isThinkingSubmenuOpen ? _buildMobileSubmenu() : _buildMobileMainMenu()),
+                  opensUpward: effectiveOpensUpward,
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(maxHeight: maxMenuHeight),
+                    child: SingleChildScrollView(
+                      child: isDesktop
+                          ? _buildDesktopMainMenu()
+                          : (_isThinkingSubmenuOpen ? _buildMobileSubmenu() : _buildMobileMainMenu()),
+                    ),
+                  ),
                 ),
               ),
             ),
@@ -950,25 +1012,25 @@ class _ModeMenuOverlayState extends State<_ModeMenuOverlay> {
               ),
           ],
         ),
-      ),
     );
   }
 
   Widget _buildDesktopMainMenu() {
+    final t = SamanChatTokens.of(context);
     return Container(
       width: 270.0,
       decoration: BoxDecoration(
-        color: SamanChatTokens.surfaceElevated,
+        color: t.isDark ? t.surfaceElevated : t.surface,
         borderRadius: BorderRadius.circular(14.0),
         border: Border.all(
-          color: SamanChatTokens.borderSubtle,
+          color: t.borderSubtle,
           width: 1.0,
         ),
-        boxShadow: const [
+        boxShadow: [
           BoxShadow(
-            color: Color(0x66000000),
+            color: t.isDark ? const Color(0x66000000) : const Color(0x1A0F172A),
             blurRadius: 16.0,
-            offset: Offset(0, 6),
+            offset: const Offset(0, 6),
           ),
         ],
       ),
@@ -977,36 +1039,8 @@ class _ModeMenuOverlayState extends State<_ModeMenuOverlay> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            _buildModeItem(
-              title: 'Core 3',
-              subtitle: 'Mặc định toàn diện',
-              isActive: true,
-              badgeText: 'Đang dùng',
-              icon: Icons.check_rounded,
-              iconColor: SamanChatTokens.greenAccent,
-              onTap: widget.onClose,
-            ),
-            const Divider(height: 1.0, thickness: 1.0, color: SamanChatTokens.borderSubtle),
-            _buildModeItem(
-              title: 'Swift 3',
-              subtitle: 'Phản hồi nhanh, câu hỏi ngắn',
-              isActive: false,
-              badgeText: 'Sắp ra mắt',
-              icon: Icons.lock_outline_rounded,
-              iconColor: SamanChatTokens.textMuted,
-              onTap: widget.onSwift3Tapped,
-            ),
-            const Divider(height: 1.0, thickness: 1.0, color: SamanChatTokens.borderSubtle),
-            _buildModeItem(
-              title: 'Pro 3',
-              subtitle: 'Suy luận chuyên sâu & kế hoạch dài hạn',
-              isActive: false,
-              badgeText: 'Sắp ra mắt',
-              icon: Icons.lock_outline_rounded,
-              iconColor: SamanChatTokens.textMuted,
-              onTap: widget.onPro3Tapped,
-            ),
-            const Divider(height: 1.0, thickness: 1.0, color: SamanChatTokens.borderSubtle),
+            _buildModeItems(minTouchTarget: false),
+            Divider(height: 1.0, thickness: 1.0, color: t.borderSubtle),
             _buildThinkingTriggerRow(isDesktop: true),
           ],
         ),
@@ -1015,20 +1049,21 @@ class _ModeMenuOverlayState extends State<_ModeMenuOverlay> {
   }
 
   Widget _buildMobileMainMenu() {
+    final t = SamanChatTokens.of(context);
     return Container(
       width: 270.0,
       decoration: BoxDecoration(
-        color: SamanChatTokens.surfaceElevated,
+        color: t.isDark ? t.surfaceElevated : t.surface,
         borderRadius: BorderRadius.circular(14.0),
         border: Border.all(
-          color: SamanChatTokens.borderSubtle,
+          color: t.borderSubtle,
           width: 1.0,
         ),
-        boxShadow: const [
+        boxShadow: [
           BoxShadow(
-            color: Color(0x66000000),
+            color: t.isDark ? const Color(0x66000000) : const Color(0x1A0F172A),
             blurRadius: 16.0,
-            offset: Offset(0, 6),
+            offset: const Offset(0, 6),
           ),
         ],
       ),
@@ -1037,39 +1072,8 @@ class _ModeMenuOverlayState extends State<_ModeMenuOverlay> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            _buildModeItem(
-              title: 'Core 3',
-              subtitle: 'Mặc định toàn diện',
-              isActive: true,
-              badgeText: 'Đang dùng',
-              icon: Icons.check_rounded,
-              iconColor: SamanChatTokens.greenAccent,
-              onTap: widget.onClose,
-              minTouchTarget: true,
-            ),
-            const Divider(height: 1.0, thickness: 1.0, color: SamanChatTokens.borderSubtle),
-            _buildModeItem(
-              title: 'Swift 3',
-              subtitle: 'Phản hồi nhanh, câu hỏi ngắn',
-              isActive: false,
-              badgeText: 'Sắp ra mắt',
-              icon: Icons.lock_outline_rounded,
-              iconColor: SamanChatTokens.textMuted,
-              onTap: widget.onSwift3Tapped,
-              minTouchTarget: true,
-            ),
-            const Divider(height: 1.0, thickness: 1.0, color: SamanChatTokens.borderSubtle),
-            _buildModeItem(
-              title: 'Pro 3',
-              subtitle: 'Suy luận chuyên sâu & kế hoạch dài hạn',
-              isActive: false,
-              badgeText: 'Sắp ra mắt',
-              icon: Icons.lock_outline_rounded,
-              iconColor: SamanChatTokens.textMuted,
-              onTap: widget.onPro3Tapped,
-              minTouchTarget: true,
-            ),
-            const Divider(height: 1.0, thickness: 1.0, color: SamanChatTokens.borderSubtle),
+            _buildModeItems(minTouchTarget: true),
+            Divider(height: 1.0, thickness: 1.0, color: t.borderSubtle),
             _buildThinkingTriggerRow(isDesktop: false),
           ],
         ),
@@ -1078,20 +1082,21 @@ class _ModeMenuOverlayState extends State<_ModeMenuOverlay> {
   }
 
   Widget _buildMobileSubmenu() {
+    final t = SamanChatTokens.of(context);
     return Container(
       width: 270.0,
       decoration: BoxDecoration(
-        color: SamanChatTokens.surfaceElevated,
+        color: t.isDark ? t.surfaceElevated : t.surface,
         borderRadius: BorderRadius.circular(14.0),
         border: Border.all(
-          color: SamanChatTokens.borderSubtle,
+          color: t.borderSubtle,
           width: 1.0,
         ),
-        boxShadow: const [
+        boxShadow: [
           BoxShadow(
-            color: Color(0x66000000),
+            color: t.isDark ? const Color(0x66000000) : const Color(0x1A0F172A),
             blurRadius: 16.0,
-            offset: Offset(0, 6),
+            offset: const Offset(0, 6),
           ),
         ],
       ),
@@ -1104,28 +1109,29 @@ class _ModeMenuOverlayState extends State<_ModeMenuOverlay> {
               button: true,
               label: 'Quay lại menu chế độ AI',
               child: InkWell(
+                canRequestFocus: false,
                 onTap: () {
                   setState(() => _isThinkingSubmenuOpen = false);
                 },
-                hoverColor: SamanChatTokens.actionRowHoverBg,
-                focusColor: SamanChatTokens.actionRowFocusBg,
+                hoverColor: t.actionRowHoverBg,
+                focusColor: t.actionRowFocusBg,
                 child: Container(
                   constraints: const BoxConstraints(minHeight: 48.0),
                   padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 12.0),
-                  child: const Row(
+                  child: Row(
                     children: [
                       Icon(
                         Icons.chevron_left_rounded,
                         size: 22.0,
-                        color: SamanChatTokens.textWhite,
+                        color: t.textWhite,
                       ),
-                      SizedBox(width: 8.0),
+                      const SizedBox(width: 8.0),
                       Text(
-                        'Mức độ suy luận',
+                        context.tr('thinking_level_title'),
                         style: TextStyle(
                           fontSize: 13.5,
                           fontWeight: FontWeight.w700,
-                          color: SamanChatTokens.textWhite,
+                          color: t.textWhite,
                         ),
                       ),
                     ],
@@ -1133,35 +1139,8 @@ class _ModeMenuOverlayState extends State<_ModeMenuOverlay> {
                 ),
               ),
             ),
-            const Divider(height: 1.0, thickness: 1.0, color: SamanChatTokens.borderSubtle),
-            _buildThinkingMenuItem(
-              title: 'Low',
-              subtitle: 'Nhanh và gọn',
-              isActive: false,
-              isLocked: true,
-              badgeText: 'Sắp ra mắt',
-              onTap: () => widget.onLockedThinkingLevelTapped('Low'),
-              minTouchTarget: true,
-            ),
-            const Divider(height: 1.0, thickness: 1.0, color: SamanChatTokens.borderSubtle),
-            _buildThinkingMenuItem(
-              title: 'Medium',
-              subtitle: 'Cân bằng độ sâu',
-              isActive: true,
-              isLocked: false,
-              onTap: widget.onSelectMedium,
-              minTouchTarget: true,
-            ),
-            const Divider(height: 1.0, thickness: 1.0, color: SamanChatTokens.borderSubtle),
-            _buildThinkingMenuItem(
-              title: 'High',
-              subtitle: 'Phân tích kỹ hơn',
-              isActive: false,
-              isLocked: true,
-              badgeText: 'Sắp ra mắt',
-              onTap: () => widget.onLockedThinkingLevelTapped('High'),
-              minTouchTarget: true,
-            ),
+            Divider(height: 1.0, thickness: 1.0, color: t.borderSubtle),
+            _buildThinkingItems(minTouchTarget: true),
           ],
         ),
       ),
@@ -1169,6 +1148,7 @@ class _ModeMenuOverlayState extends State<_ModeMenuOverlay> {
   }
 
   Widget _buildSubmenuCard({required bool isMobile}) {
+    final t = SamanChatTokens.of(context);
     return MouseRegion(
       onEnter: (_) {
         _closeGraceTimer?.cancel();
@@ -1195,67 +1175,71 @@ class _ModeMenuOverlayState extends State<_ModeMenuOverlay> {
         child: Container(
           width: 240.0,
           decoration: BoxDecoration(
-            color: SamanChatTokens.surfaceElevated,
+            color: t.isDark ? t.surfaceElevated : t.surface,
             borderRadius: BorderRadius.circular(14.0),
             border: Border.all(
-              color: SamanChatTokens.borderSubtle,
+              color: t.borderSubtle,
               width: 1.0,
             ),
-            boxShadow: const [
+            boxShadow: [
               BoxShadow(
-                color: Color(0x66000000),
+                color: t.isDark ? const Color(0x66000000) : const Color(0x1A0F172A),
                 blurRadius: 16.0,
-                offset: Offset(0, 6),
+                offset: const Offset(0, 6),
               ),
             ],
           ),
           child: ClipRRect(
             borderRadius: BorderRadius.circular(14.0),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                _buildThinkingMenuItem(
-                  title: 'Low',
-                  subtitle: 'Nhanh và gọn',
-                  isActive: false,
-                  isLocked: true,
-                  badgeText: 'Sắp ra mắt',
-                  onTap: () => widget.onLockedThinkingLevelTapped('Low'),
-                  minTouchTarget: isMobile,
-                ),
-                const Divider(height: 1.0, thickness: 1.0, color: SamanChatTokens.borderSubtle),
-                _buildThinkingMenuItem(
-                  title: 'Medium',
-                  subtitle: 'Cân bằng độ sâu',
-                  isActive: true,
-                  isLocked: false,
-                  onTap: widget.onSelectMedium,
-                  minTouchTarget: isMobile,
-                ),
-                const Divider(height: 1.0, thickness: 1.0, color: SamanChatTokens.borderSubtle),
-                _buildThinkingMenuItem(
-                  title: 'High',
-                  subtitle: 'Phân tích kỹ hơn',
-                  isActive: false,
-                  isLocked: true,
-                  badgeText: 'Sắp ra mắt',
-                  onTap: () => widget.onLockedThinkingLevelTapped('High'),
-                  minTouchTarget: isMobile,
-                ),
-              ],
-            ),
+            child: _buildThinkingItems(minTouchTarget: isMobile),
           ),
         ),
       ),
     );
   }
 
+  Widget _buildThinkingItems({required bool minTouchTarget}) {
+    final t = SamanChatTokens.of(context);
+    final entries = <(AIMode, String, String, IconData)>[
+      (AIMode.swift3, 'Low', 'thinking_low_sub', Icons.bolt_rounded),
+      (AIMode.core3, 'Medium', 'thinking_med_sub', Icons.balance_outlined),
+      (AIMode.pro3, 'High', 'thinking_high_sub', Icons.auto_awesome_rounded),
+    ];
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        for (var i = 0; i < entries.length; i++) ...[
+          if (i > 0)
+            Divider(height: 1.0, thickness: 1.0, color: t.borderSubtle),
+          Builder(builder: (context) {
+            final (mode, title, subKey, icon) = entries[i];
+            final isActive = mode == widget.activeMode;
+            return _buildThinkingMenuItem(
+              title: title,
+              subtitle: context.tr(subKey),
+              isActive: isActive,
+              isLocked: false,
+              icon: isActive ? Icons.check_rounded : icon,
+              iconColor: isActive ? t.greenAccent : t.textMuted,
+              onTap: () {
+                widget.onModeSelected?.call(mode);
+                widget.onClose();
+              },
+              minTouchTarget: minTouchTarget,
+            );
+          }),
+        ],
+      ],
+    );
+  }
+
   Widget _buildThinkingTriggerRow({required bool isDesktop}) {
+    final t = SamanChatTokens.of(context);
     final isHighlighted = _isHoveringTrigger || _isThinkingSubmenuOpen;
     return Semantics(
       button: true,
       label:
-          'Mức độ suy luận. ${_isThinkingSubmenuOpen ? "Đang mở menu mức suy luận" : "Bấm để mở menu mức suy luận"}',
+          '${context.tr('thinking_level_title')}. ${_isThinkingSubmenuOpen ? "Open" : "Closed"}',
       child: MouseRegion(
         onEnter: isDesktop
             ? (_) {
@@ -1283,7 +1267,6 @@ class _ModeMenuOverlayState extends State<_ModeMenuOverlay> {
             : null,
         child: Focus(
           focusNode: _triggerFocusNode,
-          autofocus: true,
           onKeyEvent: (node, event) {
             if (event is KeyDownEvent) {
               if (event.logicalKey == LogicalKeyboardKey.arrowRight ||
@@ -1299,32 +1282,37 @@ class _ModeMenuOverlayState extends State<_ModeMenuOverlay> {
             key: _triggerKey,
             padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 6.0),
             child: InkWell(
+              canRequestFocus: false,
               onTap: () {
                 setState(() => _isThinkingSubmenuOpen = !_isThinkingSubmenuOpen);
               },
               borderRadius: BorderRadius.circular(10.0),
               hoverColor: Colors.transparent,
-              focusColor: SamanChatTokens.actionRowFocusBg,
+              focusColor: t.actionRowFocusBg,
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 120),
                 constraints: BoxConstraints(minHeight: isDesktop ? 36.0 : 48.0),
                 padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 8.0),
                 decoration: BoxDecoration(
-                  color: isHighlighted ? const Color(0x1FFFFFFF) : Colors.transparent,
+                  color: isHighlighted
+                      ? (t.isDark ? const Color(0x1FFFFFFF) : t.surfaceElevated)
+                      : Colors.transparent,
                   borderRadius: BorderRadius.circular(10.0),
                   border: Border.all(
-                    color: isHighlighted ? const Color(0x33FFFFFF) : Colors.transparent,
+                    color: isHighlighted
+                        ? (t.isDark ? const Color(0x33FFFFFF) : t.borderSubtle)
+                        : Colors.transparent,
                     width: 1.0,
                   ),
                 ),
                 child: Row(
                   children: [
-                    const Text(
-                      'Mức độ suy luận',
+                    Text(
+                      context.tr('thinking_level_title'),
                       style: TextStyle(
                         fontSize: 13.0,
                         fontWeight: FontWeight.w600,
-                        color: SamanChatTokens.textWhite,
+                        color: t.textWhite,
                       ),
                     ),
                     const Spacer(),
@@ -1332,8 +1320,8 @@ class _ModeMenuOverlayState extends State<_ModeMenuOverlay> {
                       Icons.chevron_right_rounded,
                       size: 18.0,
                       color: isHighlighted
-                          ? SamanChatTokens.textWhite
-                          : const Color(0xFFD5D8E0),
+                          ? t.textWhite
+                          : (t.isDark ? const Color(0xFFD5D8E0) : t.textSecondary),
                     ),
                   ],
                 ),
@@ -1350,41 +1338,39 @@ class _ModeMenuOverlayState extends State<_ModeMenuOverlay> {
     required String subtitle,
     required bool isActive,
     required bool isLocked,
-    String? badgeText,
+    required IconData icon,
+    required Color iconColor,
     required VoidCallback onTap,
     bool minTouchTarget = false,
   }) {
+    final t = SamanChatTokens.of(context);
     return Semantics(
       button: true,
       label: isActive
-          ? '$title: $subtitle. Đang dùng'
-          : '$title: $subtitle. ${badgeText ?? "Đang khóa"} (giữ nguyên mức hiện tại)',
+          ? '$title: $subtitle. ${context.tr('badge_active_using')}'
+          : '$title: $subtitle',
       selected: isActive,
       child: InkWell(
+        canRequestFocus: false,
         onTap: onTap,
-        hoverColor: SamanChatTokens.actionRowHoverBg,
-        focusColor: SamanChatTokens.actionRowFocusBg,
-        highlightColor: SamanChatTokens.actionRowPressedBg,
+        hoverColor: t.actionRowHoverBg,
+        focusColor: t.actionRowFocusBg,
+        highlightColor: t.actionRowPressedBg,
         child: Container(
           constraints: BoxConstraints(
             minHeight: minTouchTarget ? 48.0 : 42.0,
           ),
-          color: isActive ? const Color(0x0FFFFFFF) : Colors.transparent,
+          color: isActive
+              ? (t.isDark ? const Color(0x0FFFFFFF) : t.surfaceElevated)
+              : Colors.transparent,
           padding: const EdgeInsets.symmetric(horizontal: 14.0, vertical: 10.0),
           child: Row(
             children: [
-              if (isActive)
-                const Icon(
-                  Icons.check_rounded,
-                  size: 18.0,
-                  color: SamanChatTokens.greenAccent,
-                )
-              else
-                const Icon(
-                  Icons.lock_outline_rounded,
-                  size: 16.0,
-                  color: SamanChatTokens.textMuted,
-                ),
+              Icon(
+                icon,
+                size: 18.0,
+                color: iconColor,
+              ),
               const SizedBox(width: 12.0),
               Expanded(
                 child: Column(
@@ -1396,37 +1382,37 @@ class _ModeMenuOverlayState extends State<_ModeMenuOverlay> {
                       style: TextStyle(
                         fontSize: 13.5,
                         fontWeight: isActive ? FontWeight.w700 : FontWeight.w500,
-                        color: isActive ? SamanChatTokens.textWhite : SamanChatTokens.textSecondary,
+                        color: isActive ? t.textWhite : t.textSecondary,
                       ),
                     ),
                     const SizedBox(height: 2.0),
                     Text(
                       subtitle,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 11.0,
-                        color: SamanChatTokens.textMuted,
+                        color: t.textMuted,
                       ),
                     ),
                   ],
                 ),
               ),
-              if (badgeText != null)
+              if (isActive)
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 7.0, vertical: 3.0),
                   decoration: BoxDecoration(
-                    color: const Color(0x1FFFFFFF),
+                    color: t.greenAccent.withOpacity(0.15),
                     borderRadius: BorderRadius.circular(10.0),
                     border: Border.all(
-                      color: const Color(0x33FFFFFF),
+                      color: t.greenAccent.withOpacity(0.40),
                       width: 0.8,
                     ),
                   ),
                   child: Text(
-                    badgeText,
-                    style: const TextStyle(
+                    context.tr('badge_active_using'),
+                    style: TextStyle(
                       fontSize: 10.5,
                       fontWeight: FontWeight.w600,
-                      color: Color(0xFFD5D8E0),
+                      color: t.greenAccent,
                     ),
                   ),
                 ),
@@ -1434,6 +1420,41 @@ class _ModeMenuOverlayState extends State<_ModeMenuOverlay> {
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildModeItems({required bool minTouchTarget}) {
+    final t = SamanChatTokens.of(context);
+    final entries = <(AIMode, String, String, IconData)>[
+      (AIMode.swift3, 'model_swift_3_title', 'model_swift_3_sub', Icons.bolt_rounded),
+      (AIMode.core3, 'model_core_3_title', 'model_core_3_sub', Icons.balance_outlined),
+      (AIMode.pro3, 'model_pro_3_title', 'model_pro_3_sub', Icons.auto_awesome_rounded),
+    ];
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        for (var i = 0; i < entries.length; i++) ...[
+          if (i > 0)
+            Divider(height: 1.0, thickness: 1.0, color: t.borderSubtle),
+          Builder(builder: (context) {
+            final (mode, titleKey, subKey, icon) = entries[i];
+            final isActive = mode == widget.activeMode;
+            return _buildModeItem(
+              title: context.tr(titleKey),
+              subtitle: context.tr(subKey),
+              isActive: isActive,
+              badgeText: isActive ? context.tr('badge_active_using') : 'FREE',
+              icon: isActive ? Icons.check_rounded : icon,
+              iconColor: isActive ? t.greenAccent : t.textMuted,
+              onTap: () {
+                widget.onModeSelected?.call(mode);
+                widget.onClose();
+              },
+              minTouchTarget: minTouchTarget,
+            );
+          }),
+        ],
+      ],
     );
   }
 
@@ -1447,20 +1468,24 @@ class _ModeMenuOverlayState extends State<_ModeMenuOverlay> {
     required VoidCallback onTap,
     bool minTouchTarget = false,
   }) {
+    final t = SamanChatTokens.of(context);
     return Semantics(
       button: true,
       label: isActive
-          ? '$title: $subtitle. Đang dùng'
-          : '$title: $subtitle. $badgeText (đang khóa, giữ nguyên chế độ hiện tại)',
+          ? '$title: $subtitle. ${context.tr('badge_active_using')}'
+          : '$title: $subtitle. $badgeText',
       selected: isActive,
       child: InkWell(
+        canRequestFocus: false,
         onTap: onTap,
-        hoverColor: SamanChatTokens.actionRowHoverBg,
-        focusColor: SamanChatTokens.actionRowFocusBg,
-        highlightColor: SamanChatTokens.actionRowPressedBg,
+        hoverColor: t.actionRowHoverBg,
+        focusColor: t.actionRowFocusBg,
+        highlightColor: t.actionRowPressedBg,
         child: Container(
           constraints: BoxConstraints(minHeight: minTouchTarget ? 48.0 : 42.0),
-          color: isActive ? const Color(0x0FFFFFFF) : Colors.transparent,
+          color: isActive
+              ? (t.isDark ? const Color(0x0FFFFFFF) : t.surfaceElevated)
+              : Colors.transparent,
           padding: const EdgeInsets.symmetric(horizontal: 14.0, vertical: 10.0),
           child: Row(
             children: [
@@ -1476,15 +1501,15 @@ class _ModeMenuOverlayState extends State<_ModeMenuOverlay> {
                       style: TextStyle(
                         fontSize: 13.5,
                         fontWeight: isActive ? FontWeight.w700 : FontWeight.w500,
-                        color: isActive ? SamanChatTokens.textWhite : SamanChatTokens.textSecondary,
+                        color: isActive ? t.textWhite : t.textSecondary,
                       ),
                     ),
                     const SizedBox(height: 2.0),
                     Text(
                       subtitle,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 11.0,
-                        color: SamanChatTokens.textMuted,
+                        color: t.textMuted,
                       ),
                     ),
                   ],
@@ -1493,10 +1518,14 @@ class _ModeMenuOverlayState extends State<_ModeMenuOverlay> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 7.0, vertical: 3.0),
                 decoration: BoxDecoration(
-                  color: isActive ? const Color(0x2610B981) : const Color(0x1FFFFFFF),
+                  color: isActive
+                      ? t.greenAccent.withOpacity(0.15)
+                      : (t.isDark ? const Color(0x1FFFFFFF) : t.surfaceElevated),
                   borderRadius: BorderRadius.circular(10.0),
                   border: Border.all(
-                    color: isActive ? const Color(0x6610B981) : const Color(0x33FFFFFF),
+                    color: isActive
+                        ? t.greenAccent.withOpacity(0.40)
+                        : (t.isDark ? const Color(0x33FFFFFF) : t.borderSubtle),
                     width: 0.8,
                   ),
                 ),
@@ -1505,7 +1534,9 @@ class _ModeMenuOverlayState extends State<_ModeMenuOverlay> {
                   style: TextStyle(
                     fontSize: 10.5,
                     fontWeight: FontWeight.w600,
-                    color: isActive ? SamanChatTokens.greenAccent : const Color(0xFFD5D8E0),
+                    color: isActive
+                        ? t.greenAccent
+                        : (t.isDark ? const Color(0xFFD5D8E0) : t.textSecondary),
                   ),
                 ),
               ),

@@ -95,10 +95,13 @@ class ClassificationProviderFactory:
             try:
                 from .food_classification_service import FoodClassificationService
                 service = FoodClassificationService(model_path=model_path)
-                logger.info("✅ PyTorch service created (lazy load — model loads on first inference)")
+                if not service.model_path or not os.path.exists(service.model_path):
+                    raise FileNotFoundError(f"Model weights not found at: {service.model_path}")
+                service._ensure_model()
+                logger.info("✅ PyTorch service created and model verified")
                 return service
             except Exception as e:
-                logger.error(f"❌ PyTorch service creation failed: {e}, falling back to mock")
+                logger.warning(f"⚠️ PyTorch service creation/lazy-load failed: {e}, falling back to mock")
                 logger.info(f"🔄 Fallback: Using MockFoodClassificationService")
                 return MockFoodClassificationService()
         

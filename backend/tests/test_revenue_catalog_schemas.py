@@ -241,13 +241,17 @@ class TestCatalogEngine(unittest.TestCase):
     def test_initial_published_version(self):
         catalog = self.engine.get_active_catalog()
         self.assertIsNotNone(catalog)
-        self.assertEqual(catalog.version_id, "v1.0-preview")
+        self.assertEqual(catalog.version_id, "v1.0-vn")
         self.assertEqual(catalog.status, CatalogStatus.PUBLISHED)
-        self.assertTrue(catalog.preview_mode)
-        self.assertIn("Demo pricing", catalog.disclaimer)
+        self.assertFalse(catalog.preview_mode)
+        self.assertEqual(catalog.currency, "VND")
+        self.assertIn("VNĐ", catalog.disclaimer)
 
         for price in catalog.prices:
-            self.assertFalse(price.purchasable)
+            if price.plan_id == "plan_free":
+                self.assertFalse(price.purchasable)
+            else:
+                self.assertTrue(price.purchasable)
 
     def test_matrix_features_decoupled_from_tier(self):
         catalog = self.engine.get_active_catalog()
@@ -262,12 +266,12 @@ class TestCatalogEngine(unittest.TestCase):
 
         gemini_feat = next(f for f in catalog.matrix_features if f.id == "gemini_food_analysis")
         self.assertEqual(gemini_feat.status_for(MembershipTier.FREE), InclusionStatus.NOT_INCLUDED)
-        self.assertEqual(gemini_feat.status_for(MembershipTier.PLUS), InclusionStatus.PLANNED)
+        self.assertEqual(gemini_feat.status_for(MembershipTier.PLUS), InclusionStatus.INCLUDED)
 
         cv_feat = next(f for f in catalog.matrix_features if f.id == "workout_cv_ai")
         self.assertEqual(cv_feat.status_for(MembershipTier.FREE), InclusionStatus.NOT_INCLUDED)
         self.assertEqual(cv_feat.status_for(MembershipTier.PLUS), InclusionStatus.NOT_INCLUDED)
-        self.assertEqual(cv_feat.status_for(MembershipTier.PRO), InclusionStatus.PLANNED)
+        self.assertEqual(cv_feat.status_for(MembershipTier.PRO), InclusionStatus.INCLUDED)
 
     def test_catalog_immutability_rejection(self):
         modified_catalog = _build_v1_preview_catalog()
@@ -304,8 +308,8 @@ class TestCatalogEngine(unittest.TestCase):
         self.engine.register_version(draft_catalog)
         self.assertEqual(self.engine.get_catalog_by_version("v2.0-draft", include_drafts=True).status, CatalogStatus.DRAFT)
 
-        # Active version should still be v1.0-preview
-        self.assertEqual(self.engine.get_active_catalog().version_id, "v1.0-preview")
+        # Active version should still be v1.0-vn
+        self.assertEqual(self.engine.get_active_catalog().version_id, "v1.0-vn")
 
         # Promote draft to published
         published_cat = self.engine.publish_version("v2.0-draft")
@@ -324,16 +328,20 @@ class TestRevenueRouterIntegration(unittest.TestCase):
         response = self.client.get("/api/revenue/catalog")
         self.assertEqual(response.status_code, 200)
         data = response.json()
-        self.assertEqual(data["version_id"], "v1.0-preview")
+        self.assertEqual(data["version_id"], "v1.0-vn")
         self.assertEqual(data["status"], "published")
-        self.assertTrue(data["preview_mode"])
+        self.assertFalse(data["preview_mode"])
+        self.assertEqual(data["currency"], "VND")
         self.assertIn("disclaimer", data)
         self.assertIsInstance(data["plans"], list)
         self.assertIsInstance(data["prices"], list)
         self.assertIsInstance(data["matrix_features"], list)
 
         for price in data["prices"]:
-            self.assertFalse(price["purchasable"])
+            if price["plan_id"] == "plan_free":
+                self.assertFalse(price["purchasable"])
+            else:
+                self.assertTrue(price["purchasable"])
 
     def test_get_catalog_by_version(self):
         response = self.client.get("/api/revenue/catalog?version=v1.0-preview")
@@ -418,8 +426,8 @@ class TestRevenueRouterIntegration(unittest.TestCase):
                 self.assertEqual(data["tier"], "free")
                 self.assertFalse(data["is_active_subscription"])
                 self.assertIn("ai.nutrition_gemini", data["usage"])
-                self.assertEqual(data["usage"]["ai.nutrition_gemini"]["limit_units"], 30)
-                self.assertEqual(data["usage"]["ai.nutrition_gemini"]["remaining_units"], 30)
+                self.assertEqual(data["usage"]["ai.nutrition_gemini"]["limit_units"], 1)
+                self.assertEqual(data["usage"]["ai.nutrition_gemini"]["remaining_units"], 1)
         finally:
             app.dependency_overrides.pop(verify_token, None)
 

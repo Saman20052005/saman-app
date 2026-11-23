@@ -6,6 +6,7 @@ import '../../domain/models/community_discover_item.dart';
 import '../providers/community_providers.dart';
 import '../widgets/community_bottom_navigation_bar.dart';
 import 'community_post_detail_screen.dart';
+import 'profile/community_profile_screen.dart';
 
 class CommunityDiscoverScreen extends ConsumerStatefulWidget {
   const CommunityDiscoverScreen({super.key});
@@ -27,65 +28,90 @@ class _CommunityDiscoverScreenState
 
   @override
   Widget build(BuildContext context) {
+    final tokens = SamanHomeTokens.of(context);
+    final isRemote = ref.watch(useRemoteCommunityProvider);
     final discoverState = ref.watch(communityDiscoverProvider);
     final discoverNotifier = ref.read(communityDiscoverProvider.notifier);
 
+    final hasNoResults = !discoverState.isLoading &&
+        discoverState.searchQuery.trim().isNotEmpty &&
+        discoverState.data.gridItems.isEmpty &&
+        discoverState.data.trendingTopics.isEmpty &&
+        discoverState.data.recommendedCreators.isEmpty;
+
     return Scaffold(
-      backgroundColor: const Color(0xFF121314),
+      backgroundColor: tokens.canvas,
       body: SafeArea(
         bottom: false,
         child: Column(
           children: [
             // Header
-            _buildHeader(context),
+            _buildHeader(context, tokens),
 
-            // Honest Preview Notice Banner
-            _buildPreviewNoticeBanner(),
+            // Honest Preview Notice Banner (hidden in remote mode)
+            if (!isRemote) _buildPreviewNoticeBanner(tokens),
 
             // Search Bar
-            _buildSearchBar(discoverNotifier),
+            _buildSearchBar(discoverNotifier, tokens),
 
             // Content Scroll
             Expanded(
               child: discoverState.isLoading
-                  ? const Center(
+                  ? Center(
                       child: CircularProgressIndicator(
-                        color: SamanHomeTokens.greenAccent,
+                        color: tokens.greenAccent,
                       ),
                     )
-                  : SingleChildScrollView(
-                      padding: const EdgeInsets.only(bottom: 32),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          // Topic Chips
-                          _buildTopicChips(
-                            discoverState.data.topicChips,
-                            discoverState.activeTopic,
-                            (topic) => discoverNotifier.setTopic(topic),
-                          ),
-                          const SizedBox(height: 16),
+                  : RefreshIndicator(
+                      color: tokens.greenAccent,
+                      onRefresh: () => discoverNotifier.refresh(),
+                      child: SingleChildScrollView(
+                        physics: const AlwaysScrollableScrollPhysics(),
+                        padding: const EdgeInsets.only(bottom: 32),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            // Topic Chips
+                            _buildTopicChips(
+                              discoverState.data.topicChips,
+                              discoverState.activeTopic,
+                              (topic) => discoverNotifier.setTopic(topic),
+                              tokens,
+                            ),
+                            const SizedBox(height: 16),
 
-                          // Section 1: Visual Grid (3x3)
-                          _buildVisualGridSection(
-                            context,
-                            discoverState.data.gridItems,
-                          ),
-                          const SizedBox(height: 24),
+                            if (hasNoResults)
+                              _buildSearchEmptyState(discoverNotifier, tokens)
+                            else ...[
+                              // Section 1: Visual Grid (3x3)
+                              _buildVisualGridSection(
+                                context,
+                                discoverState.data.gridItems,
+                                tokens,
+                              ),
+                              const SizedBox(height: 24),
 
-                          // Section 2: Trending Topics
-                          _buildTrendingTopicsSection(
-                            discoverState.data.trendingTopics,
-                          ),
-                          const SizedBox(height: 24),
+                              // Section 2: Trending Topics
+                              if (discoverState.data.trendingTopics.isNotEmpty) ...[
+                                _buildTrendingTopicsSection(
+                                  discoverState.data.trendingTopics,
+                                  discoverNotifier,
+                                  tokens,
+                                ),
+                                const SizedBox(height: 24),
+                              ],
 
-                          // Section 3: Recommended Creators to follow
-                          _buildRecommendedCreatorsSection(
-                            discoverState.data.recommendedCreators,
-                            (authorId) =>
-                                discoverNotifier.toggleFollow(authorId),
-                          ),
-                        ],
+                              // Section 3: Recommended Creators to follow
+                              if (discoverState.data.recommendedCreators.isNotEmpty)
+                                _buildRecommendedCreatorsSection(
+                                  discoverState.data.recommendedCreators,
+                                  (authorId) =>
+                                      discoverNotifier.toggleFollow(authorId),
+                                  tokens,
+                                ),
+                            ],
+                          ],
+                        ),
                       ),
                     ),
             ),
@@ -98,20 +124,20 @@ class _CommunityDiscoverScreenState
     );
   }
 
-  Widget _buildPreviewNoticeBanner() {
+  Widget _buildPreviewNoticeBanner(SamanHomePalette tokens) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-      color: const Color(0xFF1B1C1D),
-      child: const Row(
+      color: tokens.cardSurface,
+      child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Icon(
             Icons.info_outline_rounded,
             size: 13,
-            color: SamanHomeTokens.greenAccent,
+            color: tokens.greenAccent,
           ),
-          SizedBox(width: 6),
+          const SizedBox(width: 6),
           Flexible(
             child: Text(
               'Bản xem trước giao diện • Dữ liệu mẫu thử nghiệm',
@@ -119,7 +145,7 @@ class _CommunityDiscoverScreenState
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
                 fontSize: 11,
-                color: Color(0xFFBBCAAF),
+                color: tokens.textSecondary,
                 fontWeight: FontWeight.w500,
               ),
             ),
@@ -129,7 +155,7 @@ class _CommunityDiscoverScreenState
     );
   }
 
-  Widget _buildHeader(BuildContext context) {
+  Widget _buildHeader(BuildContext context, SamanHomePalette tokens) {
     return Container(
       padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
       child: Row(
@@ -141,17 +167,17 @@ class _CommunityDiscoverScreenState
                 InkWell(
                   onTap: () => Navigator.pop(context),
                   borderRadius: BorderRadius.circular(12),
-                  child: const Padding(
-                    padding: EdgeInsets.all(4),
+                  child: Padding(
+                    padding: const EdgeInsets.all(4),
                     child: Icon(
                       Icons.arrow_back_rounded,
-                      color: SamanHomeTokens.textWhite,
+                      color: tokens.textPrimary,
                       size: 24,
                     ),
                   ),
                 ),
                 const SizedBox(width: 8),
-                const Expanded(
+                Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -162,7 +188,7 @@ class _CommunityDiscoverScreenState
                         style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.w700,
-                          color: SamanHomeTokens.textWhite,
+                          color: tokens.textPrimary,
                           letterSpacing: -0.3,
                         ),
                       ),
@@ -173,7 +199,7 @@ class _CommunityDiscoverScreenState
                         style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w500,
-                          color: SamanHomeTokens.greenAccent,
+                          color: tokens.greenAccent,
                         ),
                       ),
                     ],
@@ -183,9 +209,9 @@ class _CommunityDiscoverScreenState
             ),
           ),
           IconButton(
-            icon: const Icon(
+            icon: Icon(
               Icons.tune_rounded,
-              color: Color(0xFFBBCAAF),
+              color: tokens.textSecondary,
               size: 20,
             ),
             onPressed: () {
@@ -202,24 +228,27 @@ class _CommunityDiscoverScreenState
     );
   }
 
-  Widget _buildSearchBar(CommunityDiscoverNotifier notifier) {
+  Widget _buildSearchBar(
+    CommunityDiscoverNotifier notifier,
+    SamanHomePalette tokens,
+  ) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
       child: Container(
         height: 48,
         decoration: BoxDecoration(
-          color: const Color(0xFF1F2021),
+          color: tokens.cardSurface,
           borderRadius: BorderRadius.circular(14),
           border: Border.all(
-            color: const Color(0xFF292A2B),
+            color: tokens.border,
           ),
         ),
         padding: const EdgeInsets.symmetric(horizontal: 14),
         child: Row(
           children: [
-            const Icon(
+            Icon(
               Icons.search_rounded,
-              color: Color(0xFF86948A),
+              color: tokens.textMuted,
               size: 20,
             ),
             const SizedBox(width: 10),
@@ -227,14 +256,14 @@ class _CommunityDiscoverScreenState
               child: TextField(
                 controller: _searchController,
                 onChanged: (val) => notifier.setSearchQuery(val),
-                style: const TextStyle(
-                  color: SamanHomeTokens.textWhite,
+                style: TextStyle(
+                  color: tokens.textPrimary,
                   fontSize: 14,
                 ),
-                decoration: const InputDecoration(
+                decoration: InputDecoration(
                   hintText: 'Tìm bài viết, chủ đề, thành viên…',
                   hintStyle: TextStyle(
-                    color: Color(0xFF86948A),
+                    color: tokens.textMuted,
                     fontSize: 14,
                   ),
                   border: InputBorder.none,
@@ -242,10 +271,33 @@ class _CommunityDiscoverScreenState
                 ),
               ),
             ),
-            const Icon(
-              Icons.mic_none_rounded,
-              color: Color(0xFF86948A),
-              size: 20,
+            ValueListenableBuilder<TextEditingValue>(
+              valueListenable: _searchController,
+              builder: (context, value, _) {
+                if (value.text.isEmpty) {
+                  return Icon(
+                    Icons.mic_none_rounded,
+                    color: tokens.textMuted,
+                    size: 20,
+                  );
+                }
+                return InkWell(
+                  key: const ValueKey('discover-search-clear-button'),
+                  onTap: () {
+                    _searchController.clear();
+                    notifier.setSearchQuery('');
+                  },
+                  borderRadius: BorderRadius.circular(12),
+                  child: Padding(
+                    padding: const EdgeInsets.all(4),
+                    child: Icon(
+                      Icons.close_rounded,
+                      color: tokens.textSecondary,
+                      size: 18,
+                    ),
+                  ),
+                );
+              },
             ),
           ],
         ),
@@ -257,6 +309,7 @@ class _CommunityDiscoverScreenState
     List<String> chips,
     String activeTopic,
     ValueChanged<String> onSelected,
+    SamanHomePalette tokens,
   ) {
     final Map<String, (String, IconData)> topicMeta = {
       'all': ('Tất cả', Icons.apps_rounded),
@@ -286,13 +339,13 @@ class _CommunityDiscoverScreenState
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               decoration: BoxDecoration(
                 color: isActive
-                    ? const Color(0xFF343536)
-                    : const Color(0xFF1F2021),
+                    ? tokens.secondarySurface
+                    : tokens.cardSurface,
                 borderRadius: BorderRadius.circular(10),
                 border: Border.all(
                   color: isActive
-                      ? SamanHomeTokens.greenAccent.withOpacity(0.5)
-                      : Colors.transparent,
+                      ? tokens.greenAccent.withOpacity(0.5)
+                      : tokens.border,
                 ),
               ),
               child: Row(
@@ -302,8 +355,8 @@ class _CommunityDiscoverScreenState
                     meta.$2,
                     size: 15,
                     color: isActive
-                        ? SamanHomeTokens.greenAccent
-                        : const Color(0xFFBBCAAF),
+                        ? tokens.greenAccent
+                        : tokens.textSecondary,
                   ),
                   const SizedBox(width: 6),
                   Text(
@@ -312,8 +365,8 @@ class _CommunityDiscoverScreenState
                       fontSize: 12,
                       fontWeight: isActive ? FontWeight.w600 : FontWeight.w500,
                       color: isActive
-                          ? SamanHomeTokens.greenAccent
-                          : const Color(0xFFBBCAAF),
+                          ? tokens.greenAccent
+                          : tokens.textSecondary,
                     ),
                   ),
                 ],
@@ -328,6 +381,7 @@ class _CommunityDiscoverScreenState
   Widget _buildVisualGridSection(
     BuildContext context,
     List<CommunityVisualGridItem> items,
+    SamanHomePalette tokens,
   ) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -337,15 +391,15 @@ class _CommunityDiscoverScreenState
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Expanded(
+              Expanded(
                 child: Row(
                   children: [
                     Icon(
                       Icons.grid_view_rounded,
                       size: 18,
-                      color: SamanHomeTokens.greenAccent,
+                      color: tokens.greenAccent,
                     ),
-                    SizedBox(width: 6),
+                    const SizedBox(width: 6),
                     Flexible(
                       child: Text(
                         'Khoảnh khắc tiêu biểu',
@@ -354,7 +408,7 @@ class _CommunityDiscoverScreenState
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w700,
-                          color: SamanHomeTokens.textWhite,
+                          color: tokens.textPrimary,
                         ),
                       ),
                     ),
@@ -367,7 +421,7 @@ class _CommunityDiscoverScreenState
                 style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w600,
-                  color: SamanHomeTokens.greenAccent.withOpacity(0.9),
+                  color: tokens.greenAccent.withOpacity(0.9),
                 ),
               ),
             ],
@@ -376,131 +430,237 @@ class _CommunityDiscoverScreenState
           Container(
             padding: const EdgeInsets.all(4),
             decoration: BoxDecoration(
-              color: const Color(0xFF0D0E0F),
+              color: tokens.isDark
+                  ? const Color(0xFF0D0E0F)
+                  : tokens.border,
               borderRadius: BorderRadius.circular(16),
             ),
-            child: GridView.builder(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              itemCount: items.length,
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 3,
-                crossAxisSpacing: 4,
-                mainAxisSpacing: 4,
-                childAspectRatio: 1,
-              ),
-              itemBuilder: (context, index) {
-                final item = items[index];
-                return InkWell(
-                  onTap: () {
-                    if (item.postId != null) {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => CommunityPostDetailScreen(
-                            postId: item.postId!,
+            child: items.isEmpty
+                ? Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 28, horizontal: 16),
+                    child: Center(
+                      child: Column(
+                        children: [
+                          Icon(
+                            Icons.photo_library_outlined,
+                            size: 32,
+                            color: tokens.textMuted,
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            'Chưa có khoảnh khắc nào trong chủ đề này',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: tokens.textSecondary,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  )
+                : GridView.builder(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    itemCount: items.length,
+                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 3,
+                      crossAxisSpacing: 4,
+                      mainAxisSpacing: 4,
+                      childAspectRatio: 1,
+                    ),
+                    itemBuilder: (context, index) {
+                      final item = items[index];
+                      return InkWell(
+                        onTap: () {
+                          if (item.postId != null) {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => CommunityPostDetailScreen(
+                                  postId: item.postId!,
+                                ),
+                              ),
+                            );
+                          }
+                        },
+                        borderRadius: BorderRadius.circular(10),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(10),
+                          child: Stack(
+                            fit: StackFit.expand,
+                            children: [
+                              _buildGridMedia(item, tokens),
+                              // Top badge (dark translucent overlay kept for media contrast)
+                              if (item.hasMultiPhoto || item.hasVideo)
+                                Positioned(
+                                  top: 4,
+                                  right: 4,
+                                  child: Container(
+                                    padding: const EdgeInsets.all(3),
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFF121314).withOpacity(0.8),
+                                      borderRadius: BorderRadius.circular(5),
+                                    ),
+                                    child: Icon(
+                                      item.hasMultiPhoto
+                                          ? Icons.photo_library_rounded
+                                          : Icons.play_arrow_rounded,
+                                      size: 12,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                ),
+                              // Bottom gradient & likes (dark scrim kept for media contrast)
+                              Positioned(
+                                left: 0,
+                                right: 0,
+                                bottom: 0,
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 6,
+                                    vertical: 4,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    gradient: LinearGradient(
+                                      begin: Alignment.topCenter,
+                                      end: Alignment.bottomCenter,
+                                      colors: [
+                                        Colors.transparent,
+                                        Colors.black.withOpacity(0.85),
+                                      ],
+                                    ),
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      const Icon(
+                                        Icons.favorite_rounded,
+                                        size: 11,
+                                        color: Color(0xFF5BBFA0),
+                                      ),
+                                      const SizedBox(width: 3),
+                                      Text(
+                                        item.formattedLikes,
+                                        style: const TextStyle(
+                                          fontSize: 10,
+                                          fontWeight: FontWeight.w600,
+                                          color: Colors.white,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                       );
-                    }
-                  },
-                  borderRadius: BorderRadius.circular(10),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(10),
-                    child: Stack(
-                      fit: StackFit.expand,
-                      children: [
-                        Container(
-                          color: const Color(0xFF1F2021),
-                          child: Center(
-                            child: Icon(
-                              item.hasVideo
-                                  ? Icons.play_circle_fill_rounded
-                                  : Icons.image_rounded,
-                              size: 28,
-                              color: const Color(0xFF343536),
-                            ),
-                          ),
-                        ),
-                        // Top badge
-                        if (item.hasMultiPhoto || item.hasVideo)
-                          Positioned(
-                            top: 4,
-                            right: 4,
-                            child: Container(
-                              padding: const EdgeInsets.all(3),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFF121314).withOpacity(0.8),
-                                borderRadius: BorderRadius.circular(5),
-                              ),
-                              child: Icon(
-                                item.hasMultiPhoto
-                                    ? Icons.photo_library_rounded
-                                    : Icons.play_arrow_rounded,
-                                size: 12,
-                                color: Colors.white,
-                              ),
-                            ),
-                          ),
-                        // Bottom gradient & likes
-                        Positioned(
-                          left: 0,
-                          right: 0,
-                          bottom: 0,
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 6,
-                              vertical: 4,
-                            ),
-                            decoration: BoxDecoration(
-                              gradient: LinearGradient(
-                                begin: Alignment.topCenter,
-                                end: Alignment.bottomCenter,
-                                colors: [
-                                  Colors.transparent,
-                                  Colors.black.withOpacity(0.85),
-                                ],
-                              ),
-                            ),
-                            child: Row(
-                              children: [
-                                const Icon(
-                                  Icons.favorite_rounded,
-                                  size: 11,
-                                  color: SamanHomeTokens.greenAccent,
-                                ),
-                                const SizedBox(width: 3),
-                                Text(
-                                  item.formattedLikes,
-                                  style: const TextStyle(
-                                    fontSize: 10,
-                                    fontWeight: FontWeight.w600,
-                                    color: Colors.white,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
+                    },
                   ),
-                );
-              },
-            ),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildTrendingTopicsSection(List<CommunityTrendingTopic> topics) {
+  Widget _buildGridMedia(
+    CommunityVisualGridItem item,
+    SamanHomePalette tokens,
+  ) {
+    final url = item.imageUrl.trim();
+    if (url.startsWith('http://') || url.startsWith('https://')) {
+      return Image.network(
+        url,
+        fit: BoxFit.cover,
+        errorBuilder: (_, __, ___) => _buildGridPlaceholder(item, tokens),
+      );
+    }
+    return _buildGridPlaceholder(item, tokens);
+  }
+
+  Widget _buildGridPlaceholder(
+    CommunityVisualGridItem item,
+    SamanHomePalette tokens,
+  ) {
+    return Container(
+      color: tokens.cardSurface,
+      child: Center(
+        child: Icon(
+          item.hasVideo
+              ? Icons.play_circle_fill_rounded
+              : Icons.image_rounded,
+          size: 28,
+          color: tokens.secondarySurface,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSearchEmptyState(
+    CommunityDiscoverNotifier notifier,
+    SamanHomePalette tokens,
+  ) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 36),
+      child: Center(
+        child: Column(
+          children: [
+            Icon(
+              Icons.search_off_rounded,
+              size: 40,
+              color: tokens.textMuted,
+            ),
+            const SizedBox(height: 10),
+            Text(
+              'Không tìm thấy kết quả phù hợp',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.w600,
+                color: tokens.textPrimary,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'Hãy thử từ khóa khác hoặc xóa bộ lọc tìm kiếm.',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 13,
+                color: tokens.textSecondary,
+              ),
+            ),
+            const SizedBox(height: 14),
+            TextButton(
+              onPressed: () {
+                _searchController.clear();
+                notifier.loadDiscover(topic: 'all', searchQuery: '');
+              },
+              child: Text(
+                'Xóa tìm kiếm',
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: tokens.greenAccent,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTrendingTopicsSection(
+    List<CommunityTrendingTopic> topics,
+    CommunityDiscoverNotifier notifier,
+    SamanHomePalette tokens,
+  ) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Row(
+          Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Expanded(
@@ -509,9 +669,9 @@ class _CommunityDiscoverScreenState
                     Icon(
                       Icons.trending_up_rounded,
                       size: 19,
-                      color: SamanHomeTokens.greenAccent,
+                      color: tokens.greenAccent,
                     ),
-                    SizedBox(width: 6),
+                    const SizedBox(width: 6),
                     Flexible(
                       child: Text(
                         'Chủ đề đang được quan tâm',
@@ -520,19 +680,19 @@ class _CommunityDiscoverScreenState
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w700,
-                          color: SamanHomeTokens.textWhite,
+                          color: tokens.textPrimary,
                         ),
                       ),
                     ),
                   ],
                 ),
               ),
-              SizedBox(width: 8),
+              const SizedBox(width: 8),
               Text(
                 'Thịnh hành',
                 style: TextStyle(
                   fontSize: 11,
-                  color: Color(0xFFBBCAAF),
+                  color: tokens.textSecondary,
                 ),
               ),
             ],
@@ -545,15 +705,21 @@ class _CommunityDiscoverScreenState
             separatorBuilder: (_, __) => const SizedBox(height: 8),
             itemBuilder: (context, index) {
               final topic = topics[index];
-              return Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF1F2021),
-                  borderRadius: BorderRadius.circular(14),
-                  border: Border.all(
-                    color: const Color(0xFF292A2B),
+              return InkWell(
+                onTap: () {
+                  _searchController.text = topic.hashtag;
+                  notifier.loadDiscover(topic: 'all', searchQuery: topic.hashtag);
+                },
+                borderRadius: BorderRadius.circular(14),
+                child: Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: tokens.cardSurface,
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(
+                      color: tokens.border,
+                    ),
                   ),
-                ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
@@ -564,12 +730,12 @@ class _CommunityDiscoverScreenState
                             width: 40,
                             height: 40,
                             decoration: BoxDecoration(
-                              color: const Color(0xFF292A2B),
+                              color: tokens.secondarySurface,
                               borderRadius: BorderRadius.circular(10),
                             ),
-                            child: const Icon(
+                            child: Icon(
                               Icons.tag_rounded,
-                              color: SamanHomeTokens.greenAccent,
+                              color: tokens.greenAccent,
                               size: 20,
                             ),
                           ),
@@ -582,10 +748,10 @@ class _CommunityDiscoverScreenState
                                   topic.hashtag,
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                     fontSize: 14,
                                     fontWeight: FontWeight.w600,
-                                    color: SamanHomeTokens.textWhite,
+                                    color: tokens.textPrimary,
                                   ),
                                 ),
                                 const SizedBox(height: 2),
@@ -594,9 +760,9 @@ class _CommunityDiscoverScreenState
                                     Container(
                                       width: 5,
                                       height: 5,
-                                      decoration: const BoxDecoration(
+                                      decoration: BoxDecoration(
                                         shape: BoxShape.circle,
-                                        color: SamanHomeTokens.greenAccent,
+                                        color: tokens.greenAccent,
                                       ),
                                     ),
                                     const SizedBox(width: 5),
@@ -605,9 +771,9 @@ class _CommunityDiscoverScreenState
                                         topic.postCountFormatted,
                                         maxLines: 1,
                                         overflow: TextOverflow.ellipsis,
-                                        style: const TextStyle(
+                                        style: TextStyle(
                                           fontSize: 11,
-                                          color: Color(0xFFBBCAAF),
+                                          color: tokens.textSecondary,
                                         ),
                                       ),
                                     ),
@@ -628,7 +794,7 @@ class _CommunityDiscoverScreenState
                             vertical: 3,
                           ),
                           decoration: BoxDecoration(
-                            color: const Color(0xFF343536),
+                            color: tokens.secondarySurface,
                             borderRadius: BorderRadius.circular(6),
                           ),
                           child: Text(
@@ -637,20 +803,21 @@ class _CommunityDiscoverScreenState
                               fontSize: 11,
                               fontWeight: FontWeight.w600,
                               color: topic.isStable
-                                  ? const Color(0xFFBBCAAF)
-                                  : SamanHomeTokens.greenAccent,
+                                  ? tokens.textSecondary
+                                  : tokens.greenAccent,
                             ),
                           ),
                         ),
                         const SizedBox(width: 6),
-                        const Icon(
+                        Icon(
                           Icons.chevron_right_rounded,
                           size: 18,
-                          color: Color(0xFF86948A),
+                          color: tokens.textMuted,
                         ),
                       ],
                     ),
                   ],
+                ),
                 ),
               );
             },
@@ -663,13 +830,14 @@ class _CommunityDiscoverScreenState
   Widget _buildRecommendedCreatorsSection(
     List<CommunityAuthor> creators,
     ValueChanged<String> onFollowToggle,
+    SamanHomePalette tokens,
   ) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Row(
+          Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Expanded(
@@ -678,9 +846,9 @@ class _CommunityDiscoverScreenState
                     Icon(
                       Icons.person_add_alt_1_rounded,
                       size: 19,
-                      color: SamanHomeTokens.greenAccent,
+                      color: tokens.greenAccent,
                     ),
-                    SizedBox(width: 6),
+                    const SizedBox(width: 6),
                     Flexible(
                       child: Text(
                         'Có thể bạn muốn theo dõi',
@@ -689,19 +857,19 @@ class _CommunityDiscoverScreenState
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w700,
-                          color: SamanHomeTokens.textWhite,
+                          color: tokens.textPrimary,
                         ),
                       ),
                     ),
                   ],
                 ),
               ),
-              SizedBox(width: 8),
+              const SizedBox(width: 8),
               Text(
                 'Xem tất cả',
                 style: TextStyle(
                   fontSize: 12,
-                  color: Color(0xFFBBCAAF),
+                  color: tokens.textSecondary,
                 ),
               ),
             ],
@@ -716,43 +884,78 @@ class _CommunityDiscoverScreenState
               final creator = creators[index];
               final isFollowing = creator.isFollowing;
 
-              return Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF1F2021),
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(
-                    color: const Color(0xFF292A2B),
+              return InkWell(
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => CommunityProfileScreen(
+                        authorId: creator.id,
+                      ),
+                    ),
+                  );
+                },
+                borderRadius: BorderRadius.circular(16),
+                child: Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: tokens.cardSurface,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                      color: tokens.border,
+                    ),
                   ),
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Expanded(
-                      child: Row(
-                        children: [
-                          Container(
-                            width: 44,
-                            height: 44,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: const Color(0xFF343536),
-                              border: Border.all(
-                                color: SamanHomeTokens.greenAccent.withOpacity(0.3),
-                                width: 1.5,
-                              ),
-                            ),
-                            child: Center(
-                              child: Text(
-                                creator.name.isNotEmpty ? creator.name[0] : 'S',
-                                style: const TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
-                                  color: SamanHomeTokens.greenAccent,
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Expanded(
+                        child: Row(
+                          children: [
+                            Container(
+                              width: 44,
+                              height: 44,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: tokens.secondarySurface,
+                                border: Border.all(
+                                  color: tokens.greenAccent.withOpacity(0.3),
+                                  width: 1.5,
                                 ),
                               ),
+                              child: ClipOval(
+                                child: (creator.avatarUrl != null &&
+                                        (creator.avatarUrl!.startsWith('http://') ||
+                                            creator.avatarUrl!.startsWith('https://')))
+                                    ? Image.network(
+                                        creator.avatarUrl!,
+                                        fit: BoxFit.cover,
+                                        errorBuilder: (_, __, ___) => Center(
+                                          child: Text(
+                                            creator.name.isNotEmpty
+                                                ? creator.name[0]
+                                                : 'S',
+                                            style: TextStyle(
+                                              fontSize: 18,
+                                              fontWeight: FontWeight.bold,
+                                              color: tokens.greenAccent,
+                                            ),
+                                          ),
+                                        ),
+                                      )
+                                    : Center(
+                                        child: Text(
+                                          creator.name.isNotEmpty
+                                              ? creator.name[0]
+                                              : 'S',
+                                          style: TextStyle(
+                                            fontSize: 18,
+                                            fontWeight: FontWeight.bold,
+                                            color: tokens.greenAccent,
+                                          ),
+                                        ),
+                                      ),
+                              ),
                             ),
-                          ),
                           const SizedBox(width: 12),
                           Expanded(
                             child: Column(
@@ -765,19 +968,19 @@ class _CommunityDiscoverScreenState
                                         creator.name,
                                         maxLines: 1,
                                         overflow: TextOverflow.ellipsis,
-                                        style: const TextStyle(
+                                        style: TextStyle(
                                           fontSize: 14,
                                           fontWeight: FontWeight.w600,
-                                          color: SamanHomeTokens.textWhite,
+                                          color: tokens.textPrimary,
                                         ),
                                       ),
                                     ),
                                     if (creator.isVerified) ...[
                                       const SizedBox(width: 4),
-                                      const Icon(
+                                      Icon(
                                         Icons.verified_rounded,
                                         size: 14,
-                                        color: SamanHomeTokens.greenAccent,
+                                        color: tokens.greenAccent,
                                       ),
                                     ],
                                   ],
@@ -787,17 +990,19 @@ class _CommunityDiscoverScreenState
                                   creator.title ?? 'Thành viên Saman',
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                     fontSize: 12,
-                                    color: Color(0xFFBBCAAF),
+                                    color: tokens.textSecondary,
                                   ),
                                 ),
                                 const SizedBox(height: 2),
                                 Text(
-                                  '${(creator.followerCount / 1000).toStringAsFixed(1)}k người theo dõi',
-                                  style: const TextStyle(
+                                  creator.followerCount >= 1000
+                                      ? '${(creator.followerCount / 1000).toStringAsFixed(1)}k người theo dõi'
+                                      : '${creator.followerCount} người theo dõi',
+                                  style: TextStyle(
                                     fontSize: 10,
-                                    color: Color(0xFF86948A),
+                                    color: tokens.textMuted,
                                   ),
                                 ),
                               ],
@@ -811,11 +1016,13 @@ class _CommunityDiscoverScreenState
                       onPressed: () => onFollowToggle(creator.id),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: isFollowing
-                            ? const Color(0xFF292A2B)
-                            : SamanHomeTokens.greenAccent,
+                            ? tokens.secondarySurface
+                            : tokens.greenAccent,
                         foregroundColor: isFollowing
-                            ? const Color(0xFFBBCAAF)
-                            : const Color(0xFF003824),
+                            ? tokens.textSecondary
+                            : (tokens.isDark
+                                ? const Color(0xFF003824)
+                                : const Color(0xFFFFFFFF)),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(10),
                         ),
@@ -834,8 +1041,10 @@ class _CommunityDiscoverScreenState
                                 : Icons.add_rounded,
                             size: 15,
                             color: isFollowing
-                                ? SamanHomeTokens.greenAccent
-                                : const Color(0xFF003824),
+                                ? tokens.greenAccent
+                                : (tokens.isDark
+                                    ? const Color(0xFF003824)
+                                    : const Color(0xFFFFFFFF)),
                           ),
                           const SizedBox(width: 4),
                           Text(
@@ -849,6 +1058,7 @@ class _CommunityDiscoverScreenState
                       ),
                     ),
                   ],
+                ),
                 ),
               );
             },

@@ -26,6 +26,7 @@ Widget buildTestApp({
 
   return ProviderScope(
     overrides: [
+      useRemoteCommunityProvider.overrideWith((ref) => false),
       communityFakeDatasourceProvider.overrideWithValue(ds),
       communityRepositoryProvider.overrideWithValue(repo),
     ],
@@ -169,13 +170,13 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Chỉnh sửa hồ sơ'), findsOneWidget);
-      expect(find.text('Tên hiển thị *'), findsOneWidget);
-      expect(find.text('Mục tiêu thể chất & dinh dưỡng'), findsOneWidget);
+      expect(find.text('TÊN HIỂN THỊ *'), findsOneWidget);
+      expect(find.text('CHỦ ĐỀ QUAN TÂM'), findsOneWidget);
 
       // Toggle goal chip
-      await tester.ensureVisible(find.text('Phục hồi cơ bắp'));
+      await tester.ensureVisible(find.text('Phục hồi'));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Phục hồi cơ bắp'));
+      await tester.tap(find.text('Phục hồi'));
       await tester.pumpAndSettle();
 
       // Tap Save
@@ -252,6 +253,11 @@ void main() {
       final deleteBtn = find.byIcon(Icons.delete_outline_rounded);
       expect(deleteBtn, findsOneWidget);
       await tester.tap(deleteBtn);
+      await tester.pumpAndSettle();
+
+      // Confirm in R13 delete dialog
+      expect(find.text('Xóa bản nháp này?'), findsOneWidget);
+      await tester.tap(find.text('Xóa bản nháp'));
       await tester.pumpAndSettle();
 
       expect(find.text('Chưa có bản nháp nào'), findsOneWidget);

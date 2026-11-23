@@ -152,12 +152,12 @@ class CommunityMediaPublishMongoTest(unittest.TestCase):
         res_empty = self.client.post("/api/community/media/upload", headers=self.auth[self.a], files=empty_files)
         self.assertEqual(res_empty.status_code, 400)
 
-        # 4. Multi-photo reject (Slice constraint: single photo only)
+        # 4. Multi-photo reject when exceeding maximum 10 photos
         key = uuid.uuid4().hex
         multi_body = {
             "type": "photo",
-            "content": "Multiple photos attempt",
-            "photo_urls": ["/static/community/img1.jpg", "/static/community/img2.jpg"],
+            "content": "Too many photos attempt",
+            "photo_urls": [f"/static/community/img{i}.jpg" for i in range(1, 12)],
             "privacy": "public",
             "topic": "#TậpLuyện",
         }

@@ -5,18 +5,32 @@ import '../screens/home/tokens/saman_home_tokens.dart';
 /// Presentation tokens for Nutrition only; the app theme is never replaced.
 @immutable
 class NutritionHomeStyle extends ThemeExtension<NutritionHomeStyle> {
-  const NutritionHomeStyle();
-  Color get canvas => SamanHomeTokens.canvas;
-  Color get surface => SamanHomeTokens.cardSurface;
-  Color get border => SamanHomeTokens.border;
-  Color get muted => const Color(0xFFADB1BA);
-  Color get ink => SamanHomeTokens.textPrimary;
-  Color get accent => SamanHomeTokens.greenAccent;
-  Color get onAccent => const Color(0xFF061B14);
-  Color get carbs => SamanHomeTokens.carbsAmber;
-  Color get fat => SamanHomeTokens.fatViolet;
-  Color get track => SamanHomeTokens.progressTrack;
-  Color get heroShadow => const Color(0xF20C0D0E);
+  const NutritionHomeStyle({this.brightness = Brightness.dark});
+
+  final Brightness brightness;
+
+  bool get isDark => brightness == Brightness.dark;
+
+  Color get canvas => isDark ? SamanHomeTokens.canvas : const Color(0xFFF8FAFC);
+  Color get surface =>
+      isDark ? SamanHomeTokens.cardSurface : const Color(0xFFFFFFFF);
+  Color get border => isDark ? SamanHomeTokens.border : const Color(0xFFE2E8F0);
+  Color get muted =>
+      isDark ? const Color(0xFFADB1BA) : const Color(0xFF475569);
+  Color get ink =>
+      isDark ? SamanHomeTokens.textPrimary : const Color(0xFF0F172A);
+  Color get accent =>
+      isDark ? SamanHomeTokens.greenAccent : const Color(0xFF059669);
+  Color get onAccent =>
+      isDark ? const Color(0xFF061B14) : const Color(0xFFFFFFFF);
+  Color get carbs =>
+      isDark ? SamanHomeTokens.carbsAmber : const Color(0xFFD97706);
+  Color get fat =>
+      isDark ? SamanHomeTokens.fatViolet : const Color(0xFFE11D48);
+  Color get track =>
+      isDark ? SamanHomeTokens.progressTrack : const Color(0xFFE2E8F0);
+  Color get heroShadow =>
+      isDark ? const Color(0xF20C0D0E) : const Color(0xF2F8FAFC);
   BorderRadius get cardRadius => BorderRadius.circular(16);
   BorderRadius get imageRadius => BorderRadius.circular(12);
   BorderRadius get pillRadius => BorderRadius.circular(999);
@@ -60,10 +74,14 @@ class NutritionHomeStyle extends ThemeExtension<NutritionHomeStyle> {
   }
 
   @override
-  NutritionHomeStyle copyWith() => this;
-  // Fixed Nutrition identity; no theme transition is introduced by this scope.
+  NutritionHomeStyle copyWith({Brightness? brightness}) =>
+      NutritionHomeStyle(brightness: brightness ?? this.brightness);
+
   @override
-  NutritionHomeStyle lerp(NutritionHomeStyle? other, double t) => this;
+  NutritionHomeStyle lerp(NutritionHomeStyle? other, double t) {
+    if (other is! NutritionHomeStyle) return this;
+    return t < 0.5 ? this : other;
+  }
 }
 
 class NutritionHomeTheme extends StatelessWidget {
@@ -76,7 +94,7 @@ class NutritionHomeTheme extends StatelessWidget {
               .extensions
               .values
               .where((e) => e is! NutritionHomeStyle),
-          const NutritionHomeStyle(),
+          NutritionHomeStyle(brightness: Theme.of(context).brightness),
         ]),
         child: child,
       );

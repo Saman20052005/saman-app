@@ -10,25 +10,26 @@ class CommunitySavedScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final tokens = SamanHomeTokens.of(context);
     final state = ref.watch(communitySavedProvider);
     final notifier = ref.read(communitySavedProvider.notifier);
 
     return Scaffold(
-      backgroundColor: const Color(0xFF121314),
+      backgroundColor: tokens.canvas,
       body: SafeArea(
         child: Column(
           children: [
-            _buildAppBar(context, state.posts.length),
+            _buildAppBar(context, state.posts.length, tokens),
             Expanded(
               child: state.isLoading
-                  ? const Center(
+                  ? Center(
                       child: CircularProgressIndicator(
-                        color: SamanHomeTokens.greenAccent,
+                        color: tokens.greenAccent,
                       ),
                     )
                   : state.posts.isEmpty
-                      ? _buildEmptyState()
-                      : _buildSavedList(context, state.posts, notifier),
+                      ? _buildEmptyState(tokens)
+                      : _buildSavedList(context, state.posts, notifier, tokens),
             ),
           ],
         ),
@@ -36,21 +37,25 @@ class CommunitySavedScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildAppBar(BuildContext context, int count) {
+  Widget _buildAppBar(
+    BuildContext context,
+    int count,
+    SamanHomePalette tokens,
+  ) {
     return Container(
       height: 52,
       padding: const EdgeInsets.symmetric(horizontal: 16),
-      decoration: const BoxDecoration(
-        color: Color(0xFF121314),
-        border: Border(bottom: BorderSide(color: Color(0xFF1F2021), width: 1)),
+      decoration: BoxDecoration(
+        color: tokens.canvas,
+        border: Border(bottom: BorderSide(color: tokens.border, width: 1)),
       ),
       child: Row(
         children: [
           IconButton(
             onPressed: () => Navigator.pop(context),
-            icon: const Icon(
+            icon: Icon(
               Icons.arrow_back_rounded,
-              color: SamanHomeTokens.textWhite,
+              color: tokens.textPrimary,
               size: 22,
             ),
           ),
@@ -59,14 +64,14 @@ class CommunitySavedScreen extends ConsumerWidget {
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Flexible(
+                Flexible(
                   child: Text(
                     'Bài viết đã lưu',
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w700,
-                      color: SamanHomeTokens.textWhite,
+                      color: tokens.textPrimary,
                     ),
                   ),
                 ),
@@ -74,16 +79,16 @@ class CommunitySavedScreen extends ConsumerWidget {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF1E1F21),
+                    color: tokens.cardSurface,
                     borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: const Color(0xFF2E3033)),
+                    border: Border.all(color: tokens.border),
                   ),
                   child: Text(
                     '$count',
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 11,
                       fontWeight: FontWeight.w700,
-                      color: Color(0xFFBBCAAF),
+                      color: tokens.textSecondary,
                     ),
                   ),
                 ),
@@ -95,7 +100,7 @@ class CommunitySavedScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildEmptyState() {
+  Widget _buildEmptyState(SamanHomePalette tokens) {
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(32),
@@ -105,32 +110,32 @@ class CommunitySavedScreen extends ConsumerWidget {
             Container(
               width: 64,
               height: 64,
-              decoration: const BoxDecoration(
+              decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: Color(0xFF1E1F21),
+                color: tokens.cardSurface,
               ),
-              child: const Icon(
+              child: Icon(
                 Icons.bookmark_border_rounded,
                 size: 32,
-                color: Color(0xFFBBCAAF),
+                color: tokens.textSecondary,
               ),
             ),
             const SizedBox(height: 16),
-            const Text(
+            Text(
               'Chưa có bài viết nào được lưu',
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w700,
-                color: SamanHomeTokens.textWhite,
+                color: tokens.textPrimary,
               ),
             ),
             const SizedBox(height: 6),
-            const Text(
+            Text(
               'Nhấn vào biểu tượng dấu trang ở bất kỳ bài viết nào để lưu lại xem sau.',
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 13,
-                color: Color(0xFF71767B),
+                color: tokens.textMuted,
                 height: 1.4,
               ),
             ),
@@ -144,6 +149,7 @@ class CommunitySavedScreen extends ConsumerWidget {
     BuildContext context,
     List<CommunityPost> posts,
     CommunitySavedNotifier notifier,
+    SamanHomePalette tokens,
   ) {
     return ListView.separated(
       padding: const EdgeInsets.all(16),
@@ -167,9 +173,9 @@ class CommunitySavedScreen extends ConsumerWidget {
           child: Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: const Color(0xFF1E1F21),
+              color: tokens.cardSurface,
               borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: const Color(0xFF292A2B)),
+              border: Border.all(color: tokens.border),
             ),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -183,10 +189,10 @@ class CommunitySavedScreen extends ConsumerWidget {
                       img,
                       fit: BoxFit.cover,
                       errorBuilder: (_, __, ___) => Container(
-                        color: const Color(0xFF292A2B),
-                        child: const Icon(
+                        color: tokens.secondarySurface,
+                        child: Icon(
                           Icons.image_not_supported_outlined,
-                          color: Color(0xFF55585C),
+                          color: tokens.textMuted,
                           size: 24,
                         ),
                       ),
@@ -205,10 +211,10 @@ class CommunitySavedScreen extends ConsumerWidget {
                             child: Text(
                               post.author.name,
                               overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 13,
                                 fontWeight: FontWeight.w600,
-                                color: SamanHomeTokens.textWhite,
+                                color: tokens.textPrimary,
                               ),
                             ),
                           ),
@@ -219,12 +225,15 @@ class CommunitySavedScreen extends ConsumerWidget {
                                 if (context.mounted) {
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     SnackBar(
-                                      content: const Text('Đã bỏ lưu bài viết.'),
-                                      backgroundColor: const Color(0xFF1F2021),
+                                      content: Text(
+                                        'Đã bỏ lưu bài viết.',
+                                        style: TextStyle(color: tokens.textPrimary),
+                                      ),
+                                      backgroundColor: tokens.cardSurface,
                                       duration: const Duration(seconds: 3),
                                       action: SnackBarAction(
                                         label: 'Hoàn tác',
-                                        textColor: SamanHomeTokens.greenAccent,
+                                        textColor: tokens.greenAccent,
                                         onPressed: () => notifier.restore(post),
                                       ),
                                     ),
@@ -241,10 +250,10 @@ class CommunitySavedScreen extends ConsumerWidget {
                                 }
                               }
                             },
-                            icon: const Icon(
+                            icon: Icon(
                               Icons.bookmark_rounded,
                               size: 20,
-                              color: SamanHomeTokens.greenAccent,
+                              color: tokens.greenAccent,
                             ),
                             padding: EdgeInsets.zero,
                             constraints: const BoxConstraints(),
@@ -260,18 +269,18 @@ class CommunitySavedScreen extends ConsumerWidget {
                                 'Bài viết chia sẻ'),
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 12,
-                          color: Color(0xFFBBCAAF),
+                          color: tokens.textSecondary,
                           height: 1.3,
                         ),
                       ),
                       const SizedBox(height: 6),
                       Text(
                         '${post.likeCount} thích • ${post.commentCount} bình luận',
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 11,
-                          color: Color(0xFF71767B),
+                          color: tokens.textMuted,
                         ),
                       ),
                     ],

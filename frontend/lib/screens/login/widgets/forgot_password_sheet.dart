@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fluttertoast/fluttertoast.dart';
+
+import '../../../config/app_theme.dart';
+import '../../../config/app_translations.dart';
 import '../login_controller.dart';
 
 class ForgotPasswordSheet extends ConsumerStatefulWidget {
@@ -32,10 +35,21 @@ class _ForgotPasswordSheetState extends ConsumerState<ForgotPasswordSheet> {
   }
 
   // --- LOGIC GỌI QUA CONTROLLER ---
+  void _showNeutralToast(String msg) {
+    final palette = SamanPalette.of(context);
+    try {
+      Fluttertoast.showToast(
+        msg: msg,
+        backgroundColor: palette.surfaceElevated,
+        textColor: palette.textPrimary,
+      );
+    } catch (_) {}
+  }
+
   Future<void> _handleSendOtp() async {
     final email = _emailCtrl.text.trim();
     if (email.isEmpty || !email.contains('@')) {
-      Fluttertoast.showToast(msg: "Please enter a valid email");
+      _showNeutralToast(context.tr('enter_valid_email'));
       return;
     }
 
@@ -48,13 +62,13 @@ class _ForgotPasswordSheetState extends ConsumerState<ForgotPasswordSheet> {
     if (mounted) {
       setState(() => _isLoading = false);
       if (success) {
-        Fluttertoast.showToast(msg: "OTP sent! Check your email.");
+        _showNeutralToast(context.tr('otp_sent_check_email'));
         setState(() => _step = 2);
       } else {
         // Lỗi đã được handle trong controller hoặc hiển thị qua state listener ở màn hình cha
         // Tuy nhiên ở Sheet này ta check trực tiếp kết quả trả về
         final error = ref.read(loginControllerProvider).errorMessage;
-        if (error != null) Fluttertoast.showToast(msg: error);
+        if (error != null) _showNeutralToast(error);
       }
     }
   }
@@ -64,15 +78,15 @@ class _ForgotPasswordSheetState extends ConsumerState<ForgotPasswordSheet> {
     final newPass = _newPassCtrl.text;
 
     if (otp.length != 6) {
-      Fluttertoast.showToast(msg: "Invalid OTP (6 digits)");
+      _showNeutralToast(context.tr('invalid_otp'));
       return;
     }
     if (newPass.length < 6) {
-      Fluttertoast.showToast(msg: "Password min 6 chars");
+      _showNeutralToast(context.tr('password_min_chars'));
       return;
     }
     if (newPass != _confirmPassCtrl.text) {
-      Fluttertoast.showToast(msg: "Passwords mismatch");
+      _showNeutralToast(context.tr('passwords_mismatch'));
       return;
     }
 
@@ -90,22 +104,25 @@ class _ForgotPasswordSheetState extends ConsumerState<ForgotPasswordSheet> {
         // Toast thành công sẽ được kích hoạt bởi Listener bên LoginScreen
       } else {
         final error = ref.read(loginControllerProvider).errorMessage;
-        if (error != null) Fluttertoast.showToast(msg: error);
+        if (error != null) _showNeutralToast(error);
       }
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final palette = SamanPalette.of(context);
+
     // Để tránh bàn phím che mất nút
     return Padding(
       padding:
-          EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+          EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),
       child: Container(
-        padding: const EdgeInsets.all(24),
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        padding: const EdgeInsets.all(AppSpacing.xl),
+        decoration: BoxDecoration(
+          color: palette.surface,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+          border: Border(top: BorderSide(color: palette.border)),
         ),
         child: SingleChildScrollView(
           child: Column(
@@ -113,50 +130,82 @@ class _ForgotPasswordSheetState extends ConsumerState<ForgotPasswordSheet> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Center(
-                  child: Container(
-                      width: 40,
-                      height: 4,
-                      decoration: BoxDecoration(
-                          color: Colors.grey.shade300,
-                          borderRadius: BorderRadius.circular(2)))),
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: palette.border,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
               const SizedBox(height: 20),
               Text(
-                _step == 1 ? "Password Recovery" : "Reset Password",
-                style: const TextStyle(
-                    fontSize: 22,
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xFF1E1E1E)),
+                _step == 1
+                    ? context.tr('password_recovery_title')
+                    : context.tr('reset_password_title'),
+                style: TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
+                  color: palette.textPrimary,
+                ),
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: AppSpacing.sm),
               Text(
                 _step == 1
-                    ? "Enter your email to receive a verification code."
-                    : "Enter the OTP sent to your email and set a new password.",
-                style: TextStyle(color: Colors.grey.shade600, fontSize: 14),
+                    ? context.tr('enter_email_verification_code')
+                    : context.tr('enter_otp_and_new_password'),
+                style: TextStyle(color: palette.textSecondary, fontSize: 14),
               ),
-              const SizedBox(height: 24),
+              const SizedBox(height: AppSpacing.xl),
               if (_step == 1) ...[
-                _buildTextField(
-                    _emailCtrl, "Email Address", Icons.email_outlined),
-                const SizedBox(height: 24),
-                _buildButton("Send OTP", _handleSendOtp),
+                _SheetTextField(
+                  controller: _emailCtrl,
+                  hint: context.tr('email_address_hint'),
+                  icon: Icons.email_outlined,
+                  palette: palette,
+                ),
+                const SizedBox(height: AppSpacing.xl),
+                _SheetSubmitButton(
+                  text: context.tr('send_otp_btn'),
+                  isLoading: _isLoading,
+                  palette: palette,
+                  onPressed: _handleSendOtp,
+                ),
               ] else ...[
-                _buildTextField(
-                    _otpCtrl, "OTP Code (6 digits)", Icons.vpn_key_outlined,
-                    keyboard: TextInputType.number),
-                const SizedBox(height: 16),
-                _buildTextField(
-                    _newPassCtrl, "New Password", Icons.lock_outline,
-                    obscure: _obscureNew,
-                    onToggle: () => setState(() => _obscureNew = !_obscureNew)),
-                const SizedBox(height: 16),
-                _buildTextField(_confirmPassCtrl, "Confirm New Password",
-                    Icons.check_circle_outline,
-                    obscure: _obscureConfirm,
-                    onToggle: () =>
-                        setState(() => _obscureConfirm = !_obscureConfirm)),
-                const SizedBox(height: 24),
-                _buildButton("Reset Password", _handleResetPassword),
+                _SheetTextField(
+                  controller: _otpCtrl,
+                  hint: context.tr('otp_code_hint'),
+                  icon: Icons.vpn_key_outlined,
+                  keyboard: TextInputType.number,
+                  palette: palette,
+                ),
+                const SizedBox(height: AppSpacing.lg),
+                _SheetTextField(
+                  controller: _newPassCtrl,
+                  hint: context.tr('new_pass'),
+                  icon: Icons.lock_outline,
+                  obscure: _obscureNew,
+                  palette: palette,
+                  onToggle: () => setState(() => _obscureNew = !_obscureNew),
+                ),
+                const SizedBox(height: AppSpacing.lg),
+                _SheetTextField(
+                  controller: _confirmPassCtrl,
+                  hint: context.tr('confirm_pass'),
+                  icon: Icons.check_circle_outline,
+                  obscure: _obscureConfirm,
+                  palette: palette,
+                  onToggle: () =>
+                      setState(() => _obscureConfirm = !_obscureConfirm),
+                ),
+                const SizedBox(height: AppSpacing.xl),
+                _SheetSubmitButton(
+                  text: context.tr('reset_password_btn'),
+                  isLoading: _isLoading,
+                  palette: palette,
+                  onPressed: _handleResetPassword,
+                ),
               ],
               const SizedBox(height: 20),
             ],
@@ -165,57 +214,111 @@ class _ForgotPasswordSheetState extends ConsumerState<ForgotPasswordSheet> {
       ),
     );
   }
+}
 
-  Widget _buildTextField(TextEditingController ctrl, String hint, IconData icon,
-      {bool obscure = false, VoidCallback? onToggle, TextInputType? keyboard}) {
+class _SheetTextField extends StatelessWidget {
+  final TextEditingController controller;
+  final String hint;
+  final IconData icon;
+  final SamanPalette palette;
+  final bool obscure;
+  final VoidCallback? onToggle;
+  final TextInputType? keyboard;
+
+  const _SheetTextField({
+    required this.controller,
+    required this.hint,
+    required this.icon,
+    required this.palette,
+    this.obscure = false,
+    this.onToggle,
+    this.keyboard,
+  });
+
+  @override
+  Widget build(BuildContext context) {
     return TextField(
-      controller: ctrl,
+      controller: controller,
       obscureText: obscure,
       keyboardType: keyboard,
-      style:
-          const TextStyle(color: Colors.black87, fontWeight: FontWeight.w500),
+      style: TextStyle(color: palette.textPrimary, fontWeight: FontWeight.w500),
       decoration: InputDecoration(
         hintText: hint,
-        hintStyle: TextStyle(color: Colors.grey.shade400),
-        prefixIcon: Icon(icon, color: Colors.grey.shade500),
+        hintStyle: TextStyle(color: palette.textMuted),
+        prefixIcon: Icon(icon, color: palette.textSecondary),
         suffixIcon: onToggle != null
             ? IconButton(
-                icon: Icon(obscure ? Icons.visibility_off : Icons.visibility,
-                    color: Colors.grey.shade500),
-                onPressed: onToggle)
+                icon: Icon(
+                  obscure ? Icons.visibility_off : Icons.visibility,
+                  color: palette.textSecondary,
+                ),
+                onPressed: onToggle,
+              )
             : null,
         filled: true,
-        fillColor: Colors.grey.shade100,
+        fillColor: palette.surfaceElevated,
         border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: BorderSide.none),
+          borderRadius: BorderRadius.circular(AppRadius.md),
+          borderSide: BorderSide(color: palette.border),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(AppRadius.md),
+          borderSide: BorderSide(color: palette.border),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(AppRadius.md),
+          borderSide: BorderSide(color: palette.primaryCtaBg, width: 1.5),
+        ),
         contentPadding: const EdgeInsets.symmetric(vertical: 16),
       ),
     );
   }
+}
 
-  Widget _buildButton(String text, VoidCallback onPressed) {
+class _SheetSubmitButton extends StatelessWidget {
+  final String text;
+  final bool isLoading;
+  final SamanPalette palette;
+  final VoidCallback onPressed;
+
+  const _SheetSubmitButton({
+    required this.text,
+    required this.isLoading,
+    required this.palette,
+    required this.onPressed,
+  });
+
+  @override
+  Widget build(BuildContext context) {
     return SizedBox(
       width: double.infinity,
       height: 52,
       child: ElevatedButton(
-        onPressed: _isLoading ? null : onPressed,
+        onPressed: isLoading ? null : onPressed,
         style: ElevatedButton.styleFrom(
-          backgroundColor: const Color(0xFF1E1E1E),
-          foregroundColor: Colors.white,
+          backgroundColor: palette.primaryCtaBg,
+          foregroundColor: palette.primaryCtaText,
+          disabledBackgroundColor: palette.surfaceElevated,
+          disabledForegroundColor: palette.textMuted,
           elevation: 0,
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(AppRadius.lg),
+          ),
         ),
-        child: _isLoading
-            ? const SizedBox(
+        child: isLoading
+            ? SizedBox(
                 width: 24,
                 height: 24,
                 child: CircularProgressIndicator(
-                    color: Colors.white, strokeWidth: 2))
-            : Text(text,
+                  color: palette.primaryCtaText,
+                  strokeWidth: 2,
+                ),
+              )
+            : Text(
+                text,
                 style:
-                    const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                    const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+              ),
       ),
     );
   }

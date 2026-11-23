@@ -44,6 +44,7 @@ dependencies:
   intl: ^0.19.0 
   dio: ^5.4.0
   image_picker: ^1.1.0
+  mobile_scanner: ^5.2.3
   crypto: ^3.0.3
   
   # --- ADDITIONAL DEPENDENCIES ---
@@ -54,13 +55,22 @@ dependencies:
   flutter_staggered_animations: ^1.1.1
   url_launcher: ^6.2.5
   shimmer: ^2.0.0
+  qr_flutter: ^4.1.0
 
   # --- PAYMENT & IN-APP PURCHASES (CP-07 / REVENUE-R02 / REVENUE-R03) ---
   purchases_flutter: ^9.16.2
 
   equatable: any
+  record: ^6.0.0
+  just_audio: ^0.9.46
+  video_player: ^2.9.5
+  web_socket_channel: ^3.0.3
+  permission_handler: ^11.3.1
+  path_provider: ^2.1.5
 dev_dependencies:
   flutter_test:
+    sdk: flutter
+  integration_test:
     sdk: flutter
   flutter_lints: ^3.0.0
   mocktail: ^1.0.4

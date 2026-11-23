@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:health_ai_app/features/report/domain/entities/weekly_report_entity.dart';
+import '../../../../config/app_theme.dart';
 import 'calories_burned_chart_card.dart';
 
 class ReportActivityTab extends StatelessWidget {
@@ -52,6 +53,20 @@ class ReportActivityTab extends StatelessWidget {
       }
     }
 
+    final p = SamanPalette.of(context);
+    final isDark = p.isDark;
+    final cardBg = isDark ? const Color(0xFF16171A) : p.surface;
+    final borderCol = isDark ? const Color(0xFF26282F) : p.border;
+    final tileBg = isDark ? const Color(0xFF101114) : p.surfaceElevated;
+    final tileBorder = isDark ? const Color(0xFF23252A) : p.border;
+    final headingCol = isDark ? const Color(0xFFD1D5DB) : p.textPrimary;
+    final valueCol = isDark ? Colors.white : p.textPrimary;
+    final subCol = isDark ? const Color(0xFFA1A1AA) : p.textSecondary;
+    final mutedCol = isDark ? const Color(0xFF9CA3AF) : p.textSecondary;
+    final subtleCol = isDark ? const Color(0xFF71717A) : p.textMuted;
+    final emerald = isDark ? const Color(0xFF10B981) : p.accent;
+    final amber = isDark ? const Color(0xFFF59E0B) : p.amber;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -59,9 +74,9 @@ class ReportActivityTab extends StatelessWidget {
         Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: const Color(0xFF16171A),
+            color: cardBg,
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: const Color(0xFF26282F)),
+            border: Border.all(color: borderCol),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -69,7 +84,7 @@ class ReportActivityTab extends StatelessWidget {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Expanded(
+                  Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -79,15 +94,15 @@ class ReportActivityTab extends StatelessWidget {
                             fontSize: 11,
                             fontWeight: FontWeight.w700,
                             letterSpacing: 0.8,
-                            color: Color(0xFFD1D5DB),
+                            color: headingCol,
                           ),
                         ),
-                        SizedBox(height: 2),
+                        const SizedBox(height: 2),
                         Text(
                           'Total recorded burn & completed volume',
                           style: TextStyle(
                             fontSize: 11,
-                            color: Color(0xFFA1A1AA),
+                            color: subCol,
                           ),
                         ),
                       ],
@@ -98,18 +113,18 @@ class ReportActivityTab extends StatelessWidget {
                     padding:
                         const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFF59E0B).withOpacity(0.1),
+                      color: amber.withOpacity(0.1),
                       borderRadius: BorderRadius.circular(999),
                       border: Border.all(
-                        color: const Color(0xFFF59E0B).withOpacity(0.2),
+                        color: amber.withOpacity(0.2),
                       ),
                     ),
                     child: Text(
                       '${report.activeDays} active days',
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 10.5,
                         fontWeight: FontWeight.w600,
-                        color: Color(0xFFF59E0B),
+                        color: amber,
                       ),
                     ),
                   ),
@@ -125,20 +140,20 @@ class ReportActivityTab extends StatelessWidget {
                     child: Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: const Color(0xFF101114),
+                        color: tileBg,
                         borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: const Color(0xFF23252A)),
+                        border: Border.all(color: tileBorder),
                       ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text(
+                          Text(
                             'TOTAL BURNED',
                             style: TextStyle(
                               fontSize: 10,
                               fontWeight: FontWeight.w600,
                               letterSpacing: 0.6,
-                              color: Color(0xFFA1A1AA),
+                              color: subCol,
                             ),
                           ),
                           const SizedBox(height: 6),
@@ -149,20 +164,20 @@ class ReportActivityTab extends StatelessWidget {
                               Text(
                                 NumberFormat('#,###')
                                     .format(report.totalCaloriesBurned.round()),
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontSize: 20,
                                   fontWeight: FontWeight.w700,
                                   letterSpacing: -0.5,
-                                  color: Colors.white,
+                                  color: valueCol,
                                 ),
                               ),
                               const SizedBox(width: 4),
-                              const Flexible(
+                              Flexible(
                                 child: Text(
                                   'kcal',
                                   style: TextStyle(
                                     fontSize: 11.5,
-                                    color: Color(0xFFA1A1AA),
+                                    color: subCol,
                                   ),
                                   overflow: TextOverflow.ellipsis,
                                 ),
@@ -174,9 +189,9 @@ class ReportActivityTab extends StatelessWidget {
                             burnDeltaLabel.isNotEmpty
                                 ? burnDeltaLabel
                                 : 'Target: ${NumberFormat('#,###').format(totalTargetBurn)} kcal',
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 10.5,
-                              color: Color(0xFFF59E0B),
+                              color: amber,
                             ),
                           ),
                         ],
@@ -190,20 +205,20 @@ class ReportActivityTab extends StatelessWidget {
                     child: Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: const Color(0xFF101114),
+                        color: tileBg,
                         borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: const Color(0xFF23252A)),
+                        border: Border.all(color: tileBorder),
                       ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text(
+                          Text(
                             'TRAINING SESSIONS',
                             style: TextStyle(
                               fontSize: 10,
                               fontWeight: FontWeight.w600,
                               letterSpacing: 0.6,
-                              color: Color(0xFFA1A1AA),
+                              color: subCol,
                             ),
                           ),
                           const SizedBox(height: 6),
@@ -213,20 +228,20 @@ class ReportActivityTab extends StatelessWidget {
                             children: [
                               Text(
                                 '${report.workoutSessions.length}',
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontSize: 20,
                                   fontWeight: FontWeight.w700,
                                   letterSpacing: -0.5,
-                                  color: Colors.white,
+                                  color: valueCol,
                                 ),
                               ),
                               const SizedBox(width: 4),
-                              const Flexible(
+                              Flexible(
                                 child: Text(
                                   'sessions',
                                   style: TextStyle(
                                     fontSize: 11.5,
-                                    color: Color(0xFFA1A1AA),
+                                    color: subCol,
                                   ),
                                   overflow: TextOverflow.ellipsis,
                                 ),
@@ -242,8 +257,8 @@ class ReportActivityTab extends StatelessWidget {
                               fontSize: 10.5,
                               fontWeight: FontWeight.w500,
                               color: adherencePct >= 100
-                                  ? const Color(0xFF10B981)
-                                  : const Color(0xFF9CA3AF),
+                                  ? emerald
+                                  : mutedCol,
                             ),
                           ),
                         ],
@@ -272,9 +287,9 @@ class ReportActivityTab extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 4),
           child: Text(
             peakSessionText,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 11.5,
-              color: Color(0xFFA1A1AA),
+              color: subCol,
             ),
           ),
         ),
@@ -284,20 +299,20 @@ class ReportActivityTab extends StatelessWidget {
         Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: const Color(0xFF16171A),
+            color: cardBg,
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: const Color(0xFF26282F)),
+            border: Border.all(color: borderCol),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
+              Text(
                 'LOGGED SESSIONS THIS WEEK',
                 style: TextStyle(
                   fontSize: 11,
                   fontWeight: FontWeight.w700,
                   letterSpacing: 0.8,
-                  color: Color(0xFFD1D5DB),
+                  color: headingCol,
                 ),
               ),
               const SizedBox(height: 12),
@@ -305,11 +320,11 @@ class ReportActivityTab extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   alignment: Alignment.center,
-                  child: const Text(
+                  child: Text(
                     'No completed workout sessions recorded this week.',
                     style: TextStyle(
                       fontSize: 11.5,
-                      color: Color(0xFF71717A),
+                      color: subtleCol,
                     ),
                   ),
                 )
@@ -328,9 +343,9 @@ class ReportActivityTab extends StatelessWidget {
                     return Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: const Color(0xFF101114),
+                        color: tileBg,
                         borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: const Color(0xFF23252A)),
+                        border: Border.all(color: tileBorder),
                       ),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -341,18 +356,18 @@ class ReportActivityTab extends StatelessWidget {
                               children: [
                                 Text(
                                   session.title,
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                     fontSize: 12.5,
                                     fontWeight: FontWeight.w600,
-                                    color: Colors.white,
+                                    color: valueCol,
                                   ),
                                 ),
                                 const SizedBox(height: 3),
                                 Text(
                                   '${session.dayName} · ${session.durationMinutes} min$rpePart',
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                     fontSize: 10.5,
-                                    color: Color(0xFFA1A1AA),
+                                    color: subCol,
                                   ),
                                 ),
                               ],
@@ -360,10 +375,10 @@ class ReportActivityTab extends StatelessWidget {
                           ),
                           Text(
                             '${session.caloriesBurned} kcal',
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 12.5,
                               fontWeight: FontWeight.w700,
-                              color: Color(0xFFF59E0B),
+                              color: amber,
                             ),
                           ),
                         ],

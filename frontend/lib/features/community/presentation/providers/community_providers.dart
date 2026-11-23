@@ -1,7 +1,11 @@
+import 'dart:async';
 import 'dart:math';
 import 'community_composer_provider.dart';
+import 'community_social_providers.dart';
+import 'community_dm_provider.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../../providers/profile_provider.dart';
 import '../../../../services/api_client.dart';
 import '../../domain/models/community_comment.dart';
 import '../../domain/models/community_discover_item.dart';
@@ -15,7 +19,7 @@ import '../../data/datasources/community_remote_datasource.dart';
 import '../../data/repositories/community_repository_impl.dart';
 
 final useRemoteCommunityProvider = StateProvider<bool>((ref) {
-  return const bool.fromEnvironment('USE_REMOTE_COMMUNITY', defaultValue: false);
+  return const bool.fromEnvironment('USE_REMOTE_COMMUNITY', defaultValue: true);
 });
 
 final communityFakeDatasourceProvider = Provider<CommunityFakeDatasource>((ref) {
@@ -30,9 +34,13 @@ final communityRepositoryProvider = Provider<CommunityRepository>((ref) {
   final useRemote = ref.watch(useRemoteCommunityProvider);
   if (useRemote) {
     final remoteDs = ref.watch(communityRemoteDatasourceProvider);
+    final activeUserId = ref.watch(
+      profileProvider.select((s) => s.confirmedUserId),
+    );
     return CommunityRepositoryImpl(
       remoteDatasource: remoteDs,
       useRemote: true,
+      activeUserId: activeUserId,
     );
   }
   final fakeDs = ref.watch(communityFakeDatasourceProvider);
@@ -408,20 +416,61 @@ class CommunityDiscoverState {
 class CommunityDiscoverNotifier extends StateNotifier<CommunityDiscoverState> {
   final CommunityRepository _repository;
   final Ref? _ref;
+  Timer? _debounceTimer;
+  int _requestEpoch = 0;
+  int _generation = 0;
+  final Set<String> _pendingFollowIds = <String>{};
 
   CommunityDiscoverNotifier(this._repository, [this._ref])
       : super(const CommunityDiscoverState()) {
     loadDiscover();
   }
 
-  Future<void> loadDiscover({String topic = 'all'}) async {
-    state = state.copyWith(isLoading: true, activeTopic: topic);
+  @override
+  void dispose() {
+    _debounceTimer?.cancel();
+    super.dispose();
+  }
+
+  void resetForUser(String? userId) {
+    _debounceTimer?.cancel();
+    _generation++;
+    _requestEpoch++;
+    _pendingFollowIds.clear();
+    state = const CommunityDiscoverState();
+  }
+
+  Future<void> loadDiscover({
+    String? topic,
+    String? searchQuery,
+  }) async {
+    final effectiveTopic = topic ?? state.activeTopic;
+    final effectiveQuery = searchQuery ?? state.searchQuery;
+    final requestEpoch = ++_requestEpoch;
+    final currentGen = _generation;
+
+    state = state.copyWith(
+      isLoading: true,
+      activeTopic: effectiveTopic,
+      searchQuery: effectiveQuery,
+    );
     try {
-      final data = await _repository.getDiscoverData(topic: topic);
-      if (!mounted) return;
+      final data = await _repository.getDiscoverData(
+        topic: effectiveTopic,
+        searchQuery: effectiveQuery,
+      );
+      if (!mounted ||
+          currentGen != _generation ||
+          requestEpoch != _requestEpoch) {
+        return;
+      }
       state = state.copyWith(isLoading: false, data: data);
     } catch (e) {
-      if (!mounted) return;
+      if (!mounted ||
+          currentGen != _generation ||
+          requestEpoch != _requestEpoch) {
+        return;
+      }
       state = state.copyWith(
         isLoading: false,
         errorMessage: 'Không thể tải nội dung khám phá',
@@ -431,34 +480,123 @@ class CommunityDiscoverNotifier extends StateNotifier<CommunityDiscoverState> {
 
   Future<void> setTopic(String topic) async {
     if (state.activeTopic == topic && !state.isLoading) return;
-    await loadDiscover(topic: topic);
+    _debounceTimer?.cancel();
+    await loadDiscover(topic: topic, searchQuery: state.searchQuery);
   }
 
   void setSearchQuery(String query) {
     state = state.copyWith(searchQuery: query);
+    _debounceTimer?.cancel();
+    _debounceTimer = Timer(const Duration(milliseconds: 300), () {
+      if (!mounted) return;
+      loadDiscover(topic: state.activeTopic, searchQuery: query);
+    });
   }
 
-  Future<void> toggleFollow(String authorId) async {
-    final newFollow = await _repository.toggleFollow(authorId);
-    if (!mounted) return;
+  Future<void> refresh() async {
+    _debounceTimer?.cancel();
+    await loadDiscover(
+      topic: state.activeTopic,
+      searchQuery: state.searchQuery,
+    );
+  }
+
+  void _updateCreatorFollowState({
+    required String authorId,
+    required bool isFollowing,
+    int? followerCount,
+  }) {
     final updatedCreators = state.data.recommendedCreators.map((c) {
       if (c.id == authorId) {
-        return c.copyWith(isFollowing: newFollow);
+        final nextCount = followerCount ??
+            (isFollowing
+                ? c.followerCount + 1
+                : (c.followerCount > 0 ? c.followerCount - 1 : 0));
+        return c.copyWith(
+          isFollowing: isFollowing,
+          followerCount: nextCount,
+        );
       }
       return c;
     }).toList();
-    final updatedData = CommunityDiscoverData(
-      activeTopic: state.data.activeTopic,
-      topicChips: state.data.topicChips,
-      gridItems: state.data.gridItems,
-      trendingTopics: state.data.trendingTopics,
-      recommendedCreators: updatedCreators,
+    state = state.copyWith(
+      data: CommunityDiscoverData(
+        activeTopic: state.data.activeTopic,
+        topicChips: state.data.topicChips,
+        gridItems: state.data.gridItems,
+        trendingTopics: state.data.trendingTopics,
+        recommendedCreators: updatedCreators,
+      ),
     );
-    state = state.copyWith(data: updatedData);
-    _ref?.read(communityFeedProvider.notifier).updateAuthorFollow(
+  }
+
+  Future<void> toggleFollow(String authorId) async {
+    if (_pendingFollowIds.contains(authorId)) return;
+    _pendingFollowIds.add(authorId);
+
+    final currentGen = _generation;
+    final idx = state.data.recommendedCreators.indexWhere((c) => c.id == authorId);
+    if (idx == -1) {
+      _pendingFollowIds.remove(authorId);
+      return;
+    }
+
+    final originalCreator = state.data.recommendedCreators[idx];
+    final optimisticFollow = !originalCreator.isFollowing;
+    final optimisticCount = optimisticFollow
+        ? originalCreator.followerCount + 1
+        : (originalCreator.followerCount > 0
+            ? originalCreator.followerCount - 1
+            : 0);
+
+    _updateCreatorFollowState(
       authorId: authorId,
-      isFollowing: newFollow,
+      isFollowing: optimisticFollow,
+      followerCount: optimisticCount,
     );
+    _ref?.read(communityFeedProvider.notifier).updateAuthorFollow(
+          authorId: authorId,
+          isFollowing: optimisticFollow,
+          followerCount: optimisticCount,
+        );
+
+    try {
+      final canonicalFollow = await _repository.toggleFollow(authorId);
+      if (!mounted || currentGen != _generation) return;
+      if (canonicalFollow != optimisticFollow) {
+        final reconciledCount = canonicalFollow
+            ? originalCreator.followerCount +
+                (originalCreator.isFollowing ? 0 : 1)
+            : (originalCreator.isFollowing && originalCreator.followerCount > 0
+                ? originalCreator.followerCount - 1
+                : originalCreator.followerCount);
+        _updateCreatorFollowState(
+          authorId: authorId,
+          isFollowing: canonicalFollow,
+          followerCount: reconciledCount,
+        );
+        _ref?.read(communityFeedProvider.notifier).updateAuthorFollow(
+              authorId: authorId,
+              isFollowing: canonicalFollow,
+              followerCount: reconciledCount,
+            );
+      }
+    } catch (e) {
+      if (mounted && currentGen == _generation) {
+        _updateCreatorFollowState(
+          authorId: authorId,
+          isFollowing: originalCreator.isFollowing,
+          followerCount: originalCreator.followerCount,
+        );
+        _ref?.read(communityFeedProvider.notifier).updateAuthorFollow(
+              authorId: authorId,
+              isFollowing: originalCreator.isFollowing,
+              followerCount: originalCreator.followerCount,
+            );
+      }
+    } finally {
+      _pendingFollowIds.remove(authorId);
+    }
   }
 }
 
@@ -1016,11 +1154,27 @@ void resetCommunityStateForUser(WidgetRef ref, [String? userId]) {
   }
   ref.read(communityIdentityRevisionProvider.notifier).state++;
   ref.read(communityFeedProvider.notifier).resetForUser(userId);
+  ref.read(communityDiscoverProvider.notifier).resetForUser(userId);
   ref.read(communitySavedProvider.notifier).resetForUser(userId);
+  ref.read(communityNotificationsProvider.notifier).resetForUser(userId);
+  ref.read(communityDraftsProvider.notifier).resetForUser(userId);
+  ref.invalidate(communityDiscoverProvider);
   ref.invalidate(communityPostDetailProvider);
   ref.invalidate(communityQuestionDetailProvider);
   ref.invalidate(communityComposerProvider);
   ref.invalidate(communityQuestionComposerProvider);
+  ref.invalidate(communityNotificationsProvider);
+  ref.invalidate(communityDraftsProvider);
+  unawaited(ref.read(communityDmWsServiceProvider).disconnect());
+  ref.read(communitySettingsProvider.notifier).resetForUser(userId);
+  ref.read(communityStoriesProvider.notifier).resetForUser(userId);
+  ref.read(communityInboxProvider.notifier).resetForUser(userId);
+  ref.read(communityDmUnreadProvider.notifier).resetForUser(userId);
+  ref.invalidate(communitySettingsProvider);
+  ref.invalidate(communityStoriesProvider);
+  ref.invalidate(communityInboxProvider);
+  ref.invalidate(communityChatThreadProvider);
+  ref.invalidate(communityDmUnreadProvider);
 }
 
 void resetCommunityStateInContainer(ProviderContainer container, [String? userId]) {
@@ -1030,11 +1184,27 @@ void resetCommunityStateInContainer(ProviderContainer container, [String? userId
   }
   container.read(communityIdentityRevisionProvider.notifier).state++;
   container.read(communityFeedProvider.notifier).resetForUser(userId);
+  container.read(communityDiscoverProvider.notifier).resetForUser(userId);
   container.read(communitySavedProvider.notifier).resetForUser(userId);
+  container.read(communityNotificationsProvider.notifier).resetForUser(userId);
+  container.read(communityDraftsProvider.notifier).resetForUser(userId);
+  container.invalidate(communityDiscoverProvider);
   container.invalidate(communityPostDetailProvider);
   container.invalidate(communityQuestionDetailProvider);
   container.invalidate(communityComposerProvider);
   container.invalidate(communityQuestionComposerProvider);
+  container.invalidate(communityNotificationsProvider);
+  container.invalidate(communityDraftsProvider);
+  unawaited(container.read(communityDmWsServiceProvider).disconnect());
+  container.read(communitySettingsProvider.notifier).resetForUser(userId);
+  container.read(communityStoriesProvider.notifier).resetForUser(userId);
+  container.read(communityInboxProvider.notifier).resetForUser(userId);
+  container.read(communityDmUnreadProvider.notifier).resetForUser(userId);
+  container.invalidate(communitySettingsProvider);
+  container.invalidate(communityStoriesProvider);
+  container.invalidate(communityInboxProvider);
+  container.invalidate(communityChatThreadProvider);
+  container.invalidate(communityDmUnreadProvider);
 }
 
 final communitySavedProvider =
@@ -1063,7 +1233,8 @@ class CommunityNotificationsState {
           .where((n) =>
               n.type == CommunityNotificationType.like ||
               n.type == CommunityNotificationType.comment ||
-              n.type == CommunityNotificationType.follow)
+              n.type == CommunityNotificationType.follow ||
+              n.type == CommunityNotificationType.answer)
           .toList();
     } else if (activeFilter == 'system') {
       return allNotifications
@@ -1089,39 +1260,62 @@ class CommunityNotificationsState {
 class CommunityNotificationsNotifier
     extends StateNotifier<CommunityNotificationsState> {
   final CommunityRepository _repository;
+  int _generation = 0;
+
   CommunityNotificationsNotifier(this._repository)
       : super(const CommunityNotificationsState()) {
     loadNotifications();
   }
-  Future<void> loadNotifications() async {
-    state = state.copyWith(isLoading: true);
-    final notifs = await _repository.getNotifications();
-    if (!mounted) return;
-    state = state.copyWith(isLoading: false, allNotifications: notifs);
+
+  void resetForUser(String? userId) {
+    _generation++;
+    state = const CommunityNotificationsState();
   }
+
+  Future<void> loadNotifications() async {
+    final currentGen = _generation;
+    state = state.copyWith(isLoading: true);
+    try {
+      final notifs = await _repository.getNotifications();
+      if (!mounted || currentGen != _generation) return;
+      state = state.copyWith(isLoading: false, allNotifications: notifs);
+    } catch (_) {
+      if (!mounted || currentGen != _generation) return;
+      state = state.copyWith(isLoading: false);
+    }
+  }
+
   void setFilter(String filter) {
     state = state.copyWith(activeFilter: filter);
   }
+
   Future<void> markAsRead(String id) async {
-    await _repository.markNotificationRead(id);
-    if (!mounted) return;
-    final updated = state.allNotifications.map((n) {
+    final currentGen = _generation;
+    final previous = state.allNotifications;
+    final updated = previous.map((n) {
       if (n.id == id) return n.copyWith(isUnread: false);
       return n;
     }).toList();
     state = state.copyWith(allNotifications: updated);
-  }
-  Future<void> markAllAsRead() async {
-    for (final n in state.allNotifications) {
-      if (n.isUnread) {
-        await _repository.markNotificationRead(n.id);
-      }
+    try {
+      await _repository.markNotificationRead(id);
+    } catch (_) {
+      if (!mounted || currentGen != _generation) return;
+      state = state.copyWith(allNotifications: previous);
     }
-    if (!mounted) return;
-    final updated = state.allNotifications
-        .map((n) => n.copyWith(isUnread: false))
-        .toList();
+  }
+
+  Future<void> markAllAsRead() async {
+    final currentGen = _generation;
+    final previous = state.allNotifications;
+    final updated = previous.map((n) => n.copyWith(isUnread: false)).toList();
     state = state.copyWith(allNotifications: updated);
+    try {
+      await _repository.markAllNotificationsRead();
+    } catch (_) {
+      if (!mounted || currentGen != _generation) return;
+      state = state.copyWith(allNotifications: previous);
+    }
   }
 }
 
@@ -1146,22 +1340,49 @@ class CommunityDraftsState {
 
 class CommunityDraftsNotifier extends StateNotifier<CommunityDraftsState> {
   final CommunityRepository _repository;
+  int _generation = 0;
+
   CommunityDraftsNotifier(this._repository)
       : super(const CommunityDraftsState()) {
     loadDrafts();
   }
-  Future<void> loadDrafts() async {
-    state = state.copyWith(isLoading: true);
-    final drafts = await _repository.getDrafts();
-    if (!mounted) return;
-    state = state.copyWith(isLoading: false, drafts: drafts);
+
+  void resetForUser(String? userId) {
+    _generation++;
+    state = const CommunityDraftsState();
   }
+
+  Future<void> loadDrafts() async {
+    final currentGen = _generation;
+    state = state.copyWith(isLoading: true);
+    try {
+      final drafts = await _repository.getDrafts();
+      if (!mounted || currentGen != _generation) return;
+      state = state.copyWith(isLoading: false, drafts: drafts);
+    } catch (_) {
+      if (!mounted || currentGen != _generation) return;
+      state = state.copyWith(isLoading: false);
+    }
+  }
+
+  Future<void> saveDraft(DraftPost draft) async {
+    final currentGen = _generation;
+    await _repository.saveDraft(draft);
+    if (!mounted || currentGen != _generation) return;
+    await loadDrafts();
+  }
+
   Future<void> deleteDraft(String draftId) async {
-    await _repository.deleteDraft(draftId);
-    if (!mounted) return;
-    state = state.copyWith(
-      drafts: state.drafts.where((d) => d.id != draftId).toList(),
-    );
+    final currentGen = _generation;
+    try {
+      await _repository.deleteDraft(draftId);
+      if (!mounted || currentGen != _generation) return;
+      state = state.copyWith(
+        drafts: state.drafts.where((d) => d.id != draftId).toList(),
+      );
+    } catch (_) {
+      // Keep existing list on error
+    }
   }
 }
 

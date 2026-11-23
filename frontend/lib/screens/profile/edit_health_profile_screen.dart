@@ -2,12 +2,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../config/app_theme.dart';
+import '../../config/app_translations.dart';
 import '../../features/profile/domain/entities/onboarding_activity_choice.dart';
 import '../../features/profile/domain/entities/profile_entity.dart';
 import '../../providers/profile_provider.dart';
 import '../../utils/auth_helper.dart';
 import '../login/login_screen.dart';
 import '../../services/unit_converter.dart';
+import '../../widgets/saman_feedback_snackbar.dart';
 
 /// Screen 07 — Edit Profile under Dark Calm Athleticism.
 ///
@@ -318,94 +321,100 @@ class _EditHealthProfileScreenState
     return showDialog<bool>(
       context: context,
       barrierDismissible: false,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: const Color(0xFF16171B),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(24),
-          side: const BorderSide(color: Color(0xFF26282F), width: 1),
-        ),
-        contentPadding: const EdgeInsets.all(24),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 48,
-              height: 48,
-              decoration: BoxDecoration(
-                color: const Color(0xFF212328),
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: const Color(0xFF26282F)),
+      builder: (ctx) {
+        final palette = ctx.samanColors;
+        final textPrimary = palette.isDark ? Colors.white : palette.textPrimary;
+        final keepBg =
+            palette.isDark ? const Color(0xFF212328) : palette.surfaceElevated;
+        return AlertDialog(
+          backgroundColor: palette.surface,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(24),
+            side: BorderSide(color: palette.border, width: 1),
+          ),
+          contentPadding: const EdgeInsets.all(24),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 48,
+                height: 48,
+                decoration: BoxDecoration(
+                  color: keepBg,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: palette.border),
+                ),
+                child: Icon(
+                  Icons.warning_amber_rounded,
+                  color: palette.amber,
+                  size: 24,
+                ),
               ),
-              child: const Icon(
-                Icons.warning_amber_rounded,
-                color: Color(0xFFF59E0B),
-                size: 24,
+              const SizedBox(height: 14),
+              Text(
+                'Discard changes?',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                  color: textPrimary,
+                ),
               ),
-            ),
-            const SizedBox(height: 14),
-            const Text(
-              'Discard changes?',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w700,
-                color: Colors.white,
+              const SizedBox(height: 6),
+              Text(
+                'Your changes haven’t been saved.',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 13,
+                  color: palette.textSecondary,
+                ),
               ),
-            ),
-            const SizedBox(height: 6),
-            const Text(
-              'Your changes haven’t been saved.',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 13,
-                color: Color(0xFF9CA3AF),
-              ),
-            ),
-            const SizedBox(height: 20),
-            SizedBox(
-              width: double.infinity,
-              height: 48,
-              child: ElevatedButton(
-                key: const Key('discard_dialog_keep_editing'),
-                onPressed: () => Navigator.pop(ctx, false),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF212328),
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    side: const BorderSide(color: Color(0xFF26282F)),
+              const SizedBox(height: 20),
+              SizedBox(
+                width: double.infinity,
+                height: 48,
+                child: ElevatedButton(
+                  key: const Key('discard_dialog_keep_editing'),
+                  onPressed: () => Navigator.pop(ctx, false),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: keepBg,
+                    foregroundColor: textPrimary,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      side: BorderSide(color: palette.border),
+                    ),
+                    elevation: 0,
                   ),
-                  elevation: 0,
-                ),
-                child: const Text(
-                  'Keep editing',
-                  style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
-                ),
-              ),
-            ),
-            const SizedBox(height: 8),
-            SizedBox(
-              width: double.infinity,
-              height: 48,
-              child: TextButton(
-                key: const Key('discard_dialog_discard'),
-                onPressed: () => Navigator.pop(ctx, true),
-                style: TextButton.styleFrom(
-                  backgroundColor: const Color(0xFF16171B),
-                  foregroundColor: const Color(0xFF9CA3AF),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    side: const BorderSide(color: Color(0xFF26282F)),
+                  child: const Text(
+                    'Keep editing',
+                    style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
                   ),
                 ),
-                child: const Text(
-                  'Discard changes',
-                  style: TextStyle(fontWeight: FontWeight.w500, fontSize: 13),
+              ),
+              const SizedBox(height: 8),
+              SizedBox(
+                width: double.infinity,
+                height: 48,
+                child: TextButton(
+                  key: const Key('discard_dialog_discard'),
+                  onPressed: () => Navigator.pop(ctx, true),
+                  style: TextButton.styleFrom(
+                    backgroundColor: palette.surface,
+                    foregroundColor: palette.textSecondary,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      side: BorderSide(color: palette.border),
+                    ),
+                  ),
+                  child: const Text(
+                    'Discard changes',
+                    style: TextStyle(fontWeight: FontWeight.w500, fontSize: 13),
+                  ),
                 ),
               ),
-            ),
-          ],
-        ),
-      ),
+            ],
+          ),
+        );
+      },
     );
   }
 
@@ -413,31 +422,40 @@ class _EditHealthProfileScreenState
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: const Color(0xFF16171B),
-        title: const Text('Xác thực thất bại', style: TextStyle(color: Colors.white)),
-        content: const Text(
-          'Chủ tài khoản không khớp với phiên làm việc hiện tại. Vui lòng đăng nhập lại.',
-          style: TextStyle(color: Color(0xFF9CA3AF)),
-        ),
-        actions: [
-          ElevatedButton(
-            onPressed: () async {
-              Navigator.pop(ctx);
-              await AuthHelper.logout(ref);
-              if (mounted) {
-                Navigator.pushAndRemoveUntil(
-                  context,
-                  MaterialPageRoute(builder: (_) => const LoginScreen()),
-                  (route) => false,
-                );
-              }
-            },
-            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFEF4444)),
-            child: const Text('Log out'),
+      builder: (ctx) {
+        final palette = ctx.samanColors;
+        final textPrimary = palette.isDark ? Colors.white : palette.textPrimary;
+        final dangerColor =
+            palette.isDark ? const Color(0xFFEF4444) : palette.danger;
+        return AlertDialog(
+          backgroundColor: palette.surface,
+          title: Text('Xác thực thất bại', style: TextStyle(color: textPrimary)),
+          content: Text(
+            'Chủ tài khoản không khớp với phiên làm việc hiện tại. Vui lòng đăng nhập lại.',
+            style: TextStyle(color: palette.textSecondary),
           ),
-        ],
-      ),
+          actions: [
+            ElevatedButton(
+              onPressed: () async {
+                Navigator.pop(ctx);
+                await AuthHelper.logout(ref);
+                if (mounted) {
+                  Navigator.pushAndRemoveUntil(
+                    context,
+                    MaterialPageRoute(builder: (_) => const LoginScreen()),
+                    (route) => false,
+                  );
+                }
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: dangerColor,
+                foregroundColor: Colors.white,
+              ),
+              child: const Text('Log out'),
+            ),
+          ],
+        );
+      },
     );
   }
 
@@ -452,11 +470,21 @@ class _EditHealthProfileScreenState
       builder: (ctx) {
         return StatefulBuilder(
           builder: (context, setSheetState) {
+            final palette = ctx.samanColors;
+            final sheetBg =
+                palette.isDark ? const Color(0xFF121316) : palette.surface;
+            final handleColor =
+                palette.isDark ? const Color(0xFF52525B) : palette.border;
+            final textPrimary =
+                palette.isDark ? Colors.white : palette.textPrimary;
+            final applyBg =
+                palette.isDark ? const Color(0xFF212328) : palette.accent;
+            final applyFg = palette.isDark ? Colors.white : palette.onAccent;
             return Container(
-              decoration: const BoxDecoration(
-                color: Color(0xFF121316),
-                borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
-                border: Border(top: BorderSide(color: Color(0xFF26282F), width: 1)),
+              decoration: BoxDecoration(
+                color: sheetBg,
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
+                border: Border(top: BorderSide(color: palette.border, width: 1)),
               ),
               padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
               child: SafeArea(
@@ -467,7 +495,7 @@ class _EditHealthProfileScreenState
                       width: 40,
                       height: 4,
                       decoration: BoxDecoration(
-                        color: const Color(0xFF52525B),
+                        color: handleColor,
                         borderRadius: BorderRadius.circular(2),
                       ),
                     ),
@@ -475,16 +503,16 @@ class _EditHealthProfileScreenState
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const Text(
-                          'Choose your goal',
+                        Text(
+                          ctx.tr('choose_your_goal'),
                           style: TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.w700,
-                            color: Colors.white,
+                            color: textPrimary,
                           ),
                         ),
                         IconButton(
-                          icon: const Icon(Icons.close, color: Color(0xFF9CA3AF), size: 18),
+                          icon: Icon(Icons.close, color: palette.textSecondary, size: 18),
                           onPressed: () => Navigator.pop(ctx),
                         ),
                       ],
@@ -493,8 +521,8 @@ class _EditHealthProfileScreenState
                     _buildGoalOptionCard(
                       ctx,
                       goal: Goal.lose_weight,
-                      title: 'Lose weight',
-                      subtitle: 'Work toward a lower body weight.',
+                      title: ctx.tr('lose_weight'),
+                      subtitle: ctx.tr('goal_lose_weight_desc'),
                       asset: 'assets/profile/goal_lose_weight.jpg',
                       keyName: 'enum_lose_weight',
                       isSelected: tempSelection == Goal.lose_weight,
@@ -504,8 +532,8 @@ class _EditHealthProfileScreenState
                     _buildGoalOptionCard(
                       ctx,
                       goal: Goal.maintain_weight,
-                      title: 'Maintain weight',
-                      subtitle: 'Keep your weight steady.',
+                      title: ctx.tr('maintain_weight'),
+                      subtitle: ctx.tr('goal_maintain_weight_desc'),
                       asset: 'assets/profile/goal_maintain_weight.jpg',
                       keyName: 'enum_maintain_weight',
                       isSelected: tempSelection == Goal.maintain_weight,
@@ -515,8 +543,8 @@ class _EditHealthProfileScreenState
                     _buildGoalOptionCard(
                       ctx,
                       goal: Goal.gain_muscle,
-                      title: 'Build muscle',
-                      subtitle: 'Focus on building muscle.',
+                      title: ctx.tr('gain_muscle'),
+                      subtitle: ctx.tr('goal_build_muscle_desc'),
                       asset: 'assets/profile/goal_build_muscle.jpg',
                       keyName: 'enum_gain_muscle',
                       isSelected: tempSelection == Goal.gain_muscle,
@@ -530,15 +558,17 @@ class _EditHealthProfileScreenState
                         key: const Key('goal_sheet_apply_button'),
                         onPressed: () => Navigator.pop(ctx, tempSelection),
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF212328),
-                          foregroundColor: Colors.white,
+                          backgroundColor: applyBg,
+                          foregroundColor: applyFg,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),
-                            side: const BorderSide(color: Color(0xFF26282F)),
+                            side: palette.isDark
+                                ? BorderSide(color: palette.border)
+                                : BorderSide.none,
                           ),
                           elevation: 0,
                         ),
-                        child: const Text('Apply', style: TextStyle(fontWeight: FontWeight.w600)),
+                        child: Text(ctx.tr('apply_btn'), style: const TextStyle(fontWeight: FontWeight.w600)),
                       ),
                     ),
                   ],
@@ -568,6 +598,17 @@ class _EditHealthProfileScreenState
     required bool isSelected,
     required VoidCallback onTap,
   }) {
+    final palette = context.samanColors;
+    final selectedBg =
+        palette.isDark ? const Color(0xFF1C1D22) : palette.surfaceElevated;
+    final cardBg = isSelected ? selectedBg : palette.surface;
+    final selectedBorder =
+        palette.isDark ? const Color(0xFFE5E7EB) : palette.textPrimary;
+    final textPrimary = palette.isDark ? Colors.white : palette.textPrimary;
+    final selectedSubtitle =
+        palette.isDark ? const Color(0xFFD1D5DB) : palette.textPrimary;
+    final radioActive = palette.isDark ? Colors.white : palette.textPrimary;
+
     return InkWell(
       key: Key(keyName),
       onTap: onTap,
@@ -575,10 +616,10 @@ class _EditHealthProfileScreenState
       child: Container(
         constraints: const BoxConstraints(minHeight: 74),
         decoration: BoxDecoration(
-          color: isSelected ? const Color(0xFF1C1D22) : const Color(0xFF16171B),
+          color: cardBg,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: isSelected ? const Color(0xFFE5E7EB) : const Color(0xFF26282F),
+            color: isSelected ? selectedBorder : palette.border,
             width: 1,
           ),
         ),
@@ -597,7 +638,7 @@ class _EditHealthProfileScreenState
                     Image.asset(
                       asset,
                       fit: BoxFit.cover,
-                      opacity: const AlwaysStoppedAnimation(0.25),
+                      opacity: AlwaysStoppedAnimation(palette.isDark ? 0.25 : 0.16),
                       errorBuilder: (_, __, ___) => const SizedBox.shrink(),
                     ),
                     DecoratedBox(
@@ -606,9 +647,8 @@ class _EditHealthProfileScreenState
                           begin: Alignment.centerLeft,
                           end: Alignment.centerRight,
                           colors: [
-                            isSelected ? const Color(0xFF1C1D22) : const Color(0xFF16171B),
-                            (isSelected ? const Color(0xFF1C1D22) : const Color(0xFF16171B))
-                                .withOpacity(0.6),
+                            cardBg,
+                            cardBg.withOpacity(0.6),
                             Colors.transparent,
                           ],
                         ),
@@ -629,10 +669,10 @@ class _EditHealthProfileScreenState
                       children: [
                         Text(
                           title,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 15,
                             fontWeight: FontWeight.w600,
-                            color: Colors.white,
+                            color: textPrimary,
                           ),
                         ),
                         const SizedBox(height: 2),
@@ -640,7 +680,9 @@ class _EditHealthProfileScreenState
                           subtitle,
                           style: TextStyle(
                             fontSize: 12,
-                            color: isSelected ? const Color(0xFFD1D5DB) : const Color(0xFF9CA3AF),
+                            color: isSelected
+                                ? selectedSubtitle
+                                : palette.textSecondary,
                           ),
                         ),
                       ],
@@ -652,7 +694,7 @@ class _EditHealthProfileScreenState
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
                       border: Border.all(
-                        color: isSelected ? Colors.white : const Color(0xFF26282F),
+                        color: isSelected ? radioActive : palette.textMuted,
                         width: 1.5,
                       ),
                     ),
@@ -661,9 +703,9 @@ class _EditHealthProfileScreenState
                             child: Container(
                               width: 8,
                               height: 8,
-                              decoration: const BoxDecoration(
+                              decoration: BoxDecoration(
                                 shape: BoxShape.circle,
-                                color: Colors.white,
+                                color: radioActive,
                               ),
                             ),
                           )
@@ -689,11 +731,30 @@ class _EditHealthProfileScreenState
       builder: (ctx) {
         return StatefulBuilder(
           builder: (context, setSheetState) {
+            final palette = ctx.samanColors;
+            final sheetBg =
+                palette.isDark ? const Color(0xFF121316) : palette.surface;
+            final handleColor =
+                palette.isDark ? const Color(0xFF52525B) : palette.border;
+            final textPrimary =
+                palette.isDark ? Colors.white : palette.textPrimary;
+            final selectedBg =
+                palette.isDark ? const Color(0xFF1C1D22) : palette.surfaceElevated;
+            final selectedBorder =
+                palette.isDark ? const Color(0xFFE5E7EB) : palette.textPrimary;
+            final selectedSubtitle =
+                palette.isDark ? const Color(0xFFD1D5DB) : palette.textPrimary;
+            final radioActive =
+                palette.isDark ? Colors.white : palette.textPrimary;
+            final applyBg =
+                palette.isDark ? const Color(0xFF212328) : palette.accent;
+            final applyFg = palette.isDark ? Colors.white : palette.onAccent;
+
             return Container(
-              decoration: const BoxDecoration(
-                color: Color(0xFF121316),
-                borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
-                border: Border(top: BorderSide(color: Color(0xFF26282F), width: 1)),
+              decoration: BoxDecoration(
+                color: sheetBg,
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
+                border: Border(top: BorderSide(color: palette.border, width: 1)),
               ),
               padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
               child: SafeArea(
@@ -704,7 +765,7 @@ class _EditHealthProfileScreenState
                       width: 40,
                       height: 4,
                       decoration: BoxDecoration(
-                        color: const Color(0xFF52525B),
+                        color: handleColor,
                         borderRadius: BorderRadius.circular(2),
                       ),
                     ),
@@ -712,16 +773,16 @@ class _EditHealthProfileScreenState
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const Text(
-                          'Activity level',
+                        Text(
+                          ctx.tr('activity_level_dialog_title'),
                           style: TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.w700,
-                            color: Colors.white,
+                            color: textPrimary,
                           ),
                         ),
                         IconButton(
-                          icon: const Icon(Icons.close, color: Color(0xFF9CA3AF), size: 18),
+                          icon: Icon(Icons.close, color: palette.textSecondary, size: 18),
                           onPressed: () => Navigator.pop(ctx),
                         ),
                       ],
@@ -748,10 +809,10 @@ class _EditHealthProfileScreenState
                           child: Container(
                             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                             decoration: BoxDecoration(
-                              color: isSelected ? const Color(0xFF1C1D22) : const Color(0xFF16171B),
+                              color: isSelected ? selectedBg : palette.surface,
                               borderRadius: BorderRadius.circular(16),
                               border: Border.all(
-                                color: isSelected ? const Color(0xFFE5E7EB) : const Color(0xFF26282F),
+                                color: isSelected ? selectedBorder : palette.border,
                                 width: 1,
                               ),
                             ),
@@ -763,10 +824,10 @@ class _EditHealthProfileScreenState
                                     children: [
                                       Text(
                                         choice.title,
-                                        style: const TextStyle(
+                                        style: TextStyle(
                                           fontSize: 14,
                                           fontWeight: FontWeight.w600,
-                                          color: Colors.white,
+                                          color: textPrimary,
                                         ),
                                       ),
                                       const SizedBox(height: 2),
@@ -775,8 +836,8 @@ class _EditHealthProfileScreenState
                                         style: TextStyle(
                                           fontSize: 12,
                                           color: isSelected
-                                              ? const Color(0xFFD1D5DB)
-                                              : const Color(0xFF9CA3AF),
+                                              ? selectedSubtitle
+                                              : palette.textSecondary,
                                         ),
                                       ),
                                     ],
@@ -788,7 +849,7 @@ class _EditHealthProfileScreenState
                                   decoration: BoxDecoration(
                                     shape: BoxShape.circle,
                                     border: Border.all(
-                                      color: isSelected ? Colors.white : const Color(0xFF26282F),
+                                      color: isSelected ? radioActive : palette.textMuted,
                                       width: 1.5,
                                     ),
                                   ),
@@ -797,9 +858,9 @@ class _EditHealthProfileScreenState
                                           child: Container(
                                             width: 8,
                                             height: 8,
-                                            decoration: const BoxDecoration(
+                                            decoration: BoxDecoration(
                                               shape: BoxShape.circle,
-                                              color: Colors.white,
+                                              color: radioActive,
                                             ),
                                           ),
                                         )
@@ -819,15 +880,17 @@ class _EditHealthProfileScreenState
                         key: const Key('activity_sheet_apply_button'),
                         onPressed: () => Navigator.pop(ctx, tempSelection),
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF212328),
-                          foregroundColor: Colors.white,
+                          backgroundColor: applyBg,
+                          foregroundColor: applyFg,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),
-                            side: const BorderSide(color: Color(0xFF26282F)),
+                            side: palette.isDark
+                                ? BorderSide(color: palette.border)
+                                : BorderSide.none,
                           ),
                           elevation: 0,
                         ),
-                        child: const Text('Apply', style: TextStyle(fontWeight: FontWeight.w600)),
+                        child: Text(ctx.tr('apply_btn'), style: const TextStyle(fontWeight: FontWeight.w600)),
                       ),
                     ),
                   ],
@@ -894,36 +957,30 @@ class _EditHealthProfileScreenState
       if (!mounted) return;
 
       if (success) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Profile updated'),
-            backgroundColor: Color(0xFF10B981),
-            behavior: SnackBarBehavior.floating,
-          ),
+        SamanFeedbackSnackBar.show(
+          context,
+          message: 'Profile updated',
+          type: FeedbackType.success,
         );
         Navigator.pop(context, true);
       } else {
         setState(() => _isSaving = false);
         final errorMsg = ref.read(profileProvider).errorMessage;
         if (errorMsg != null && errorMsg.isNotEmpty) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(errorMsg),
-              backgroundColor: const Color(0xFFEF4444),
-              behavior: SnackBarBehavior.floating,
-            ),
+          SamanFeedbackSnackBar.show(
+            context,
+            message: errorMsg,
+            type: FeedbackType.error,
           );
         }
       }
     } catch (e) {
       if (!mounted) return;
       setState(() => _isSaving = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Lỗi cập nhật: ${e.toString()}'),
-          backgroundColor: const Color(0xFFEF4444),
-          behavior: SnackBarBehavior.floating,
-        ),
+      SamanFeedbackSnackBar.show(
+        context,
+        message: 'Lỗi cập nhật: ${e.toString()}',
+        type: FeedbackType.error,
       );
     }
   }
@@ -952,12 +1009,10 @@ class _EditHealthProfileScreenState
 
       if (!mounted) return;
       if (success) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Profile updated'),
-            backgroundColor: Color(0xFF10B981),
-            behavior: SnackBarBehavior.floating,
-          ),
+        SamanFeedbackSnackBar.show(
+          context,
+          message: 'Profile updated',
+          type: FeedbackType.success,
         );
         Navigator.pop(context, true);
       } else {
@@ -992,6 +1047,18 @@ class _EditHealthProfileScreenState
 
     final isSaveEnabled =
         _isDirty && _isValid && !isSavingInFlight && !isMismatch;
+    final palette = context.samanColors;
+    final textPrimary = palette.isDark ? Colors.white : palette.textPrimary;
+    final iconBoxBg =
+        palette.isDark ? const Color(0xFF212328) : palette.surfaceElevated;
+    final dangerColor =
+        palette.isDark ? const Color(0xFFEF4444) : palette.danger;
+    final saveDisabledBg =
+        palette.isDark ? const Color(0xFF1E2026) : const Color(0xFFE2E8F0);
+    final saveDisabledFg =
+        palette.isDark ? const Color(0xFF9CA3AF) : const Color(0xFF64748B);
+    final saveDisabledBorder =
+        palette.isDark ? const Color(0xFF383A42) : const Color(0xFFCBD5E1);
 
     return PopScope(
       canPop: false,
@@ -1001,7 +1068,7 @@ class _EditHealthProfileScreenState
         }
       },
       child: Scaffold(
-        backgroundColor: const Color(0xFF0C0D0E),
+        backgroundColor: palette.canvas,
         body: Stack(
           children: [
             // Atmospheric Top-Right Photography Accent
@@ -1018,7 +1085,7 @@ class _EditHealthProfileScreenState
                       'assets/profile/step1_top_bg.jpg',
                       fit: BoxFit.cover,
                       alignment: Alignment.topCenter,
-                      opacity: const AlwaysStoppedAnimation(0.25),
+                      opacity: AlwaysStoppedAnimation(palette.isDark ? 0.25 : 0.14),
                       errorBuilder: (_, __, ___) => const SizedBox.shrink(),
                     ),
                     DecoratedBox(
@@ -1027,8 +1094,8 @@ class _EditHealthProfileScreenState
                           begin: Alignment.centerLeft,
                           end: Alignment.centerRight,
                           colors: [
-                            const Color(0xFF0C0D0E),
-                            const Color(0xFF0C0D0E).withOpacity(0.8),
+                            palette.canvas,
+                            palette.canvas.withOpacity(0.8),
                             Colors.transparent,
                           ],
                         ),
@@ -1040,8 +1107,8 @@ class _EditHealthProfileScreenState
                           begin: Alignment.bottomCenter,
                           end: Alignment.topCenter,
                           colors: [
-                            const Color(0xFF0C0D0E),
-                            const Color(0xFF0C0D0E).withOpacity(0.7),
+                            palette.canvas,
+                            palette.canvas.withOpacity(0.7),
                             Colors.transparent,
                           ],
                         ),
@@ -1072,37 +1139,37 @@ class _EditHealthProfileScreenState
                                 height: 36,
                                 decoration: BoxDecoration(
                                   shape: BoxShape.circle,
-                                  color: const Color(0xFF16171B),
+                                  color: palette.surface,
                                   border: Border.all(
-                                    color: const Color(0xFF26282F),
+                                    color: palette.border,
                                     width: 1,
                                   ),
                                 ),
-                                child: const Icon(
+                                child: Icon(
                                   Icons.arrow_back,
                                   size: 18,
-                                  color: Colors.white,
+                                  color: textPrimary,
                                 ),
                               ),
                             ),
                           ],
                         ),
                         const SizedBox(height: 10),
-                        const Text(
+                        Text(
                           'Edit profile',
                           style: TextStyle(
                             fontSize: 24,
                             fontWeight: FontWeight.w700,
-                            color: Colors.white,
+                            color: textPrimary,
                             letterSpacing: -0.5,
                           ),
                         ),
                         const SizedBox(height: 4),
-                        const Text(
+                        Text(
                           'Update your details when things change.',
                           style: TextStyle(
                             fontSize: 12,
-                            color: Color(0xFF9CA3AF),
+                            color: palette.textSecondary,
                           ),
                         ),
                       ],
@@ -1115,18 +1182,18 @@ class _EditHealthProfileScreenState
                       margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: const Color(0xFF16171B),
+                        color: palette.surface,
                         borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: const Color(0xFFF59E0B)),
+                        border: Border.all(color: palette.amber),
                       ),
-                      child: const Row(
+                      child: Row(
                         children: [
-                          Icon(Icons.sync_problem, color: Color(0xFFF59E0B), size: 18),
-                          SizedBox(width: 8),
+                          Icon(Icons.sync_problem, color: palette.amber, size: 18),
+                          const SizedBox(width: 8),
                           Expanded(
                             child: Text(
                               'Dữ liệu hồ sơ đã được cập nhật từ thiết bị khác. Vui lòng kiểm tra lại.',
-                              style: TextStyle(fontSize: 12, color: Colors.white),
+                              style: TextStyle(fontSize: 12, color: textPrimary),
                             ),
                           ),
                         ],
@@ -1137,30 +1204,30 @@ class _EditHealthProfileScreenState
                       margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: const Color(0xFF16171B),
+                        color: palette.surface,
                         borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: const Color(0xFFF59E0B)),
+                        border: Border.all(color: palette.amber),
                       ),
                       child: Row(
                         children: [
-                          const Icon(Icons.access_time_rounded,
-                              color: Color(0xFFF59E0B), size: 18),
+                          Icon(Icons.access_time_rounded,
+                              color: palette.amber, size: 18),
                           const SizedBox(width: 8),
-                          const Expanded(
+                          Expanded(
                             child: Text(
                               'Your changes were saved. We couldn’t confirm them yet.',
-                              style: TextStyle(fontSize: 12, color: Colors.white),
+                              style: TextStyle(fontSize: 12, color: textPrimary),
                             ),
                           ),
                           TextButton(
                             key: const Key('edit_profile_check_again_button'),
                             onPressed: _checkAgain,
                             style: TextButton.styleFrom(
-                              backgroundColor: const Color(0xFF212328),
-                              foregroundColor: Colors.white,
+                              backgroundColor: iconBoxBg,
+                              foregroundColor: textPrimary,
                               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                             ),
-                            child: const Text('Check again ↺', style: TextStyle(fontSize: 12)),
+                            child: Text(context.tr('check_again'), style: const TextStyle(fontSize: 12)),
                           ),
                         ],
                       ),
@@ -1170,25 +1237,25 @@ class _EditHealthProfileScreenState
                       margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: const Color(0xFF16171B),
+                        color: palette.surface,
                         borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: const Color(0xFFEF4444)),
+                        border: Border.all(color: dangerColor),
                       ),
                       child: Row(
                         children: [
-                          const Icon(Icons.error_outline, color: Color(0xFFEF4444), size: 18),
+                          Icon(Icons.error_outline, color: dangerColor, size: 18),
                           const SizedBox(width: 8),
-                          const Expanded(
+                          Expanded(
                             child: Text(
                               'Xác thực thất bại: Chủ tài khoản không khớp.',
-                              style: TextStyle(fontSize: 12, color: Colors.white),
+                              style: TextStyle(fontSize: 12, color: textPrimary),
                             ),
                           ),
                           TextButton(
                             onPressed: _showIdentityMismatchDialog,
                             style: TextButton.styleFrom(
-                              backgroundColor: const Color(0xFF212328),
-                              foregroundColor: const Color(0xFFEF4444),
+                              backgroundColor: iconBoxBg,
+                              foregroundColor: dangerColor,
                             ),
                             child: const Text('Log out', style: TextStyle(fontSize: 12)),
                           ),
@@ -1212,12 +1279,12 @@ class _EditHealthProfileScreenState
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             // 1. YOUR GOAL
-                            const Text(
-                              'YOUR GOAL',
+                            Text(
+                              context.tr('your_goal'),
                               style: TextStyle(
                                 fontSize: 11,
                                 fontWeight: FontWeight.w600,
-                                color: Color(0xFF9CA3AF),
+                                color: palette.textSecondary,
                                 letterSpacing: 0.8,
                               ),
                             ),
@@ -1230,10 +1297,10 @@ class _EditHealthProfileScreenState
                                 width: double.infinity,
                                 padding: const EdgeInsets.all(16),
                                 decoration: BoxDecoration(
-                                  color: const Color(0xFF16171B),
+                                  color: palette.surface,
                                   borderRadius: BorderRadius.circular(16),
                                   border: Border.all(
-                                    color: const Color(0xFF26282F),
+                                    color: palette.border,
                                     width: 1,
                                   ),
                                 ),
@@ -1243,16 +1310,16 @@ class _EditHealthProfileScreenState
                                       width: 36,
                                       height: 36,
                                       decoration: BoxDecoration(
-                                        color: const Color(0xFF212328),
+                                        color: iconBoxBg,
                                         borderRadius: BorderRadius.circular(10),
                                         border: Border.all(
-                                          color: const Color(0xFF26282F),
+                                          color: palette.border,
                                         ),
                                       ),
-                                      child: const Icon(
+                                      child: Icon(
                                         Icons.fitness_center,
                                         size: 18,
-                                        color: Colors.white,
+                                        color: textPrimary,
                                       ),
                                     ),
                                     const SizedBox(width: 12),
@@ -1264,40 +1331,40 @@ class _EditHealthProfileScreenState
                                           Text(
                                             _selectedGoal != null
                                                 ? (_selectedGoal == Goal.lose_weight
-                                                    ? 'Lose weight'
+                                                    ? context.tr('lose_weight')
                                                     : _selectedGoal ==
                                                             Goal.maintain_weight
-                                                        ? 'Maintain weight'
-                                                        : 'Build muscle')
-                                                : 'Choose your goal',
-                                            style: const TextStyle(
+                                                        ? context.tr('maintain_weight')
+                                                        : context.tr('gain_muscle'))
+                                                : context.tr('choose_your_goal'),
+                                            style: TextStyle(
                                               fontSize: 15,
                                               fontWeight: FontWeight.w600,
-                                              color: Colors.white,
+                                              color: textPrimary,
                                             ),
                                           ),
                                           const SizedBox(height: 2),
                                           Text(
                                             _selectedGoal != null
                                                 ? (_selectedGoal == Goal.lose_weight
-                                                    ? 'Work toward a lower body weight.'
+                                                    ? context.tr('goal_lose_weight_desc')
                                                     : _selectedGoal ==
                                                             Goal.maintain_weight
-                                                        ? 'Keep your weight steady.'
-                                                        : 'Focus on building muscle.')
+                                                        ? context.tr('goal_maintain_weight_desc')
+                                                        : context.tr('goal_build_muscle_desc'))
                                                 : '',
-                                            style: const TextStyle(
+                                            style: TextStyle(
                                               fontSize: 12,
-                                              color: Color(0xFF9CA3AF),
+                                              color: palette.textSecondary,
                                             ),
                                           ),
                                         ],
                                       ),
                                     ),
-                                    const Icon(
+                                    Icon(
                                       Icons.chevron_right,
                                       size: 20,
-                                      color: Color(0xFF9CA3AF),
+                                      color: palette.textSecondary,
                                     ),
                                   ],
                                 ),
@@ -1306,12 +1373,12 @@ class _EditHealthProfileScreenState
                             const SizedBox(height: 24),
 
                             // 2. ABOUT YOU
-                            const Text(
-                              'ABOUT YOU',
+                            Text(
+                              context.tr('section_about_you'),
                               style: TextStyle(
                                 fontSize: 11,
                                 fontWeight: FontWeight.w600,
-                                color: Color(0xFF9CA3AF),
+                                color: palette.textSecondary,
                                 letterSpacing: 0.8,
                               ),
                             ),
@@ -1319,8 +1386,8 @@ class _EditHealthProfileScreenState
 
                             // Age Input Card
                             _buildNumericCard(
-                              label: 'Age',
-                              suffix: 'years',
+                              label: context.tr('age_label'),
+                              suffix: context.tr('unit_years'),
                               controller: _ageController,
                               fieldKey: const Key('edit_profile_age_input'),
                               keyboardType: TextInputType.number,
@@ -1329,12 +1396,12 @@ class _EditHealthProfileScreenState
                             const SizedBox(height: 12),
 
                             // Gender Selection Matrix
-                            const Text(
-                              'Gender',
+                            Text(
+                              context.tr('gender'),
                               style: TextStyle(
                                 fontSize: 12,
                                 fontWeight: FontWeight.w500,
-                                color: Color(0xFF9CA3AF),
+                                color: palette.textSecondary,
                               ),
                             ),
                             const SizedBox(height: 6),
@@ -1343,7 +1410,7 @@ class _EditHealthProfileScreenState
                                 Expanded(
                                   child: _buildGenderCard(
                                     gender: Gender.male,
-                                    label: 'Male',
+                                    label: context.tr('male'),
                                     icon: Icons.male,
                                     keyName: 'enum_male',
                                     isSelected: _selectedGender == Gender.male,
@@ -1353,7 +1420,7 @@ class _EditHealthProfileScreenState
                                 Expanded(
                                   child: _buildGenderCard(
                                     gender: Gender.female,
-                                    label: 'Female',
+                                    label: context.tr('female'),
                                     icon: Icons.female,
                                     keyName: 'enum_female',
                                     isSelected: _selectedGender == Gender.female,
@@ -1364,12 +1431,12 @@ class _EditHealthProfileScreenState
                             const SizedBox(height: 24),
 
                             // 3. BODY MEASUREMENTS
-                            const Text(
-                              'BODY MEASUREMENTS',
+                            Text(
+                              context.tr('section_body_measurements'),
                               style: TextStyle(
                                 fontSize: 11,
                                 fontWeight: FontWeight.w600,
-                                color: Color(0xFF9CA3AF),
+                                color: palette.textSecondary,
                                 letterSpacing: 0.8,
                               ),
                             ),
@@ -1377,7 +1444,7 @@ class _EditHealthProfileScreenState
 
                             // Height Input Card
                             _buildNumericCard(
-                              label: 'Height',
+                              label: context.tr('height_label'),
                               suffix: ref.watch(unitProvider) == UnitSystem.imperial ? 'in' : 'cm',
                               controller: _heightController,
                               fieldKey: const Key('edit_profile_height_input'),
@@ -1389,7 +1456,7 @@ class _EditHealthProfileScreenState
 
                             // Weight Input Card
                             _buildNumericCard(
-                              label: 'Weight',
+                              label: context.tr('weight_label'),
                               suffix: ref.watch(unitProvider) == UnitSystem.imperial ? 'lb' : 'kg',
                               controller: _weightController,
                               fieldKey: const Key('edit_profile_weight_input'),
@@ -1400,12 +1467,12 @@ class _EditHealthProfileScreenState
                             const SizedBox(height: 24),
 
                             // 4. ACTIVITY LEVEL
-                            const Text(
-                              'ACTIVITY LEVEL',
+                            Text(
+                              context.tr('activity_level_heading'),
                               style: TextStyle(
                                 fontSize: 11,
                                 fontWeight: FontWeight.w600,
-                                color: Color(0xFF9CA3AF),
+                                color: palette.textSecondary,
                                 letterSpacing: 0.8,
                               ),
                             ),
@@ -1419,10 +1486,10 @@ class _EditHealthProfileScreenState
                                 width: double.infinity,
                                 padding: const EdgeInsets.all(16),
                                 decoration: BoxDecoration(
-                                  color: const Color(0xFF16171B),
+                                  color: palette.surface,
                                   borderRadius: BorderRadius.circular(16),
                                   border: Border.all(
-                                    color: const Color(0xFF26282F),
+                                    color: palette.border,
                                     width: 1,
                                   ),
                                 ),
@@ -1432,16 +1499,16 @@ class _EditHealthProfileScreenState
                                       width: 36,
                                       height: 36,
                                       decoration: BoxDecoration(
-                                        color: const Color(0xFF212328),
+                                        color: iconBoxBg,
                                         borderRadius: BorderRadius.circular(10),
                                         border: Border.all(
-                                          color: const Color(0xFF26282F),
+                                          color: palette.border,
                                         ),
                                       ),
-                                      child: const Icon(
+                                      child: Icon(
                                         Icons.directions_walk,
                                         size: 18,
-                                        color: Colors.white,
+                                        color: textPrimary,
                                       ),
                                     ),
                                     const SizedBox(width: 12),
@@ -1452,29 +1519,29 @@ class _EditHealthProfileScreenState
                                         children: [
                                           Text(
                                             _selectedActivityChoice?.title ??
-                                                'Select activity level',
-                                            style: const TextStyle(
+                                                context.tr('select_activity_level'),
+                                            style: TextStyle(
                                               fontSize: 15,
                                               fontWeight: FontWeight.w600,
-                                              color: Colors.white,
+                                              color: textPrimary,
                                             ),
                                           ),
                                           const SizedBox(height: 2),
                                           Text(
                                             _selectedActivityChoice?.subtitle ??
                                                 '',
-                                            style: const TextStyle(
+                                            style: TextStyle(
                                               fontSize: 12,
-                                              color: Color(0xFF9CA3AF),
+                                              color: palette.textSecondary,
                                             ),
                                           ),
                                         ],
                                       ),
                                     ),
-                                    const Icon(
+                                    Icon(
                                       Icons.chevron_right,
                                       size: 20,
-                                      color: Color(0xFF9CA3AF),
+                                      color: palette.textSecondary,
                                     ),
                                   ],
                                 ),
@@ -1501,8 +1568,8 @@ class _EditHealthProfileScreenState
                       begin: Alignment.bottomCenter,
                       end: Alignment.topCenter,
                       colors: [
-                        const Color(0xFF0C0D0E),
-                        const Color(0xFF0C0D0E).withOpacity(0.95),
+                        palette.canvas,
+                        palette.canvas.withOpacity(0.95),
                         Colors.transparent,
                       ],
                     ),
@@ -1527,25 +1594,27 @@ class _EditHealthProfileScreenState
                                 _saveChanges();
                               },
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: isSaveEnabled
-                              ? const Color(0xFF212328)
-                              : const Color(0xFF16171B),
-                          foregroundColor: isSaveEnabled
-                              ? Colors.white
-                              : const Color(0xFF6B7280),
+                          backgroundColor:
+                              isSaveEnabled ? palette.accent : saveDisabledBg,
+                          foregroundColor:
+                              isSaveEnabled ? palette.onAccent : saveDisabledFg,
+                          disabledBackgroundColor:
+                              isSaveEnabled ? palette.accent : saveDisabledBg,
+                          disabledForegroundColor:
+                              isSaveEnabled ? palette.onAccent : saveDisabledFg,
                           elevation: isSaveEnabled ? 4 : 0,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),
-                            side: BorderSide(
-                              color: isSaveEnabled
-                                  ? const Color(0xFF26282F)
-                                  : const Color(0xFF26282F).withOpacity(0.5),
-                              width: 1,
-                            ),
+                            side: isSaveEnabled
+                                ? BorderSide.none
+                                : BorderSide(
+                                    color: saveDisabledBorder,
+                                    width: 1,
+                                  ),
                           ),
                         ),
                         child: isSavingInFlight
-                            ? const Row(
+                            ? Row(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
                                   SizedBox(
@@ -1553,11 +1622,11 @@ class _EditHealthProfileScreenState
                                     height: 16,
                                     child: CircularProgressIndicator(
                                       strokeWidth: 2,
-                                      color: Colors.white,
+                                      color: palette.onAccent,
                                     ),
                                   ),
-                                  SizedBox(width: 10),
-                                  Text(
+                                  const SizedBox(width: 10),
+                                  const Text(
                                     'Saving…',
                                     style: TextStyle(
                                       fontSize: 14,
@@ -1566,9 +1635,9 @@ class _EditHealthProfileScreenState
                                   ),
                                 ],
                               )
-                            : const Text(
-                                'Save changes',
-                                style: TextStyle(
+                            : Text(
+                                context.tr('save_changes'),
+                                style: const TextStyle(
                                   fontSize: 14,
                                   fontWeight: FontWeight.w600,
                                   letterSpacing: 0.2,
@@ -1593,16 +1662,17 @@ class _EditHealthProfileScreenState
     required TextInputType keyboardType,
     String? errorText,
   }) {
+    final palette = context.samanColors;
+    final dangerColor =
+        palette.isDark ? const Color(0xFFEF4444) : palette.danger;
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
       decoration: BoxDecoration(
-        color: const Color(0xFF16171B),
+        color: palette.surface,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: errorText != null
-              ? const Color(0xFFEF4444)
-              : const Color(0xFF26282F),
+          color: errorText != null ? dangerColor : palette.border,
           width: 1,
         ),
       ),
@@ -1611,10 +1681,10 @@ class _EditHealthProfileScreenState
         children: [
           Text(
             label,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w500,
-              color: Color(0xFF9CA3AF),
+              color: palette.textSecondary,
             ),
           ),
           const SizedBox(height: 2),
@@ -1627,14 +1697,14 @@ class _EditHealthProfileScreenState
                   key: fieldKey,
                   controller: controller,
                   keyboardType: keyboardType,
-                  cursorColor: const Color(0xFFF9FAFB),
-                  style: const TextStyle(
+                  cursorColor: palette.textPrimary,
+                  style: TextStyle(
                     fontSize: 30,
                     fontWeight: FontWeight.w600,
-                    color: Color(0xFFF9FAFB),
-                    fontFeatures: [FontFeature.tabularFigures()],
+                    color: palette.textPrimary,
+                    fontFeatures: const [FontFeature.tabularFigures()],
                   ),
-                  decoration: const InputDecoration(
+                  decoration: InputDecoration(
                     filled: true,
                     fillColor: Colors.transparent,
                     hoverColor: Colors.transparent,
@@ -1650,7 +1720,7 @@ class _EditHealthProfileScreenState
                     hintStyle: TextStyle(
                       fontSize: 30,
                       fontWeight: FontWeight.w600,
-                      color: Color(0xFF9CA3AF),
+                      color: palette.textSecondary,
                     ),
                   ),
                   onTap: () => _hasUserInteracted = true,
@@ -1660,10 +1730,10 @@ class _EditHealthProfileScreenState
               const SizedBox(width: 8),
               Text(
                 suffix,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w500,
-                  color: Color(0xFF9CA3AF),
+                  color: palette.textSecondary,
                 ),
               ),
             ],
@@ -1672,9 +1742,9 @@ class _EditHealthProfileScreenState
             const SizedBox(height: 4),
             Text(
               errorText,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 11,
-                color: Color(0xFFEF4444),
+                color: dangerColor,
               ),
             ),
           ],
@@ -1690,6 +1760,15 @@ class _EditHealthProfileScreenState
     required String keyName,
     required bool isSelected,
   }) {
+    final palette = context.samanColors;
+    final selectedBg =
+        palette.isDark ? const Color(0xFF1C1D22) : palette.surfaceElevated;
+    final selectedBorder =
+        palette.isDark ? const Color(0xFFE5E7EB) : palette.textPrimary;
+    final activeColor = palette.isDark ? Colors.white : palette.textPrimary;
+    final unselectedLabel =
+        palette.isDark ? const Color(0xFFD1D5DB) : palette.textSecondary;
+
     return InkWell(
       key: Key(keyName),
       onTap: () {
@@ -1703,10 +1782,10 @@ class _EditHealthProfileScreenState
         height: 110,
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color: isSelected ? const Color(0xFF1C1D22) : const Color(0xFF16171B),
+          color: isSelected ? selectedBg : palette.surface,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: isSelected ? const Color(0xFFE5E7EB) : const Color(0xFF26282F),
+            color: isSelected ? selectedBorder : palette.border,
             width: 1,
           ),
         ),
@@ -1720,7 +1799,7 @@ class _EditHealthProfileScreenState
                 Icon(
                   icon,
                   size: 22,
-                  color: isSelected ? Colors.white : const Color(0xFF9CA3AF),
+                  color: isSelected ? activeColor : palette.textSecondary,
                 ),
                 Container(
                   width: 16,
@@ -1728,8 +1807,8 @@ class _EditHealthProfileScreenState
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     border: Border.all(
-                      color: isSelected ? Colors.white : const Color(0xFF26282F),
-                      width: 1,
+                      color: isSelected ? activeColor : palette.textMuted,
+                      width: 1.5,
                     ),
                   ),
                   child: isSelected
@@ -1737,9 +1816,9 @@ class _EditHealthProfileScreenState
                           child: Container(
                             width: 8,
                             height: 8,
-                            decoration: const BoxDecoration(
+                            decoration: BoxDecoration(
                               shape: BoxShape.circle,
-                              color: Colors.white,
+                              color: activeColor,
                             ),
                           ),
                         )
@@ -1752,7 +1831,7 @@ class _EditHealthProfileScreenState
               style: TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w500,
-                color: isSelected ? Colors.white : const Color(0xFFD1D5DB),
+                color: isSelected ? activeColor : unselectedLabel,
               ),
             ),
           ],

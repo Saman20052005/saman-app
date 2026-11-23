@@ -110,6 +110,7 @@ class MembershipPlan {
   final String name;
   final String subtitle;
   final String heroDescription;
+  final String currency;
   final int monthlyPrice;
   final int yearlyPrice;
   final int yearlyEquivalentMonthlyPrice;
@@ -131,6 +132,7 @@ class MembershipPlan {
     required this.name,
     required this.subtitle,
     required this.heroDescription,
+    this.currency = 'VND',
     required this.monthlyPrice,
     required this.yearlyPrice,
     required this.yearlyEquivalentMonthlyPrice,
@@ -153,6 +155,7 @@ class MembershipPlan {
     String? name,
     String? subtitle,
     String? heroDescription,
+    String? currency,
     int? monthlyPrice,
     int? yearlyPrice,
     int? yearlyEquivalentMonthlyPrice,
@@ -174,6 +177,7 @@ class MembershipPlan {
       name: name ?? this.name,
       subtitle: subtitle ?? this.subtitle,
       heroDescription: heroDescription ?? this.heroDescription,
+      currency: currency ?? this.currency,
       monthlyPrice: monthlyPrice ?? this.monthlyPrice,
       yearlyPrice: yearlyPrice ?? this.yearlyPrice,
       yearlyEquivalentMonthlyPrice:
@@ -196,16 +200,36 @@ class MembershipPlan {
     );
   }
 
+  static String formatVnd(int amount) {
+    final absStr = amount.abs().toString();
+    final buf = StringBuffer();
+    for (int i = 0; i < absStr.length; i++) {
+      if (i > 0 && (absStr.length - i) % 3 == 0) {
+        buf.write('.');
+      }
+      buf.write(absStr[i]);
+    }
+    return amount < 0 ? '-${buf.toString()}đ' : '${buf.toString()}đ';
+  }
+
+  bool get isVnd => currency.toUpperCase() == 'VND';
+
   int priceFor(BillingPeriod period) =>
       period.isMonthly ? monthlyPrice : yearlyPrice;
 
-  String priceDisplay(BillingPeriod period) => '\$${priceFor(period)}';
+  String priceDisplay(BillingPeriod period) =>
+      isVnd ? formatVnd(priceFor(period)) : '\$${priceFor(period)}';
 
-  String unitDisplay(BillingPeriod period) =>
-      period.isMonthly ? '/ month' : '/ year';
+  String unitDisplay(BillingPeriod period) {
+    if (isVnd) {
+      return period.isMonthly ? '/ tháng' : '/ năm';
+    }
+    return period.isMonthly ? '/ month' : '/ year';
+  }
 
-  String get yearlyEquivalentText =>
-      'Equivalent to \$$yearlyEquivalentMonthlyPrice / month';
+  String get yearlyEquivalentText => isVnd
+      ? 'Tương đương ${formatVnd(yearlyEquivalentMonthlyPrice)} / tháng'
+      : 'Equivalent to \$$yearlyEquivalentMonthlyPrice / month';
 }
 
 class MembershipCatalog {
@@ -218,19 +242,21 @@ class MembershipCatalog {
       name: 'Free',
       subtitle: 'Core essentials',
       heroDescription:
-          'Everyday food tracking, workout logging, and basic health metrics.',
+          'Ghi nhận dinh dưỡng, lịch tập thủ công và 1 ảnh món ăn mỗi ngày.',
+      currency: 'VND',
       monthlyPrice: 0,
       yearlyPrice: 0,
       yearlyEquivalentMonthlyPrice: 0,
       isCurrent: true,
+      purchasable: false,
       icon: Icons.check_circle_outline,
       plannedBenefits: [],
-      aiAllowanceText: 'Included baseline',
-      allowanceSubtext: 'Standard free access.',
+      aiAllowanceText: '1 ảnh/ngày · 5 Swift 3/ngày',
+      allowanceSubtext: 'Hạn mức miễn phí hàng ngày cho tài khoản Saman.',
       inheritedSectionTitle: '',
       inheritedSectionSubtitle: '',
       inheritedGroups: [],
-      availabilityNotice: 'Included with your free Saman account.',
+      availabilityNotice: 'Đã bao gồm trong tài khoản Saman miễn phí.',
     ),
 
     // 2. PLUS
@@ -239,25 +265,29 @@ class MembershipCatalog {
       name: 'Plus',
       subtitle: 'Nutrition AI',
       heroDescription:
-          'A planned step beyond everyday food tracking, with Gemini food photo analysis.',
-      monthlyPrice: 10,
-      yearlyPrice: 60,
-      yearlyEquivalentMonthlyPrice: 5,
+          'Mở khóa phân tích ảnh món ăn bằng Gemini (5 ảnh/ngày), Swift 3 (30/ngày) và Core 3 (10/ngày).',
+      currency: 'VND',
+      monthlyPrice: 59000,
+      yearlyPrice: 588000,
+      yearlyEquivalentMonthlyPrice: 49000,
+      purchasable: true,
       icon: Icons.restaurant,
       plannedBenefits: [
         PlannedBenefit(
           icon: Icons.photo_camera_outlined,
           title: 'Gemini food photo analysis',
-          description: 'Planned Gemini-powered analysis of food photos.',
+          description: 'Phân tích ảnh món ăn chính xác bằng Gemini (5 ảnh/ngày).',
+          isPlanned: false,
         ),
         PlannedBenefit(
           icon: Icons.auto_awesome,
-          title: 'Monthly AI allowance',
-          description: 'A planned monthly allowance for Nutrition AI.',
+          title: 'Daily AI allowance',
+          description: '30 lượt Swift 3 và 10 lượt Core 3 mỗi ngày cùng Saman Coach.',
+          isPlanned: false,
         ),
       ],
-      aiAllowanceText: 'To be announced',
-      allowanceSubtext: 'Monthly limits will be confirmed before launch.',
+      aiAllowanceText: '5 ảnh/ngày · 30 Swift 3 · 10 Core 3',
+      allowanceSubtext: 'Làm mới mỗi ngày theo giờ Việt Nam (GMT+7).',
       inheritedSectionTitle: 'Everything in Free',
       inheritedSectionSubtitle:
           'Nutrition logging, manual workouts, and basic tracking.',
@@ -267,13 +297,13 @@ class MembershipCatalog {
           items: [
             InheritedBenefitItem(title: 'Nutrition logging'),
             InheritedBenefitItem(title: 'Manual workout tracking'),
-            InheritedBenefitItem(title: 'Free food photo analysis'),
+            InheritedBenefitItem(title: 'Free food photo analysis (1/ngày)'),
             InheritedBenefitItem(title: 'Basic health metrics'),
           ],
         ),
       ],
       availabilityNotice:
-          'Plus is not available yet. Planned features, limits, and pricing may change before launch.',
+          'Kích hoạt ngay sau khi thanh toán VietQR · Nutrition AI & Saman Coach.',
     ),
 
     // 3. PRO
@@ -282,38 +312,43 @@ class MembershipCatalog {
       name: 'Pro',
       subtitle: 'Workout Intelligence',
       heroDescription:
-          'Planned movement analysis and rep counting, alongside Nutrition AI.',
-      monthlyPrice: 15,
-      yearlyPrice: 120,
-      yearlyEquivalentMonthlyPrice: 10,
+          'Workout CV AI đếm rep không giới hạn cùng Nutrition AI (10 ảnh/ngày) và Core 3 (30/ngày).',
+      currency: 'VND',
+      monthlyPrice: 119000,
+      yearlyPrice: 1188000,
+      yearlyEquivalentMonthlyPrice: 99000,
       isRecommended: true,
+      purchasable: true,
       icon: Icons.fitness_center,
       plannedBenefits: [
         PlannedBenefit(
           icon: Icons.visibility_outlined,
           title: 'Workout CV AI',
           description:
-              'Planned computer-vision support for workout movement analysis.',
+              'Nhận diện chuyển động và phân tích kỹ thuật bài tập bằng camera.',
+          isPlanned: false,
         ),
         PlannedBenefit(
           icon: Icons.fitness_center,
           title: 'Movement analysis and rep counting',
           description:
-              'Planned tools to analyze movement and count repetitions.',
+              'Đếm rep tự động và chấm điểm biên độ chuyển động theo thời gian thực.',
+          isPlanned: false,
         ),
         PlannedBenefit(
           icon: Icons.donut_small_outlined,
-          title: 'Separate Workout CV allowance',
+          title: 'Unlimited Workout CV allowance',
           description:
-              'A dedicated allowance for Workout CV, separate from Nutrition AI.',
+              'Sử dụng Workout CV AI không giới hạn, cùng 10 ảnh Nutrition AI/ngày.',
+          isPlanned: false,
         ),
       ],
-      aiAllowanceText: 'To be announced',
-      workoutCvAllowanceText: 'To be announced',
+      aiAllowanceText: '10 ảnh/ngày · 50 Swift 3 · 30 Core 3',
+      workoutCvAllowanceText: 'Không giới hạn',
       allowanceSubtext:
-          'AI and Workout CV limits will be confirmed before launch.',
+          'Bao gồm Workout CV không giới hạn và Nutrition AI hàng ngày.',
       inheritedSectionTitle: 'Everything in Plus',
-      inheritedSectionSubtitle: 'Free essentials and planned Nutrition AI.',
+      inheritedSectionSubtitle: 'Free essentials and Nutrition AI.',
       inheritedGroups: [
         InheritedBenefitGroup(
           groupTitle: 'Free Essentials',
@@ -325,21 +360,21 @@ class MembershipCatalog {
           ],
         ),
         InheritedBenefitGroup(
-          groupTitle: 'Planned Nutrition AI',
+          groupTitle: 'Nutrition AI (From Plus)',
           items: [
             InheritedBenefitItem(
-              title: 'Gemini food photo analysis',
-              isPlanned: true,
+              title: 'Gemini food photo analysis (10/ngày)',
+              isPlanned: false,
             ),
             InheritedBenefitItem(
-              title: 'Monthly AI allowance',
-              isPlanned: true,
+              title: 'Daily AI allowance (50 Swift 3 · 30 Core 3)',
+              isPlanned: false,
             ),
           ],
         ),
       ],
       availabilityNotice:
-          'Pro is not available yet. Planned features, limits, and pricing may change before launch.',
+          'Gói khuyên dùng · Mở khóa không giới hạn Workout CV AI & Nutrition AI.',
     ),
 
     // 4. ULTRA
@@ -348,39 +383,44 @@ class MembershipCatalog {
       name: 'Ultra',
       subtitle: 'Personalized Intelligence',
       heroDescription:
-          'Planned advanced intelligence, a larger AI allowance, and more personalized context.',
-      monthlyPrice: 30,
-      yearlyPrice: 240,
-      yearlyEquivalentMonthlyPrice: 20,
+          'Mở khóa Pro 3 (15 lượt/ngày), Suy luận nâng cao, Bộ nhớ dài hạn và 20 ảnh món ăn/ngày.',
+      currency: 'VND',
+      monthlyPrice: 199000,
+      yearlyPrice: 2028000,
+      yearlyEquivalentMonthlyPrice: 169000,
+      purchasable: true,
       icon: Icons.psychology_outlined,
       plannedBenefits: [
         PlannedBenefit(
           icon: Icons.bolt,
-          title: '5x Pro AI allowance',
-          description: 'A planned AI allowance five times the Pro tier.',
+          title: 'Pro 3 & 20 ảnh Nutrition AI/ngày',
+          description: '15 lượt Pro 3/ngày cùng 20 ảnh phân tích món ăn bằng Gemini.',
+          isPlanned: false,
         ),
         PlannedBenefit(
           icon: Icons.psychology,
           title: 'Advanced Thinking',
-          description: 'Planned advanced reasoning capabilities.',
+          description: 'Khả năng suy luận chuyên sâu với mô hình Pro 3.',
+          isPlanned: false,
         ),
         PlannedBenefit(
           icon: Icons.memory,
           title: 'Extended history and personalized memory',
           description:
-              'Planned expanded history and memory for personalized context.',
+              'Lưu trữ lịch sử dài hạn và cá nhân hóa ngữ cảnh tập luyện.',
+          isPlanned: false,
         ),
       ],
-      aiAllowanceText: '5x Pro · Planned',
-      workoutCvAllowanceText: 'To be announced',
+      aiAllowanceText: '20 ảnh/ngày · 15 Pro 3/ngày',
+      workoutCvAllowanceText: 'Không giới hạn',
       allowanceSubtext:
-          'Absolute limits will be confirmed before launch. The 5x multiplier applies to AI allowance, not the separate Workout CV allowance.',
+          'Bao gồm toàn bộ tính năng Pro 3, Suy luận nâng cao và Bộ nhớ dài hạn.',
       inheritedSectionTitle: 'Everything in Pro',
       inheritedSectionSubtitle:
-          'Free essentials, planned Nutrition AI, and planned Workout CV.',
+          'Free essentials, Nutrition AI, and Unlimited Workout CV.',
       inheritedGroups: [
         InheritedBenefitGroup(
-          groupTitle: 'Free Essentials (Included Today)',
+          groupTitle: 'Free Essentials',
           items: [
             InheritedBenefitItem(title: 'Nutrition logging'),
             InheritedBenefitItem(title: 'Manual workout tracking'),
@@ -389,38 +429,38 @@ class MembershipCatalog {
           ],
         ),
         InheritedBenefitGroup(
-          groupTitle: 'Planned Nutrition AI (From Plus)',
+          groupTitle: 'Nutrition AI (From Plus)',
           items: [
             InheritedBenefitItem(
-              title: 'Gemini food photo analysis',
-              isPlanned: true,
+              title: 'Gemini food photo analysis (20/ngày)',
+              isPlanned: false,
             ),
             InheritedBenefitItem(
-              title: 'Monthly AI allowance',
-              isPlanned: true,
+              title: 'Daily AI allowance (50 Swift 3 · 30 Core 3 · 15 Pro 3)',
+              isPlanned: false,
             ),
           ],
         ),
         InheritedBenefitGroup(
-          groupTitle: 'Planned Workout Intelligence (From Pro)',
+          groupTitle: 'Workout Intelligence (From Pro)',
           items: [
             InheritedBenefitItem(
               title: 'Workout CV AI',
-              isPlanned: true,
+              isPlanned: false,
             ),
             InheritedBenefitItem(
               title: 'Movement analysis and rep counting',
-              isPlanned: true,
+              isPlanned: false,
             ),
             InheritedBenefitItem(
-              title: 'Separate Workout CV allowance',
-              isPlanned: true,
+              title: 'Unlimited Workout CV allowance',
+              isPlanned: false,
             ),
           ],
         ),
       ],
       availabilityNotice:
-          'Ultra is not available yet. Planned features, limits, and pricing may change before launch.',
+          'Gói cao cấp nhất · Mở khóa Pro 3, Suy luận nâng cao và Bộ nhớ dài hạn.',
     ),
   ];
 
@@ -485,20 +525,20 @@ class MembershipCatalog {
       group: FeatureGroup.nutritionAi,
       statusMap: {
         MembershipTier.free: InclusionStatus.notIncluded,
-        MembershipTier.plus: InclusionStatus.planned,
-        MembershipTier.pro: InclusionStatus.planned,
-        MembershipTier.ultra: InclusionStatus.planned,
+        MembershipTier.plus: InclusionStatus.included,
+        MembershipTier.pro: InclusionStatus.included,
+        MembershipTier.ultra: InclusionStatus.included,
       },
     ),
     MatrixFeature(
       id: 'monthly_ai_allowance',
-      title: 'Monthly AI allowance',
+      title: 'Daily AI allowance',
       group: FeatureGroup.nutritionAi,
       statusMap: {
         MembershipTier.free: InclusionStatus.notIncluded,
-        MembershipTier.plus: InclusionStatus.planned,
-        MembershipTier.pro: InclusionStatus.planned,
-        MembershipTier.ultra: InclusionStatus.planned,
+        MembershipTier.plus: InclusionStatus.included,
+        MembershipTier.pro: InclusionStatus.included,
+        MembershipTier.ultra: InclusionStatus.included,
       },
     ),
 
@@ -510,8 +550,8 @@ class MembershipCatalog {
       statusMap: {
         MembershipTier.free: InclusionStatus.notIncluded,
         MembershipTier.plus: InclusionStatus.notIncluded,
-        MembershipTier.pro: InclusionStatus.planned,
-        MembershipTier.ultra: InclusionStatus.planned,
+        MembershipTier.pro: InclusionStatus.included,
+        MembershipTier.ultra: InclusionStatus.included,
       },
     ),
     MatrixFeature(
@@ -521,32 +561,32 @@ class MembershipCatalog {
       statusMap: {
         MembershipTier.free: InclusionStatus.notIncluded,
         MembershipTier.plus: InclusionStatus.notIncluded,
-        MembershipTier.pro: InclusionStatus.planned,
-        MembershipTier.ultra: InclusionStatus.planned,
+        MembershipTier.pro: InclusionStatus.included,
+        MembershipTier.ultra: InclusionStatus.included,
       },
     ),
     MatrixFeature(
       id: 'separate_cv_allowance',
-      title: 'Separate CV allowance',
+      title: 'Unlimited CV allowance',
       group: FeatureGroup.workoutCv,
       statusMap: {
         MembershipTier.free: InclusionStatus.notIncluded,
         MembershipTier.plus: InclusionStatus.notIncluded,
-        MembershipTier.pro: InclusionStatus.planned,
-        MembershipTier.ultra: InclusionStatus.planned,
+        MembershipTier.pro: InclusionStatus.included,
+        MembershipTier.ultra: InclusionStatus.included,
       },
     ),
 
     // Group 4: Advanced Intelligence
     MatrixFeature(
       id: 'advanced_thinking',
-      title: 'Advanced Thinking',
+      title: 'Pro 3 & Advanced Thinking',
       group: FeatureGroup.advancedIntelligence,
       statusMap: {
         MembershipTier.free: InclusionStatus.notIncluded,
         MembershipTier.plus: InclusionStatus.notIncluded,
         MembershipTier.pro: InclusionStatus.notIncluded,
-        MembershipTier.ultra: InclusionStatus.planned,
+        MembershipTier.ultra: InclusionStatus.included,
       },
     ),
     MatrixFeature(
@@ -557,7 +597,7 @@ class MembershipCatalog {
         MembershipTier.free: InclusionStatus.notIncluded,
         MembershipTier.plus: InclusionStatus.notIncluded,
         MembershipTier.pro: InclusionStatus.notIncluded,
-        MembershipTier.ultra: InclusionStatus.planned,
+        MembershipTier.ultra: InclusionStatus.included,
       },
     ),
   ];

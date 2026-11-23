@@ -18,22 +18,37 @@ class NutritionSummary extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final bool hasCalTarget =
-        profile.isProfileValid && profile.targetCalories > 0;
-    final int targetCalories = hasCalTarget ? profile.targetCalories : 0;
+    final dynamicTarget = plan.dynamicTarget;
+    final bool useDynamicTarget =
+        dynamicTarget != null && dynamicTarget.calories > 0;
 
-    final bool hasProteinTarget =
-        profile.isProfileValid && profile.targetProtein > 0;
-    final double targetProtein =
-        hasProteinTarget ? profile.targetProtein.toDouble() : 0.0;
+    final bool hasCalTarget = useDynamicTarget
+        ? true
+        : (profile.isProfileValid && profile.targetCalories > 0);
+    final int targetCalories = useDynamicTarget
+        ? dynamicTarget.calories
+        : (hasCalTarget ? profile.targetCalories : 0);
 
-    final bool hasCarbsTarget =
-        profile.isProfileValid && profile.targetCarbs > 0;
-    final double targetCarbs =
-        hasCarbsTarget ? profile.targetCarbs.toDouble() : 0.0;
+    final bool hasProteinTarget = useDynamicTarget
+        ? true
+        : (profile.isProfileValid && profile.targetProtein > 0);
+    final double targetProtein = useDynamicTarget
+        ? dynamicTarget.protein.toDouble()
+        : (hasProteinTarget ? profile.targetProtein.toDouble() : 0.0);
 
-    final bool hasFatTarget = profile.isProfileValid && profile.targetFat > 0;
-    final double targetFat = hasFatTarget ? profile.targetFat.toDouble() : 0.0;
+    final bool hasCarbsTarget = useDynamicTarget
+        ? true
+        : (profile.isProfileValid && profile.targetCarbs > 0);
+    final double targetCarbs = useDynamicTarget
+        ? dynamicTarget.carbs.toDouble()
+        : (hasCarbsTarget ? profile.targetCarbs.toDouble() : 0.0);
+
+    final bool hasFatTarget = useDynamicTarget
+        ? true
+        : (profile.isProfileValid && profile.targetFat > 0);
+    final double targetFat = useDynamicTarget
+        ? dynamicTarget.fat.toDouble()
+        : (hasFatTarget ? profile.targetFat.toDouble() : 0.0);
 
     final int actualCalories = plan.totalCaloriesConsumed;
     final double actualProtein = plan.totalProteinConsumed.toDouble();
@@ -47,9 +62,25 @@ class NutritionSummary extends ConsumerWidget {
     final double calPercentage =
         hasCalTarget ? (actualCalories / targetCalories * 100) : 0.0;
 
+    final bool isTraining = plan.dayMode == 'training';
+    final int delta = dynamicTarget?.calorieDelta ?? 0;
+    final String chipText;
+    if (isTraining) {
+      chipText = (dynamicTarget != null && delta > 0)
+          ? 'TRAINING DAY (+$delta kcal)'
+          : 'TRAINING DAY';
+    } else {
+      chipText = (dynamicTarget != null && delta < 0)
+          ? 'REST DAY ($delta kcal)'
+          : 'REST DAY';
+    }
+    final style = NutritionHomeStyle.of(context);
+    final Color dotColor = isTraining
+        ? (style.isDark ? const Color(0xFF10B981) : const Color(0xFF059669))
+        : (style.isDark ? const Color(0xFF94979E) : style.muted);
+
     final numberFormat = NumberFormat('#,###');
 
-    final style = NutritionHomeStyle.of(context);
     return DecoratedBox(
       decoration: BoxDecoration(
           color: style.surface,
@@ -62,10 +93,41 @@ class NutritionSummary extends ConsumerWidget {
             children: [
               Wrap(
                   alignment: WrapAlignment.spaceBetween,
+                  crossAxisAlignment: WrapCrossAlignment.center,
                   spacing: 12,
+                  runSpacing: 6,
                   children: [
                     Text("TODAY'S INTAKE", style: style.label),
-                    Text('LOGGED INTAKE', style: style.label),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 3),
+                      decoration: BoxDecoration(
+                        color: style.isDark
+                            ? const Color(0xFF212328)
+                            : style.track,
+                        borderRadius: BorderRadius.circular(999),
+                        border: Border.all(
+                          color: style.isDark
+                              ? const Color(0xFF26282F)
+                              : style.border,
+                        ),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Container(
+                            width: 6,
+                            height: 6,
+                            decoration: BoxDecoration(
+                              color: dotColor,
+                              shape: BoxShape.circle,
+                            ),
+                          ),
+                          const SizedBox(width: 5),
+                          Text(chipText, style: style.label),
+                        ],
+                      ),
+                    ),
                   ]),
               const SizedBox(height: 10),
               Wrap(
@@ -89,14 +151,31 @@ class NutritionSummary extends ConsumerWidget {
                   spacing: 12,
                   runSpacing: 4,
                   children: [
-                    Text(
-                        hasCalTarget
-                            ? (isCalOver
-                                ? '${numberFormat.format(remainCal.abs())} kcal over'
-                                : '${numberFormat.format(remainCal)} kcal remaining')
-                            : 'Set profile goal',
-                        style: style.caption.copyWith(
-                            color: isCalOver ? style.carbs : style.accent)),
+                    hasCalTarget
+                        ? Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                numberFormat.format(isCalOver
+                                    ? remainCal.abs()
+                                    : remainCal),
+                                style: style.caption.copyWith(
+                                    color:
+                                        isCalOver ? style.carbs : style.accent),
+                              ),
+                              Text(
+                                isCalOver
+                                    ? ' kcal over'
+                                    : ' kcal remaining',
+                                style: style.caption.copyWith(
+                                    color:
+                                        isCalOver ? style.carbs : style.accent),
+                              ),
+                            ],
+                          )
+                        : Text('Set profile goal',
+                            style: style.caption.copyWith(
+                                color: isCalOver ? style.carbs : style.accent)),
                     Text(
                         hasCalTarget
                             ? '${calPercentage.toStringAsFixed(1)}% of goal'

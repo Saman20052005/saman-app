@@ -202,15 +202,21 @@ class UserProfilePreservationTests(unittest.TestCase):
         self.addCleanup(stack.close)
         self._blocked_attempts = _enter_isolation_context(stack)
 
-        from backend.routers.user import router as user_router, user_repo
+        from backend.routers.user import router as user_router, get_user_repository
+        from backend.app.repositories.user_repository import UserRepository
         from backend.auth.config import JWT_SECRET, JWT_ALGORITHM
+
+        self.users_col = _MemoryUsersCollection()
+        mock_repo = UserRepository(collection=self.users_col)
+        self.mock_repo = mock_repo
 
         stack.enter_context(
             patch.dict(
                 globals(),
                 {
                     "user_router": user_router,
-                    "user_repo": user_repo,
+                    "get_user_repository": get_user_repository,
+                    "user_repo": mock_repo,
                     "JWT_SECRET": JWT_SECRET,
                     "JWT_ALGORITHM": JWT_ALGORITHM,
                 },
@@ -219,10 +225,8 @@ class UserProfilePreservationTests(unittest.TestCase):
 
         self.app = FastAPI()
         self.app.include_router(user_router)
+        self.app.dependency_overrides[get_user_repository] = lambda: mock_repo
         self.client = TestClient(self.app)
-
-        self.users_col = _MemoryUsersCollection()
-        stack.enter_context(patch.object(user_repo, "collection", self.users_col))
 
         self.user_id = ObjectId()
         self.email = "preservation_user@example.com"
@@ -255,6 +259,7 @@ class UserProfilePreservationTests(unittest.TestCase):
         self.headers = {"Authorization": f"Bearer {self.token}"}
 
     def tearDown(self):
+        self.app.dependency_overrides.clear()
         self.assertEqual(
             len(self._blocked_attempts),
             0,
@@ -386,9 +391,17 @@ class UserProfilePreservationTests(unittest.TestCase):
         self.assertEqual(cas_result.matched_count, 0, "CAS predicate should have failed because height changed in DB")
 
         # Now test that router returns 409 when matched_count == 0
-        with unittest.mock.patch.object(user_repo, "update_profile_stats_cas", return_value=_UpdateResult(matched_count=0)):
+        conflict_repo = SimpleNamespace(
+            get_by_email=self.mock_repo.get_by_email,
+            collection=self.users_col,
+            update_profile_stats_cas=lambda *args, **kwargs: _UpdateResult(matched_count=0),
+        )
+        self.app.dependency_overrides[get_user_repository] = lambda: conflict_repo
+        try:
             res_conflict = self.client.post("/api/user/update-profile", json={"weight": 77.0}, headers=self.headers)
             self.assertEqual(res_conflict.status_code, 409)
+        finally:
+            self.app.dependency_overrides[get_user_repository] = lambda: self.mock_repo
 
     def test_post_and_put_compatibility_and_get_stable_identity(self):
         payload = {"weight": 71.5}

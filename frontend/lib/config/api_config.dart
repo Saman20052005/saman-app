@@ -3,9 +3,14 @@ import 'package:flutter/foundation.dart';
 
 class ApiConfig {
   // ✅ URL Backend chính thức
+  // Hỗ trợ cả API_BASE_URL (chuẩn mới/build APK) và BACKEND_URL (legacy).
+  // Mặc định: 'http://10.0.2.2:18090' (10.0.2.2 cho máy ảo Android, IP LAN cho thiết bị thật).
   static const String baseUrl = String.fromEnvironment(
-    'BACKEND_URL',
-    defaultValue: 'https://nguyenvananan2005-saman-backend.hf.space',
+    'API_BASE_URL',
+    defaultValue: String.fromEnvironment(
+      'BACKEND_URL',
+      defaultValue: 'http://10.0.2.2:18090',
+    ),
   );
 
   // ==================== NUTRITION ENDPOINTS ====================
@@ -27,6 +32,11 @@ class ApiConfig {
 
   /// Food AI analysis — backend/routers/food_analysis.py
   static const String analyzeFoodImageEndpoint = '$baseUrl/api/food/analyze';
+
+  /// Barcode lookup & AI nutrition label analysis
+  static const String barcodeLookupEndpoint = '$baseUrl/api/nutrition/barcode';
+  static const String barcodeAnalyzeLabelEndpoint =
+      '$baseUrl/api/nutrition/barcode/analyze-label';
 
   // ==================== AUTH ENDPOINTS ====================
   static const String registerEndpoint = '$baseUrl/api/auth/register';
@@ -62,6 +72,8 @@ class ApiConfig {
 
   // ==================== OTHER ENDPOINTS ====================
   static const String chatEndpoint = '$baseUrl/api/chat';
+  static const String chatStreamEndpoint = '$baseUrl/api/chat/stream';
+  static const String chatDailyBriefEndpoint = '$baseUrl/api/chat/daily-brief';
   static const String foodLogEndpoint = '$baseUrl/api/food/log';
   static const String healthEndpoint = '$baseUrl/api/health/ping';
   static const String analyzeImageEndpoint = '$baseUrl/api/analyze_image';

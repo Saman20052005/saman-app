@@ -30,6 +30,13 @@ class SamanAuroraTokens {
   static const double primaryMaxAlpha = 0.42;
   static const double secondaryMaxAlpha = 0.16;
 
+  // ─── Light Mode Adaptive Palette ─────────────────────────────────────
+  static const Color lightBaseBackground = Color(0xFFF8FAFC);
+  static const Color lightPrimaryGlow = Color(0xFFDBEAFE);
+  static const Color lightSecondaryGlow = Color(0xFFE0E7FF);
+  static const double lightPrimaryMaxAlpha = 0.38;
+  static const double lightSecondaryMaxAlpha = 0.18;
+
   // Backward compatibility alpha aliases
   static const double blueMaxAlpha = primaryMaxAlpha;
   static const double tealMaxAlpha = secondaryMaxAlpha;
@@ -176,6 +183,7 @@ class _SamanChatBackgroundState extends State<SamanChatBackground>
   @override
   Widget build(BuildContext context) {
     final disableAnimations = MediaQuery.maybeOf(context)?.disableAnimations ?? false;
+    final brightness = Theme.of(context).brightness;
 
     return RepaintBoundary(
       child: IgnorePointer(
@@ -184,6 +192,7 @@ class _SamanChatBackgroundState extends State<SamanChatBackground>
             driftController: _driftController,
             intensityController: _intensityController,
             disableAnimations: disableAnimations,
+            brightness: brightness,
             repaint: _repaintListenable,
           ),
           size: Size.infinite,
@@ -198,11 +207,13 @@ class _AuroraBackgroundPainter extends CustomPainter {
   final AnimationController driftController;
   final AnimationController intensityController;
   final bool disableAnimations;
+  final Brightness brightness;
 
   _AuroraBackgroundPainter({
     required this.driftController,
     required this.intensityController,
     required this.disableAnimations,
+    required this.brightness,
     required super.repaint,
   });
 
@@ -210,8 +221,25 @@ class _AuroraBackgroundPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     if (size.width <= 0 || size.height <= 0) return;
 
-    // 1. Draw base solid canvas #0D0F14 (neutral obsidian)
-    final basePaint = Paint()..color = SamanAuroraTokens.baseBackground;
+    final isDark = brightness == Brightness.dark;
+    final baseColor = isDark
+        ? SamanAuroraTokens.baseBackground
+        : SamanAuroraTokens.lightBaseBackground;
+    final primaryGlowColor = isDark
+        ? SamanAuroraTokens.primaryGlow
+        : SamanAuroraTokens.lightPrimaryGlow;
+    final secondaryGlowColor = isDark
+        ? SamanAuroraTokens.secondaryGlow
+        : SamanAuroraTokens.lightSecondaryGlow;
+    final primaryMaxAlpha = isDark
+        ? SamanAuroraTokens.primaryMaxAlpha
+        : SamanAuroraTokens.lightPrimaryMaxAlpha;
+    final secondaryMaxAlpha = isDark
+        ? SamanAuroraTokens.secondaryMaxAlpha
+        : SamanAuroraTokens.lightSecondaryMaxAlpha;
+
+    // 1. Draw base solid canvas
+    final basePaint = Paint()..color = baseColor;
     canvas.drawRect(Offset.zero & size, basePaint);
 
     final intensity = intensityController.value;
@@ -223,7 +251,7 @@ class _AuroraBackgroundPainter extends CustomPainter {
     final angle1 = t * 2 * math.pi;
     final angle2 = (t * 2 * math.pi) + (math.pi / 4.0);
 
-    // ─── Layer 1: Secondary Indigo Glow (#373078) ───────────────────────
+    // ─── Layer 1: Secondary Glow ─────────────────────────────────────────
     // Center at x ~ 50%, y ~ 60%, width ~ 80%, height ~ 44%, amplitude ~ 3%
     final dx2 = math.cos(angle2) * (size.width * 0.03);
     final dy2 = math.sin(angle2) * (size.height * 0.02);
@@ -240,11 +268,11 @@ class _AuroraBackgroundPainter extends CustomPainter {
       center: center2,
       rx: rx2,
       ry: ry2,
-      color: SamanAuroraTokens.secondaryGlow,
-      maxAlpha: SamanAuroraTokens.secondaryMaxAlpha * intensity,
+      color: secondaryGlowColor,
+      maxAlpha: secondaryMaxAlpha * intensity,
     );
 
-    // ─── Layer 2: Primary Soft Royal Blue Glow (#1D3A8A) ─────────────────
+    // ─── Layer 2: Primary Glow ───────────────────────────────────────────
     // Center at x ~ 50%, y ~ 62.5%, width ~ 90%, height ~ 50%, amplitude ~ 3.5%
     final dx1 = math.sin(angle1) * (size.width * 0.035);
     final dy1 = math.cos(angle1) * (size.height * 0.025);
@@ -261,8 +289,8 @@ class _AuroraBackgroundPainter extends CustomPainter {
       center: center1,
       rx: rx1,
       ry: ry1,
-      color: SamanAuroraTokens.primaryGlow,
-      maxAlpha: SamanAuroraTokens.primaryMaxAlpha * intensity,
+      color: primaryGlowColor,
+      maxAlpha: primaryMaxAlpha * intensity,
     );
   }
 
@@ -315,6 +343,7 @@ class _AuroraBackgroundPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant _AuroraBackgroundPainter oldDelegate) {
-    return oldDelegate.disableAnimations != disableAnimations;
+    return oldDelegate.disableAnimations != disableAnimations ||
+        oldDelegate.brightness != brightness;
   }
 }

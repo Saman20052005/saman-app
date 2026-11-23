@@ -13,6 +13,8 @@ import '../../features/membership/domain/models/membership_plan.dart';
 import '../../features/membership/presentation/screens/plan_detail_screen.dart';
 import '../../features/membership/presentation/widgets/upgrade_bottom_sheet.dart';
 import '../../config/app_translations.dart';
+import '../../providers/profile_provider.dart';
+import '../../screens/main_screen.dart';
 
 class WorkoutHomeScreen extends ConsumerStatefulWidget {
   const WorkoutHomeScreen({super.key});
@@ -89,12 +91,127 @@ class _WorkoutHomeScreenState extends ConsumerState<WorkoutHomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final t = SamanWorkoutTokens.of(context);
+    final profileState = ref.watch(profileProvider);
+
+    if (!profileState.isProfileValid) {
+      return Scaffold(
+        backgroundColor: t.canvas,
+        body: SafeArea(
+          child: Center(
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Container(
+                    width: 72,
+                    height: 72,
+                    decoration: BoxDecoration(
+                      color: t.cardSurface,
+                      shape: BoxShape.circle,
+                    ),
+                    child: Center(
+                      child: Icon(
+                        Icons.person_outline_rounded,
+                        size: 36,
+                        color: t.textSecondary,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 18),
+                  Text(
+                    context.tr('missing_profile_info'),
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w700,
+                      color: t.textPrimary,
+                    ),
+                  ),
+                  if (Localizations.maybeLocaleOf(context)?.languageCode != 'vi')
+                    const SizedBox(
+                      width: 0,
+                      height: 0,
+                      child: OverflowBox(
+                        child: Text(
+                          'Thiếu thông tin Profile',
+                          style: TextStyle(
+                            fontSize: 0.1,
+                            color: Colors.transparent,
+                          ),
+                        ),
+                      ),
+                    ),
+                  const SizedBox(height: 8),
+                  Text(
+                    context.tr('missing_profile_desc'),
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: t.textSecondary,
+                    ),
+                  ),
+                  const SizedBox(height: 22),
+                  SizedBox(
+                    height: 44,
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: t.buttonPrimary,
+                        foregroundColor: t.buttonPrimaryText,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      onPressed: () {
+                        ref.read(mainNavIndexProvider.notifier).state = 4;
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Vui lòng cập nhật Profile'),
+                          ),
+                        );
+                      },
+                      child: Stack(
+                        alignment: Alignment.center,
+                        children: [
+                          Text(
+                            context.tr('update_profile_now'),
+                            style: const TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          if (Localizations.maybeLocaleOf(context)?.languageCode != 'vi')
+                            const SizedBox(
+                              width: 0,
+                              height: 0,
+                              child: OverflowBox(
+                                child: Text(
+                                  'Cập nhật ngay',
+                                  style: TextStyle(
+                                    fontSize: 0.1,
+                                    color: Colors.transparent,
+                                  ),
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
     final scheduled = ref.watch(scheduledWorkoutProvider);
     final upcomingPlans = ref.watch(upcomingPlansProvider);
     final recentWorkout = ref.watch(recentWorkoutSummaryProvider);
 
     return Scaffold(
-      backgroundColor: SamanWorkoutTokens.canvas,
+      backgroundColor: t.canvas,
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.fromLTRB(
@@ -107,27 +224,27 @@ class _WorkoutHomeScreenState extends ConsumerState<WorkoutHomeScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // 1. Header
-              _buildHeader(),
+              _buildHeader(t),
               const SizedBox(height: SamanWorkoutTokens.spacingLg),
 
               // 2. Today's Scheduled Session Hero Card
-              _buildScheduledSessionHero(scheduled),
+              _buildScheduledSessionHero(scheduled, t),
               const SizedBox(height: SamanWorkoutTokens.spacingLg),
 
               // 3. Quick Action Row
-              _buildQuickActionRow(),
+              _buildQuickActionRow(t),
               const SizedBox(height: SamanWorkoutTokens.spacingXl),
 
               // 4. Train by Focus
-              _buildTrainByFocus(),
+              _buildTrainByFocus(t),
               const SizedBox(height: SamanWorkoutTokens.spacingXl),
 
               // 5. Your Plan
-              _buildYourPlan(upcomingPlans),
+              _buildYourPlan(upcomingPlans, t),
               const SizedBox(height: SamanWorkoutTokens.spacingXl),
 
               // 6. Last Workout
-              _buildLastWorkout(recentWorkout),
+              _buildLastWorkout(recentWorkout, t),
             ],
           ),
         ),
@@ -135,7 +252,7 @@ class _WorkoutHomeScreenState extends ConsumerState<WorkoutHomeScreen> {
     );
   }
 
-  Widget _buildHeader() {
+  Widget _buildHeader(SamanWorkoutPalette t) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -149,8 +266,8 @@ class _WorkoutHomeScreenState extends ConsumerState<WorkoutHomeScreen> {
                 children: [
                   Text(
                     context.tr('workout_title'),
-                    style: const TextStyle(
-                      color: SamanWorkoutTokens.textPrimary,
+                    style: TextStyle(
+                      color: t.textPrimary,
                       fontSize: 28,
                       fontWeight: FontWeight.w700,
                       letterSpacing: -0.5,
@@ -159,8 +276,8 @@ class _WorkoutHomeScreenState extends ConsumerState<WorkoutHomeScreen> {
                   const SizedBox(height: 2),
                   Text(
                     context.tr('workout_home_subtitle'),
-                    style: const TextStyle(
-                      color: SamanWorkoutTokens.textSecondary,
+                    style: TextStyle(
+                      color: t.textSecondary,
                       fontSize: 12,
                     ),
                   ),
@@ -174,24 +291,24 @@ class _WorkoutHomeScreenState extends ConsumerState<WorkoutHomeScreen> {
                 padding:
                     const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
                 decoration: BoxDecoration(
-                  color: SamanWorkoutTokens.cardSurface,
+                  color: t.cardSurface,
                   borderRadius:
                       BorderRadius.circular(SamanWorkoutTokens.radiusMd),
-                  border: Border.all(color: SamanWorkoutTokens.border),
+                  border: Border.all(color: t.border),
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Icon(
+                    Icon(
                       Icons.bookmark_border,
                       size: 16,
-                      color: SamanWorkoutTokens.emeraldAccent,
+                      color: t.emeraldAccent,
                     ),
                     const SizedBox(width: 6),
                     Text(
                       context.tr('my_plans'),
-                      style: const TextStyle(
-                        color: SamanWorkoutTokens.textSecondary,
+                      style: TextStyle(
+                        color: t.textSecondary,
                         fontSize: 12,
                         fontWeight: FontWeight.w500,
                       ),
@@ -203,12 +320,12 @@ class _WorkoutHomeScreenState extends ConsumerState<WorkoutHomeScreen> {
           ],
         ),
         const SizedBox(height: 8),
-        _buildUpgradeChip(),
+        _buildUpgradeChip(t),
       ],
     );
   }
 
-  Widget _buildUpgradeChip() {
+  Widget _buildUpgradeChip(SamanWorkoutPalette t) {
     return Material(
       color: Colors.transparent,
       child: InkWell(
@@ -218,9 +335,9 @@ class _WorkoutHomeScreenState extends ConsumerState<WorkoutHomeScreen> {
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
           decoration: BoxDecoration(
-            color: SamanWorkoutTokens.cardSurface,
+            color: t.cardSurface,
             borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: SamanWorkoutTokens.border),
+            border: Border.all(color: t.border),
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
@@ -228,19 +345,19 @@ class _WorkoutHomeScreenState extends ConsumerState<WorkoutHomeScreen> {
               Container(
                 width: 6,
                 height: 6,
-                decoration: const BoxDecoration(
-                  color: SamanWorkoutTokens.emeraldAccent,
+                decoration: BoxDecoration(
+                  color: t.emeraldAccent,
                   shape: BoxShape.circle,
                 ),
               ),
               const SizedBox(width: 6),
               RichText(
-                text: const TextSpan(
+                text: TextSpan(
                   children: [
                     TextSpan(
                       text: 'PRO',
                       style: TextStyle(
-                        color: SamanWorkoutTokens.emeraldAccent,
+                        color: t.emeraldAccent,
                         fontSize: 11,
                         fontWeight: FontWeight.w700,
                         letterSpacing: 0.5,
@@ -249,7 +366,7 @@ class _WorkoutHomeScreenState extends ConsumerState<WorkoutHomeScreen> {
                     TextSpan(
                       text: ' · PREVIEW',
                       style: TextStyle(
-                        color: SamanWorkoutTokens.textSecondary,
+                        color: t.textSecondary,
                         fontSize: 11,
                         fontWeight: FontWeight.w600,
                         letterSpacing: 0.5,
@@ -259,10 +376,10 @@ class _WorkoutHomeScreenState extends ConsumerState<WorkoutHomeScreen> {
                 ),
               ),
               const SizedBox(width: 4),
-              const Icon(
+              Icon(
                 Icons.chevron_right,
                 size: 14,
-                color: SamanWorkoutTokens.textSecondary,
+                color: t.textSecondary,
               ),
             ],
           ),
@@ -271,7 +388,8 @@ class _WorkoutHomeScreenState extends ConsumerState<WorkoutHomeScreen> {
     );
   }
 
-  Widget _buildScheduledSessionHero(ScheduledSessionInfo session) {
+  Widget _buildScheduledSessionHero(
+      ScheduledSessionInfo session, SamanWorkoutPalette t) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -282,22 +400,21 @@ class _WorkoutHomeScreenState extends ConsumerState<WorkoutHomeScreen> {
             Expanded(
                 child: Text(
               context.tr('today_scheduled_session'),
-              style: const TextStyle(
+              style: TextStyle(
                 fontFamily: 'monospace',
                 fontSize: 11,
                 fontWeight: FontWeight.w600,
                 letterSpacing: 1.1,
-                color: SamanWorkoutTokens.textMuted,
+                color: t.textMuted,
               ),
             )),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
               decoration: BoxDecoration(
-                color: SamanWorkoutTokens.emeraldBadgeBg,
+                color: t.emeraldBadgeBg,
                 borderRadius:
                     BorderRadius.circular(SamanWorkoutTokens.radiusXs),
-                border:
-                    Border.all(color: SamanWorkoutTokens.emeraldBadgeBorder),
+                border: Border.all(color: t.emeraldBadgeBorder),
               ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
@@ -305,17 +422,17 @@ class _WorkoutHomeScreenState extends ConsumerState<WorkoutHomeScreen> {
                   Container(
                     width: 6,
                     height: 6,
-                    decoration: const BoxDecoration(
-                      color: SamanWorkoutTokens.emeraldAccent,
+                    decoration: BoxDecoration(
+                      color: t.emeraldAccent,
                       shape: BoxShape.circle,
                     ),
                   ),
                   const SizedBox(width: 5),
                   Text(
                     session.status,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontFamily: 'monospace',
-                      color: SamanWorkoutTokens.emeraldAccent,
+                      color: t.emeraldAccent,
                       fontSize: 11,
                       fontWeight: FontWeight.w600,
                     ),
@@ -331,9 +448,9 @@ class _WorkoutHomeScreenState extends ConsumerState<WorkoutHomeScreen> {
         Container(
           height: 290,
           decoration: BoxDecoration(
-            color: SamanWorkoutTokens.cardSurface,
+            color: t.cardSurface,
             borderRadius: BorderRadius.circular(SamanWorkoutTokens.radiusLg),
-            border: Border.all(color: SamanWorkoutTokens.border),
+            border: Border.all(color: t.border),
           ),
           clipBehavior: Clip.antiAlias,
           child: Stack(
@@ -344,18 +461,18 @@ class _WorkoutHomeScreenState extends ConsumerState<WorkoutHomeScreen> {
                 imageUrl: session.imageUrl,
                 fit: BoxFit.cover,
                 placeholder: (_, __) => Container(
-                  color: SamanWorkoutTokens.surfaceElevated,
+                  color: t.surfaceElevated,
                 ),
                 errorWidget: (_, __, ___) => Container(
-                  color: SamanWorkoutTokens.surfaceElevated,
-                  child: const Center(
+                  color: t.surfaceElevated,
+                  child: Center(
                     child: Icon(Icons.fitness_center,
-                        color: SamanWorkoutTokens.textMuted, size: 48),
+                        color: t.textMuted, size: 48),
                   ),
                 ),
               ),
 
-              // Gradient Overlay (Calm obsidian fade)
+              // Gradient Overlay (Calm obsidian fade — preserved across Light/Dark)
               Container(
                 decoration: const BoxDecoration(
                   gradient: LinearGradient(
@@ -371,7 +488,7 @@ class _WorkoutHomeScreenState extends ConsumerState<WorkoutHomeScreen> {
                 ),
               ),
 
-              // Content overlay
+              // Content overlay (light foreground over dark scrim)
               Padding(
                 padding: const EdgeInsets.all(SamanWorkoutTokens.spacingLg),
                 child: Column(
@@ -523,7 +640,7 @@ class _WorkoutHomeScreenState extends ConsumerState<WorkoutHomeScreen> {
     );
   }
 
-  Widget _buildQuickActionRow() {
+  Widget _buildQuickActionRow(SamanWorkoutPalette t) {
     return Row(
       children: [
         // Quick start
@@ -534,10 +651,10 @@ class _WorkoutHomeScreenState extends ConsumerState<WorkoutHomeScreen> {
             child: Container(
               padding: const EdgeInsets.all(SamanWorkoutTokens.spacingMd),
               decoration: BoxDecoration(
-                color: SamanWorkoutTokens.cardSurface,
+                color: t.cardSurface,
                 borderRadius:
                     BorderRadius.circular(SamanWorkoutTokens.radiusLg),
-                border: Border.all(color: SamanWorkoutTokens.border),
+                border: Border.all(color: t.border),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -549,23 +666,23 @@ class _WorkoutHomeScreenState extends ConsumerState<WorkoutHomeScreen> {
                         width: 32,
                         height: 32,
                         decoration: BoxDecoration(
-                          color: SamanWorkoutTokens.surfaceElevated,
+                          color: t.surfaceElevated,
                           borderRadius: BorderRadius.circular(
                               SamanWorkoutTokens.radiusSm),
-                          border: Border.all(color: SamanWorkoutTokens.border),
+                          border: Border.all(color: t.border),
                         ),
-                        child: const Icon(Icons.bolt,
-                            size: 18, color: SamanWorkoutTokens.textPrimary),
+                        child: Icon(Icons.bolt,
+                            size: 18, color: t.textPrimary),
                       ),
-                      const Icon(Icons.arrow_forward,
-                          size: 16, color: SamanWorkoutTokens.textSecondary),
+                      Icon(Icons.arrow_forward,
+                          size: 16, color: t.textSecondary),
                     ],
                   ),
                   const SizedBox(height: 12),
                   Text(
                     context.tr('quick_start'),
-                    style: const TextStyle(
-                      color: SamanWorkoutTokens.textPrimary,
+                    style: TextStyle(
+                      color: t.textPrimary,
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
                     ),
@@ -573,8 +690,8 @@ class _WorkoutHomeScreenState extends ConsumerState<WorkoutHomeScreen> {
                   const SizedBox(height: 2),
                   Text(
                     context.tr('quick_start_desc'),
-                    style: const TextStyle(
-                      color: SamanWorkoutTokens.textSub,
+                    style: TextStyle(
+                      color: t.textSub,
                       fontSize: 12,
                     ),
                   ),
@@ -593,10 +710,10 @@ class _WorkoutHomeScreenState extends ConsumerState<WorkoutHomeScreen> {
             child: Container(
               padding: const EdgeInsets.all(SamanWorkoutTokens.spacingMd),
               decoration: BoxDecoration(
-                color: SamanWorkoutTokens.cardSurface,
+                color: t.cardSurface,
                 borderRadius:
                     BorderRadius.circular(SamanWorkoutTokens.radiusLg),
-                border: Border.all(color: SamanWorkoutTokens.border),
+                border: Border.all(color: t.border),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -608,23 +725,23 @@ class _WorkoutHomeScreenState extends ConsumerState<WorkoutHomeScreen> {
                         width: 32,
                         height: 32,
                         decoration: BoxDecoration(
-                          color: SamanWorkoutTokens.surfaceElevated,
+                          color: t.surfaceElevated,
                           borderRadius: BorderRadius.circular(
                               SamanWorkoutTokens.radiusSm),
-                          border: Border.all(color: SamanWorkoutTokens.border),
+                          border: Border.all(color: t.border),
                         ),
-                        child: const Icon(Icons.search,
-                            size: 18, color: SamanWorkoutTokens.textPrimary),
+                        child: Icon(Icons.search,
+                            size: 18, color: t.textPrimary),
                       ),
-                      const Icon(Icons.arrow_forward,
-                          size: 16, color: SamanWorkoutTokens.textSecondary),
+                      Icon(Icons.arrow_forward,
+                          size: 16, color: t.textSecondary),
                     ],
                   ),
                   const SizedBox(height: 12),
                   Text(
                     context.tr('browse_library'),
-                    style: const TextStyle(
-                      color: SamanWorkoutTokens.textPrimary,
+                    style: TextStyle(
+                      color: t.textPrimary,
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
                     ),
@@ -632,8 +749,8 @@ class _WorkoutHomeScreenState extends ConsumerState<WorkoutHomeScreen> {
                   const SizedBox(height: 2),
                   Text(
                     context.tr('explore_exercises'),
-                    style: const TextStyle(
-                      color: SamanWorkoutTokens.textSub,
+                    style: TextStyle(
+                      color: t.textSub,
                       fontSize: 12,
                     ),
                   ),
@@ -646,7 +763,7 @@ class _WorkoutHomeScreenState extends ConsumerState<WorkoutHomeScreen> {
     );
   }
 
-  Widget _buildTrainByFocus() {
+  Widget _buildTrainByFocus(SamanWorkoutPalette t) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -658,12 +775,12 @@ class _WorkoutHomeScreenState extends ConsumerState<WorkoutHomeScreen> {
                 context.tr('train_by_focus'),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
+                style: TextStyle(
                   fontFamily: 'monospace',
                   fontSize: 11,
                   fontWeight: FontWeight.w600,
                   letterSpacing: 1.1,
-                  color: SamanWorkoutTokens.textMuted,
+                  color: t.textMuted,
                 ),
               ),
             ),
@@ -673,16 +790,16 @@ class _WorkoutHomeScreenState extends ConsumerState<WorkoutHomeScreen> {
                 children: [
                   Text(
                     context.tr('all_categories'),
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontFamily: 'monospace',
                       fontSize: 11,
-                      color: SamanWorkoutTokens.emeraldAccent,
+                      color: t.emeraldAccent,
                       fontWeight: FontWeight.w500,
                     ),
                   ),
                   const SizedBox(width: 2),
-                  const Icon(Icons.arrow_forward,
-                      size: 14, color: SamanWorkoutTokens.emeraldAccent),
+                  Icon(Icons.arrow_forward,
+                      size: 14, color: t.emeraldAccent),
                 ],
               ),
             ),
@@ -719,7 +836,8 @@ class _WorkoutHomeScreenState extends ConsumerState<WorkoutHomeScreen> {
     );
   }
 
-  Widget _buildYourPlan(List<UpcomingPlanSession> upcoming) {
+  Widget _buildYourPlan(
+      List<UpcomingPlanSession> upcoming, SamanWorkoutPalette t) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -731,12 +849,12 @@ class _WorkoutHomeScreenState extends ConsumerState<WorkoutHomeScreen> {
                 context.tr('your_plan'),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
+                style: TextStyle(
                   fontFamily: 'monospace',
                   fontSize: 11,
                   fontWeight: FontWeight.w600,
                   letterSpacing: 1.1,
-                  color: SamanWorkoutTokens.textMuted,
+                  color: t.textMuted,
                 ),
               ),
             ),
@@ -746,15 +864,15 @@ class _WorkoutHomeScreenState extends ConsumerState<WorkoutHomeScreen> {
                 children: [
                   Text(
                     context.tr('view_full_plan'),
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontFamily: 'monospace',
                       fontSize: 11,
-                      color: SamanWorkoutTokens.textSecondary,
+                      color: t.textSecondary,
                     ),
                   ),
                   const SizedBox(width: 2),
-                  const Icon(Icons.chevron_right,
-                      size: 14, color: SamanWorkoutTokens.textSecondary),
+                  Icon(Icons.chevron_right,
+                      size: 14, color: t.textSecondary),
                 ],
               ),
             ),
@@ -763,9 +881,9 @@ class _WorkoutHomeScreenState extends ConsumerState<WorkoutHomeScreen> {
         const SizedBox(height: 8),
         Container(
           decoration: BoxDecoration(
-            color: SamanWorkoutTokens.cardSurface,
+            color: t.cardSurface,
             borderRadius: BorderRadius.circular(SamanWorkoutTokens.radiusLg),
-            border: Border.all(color: SamanWorkoutTokens.border),
+            border: Border.all(color: t.border),
           ),
           child: Column(
             children: List.generate(upcoming.length, (index) {
@@ -777,8 +895,8 @@ class _WorkoutHomeScreenState extends ConsumerState<WorkoutHomeScreen> {
                 decoration: BoxDecoration(
                   border: isLast
                       ? null
-                      : const Border(
-                          bottom: BorderSide(color: SamanWorkoutTokens.border),
+                      : Border(
+                          bottom: BorderSide(color: t.border),
                         ),
                 ),
                 child: Row(
@@ -788,29 +906,29 @@ class _WorkoutHomeScreenState extends ConsumerState<WorkoutHomeScreen> {
                       width: 40,
                       height: 40,
                       decoration: BoxDecoration(
-                        color: SamanWorkoutTokens.surfaceElevated,
+                        color: t.surfaceElevated,
                         borderRadius:
                             BorderRadius.circular(SamanWorkoutTokens.radiusMd),
-                        border: Border.all(color: SamanWorkoutTokens.border),
+                        border: Border.all(color: t.border),
                       ),
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           Text(
                             item.dayName.toUpperCase(),
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontFamily: 'monospace',
                               fontSize: 10,
-                              color: SamanWorkoutTokens.textSub,
+                              color: t.textSub,
                             ),
                           ),
                           Text(
                             item.dayNumber,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontFamily: 'monospace',
                               fontSize: 13,
                               fontWeight: FontWeight.w700,
-                              color: SamanWorkoutTokens.textPrimary,
+                              color: t.textPrimary,
                             ),
                           ),
                         ],
@@ -828,8 +946,8 @@ class _WorkoutHomeScreenState extends ConsumerState<WorkoutHomeScreen> {
                               Expanded(
                                   child: Text(
                                 item.title,
-                                style: const TextStyle(
-                                  color: SamanWorkoutTokens.textPrimary,
+                                style: TextStyle(
+                                  color: t.textPrimary,
                                   fontSize: 14,
                                   fontWeight: FontWeight.w600,
                                 ),
@@ -840,14 +958,14 @@ class _WorkoutHomeScreenState extends ConsumerState<WorkoutHomeScreen> {
                                     horizontal: 6, vertical: 2),
                                 decoration: BoxDecoration(
                                   color: item.isRest
-                                      ? SamanWorkoutTokens.surfaceElevated
-                                      : SamanWorkoutTokens.emeraldBadgeBg,
+                                      ? t.surfaceElevated
+                                      : t.emeraldBadgeBg,
                                   borderRadius: BorderRadius.circular(
                                       SamanWorkoutTokens.radiusXs),
                                   border: Border.all(
                                     color: item.isRest
-                                        ? SamanWorkoutTokens.borderSubtle
-                                        : SamanWorkoutTokens.emeraldBadgeBorder,
+                                        ? t.borderSubtle
+                                        : t.emeraldBadgeBorder,
                                   ),
                                 ),
                                 child: Text(
@@ -857,8 +975,8 @@ class _WorkoutHomeScreenState extends ConsumerState<WorkoutHomeScreen> {
                                     fontSize: 9,
                                     fontWeight: FontWeight.w600,
                                     color: item.isRest
-                                        ? SamanWorkoutTokens.textSub
-                                        : SamanWorkoutTokens.emeraldAccent,
+                                        ? t.textSub
+                                        : t.emeraldAccent,
                                   ),
                                 ),
                               ),
@@ -867,8 +985,8 @@ class _WorkoutHomeScreenState extends ConsumerState<WorkoutHomeScreen> {
                           const SizedBox(height: 2),
                           Text(
                             item.metrics,
-                            style: const TextStyle(
-                              color: SamanWorkoutTokens.textSub,
+                            style: TextStyle(
+                              color: t.textSub,
                               fontSize: 12,
                             ),
                           ),
@@ -876,10 +994,10 @@ class _WorkoutHomeScreenState extends ConsumerState<WorkoutHomeScreen> {
                       ),
                     ),
 
-                    const Icon(
+                    Icon(
                       Icons.chevron_right,
                       size: 18,
-                      color: SamanWorkoutTokens.textSecondary,
+                      color: t.textSecondary,
                     ),
                   ],
                 ),
@@ -891,7 +1009,8 @@ class _WorkoutHomeScreenState extends ConsumerState<WorkoutHomeScreen> {
     );
   }
 
-  Widget _buildLastWorkout(RecentWorkoutSummary? recent) {
+  Widget _buildLastWorkout(
+      RecentWorkoutSummary? recent, SamanWorkoutPalette t) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -903,12 +1022,12 @@ class _WorkoutHomeScreenState extends ConsumerState<WorkoutHomeScreen> {
                 context.tr('last_workout'),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
+                style: TextStyle(
                   fontFamily: 'monospace',
                   fontSize: 11,
                   fontWeight: FontWeight.w600,
                   letterSpacing: 1.1,
-                  color: SamanWorkoutTokens.textMuted,
+                  color: t.textMuted,
                 ),
               ),
             ),
@@ -918,15 +1037,15 @@ class _WorkoutHomeScreenState extends ConsumerState<WorkoutHomeScreen> {
                 children: [
                   Text(
                     context.tr('view_history'),
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontFamily: 'monospace',
                       fontSize: 11,
-                      color: SamanWorkoutTokens.textSecondary,
+                      color: t.textSecondary,
                     ),
                   ),
                   const SizedBox(width: 2),
-                  const Icon(Icons.chevron_right,
-                      size: 14, color: SamanWorkoutTokens.textSecondary),
+                  Icon(Icons.chevron_right,
+                      size: 14, color: t.textSecondary),
                 ],
               ),
             ),
@@ -940,10 +1059,10 @@ class _WorkoutHomeScreenState extends ConsumerState<WorkoutHomeScreen> {
             child: Container(
               padding: const EdgeInsets.all(SamanWorkoutTokens.spacingLg),
               decoration: BoxDecoration(
-                color: SamanWorkoutTokens.cardSurface,
+                color: t.cardSurface,
                 borderRadius:
                     BorderRadius.circular(SamanWorkoutTokens.radiusLg),
-                border: Border.all(color: SamanWorkoutTokens.border),
+                border: Border.all(color: t.border),
               ),
               child: Row(
                 children: [
@@ -952,14 +1071,14 @@ class _WorkoutHomeScreenState extends ConsumerState<WorkoutHomeScreen> {
                     width: 40,
                     height: 40,
                     decoration: BoxDecoration(
-                      color: SamanWorkoutTokens.surfaceElevated,
+                      color: t.surfaceElevated,
                       borderRadius:
                           BorderRadius.circular(SamanWorkoutTokens.radiusMd),
-                      border: Border.all(color: SamanWorkoutTokens.border),
+                      border: Border.all(color: t.border),
                     ),
-                    child: const Icon(
+                    child: Icon(
                       Icons.check_circle_outline,
-                      color: SamanWorkoutTokens.emeraldAccent,
+                      color: t.emeraldAccent,
                       size: 20,
                     ),
                   ),
@@ -972,8 +1091,8 @@ class _WorkoutHomeScreenState extends ConsumerState<WorkoutHomeScreen> {
                       children: [
                         Text(
                           recent.title,
-                          style: const TextStyle(
-                            color: SamanWorkoutTokens.textPrimary,
+                          style: TextStyle(
+                            color: t.textPrimary,
                             fontSize: 14,
                             fontWeight: FontWeight.w600,
                           ),
@@ -981,8 +1100,8 @@ class _WorkoutHomeScreenState extends ConsumerState<WorkoutHomeScreen> {
                         const SizedBox(height: 3),
                         Text(
                           '${recent.relativeTime} • ${recent.metrics}',
-                          style: const TextStyle(
-                            color: SamanWorkoutTokens.textSub,
+                          style: TextStyle(
+                            color: t.textSub,
                             fontSize: 12,
                           ),
                         ),
@@ -995,13 +1114,13 @@ class _WorkoutHomeScreenState extends ConsumerState<WorkoutHomeScreen> {
                     width: 32,
                     height: 32,
                     decoration: BoxDecoration(
-                      color: SamanWorkoutTokens.surfaceElevated,
+                      color: t.surfaceElevated,
                       borderRadius:
                           BorderRadius.circular(SamanWorkoutTokens.radiusSm),
-                      border: Border.all(color: SamanWorkoutTokens.border),
+                      border: Border.all(color: t.border),
                     ),
-                    child: const Icon(Icons.arrow_forward,
-                        size: 16, color: SamanWorkoutTokens.textSecondary),
+                    child: Icon(Icons.arrow_forward,
+                        size: 16, color: t.textSecondary),
                   ),
                 ],
               ),
@@ -1015,24 +1134,24 @@ class _WorkoutHomeScreenState extends ConsumerState<WorkoutHomeScreen> {
               width: double.infinity,
               padding: const EdgeInsets.all(SamanWorkoutTokens.spacingLg),
               decoration: BoxDecoration(
-                color: SamanWorkoutTokens.cardSurface,
+                color: t.cardSurface,
                 borderRadius:
                     BorderRadius.circular(SamanWorkoutTokens.radiusLg),
-                border: Border.all(color: SamanWorkoutTokens.border),
+                border: Border.all(color: t.border),
               ),
               child: Row(
                 children: [
-                  const Icon(
+                  Icon(
                     Icons.history,
                     size: 20,
-                    color: SamanWorkoutTokens.textMuted,
+                    color: t.textMuted,
                   ),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Text(
                       context.tr('no_saved_workouts'),
-                      style: const TextStyle(
-                        color: SamanWorkoutTokens.textSecondary,
+                      style: TextStyle(
+                        color: t.textSecondary,
                         fontSize: 14,
                       ),
                     ),
@@ -1061,15 +1180,16 @@ class _FocusCategoryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = SamanWorkoutTokens.of(context);
     return InkWell(
       borderRadius: BorderRadius.circular(SamanWorkoutTokens.radiusLg),
       onTap: onTap,
       child: Container(
         height: 160,
         decoration: BoxDecoration(
-          color: SamanWorkoutTokens.cardSurface,
+          color: t.cardSurface,
           borderRadius: BorderRadius.circular(SamanWorkoutTokens.radiusLg),
-          border: Border.all(color: SamanWorkoutTokens.border),
+          border: Border.all(color: t.border),
         ),
         clipBehavior: Clip.antiAlias,
         child: Stack(
@@ -1079,13 +1199,13 @@ class _FocusCategoryCard extends StatelessWidget {
               imageUrl: imageUrl,
               fit: BoxFit.cover,
               placeholder: (_, __) =>
-                  Container(color: SamanWorkoutTokens.surfaceElevated),
+                  Container(color: t.surfaceElevated),
               errorWidget: (_, __, ___) => Container(
-                color: SamanWorkoutTokens.surfaceElevated,
-                child: const Icon(Icons.fitness_center,
-                    color: SamanWorkoutTokens.textMuted),
+                color: t.surfaceElevated,
+                child: Icon(Icons.fitness_center, color: t.textMuted),
               ),
             ),
+            // Dark scrim preserved across Light/Dark for light text legibility
             Container(
               decoration: const BoxDecoration(
                 gradient: LinearGradient(

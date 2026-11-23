@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../../config/app_theme.dart';
 
 class ReportTabBar extends StatelessWidget {
   final int selectedIndex;
@@ -12,6 +13,13 @@ class ReportTabBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final p = SamanPalette.of(context);
+    final isDark = p.isDark;
+    final containerBg = isDark ? const Color(0xFF131417) : p.surfaceElevated;
+    final borderCol = isDark ? const Color(0xFF26282F) : p.border;
+    final activePillBg = isDark ? const Color(0xFFF9FAFB) : p.surface;
+    final activeTextCol = isDark ? const Color(0xFF0C0D0E) : p.textPrimary;
+    final inactiveTextCol = isDark ? const Color(0xFFA1A1AA) : p.textSecondary;
     const tabs = ['Overview', 'Nutrition', 'Activity'];
 
     return Padding(
@@ -19,9 +27,9 @@ class ReportTabBar extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(4),
         decoration: BoxDecoration(
-          color: const Color(0xFF131417),
+          color: containerBg,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: const Color(0xFF26282F)),
+          border: Border.all(color: borderCol),
         ),
         child: Row(
           children: tabs.asMap().entries.map((entry) {
@@ -39,12 +47,12 @@ class ReportTabBar extends StatelessWidget {
                   padding: const EdgeInsets.symmetric(vertical: 8),
                   alignment: Alignment.center,
                   decoration: BoxDecoration(
-                    color: isSelected ? const Color(0xFFF9FAFB) : Colors.transparent,
+                    color: isSelected ? activePillBg : Colors.transparent,
                     borderRadius: BorderRadius.circular(8),
                     boxShadow: isSelected
                         ? [
                             BoxShadow(
-                              color: Colors.black.withOpacity(0.12),
+                              color: Colors.black.withOpacity(isDark ? 0.12 : 0.08),
                               blurRadius: 4,
                               offset: const Offset(0, 1),
                             )
@@ -56,9 +64,7 @@ class ReportTabBar extends StatelessWidget {
                     style: TextStyle(
                       fontSize: 12,
                       fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-                      color: isSelected
-                          ? const Color(0xFF0C0D0E)
-                          : const Color(0xFFA1A1AA),
+                      color: isSelected ? activeTextCol : inactiveTextCol,
                     ),
                   ),
                 ),

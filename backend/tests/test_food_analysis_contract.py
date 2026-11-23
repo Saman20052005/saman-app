@@ -12,31 +12,34 @@ import pytest
 os.environ["MONGO_URI"] = "mongodb://127.0.0.1:27017"
 os.environ["DB_NAME"] = "saman_test_core3_isolated"
 
-# Import only the target router module; unrelated application routers pull in
-# optional services that are outside this isolated contract test.
-routers_package = ModuleType("backend.routers")
-routers_package.__path__ = [str(Path(__file__).resolve().parents[1] / "routers")]
-sys.modules.setdefault("backend.routers", routers_package)
-auth_stub = ModuleType("backend.auth_utils")
-auth_stub.verify_token = lambda: "user@example.test"
-auth_stub.get_current_user = lambda: {"email": "food-e2e-test@saman.test", "id": "food-e2e-test"}
-sys.modules.setdefault("backend.auth_utils", auth_stub)
-classifier_stub = ModuleType("backend.services.food_classifier")
-classifier_stub.FoodClassifier = type("FoodClassifier", (), {"get_instance": staticmethod(lambda **_kwargs: None)})
-sys.modules.setdefault("backend.services.food_classifier", classifier_stub)
-lookup_stub = ModuleType("backend.services.nutrition_lookup")
-lookup_stub.NutritionLookup = type(
-    "NutritionLookup",
-    (),
-    {"__init__": lambda self: None, "lookup": lambda self, *_args: None},
-)
-sys.modules.setdefault("backend.services.nutrition_lookup", lookup_stub)
-
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
-from backend.routers import food_analysis
 from backend.services.gemini_food_analyzer import GeminiFoodAnalyzer
+
+# Import only the target router module; unrelated application routers pull in
+# optional services that are outside this isolated contract test.
+# Scope sys.modules stubs to import time so subsequent test modules see real packages.
+with patch.dict(sys.modules):
+    routers_package = ModuleType("backend.routers")
+    routers_package.__path__ = [str(Path(__file__).resolve().parents[1] / "routers")]
+    sys.modules.setdefault("backend.routers", routers_package)
+    auth_stub = ModuleType("backend.auth_utils")
+    auth_stub.verify_token = lambda: "user@example.test"
+    auth_stub.get_current_user = lambda: {"email": "food-e2e-test@saman.test", "id": "food-e2e-test"}
+    sys.modules.setdefault("backend.auth_utils", auth_stub)
+    classifier_stub = ModuleType("backend.services.food_classifier")
+    classifier_stub.FoodClassifier = type("FoodClassifier", (), {"get_instance": staticmethod(lambda **_kwargs: None)})
+    sys.modules.setdefault("backend.services.food_classifier", classifier_stub)
+    lookup_stub = ModuleType("backend.services.nutrition_lookup")
+    lookup_stub.NutritionLookup = type(
+        "NutritionLookup",
+        (),
+        {"__init__": lambda self: None, "lookup": lambda self, *_args: None},
+    )
+    sys.modules.setdefault("backend.services.nutrition_lookup", lookup_stub)
+
+    from backend.routers import food_analysis
 
 
 def _mock_classifier():
@@ -147,3 +150,86 @@ def test_gemini_request_uses_configured_default_and_minimal_thinking():
     config = captured["json"]["generationConfig"]
     assert config["thinkingConfig"] == {"thinkingLevel": "minimal"}
     assert "ingredients" in config["responseSchema"]["properties"]
+
+
+def test_gemini_timeout_falls_back_to_flash_lite():
+    import httpx
+    analyzer = GeminiFoodAnalyzer(api_key="test", model="gemini-3.6-flash")
+    called_urls = []
+
+    class OkResponse:
+        status_code = 200
+        text = ""
+
+        def json(self):
+            return {"candidates": [{"content": {"parts": [{"text": '''{
+              "is_food": true, "food_name": "Pho Bo", "food_label": "pho_bo", "confidence": 0.9,
+              "per_100g": {"calories": 120, "protein": 8, "carbs": 15, "fat": 3}
+            }'''}]}}]}
+
+    class Client:
+        def __init__(self, **_kwargs):
+            pass
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *_args):
+            return None
+
+        async def post(self, url, **_kwargs):
+            called_urls.append(url)
+            if "gemini-3.6-flash" in url:
+                raise httpx.ReadTimeout("timed out")
+            return OkResponse()
+
+    with patch("backend.services.gemini_food_analyzer.httpx.AsyncClient", Client):
+        result = asyncio.run(analyzer.analyze(b"image-bytes"))
+
+    assert result["food_name"] == "Pho Bo"
+    assert len(called_urls) == 2
+    assert "gemini-3.6-flash" in called_urls[0]
+    assert "gemini-3.5-flash-lite" in called_urls[1]
+
+
+def test_gemini_thinking_unsupported_retries_without_thinking_config():
+    analyzer = GeminiFoodAnalyzer(api_key="test", model="gemini-3.8-flash")
+    payloads = []
+
+    class BadThinkingResponse:
+        status_code = 400
+        text = '{"error":{"message":"Thinking level MINIMAL is not supported for this model."}}'
+
+    class OkResponse:
+        status_code = 200
+        text = ""
+
+        def json(self):
+            return {"candidates": [{"content": {"parts": [{"text": '''{
+              "is_food": true, "food_name": "Banh Mi", "food_label": "banh_mi", "confidence": 0.88,
+              "per_100g": {"calories": 250, "protein": 10, "carbs": 35, "fat": 7}
+            }'''}]}}]}
+
+    class Client:
+        def __init__(self, **_kwargs):
+            pass
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *_args):
+            return None
+
+        async def post(self, _url, **kwargs):
+            payloads.append(kwargs["json"]["generationConfig"])
+            if "thinkingConfig" in kwargs["json"]["generationConfig"]:
+                return BadThinkingResponse()
+            return OkResponse()
+
+    with patch("backend.services.gemini_food_analyzer.httpx.AsyncClient", Client):
+        result = asyncio.run(analyzer.analyze(b"image-bytes"))
+
+    assert result["food_name"] == "Banh Mi"
+    assert len(payloads) == 2
+    assert "thinkingConfig" in payloads[0]
+    assert "thinkingConfig" not in payloads[1]

@@ -9,6 +9,7 @@ import 'package:health_ai_app/config/routes.dart';
 import 'package:health_ai_app/features/journal/data/datasources/journal_fake_datasource.dart';
 import 'package:health_ai_app/features/journal/data/repositories/journal_repository_impl.dart';
 import 'package:health_ai_app/features/journal/presentation/providers/journal_providers.dart';
+import 'package:health_ai_app/features/journal/presentation/screens/journal_article_detail_screen.dart';
 import 'package:health_ai_app/features/journal/presentation/screens/journal_discover_screen.dart';
 import 'package:health_ai_app/features/journal/presentation/screens/journal_search_screen.dart';
 import 'package:health_ai_app/screens/home/widgets/saman_picks_carousel.dart';
@@ -39,12 +40,13 @@ Widget buildCaptureHarness({
   Locale locale = const Locale('vi'),
   double textScaleFactor = 1.0,
 }) {
+  final ds = datasource ?? JournalFakeDatasource(simulatedDelay: Duration.zero);
   return ProviderScope(
     overrides: [
-      if (datasource != null)
-        journalRepositoryProvider.overrideWithValue(
-          JournalRepositoryImpl(datasource: datasource),
-        ),
+      useRemoteJournalProvider.overrideWith((ref) => false),
+      journalRepositoryProvider.overrideWithValue(
+        JournalRepositoryImpl(fakeDatasource: ds),
+      ),
     ],
     child: MaterialApp(
       locale: locale,
@@ -319,6 +321,7 @@ void main() {
       await tester.tap(find.text('Thư viện').first);
       await tester.pumpAndSettle();
 
+      expect(find.text('Tra cứu bài tập'), findsOneWidget);
       await captureScreenshot(tester, '13_r01_backlog_library_tab');
     });
 
@@ -377,7 +380,9 @@ void main() {
       await tester.tap(find.text('Hiểu calories và các chất dinh dưỡng').first);
       await tester.pumpAndSettle();
 
-      await captureScreenshot(tester, '16_r01_reading_progress_preview_sheet');
+      expect(find.byType(JournalArticleDetailScreen), findsOneWidget);
+      // Detail screen opened with article title
+      expect(find.text('Hiểu calories và các chất dinh dưỡng'), findsWidgets);
     });
 
     testWidgets('Capture 17-21: Multi-step Back Navigation Sequence', (tester) async {
@@ -389,8 +394,9 @@ void main() {
       await tester.pumpWidget(
         ProviderScope(
           overrides: [
+            useRemoteJournalProvider.overrideWith((ref) => false),
             journalRepositoryProvider.overrideWithValue(
-              JournalRepositoryImpl(datasource: datasource),
+              JournalRepositoryImpl(fakeDatasource: datasource),
             ),
           ],
           child: MaterialApp(

@@ -48,7 +48,6 @@ class _CommunityAskQuestionScreenState
   }
 
   Future<void> _handleClose() async {
-    if (ref.read(useRemoteCommunityProvider)) { Navigator.pop(context); return; }
     final title = _titleController.text.trim();
     if (title.isNotEmpty) {
       final action = await DraftDiscardDialog.show(context);
@@ -61,7 +60,7 @@ class _CommunityAskQuestionScreenState
           topic: _selectedTopic,
           updatedAt: DateTime.now(),
         );
-        await ref.read(communityRepositoryProvider).saveDraft(draft);
+        await ref.read(communityDraftsProvider.notifier).saveDraft(draft);
         if (!mounted) return;
         Navigator.pop(context);
       } else if (action == DraftDiscardAction.discard) {
@@ -88,18 +87,19 @@ class _CommunityAskQuestionScreenState
       if (_titleController.text != next.caption) _titleController.text = next.caption;
       if (_detailsController.text != next.questionDetails) _detailsController.text = next.questionDetails;
     });
+    final tokens = SamanHomeTokens.of(context);
     final charCount = _titleController.text.length;
 
     return Scaffold(
-      backgroundColor: const Color(0xFF121314),
+      backgroundColor: tokens.canvas,
       body: SafeArea(
         bottom: false,
         child: Column(
           children: [
             // Header
-            _buildAppBar(context),
+            _buildAppBar(context, tokens),
             if (draft.errorMessage != null)
-              Padding(padding: const EdgeInsets.all(16), child: Text(context.tr(draft.errorMessage!), style: SamanHomeTokens.headerSubtitle)),
+              Padding(padding: const EdgeInsets.all(16), child: Text(context.tr(draft.errorMessage!), style: tokens.headerSubtitle)),
 
             // Content
             Expanded(
@@ -110,7 +110,7 @@ class _CommunityAskQuestionScreenState
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     // Author Identity
-                    _buildAuthorRow(),
+                    _buildAuthorRow(tokens),
                     _QuestionAudience(
                       value: draft.audience,
                       enabled: !draft.hasPendingSubmission,
@@ -119,16 +119,16 @@ class _CommunityAskQuestionScreenState
                     const SizedBox(height: 16),
 
                     // Topic Selection
-                    _buildTopicChips(),
+                    _buildTopicChips(tokens),
                     const SizedBox(height: 16),
 
                     // Question Title input
                     Container(
                       padding: const EdgeInsets.all(14),
                       decoration: BoxDecoration(
-                        color: const Color(0xFF1E1F21),
+                        color: tokens.cardSurface,
                         borderRadius: BorderRadius.circular(14),
-                        border: Border.all(color: const Color(0xFF292A2B)),
+                        border: Border.all(color: tokens.border),
                       ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -136,14 +136,14 @@ class _CommunityAskQuestionScreenState
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              const Expanded(
+                              Expanded(
                                 child: Text(
                                   'Câu hỏi của bạn *',
                                   overflow: TextOverflow.ellipsis,
                                   style: TextStyle(
                                     fontSize: 13,
                                     fontWeight: FontWeight.w600,
-                                    color: Color(0xFFBBCAAF),
+                                    color: tokens.textSecondary,
                                   ),
                                 ),
                               ),
@@ -152,8 +152,8 @@ class _CommunityAskQuestionScreenState
                                 style: TextStyle(
                                   fontSize: 11,
                                   color: charCount > 130
-                                      ? Colors.amber
-                                      : const Color(0xFFBBCAAF),
+                                      ? tokens.carbsAmber
+                                      : tokens.textSecondary,
                                 ),
                               ),
                             ],
@@ -166,20 +166,20 @@ class _CommunityAskQuestionScreenState
                             maxLength: 150,
                             maxLines: 2,
                             onChanged: ref.read(communityQuestionComposerProvider.notifier).setCaption,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.w600,
-                              color: SamanHomeTokens.textWhite,
+                              color: tokens.textPrimary,
                               height: 1.3,
                             ),
-                            decoration: const InputDecoration(
+                            decoration: InputDecoration(
                               filled: false,
-                              counterStyle: SamanHomeTokens.headerSubtitle,
+                              counterStyle: tokens.headerSubtitle,
                               hintText: 'Đặt câu hỏi ngắn gọn, trọng tâm...',
                               hintStyle: TextStyle(
                                 fontSize: 15,
                                 fontWeight: FontWeight.w400,
-                                color: Color(0xFF71767B),
+                                color: tokens.textMuted,
                               ),
                               counterText: '',
                               border: InputBorder.none,
@@ -194,19 +194,19 @@ class _CommunityAskQuestionScreenState
                     Container(
                       padding: const EdgeInsets.all(14),
                       decoration: BoxDecoration(
-                        color: const Color(0xFF1E1F21),
+                        color: tokens.cardSurface,
                         borderRadius: BorderRadius.circular(14),
-                        border: Border.all(color: const Color(0xFF292A2B)),
+                        border: Border.all(color: tokens.border),
                       ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text(
+                          Text(
                             'Chi tiết thêm (không bắt buộc)',
                             style: TextStyle(
                               fontSize: 13,
                               fontWeight: FontWeight.w600,
-                              color: Color(0xFFBBCAAF),
+                              color: tokens.textSecondary,
                             ),
                           ),
                           const SizedBox(height: 8),
@@ -217,19 +217,19 @@ class _CommunityAskQuestionScreenState
                             onChanged: ref.read(communityQuestionComposerProvider.notifier).setQuestionDetails,
                             maxLength: 2000,
                             maxLines: 4,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 14,
-                              color: SamanHomeTokens.textWhite,
+                              color: tokens.textPrimary,
                               height: 1.4,
                             ),
-                            decoration: const InputDecoration(
+                            decoration: InputDecoration(
                               filled: false,
-                              counterStyle: SamanHomeTokens.headerSubtitle,
+                              counterStyle: tokens.headerSubtitle,
                               hintText:
                                   'Chia sẻ bối cảnh, mục tiêu của bạn để nhận được câu trả lời chính xác hơn...',
                               hintStyle: TextStyle(
                                 fontSize: 13,
-                                color: Color(0xFF71767B),
+                                color: tokens.textMuted,
                               ),
                               border: InputBorder.none,
                             ),
@@ -248,42 +248,42 @@ class _CommunityAskQuestionScreenState
     );
   }
 
-  Widget _buildAppBar(BuildContext context) {
+  Widget _buildAppBar(BuildContext context, SamanHomePalette tokens) {
     final hasTitle = _titleController.text.trim().isNotEmpty;
 
     return Container(
       height: 52,
       padding: const EdgeInsets.symmetric(horizontal: 16),
-      decoration: const BoxDecoration(
-        color: Color(0xFF121314),
-        border: Border(bottom: BorderSide(color: Color(0xFF1F2021), width: 1)),
+      decoration: BoxDecoration(
+        color: tokens.canvas,
+        border: Border(bottom: BorderSide(color: tokens.border, width: 1)),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           IconButton(
             onPressed: _handleClose,
-            icon: const Icon(
+            icon: Icon(
               Icons.close_rounded,
-              color: SamanHomeTokens.textWhite,
+              color: tokens.textPrimary,
               size: 22,
             ),
           ),
-          const Text(
+          Text(
             'Đặt câu hỏi',
             style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w700,
-              color: SamanHomeTokens.textWhite,
+              color: tokens.textPrimary,
             ),
           ),
           _isSubmitting
-              ? const SizedBox(
+              ? SizedBox(
                   width: 20,
                   height: 20,
                   child: CircularProgressIndicator(
                     strokeWidth: 2,
-                    color: SamanHomeTokens.greenAccent,
+                    color: tokens.greenAccent,
                   ),
                 )
               : ElevatedButton.icon(
@@ -291,8 +291,10 @@ class _CommunityAskQuestionScreenState
                   icon: const Icon(Icons.arrow_upward_rounded, size: 16),
                   label: const Text('Đăng'),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: SamanHomeTokens.greenAccent,
-                    foregroundColor: const Color(0xFF003824),
+                    backgroundColor: tokens.greenAccent,
+                    foregroundColor: tokens.isDark
+                        ? const Color(0xFF003824)
+                        : const Color(0xFFFFFFFF),
                     padding:
                         const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                     shape: RoundedRectangleBorder(
@@ -306,19 +308,19 @@ class _CommunityAskQuestionScreenState
     );
   }
 
-  Widget _buildAuthorRow() {
+  Widget _buildAuthorRow(SamanHomePalette tokens) {
     return Row(
       children: [
         Container(
           width: 38,
           height: 38,
-          decoration: const BoxDecoration(
+          decoration: BoxDecoration(
             shape: BoxShape.circle,
-            color: Color(0xFF292A2B),
+            color: tokens.secondarySurface,
           ),
-          child: const Icon(
+          child: Icon(
             Icons.person_rounded,
-            color: SamanHomeTokens.greenAccent,
+            color: tokens.greenAccent,
             size: 22,
           ),
         ),
@@ -328,16 +330,16 @@ class _CommunityAskQuestionScreenState
           children: [
             Text(
               ref.watch(useRemoteCommunityProvider) ? context.tr('community_publish_current_user') : 'Linh Nguyễn',
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w700,
-                color: SamanHomeTokens.textWhite,
+                color: tokens.textPrimary,
               ),
             ),
             const SizedBox(height: 2),
-            const Text(
+            Text(
               'Hỏi cộng đồng',
-              style: TextStyle(fontSize: 11, color: Color(0xFFBBCAAF)),
+              style: TextStyle(fontSize: 11, color: tokens.textSecondary),
             ),
           ],
         ),
@@ -345,11 +347,11 @@ class _CommunityAskQuestionScreenState
     );
   }
 
-  Widget _buildTopicChips() {
+  Widget _buildTopicChips(SamanHomePalette tokens) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Row(
+        Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Expanded(
@@ -359,7 +361,7 @@ class _CommunityAskQuestionScreenState
                 style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w600,
-                  color: Color(0xFFBBCAAF),
+                  color: tokens.textSecondary,
                 ),
               ),
             ),
@@ -367,7 +369,7 @@ class _CommunityAskQuestionScreenState
               'Bắt buộc chọn 1',
               style: TextStyle(
                 fontSize: 11,
-                color: SamanHomeTokens.greenAccent,
+                color: tokens.greenAccent,
                 fontWeight: FontWeight.w500,
               ),
             ),
@@ -384,20 +386,22 @@ class _CommunityAskQuestionScreenState
                 child: ChoiceChip(
                   label: Text(t),
                   selected: isSelected,
-                  selectedColor: SamanHomeTokens.greenAccent,
-                  disabledColor: SamanHomeTokens.cardSurface,
-                  backgroundColor: const Color(0xFF1E1F21),
+                  selectedColor: tokens.greenAccent,
+                  disabledColor: tokens.cardSurface,
+                  backgroundColor: tokens.cardSurface,
                   labelStyle: TextStyle(
                     fontSize: 12,
                     fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
                     color: isSelected
-                        ? const Color(0xFF003824)
-                        : const Color(0xFFBBCAAF),
+                        ? (tokens.isDark
+                            ? const Color(0xFF003824)
+                            : const Color(0xFFFFFFFF))
+                        : tokens.textSecondary,
                   ),
                   side: BorderSide(
                     color: isSelected
-                        ? SamanHomeTokens.greenAccent
-                        : const Color(0xFF343536),
+                        ? tokens.greenAccent
+                        : tokens.border,
                   ),
                   onSelected: _pending ? null : (_) => ref.read(communityQuestionComposerProvider.notifier).setTopic(t),
                 ),
@@ -417,16 +421,17 @@ class _QuestionAudience extends StatelessWidget {
   const _QuestionAudience({required this.value, required this.enabled, required this.onChanged});
   @override
   Widget build(BuildContext context) {
+    final tokens = SamanHomeTokens.of(context);
     return DropdownButtonFormField<String>(
       key: const ValueKey('question-audience'),
       value: value,
-      decoration: InputDecoration(filled: false, labelStyle: SamanHomeTokens.headerSubtitle, labelText: context.tr('community_publish_audience')),
-      dropdownColor: SamanHomeTokens.cardSurface,
-      style: const TextStyle(color: SamanHomeTokens.textWhite),
+      decoration: InputDecoration(filled: false, labelStyle: tokens.headerSubtitle, labelText: context.tr('community_publish_audience')),
+      dropdownColor: tokens.cardSurface,
+      style: TextStyle(color: tokens.textPrimary),
       items: ['Công khai', 'Người theo dõi', 'Chỉ mình tôi'].map((audience) =>
         DropdownMenuItem(value: audience, child: Text(context.tr(
           audience == 'Công khai' ? 'community_audience_public' :
-          audience == 'Người theo dõi' ? 'community_audience_followers' : 'community_audience_private'), style: const TextStyle(color: SamanHomeTokens.textWhite)))).toList(),
+          audience == 'Người theo dõi' ? 'community_audience_followers' : 'community_audience_private'), style: TextStyle(color: tokens.textPrimary)))).toList(),
       onChanged: enabled ? (next) { if (next != null) onChanged(next); } : null,
     );
   }

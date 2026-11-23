@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../data/models/exercise.dart';
 import '../providers/active_workout_providers.dart';
 import '../../core/constants/app_dimens.dart';
-import '../../core/constants/app_colors.dart';
 
 class SetLoggingCard extends ConsumerStatefulWidget {
   final Exercise exercise;
@@ -93,9 +92,14 @@ class _SetLoggingCardState extends ConsumerState<SetLoggingCard> {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     return Card(
       elevation: 0,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+      color: colorScheme.surface,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(24),
+        side: BorderSide(color: colorScheme.outline),
+      ),
       child: Padding(
         padding: const EdgeInsets.all(24),
         child: Column(
@@ -187,8 +191,8 @@ class _SetLoggingCardState extends ConsumerState<SetLoggingCard> {
                 children: [
                   LinearProgressIndicator(
                     value: _restSecondsLeft / widget.exercise.restSeconds,
-                    backgroundColor: Colors.grey[200],
-                    color: AppColors.primary,
+                    backgroundColor: colorScheme.outline,
+                    color: colorScheme.primary,
                     minHeight: 12,
                     borderRadius: BorderRadius.circular(999),
                   ),
@@ -220,8 +224,8 @@ class _SetLoggingCardState extends ConsumerState<SetLoggingCard> {
               child: ElevatedButton(
                 onPressed: _resting ? _skipRest : _completeSet,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.black,
-                  foregroundColor: Colors.white,
+                  backgroundColor: colorScheme.primary,
+                  foregroundColor: colorScheme.onPrimary,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(999),
                   ),

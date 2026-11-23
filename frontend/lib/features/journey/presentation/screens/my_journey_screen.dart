@@ -2,31 +2,51 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../config/routes.dart';
 import '../../../../screens/food_log_screen.dart';
+import '../../../../screens/home/tokens/saman_home_tokens.dart';
 import '../../../../presentation/screens/workout_home_screen.dart';
 import '../../domain/models/journey_models.dart';
 import '../providers/journey_providers.dart';
+import '../../../../widgets/saman_feedback_snackbar.dart';
 
 class MyJourneyScreen extends ConsumerWidget {
   const MyJourneyScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final tokens = SamanHomeTokens.of(context);
+    final scaffoldBg =
+        tokens.isDark ? const Color(0xFF0C0D0E) : tokens.canvas;
+    final cardBg =
+        tokens.isDark ? const Color(0xFF16171B) : tokens.cardSurface;
+    final borderColor =
+        tokens.isDark ? const Color(0xFF26282F) : tokens.border;
+    final textPrimary =
+        tokens.isDark ? const Color(0xFFF3F4F6) : tokens.textPrimary;
+    final textSecondary =
+        tokens.isDark ? const Color(0xFF94979E) : tokens.textSecondary;
+    final emerald =
+        tokens.isDark ? const Color(0xFF10B981) : tokens.greenAccent;
+    final ctaBg =
+        tokens.isDark ? const Color(0xFFF9FAFB) : const Color(0xFF059669);
+    final ctaFg =
+        tokens.isDark ? const Color(0xFF0C0D0E) : Colors.white;
+
     final journeyState = ref.watch(journeyControllerProvider);
     final walletState = ref.watch(walletControllerProvider);
     final journey = journeyState.journey;
 
     if (journeyState.isLoading) {
-      return const Scaffold(
-        backgroundColor: Color(0xFF0C0D0E),
+      return Scaffold(
+        backgroundColor: scaffoldBg,
         body: Center(
-          child: CircularProgressIndicator(color: Color(0xFF10B981)),
+          child: CircularProgressIndicator(color: emerald),
         ),
       );
     }
 
     if (journey == null || !journey.isActive) {
       return Scaffold(
-        backgroundColor: const Color(0xFF0C0D0E),
+        backgroundColor: scaffoldBg,
         body: SafeArea(
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
@@ -34,7 +54,7 @@ class MyJourneyScreen extends ConsumerWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 IconButton(
-                  icon: const Icon(Icons.arrow_back, color: Color(0xFF94979E)),
+                  icon: Icon(Icons.arrow_back, color: textSecondary),
                   onPressed: () => Navigator.of(context).pop(),
                 ),
                 const Spacer(),
@@ -45,27 +65,27 @@ class MyJourneyScreen extends ConsumerWidget {
                       Container(
                         padding: const EdgeInsets.all(20),
                         decoration: BoxDecoration(
-                          color: const Color(0xFF16171B),
+                          color: cardBg,
                           shape: BoxShape.circle,
-                          border: Border.all(color: const Color(0xFF26282F)),
+                          border: Border.all(color: borderColor),
                         ),
-                        child: const Icon(Icons.flag_outlined, size: 48, color: Color(0xFF94979E)),
+                        child: Icon(Icons.flag_outlined, size: 48, color: textSecondary),
                       ),
                       const SizedBox(height: 20),
-                      const Text(
+                      Text(
                         'Chưa có hành trình đang diễn ra',
                         style: TextStyle(
-                          fontFamily: 'Space Grotesk',
+                          fontFamily: 'Manrope',
                           fontSize: 20,
                           fontWeight: FontWeight.w600,
-                          color: Color(0xFFF3F4F6),
+                          color: textPrimary,
                         ),
                         textAlign: TextAlign.center,
                       ),
                       const SizedBox(height: 8),
-                      const Text(
+                      Text(
                         'Hãy thiết lập một cam kết 7, 14, 21 hoặc 30 ngày để xây dựng thói quen và nhận điểm thưởng mỗi ngày.',
-                        style: TextStyle(fontSize: 13, color: Color(0xFF94979E), height: 1.4),
+                        style: TextStyle(fontSize: 13, color: textSecondary, height: 1.4),
                         textAlign: TextAlign.center,
                       ),
                       const SizedBox(height: 24),
@@ -78,8 +98,8 @@ class MyJourneyScreen extends ConsumerWidget {
                             ref.read(journeyControllerProvider.notifier).loadActiveJourney();
                           },
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFFF9FAFB),
-                            foregroundColor: const Color(0xFF0C0D0E),
+                            backgroundColor: ctaBg,
+                            foregroundColor: ctaFg,
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                             elevation: 0,
                           ),
@@ -103,11 +123,11 @@ class MyJourneyScreen extends ConsumerWidget {
     final currentDayIndex = today?.dayIndex ?? 1;
 
     return Scaffold(
-      backgroundColor: const Color(0xFF0C0D0E),
+      backgroundColor: scaffoldBg,
       body: SafeArea(
         child: RefreshIndicator(
-          color: const Color(0xFF10B981),
-          backgroundColor: const Color(0xFF16171B),
+          color: emerald,
+          backgroundColor: cardBg,
           onRefresh: () async {
             await ref.read(journeyControllerProvider.notifier).loadActiveJourney();
             await ref.read(walletControllerProvider.notifier).loadWalletData();
@@ -126,7 +146,7 @@ class MyJourneyScreen extends ConsumerWidget {
                       child: Row(
                         children: [
                           IconButton(
-                            icon: const Icon(Icons.arrow_back, color: Color(0xFF94979E)),
+                            icon: Icon(Icons.arrow_back, color: textSecondary),
                             onPressed: () {
                               if (Navigator.of(context).canPop()) {
                                 Navigator.of(context).pop();
@@ -136,17 +156,17 @@ class MyJourneyScreen extends ConsumerWidget {
                             },
                           ),
                           const SizedBox(width: 4),
-                          const Expanded(
+                          Expanded(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
                                   'Hành trình của tôi',
                                   style: TextStyle(
-                                    fontFamily: 'Space Grotesk',
+                                    fontFamily: 'Manrope',
                                     fontSize: 22,
                                     fontWeight: FontWeight.bold,
-                                    color: Color(0xFFF3F4F6),
+                                    color: textPrimary,
                                     letterSpacing: -0.5,
                                   ),
                                   overflow: TextOverflow.ellipsis,
@@ -155,7 +175,7 @@ class MyJourneyScreen extends ConsumerWidget {
                                   'Tiến độ cá nhân & kỷ luật mỗi ngày',
                                   style: TextStyle(
                                     fontSize: 12,
-                                    color: Color(0xFF94979E),
+                                    color: textSecondary,
                                   ),
                                   overflow: TextOverflow.ellipsis,
                                 ),
@@ -167,7 +187,7 @@ class MyJourneyScreen extends ConsumerWidget {
                     ),
                     const SizedBox(width: 8),
                     IconButton(
-                      icon: const Icon(Icons.tune_rounded, color: Color(0xFF94979E)),
+                      icon: Icon(Icons.tune_rounded, color: textSecondary),
                       tooltip: 'Thiết lập hành trình',
                       onPressed: () async {
                         await Navigator.of(context).pushNamed(AppRoutes.createJourney);
@@ -179,7 +199,7 @@ class MyJourneyScreen extends ConsumerWidget {
                 const SizedBox(height: 20),
 
                 // 2. HERO ACTIVE JOURNEY CARD
-                _buildHeroCard(journey, currentDayIndex),
+                _buildHeroCard(tokens, journey, currentDayIndex),
                 const SizedBox(height: 20),
 
                 // 3. TODAY'S TASKS & DAILY REWARD
@@ -187,7 +207,7 @@ class MyJourneyScreen extends ConsumerWidget {
                 const SizedBox(height: 20),
 
                 // 4. JOURNEY CALENDAR (7-COLUMN GRID)
-                _buildCalendarCard(journey),
+                _buildCalendarCard(tokens, journey),
                 const SizedBox(height: 20),
 
                 // 5. POINT WALLET ENTRY ROW
@@ -201,13 +221,30 @@ class MyJourneyScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildHeroCard(SamanJourney journey, int currentDayIndex) {
+  Widget _buildHeroCard(SamanHomePalette tokens, SamanJourney journey, int currentDayIndex) {
+    final cardBg =
+        tokens.isDark ? const Color(0xFF16171B) : tokens.cardSurface;
+    final borderColor =
+        tokens.isDark ? const Color(0xFF26282F) : tokens.border;
+    final textPrimary =
+        tokens.isDark ? const Color(0xFFF3F4F6) : tokens.textPrimary;
+    final textSecondary =
+        tokens.isDark ? const Color(0xFF94979E) : tokens.textSecondary;
+    final emerald =
+        tokens.isDark ? const Color(0xFF10B981) : tokens.greenAccent;
+    final streakBg =
+        tokens.isDark ? const Color(0xB3212328) : tokens.secondarySurface;
+    final amber =
+        tokens.isDark ? const Color(0xFFFFB95F) : tokens.carbsAmber;
+    final trackBg =
+        tokens.isDark ? const Color(0xFF212328) : tokens.progressTrack;
+
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: const Color(0xFF16171B),
+        color: cardBg,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFF26282F), width: 1),
+        border: Border.all(color: borderColor, width: 1),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -222,30 +259,30 @@ class MyJourneyScreen extends ConsumerWidget {
                   children: [
                     Text(
                       'Hành trình ${journey.totalDays} ngày'.toUpperCase(),
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 11,
                         fontWeight: FontWeight.w600,
-                        color: Color(0xFF10B981),
+                        color: emerald,
                         letterSpacing: 0.5,
                       ),
                     ),
                     const SizedBox(height: 4),
-                    const Text(
+                    Text(
                       'Mỗi ngày một tốt hơn',
                       style: TextStyle(
-                        fontFamily: 'Space Grotesk',
+                        fontFamily: 'Manrope',
                         fontSize: 20,
                         fontWeight: FontWeight.bold,
-                        color: Color(0xFFF3F4F6),
+                        color: textPrimary,
                       ),
                       overflow: TextOverflow.ellipsis,
                     ),
                     const SizedBox(height: 2),
                     Text(
                       journey.focus.label,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 12,
-                        color: Color(0xFF94979E),
+                        color: textSecondary,
                       ),
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -256,34 +293,34 @@ class MyJourneyScreen extends ConsumerWidget {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                 decoration: BoxDecoration(
-                  color: const Color(0xB3212328),
+                  color: streakBg,
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: const Color(0xFF26282F), width: 1),
+                  border: Border.all(color: borderColor, width: 1),
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Icon(
+                    Icon(
                       Icons.local_fire_department_rounded,
-                      color: Color(0xFFFFB95F),
+                      color: amber,
                       size: 20,
                     ),
                     const SizedBox(width: 4),
                     Text(
                       '${journey.currentStreak}',
-                      style: const TextStyle(
-                        fontFamily: 'Space Grotesk',
+                      style: TextStyle(
+                        fontFamily: 'Manrope',
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
-                        color: Color(0xFFF3F4F6),
+                        color: textPrimary,
                       ),
                     ),
                     const SizedBox(width: 4),
-                    const Text(
+                    Text(
                       'chuỗi',
                       style: TextStyle(
                         fontSize: 11,
-                        color: Color(0xFF94979E),
+                        color: textSecondary,
                       ),
                     ),
                   ],
@@ -297,8 +334,8 @@ class MyJourneyScreen extends ConsumerWidget {
             child: LinearProgressIndicator(
               value: journey.progress,
               minHeight: 8,
-              backgroundColor: const Color(0xFF212328),
-              valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF10B981)),
+              backgroundColor: trackBg,
+              valueColor: AlwaysStoppedAnimation<Color>(emerald),
             ),
           ),
           const SizedBox(height: 10),
@@ -308,10 +345,10 @@ class MyJourneyScreen extends ConsumerWidget {
               Expanded(
                 child: Text(
                   'Đã hoàn thành ${journey.completedDaysCount} / ${journey.totalDays} ngày',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w500,
-                    color: Color(0xFFF3F4F6),
+                    color: textPrimary,
                   ),
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -319,9 +356,9 @@ class MyJourneyScreen extends ConsumerWidget {
               const SizedBox(width: 8),
               Text(
                 'Hôm nay · Ngày $currentDayIndex',
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 12,
-                  color: Color(0xFF94979E),
+                  color: textSecondary,
                 ),
               ),
             ],
@@ -339,6 +376,26 @@ class MyJourneyScreen extends ConsumerWidget {
     int completedTasks,
     int totalTasks,
   ) {
+    final tokens = SamanHomeTokens.of(context);
+    final cardBg =
+        tokens.isDark ? const Color(0xFF16171B) : tokens.cardSurface;
+    final borderColor =
+        tokens.isDark ? const Color(0xFF26282F) : tokens.border;
+    final textPrimary =
+        tokens.isDark ? const Color(0xFFF3F4F6) : tokens.textPrimary;
+    final textSecondary =
+        tokens.isDark ? const Color(0xFF94979E) : tokens.textSecondary;
+    final emerald =
+        tokens.isDark ? const Color(0xFF10B981) : tokens.greenAccent;
+    final amber =
+        tokens.isDark ? const Color(0xFFFFB95F) : tokens.carbsAmber;
+    final claimedBg =
+        tokens.isDark ? const Color(0xFF212328) : tokens.secondarySurface;
+    final ctaBg =
+        tokens.isDark ? const Color(0xFFF9FAFB) : const Color(0xFF059669);
+    final ctaFg =
+        tokens.isDark ? const Color(0xFF0C0D0E) : Colors.white;
+
     final tasks = today?.tasks ?? [];
     final journeyState = ref.watch(journeyControllerProvider);
 
@@ -348,20 +405,20 @@ class MyJourneyScreen extends ConsumerWidget {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            const Text(
+            Text(
               'Hôm nay',
               style: TextStyle(
-                fontFamily: 'Space Grotesk',
+                fontFamily: 'Manrope',
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
-                color: Color(0xFFF3F4F6),
+                color: textPrimary,
               ),
             ),
             Text(
               '$completedTasks / $totalTasks nhiệm vụ',
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 12,
-                color: Color(0xFF94979E),
+                color: textSecondary,
               ),
             ),
           ],
@@ -371,9 +428,9 @@ class MyJourneyScreen extends ConsumerWidget {
         // Tasks Card (Clean divided rows, no manual checkboxes)
         Container(
           decoration: BoxDecoration(
-            color: const Color(0xFF16171B),
+            color: cardBg,
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: const Color(0xFF26282F), width: 1),
+            border: Border.all(color: borderColor, width: 1),
           ),
           child: ClipRRect(
             borderRadius: BorderRadius.circular(16),
@@ -381,7 +438,7 @@ class MyJourneyScreen extends ConsumerWidget {
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
               itemCount: tasks.length,
-              separatorBuilder: (_, __) => const Divider(color: Color(0xFF26282F), height: 1),
+              separatorBuilder: (_, __) => Divider(color: borderColor, height: 1),
               itemBuilder: (context, index) {
                 final task = tasks[index];
                 return _buildTaskRow(context, ref, task);
@@ -397,31 +454,31 @@ class MyJourneyScreen extends ConsumerWidget {
             // State A: Pending tasks
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
-              child: const Row(
+              child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Expanded(
                     child: Row(
                       children: [
-                        Icon(Icons.stars_rounded, color: Color(0xFF10B981), size: 16),
-                        SizedBox(width: 6),
+                        Icon(Icons.stars_rounded, color: emerald, size: 16),
+                        const SizedBox(width: 6),
                         Expanded(
                           child: Text(
                             'Hoàn thành các nhiệm vụ hôm nay để nhận 20 điểm.',
-                            style: TextStyle(fontSize: 12, color: Color(0xFF94979E)),
+                            style: TextStyle(fontSize: 12, color: textSecondary),
                             overflow: TextOverflow.ellipsis,
                           ),
                         ),
                       ],
                     ),
                   ),
-                  SizedBox(width: 8),
+                  const SizedBox(width: 8),
                   Text(
                     '20 điểm',
                     style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w600,
-                      color: Color(0xFFFFB95F),
+                      color: amber,
                     ),
                   ),
                 ],
@@ -440,32 +497,31 @@ class MyJourneyScreen extends ConsumerWidget {
                             .read(journeyControllerProvider.notifier)
                             .claimDailyReward(date: today.date);
                         if (ok && context.mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('🎉 Bạn đã nhận thành công 20 điểm thưởng!'),
-                              backgroundColor: Color(0xFF10B981),
-                            ),
+                          SamanFeedbackSnackBar.show(
+                            context,
+                            message: '🎉 Bạn đã nhận thành công 20 điểm thưởng!',
+                            type: FeedbackType.success,
                           );
                         }
                       },
                 icon: journeyState.isClaiming
-                    ? const SizedBox(
+                    ? SizedBox(
                         width: 16,
                         height: 16,
-                        child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF0C0D0E)),
+                        child: CircularProgressIndicator(strokeWidth: 2, color: ctaFg),
                       )
-                    : const Icon(Icons.stars_rounded, color: Color(0xFF0C0D0E), size: 18),
-                label: const Text(
+                    : Icon(Icons.stars_rounded, color: ctaFg, size: 18),
+                label: Text(
                   'Nhận 20 điểm',
                   style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w700,
-                    color: Color(0xFF0C0D0E),
+                    color: ctaFg,
                   ),
                 ),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFFF9FAFB),
-                  foregroundColor: const Color(0xFF0C0D0E),
+                  backgroundColor: ctaBg,
+                  foregroundColor: ctaFg,
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   elevation: 0,
                 ),
@@ -476,21 +532,21 @@ class MyJourneyScreen extends ConsumerWidget {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
               decoration: BoxDecoration(
-                color: const Color(0xFF212328),
+                color: claimedBg,
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: const Color(0xFF26282F), width: 1),
+                border: Border.all(color: borderColor, width: 1),
               ),
-              child: const Row(
+              child: Row(
                 children: [
-                  Icon(Icons.check_circle_rounded, color: Color(0xFF10B981), size: 16),
-                  SizedBox(width: 8),
+                  Icon(Icons.check_circle_rounded, color: emerald, size: 16),
+                  const SizedBox(width: 8),
                   Expanded(
                     child: Text(
                       'Đã nhận 20 điểm hôm nay',
                       style: TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.w500,
-                        color: Color(0xFFF3F4F6),
+                        color: textPrimary,
                       ),
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -505,6 +561,22 @@ class MyJourneyScreen extends ConsumerWidget {
   }
 
   Widget _buildTaskRow(BuildContext context, WidgetRef ref, JourneyTask task) {
+    final tokens = SamanHomeTokens.of(context);
+    final textPrimary =
+        tokens.isDark ? const Color(0xFFF3F4F6) : tokens.textPrimary;
+    final textSecondary =
+        tokens.isDark ? const Color(0xFF94979E) : tokens.textSecondary;
+    final emerald =
+        tokens.isDark ? const Color(0xFF10B981) : tokens.greenAccent;
+    final emeraldBg =
+        tokens.isDark ? const Color(0x2610B981) : tokens.greenBadgeBg;
+    final emeraldBorder =
+        tokens.isDark ? const Color(0x4D10B981) : tokens.greenBadgeBorder;
+    final pendingCircleBg =
+        tokens.isDark ? const Color(0xFF212328) : tokens.secondarySurface;
+    final borderColor =
+        tokens.isDark ? const Color(0xFF26282F) : tokens.border;
+
     if (task.isCompleted) {
       // Completed State (Read-only driven by real logging)
       return Padding(
@@ -519,11 +591,11 @@ class MyJourneyScreen extends ConsumerWidget {
                     width: 36,
                     height: 36,
                     decoration: BoxDecoration(
-                      color: const Color(0x2610B981),
+                      color: emeraldBg,
                       shape: BoxShape.circle,
-                      border: Border.all(color: const Color(0x4D10B981), width: 1),
+                      border: Border.all(color: emeraldBorder, width: 1),
                     ),
-                    child: const Icon(Icons.check, color: Color(0xFF10B981), size: 18),
+                    child: Icon(Icons.check, color: emerald, size: 18),
                   ),
                   const SizedBox(width: 14),
                   Expanded(
@@ -532,19 +604,19 @@ class MyJourneyScreen extends ConsumerWidget {
                       children: [
                         Text(
                           task.title,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.w500,
-                            color: Color(0xFFF3F4F6),
+                            color: textPrimary,
                           ),
                           overflow: TextOverflow.ellipsis,
                         ),
                         const SizedBox(height: 2),
                         Text(
                           task.subtitle,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 12,
-                            color: Color(0xFF94979E),
+                            color: textSecondary,
                           ),
                           overflow: TextOverflow.ellipsis,
                         ),
@@ -555,12 +627,12 @@ class MyJourneyScreen extends ConsumerWidget {
               ),
             ),
             const SizedBox(width: 8),
-            const Text(
+            Text(
               'Đã xong',
               style: TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.w500,
-                color: Color(0xFF10B981),
+                color: emerald,
               ),
             ),
           ],
@@ -591,15 +663,15 @@ class MyJourneyScreen extends ConsumerWidget {
                     width: 36,
                     height: 36,
                     decoration: BoxDecoration(
-                      color: const Color(0xFF212328),
+                      color: pendingCircleBg,
                       shape: BoxShape.circle,
-                      border: Border.all(color: const Color(0xFF26282F), width: 1),
+                      border: Border.all(color: borderColor, width: 1),
                     ),
                     child: Icon(
                       task.type == JourneyTaskType.nutrition
                           ? Icons.restaurant_rounded
                           : Icons.fitness_center_rounded,
-                      color: const Color(0xFF94979E),
+                      color: textSecondary,
                       size: 18,
                     ),
                   ),
@@ -610,19 +682,19 @@ class MyJourneyScreen extends ConsumerWidget {
                       children: [
                         Text(
                           task.title,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.w500,
-                            color: Color(0xFFF3F4F6),
+                            color: textPrimary,
                           ),
                           overflow: TextOverflow.ellipsis,
                         ),
                         const SizedBox(height: 2),
                         Text(
                           task.subtitle,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 12,
-                            color: Color(0xFF94979E),
+                            color: textSecondary,
                           ),
                           overflow: TextOverflow.ellipsis,
                         ),
@@ -637,14 +709,14 @@ class MyJourneyScreen extends ConsumerWidget {
               children: [
                 Text(
                   task.type == JourneyTaskType.nutrition ? 'Ghi nhận' : 'Bắt đầu',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w500,
-                    color: Color(0xFF94979E),
+                    color: textSecondary,
                   ),
                 ),
                 const SizedBox(width: 2),
-                const Icon(Icons.chevron_right, color: Color(0xFF94979E), size: 18),
+                Icon(Icons.chevron_right, color: textSecondary, size: 18),
               ],
             ),
           ],
@@ -653,17 +725,29 @@ class MyJourneyScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildCalendarCard(SamanJourney journey) {
+  Widget _buildCalendarCard(SamanHomePalette tokens, SamanJourney journey) {
     final days = journey.days;
     final total = journey.totalDays;
     final todayStr = journey.todayRecord?.date;
+    final cardBg =
+        tokens.isDark ? const Color(0xFF16171B) : tokens.cardSurface;
+    final borderColor =
+        tokens.isDark ? const Color(0xFF26282F) : tokens.border;
+    final textPrimary =
+        tokens.isDark ? const Color(0xFFF3F4F6) : tokens.textPrimary;
+    final textSecondary =
+        tokens.isDark ? const Color(0xFF94979E) : tokens.textSecondary;
+    final emerald =
+        tokens.isDark ? const Color(0xFF10B981) : tokens.greenAccent;
+    final upcomingDotColor =
+        tokens.isDark ? const Color(0xFF26282F) : tokens.borderHigh;
 
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: const Color(0xFF16171B),
+        color: cardBg,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFF26282F), width: 1),
+        border: Border.all(color: borderColor, width: 1),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -675,21 +759,21 @@ class MyJourneyScreen extends ConsumerWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
+                    Text(
                       'Lịch hành trình',
                       style: TextStyle(
-                        fontFamily: 'Space Grotesk',
+                        fontFamily: 'Manrope',
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
-                        color: Color(0xFFF3F4F6),
+                        color: textPrimary,
                       ),
                     ),
                     const SizedBox(height: 2),
                     Text(
                       '${(total / 7).ceil()} tuần xây dựng thói quen',
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 12,
-                        color: Color(0xFF94979E),
+                        color: textSecondary,
                       ),
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -697,12 +781,12 @@ class MyJourneyScreen extends ConsumerWidget {
                 ),
               ),
               const SizedBox(width: 8),
-              const Text(
+              Text(
                 'Tuần 1',
                 style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w500,
-                  color: Color(0xFF10B981),
+                  color: emerald,
                 ),
               ),
             ],
@@ -730,6 +814,7 @@ class MyJourneyScreen extends ConsumerWidget {
               final isMissed = isPast && !isDone && !isRest;
 
               return _buildDayCell(
+                tokens: tokens,
                 dayIndex: dayIndex,
                 isToday: isToday,
                 isDone: isDone,
@@ -741,42 +826,42 @@ class MyJourneyScreen extends ConsumerWidget {
           const SizedBox(height: 16),
 
           // Legend
-          const Divider(color: Color(0xFF26282F), height: 1),
+          Divider(color: borderColor, height: 1),
           const SizedBox(height: 12),
-          const Wrap(
+          Wrap(
             spacing: 12,
             runSpacing: 8,
             children: [
               Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(Icons.circle, size: 8, color: Color(0xFF10B981)),
-                  SizedBox(width: 4),
-                  Text('Hoàn thành', style: TextStyle(fontSize: 11, color: Color(0xFF94979E))),
+                  Icon(Icons.circle, size: 8, color: emerald),
+                  const SizedBox(width: 4),
+                  Text('Hoàn thành', style: TextStyle(fontSize: 11, color: textSecondary)),
                 ],
               ),
               Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(Icons.radio_button_checked, size: 10, color: Color(0xFF10B981)),
-                  SizedBox(width: 4),
-                  Text('Hôm nay', style: TextStyle(fontSize: 11, color: Color(0xFF94979E))),
+                  Icon(Icons.radio_button_checked, size: 10, color: emerald),
+                  const SizedBox(width: 4),
+                  Text('Hôm nay', style: TextStyle(fontSize: 11, color: textSecondary)),
                 ],
               ),
               Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(Icons.spa_rounded, size: 12, color: Color(0xFF94979E)),
-                  SizedBox(width: 4),
-                  Text('Ngày nghỉ', style: TextStyle(fontSize: 11, color: Color(0xFF94979E))),
+                  Icon(Icons.spa_rounded, size: 12, color: textSecondary),
+                  const SizedBox(width: 4),
+                  Text('Ngày nghỉ', style: TextStyle(fontSize: 11, color: textSecondary)),
                 ],
               ),
               Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(Icons.circle, size: 8, color: Color(0xFF26282F)),
-                  SizedBox(width: 4),
-                  Text('Sắp tới', style: TextStyle(fontSize: 11, color: Color(0xFF94979E))),
+                  Icon(Icons.circle, size: 8, color: upcomingDotColor),
+                  const SizedBox(width: 4),
+                  Text('Sắp tới', style: TextStyle(fontSize: 11, color: textSecondary)),
                 ],
               ),
             ],
@@ -787,32 +872,44 @@ class MyJourneyScreen extends ConsumerWidget {
   }
 
   Widget _buildDayCell({
+    required SamanHomePalette tokens,
     required int dayIndex,
     required bool isToday,
     required bool isDone,
     required bool isRest,
     required bool isMissed,
   }) {
+    final textPrimary =
+        tokens.isDark ? const Color(0xFFF3F4F6) : tokens.textPrimary;
+    final textSecondary =
+        tokens.isDark ? const Color(0xFF94979E) : tokens.textSecondary;
+    final emerald =
+        tokens.isDark ? const Color(0xFF10B981) : tokens.greenAccent;
+    final borderColor =
+        tokens.isDark ? const Color(0xFF26282F) : tokens.border;
+    final surfaceElevated =
+        tokens.isDark ? const Color(0xFF212328) : tokens.secondarySurface;
+
     if (isToday) {
       return Container(
         decoration: BoxDecoration(
-          color: const Color(0xFF212328),
+          color: surfaceElevated,
           borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: const Color(0xFF10B981), width: 2),
+          border: Border.all(color: emerald, width: 2),
         ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Text(
               '$dayIndex',
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.bold,
-                color: Color(0xFFF3F4F6),
+                color: textPrimary,
               ),
             ),
             const SizedBox(height: 2),
-            const Icon(Icons.circle, size: 5, color: Color(0xFF10B981)),
+            Icon(Icons.circle, size: 5, color: emerald),
           ],
         ),
       );
@@ -821,23 +918,26 @@ class MyJourneyScreen extends ConsumerWidget {
     if (isDone) {
       return Container(
         decoration: BoxDecoration(
-          color: const Color(0x2610B981),
+          color: tokens.isDark ? const Color(0x2610B981) : tokens.greenBadgeBg,
           borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: const Color(0x4D10B981), width: 1),
+          border: Border.all(
+            color: tokens.isDark ? const Color(0x4D10B981) : tokens.greenBadgeBorder,
+            width: 1,
+          ),
         ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Text(
               '$dayIndex',
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.w600,
-                color: Color(0xFF10B981),
+                color: emerald,
               ),
             ),
             const SizedBox(height: 2),
-            const Icon(Icons.check, size: 10, color: Color(0xFF10B981)),
+            Icon(Icons.check, size: 10, color: emerald),
           ],
         ),
       );
@@ -846,19 +946,21 @@ class MyJourneyScreen extends ConsumerWidget {
     if (isRest) {
       return Container(
         decoration: BoxDecoration(
-          color: const Color(0x1A212328),
+          color: tokens.isDark
+              ? const Color(0x1A212328)
+              : tokens.secondarySurface.withOpacity(0.5),
           borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: const Color(0xFF26282F), width: 1),
+          border: Border.all(color: borderColor, width: 1),
         ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Text(
               '$dayIndex',
-              style: const TextStyle(fontSize: 12, color: Color(0xFF94979E)),
+              style: TextStyle(fontSize: 12, color: textSecondary),
             ),
             const SizedBox(height: 2),
-            const Icon(Icons.spa_rounded, size: 10, color: Color(0xFF94979E)),
+            Icon(Icons.spa_rounded, size: 10, color: textSecondary),
           ],
         ),
       );
@@ -867,19 +969,19 @@ class MyJourneyScreen extends ConsumerWidget {
     if (isMissed) {
       return Container(
         decoration: BoxDecoration(
-          color: const Color(0xFF212328),
+          color: surfaceElevated,
           borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: const Color(0xFF26282F), width: 1),
+          border: Border.all(color: borderColor, width: 1),
         ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Text(
               '$dayIndex',
-              style: const TextStyle(fontSize: 12, color: Color(0xFF94979E)),
+              style: TextStyle(fontSize: 12, color: textSecondary),
             ),
             const SizedBox(height: 2),
-            Container(width: 8, height: 1.5, color: const Color(0xFF94979E)),
+            Container(width: 8, height: 1.5, color: textSecondary),
           ],
         ),
       );
@@ -888,19 +990,35 @@ class MyJourneyScreen extends ConsumerWidget {
     // Upcoming
     return Container(
       decoration: BoxDecoration(
-        color: const Color(0x4D212328),
+        color: tokens.isDark
+            ? const Color(0x4D212328)
+            : tokens.secondarySurface.withOpacity(0.6),
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: const Color(0xFF26282F), width: 1),
+        border: Border.all(color: borderColor, width: 1),
       ),
       alignment: Alignment.center,
       child: Text(
         '$dayIndex',
-        style: const TextStyle(fontSize: 12, color: Color(0xFF94979E)),
+        style: TextStyle(fontSize: 12, color: textSecondary),
       ),
     );
   }
 
   Widget _buildWalletEntryRow(BuildContext context, WidgetRef ref, WalletState walletState) {
+    final tokens = SamanHomeTokens.of(context);
+    final cardBg =
+        tokens.isDark ? const Color(0xFF16171B) : tokens.cardSurface;
+    final borderColor =
+        tokens.isDark ? const Color(0xFF26282F) : tokens.border;
+    final circleBg =
+        tokens.isDark ? const Color(0xFF212328) : tokens.secondarySurface;
+    final emerald =
+        tokens.isDark ? const Color(0xFF10B981) : tokens.greenAccent;
+    final textPrimary =
+        tokens.isDark ? const Color(0xFFF3F4F6) : tokens.textPrimary;
+    final textSecondary =
+        tokens.isDark ? const Color(0xFF94979E) : tokens.textSecondary;
+
     return InkWell(
       onTap: () async {
         await Navigator.of(context).pushNamed(AppRoutes.walletRewards);
@@ -911,9 +1029,9 @@ class MyJourneyScreen extends ConsumerWidget {
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: const Color(0xFF16171B),
+          color: cardBg,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: const Color(0xFF26282F), width: 1),
+          border: Border.all(color: borderColor, width: 1),
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -926,24 +1044,24 @@ class MyJourneyScreen extends ConsumerWidget {
                     width: 36,
                     height: 36,
                     decoration: BoxDecoration(
-                      color: const Color(0xFF212328),
+                      color: circleBg,
                       shape: BoxShape.circle,
-                      border: Border.all(color: const Color(0xFF26282F), width: 1),
+                      border: Border.all(color: borderColor, width: 1),
                     ),
-                    child: const Icon(
+                    child: Icon(
                       Icons.account_balance_wallet_rounded,
-                      color: Color(0xFF10B981),
+                      color: emerald,
                       size: 18,
                     ),
                   ),
                   const SizedBox(width: 14),
-                  const Expanded(
+                  Expanded(
                     child: Text(
                       'Ví điểm & Lượt AI',
                       style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w500,
-                        color: Color(0xFFF3F4F6),
+                        color: textPrimary,
                       ),
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -960,16 +1078,16 @@ class MyJourneyScreen extends ConsumerWidget {
                   Flexible(
                     child: Text(
                       '${walletState.balance} điểm · ${walletState.aiCredits} lượt AI',
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w500,
-                        color: Color(0xFF94979E),
+                        color: textSecondary,
                       ),
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),
                   const SizedBox(width: 4),
-                  const Icon(Icons.chevron_right, color: Color(0xFF94979E), size: 18),
+                  Icon(Icons.chevron_right, color: textSecondary, size: 18),
                 ],
               ),
             ),

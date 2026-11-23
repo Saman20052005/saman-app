@@ -295,19 +295,25 @@ class NutritionEmptyMeals extends StatelessWidget {
                                   padding: const EdgeInsets.symmetric(
                                       horizontal: 10, vertical: 4),
                                   decoration: BoxDecoration(
-                                    color: const Color(0x3326282F),
+                                    color: s.isDark
+                                        ? const Color(0x3326282F)
+                                        : s.track.withOpacity(0.85),
                                     borderRadius: BorderRadius.circular(12),
                                     border: Border.all(
-                                        color: const Color(0x44353842),
+                                        color: s.isDark
+                                            ? const Color(0x44353842)
+                                            : s.border,
                                         width: 1),
                                   ),
                                   child: Text(
                                     context.tr('empty_meals_eyebrow'),
-                                    style: const TextStyle(
+                                    style: TextStyle(
                                       fontSize: 10,
                                       fontWeight: FontWeight.w700,
                                       letterSpacing: 0.8,
-                                      color: Color(0xFF94979E),
+                                      color: s.isDark
+                                          ? const Color(0xFF94979E)
+                                          : s.muted,
                                     ),
                                   ),
                                 ),
@@ -330,7 +336,9 @@ class NutritionEmptyMeals extends StatelessWidget {
                                   style: s.body.copyWith(
                                     fontSize: 13,
                                     fontWeight: FontWeight.w400,
-                                    color: const Color(0xFFD1D5DB),
+                                    color: s.isDark
+                                        ? const Color(0xFFD1D5DB)
+                                        : s.muted,
                                     height: 1.3,
                                   ),
                                 ),
@@ -341,7 +349,9 @@ class NutritionEmptyMeals extends StatelessWidget {
                                     style: s.caption.copyWith(
                                       fontSize: 12,
                                       fontWeight: FontWeight.w400,
-                                      color: const Color(0xFF94979E),
+                                      color: s.isDark
+                                          ? const Color(0xFF94979E)
+                                          : s.muted,
                                       height: 1.3,
                                     ),
                                   ),
@@ -368,33 +378,35 @@ class NutritionLoggedMealDetails extends StatelessWidget {
   const NutritionLoggedMealDetails({required this.entry, super.key});
   final NutritionLogEntry entry;
   @override
-  Widget build(BuildContext context) => DefaultTextStyle(
-      style: NutritionHomeStyle.of(context).body,
-      child: SafeArea(
-          child: SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Align(
-                  alignment: AlignmentDirectional.centerEnd,
-                  child: IconButton(
-                      tooltip: 'Close meal details',
-                      onPressed: () => Navigator.pop(context),
-                      icon: Icon(Icons.close,
-                          color: NutritionHomeStyle.of(context).muted))),
-              Text(entry.foodName,
-                  style: NutritionHomeStyle.of(context).section),
-              const SizedBox(height: 12),
-              Text('${entry.totalCalories} kcal'),
-              Text(
-                  '${entry.protein.toInt()}g pro · ${entry.carbs.toInt()}g carb · ${entry.fat.toInt()}g fat'),
-              for (final food in entry.foods)
-                if (food['name'] != null)
-                  Padding(
-                      padding: const EdgeInsets.only(top: 12),
-                      child: Text(food['name'].toString())),
-            ]),
-      )));
+  Widget build(BuildContext context) {
+    final s = Theme.of(context).extension<NutritionHomeStyle>() ??
+        NutritionHomeStyle(brightness: Theme.of(context).brightness);
+    return DefaultTextStyle(
+        style: s.body,
+        child: SafeArea(
+            child: SingleChildScrollView(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Align(
+                    alignment: AlignmentDirectional.centerEnd,
+                    child: IconButton(
+                        tooltip: 'Close meal details',
+                        onPressed: () => Navigator.pop(context),
+                        icon: Icon(Icons.close, color: s.muted))),
+                Text(entry.foodName, style: s.section),
+                const SizedBox(height: 12),
+                Text('${entry.totalCalories} kcal'),
+                Text(
+                    '${entry.protein.toInt()}g pro · ${entry.carbs.toInt()}g carb · ${entry.fat.toInt()}g fat'),
+                for (final food in entry.foods)
+                  if (food['name'] != null)
+                    Padding(
+                        padding: const EdgeInsets.only(top: 12),
+                        child: Text(food['name'].toString())),
+              ]),
+        )));
+  }
 }

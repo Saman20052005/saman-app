@@ -4,14 +4,116 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
+import '../config/app_theme.dart';
 import '../features/nutrition/data/food_image_attribution.dart';
 import '../features/nutrition/data/food_image_manifest.dart';
 import '../features/nutrition/domain/entities/food.dart';
-import '../models/food_model.dart';
+import '../features/nutrition/domain/repositories/nutrition_repository.dart';
 import '../features/nutrition/presentation/providers/nutrition_usual_foods_provider.dart';
+import '../features/nutrition/presentation/providers/recipes_supplements_provider.dart';
+import '../models/food_model.dart';
+import '../models/nutrition_model.dart';
 import '../providers/nutrition_provider.dart';
 import '../providers/profile_provider.dart';
 import '../services/nutrition_service.dart';
+import 'nutrition/barcode_scanner_screen.dart';
+import 'nutrition/widgets/create_recipe_sheet.dart';
+
+class _FoodLogColors {
+  const _FoodLogColors({
+    required this.isDark,
+    required this.scaffoldBg,
+    required this.surface,
+    required this.card,
+    required this.elevated,
+    required this.border,
+    required this.borderStrong,
+    required this.textPrimary,
+    required this.textBody,
+    required this.textSecondary,
+    required this.textMuted,
+    required this.textSubtle,
+    required this.accent,
+    required this.onAccent,
+    required this.ctaBg,
+    required this.ctaFg,
+    required this.amber,
+    required this.violet,
+    required this.error,
+    required this.sky,
+  });
+
+  final bool isDark;
+  final Color scaffoldBg;
+  final Color surface;
+  final Color card;
+  final Color elevated;
+  final Color border;
+  final Color borderStrong;
+  final Color textPrimary;
+  final Color textBody;
+  final Color textSecondary;
+  final Color textMuted;
+  final Color textSubtle;
+  final Color accent;
+  final Color onAccent;
+  final Color ctaBg;
+  final Color ctaFg;
+  final Color amber;
+  final Color violet;
+  final Color error;
+  final Color sky;
+
+  factory _FoodLogColors.of(BuildContext context) {
+    final palette = SamanPalette.of(context);
+    if (palette.isDark) {
+      return const _FoodLogColors(
+        isDark: true,
+        scaffoldBg: Color(0xFF16171B),
+        surface: Color(0xFF16171B),
+        card: Color(0xFF1E2026),
+        elevated: Color(0xFF212328),
+        border: Color(0xFF26282F),
+        borderStrong: Color(0xFF383A42),
+        textPrimary: Color(0xFFF9FAFB),
+        textBody: Color(0xFFF3F4F6),
+        textSecondary: Color(0xFFCBD5E1),
+        textMuted: Color(0xFF9CA3AF),
+        textSubtle: Color(0xFF6B7280),
+        accent: Color(0xFF10B981),
+        onAccent: Color(0xFF0C0D0E),
+        ctaBg: Color(0xFFF9FAFB),
+        ctaFg: Color(0xFF0C0D0E),
+        amber: Color(0xFFF59E0B),
+        violet: Color(0xFFA78BFA),
+        error: Color(0xFFEF4444),
+        sky: Color(0xFF38BDF8),
+      );
+    }
+    return _FoodLogColors(
+      isDark: false,
+      scaffoldBg: palette.canvas,
+      surface: palette.surface,
+      card: palette.surface,
+      elevated: palette.surfaceElevated,
+      border: palette.border,
+      borderStrong: const Color(0xFFCBD5E1),
+      textPrimary: palette.textPrimary,
+      textBody: palette.textPrimary,
+      textSecondary: palette.textSecondary,
+      textMuted: palette.textSecondary,
+      textSubtle: palette.textMuted,
+      accent: palette.accent,
+      onAccent: palette.onAccent,
+      ctaBg: palette.accent,
+      ctaFg: palette.onAccent,
+      amber: palette.amber,
+      violet: palette.violet,
+      error: palette.danger,
+      sky: const Color(0xFF0284C7),
+    );
+  }
+}
 
 enum FoodLogStep {
   initial,
@@ -25,6 +127,9 @@ class FoodLogScreen extends ConsumerStatefulWidget {
   final String? initialMealType;
   final NutritionService? apiService;
   final FoodModel? initialFood;
+  final int? initialGrams;
+  final bool isInitialFoodVerified;
+  final Future<BarcodeLookupResult?> Function(BuildContext)? onScanBarcode;
 
   const FoodLogScreen({
     super.key,
@@ -33,6 +138,9 @@ class FoodLogScreen extends ConsumerStatefulWidget {
     this.initialMealType,
     this.apiService,
     this.initialFood,
+    this.initialGrams,
+    this.isInitialFoodVerified = false,
+    this.onScanBarcode,
   });
 
   @override
@@ -42,6 +150,10 @@ class FoodLogScreen extends ConsumerStatefulWidget {
 class FoodLogScreenState extends ConsumerState<FoodLogScreen> {
   @visibleForTesting
   void selectFood(FoodModel food) => _onSelectFood(food);
+
+  @visibleForTesting
+  void applyBarcodeResult(BarcodeLookupResult result) =>
+      _applyBarcodeResult(result);
 
   @visibleForTesting
   FoodLogStep get currentStep => _currentStep;
@@ -64,15 +176,16 @@ class FoodLogScreenState extends ConsumerState<FoodLogScreen> {
   static String? getFoodImageAsset(String foodName) => foodImageAssetFor(foodName);
 
   Widget _buildFoodThumbnail(String foodName, {double size = 56, double borderRadius = 12}) {
+    final c = _FoodLogColors.of(context);
     final imageAsset = getFoodImageAsset(foodName);
     return Container(
       key: ValueKey('food_thumb_$foodName'),
       width: size,
       height: size,
       decoration: BoxDecoration(
-        color: const Color(0xFF212328),
+        color: c.elevated,
         borderRadius: BorderRadius.circular(borderRadius),
-        border: Border.all(color: const Color(0xFF26282F)),
+        border: Border.all(color: c.border),
       ),
       clipBehavior: Clip.antiAlias,
       child: imageAsset != null
@@ -82,26 +195,26 @@ class FoodLogScreenState extends ConsumerState<FoodLogScreen> {
               height: size,
               fit: BoxFit.cover,
               semanticLabel: foodName,
-              errorBuilder: (_, __, ___) => const Center(
+              errorBuilder: (_, __, ___) => Center(
                 child: Tooltip(
                   message: 'Không tải được ảnh món',
                   child: Icon(
                     Icons.broken_image_outlined,
-                    key: Key('food_thumb_error'),
+                    key: const Key('food_thumb_error'),
                     size: 22,
-                    color: Color(0xFFF87171),
+                    color: c.isDark ? const Color(0xFFF87171) : c.error,
                   ),
                 ),
               ),
             )
-          : const Center(
+          : Center(
               child: Tooltip(
                 message: 'Món chưa có ảnh',
                 child: Icon(
                   Icons.restaurant_outlined,
-                  key: Key('food_thumb_missing'),
+                  key: const Key('food_thumb_missing'),
                   size: 22,
-                  color: Color(0xFF6B7280),
+                  color: c.textSubtle,
                 ),
               ),
             ),
@@ -127,6 +240,8 @@ class FoodLogScreenState extends ConsumerState<FoodLogScreen> {
   int _grams = 100;
   bool _isSaving = false;
   String? _saveError;
+  bool _showMyRecipes = false;
+  bool _recipesLoaded = false;
 
   static const List<String> _mealTypes = ['Breakfast', 'Lunch', 'Dinner', 'Snack'];
   static const List<String> _commonStaples = [
@@ -145,7 +260,10 @@ class FoodLogScreenState extends ConsumerState<FoodLogScreen> {
       if (widget.initialFood!.id.trim().isNotEmpty &&
           widget.initialFood!.name.trim().isNotEmpty) {
         _selectedFood = widget.initialFood;
-        _grams = 100;
+        _isCatalogVerified = widget.isInitialFoodVerified;
+        _grams = (widget.initialGrams != null && widget.initialGrams! > 0)
+            ? widget.initialGrams!
+            : 100;
         _currentStep = FoodLogStep.portionReview;
       } else {
         _errorMessage = 'Thông tin món ăn không hợp lệ.';
@@ -170,7 +288,11 @@ class FoodLogScreenState extends ConsumerState<FoodLogScreen> {
     return 'Dinner';
   }
 
-  DateTime get _effectiveDate => widget.selectedDate ?? DateTime.now();
+  DateTime get _effectiveDate {
+    if (widget.selectedDate != null) return widget.selectedDate!;
+    final vn = DateTime.now().toUtc().add(const Duration(hours: 7));
+    return DateTime(vn.year, vn.month, vn.day);
+  }
 
   FoodModel _toFoodModel(Food food) {
     return FoodModel(
@@ -287,6 +409,25 @@ class FoodLogScreenState extends ConsumerState<FoodLogScreen> {
       _reselectNotice = null;
       _currentStep = FoodLogStep.portionReview;
     });
+  }
+
+  void _applyBarcodeResult(BarcodeLookupResult result) {
+    _onSelectFood(_toFoodModel(result.food));
+    setState(() {
+      _grams = result.suggestedGrams > 0 ? result.suggestedGrams : 100;
+    });
+  }
+
+  Future<void> _openBarcodeScanner() async {
+    final result = await (widget.onScanBarcode != null
+        ? widget.onScanBarcode!(context)
+        : Navigator.of(context).push<BarcodeLookupResult>(
+            MaterialPageRoute(
+              builder: (_) => const BarcodeScannerScreen(),
+            ),
+          ));
+    if (!mounted || result == null) return;
+    _applyBarcodeResult(result);
   }
 
   void _onBackToSearch() {
@@ -508,16 +649,17 @@ class FoodLogScreenState extends ConsumerState<FoodLogScreen> {
       context: context,
       builder: (dialogCtx) => StatefulBuilder(
         builder: (context, setDialogState) {
+          final c = _FoodLogColors.of(context);
           return AlertDialog(
-            backgroundColor: const Color(0xFF16171B),
+            backgroundColor: c.surface,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(20),
-              side: const BorderSide(color: Color(0xFF26282F)),
+              side: BorderSide(color: c.border),
             ),
-            title: const Text(
+            title: Text(
               'Tạo món mới',
               style: TextStyle(
-                color: Color(0xFFF9FAFB),
+                color: c.textPrimary,
                 fontSize: 18,
                 fontWeight: FontWeight.w700,
               ),
@@ -527,11 +669,11 @@ class FoodLogScreenState extends ConsumerState<FoodLogScreen> {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
+                  Text(
                     'Dinh dưỡng tính trên 100g thực phẩm',
                     style: TextStyle(
                       fontSize: 12,
-                      color: Color(0xFF9CA3AF),
+                      color: c.textMuted,
                     ),
                   ),
                   const SizedBox(height: 12),
@@ -556,9 +698,9 @@ class FoodLogScreenState extends ConsumerState<FoodLogScreen> {
                     const SizedBox(height: 10),
                     Text(
                       dialogError!,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 12,
-                        color: Color(0xFFEF4444),
+                        color: c.error,
                       ),
                     ),
                   ],
@@ -568,12 +710,12 @@ class FoodLogScreenState extends ConsumerState<FoodLogScreen> {
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(dialogCtx),
-                child: const Text('Hủy', style: TextStyle(color: Color(0xFF9CA3AF))),
+                child: Text('Hủy', style: TextStyle(color: c.textMuted)),
               ),
               ElevatedButton(
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFFF9FAFB),
-                  foregroundColor: const Color(0xFF0C0D0E),
+                  backgroundColor: c.ctaBg,
+                  foregroundColor: c.ctaFg,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(10),
                   ),
@@ -624,25 +766,26 @@ class FoodLogScreenState extends ConsumerState<FoodLogScreen> {
     String label, {
     bool isNumeric = true,
   }) {
+    final c = _FoodLogColors.of(context);
     return TextField(
       controller: ctrl,
       keyboardType: isNumeric
           ? const TextInputType.numberWithOptions(decimal: true)
           : TextInputType.text,
-      style: const TextStyle(color: Color(0xFFF3F4F6), fontSize: 13),
+      style: TextStyle(color: c.textBody, fontSize: 13),
       decoration: InputDecoration(
         labelText: label,
-        labelStyle: const TextStyle(color: Color(0xFF9CA3AF), fontSize: 12),
+        labelStyle: TextStyle(color: c.textMuted, fontSize: 12),
         isDense: true,
         filled: true,
-        fillColor: const Color(0xFF1E2026),
+        fillColor: c.isDark ? c.card : c.elevated,
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(color: Color(0xFF26282F)),
+          borderSide: BorderSide(color: c.border),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(color: Color(0xFF10B981)),
+          borderSide: BorderSide(color: c.accent),
         ),
       ),
     );
@@ -652,69 +795,72 @@ class FoodLogScreenState extends ConsumerState<FoodLogScreen> {
     final gramsCtrl = TextEditingController(text: '$_grams');
     showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: const Color(0xFF16171B),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
-          side: const BorderSide(color: Color(0xFF26282F)),
-        ),
-        title: const Text(
-          'Nhập khối lượng (g)',
-          style: TextStyle(
-            color: Color(0xFFF9FAFB),
-            fontSize: 16,
-            fontWeight: FontWeight.w700,
+      builder: (ctx) {
+        final c = _FoodLogColors.of(ctx);
+        return AlertDialog(
+          backgroundColor: c.surface,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+            side: BorderSide(color: c.border),
           ),
-        ),
-        content: TextField(
-          controller: gramsCtrl,
-          autofocus: true,
-          keyboardType: TextInputType.number,
-          inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-          style: const TextStyle(
-            color: Color(0xFFF3F4F6),
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
-          ),
-          decoration: InputDecoration(
-            suffixText: 'g',
-            suffixStyle: const TextStyle(color: Color(0xFF9CA3AF)),
-            filled: true,
-            fillColor: const Color(0xFF1E2026),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: Color(0xFF26282F)),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: Color(0xFF10B981)),
+          title: Text(
+            'Nhập khối lượng (g)',
+            style: TextStyle(
+              color: c.textPrimary,
+              fontSize: 16,
+              fontWeight: FontWeight.w700,
             ),
           ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Hủy', style: TextStyle(color: Color(0xFF9CA3AF))),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFFF9FAFB),
-              foregroundColor: const Color(0xFF0C0D0E),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10),
+          content: TextField(
+            controller: gramsCtrl,
+            autofocus: true,
+            keyboardType: TextInputType.number,
+            inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+            style: TextStyle(
+              color: c.textBody,
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+            ),
+            decoration: InputDecoration(
+              suffixText: 'g',
+              suffixStyle: TextStyle(color: c.textMuted),
+              filled: true,
+              fillColor: c.isDark ? c.card : c.elevated,
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(color: c.border),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(color: c.accent),
               ),
             ),
-            onPressed: () {
-              final val = int.tryParse(gramsCtrl.text);
-              if (val != null && val > 0) {
-                setState(() => _grams = val);
-                Navigator.pop(ctx);
-              }
-            },
-            child: const Text('Xác nhận'),
           ),
-        ],
-      ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: Text('Hủy', style: TextStyle(color: c.textMuted)),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: c.ctaBg,
+                foregroundColor: c.ctaFg,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
+              onPressed: () {
+                final val = int.tryParse(gramsCtrl.text);
+                if (val != null && val > 0) {
+                  setState(() => _grams = val);
+                  Navigator.pop(ctx);
+                }
+              },
+              child: const Text('Xác nhận'),
+            ),
+          ],
+        );
+      },
     );
   }
 
@@ -722,6 +868,7 @@ class FoodLogScreenState extends ConsumerState<FoodLogScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final c = _FoodLogColors.of(context);
     return PopScope(
       canPop: _currentStep != FoodLogStep.portionReview,
       onPopInvoked: (didPop) {
@@ -731,7 +878,7 @@ class FoodLogScreenState extends ConsumerState<FoodLogScreen> {
         }
       },
       child: Scaffold(
-        backgroundColor: const Color(0xFF16171B),
+        backgroundColor: c.scaffoldBg,
         resizeToAvoidBottomInset: true,
         body: SafeArea(
           child: Center(
@@ -759,6 +906,7 @@ class FoodLogScreenState extends ConsumerState<FoodLogScreen> {
   // ─── Handle & Top Nav Row ────────────────────────────────────────
 
   Widget _buildSheetHandleAndNav() {
+    final c = _FoodLogColors.of(context);
     final isPortionReview = _currentStep == FoodLogStep.portionReview;
     final dateStr = DateFormat('EEE, MMM d').format(_effectiveDate);
     final isToday = DateUtils.isSameDay(_effectiveDate, DateTime.now());
@@ -772,13 +920,13 @@ class FoodLogScreenState extends ConsumerState<FoodLogScreen> {
               if (isPortionReview)
                 IconButton(
                   tooltip: 'Quay lại tìm kiếm',
-                  icon: const Icon(Icons.arrow_back, color: Color(0xFF9CA3AF), size: 22),
+                  icon: Icon(Icons.arrow_back, color: c.textMuted, size: 22),
                   onPressed: _onBackToSearch,
                 )
               else
                 IconButton(
                   tooltip: 'Đóng',
-                  icon: const Icon(Icons.close, color: Color(0xFF9CA3AF), size: 22),
+                  icon: Icon(Icons.close, color: c.textMuted, size: 22),
                   onPressed: () => Navigator.of(context).pop(false),
                 ),
               // Center Pill
@@ -787,18 +935,18 @@ class FoodLogScreenState extends ConsumerState<FoodLogScreen> {
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                     decoration: BoxDecoration(
-                      color: const Color(0xFF1E2026),
+                      color: c.isDark ? c.card : c.elevated,
                       borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: const Color(0xFF26282F)),
+                      border: Border.all(color: c.border),
                     ),
-                    child: const Text(
+                    child: Text(
                       'Portion review',
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w600,
-                        color: Color(0xFFCBD5E1),
+                        color: c.textSecondary,
                       ),
                     ),
                   ),
@@ -808,17 +956,17 @@ class FoodLogScreenState extends ConsumerState<FoodLogScreen> {
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
                     decoration: BoxDecoration(
-                      color: const Color(0xFF1E2026),
+                      color: c.isDark ? c.card : c.surface,
                       borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: const Color(0xFF26282F)),
+                      border: Border.all(color: c.border),
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Icon(
+                        Icon(
                           Icons.calendar_today,
                           size: 13,
-                          color: Color(0xFF10B981),
+                          color: c.accent,
                         ),
                         const SizedBox(width: 4),
                         Flexible(
@@ -826,23 +974,23 @@ class FoodLogScreenState extends ConsumerState<FoodLogScreen> {
                             dateStr,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 11,
                               fontWeight: FontWeight.w500,
-                              color: Color(0xFFF3F4F6),
+                              color: c.textBody,
                             ),
                           ),
                         ),
                         if (isToday) ...[
                           const SizedBox(width: 3),
-                          const Text(
+                          Text(
                             '· Today',
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: TextStyle(
                               fontSize: 10,
                               fontWeight: FontWeight.w600,
-                              color: Color(0xFF9CA3AF),
+                              color: c.textMuted,
                             ),
                           ),
                         ],
@@ -854,13 +1002,13 @@ class FoodLogScreenState extends ConsumerState<FoodLogScreen> {
               if (isPortionReview)
                 IconButton(
                   tooltip: 'Đóng',
-                  icon: const Icon(Icons.close, color: Color(0xFF9CA3AF), size: 20),
+                  icon: Icon(Icons.close, color: c.textMuted, size: 20),
                   onPressed: () => Navigator.of(context).pop(false),
                 )
               else
                 IconButton(
                   tooltip: 'Hướng dẫn dinh dưỡng',
-                  icon: const Icon(Icons.help_outline, color: Color(0xFF9CA3AF), size: 20),
+                  icon: Icon(Icons.help_outline, color: c.textMuted, size: 20),
                   onPressed: () {},
                 ),
             ],
@@ -871,14 +1019,15 @@ class FoodLogScreenState extends ConsumerState<FoodLogScreen> {
   // ─── Search Input Field ──────────────────────────────────────────
 
   Widget _buildSearchInput() {
+    final c = _FoodLogColors.of(context);
     final hasText = _searchCtrl.text.isNotEmpty;
     return Container(
       height: 54,
       decoration: BoxDecoration(
-        color: const Color(0xFF1E2026),
+        color: c.card,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: hasText ? const Color(0xFF10B981).withOpacity(0.5) : const Color(0xFF26282F),
+          color: hasText ? c.accent.withOpacity(0.5) : c.border,
         ),
       ),
       padding: const EdgeInsets.symmetric(horizontal: 14),
@@ -888,7 +1037,7 @@ class FoodLogScreenState extends ConsumerState<FoodLogScreen> {
           Icon(
             Icons.search,
             size: 22,
-            color: hasText ? const Color(0xFF10B981) : const Color(0xFF9CA3AF),
+            color: hasText ? c.accent : c.textMuted,
           ),
           const SizedBox(width: 10),
           Expanded(
@@ -896,14 +1045,14 @@ class FoodLogScreenState extends ConsumerState<FoodLogScreen> {
               controller: _searchCtrl,
               focusNode: _searchFocus,
               onChanged: _onSearchChanged,
-              cursorColor: const Color(0xFF10B981),
+              cursorColor: c.accent,
               textAlignVertical: TextAlignVertical.center,
-              style: const TextStyle(
-                color: Color(0xFFF3F4F6),
+              style: TextStyle(
+                color: c.textBody,
                 fontSize: 14,
                 fontWeight: FontWeight.w500,
               ),
-              decoration: const InputDecoration(
+              decoration: InputDecoration(
                 isDense: true,
                 filled: false,
                 fillColor: Colors.transparent,
@@ -912,10 +1061,10 @@ class FoodLogScreenState extends ConsumerState<FoodLogScreen> {
                 focusedBorder: InputBorder.none,
                 errorBorder: InputBorder.none,
                 disabledBorder: InputBorder.none,
-                contentPadding: EdgeInsets.symmetric(vertical: 14),
+                contentPadding: const EdgeInsets.symmetric(vertical: 14),
                 hintText: 'Search foods or meals',
                 hintStyle: TextStyle(
-                  color: Color(0xFF6B7280),
+                  color: c.textSubtle,
                   fontSize: 14,
                   fontWeight: FontWeight.normal,
                 ),
@@ -929,8 +1078,20 @@ class FoodLogScreenState extends ConsumerState<FoodLogScreen> {
               padding: EdgeInsets.zero,
               constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
               onPressed: _onClearSearch,
-              icon: const Icon(Icons.cancel, size: 18, color: Color(0xFF9CA3AF)),
+              icon: Icon(Icons.cancel, size: 18, color: c.textMuted),
             ),
+          IconButton(
+            key: const Key('barcode_scan_button'),
+            tooltip: 'Quét mã vạch',
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+            onPressed: _openBarcodeScanner,
+            icon: Icon(
+              Icons.qr_code_scanner_rounded,
+              size: 20,
+              color: c.accent,
+            ),
+          ),
         ],
       ),
     );
@@ -939,13 +1100,14 @@ class FoodLogScreenState extends ConsumerState<FoodLogScreen> {
   // ─── Meal Segmented Selector ────────────────────────────────────
 
   Widget _buildMealSegmentedSelector() {
+    final c = _FoodLogColors.of(context);
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(4),
       decoration: BoxDecoration(
-        color: const Color(0xFF1E2026),
+        color: c.isDark ? c.card : c.elevated,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFF26282F)),
+        border: Border.all(color: c.border),
       ),
       child: Row(
         children: _mealTypes.map((type) {
@@ -957,15 +1119,15 @@ class FoodLogScreenState extends ConsumerState<FoodLogScreen> {
                 duration: const Duration(milliseconds: 180),
                 padding: const EdgeInsets.symmetric(vertical: 8),
                 decoration: BoxDecoration(
-                  color: isSelected ? const Color(0xFF16171B) : Colors.transparent,
+                  color: isSelected ? c.surface : Colors.transparent,
                   borderRadius: BorderRadius.circular(12),
                   border: isSelected
-                      ? Border.all(color: const Color(0xFF10B981).withOpacity(0.4))
+                      ? Border.all(color: c.accent.withOpacity(0.4))
                       : null,
                   boxShadow: isSelected
                       ? [
                           BoxShadow(
-                            color: Colors.black.withOpacity(0.2),
+                            color: Colors.black.withOpacity(c.isDark ? 0.2 : 0.06),
                             blurRadius: 4,
                             offset: const Offset(0, 1),
                           )
@@ -979,8 +1141,8 @@ class FoodLogScreenState extends ConsumerState<FoodLogScreen> {
                       Container(
                         width: 5,
                         height: 5,
-                        decoration: const BoxDecoration(
-                          color: Color(0xFF10B981),
+                        decoration: BoxDecoration(
+                          color: c.accent,
                           shape: BoxShape.circle,
                         ),
                       ),
@@ -994,7 +1156,7 @@ class FoodLogScreenState extends ConsumerState<FoodLogScreen> {
                         style: TextStyle(
                           fontSize: 11,
                           fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-                          color: isSelected ? const Color(0xFFF9FAFB) : const Color(0xFF9CA3AF),
+                          color: isSelected ? c.textPrimary : c.textMuted,
                         ),
                       ),
                     ),
@@ -1011,6 +1173,7 @@ class FoodLogScreenState extends ConsumerState<FoodLogScreen> {
   // ─── FRAME 1: Initial View ───────────────────────────────────────
 
   Widget _buildInitialView() {
+    final c = _FoodLogColors.of(context);
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
       children: [
@@ -1019,39 +1182,39 @@ class FoodLogScreenState extends ConsumerState<FoodLogScreen> {
             padding: const EdgeInsets.all(12),
             margin: const EdgeInsets.only(bottom: 12),
             decoration: BoxDecoration(
-              color: const Color(0xFFEF4444).withOpacity(0.12),
+              color: c.error.withOpacity(0.12),
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: const Color(0xFFEF4444).withOpacity(0.3)),
+              border: Border.all(color: c.error.withOpacity(0.3)),
             ),
             child: Row(
               children: [
-                const Icon(Icons.error_outline, color: Color(0xFFEF4444), size: 18),
+                Icon(Icons.error_outline, color: c.error, size: 18),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
                     _errorMessage!,
-                    style: const TextStyle(color: Color(0xFFEF4444), fontSize: 13),
+                    style: TextStyle(color: c.error, fontSize: 13),
                   ),
                 ),
               ],
             ),
           ),
         // Title & subtitle
-        const Text(
+        Text(
           'Log meal',
           style: TextStyle(
             fontSize: 24,
             fontWeight: FontWeight.w700,
-            color: Color(0xFFF9FAFB),
+            color: c.textPrimary,
             letterSpacing: -0.4,
           ),
         ),
         const SizedBox(height: 2),
-        const Text(
+        Text(
           'Find what you ate.',
           style: TextStyle(
             fontSize: 13,
-            color: Color(0xFF9CA3AF),
+            color: c.textMuted,
           ),
         ),
         const SizedBox(height: 14),
@@ -1062,24 +1225,518 @@ class FoodLogScreenState extends ConsumerState<FoodLogScreen> {
 
         // Meal Selector
         _buildMealSegmentedSelector(),
+        const SizedBox(height: 12),
+
+        // Mode Segmented Pill: Tìm món | Công thức của tôi
+        _buildModeSegmentedPill(),
         const SizedBox(height: 16),
 
-        // Find Your Food Hero Card
-        _buildFindYourFoodHeroCard(),
-        const SizedBox(height: 18),
+        if (!_showMyRecipes) ...[
+          // Barcode Quick-Action Card
+          _buildBarcodeQuickActionCard(),
+          const SizedBox(height: 12),
 
-        // Common Staples Section
-        _buildCommonStaplesSection(),
+          // Find Your Food Hero Card
+          _buildFindYourFoodHeroCard(),
+          const SizedBox(height: 18),
+
+          // Common Staples Section
+          _buildCommonStaplesSection(),
+        ] else ...[
+          _buildMyRecipesSection(),
+        ],
       ],
     );
   }
 
+  Widget _buildModeSegmentedPill() {
+    final c = _FoodLogColors.of(context);
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(
+        color: c.isDark ? c.card : c.elevated,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: c.border),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: GestureDetector(
+              key: const Key('tab_find_food'),
+              onTap: () => setState(() => _showMyRecipes = false),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 180),
+                padding: const EdgeInsets.symmetric(vertical: 9),
+                decoration: BoxDecoration(
+                  color: !_showMyRecipes ? c.accent : Colors.transparent,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Center(
+                  child: Text(
+                    'Tìm món',
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight:
+                          !_showMyRecipes ? FontWeight.w700 : FontWeight.w500,
+                      color: !_showMyRecipes ? c.onAccent : c.textMuted,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+          Expanded(
+            child: GestureDetector(
+              key: const Key('tab_my_recipes'),
+              onTap: () {
+                setState(() => _showMyRecipes = true);
+                if (!_recipesLoaded) {
+                  _recipesLoaded = true;
+                  ref.read(recipesProvider.notifier).loadRecipes();
+                }
+              },
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 180),
+                padding: const EdgeInsets.symmetric(vertical: 9),
+                decoration: BoxDecoration(
+                  color: _showMyRecipes ? c.accent : Colors.transparent,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Center(
+                  child: Text(
+                    'Công thức của tôi',
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight:
+                          _showMyRecipes ? FontWeight.w700 : FontWeight.w500,
+                      color: _showMyRecipes ? c.onAccent : c.textMuted,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMyRecipesSection() {
+    final c = _FoodLogColors.of(context);
+    final recipesState = ref.watch(recipesProvider);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        SizedBox(
+          height: 44,
+          child: OutlinedButton(
+            key: const Key('create_recipe_cta_button'),
+            onPressed: () {
+              CreateRecipeSheet.show(context);
+            },
+            style: OutlinedButton.styleFrom(
+              backgroundColor: c.card,
+              foregroundColor: c.accent,
+              side: BorderSide(color: c.border),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+            child: const Text(
+              '+ Tạo công thức mới',
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(height: 14),
+        if (recipesState.isLoading && recipesState.recipes.isEmpty)
+          Container(
+            padding: const EdgeInsets.symmetric(vertical: 36),
+            decoration: BoxDecoration(
+              color: c.card,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: c.border),
+            ),
+            child: Center(
+              child: SizedBox(
+                width: 24,
+                height: 24,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: c.accent,
+                ),
+              ),
+            ),
+          )
+        else if (recipesState.error != null && recipesState.recipes.isEmpty)
+          Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: c.card,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: c.border),
+            ),
+            child: Column(
+              children: [
+                Icon(
+                  Icons.error_outline,
+                  color: c.error,
+                  size: 32,
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  recipesState.error!,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: c.textBody,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                ElevatedButton.icon(
+                  onPressed: () {
+                    ref.read(recipesProvider.notifier).loadRecipes();
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: c.elevated,
+                    foregroundColor: c.textBody,
+                    side: BorderSide(color: c.border),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
+                  icon: const Icon(Icons.refresh, size: 16),
+                  label: const Text('Thử lại'),
+                ),
+              ],
+            ),
+          )
+        else if (recipesState.recipes.isEmpty)
+          Container(
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: c.card,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: c.border),
+            ),
+            child: Column(
+              children: [
+                Icon(
+                  Icons.menu_book_outlined,
+                  size: 36,
+                  color: c.textMuted,
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  'Chưa có công thức nào',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                    color: c.textPrimary,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Hãy nhấn "+ Tạo công thức mới" để tạo công thức đầu tiên của bạn.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: c.textMuted,
+                  ),
+                ),
+              ],
+            ),
+          )
+        else
+          Column(
+            children: [
+              for (int i = 0; i < recipesState.recipes.length; i++) ...[
+                if (i > 0) const SizedBox(height: 10),
+                _buildRecipeCard(
+                  recipesState.recipes[i],
+                  isMutating: recipesState.isMutating,
+                ),
+              ],
+            ],
+          ),
+      ],
+    );
+  }
+
+  Widget _buildRecipeCard(RecipeModel recipe, {required bool isMutating}) {
+    final c = _FoodLogColors.of(context);
+    return Container(
+      key: ValueKey('recipe_card_${recipe.id}'),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: c.card,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: c.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      recipe.name,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w700,
+                        color: c.textPrimary,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Row(
+                      children: [
+                        Text(
+                          '${recipe.caloriesPerServing} kcal / phần',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                            color: c.accent,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 2,
+                          ),
+                          decoration: BoxDecoration(
+                            color: c.isDark ? c.surface : c.elevated,
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: c.border),
+                          ),
+                          child: Text(
+                            '${recipe.servings} phần',
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                              color: c.textSecondary,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              IconButton(
+                key: ValueKey('delete_recipe_${recipe.id}'),
+                tooltip: 'Xoá công thức',
+                visualDensity: VisualDensity.compact,
+                onPressed: isMutating
+                    ? null
+                    : () => _confirmDeleteRecipe(recipe),
+                icon: Icon(
+                  Icons.delete_outline,
+                  size: 18,
+                  color: c.textMuted,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Expanded(
+                child: Text(
+                  'P: ${recipe.proteinPerServing.toStringAsFixed(1)}g · C: ${recipe.carbsPerServing.toStringAsFixed(1)}g · F: ${recipe.fatPerServing.toStringAsFixed(1)}g',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: c.textMuted,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 10),
+              SizedBox(
+                height: 36,
+                child: ElevatedButton(
+                  key: ValueKey('log_recipe_${recipe.id}'),
+                  onPressed: isMutating
+                      ? null
+                      : () async {
+                          final ok = await ref
+                              .read(recipesProvider.notifier)
+                              .logRecipeServing(
+                                recipe.id,
+                                date: DateFormat('yyyy-MM-dd')
+                                    .format(_effectiveDate),
+                                mealType: _selectedMealType.toLowerCase(),
+                                servingsConsumed: 1.0,
+                                refreshPlan: false,
+                              );
+                          if (!mounted) return;
+                          if (ok) {
+                            Navigator.of(context).pop(true);
+                          }
+                        },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: c.accent,
+                    foregroundColor: c.onAccent,
+                    elevation: 0,
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
+                  child: const Text(
+                    'Ghi 1 phần',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _confirmDeleteRecipe(RecipeModel recipe) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) {
+        final c = _FoodLogColors.of(ctx);
+        return AlertDialog(
+          backgroundColor: c.surface,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+            side: BorderSide(color: c.border),
+          ),
+          title: Text(
+            'Xoá công thức?',
+            style: TextStyle(
+              color: c.textPrimary,
+              fontSize: 16,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          content: Text(
+            'Bạn có chắc muốn xoá công thức "${recipe.name}"?',
+            style: TextStyle(
+              color: c.textMuted,
+              fontSize: 13,
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(false),
+              child: Text(
+                'Huỷ',
+                style: TextStyle(color: c.textMuted),
+              ),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.of(ctx).pop(true),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: c.error,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
+              child: const Text('Xoá'),
+            ),
+          ],
+        );
+      },
+    );
+    if (confirmed == true && mounted) {
+      await ref.read(recipesProvider.notifier).deleteRecipe(recipe.id);
+    }
+  }
+
+  Widget _buildBarcodeQuickActionCard() {
+    final c = _FoodLogColors.of(context);
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        key: const Key('barcode_quick_action_button'),
+        onTap: _openBarcodeScanner,
+        borderRadius: BorderRadius.circular(16),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          decoration: BoxDecoration(
+            color: c.card,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: c.accent.withOpacity(0.35)),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: c.accent.withOpacity(0.12),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: c.accent.withOpacity(0.28)),
+                ),
+                child: Icon(
+                  Icons.qr_code_scanner_rounded,
+                  size: 20,
+                  color: c.accent,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Quét mã vạch sản phẩm',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                        color: c.textPrimary,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      'Tra cứu Open Food Facts hoặc chụp nhãn dinh dưỡng AI',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: c.textMuted,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              Icon(Icons.chevron_right, size: 20, color: c.accent),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildFindYourFoodHeroCard() {
+    final c = _FoodLogColors.of(context);
     return Container(
       decoration: BoxDecoration(
-        color: const Color(0xFF1E2026),
+        color: c.card,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFF26282F)),
+        border: Border.all(color: c.border),
       ),
       clipBehavior: Clip.antiAlias,
       child: Column(
@@ -1092,17 +1749,13 @@ class FoodLogScreenState extends ConsumerState<FoodLogScreen> {
             child: Stack(
               fit: StackFit.expand,
               children: [
-                Image.network(
-                  'https://lh3.googleusercontent.com/aida/AEtjO1W86QkGkO9s6k_JtH3s8vHlXf4c0X14qH8_s4u5hK_L2y8xVbA2m8z1_qL9p=s800',
+                Image.asset(
+                  'assets/images/nutrition.jpg',
                   fit: BoxFit.cover,
-                  errorBuilder: (_, __, ___) => Image.asset(
-                    'assets/images/nutrition.jpg',
-                    fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) => Container(
-                      color: const Color(0xFF212328),
-                      child: const Center(
-                        child: Icon(Icons.restaurant, size: 40, color: Color(0xFF9CA3AF)),
-                      ),
+                  errorBuilder: (_, __, ___) => Container(
+                    color: c.elevated,
+                    child: Center(
+                      child: Icon(Icons.restaurant, size: 40, color: c.textMuted),
                     ),
                   ),
                 ),
@@ -1112,8 +1765,8 @@ class FoodLogScreenState extends ConsumerState<FoodLogScreen> {
                       begin: Alignment.topCenter,
                       end: Alignment.bottomCenter,
                       colors: [
-                        Colors.black.withOpacity(0.15),
-                        const Color(0xFF1E2026).withOpacity(0.95),
+                        Colors.black.withOpacity(c.isDark ? 0.15 : 0.04),
+                        c.card.withOpacity(0.95),
                       ],
                     ),
                   ),
@@ -1128,12 +1781,14 @@ class FoodLogScreenState extends ConsumerState<FoodLogScreen> {
                       borderRadius: BorderRadius.circular(6),
                       border: Border.all(color: Colors.white.withOpacity(0.12)),
                     ),
-                    child: const Text(
+                    child: Text(
                       'EVERYDAY FOODS',
                       style: TextStyle(
                         fontSize: 9,
                         fontWeight: FontWeight.w700,
-                        color: Color(0xFF9CA3AF),
+                        color: c.isDark
+                            ? const Color(0xFF9CA3AF)
+                            : const Color(0xFFF9FAFB),
                         letterSpacing: 0.8,
                       ),
                     ),
@@ -1148,39 +1803,39 @@ class FoodLogScreenState extends ConsumerState<FoodLogScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
+                Text(
                   'Find your food',
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w700,
-                    color: Color(0xFFF9FAFB),
+                    color: c.textPrimary,
                   ),
                 ),
                 const SizedBox(height: 4),
-                const Text(
+                Text(
                   'Search any whole food, meal prep item, or recipe. You will review and adjust your exact portion before confirming.',
                   style: TextStyle(
                     fontSize: 12,
-                    color: Color(0xFF9CA3AF),
+                    color: c.textMuted,
                     height: 1.4,
                   ),
                 ),
                 const SizedBox(height: 12),
                 Container(
                   padding: const EdgeInsets.only(top: 10),
-                  decoration: const BoxDecoration(
-                    border: Border(top: BorderSide(color: Color(0xFF26282F))),
+                  decoration: BoxDecoration(
+                    border: Border(top: BorderSide(color: c.border)),
                   ),
-                  child: const Row(
+                  child: Row(
                     children: [
-                      Icon(Icons.touch_app, size: 16, color: Color(0xFF10B981)),
-                      SizedBox(width: 6),
+                      Icon(Icons.touch_app, size: 16, color: c.accent),
+                      const SizedBox(width: 6),
                       Expanded(
                         child: Text(
                           'Search a food, then choose your portion.',
                           style: TextStyle(
                             fontSize: 12,
-                            color: Color(0xFFCBD5E1),
+                            color: c.textSecondary,
                             fontWeight: FontWeight.w500,
                           ),
                         ),
@@ -1197,17 +1852,18 @@ class FoodLogScreenState extends ConsumerState<FoodLogScreen> {
   }
 
   Widget _buildCommonStaplesSection() {
+    final c = _FoodLogColors.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Padding(
-          padding: EdgeInsets.symmetric(horizontal: 2),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 2),
           child: Text(
             'COMMON STAPLES',
             style: TextStyle(
               fontSize: 11,
               fontWeight: FontWeight.w700,
-              color: Color(0xFF9CA3AF),
+              color: c.textMuted,
               letterSpacing: 1.1,
             ),
           ),
@@ -1223,21 +1879,21 @@ class FoodLogScreenState extends ConsumerState<FoodLogScreen> {
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF1E2026),
+                  color: c.card,
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: const Color(0xFF26282F)),
+                  border: Border.all(color: c.border),
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Icon(Icons.search, size: 14, color: Color(0xFF10B981)),
+                    Icon(Icons.search, size: 14, color: c.accent),
                     const SizedBox(width: 6),
                     Text(
                       staple,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w500,
-                        color: Color(0xFFCBD5E1),
+                        color: c.textSecondary,
                       ),
                     ),
                   ],
@@ -1253,6 +1909,7 @@ class FoodLogScreenState extends ConsumerState<FoodLogScreen> {
   // ─── FRAME 2: Search Results View ────────────────────────────────
 
   Widget _buildSearchResultsView() {
+    final c = _FoodLogColors.of(context);
     return Column(
       children: [
         Padding(
@@ -1269,27 +1926,27 @@ class FoodLogScreenState extends ConsumerState<FoodLogScreen> {
                   padding:
                       const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF10B981).withOpacity(0.12),
+                    color: c.accent.withOpacity(0.12),
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(
-                      color: const Color(0xFF10B981).withOpacity(0.35),
+                      color: c.accent.withOpacity(0.35),
                     ),
                   ),
                   child: Row(
                     children: [
-                      const Icon(
+                      Icon(
                         Icons.info_outline,
                         size: 16,
-                        color: Color(0xFF10B981),
+                        color: c.accent,
                       ),
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(
                           _reselectNotice!,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.w500,
-                            color: Color(0xFFF3F4F6),
+                            color: c.textBody,
                           ),
                         ),
                       ),
@@ -1308,20 +1965,20 @@ class FoodLogScreenState extends ConsumerState<FoodLogScreen> {
                           : 'RESULTS (${_results.length} FOUND)',
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 11,
                         fontWeight: FontWeight.w700,
-                        color: Color(0xFF9CA3AF),
+                        color: c.textMuted,
                         letterSpacing: 0.8,
                       ),
                     ),
                   ),
                   const SizedBox(width: 8),
-                  const Text(
+                  Text(
                     'Basis: per 100g',
                     style: TextStyle(
                       fontSize: 11,
-                      color: Color(0xFF6B7280),
+                      color: c.textMuted,
                     ),
                   ),
                 ],
@@ -1337,6 +1994,7 @@ class FoodLogScreenState extends ConsumerState<FoodLogScreen> {
   }
 
   Widget _buildSearchResultsBody() {
+    final c = _FoodLogColors.of(context);
     if (_isLoading) {
       return ListView.separated(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
@@ -1345,17 +2003,17 @@ class FoodLogScreenState extends ConsumerState<FoodLogScreen> {
         itemBuilder: (_, __) => Container(
           height: 76,
           decoration: BoxDecoration(
-            color: const Color(0xFF1E2026),
+            color: c.card,
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: const Color(0xFF26282F)),
+            border: Border.all(color: c.border),
           ),
-          child: const Center(
+          child: Center(
             child: SizedBox(
               width: 20,
               height: 20,
               child: CircularProgressIndicator(
                 strokeWidth: 2,
-                color: Color(0xFF10B981),
+                color: c.accent,
               ),
             ),
           ),
@@ -1370,20 +2028,20 @@ class FoodLogScreenState extends ConsumerState<FoodLogScreen> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Icon(Icons.wifi_off_rounded, size: 36, color: Color(0xFF9CA3AF)),
+              Icon(Icons.wifi_off_rounded, size: 36, color: c.textMuted),
               const SizedBox(height: 12),
               Text(
                 _errorMessage!,
                 textAlign: TextAlign.center,
-                style: const TextStyle(color: Color(0xFFF3F4F6), fontSize: 13),
+                style: TextStyle(color: c.textBody, fontSize: 13),
               ),
               const SizedBox(height: 16),
               ElevatedButton.icon(
                 key: const Key('search_retry_button'),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF212328),
-                  foregroundColor: const Color(0xFFF3F4F6),
-                  side: const BorderSide(color: Color(0xFF26282F)),
+                  backgroundColor: c.elevated,
+                  foregroundColor: c.textBody,
+                  side: BorderSide(color: c.border),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                 ),
                 onPressed: () => _executeSearch(_searchCtrl.text.trim(), ++_searchRequest),
@@ -1403,28 +2061,28 @@ class FoodLogScreenState extends ConsumerState<FoodLogScreen> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Icon(Icons.search_off_rounded, size: 40, color: Color(0xFF6B7280)),
+              Icon(Icons.search_off_rounded, size: 40, color: c.textSubtle),
               const SizedBox(height: 12),
               Text(
                 'Không tìm thấy món "${_searchCtrl.text}"',
                 textAlign: TextAlign.center,
-                style: const TextStyle(
-                  color: Color(0xFFF3F4F6),
+                style: TextStyle(
+                  color: c.textBody,
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
                 ),
               ),
               const SizedBox(height: 4),
-              const Text(
+              Text(
                 'Bạn có thể tự tạo món riêng với thông tin dinh dưỡng tùy chọn.',
                 textAlign: TextAlign.center,
-                style: TextStyle(color: Color(0xFF9CA3AF), fontSize: 12),
+                style: TextStyle(color: c.textMuted, fontSize: 12),
               ),
               const SizedBox(height: 18),
               ElevatedButton.icon(
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF10B981),
-                  foregroundColor: Colors.white,
+                  backgroundColor: c.accent,
+                  foregroundColor: c.isDark ? const Color(0xFF052E16) : c.onAccent,
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 ),
@@ -1432,7 +2090,7 @@ class FoodLogScreenState extends ConsumerState<FoodLogScreen> {
                 icon: const Icon(Icons.add, size: 18),
                 label: const Text(
                   'Tự tạo món mới',
-                  style: TextStyle(fontWeight: FontWeight.w600),
+                  style: TextStyle(fontWeight: FontWeight.w700),
                 ),
               ),
             ],
@@ -1452,13 +2110,13 @@ class FoodLogScreenState extends ConsumerState<FoodLogScreen> {
             child: Center(
               child: TextButton.icon(
                 onPressed: _showCreateFoodDialog,
-                icon: const Icon(Icons.add_circle_outline, size: 16, color: Color(0xFF9CA3AF)),
-                label: const Text(
+                icon: Icon(Icons.add_circle_outline, size: 16, color: c.textMuted),
+                label: Text(
                   "Can't find your food? Create custom item",
                   style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w500,
-                    color: Color(0xFF9CA3AF),
+                    color: c.textMuted,
                   ),
                 ),
               ),
@@ -1473,6 +2131,7 @@ class FoodLogScreenState extends ConsumerState<FoodLogScreen> {
   }
 
   Widget _buildFoodResultRow(FoodModel item) {
+    final c = _FoodLogColors.of(context);
     return Material(
       color: Colors.transparent,
       child: InkWell(
@@ -1481,9 +2140,9 @@ class FoodLogScreenState extends ConsumerState<FoodLogScreen> {
         child: Container(
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
-            color: const Color(0xFF1E2026),
+            color: c.card,
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: const Color(0xFF26282F)),
+            border: Border.all(color: c.border),
           ),
           child: Row(
             children: [
@@ -1504,31 +2163,31 @@ class FoodLogScreenState extends ConsumerState<FoodLogScreen> {
                             item.name,
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 14,
                               fontWeight: FontWeight.w600,
-                              color: Color(0xFFF9FAFB),
+                              color: c.textPrimary,
                             ),
                           ),
                         ),
                         const SizedBox(width: 8),
                         Text(
                           '${item.calories.round()} kcal',
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.w700,
-                            color: Color(0xFFF3F4F6),
+                            color: c.textBody,
                           ),
                         ),
                       ],
                     ),
                     const SizedBox(height: 2),
-                    const Text(
+                    Text(
                       'per 100 g',
                       style: TextStyle(
                         fontSize: 11,
                         fontWeight: FontWeight.w600,
-                        color: Color(0xFF10B981),
+                        color: c.accent,
                       ),
                     ),
                     const SizedBox(height: 6),
@@ -1540,17 +2199,17 @@ class FoodLogScreenState extends ConsumerState<FoodLogScreen> {
                             '${item.protein.toStringAsFixed(0)}g pro · ${item.carbs.toStringAsFixed(0)}g carb · ${item.fat.toStringAsFixed(1)}g fat',
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 12,
-                              color: Color(0xFF9CA3AF),
+                              color: c.textMuted,
                             ),
                           ),
                         ),
                         const SizedBox(width: 4),
-                        const Icon(
+                        Icon(
                           Icons.chevron_right,
                           size: 16,
-                          color: Color(0xFF9CA3AF),
+                          color: c.textMuted,
                         ),
                       ],
                     ),
@@ -1571,6 +2230,7 @@ class FoodLogScreenState extends ConsumerState<FoodLogScreen> {
       return const SizedBox.shrink();
     }
 
+    final c = _FoodLogColors.of(context);
     final profile = ref.watch(profileProvider);
 
     return Column(
@@ -1597,9 +2257,9 @@ class FoodLogScreenState extends ConsumerState<FoodLogScreen> {
                 child: Text(
                   'Choosing portion does not write to history. Tapping below commits ${_grams}g to $_selectedMealType.',
                   textAlign: TextAlign.center,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 11,
-                    color: Color(0xFF6B7280),
+                    color: c.textMuted,
                     height: 1.4,
                   ),
                 ),
@@ -1611,10 +2271,10 @@ class FoodLogScreenState extends ConsumerState<FoodLogScreen> {
         // Pinned Bottom Action Panel
         Container(
           padding: const EdgeInsets.fromLTRB(16, 10, 16, 16),
-          decoration: const BoxDecoration(
-            color: Color(0xFF16171B),
+          decoration: BoxDecoration(
+            color: c.surface,
             border: Border(
-              top: BorderSide(color: Color(0xFF26282F), width: 1),
+              top: BorderSide(color: c.border, width: 1),
             ),
           ),
           child: Column(
@@ -1627,21 +2287,21 @@ class FoodLogScreenState extends ConsumerState<FoodLogScreen> {
                   margin: const EdgeInsets.only(bottom: 10),
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFEF4444).withOpacity(0.12),
+                    color: c.error.withOpacity(0.12),
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: const Color(0xFFEF4444).withOpacity(0.4)),
+                    border: Border.all(color: c.error.withOpacity(0.4)),
                   ),
                   child: Row(
                     children: [
-                      const Icon(Icons.error_outline, size: 16, color: Color(0xFFEF4444)),
+                      Icon(Icons.error_outline, size: 16, color: c.error),
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(
                           _saveError!,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.w500,
-                            color: Color(0xFFEF4444),
+                            color: c.error,
                           ),
                         ),
                       ),
@@ -1649,12 +2309,12 @@ class FoodLogScreenState extends ConsumerState<FoodLogScreen> {
                       GestureDetector(
                         key: const Key('save_retry_button'),
                         onTap: _handleConfirmLog,
-                        child: const Text(
+                        child: Text(
                           'Thử lại lưu',
                           style: TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.w700,
-                            color: Color(0xFFEF4444),
+                            color: c.error,
                             decoration: TextDecoration.underline,
                           ),
                         ),
@@ -1671,8 +2331,8 @@ class FoodLogScreenState extends ConsumerState<FoodLogScreen> {
                 child: ElevatedButton(
                   key: const Key('confirm_log_meal_btn'),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFF9FAFB),
-                    foregroundColor: const Color(0xFF0C0D0E),
+                    backgroundColor: c.ctaBg,
+                    foregroundColor: c.ctaFg,
                     elevation: 2,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(16),
@@ -1680,12 +2340,12 @@ class FoodLogScreenState extends ConsumerState<FoodLogScreen> {
                   ),
                   onPressed: (_isSaving || _grams <= 0) ? null : _handleConfirmLog,
                   child: _isSaving
-                      ? const SizedBox(
+                      ? SizedBox(
                           width: 20,
                           height: 20,
                           child: CircularProgressIndicator(
                             strokeWidth: 2,
-                            color: Color(0xFF0C0D0E),
+                            color: c.ctaFg,
                           ),
                         )
                       : const Row(
@@ -1710,12 +2370,12 @@ class FoodLogScreenState extends ConsumerState<FoodLogScreen> {
               Center(
                 child: TextButton(
                   onPressed: _isSaving ? null : () => Navigator.of(context).pop(false),
-                  child: const Text(
+                  child: Text(
                     'Cancel',
                     style: TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.w500,
-                      color: Color(0xFF9CA3AF),
+                      color: c.textMuted,
                     ),
                   ),
                 ),
@@ -1728,12 +2388,13 @@ class FoodLogScreenState extends ConsumerState<FoodLogScreen> {
   }
 
   Widget _buildPortionFoodHeroCard() {
+    final c = _FoodLogColors.of(context);
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: const Color(0xFF1E2026),
+        color: c.card,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFF26282F)),
+        border: Border.all(color: c.border),
       ),
       child: Row(
         children: [
@@ -1749,16 +2410,16 @@ class FoodLogScreenState extends ConsumerState<FoodLogScreen> {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF10B981).withOpacity(0.12),
+                    color: c.accent.withOpacity(0.12),
                     borderRadius: BorderRadius.circular(6),
-                    border: Border.all(color: const Color(0xFF10B981).withOpacity(0.3)),
+                    border: Border.all(color: c.accent.withOpacity(0.3)),
                   ),
                   child: Text(
                     '$_selectedMealType · Selected Item'.toUpperCase(),
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 10,
                       fontWeight: FontWeight.w700,
-                      color: Color(0xFF10B981),
+                      color: c.accent,
                       letterSpacing: 0.6,
                     ),
                   ),
@@ -1768,29 +2429,29 @@ class FoodLogScreenState extends ConsumerState<FoodLogScreen> {
                   _selectedFood!.name,
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w700,
-                    color: Color(0xFFF9FAFB),
+                    color: c.textPrimary,
                   ),
                 ),
                 const SizedBox(height: 2),
                 Text(
                   'Reference: ${_selectedFood!.calories.round()} kcal / 100g',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 12,
-                    color: Color(0xFF9CA3AF),
+                    color: c.textMuted,
                   ),
                 ),
                 const SizedBox(height: 6),
                 GestureDetector(
                   key: const Key('food_attribution_button'),
                   onTap: () => _showImageAttributionSheet(context, _selectedFood!.name),
-                  child: const Row(
+                  child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(Icons.info_outline, size: 13, color: Color(0xFF10B981)),
-                      SizedBox(width: 4),
+                      Icon(Icons.info_outline, size: 13, color: c.accent),
+                      const SizedBox(width: 4),
                       Flexible(
                         child: Text(
                           'Nguồn & Ghi công ảnh',
@@ -1798,7 +2459,7 @@ class FoodLogScreenState extends ConsumerState<FoodLogScreen> {
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(
                             fontSize: 11,
-                            color: Color(0xFF10B981),
+                            color: c.accent,
                             fontWeight: FontWeight.w600,
                             decoration: TextDecoration.underline,
                           ),
@@ -1821,12 +2482,13 @@ class FoodLogScreenState extends ConsumerState<FoodLogScreen> {
 
     showModalBottomSheet<void>(
       context: context,
-      backgroundColor: const Color(0xFF16171B),
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-        side: BorderSide(color: Color(0xFF26282F)),
+      backgroundColor: _FoodLogColors.of(context).surface,
+      shape: RoundedRectangleBorder(
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+        side: BorderSide(color: _FoodLogColors.of(context).border),
       ),
       builder: (ctx) {
+        final c = _FoodLogColors.of(ctx);
         return SafeArea(
           child: Padding(
             padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
@@ -1840,7 +2502,9 @@ class FoodLogScreenState extends ConsumerState<FoodLogScreen> {
                       width: 40,
                       height: 4,
                       decoration: BoxDecoration(
-                        color: const Color(0xFF374151),
+                        color: c.isDark
+                            ? const Color(0xFF374151)
+                            : c.borderStrong,
                         borderRadius: BorderRadius.circular(2),
                       ),
                     ),
@@ -1856,10 +2520,10 @@ class FoodLogScreenState extends ConsumerState<FoodLogScreen> {
                           children: [
                             Text(
                               foodName,
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.w700,
-                                color: Color(0xFFF9FAFB),
+                                color: c.textPrimary,
                               ),
                             ),
                             const SizedBox(height: 2),
@@ -1873,10 +2537,8 @@ class FoodLogScreenState extends ConsumerState<FoodLogScreen> {
                                 fontSize: 12,
                                 fontWeight: FontWeight.w600,
                                 color: attr == null
-                                    ? const Color(0xFFF59E0B)
-                                    : (attr.isAi
-                                        ? const Color(0xFFA78BFA)
-                                        : const Color(0xFF38BDF8)),
+                                    ? c.amber
+                                    : (attr.isAi ? c.violet : c.sky),
                               ),
                             ),
                           ],
@@ -1885,7 +2547,7 @@ class FoodLogScreenState extends ConsumerState<FoodLogScreen> {
                     ],
                   ),
                   const SizedBox(height: 16),
-                  const Divider(color: Color(0xFF26282F), height: 1),
+                  Divider(color: c.border, height: 1),
                   const SizedBox(height: 14),
                   if (attr != null) ...[
                     if (attr.isCommons) ...[
@@ -1910,10 +2572,10 @@ class FoodLogScreenState extends ConsumerState<FoodLogScreen> {
                       _buildAttributionRow('Xử lý ảnh:', attr.modificationNote),
                     ],
                   ] else ...[
-                    const Text(
+                    Text(
                       'Món ăn này chưa có ảnh chính thức và đang ở trạng thái Pending. Ảnh sẽ được cập nhật trong phiên bản kế tiếp khi có nguồn mở chuẩn xác hoặc quota AI miễn phí mở lại.',
                       style: TextStyle(
-                          fontSize: 13, color: Color(0xFF9CA3AF), height: 1.4),
+                          fontSize: 13, color: c.textMuted, height: 1.4),
                     ),
                   ],
                   const SizedBox(height: 20),
@@ -1922,13 +2584,20 @@ class FoodLogScreenState extends ConsumerState<FoodLogScreen> {
                     child: OutlinedButton(
                       onPressed: () => Navigator.of(ctx).pop(),
                       style: OutlinedButton.styleFrom(
-                        side: const BorderSide(color: Color(0xFF374151)),
+                        side: BorderSide(
+                          color: c.isDark
+                              ? const Color(0xFF374151)
+                              : c.border,
+                        ),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(10),
                         ),
                       ),
-                      child: const Text('Đóng',
-                          style: TextStyle(color: Color(0xFFD1D5DB))),
+                      child: Text('Đóng',
+                          style: TextStyle(
+                              color: c.isDark
+                                  ? const Color(0xFFD1D5DB)
+                                  : c.textPrimary)),
                     ),
                   ),
                 ],
@@ -1942,6 +2611,7 @@ class FoodLogScreenState extends ConsumerState<FoodLogScreen> {
 
   Widget _buildAttributionRow(String label, String value,
       {String? url, bool isLink = false}) {
+    final c = _FoodLogColors.of(context);
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -1949,10 +2619,10 @@ class FoodLogScreenState extends ConsumerState<FoodLogScreen> {
           width: 76,
           child: Text(
             label,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w600,
-              color: Color(0xFF9CA3AF),
+              color: c.textMuted,
             ),
           ),
         ),
@@ -1962,8 +2632,8 @@ class FoodLogScreenState extends ConsumerState<FoodLogScreen> {
             style: TextStyle(
               fontSize: 12,
               color: (url != null || isLink)
-                  ? const Color(0xFF38BDF8)
-                  : const Color(0xFFE5E7EB),
+                  ? c.sky
+                  : (c.isDark ? const Color(0xFFE5E7EB) : c.textPrimary),
               decoration:
                   (url != null || isLink) ? TextDecoration.underline : null,
             ),
@@ -1974,12 +2644,13 @@ class FoodLogScreenState extends ConsumerState<FoodLogScreen> {
   }
 
   Widget _buildServingSizeStepperCard() {
+    final c = _FoodLogColors.of(context);
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFF1E2026),
+        color: c.card,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFF26282F)),
+        border: Border.all(color: c.border),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1988,7 +2659,7 @@ class FoodLogScreenState extends ConsumerState<FoodLogScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Flexible(
+              Flexible(
                 child: Text(
                   'SERVING SIZE',
                   maxLines: 1,
@@ -1996,7 +2667,7 @@ class FoodLogScreenState extends ConsumerState<FoodLogScreen> {
                   style: TextStyle(
                     fontSize: 11,
                     fontWeight: FontWeight.w700,
-                    color: Color(0xFF9CA3AF),
+                    color: c.textMuted,
                     letterSpacing: 1.0,
                   ),
                 ),
@@ -2005,9 +2676,9 @@ class FoodLogScreenState extends ConsumerState<FoodLogScreen> {
               Container(
                 padding: const EdgeInsets.all(3),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF16171B),
+                  color: c.isDark ? c.surface : c.elevated,
                   borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: const Color(0xFF26282F)),
+                  border: Border.all(color: c.border),
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
@@ -2015,16 +2686,16 @@ class FoodLogScreenState extends ConsumerState<FoodLogScreen> {
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                       decoration: BoxDecoration(
-                        color: const Color(0xFF212328),
+                        color: c.isDark ? c.elevated : c.surface,
                         borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: const Color(0xFF383A42).withOpacity(0.6)),
+                        border: Border.all(color: c.borderStrong.withOpacity(0.6)),
                       ),
-                      child: const Text(
+                      child: Text(
                         'Grams (g)',
                         style: TextStyle(
                           fontSize: 10,
                           fontWeight: FontWeight.w600,
-                          color: Color(0xFFF3F4F6),
+                          color: c.textBody,
                         ),
                       ),
                     ),
@@ -2032,12 +2703,12 @@ class FoodLogScreenState extends ConsumerState<FoodLogScreen> {
                       message: 'Hệ số chiếc chưa khả dụng cho món này',
                       child: Container(
                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                        child: const Text(
+                        child: Text(
                           'Pieces',
                           style: TextStyle(
                             fontSize: 10,
                             fontWeight: FontWeight.w500,
-                            color: Color(0xFF6B7280),
+                            color: c.textSubtle,
                           ),
                         ),
                       ),
@@ -2053,9 +2724,9 @@ class FoodLogScreenState extends ConsumerState<FoodLogScreen> {
           Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: const Color(0xFF16171B),
+              color: c.isDark ? c.surface : c.elevated,
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: const Color(0xFF26282F)),
+              border: Border.all(color: c.border),
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -2070,14 +2741,14 @@ class FoodLogScreenState extends ConsumerState<FoodLogScreen> {
                       width: 48,
                       height: 48,
                       decoration: BoxDecoration(
-                        color: const Color(0xFF212328),
+                        color: c.isDark ? c.elevated : c.surface,
                         borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: const Color(0xFF26282F)),
+                        border: Border.all(color: c.border),
                       ),
                       child: Icon(
                         Icons.remove,
                         size: 20,
-                        color: _grams > 25 ? const Color(0xFFF3F4F6) : const Color(0xFF6B7280),
+                        color: _grams > 25 ? c.textBody : c.textSubtle,
                       ),
                     ),
                   ),
@@ -2092,24 +2763,24 @@ class FoodLogScreenState extends ConsumerState<FoodLogScreen> {
                     children: [
                       Text(
                         '$_grams',
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 32,
                           fontWeight: FontWeight.w700,
-                          color: Color(0xFFF9FAFB),
+                          color: c.textPrimary,
                           letterSpacing: -0.5,
                         ),
                       ),
                       const SizedBox(width: 4),
-                      const Text(
+                      Text(
                         'g',
                         style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w600,
-                          color: Color(0xFF9CA3AF),
+                          color: c.textMuted,
                         ),
                       ),
                       const SizedBox(width: 6),
-                      const Icon(Icons.edit, size: 14, color: Color(0xFF6B7280)),
+                      Icon(Icons.edit, size: 14, color: c.textSubtle),
                     ],
                   ),
                 ),
@@ -2124,14 +2795,14 @@ class FoodLogScreenState extends ConsumerState<FoodLogScreen> {
                       width: 48,
                       height: 48,
                       decoration: BoxDecoration(
-                        color: const Color(0xFF212328),
+                        color: c.isDark ? c.elevated : c.surface,
                         borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: const Color(0xFF26282F)),
+                        border: Border.all(color: c.border),
                       ),
-                      child: const Icon(
+                      child: Icon(
                         Icons.add,
                         size: 20,
-                        color: Color(0xFFF3F4F6),
+                        color: c.textBody,
                       ),
                     ),
                   ),
@@ -2154,12 +2825,14 @@ class FoodLogScreenState extends ConsumerState<FoodLogScreen> {
                     child: Container(
                       padding: const EdgeInsets.symmetric(vertical: 8),
                       decoration: BoxDecoration(
-                        color: isSelected ? const Color(0xFF212328) : const Color(0xFF16171B),
+                        color: isSelected
+                            ? (c.isDark ? c.elevated : c.accent.withOpacity(0.12))
+                            : (c.isDark ? c.surface : c.elevated),
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(
                           color: isSelected
-                              ? const Color(0xFF10B981).withOpacity(0.6)
-                              : const Color(0xFF26282F),
+                              ? c.accent.withOpacity(0.6)
+                              : c.border,
                         ),
                       ),
                       child: Center(
@@ -2168,7 +2841,7 @@ class FoodLogScreenState extends ConsumerState<FoodLogScreen> {
                           style: TextStyle(
                             fontSize: 12,
                             fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-                            color: isSelected ? const Color(0xFF10B981) : const Color(0xFFCBD5E1),
+                            color: isSelected ? c.accent : c.textSecondary,
                           ),
                         ),
                       ),
@@ -2184,6 +2857,7 @@ class FoodLogScreenState extends ConsumerState<FoodLogScreen> {
   }
 
   Widget _buildRecalculatedIntakeCard(ProfileState profile) {
+    final c = _FoodLogColors.of(context);
     final cal = _calculatedCalories;
     final pro = _calculatedProtein;
     final carb = _calculatedCarbs;
@@ -2206,9 +2880,9 @@ class FoodLogScreenState extends ConsumerState<FoodLogScreen> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFF1E2026),
+        color: c.card,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFF26282F)),
+        border: Border.all(color: c.border),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -2216,7 +2890,7 @@ class FoodLogScreenState extends ConsumerState<FoodLogScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Flexible(
+              Flexible(
                 child: Text(
                   'RECALCULATED INTAKE',
                   maxLines: 1,
@@ -2224,7 +2898,7 @@ class FoodLogScreenState extends ConsumerState<FoodLogScreen> {
                   style: TextStyle(
                     fontSize: 11,
                     fontWeight: FontWeight.w700,
-                    color: Color(0xFF9CA3AF),
+                    color: c.textMuted,
                     letterSpacing: 1.0,
                   ),
                 ),
@@ -2235,10 +2909,10 @@ class FoodLogScreenState extends ConsumerState<FoodLogScreen> {
                   '${ratio.toStringAsFixed(1)}x reference portion',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 11,
                     fontWeight: FontWeight.w600,
-                    color: Color(0xFF10B981),
+                    color: c.accent,
                   ),
                 ),
               ),
@@ -2258,20 +2932,20 @@ class FoodLogScreenState extends ConsumerState<FoodLogScreen> {
                 children: [
                   Text(
                     '${cal.round()}',
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 32,
                       fontWeight: FontWeight.w700,
-                      color: Color(0xFFF9FAFB),
+                      color: c.textPrimary,
                       letterSpacing: -0.5,
                     ),
                   ),
                   const SizedBox(width: 4),
-                  const Text(
+                  Text(
                     'kcal',
                     style: TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.w500,
-                      color: Color(0xFF9CA3AF),
+                      color: c.textMuted,
                     ),
                   ),
                 ],
@@ -2282,10 +2956,10 @@ class FoodLogScreenState extends ConsumerState<FoodLogScreen> {
                     '+${calDeltaPercent.toStringAsFixed(1)}% of daily target',
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w600,
-                      color: Color(0xFF10B981),
+                      color: c.accent,
                     ),
                   ),
                 ),
@@ -2301,7 +2975,7 @@ class FoodLogScreenState extends ConsumerState<FoodLogScreen> {
                 child: _buildMacroBox(
                   label: 'Protein',
                   grams: pro,
-                  dotColor: const Color(0xFF10B981),
+                  dotColor: c.accent,
                   goalPercent: proPercent,
                 ),
               ),
@@ -2311,7 +2985,7 @@ class FoodLogScreenState extends ConsumerState<FoodLogScreen> {
                 child: _buildMacroBox(
                   label: 'Carbs',
                   grams: carb,
-                  dotColor: const Color(0xFFF59E0B),
+                  dotColor: c.amber,
                   goalPercent: carbPercent,
                 ),
               ),
@@ -2321,7 +2995,9 @@ class FoodLogScreenState extends ConsumerState<FoodLogScreen> {
                 child: _buildMacroBox(
                   label: 'Fat',
                   grams: fat,
-                  dotColor: const Color(0xFFA855F7),
+                  dotColor: c.isDark
+                      ? const Color(0xFFA855F7)
+                      : const Color(0xFF9333EA),
                   goalPercent: fatPercent,
                 ),
               ),
@@ -2338,12 +3014,13 @@ class FoodLogScreenState extends ConsumerState<FoodLogScreen> {
     required Color dotColor,
     required int? goalPercent,
   }) {
+    final c = _FoodLogColors.of(context);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 8),
       decoration: BoxDecoration(
-        color: const Color(0xFF16171B),
+        color: c.isDark ? c.surface : c.elevated,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFF26282F)),
+        border: Border.all(color: c.border),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -2356,10 +3033,10 @@ class FoodLogScreenState extends ConsumerState<FoodLogScreen> {
                   label,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 11,
                     fontWeight: FontWeight.w500,
-                    color: Color(0xFF9CA3AF),
+                    color: c.textMuted,
                   ),
                 ),
               ),
@@ -2379,10 +3056,10 @@ class FoodLogScreenState extends ConsumerState<FoodLogScreen> {
             '${grams.toStringAsFixed(1)}g',
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.w700,
-              color: Color(0xFFF3F4F6),
+              color: c.textBody,
             ),
           ),
           if (goalPercent != null) ...[
@@ -2391,9 +3068,9 @@ class FoodLogScreenState extends ConsumerState<FoodLogScreen> {
               '$goalPercent% of goal',
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 9,
-                color: Color(0xFF6B7280),
+                color: c.textMuted,
               ),
             ),
           ],

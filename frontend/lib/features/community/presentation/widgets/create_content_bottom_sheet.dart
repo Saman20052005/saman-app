@@ -22,13 +22,14 @@ class CreateContentBottomSheet extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final tokens = SamanHomeTokens.of(context);
     final remote = ref.watch(useRemoteCommunityProvider);
     final bottomInset = MediaQuery.paddingOf(context).bottom;
 
     return Container(
-      decoration: const BoxDecoration(
-        color: Color(0xFF1E1F21),
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      decoration: BoxDecoration(
+        color: tokens.cardSurface,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
       ),
       padding: EdgeInsets.fromLTRB(16, 12, 16, 20 + bottomInset),
       child: Column(
@@ -41,7 +42,7 @@ class CreateContentBottomSheet extends ConsumerWidget {
               width: 36,
               height: 4,
               decoration: BoxDecoration(
-                color: const Color(0xFF343536),
+                color: tokens.secondarySurface,
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
@@ -52,7 +53,7 @@ class CreateContentBottomSheet extends ConsumerWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Expanded(
+              Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -61,15 +62,15 @@ class CreateContentBottomSheet extends ConsumerWidget {
                       style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.w700,
-                        color: SamanHomeTokens.textWhite,
+                        color: tokens.textPrimary,
                       ),
                     ),
-                    SizedBox(height: 2),
+                    const SizedBox(height: 2),
                     Text(
                       'Chọn định dạng nhật ký thể hình của bạn',
                       style: TextStyle(
                         fontSize: 12,
-                        color: Color(0xFFBBCAAF),
+                        color: tokens.textSecondary,
                       ),
                     ),
                   ],
@@ -77,9 +78,9 @@ class CreateContentBottomSheet extends ConsumerWidget {
               ),
               IconButton(
                 onPressed: () => Navigator.pop(context),
-                icon: const Icon(
+                icon: Icon(
                   Icons.close_rounded,
-                  color: Color(0xFFBBCAAF),
+                  color: tokens.textSecondary,
                   size: 20,
                 ),
               ),
@@ -102,6 +103,7 @@ class CreateContentBottomSheet extends ConsumerWidget {
                 title: 'Bài viết',
                 subtitle: 'Ảnh & nhật ký',
                 isActive: true,
+                tokens: tokens,
                 onTap: () {
                   Navigator.pop(context);
                   Navigator.push(
@@ -118,6 +120,7 @@ class CreateContentBottomSheet extends ConsumerWidget {
                 title: 'Chia sẻ buổi tập',
                 subtitle: 'Kinetic & Tải trọng',
                 isActive: false,
+                tokens: tokens,
                 onTap: () {
                   Navigator.pop(context);
                   Navigator.push(
@@ -137,6 +140,7 @@ class CreateContentBottomSheet extends ConsumerWidget {
                 title: 'Chia sẻ bữa ăn',
                 subtitle: 'Macros & Calo',
                 isActive: false,
+                tokens: tokens,
                 onTap: () {
                   Navigator.pop(context);
                   Navigator.push(
@@ -156,6 +160,7 @@ class CreateContentBottomSheet extends ConsumerWidget {
                 title: 'Đặt câu hỏi',
                 subtitle: 'Hỏi cộng đồng',
                 isActive: false,
+                tokens: tokens,
                 onTap: () {
                   Navigator.pop(context);
                   Navigator.push(
@@ -179,6 +184,7 @@ class CreateContentBottomSheet extends ConsumerWidget {
     required String title,
     required String subtitle,
     required bool isActive,
+    required SamanHomePalette tokens,
     required VoidCallback onTap,
   }) {
     return InkWell(
@@ -188,13 +194,13 @@ class CreateContentBottomSheet extends ConsumerWidget {
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
         decoration: BoxDecoration(
           color: isActive
-              ? SamanHomeTokens.greenAccent.withOpacity(0.08)
-              : const Color(0xFF292A2B),
+              ? tokens.greenAccent.withOpacity(0.08)
+              : tokens.secondarySurface,
           borderRadius: BorderRadius.circular(14),
           border: Border.all(
             color: isActive
-                ? SamanHomeTokens.greenAccent.withOpacity(0.3)
-                : const Color(0xFF343536),
+                ? tokens.greenAccent.withOpacity(0.3)
+                : tokens.border,
           ),
         ),
         child: Column(
@@ -206,16 +212,18 @@ class CreateContentBottomSheet extends ConsumerWidget {
               height: 36,
               decoration: BoxDecoration(
                 color: isActive
-                    ? SamanHomeTokens.greenAccent
-                    : const Color(0xFF343536),
+                    ? tokens.greenAccent
+                    : tokens.cardSurface,
                 borderRadius: BorderRadius.circular(10),
               ),
               child: Icon(
                 icon,
                 size: 20,
                 color: isActive
-                    ? const Color(0xFF003824)
-                    : SamanHomeTokens.textWhite,
+                    ? (tokens.isDark
+                        ? const Color(0xFF003824)
+                        : const Color(0xFFFFFFFF))
+                    : tokens.textPrimary,
               ),
             ),
             Column(
@@ -223,10 +231,10 @@ class CreateContentBottomSheet extends ConsumerWidget {
               children: [
                 Text(
                   title,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w600,
-                    color: SamanHomeTokens.textWhite,
+                    color: tokens.textPrimary,
                   ),
                 ),
                 const SizedBox(height: 2),
@@ -235,8 +243,8 @@ class CreateContentBottomSheet extends ConsumerWidget {
                   style: TextStyle(
                     fontSize: 11,
                     color: isActive
-                        ? SamanHomeTokens.greenAccent
-                        : const Color(0xFFBBCAAF),
+                        ? tokens.greenAccent
+                        : tokens.textSecondary,
                   ),
                 ),
               ],

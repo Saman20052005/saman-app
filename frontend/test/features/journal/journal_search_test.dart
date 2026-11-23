@@ -13,12 +13,13 @@ void main() {
     JournalFakeDatasource? datasource,
     Locale locale = const Locale('vi'),
   }) {
+    final ds = datasource ?? JournalFakeDatasource(simulatedDelay: Duration.zero);
     return ProviderScope(
       overrides: [
-        if (datasource != null)
-          journalRepositoryProvider.overrideWithValue(
-            JournalRepositoryImpl(datasource: datasource),
-          ),
+        useRemoteJournalProvider.overrideWith((ref) => false),
+        journalRepositoryProvider.overrideWithValue(
+          JournalRepositoryImpl(fakeDatasource: ds),
+        ),
       ],
       child: MaterialApp(
         locale: locale,

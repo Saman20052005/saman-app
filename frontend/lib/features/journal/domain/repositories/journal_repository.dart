@@ -29,4 +29,17 @@ abstract class JournalRepository {
 
   /// Retrieves a specific article by ID.
   Future<JournalArticle?> getArticleById(String id);
+
+  /// Saves or updates the reading progress for a given article.
+  Future<void> saveReadingProgress(
+    String articleId,
+    double progressPercent,
+    int remainingMinutes,
+  );
+
+  /// Retrieves articles bookmarked by the current user.
+  Future<List<JournalArticle>> getBookmarkedArticles();
+
+  /// Toggles the bookmark state for a given article ID. Returns the new bookmark status.
+  Future<bool> toggleBookmark(String articleId, bool desiredState);
 }

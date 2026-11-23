@@ -260,8 +260,8 @@ class FoodAnalysisIntegrityTests(unittest.TestCase):
     # -------------------------------------------------------------------------
     # POINT A: FoodClassifier unready / mock branch must NOT return fake success
     # -------------------------------------------------------------------------
-    def test_classifier_not_ready_raises_500(self):
-        """Point A: When model is not ready (ready=False), /analyze must raise 500 instead of returning mock Pizza."""
+    def test_classifier_not_ready_raises_503(self):
+        """Point A: When model is not ready (ready=False), /analyze must raise 503 instead of returning mock Pizza."""
         dummy_file = StubUploadFile()
 
         class UnreadyClassifier:
@@ -279,11 +279,11 @@ class FoodAnalysisIntegrityTests(unittest.TestCase):
                         email="test@saman.test",
                     )
                 )
-            self.assertEqual(ctx.exception.status_code, 500)
+            self.assertEqual(ctx.exception.status_code, 503)
             self.assertIn("not ready", str(ctx.exception.detail))
 
-    def test_mock_prediction_flag_raises_500(self):
-        """Point A: If predict() returns mock=True, /analyze must raise 500 instead of false success."""
+    def test_mock_prediction_flag_raises_503(self):
+        """Point A: If predict() returns mock=True, /analyze must raise 503 instead of false success."""
         dummy_file = StubUploadFile()
 
         class MockingClassifier:
@@ -301,8 +301,23 @@ class FoodAnalysisIntegrityTests(unittest.TestCase):
                         email="test@saman.test",
                     )
                 )
-            self.assertEqual(ctx.exception.status_code, 500)
+            self.assertEqual(ctx.exception.status_code, 503)
             self.assertIn("not ready", str(ctx.exception.detail))
+
+    def test_food_classifier_predict_raises_when_not_ready(self):
+        """P0.3: FoodClassifier.predict() raises RuntimeError when weights are missing (no mock fallback)."""
+        import importlib.util
+        spec = importlib.util.spec_from_file_location(
+            "real_food_classifier_for_test",
+            str(BACKEND_DIR / "services" / "food_classifier.py"),
+        )
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)
+        classifier = mod.FoodClassifier(model_path="nonexistent_model_path_p03.pth")
+        self.assertFalse(classifier.ready)
+        with self.assertRaises(RuntimeError) as ctx:
+            classifier.predict(b"fake_image_bytes")
+        self.assertIn("mock fallback disabled", str(ctx.exception))
 
     # -------------------------------------------------------------------------
     # POINT B: Generic default nutrition fallback on unknown labels is removed

@@ -113,7 +113,12 @@ class JournalFakeDatasource {
     badgeLabel: 'Lộ trình nền tảng',
     totalLessons: 5,
     coverImageAsset: 'assets/images/workout.jpg',
+    lessons: sampleArticles,
   );
+
+  // In-memory state for bookmarks and reading progress
+  final Set<String> _bookmarkedArticleIds = {'article_protein_basics'};
+  JournalReadingProgress _currentReadingProgress = defaultReadingProgress;
 
   // ─── Search Pool Fixtures ──────────────────────────────────────────────
 
@@ -249,7 +254,46 @@ class JournalFakeDatasource {
   Future<JournalReadingProgress?> getReadingProgress() async {
     await _awaitDelay();
     if (shouldSimulateEmpty) return null;
-    return defaultReadingProgress;
+    return _currentReadingProgress;
+  }
+
+  Future<void> saveReadingProgress(
+    String articleId,
+    double progressPercent,
+    int remainingMinutes,
+  ) async {
+    await _awaitDelay();
+    final article = sampleArticles.firstWhere(
+      (a) => a.id == articleId,
+      orElse: () => featuredStory,
+    );
+    _currentReadingProgress = JournalReadingProgress(
+      articleId: articleId,
+      title: article.title,
+      progressPercent: progressPercent,
+      remainingMinutes: remainingMinutes,
+      coverImageAsset: article.coverImageAsset,
+      summary: 'Đã đọc ${(progressPercent * 100).round()}% • Còn $remainingMinutes phút',
+    );
+  }
+
+  Future<List<JournalArticle>> getBookmarkedArticles() async {
+    await _awaitDelay();
+    if (shouldSimulateEmpty) return [];
+    return sampleArticles
+        .where((a) => _bookmarkedArticleIds.contains(a.id))
+        .map((a) => a.copyWith(isBookmarked: true))
+        .toList();
+  }
+
+  Future<bool> toggleBookmark(String articleId, bool desiredState) async {
+    await _awaitDelay();
+    if (desiredState) {
+      _bookmarkedArticleIds.add(articleId);
+    } else {
+      _bookmarkedArticleIds.remove(articleId);
+    }
+    return desiredState;
   }
 
   Future<List<JournalLibraryEntry>> getLibraryEntries() async {
@@ -306,6 +350,10 @@ class JournalFakeDatasource {
   Future<JournalArticle?> getArticleById(String id) async {
     await _awaitDelay();
     final matches = sampleArticles.where((a) => a.id == id);
-    return matches.isNotEmpty ? matches.first : null;
+    if (matches.isEmpty) return null;
+    final article = matches.first;
+    return article.copyWith(
+      isBookmarked: _bookmarkedArticleIds.contains(article.id),
+    );
   }
 }

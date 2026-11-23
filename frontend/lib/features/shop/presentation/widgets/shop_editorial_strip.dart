@@ -25,12 +25,13 @@ class ShopEditorialStrip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = ShopTheme.of(context);
     return Container(
       decoration: BoxDecoration(
-        color: isSelected ? ShopTheme.surfaceElevated : ShopTheme.surfaceCard,
+        color: isSelected ? t.surfaceElevated : t.surfaceCard,
         borderRadius: BorderRadius.circular(ShopTheme.radiusXl),
         border: Border.all(
-          color: isSelected ? ShopTheme.emerald : ShopTheme.borderSubtle,
+          color: isSelected ? t.emerald : t.borderSubtle,
           width: 1,
         ),
       ),
@@ -56,22 +57,22 @@ class ShopEditorialStrip extends StatelessWidget {
                           Text(
                             ShopTranslations.of(
                                 context, 'collection_section_label'),
-                            style: ShopTheme.collectionBadge,
+                            style: t.collectionBadge,
                           ),
                           if (isSelected)
                             Container(
                               padding: const EdgeInsets.symmetric(
                                   horizontal: 6, vertical: 1.5),
                               decoration: BoxDecoration(
-                                color: ShopTheme.emerald.withOpacity(0.15),
+                                color: t.emerald.withOpacity(0.15),
                                 borderRadius: BorderRadius.circular(4),
                               ),
-                              child: const Text(
+                              child: Text(
                                 'Đang lọc',
                                 style: TextStyle(
                                   fontSize: 9.5,
                                   fontWeight: FontWeight.w600,
-                                  color: ShopTheme.emerald,
+                                  color: t.emerald,
                                 ),
                               ),
                             ),
@@ -80,14 +81,14 @@ class ShopEditorialStrip extends StatelessWidget {
                       const SizedBox(height: 4),
                       Text(
                         collection.title,
-                        style: ShopTheme.collectionTitle,
+                        style: t.collectionTitle,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
                       const SizedBox(height: 3),
                       Text(
                         collection.description,
-                        style: ShopTheme.collectionSubtitle,
+                        style: t.collectionSubtitle,
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                       ),
@@ -105,9 +106,7 @@ class ShopEditorialStrip extends StatelessWidget {
                       style: ShopTheme.fontManrope(
                         fontSize: 12,
                         fontWeight: FontWeight.w600,
-                        color: isSelected
-                            ? ShopTheme.emerald
-                            : ShopTheme.textPrimary,
+                        color: isSelected ? t.emerald : t.textPrimary,
                       ),
                     ),
                     const SizedBox(width: 3),
@@ -116,9 +115,7 @@ class ShopEditorialStrip extends StatelessWidget {
                           ? Icons.close_rounded
                           : Icons.arrow_forward_rounded,
                       size: 13,
-                      color: isSelected
-                          ? ShopTheme.emerald
-                          : ShopTheme.textPrimary,
+                      color: isSelected ? t.emerald : t.textPrimary,
                     ),
                   ],
                 ),

@@ -25,6 +25,7 @@ class ProfileHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = SamanHomeTokens.of(context);
     return Padding(
       padding: const EdgeInsets.symmetric(
         horizontal: SamanHomeTokens.spacingLg,
@@ -42,14 +43,14 @@ class ProfileHeader extends StatelessWidget {
                   title,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: SamanHomeTokens.screenTitle,
+                  style: tokens.screenTitle,
                 ),
                 const SizedBox(height: 2),
                 Text(
                   subtitle,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: SamanHomeTokens.headerSubtitle,
+                  style: tokens.headerSubtitle,
                 ),
               ],
             ),
@@ -69,6 +70,7 @@ class _SettingsSquareButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = SamanHomeTokens.of(context);
     return Material(
       color: Colors.transparent,
       child: InkWell(
@@ -82,18 +84,18 @@ class _SettingsSquareButton extends StatelessWidget {
               width: 38,
               height: 38,
               decoration: BoxDecoration(
-                color: SamanHomeTokens.cardSurfaceElevated,
+                color: tokens.cardSurfaceElevated,
                 borderRadius: BorderRadius.circular(SamanHomeTokens.radiusMd),
                 border: Border.all(
-                  color: SamanHomeTokens.border,
+                  color: tokens.border,
                   width: 1,
                 ),
               ),
-              child: const Center(
+              child: Center(
                 child: Icon(
                   Icons.settings_outlined,
                   size: 19,
-                  color: SamanHomeTokens.textSecondary,
+                  color: tokens.textSecondary,
                 ),
               ),
             ),

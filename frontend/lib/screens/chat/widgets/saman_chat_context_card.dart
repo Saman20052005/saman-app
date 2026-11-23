@@ -16,6 +16,60 @@ class SamanChatContextData {
     this.actionLabel = 'Review workout',
     this.prompt = "Review today's workout briefing: cues and volume.",
   });
+
+  static int _toInt(dynamic value, int fallback) {
+    if (value is int) return value;
+    if (value is num) return value.round();
+    if (value is String) return num.tryParse(value)?.round() ?? fallback;
+    return fallback;
+  }
+
+  factory SamanChatContextData.fromDailyBrief({
+    String? brief,
+    Map<String, dynamic>? metrics,
+  }) {
+    final trimmedBrief = brief?.trim() ?? '';
+    final hasMetrics = metrics != null &&
+        metrics.isNotEmpty &&
+        (metrics.containsKey('calories') ||
+            metrics.containsKey('calories_target') ||
+            metrics.containsKey('water_ml') ||
+            metrics.containsKey('water_target_ml') ||
+            metrics.containsKey('protein') ||
+            metrics.containsKey('protein_target'));
+
+    if (hasMetrics) {
+      final cal = _toInt(metrics['calories'], 0);
+      final calTarget = _toInt(metrics['calories_target'], 2000);
+      final water = _toInt(metrics['water_ml'], 0);
+      final protein = _toInt(metrics['protein'], 0);
+      final proteinTarget = _toInt(metrics['protein_target'], 120);
+
+      return SamanChatContextData(
+        overline: 'TODAY · COACH BRIEF',
+        title: '$cal / $calTarget kcal · $water ml nước',
+        subtitle: trimmedBrief.isNotEmpty
+            ? trimmedBrief
+            : 'Đạm: $protein/${proteinTarget}g',
+        actionLabel: 'Hỏi nhanh',
+        prompt:
+            'Đánh giá nhanh dinh dưỡng, lượng nước và kế hoạch tập hôm nay của tôi.',
+      );
+    }
+
+    if (trimmedBrief.isNotEmpty) {
+      return SamanChatContextData(
+        overline: 'TODAY · COACH BRIEF',
+        title: 'Daily Coach Brief',
+        subtitle: trimmedBrief,
+        actionLabel: 'Hỏi nhanh',
+        prompt:
+            'Đánh giá nhanh dinh dưỡng, lượng nước và kế hoạch tập hôm nay của tôi.',
+      );
+    }
+
+    return const SamanChatContextData();
+  }
 }
 
 /// The approved single contextual card for the Saman Chat Empty State.
@@ -37,13 +91,14 @@ class SamanChatContextCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = SamanChatTokens.of(context);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14.0, vertical: 14.0),
       decoration: BoxDecoration(
-        color: SamanChatTokens.contextCardBg,
+        color: t.contextCardBg,
         borderRadius: BorderRadius.circular(12.0),
         border: Border.all(
-          color: SamanChatTokens.contextCardBorder,
+          color: t.contextCardBorder,
           width: 1.0,
         ),
       ),
@@ -58,20 +113,20 @@ class SamanChatContextCard extends StatelessWidget {
               children: [
                 Text(
                   data.overline,
-                  style: SamanChatTokens.contextCardOverline,
+                  style: t.contextCardOverline,
                 ),
                 const SizedBox(height: 2.0),
                 Text(
                   data.title,
-                  style: SamanChatTokens.contextCardTitle,
+                  style: t.contextCardTitle,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
                 const SizedBox(height: 2.0),
                 Text(
                   data.subtitle,
-                  style: SamanChatTokens.contextCardSubtitle,
-                  maxLines: 1,
+                  style: t.contextCardSubtitle,
+                  maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                 ),
               ],
@@ -98,18 +153,18 @@ class SamanChatContextCard extends StatelessWidget {
                 children: [
                   Text(
                     data.actionLabel,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.w500,
-                      color: SamanChatTokens.greenAccent,
+                      color: t.greenAccent,
                       letterSpacing: -0.1,
                     ),
                   ),
                   const SizedBox(width: 4.0),
-                  const Icon(
+                  Icon(
                     Icons.arrow_forward_rounded,
                     size: 15,
-                    color: SamanChatTokens.greenAccent,
+                    color: t.greenAccent,
                   ),
                 ],
               ),

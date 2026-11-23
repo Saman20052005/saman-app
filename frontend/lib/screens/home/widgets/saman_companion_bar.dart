@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../config/app_translations.dart';
 import '../tokens/saman_home_tokens.dart';
 
 /// Contextual AI coaching line for the Saman Home screen.
@@ -11,25 +12,29 @@ import '../tokens/saman_home_tokens.dart';
 class SamanCompanionBar extends StatelessWidget {
   const SamanCompanionBar({
     super.key,
-    this.message = 'Leg Day ready. Aim for 40g protein before 2 PM.',
+    this.message,
     this.onAskSamanTap,
   });
 
-  final String message;
+  final String? message;
   final VoidCallback? onAskSamanTap;
 
   @override
   Widget build(BuildContext context) {
+    final tokens = SamanHomeTokens.of(context);
+    final displayMessage =
+        message ?? context.tr('saman_companion_default_message');
+
     return Padding(
       padding: const EdgeInsets.symmetric(
         horizontal: SamanHomeTokens.spacingLg,
       ),
       child: Container(
         decoration: BoxDecoration(
-          color: SamanHomeTokens.companionSurface,
+          color: tokens.companionSurface,
           borderRadius: BorderRadius.circular(SamanHomeTokens.radiusMd),
           border: Border.all(
-            color: SamanHomeTokens.borderSubtle,
+            color: tokens.borderSubtle,
             width: 1,
           ),
         ),
@@ -38,32 +43,33 @@ class SamanCompanionBar extends StatelessWidget {
           vertical: 10,
         ),
         child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            const Icon(
+            Icon(
               Icons.bolt_rounded,
               size: 16,
-              color: SamanHomeTokens.textSecondary,
+              color: tokens.carbsAmber,
             ),
             const SizedBox(width: SamanHomeTokens.spacingSm),
             Expanded(
               child: RichText(
-                maxLines: 2,
+                maxLines: 3,
                 overflow: TextOverflow.ellipsis,
                 text: TextSpan(
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 12,
-                    height: 1.3,
-                    color: SamanHomeTokens.textSecondary,
+                    height: 1.35,
+                    color: tokens.textSecondary,
                   ),
                   children: [
-                    const TextSpan(
+                    TextSpan(
                       text: 'Saman: ',
                       style: TextStyle(
                         fontWeight: FontWeight.w600,
-                        color: SamanHomeTokens.textWhite,
+                        color: tokens.textPrimary,
                       ),
                     ),
-                    TextSpan(text: message),
+                    TextSpan(text: displayMessage),
                   ],
                 ),
               ),
@@ -74,24 +80,35 @@ class SamanCompanionBar extends StatelessWidget {
               child: InkWell(
                 onTap: onAskSamanTap,
                 borderRadius: BorderRadius.circular(SamanHomeTokens.radiusSm),
-                child: const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 4, horizontal: 2),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 5,
+                  ),
+                  decoration: BoxDecoration(
+                    color: tokens.secondarySurface,
+                    borderRadius: BorderRadius.circular(SamanHomeTokens.radiusSm),
+                    border: Border.all(
+                      color: tokens.border,
+                      width: 1,
+                    ),
+                  ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(
-                        'Ask Saman',
+                        context.tr('ask_saman'),
                         style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w500,
-                          color: SamanHomeTokens.textSecondary,
+                          color: tokens.textSecondary,
                         ),
                       ),
-                      SizedBox(width: 2),
+                      const SizedBox(width: 4),
                       Icon(
                         Icons.arrow_forward_rounded,
                         size: 13,
-                        color: SamanHomeTokens.textSecondary,
+                        color: tokens.textSecondary,
                       ),
                     ],
                   ),

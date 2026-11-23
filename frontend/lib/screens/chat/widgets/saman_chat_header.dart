@@ -31,17 +31,18 @@ class SamanChatHeader extends StatelessWidget implements PreferredSizeWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = SamanChatTokens.of(context);
     return AppBar(
-      backgroundColor: SamanChatTokens.canvas,
+      backgroundColor: t.canvas,
       elevation: 0,
       scrolledUnderElevation: 0,
       centerTitle: true,
       titleSpacing: 0,
       leadingWidth: 48,
       automaticallyImplyLeading: showLeadingMenu,
-      shape: const Border(
+      shape: Border(
         bottom: BorderSide(
-          color: SamanChatTokens.borderSubtle,
+          color: t.borderSubtle,
           width: 1.0,
         ),
       ),
@@ -51,9 +52,9 @@ class SamanChatHeader extends StatelessWidget implements PreferredSizeWidget {
               label: 'Open Coach Menu',
               child: IconButton(
                 visualDensity: VisualDensity.compact,
-                icon: const Icon(
+                icon: Icon(
                   Icons.notes_rounded,
-                  color: SamanChatTokens.textSecondary,
+                  color: t.textSecondary,
                   size: 22,
                 ),
                 tooltip: 'Coach Menu',
@@ -61,15 +62,15 @@ class SamanChatHeader extends StatelessWidget implements PreferredSizeWidget {
               ),
             )
           : null,
-      title: const Row(
+      title: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          SamanMonogram.header(),
-          SizedBox(width: 8.0),
+          const SamanMonogram.header(),
+          const SizedBox(width: 8.0),
           Flexible(
             child: Text(
               'Saman Coach',
-              style: SamanChatTokens.headerTitle,
+              style: t.headerTitle,
               overflow: TextOverflow.ellipsis,
             ),
           ),
@@ -81,9 +82,9 @@ class SamanChatHeader extends StatelessWidget implements PreferredSizeWidget {
           label: 'New Conversation',
           child: IconButton(
             visualDensity: VisualDensity.compact,
-            icon: const Icon(
+            icon: Icon(
               Icons.edit_square,
-              color: SamanChatTokens.textSecondary,
+              color: t.textSecondary,
               size: 20,
             ),
             tooltip: 'New conversation',
@@ -98,9 +99,9 @@ class SamanChatHeader extends StatelessWidget implements PreferredSizeWidget {
             children: [
               IconButton(
                 visualDensity: VisualDensity.compact,
-                icon: const Icon(
+                icon: Icon(
                   Icons.notifications_none_rounded,
-                  color: SamanChatTokens.textSecondary,
+                  color: t.textSecondary,
                   size: 22,
                 ),
                 tooltip: 'Reminders',
@@ -109,13 +110,13 @@ class SamanChatHeader extends StatelessWidget implements PreferredSizeWidget {
                     onNotificationsTap!();
                   } else {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
+                      SnackBar(
                         content: Text(
                           'No active coach reminders right now.',
-                          style: TextStyle(color: SamanChatTokens.textWhite),
+                          style: TextStyle(color: t.textWhite),
                         ),
-                        backgroundColor: SamanChatTokens.surfaceElevated,
-                        duration: Duration(seconds: 2),
+                        backgroundColor: t.surfaceElevated,
+                        duration: const Duration(seconds: 2),
                         behavior: SnackBarBehavior.floating,
                       ),
                     );
@@ -129,8 +130,8 @@ class SamanChatHeader extends StatelessWidget implements PreferredSizeWidget {
                   child: Container(
                     width: 6,
                     height: 6,
-                    decoration: const BoxDecoration(
-                      color: SamanChatTokens.greenAccent,
+                    decoration: BoxDecoration(
+                      color: t.greenAccent,
                       shape: BoxShape.circle,
                     ),
                   ),

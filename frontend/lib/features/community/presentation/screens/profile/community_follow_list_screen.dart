@@ -88,21 +88,22 @@ class _CommunityFollowListScreenState
 
   @override
   Widget build(BuildContext context) {
+    final tokens = SamanHomeTokens.of(context);
     final followers = _followers;
     final following = _following;
 
     return Scaffold(
-      backgroundColor: const Color(0xFF121314),
+      backgroundColor: tokens.canvas,
       body: SafeArea(
         child: Column(
           children: [
-            _buildAppBar(context),
-            _buildSearchBar(),
+            _buildAppBar(context, tokens),
+            _buildSearchBar(tokens),
             TabBar(
               controller: _tabController,
-              indicatorColor: SamanHomeTokens.greenAccent,
-              labelColor: SamanHomeTokens.greenAccent,
-              unselectedLabelColor: const Color(0xFFBBCAAF),
+              indicatorColor: tokens.greenAccent,
+              labelColor: tokens.greenAccent,
+              unselectedLabelColor: tokens.textSecondary,
               tabs: [
                 Tab(text: '${followers.length} Người theo dõi'),
                 Tab(text: '${following.length} Đang theo dõi'),
@@ -112,8 +113,8 @@ class _CommunityFollowListScreenState
               child: TabBarView(
                 controller: _tabController,
                 children: [
-                  _buildUserList(followers),
-                  _buildUserList(following),
+                  _buildUserList(followers, tokens),
+                  _buildUserList(following, tokens),
                 ],
               ),
             ),
@@ -123,21 +124,21 @@ class _CommunityFollowListScreenState
     );
   }
 
-  Widget _buildAppBar(BuildContext context) {
+  Widget _buildAppBar(BuildContext context, SamanHomePalette tokens) {
     return Container(
       height: 52,
       padding: const EdgeInsets.symmetric(horizontal: 16),
-      decoration: const BoxDecoration(
-        color: Color(0xFF121314),
-        border: Border(bottom: BorderSide(color: Color(0xFF1F2021), width: 1)),
+      decoration: BoxDecoration(
+        color: tokens.canvas,
+        border: Border(bottom: BorderSide(color: tokens.border, width: 1)),
       ),
       child: Row(
         children: [
           IconButton(
             onPressed: () => Navigator.pop(context),
-            icon: const Icon(
+            icon: Icon(
               Icons.arrow_back_rounded,
-              color: SamanHomeTokens.textWhite,
+              color: tokens.textPrimary,
               size: 22,
             ),
           ),
@@ -145,10 +146,10 @@ class _CommunityFollowListScreenState
             child: Text(
               widget.authorName,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w700,
-                color: SamanHomeTokens.textWhite,
+                color: tokens.textPrimary,
               ),
             ),
           ),
@@ -157,22 +158,22 @@ class _CommunityFollowListScreenState
     );
   }
 
-  Widget _buildSearchBar() {
+  Widget _buildSearchBar(SamanHomePalette tokens) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
       child: Container(
         height: 42,
         padding: const EdgeInsets.symmetric(horizontal: 12),
         decoration: BoxDecoration(
-          color: const Color(0xFF1E1F21),
+          color: tokens.cardSurface,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: const Color(0xFF2E3033)),
+          border: Border.all(color: tokens.border),
         ),
         child: Row(
           children: [
-            const Icon(
+            Icon(
               Icons.search_rounded,
-              color: Color(0xFFBBCAAF),
+              color: tokens.textSecondary,
               size: 20,
             ),
             const SizedBox(width: 8),
@@ -180,10 +181,10 @@ class _CommunityFollowListScreenState
               child: TextField(
                 controller: _searchController,
                 onChanged: (v) => setState(() => _searchQuery = v.trim().toLowerCase()),
-                style: const TextStyle(fontSize: 13, color: SamanHomeTokens.textWhite),
-                decoration: const InputDecoration(
+                style: TextStyle(fontSize: 13, color: tokens.textPrimary),
+                decoration: InputDecoration(
                   hintText: 'Tìm kiếm theo tên thành viên...',
-                  hintStyle: TextStyle(fontSize: 13, color: Color(0xFF71767B)),
+                  hintStyle: TextStyle(fontSize: 13, color: tokens.textMuted),
                   border: InputBorder.none,
                   isDense: true,
                 ),
@@ -195,7 +196,7 @@ class _CommunityFollowListScreenState
                   _searchController.clear();
                   setState(() => _searchQuery = '');
                 },
-                icon: const Icon(Icons.clear_rounded, size: 16, color: Color(0xFFBBCAAF)),
+                icon: Icon(Icons.clear_rounded, size: 16, color: tokens.textSecondary),
                 padding: EdgeInsets.zero,
                 constraints: const BoxConstraints(),
               ),
@@ -205,7 +206,10 @@ class _CommunityFollowListScreenState
     );
   }
 
-  Widget _buildUserList(List<CommunityAuthor> authors) {
+  Widget _buildUserList(
+    List<CommunityAuthor> authors,
+    SamanHomePalette tokens,
+  ) {
     final filtered = _searchQuery.isEmpty
         ? authors
         : authors
@@ -220,7 +224,7 @@ class _CommunityFollowListScreenState
           _searchQuery.isEmpty
               ? 'Danh sách trống.'
               : 'Không tìm thấy kết quả phù hợp.',
-          style: const TextStyle(color: Color(0xFF71767B), fontSize: 13),
+          style: TextStyle(color: tokens.textMuted, fontSize: 13),
         ),
       );
     }
@@ -228,15 +232,15 @@ class _CommunityFollowListScreenState
     return ListView.separated(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       itemCount: filtered.length,
-      separatorBuilder: (_, __) => const Divider(color: Color(0xFF1F2021), height: 16),
+      separatorBuilder: (_, __) => Divider(color: tokens.border, height: 16),
       itemBuilder: (context, index) {
         final author = filtered[index];
-        return _buildUserTile(author);
+        return _buildUserTile(author, tokens);
       },
     );
   }
 
-  Widget _buildUserTile(CommunityAuthor author) {
+  Widget _buildUserTile(CommunityAuthor author, SamanHomePalette tokens) {
     return Row(
       children: [
         InkWell(
@@ -252,17 +256,17 @@ class _CommunityFollowListScreenState
           child: Container(
             width: 44,
             height: 44,
-            decoration: const BoxDecoration(
+            decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: Color(0xFF292A2B),
+              color: tokens.secondarySurface,
             ),
             child: Center(
               child: Text(
                 author.name.isNotEmpty ? author.name[0] : 'S',
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w700,
-                  color: SamanHomeTokens.greenAccent,
+                  color: tokens.greenAccent,
                 ),
               ),
             ),
@@ -288,19 +292,19 @@ class _CommunityFollowListScreenState
                       child: Text(
                         author.name,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w600,
-                          color: SamanHomeTokens.textWhite,
+                          color: tokens.textPrimary,
                         ),
                       ),
                     ),
                     if (author.isVerified) ...[
                       const SizedBox(width: 4),
-                      const Icon(
+                      Icon(
                         Icons.verified_rounded,
                         size: 14,
-                        color: SamanHomeTokens.greenAccent,
+                        color: tokens.greenAccent,
                       ),
                     ],
                   ],
@@ -309,9 +313,9 @@ class _CommunityFollowListScreenState
                 Text(
                   author.title ?? '',
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 12,
-                    color: Color(0xFFBBCAAF),
+                    color: tokens.textSecondary,
                   ),
                 ),
               ],
@@ -347,8 +351,8 @@ class _CommunityFollowListScreenState
                     }
                   },
                   style: OutlinedButton.styleFrom(
-                    foregroundColor: const Color(0xFFBBCAAF),
-                    side: const BorderSide(color: Color(0xFF343536)),
+                    foregroundColor: tokens.textSecondary,
+                    side: BorderSide(color: tokens.border),
                     padding: const EdgeInsets.symmetric(horizontal: 12),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(8),
@@ -381,8 +385,10 @@ class _CommunityFollowListScreenState
                     }
                   },
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: SamanHomeTokens.greenAccent,
-                    foregroundColor: const Color(0xFF003824),
+                    backgroundColor: tokens.greenAccent,
+                    foregroundColor: tokens.isDark
+                        ? const Color(0xFF003824)
+                        : const Color(0xFFFFFFFF),
                     padding: const EdgeInsets.symmetric(horizontal: 14),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(8),

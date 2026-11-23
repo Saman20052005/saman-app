@@ -21,6 +21,7 @@ class BillingPeriodSelector extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final t = MembershipTokens.of(context);
     final BillingPeriod activePeriod =
         period ?? ref.watch(billingPeriodProvider);
 
@@ -31,13 +32,12 @@ class BillingPeriodSelector extends ConsumerWidget {
         Container(
           padding: const EdgeInsets.all(4.0),
           decoration: BoxDecoration(
-            color:
-                isInsideCard ? MembershipTokens.canvas : MembershipTokens.card,
+            color: isInsideCard ? t.canvas : t.card,
             borderRadius: BorderRadius.circular(
               isInsideCard ? 12.0 : MembershipTokens.cardRadius,
             ),
             border: Border.all(
-              color: MembershipTokens.border,
+              color: t.border,
               width: 1.0,
             ),
           ),
@@ -83,10 +83,10 @@ class BillingPeriodSelector extends ConsumerWidget {
             padding: const EdgeInsets.symmetric(horizontal: 4.0),
             child: Text(
               context.tr('demo_pricing_disclaimer'),
-              style: MembershipTokens.mono(
+              style: t.mono(
                 fontSize: 12,
                 fontWeight: FontWeight.w400,
-                color: MembershipTokens.textMuted,
+                color: t.textMuted,
               ),
             ),
           ),
@@ -109,6 +109,7 @@ class _SegmentButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = MembershipTokens.of(context);
     return Semantics(
       button: true,
       selected: isSelected,
@@ -124,13 +125,11 @@ class _SegmentButton extends StatelessWidget {
             ),
             alignment: Alignment.center,
             decoration: BoxDecoration(
-              color: isSelected
-                  ? MembershipTokens.surfaceHigh
-                  : Colors.transparent,
+              color: isSelected ? t.surfaceHigh : Colors.transparent,
               borderRadius: BorderRadius.circular(10),
               border: isSelected
                   ? Border.all(
-                      color: MembershipTokens.borderStrong,
+                      color: t.borderStrong,
                       width: 1.0,
                     )
                   : null,
@@ -138,12 +137,10 @@ class _SegmentButton extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
             child: Text(
               title,
-              style: MembershipTokens.body(
+              style: t.body(
                 fontSize: 14,
                 fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-                color: isSelected
-                    ? MembershipTokens.textPrimary
-                    : MembershipTokens.textMuted,
+                color: isSelected ? t.textPrimary : t.textMuted,
               ),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,

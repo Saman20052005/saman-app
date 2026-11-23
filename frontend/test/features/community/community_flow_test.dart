@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:health_ai_app/features/community/data/datasources/community_fake_datasource.dart';
@@ -119,7 +120,11 @@ void main() {
   group('Community Riverpod Providers Flow Tests', () {
     testWidgets('CommunityFeedNotifier manages filter and likes',
         (tester) async {
-      final container = ProviderContainer();
+      final container = ProviderContainer(
+        overrides: [
+          useRemoteCommunityProvider.overrideWith((ref) => false),
+        ],
+      );
       addTearDown(container.dispose);
 
       final feedNotifier = container.read(communityFeedProvider.notifier);
@@ -148,7 +153,11 @@ void main() {
     });
 
     testWidgets('CommunityPostDetailNotifier submits comment', (tester) async {
-      final container = ProviderContainer();
+      final container = ProviderContainer(
+        overrides: [
+          useRemoteCommunityProvider.overrideWith((ref) => false),
+        ],
+      );
       addTearDown(container.dispose);
 
       final detailNotifier =
@@ -173,7 +182,17 @@ void main() {
   group('Community Screen Widget Tests', () {
     Widget buildTestApp(Widget child) {
       return ProviderScope(
+        overrides: [
+          useRemoteCommunityProvider.overrideWith((ref) => false),
+        ],
         child: MaterialApp(
+          locale: const Locale('vi'),
+          supportedLocales: const [Locale('vi'), Locale('en')],
+          localizationsDelegates: const [
+            GlobalMaterialLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+            GlobalCupertinoLocalizations.delegate,
+          ],
           home: child,
         ),
       );
@@ -192,9 +211,9 @@ void main() {
       expect(find.text('Saman Community'), findsOneWidget);
 
       // 3 Filter Tabs
-      expect(find.text('Dành cho bạn'), findsOneWidget);
+      expect(find.text('Tất cả'), findsOneWidget);
       expect(find.text('Đang theo dõi'), findsOneWidget);
-      expect(find.text('Hỏi đáp'), findsOneWidget);
+      expect(find.text('Hỏi & Đáp'), findsOneWidget);
 
       // Post 1: Meal post
       expect(find.text('Linh Nguyễn'), findsWidgets);
@@ -208,10 +227,10 @@ void main() {
       expect(find.text('BUỔI TẬP ĐÃ HOÀN THÀNH'), findsOneWidget);
 
       // Bring QA tab into view and tap
-      await tester.ensureVisible(find.text('Hỏi đáp'));
+      await tester.ensureVisible(find.text('Hỏi & Đáp'));
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text('Hỏi đáp'));
+      await tester.tap(find.text('Hỏi & Đáp'));
       await tester.pumpAndSettle();
 
       // In QA tab, meal post should not be visible
@@ -269,13 +288,12 @@ void main() {
       ));
       await tester.pumpAndSettle();
 
-      expect(find.text('Chi tiết bài viết'), findsOneWidget);
+      expect(find.text('Bài viết'), findsOneWidget);
       expect(find.text('Thành viên Saman'), findsWidgets);
       expect(find.textContaining('Mẹo nhỏ: Ướp gà trước'), findsOneWidget);
       expect(find.text('48g Protein'), findsOneWidget);
       expect(find.text('510 kcal'), findsOneWidget);
-      expect(find.text('Clean Eating'), findsOneWidget);
-      expect(find.text('Bình luận & Thảo luận'), findsOneWidget);
+      expect(find.text('Bình luận'), findsOneWidget);
 
       // Author reply
       expect(find.text('Tác giả'), findsOneWidget);

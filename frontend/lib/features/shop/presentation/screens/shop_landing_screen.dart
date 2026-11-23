@@ -80,11 +80,12 @@ class _ShopLandingScreenState extends ConsumerState<ShopLandingScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final t = ShopTheme.of(context);
     final state = ref.watch(shopLandingControllerProvider);
     final controller = ref.read(shopLandingControllerProvider.notifier);
 
     return Scaffold(
-      backgroundColor: ShopTheme.canvas,
+      backgroundColor: t.canvas,
       body: SafeArea(
         child: Column(
           children: [
@@ -97,8 +98,8 @@ class _ShopLandingScreenState extends ConsumerState<ShopLandingScreen> {
                 onRefresh: () async {
                   controller.resetFilters();
                 },
-                color: ShopTheme.emerald,
-                backgroundColor: ShopTheme.surfaceCard,
+                color: t.emerald,
+                backgroundColor: t.surfaceCard,
                 child: CustomScrollView(
                   controller: _scrollController,
                   physics: const AlwaysScrollableScrollPhysics(
@@ -168,13 +169,13 @@ class _ShopLandingScreenState extends ConsumerState<ShopLandingScreen> {
                               children: [
                                 Text(
                                   ShopTranslations.of(context, 'curated_header'),
-                                  style: ShopTheme.sectionHeaderCaps,
+                                  style: t.sectionHeaderCaps,
                                 ),
                                 const SizedBox(width: 8),
                                 Flexible(
                                   child: Text(
                                     _buildItemCountLabel(context, state),
-                                    style: ShopTheme.sectionCount,
+                                    style: t.sectionCount,
                                     textAlign: TextAlign.end,
                                     overflow: TextOverflow.ellipsis,
                                   ),
@@ -394,12 +395,13 @@ class _ActiveFilterBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = ShopTheme.of(context);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
-        color: ShopTheme.surfaceCard,
+        color: t.surfaceCard,
         borderRadius: BorderRadius.circular(ShopTheme.radiusPill),
-        border: Border.all(color: ShopTheme.emerald.withOpacity(0.5)),
+        border: Border.all(color: t.emerald.withOpacity(0.5)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -409,20 +411,20 @@ class _ActiveFilterBadge extends StatelessWidget {
               label,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 11,
                 fontWeight: FontWeight.w500,
-                color: ShopTheme.emerald,
+                color: t.emerald,
               ),
             ),
           ),
           const SizedBox(width: 6),
           InkWell(
             onTap: onClear,
-            child: const Icon(
+            child: Icon(
               Icons.close_rounded,
               size: 14,
-              color: ShopTheme.emerald,
+              color: t.emerald,
             ),
           ),
         ],

@@ -14,6 +14,7 @@ import 'home/tokens/saman_home_tokens.dart';
 import 'home/widgets/saman_bottom_navigation_bar.dart';
 
 import '../utils/auth_helper.dart';
+import '../widgets/saman_feedback_snackbar.dart';
 
 // Import Provider
 import '../providers/profile_provider.dart';
@@ -57,10 +58,10 @@ class _MainScreenState extends ConsumerState<MainScreen> {
 
     ScaffoldMessenger.of(context).hideCurrentSnackBar();
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Session expired. Please sign in again.'),
-        backgroundColor: Colors.redAccent,
-        behavior: SnackBarBehavior.floating,
+      SamanFeedbackSnackBar.build(
+        context: context,
+        message: 'Session expired. Please sign in again.',
+        type: FeedbackType.error,
       ),
     );
 
@@ -114,11 +115,10 @@ class _MainScreenState extends ConsumerState<MainScreen> {
       if (!profileState.isLoading && !profileState.isProfileValid) {
         ScaffoldMessenger.of(context).hideCurrentSnackBar();
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content:
-                Text("⚠️ Vui lòng cập nhật Hồ sơ sức khỏe để tính Calories!"),
-            backgroundColor: Colors.redAccent,
-            behavior: SnackBarBehavior.floating,
+          SamanFeedbackSnackBar.build(
+            context: context,
+            message: '⚠️ Vui lòng cập nhật Hồ sơ sức khỏe để tính Calories!',
+            type: FeedbackType.warning,
           ),
         );
         ref.read(mainNavIndexProvider.notifier).state = 4; // Chuyển sang Profile (shifted)
@@ -141,7 +141,7 @@ class _MainScreenState extends ConsumerState<MainScreen> {
     });
 
     return Scaffold(
-      backgroundColor: SamanHomeTokens.canvas,
+      backgroundColor: SamanHomeTokens.of(context).canvas,
       body: IndexedStack(
         index: currentIndex,
         children: _screens,

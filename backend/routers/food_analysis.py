@@ -23,7 +23,7 @@ _nutrition_lookup = NutritionLookup()
 def get_analysis_provider() -> str:
     raw = os.getenv("FOOD_ANALYSIS_PROVIDER")
     if raw is None or not raw.strip():
-        return "food101"
+        return "gemini"
     return raw.strip().lower()
 
 
@@ -51,15 +51,20 @@ def is_gemini_allowed(email: str) -> bool:
 def resolve_analysis_provider(mode: Optional[str] = None) -> str:
     """
     Resolve analysis provider from request mode or server configuration.
-    - If mode is provided: 'standard' -> 'food101', 'advanced' -> 'gemini'.
+    - If mode is provided:
+      - 'advanced' -> 'gemini'
+      - 'standard' -> 'food101' when local classifier is ready, otherwise 'gemini'
       Any other mode value raises HTTP 422.
-    - If mode is None or empty: fall back to FOOD_ANALYSIS_PROVIDER env (default 'food101').
+    - If mode is None or empty: fall back to FOOD_ANALYSIS_PROVIDER env (default 'gemini').
       Invalid FOOD_ANALYSIS_PROVIDER raises HTTP 500.
     """
     if isinstance(mode, str) and mode.strip():
         cleaned_mode = mode.strip().lower()
         if cleaned_mode == "standard":
-            return "food101"
+            classifier = get_classifier()
+            if getattr(classifier, "ready", False):
+                return "food101"
+            return "gemini"
         elif cleaned_mode == "advanced":
             return "gemini"
         else:
@@ -140,7 +145,10 @@ async def analyze_food_image(
 
     classifier = get_classifier()
     if not getattr(classifier, "ready", False):
-        raise HTTPException(status_code=500, detail="Food classification model is not ready")
+        raise HTTPException(
+            status_code=503,
+            detail="Food classification model is not ready (local model not loaded)",
+        )
 
     try:
         result = classifier.predict(image_bytes)
@@ -149,7 +157,10 @@ async def analyze_food_image(
         raise HTTPException(status_code=500, detail=f"Classification error: {str(e)}")
 
     if result.get("mock", False):
-        raise HTTPException(status_code=500, detail="Food classification model is not ready")
+        raise HTTPException(
+            status_code=503,
+            detail="Food classification model is not ready (local model not loaded)",
+        )
 
     food_label = result["label"]
     confidence = result["confidence"]

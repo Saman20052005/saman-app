@@ -41,20 +41,25 @@ class JournalRepositoryImpl implements JournalRepository {
 
   @override
   Future<JournalReadingProgress?> getReadingProgress() async {
-    // Note: User reading history sync backend is deferred to a future checkpoint.
-    // In remote mode, this returns the contextual sample reading progress fixture.
+    if (_remoteDatasource != null) {
+      return _remoteDatasource.getReadingProgress();
+    }
     return _fakeDatasource.getReadingProgress();
   }
 
   @override
   Future<List<JournalLibraryEntry>> getLibraryEntries() async {
-    // Curated catalog navigation entries (Exercises & Foods)
+    if (_remoteDatasource != null) {
+      return _remoteDatasource.getLibrarySummary();
+    }
     return _fakeDatasource.getLibraryEntries();
   }
 
   @override
   Future<JournalGuidedSeries?> getGuidedSeries() async {
-    // Curated foundational series preview
+    if (_remoteDatasource != null) {
+      return _remoteDatasource.getGuidedSeries();
+    }
     return _fakeDatasource.getGuidedSeries();
   }
 
@@ -91,5 +96,44 @@ class JournalRepositoryImpl implements JournalRepository {
       return _remoteDatasource.getArticleById(id);
     }
     return _fakeDatasource.getArticleById(id);
+  }
+
+  @override
+  Future<void> saveReadingProgress(
+    String articleId,
+    double progressPercent,
+    int remainingMinutes,
+  ) async {
+    if (_remoteDatasource != null) {
+      return _remoteDatasource.saveReadingProgress(
+        articleId: articleId,
+        progressPercent: progressPercent,
+        remainingMinutes: remainingMinutes,
+      );
+    }
+    return _fakeDatasource.saveReadingProgress(
+      articleId,
+      progressPercent,
+      remainingMinutes,
+    );
+  }
+
+  @override
+  Future<List<JournalArticle>> getBookmarkedArticles() async {
+    if (_remoteDatasource != null) {
+      return _remoteDatasource.getBookmarkedArticles();
+    }
+    return _fakeDatasource.getBookmarkedArticles();
+  }
+
+  @override
+  Future<bool> toggleBookmark(String articleId, bool desiredState) async {
+    if (_remoteDatasource != null) {
+      return _remoteDatasource.toggleBookmark(
+        articleId: articleId,
+        desiredState: desiredState,
+      );
+    }
+    return _fakeDatasource.toggleBookmark(articleId, desiredState);
   }
 }

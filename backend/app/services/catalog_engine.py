@@ -379,6 +379,341 @@ def _build_v1_preview_catalog() -> CatalogVersion:
 
 
 # ==============================================================================
+# SEED CATALOG: v1.0-vn (Vietnam Commercial VND Catalog — P0.5)
+# ==============================================================================
+
+def _build_v1_vn_commercial_catalog() -> CatalogVersion:
+    """
+    Constructs the commercial Vietnam (VND) catalog snapshot.
+    Prices are stored as integer VND đồng in `amount_cents` and
+    `yearly_equivalent_monthly_cents` (zero-decimal currency).
+    """
+    prices: List[Price] = [
+        # Free
+        Price(
+            price_id="price_free_monthly_vnd_0",
+            plan_id="plan_free",
+            period=BillingPeriod.MONTHLY,
+            amount_cents=0,
+            currency="VND",
+            yearly_equivalent_monthly_cents=0,
+            purchasable=False,
+        ),
+        Price(
+            price_id="price_free_yearly_vnd_0",
+            plan_id="plan_free",
+            period=BillingPeriod.YEARLY,
+            amount_cents=0,
+            currency="VND",
+            yearly_equivalent_monthly_cents=0,
+            purchasable=False,
+        ),
+        # Plus (59.000đ / tháng, 588.000đ / năm ~ 49.000đ / tháng)
+        Price(
+            price_id="price_plus_monthly_vnd_59000",
+            plan_id="plan_plus",
+            period=BillingPeriod.MONTHLY,
+            amount_cents=59000,
+            currency="VND",
+            yearly_equivalent_monthly_cents=None,
+            purchasable=True,
+            provider_references={"payos": "saman_plus_monthly"},
+        ),
+        Price(
+            price_id="price_plus_yearly_vnd_588000",
+            plan_id="plan_plus",
+            period=BillingPeriod.YEARLY,
+            amount_cents=588000,
+            currency="VND",
+            yearly_equivalent_monthly_cents=49000,
+            purchasable=True,
+            provider_references={"payos": "saman_plus_yearly"},
+        ),
+        # Pro (119.000đ / tháng, 1.188.000đ / năm ~ 99.000đ / tháng)
+        Price(
+            price_id="price_pro_monthly_vnd_119000",
+            plan_id="plan_pro",
+            period=BillingPeriod.MONTHLY,
+            amount_cents=119000,
+            currency="VND",
+            yearly_equivalent_monthly_cents=None,
+            purchasable=True,
+            provider_references={"payos": "saman_pro_monthly"},
+        ),
+        Price(
+            price_id="price_pro_yearly_vnd_1188000",
+            plan_id="plan_pro",
+            period=BillingPeriod.YEARLY,
+            amount_cents=1188000,
+            currency="VND",
+            yearly_equivalent_monthly_cents=99000,
+            purchasable=True,
+            provider_references={"payos": "saman_pro_yearly"},
+        ),
+        # Ultra (199.000đ / tháng, 2.028.000đ / năm ~ 169.000đ / tháng)
+        Price(
+            price_id="price_ultra_monthly_vnd_199000",
+            plan_id="plan_ultra",
+            period=BillingPeriod.MONTHLY,
+            amount_cents=199000,
+            currency="VND",
+            yearly_equivalent_monthly_cents=None,
+            purchasable=True,
+            provider_references={"payos": "saman_ultra_monthly"},
+        ),
+        Price(
+            price_id="price_ultra_yearly_vnd_2028000",
+            plan_id="plan_ultra",
+            period=BillingPeriod.YEARLY,
+            amount_cents=2028000,
+            currency="VND",
+            yearly_equivalent_monthly_cents=169000,
+            purchasable=True,
+            provider_references={"payos": "saman_ultra_yearly"},
+        ),
+    ]
+
+    prices_by_plan: Dict[str, List[Price]] = {}
+    for p in prices:
+        prices_by_plan.setdefault(p.plan_id, []).append(p)
+
+    plans: List[Plan] = [
+        Plan(
+            plan_id="plan_free",
+            tier=MembershipTier.FREE,
+            name="Free",
+            subtitle="Core essentials",
+            hero_description="Ghi nhận dinh dưỡng, lịch tập thủ công và 1 ảnh món ăn mỗi ngày.",
+            is_recommended=False,
+            is_current=True,
+            icon_name="check_circle_outline",
+            feature_ids=[
+                "core.nutrition_logging",
+                "core.manual_workouts",
+                "core.basic_health_metrics",
+                "ai.food_classifier.free",
+            ],
+            prices=prices_by_plan.get("plan_free", []),
+            availability_notice="Đã bao gồm trong tài khoản Saman miễn phí (1 ảnh món ăn/ngày, 5 lượt Swift 3/ngày).",
+        ),
+        Plan(
+            plan_id="plan_plus",
+            tier=MembershipTier.PLUS,
+            name="Plus",
+            subtitle="Nutrition AI",
+            hero_description="Mở khóa phân tích ảnh món ăn bằng Gemini (5 ảnh/ngày), Swift 3 (30/ngày) và Core 3 (10/ngày).",
+            is_recommended=False,
+            is_current=False,
+            icon_name="restaurant",
+            feature_ids=[
+                "core.nutrition_logging",
+                "core.manual_workouts",
+                "core.basic_health_metrics",
+                "ai.food_classifier.free",
+                "ai.nutrition_gemini",
+                "ai.chat.swift3",
+                "ai.chat.core3",
+            ],
+            prices=prices_by_plan.get("plan_plus", []),
+            availability_notice="Kích hoạt ngay sau khi thanh toán VietQR · Nutrition AI & Saman Coach.",
+        ),
+        Plan(
+            plan_id="plan_pro",
+            tier=MembershipTier.PRO,
+            name="Pro",
+            subtitle="Workout Intelligence",
+            hero_description="Workout CV AI đếm rep không giới hạn cùng Nutrition AI (10 ảnh/ngày) và Core 3 (30/ngày).",
+            is_recommended=True,
+            is_current=False,
+            icon_name="fitness_center",
+            feature_ids=[
+                "core.nutrition_logging",
+                "core.manual_workouts",
+                "core.basic_health_metrics",
+                "ai.food_classifier.free",
+                "ai.nutrition_gemini",
+                "ai.chat.swift3",
+                "ai.chat.core3",
+                "workout.cv.ai",
+                "workout.cv.lat_pulldown",
+                "workout.movement_rep_counting",
+            ],
+            prices=prices_by_plan.get("plan_pro", []),
+            availability_notice="Gói khuyên dùng · Mở khóa không giới hạn Workout CV AI & Nutrition AI.",
+        ),
+        Plan(
+            plan_id="plan_ultra",
+            tier=MembershipTier.ULTRA,
+            name="Ultra",
+            subtitle="Personalized Intelligence",
+            hero_description="Mở khóa Pro 3 (15 lượt/ngày), Suy luận nâng cao, Bộ nhớ dài hạn và 20 ảnh món ăn/ngày.",
+            is_recommended=False,
+            is_current=False,
+            icon_name="psychology_outlined",
+            feature_ids=[
+                "core.nutrition_logging",
+                "core.manual_workouts",
+                "core.basic_health_metrics",
+                "ai.food_classifier.free",
+                "ai.nutrition_gemini",
+                "ai.chat.swift3",
+                "ai.chat.core3",
+                "workout.cv.ai",
+                "workout.cv.lat_pulldown",
+                "workout.movement_rep_counting",
+                "ai.chat.pro3",
+                "ai.advanced_thinking",
+                "ai.extended_memory",
+            ],
+            prices=prices_by_plan.get("plan_ultra", []),
+            availability_notice="Gói cao cấp nhất · Mở khóa Pro 3, Suy luận nâng cao và Bộ nhớ dài hạn.",
+        ),
+    ]
+
+    matrix_features: List[MatrixFeatureDefinition] = [
+        # Group 1: Core Essentials
+        MatrixFeatureDefinition(
+            id="nutrition_logging",
+            title="Nutrition logging",
+            group="CORE ESSENTIALS",
+            status_map={
+                MembershipTier.FREE: InclusionStatus.INCLUDED,
+                MembershipTier.PLUS: InclusionStatus.INCLUDED,
+                MembershipTier.PRO: InclusionStatus.INCLUDED,
+                MembershipTier.ULTRA: InclusionStatus.INCLUDED,
+            },
+        ),
+        MatrixFeatureDefinition(
+            id="manual_workouts",
+            title="Manual workouts",
+            group="CORE ESSENTIALS",
+            status_map={
+                MembershipTier.FREE: InclusionStatus.INCLUDED,
+                MembershipTier.PLUS: InclusionStatus.INCLUDED,
+                MembershipTier.PRO: InclusionStatus.INCLUDED,
+                MembershipTier.ULTRA: InclusionStatus.INCLUDED,
+            },
+        ),
+        MatrixFeatureDefinition(
+            id="free_food_photo_model",
+            title="Free food photo model",
+            group="CORE ESSENTIALS",
+            status_map={
+                MembershipTier.FREE: InclusionStatus.INCLUDED,
+                MembershipTier.PLUS: InclusionStatus.INCLUDED,
+                MembershipTier.PRO: InclusionStatus.INCLUDED,
+                MembershipTier.ULTRA: InclusionStatus.INCLUDED,
+            },
+        ),
+        MatrixFeatureDefinition(
+            id="basic_health_metrics",
+            title="Basic health metrics",
+            group="CORE ESSENTIALS",
+            status_map={
+                MembershipTier.FREE: InclusionStatus.INCLUDED,
+                MembershipTier.PLUS: InclusionStatus.INCLUDED,
+                MembershipTier.PRO: InclusionStatus.INCLUDED,
+                MembershipTier.ULTRA: InclusionStatus.INCLUDED,
+            },
+        ),
+        # Group 2: Nutrition AI
+        MatrixFeatureDefinition(
+            id="gemini_food_analysis",
+            title="Gemini food analysis",
+            group="NUTRITION AI",
+            status_map={
+                MembershipTier.FREE: InclusionStatus.NOT_INCLUDED,
+                MembershipTier.PLUS: InclusionStatus.INCLUDED,
+                MembershipTier.PRO: InclusionStatus.INCLUDED,
+                MembershipTier.ULTRA: InclusionStatus.INCLUDED,
+            },
+        ),
+        MatrixFeatureDefinition(
+            id="monthly_ai_allowance",
+            title="Daily AI allowance",
+            group="NUTRITION AI",
+            status_map={
+                MembershipTier.FREE: InclusionStatus.NOT_INCLUDED,
+                MembershipTier.PLUS: InclusionStatus.INCLUDED,
+                MembershipTier.PRO: InclusionStatus.INCLUDED,
+                MembershipTier.ULTRA: InclusionStatus.INCLUDED,
+            },
+        ),
+        # Group 3: Workout CV Intelligence
+        MatrixFeatureDefinition(
+            id="workout_cv_ai",
+            title="Workout CV AI",
+            group="WORKOUT CV INTELLIGENCE",
+            status_map={
+                MembershipTier.FREE: InclusionStatus.NOT_INCLUDED,
+                MembershipTier.PLUS: InclusionStatus.NOT_INCLUDED,
+                MembershipTier.PRO: InclusionStatus.INCLUDED,
+                MembershipTier.ULTRA: InclusionStatus.INCLUDED,
+            },
+        ),
+        MatrixFeatureDefinition(
+            id="movement_rep_counting",
+            title="Movement analysis & rep counting",
+            group="WORKOUT CV INTELLIGENCE",
+            status_map={
+                MembershipTier.FREE: InclusionStatus.NOT_INCLUDED,
+                MembershipTier.PLUS: InclusionStatus.NOT_INCLUDED,
+                MembershipTier.PRO: InclusionStatus.INCLUDED,
+                MembershipTier.ULTRA: InclusionStatus.INCLUDED,
+            },
+        ),
+        MatrixFeatureDefinition(
+            id="separate_cv_allowance",
+            title="Unlimited CV allowance",
+            group="WORKOUT CV INTELLIGENCE",
+            status_map={
+                MembershipTier.FREE: InclusionStatus.NOT_INCLUDED,
+                MembershipTier.PLUS: InclusionStatus.NOT_INCLUDED,
+                MembershipTier.PRO: InclusionStatus.INCLUDED,
+                MembershipTier.ULTRA: InclusionStatus.INCLUDED,
+            },
+        ),
+        # Group 4: Advanced Intelligence
+        MatrixFeatureDefinition(
+            id="advanced_thinking",
+            title="Pro 3 & Advanced Thinking",
+            group="ADVANCED INTELLIGENCE",
+            status_map={
+                MembershipTier.FREE: InclusionStatus.NOT_INCLUDED,
+                MembershipTier.PLUS: InclusionStatus.NOT_INCLUDED,
+                MembershipTier.PRO: InclusionStatus.NOT_INCLUDED,
+                MembershipTier.ULTRA: InclusionStatus.INCLUDED,
+            },
+        ),
+        MatrixFeatureDefinition(
+            id="extended_history_memory",
+            title="Extended history & memory",
+            group="ADVANCED INTELLIGENCE",
+            status_map={
+                MembershipTier.FREE: InclusionStatus.NOT_INCLUDED,
+                MembershipTier.PLUS: InclusionStatus.NOT_INCLUDED,
+                MembershipTier.PRO: InclusionStatus.NOT_INCLUDED,
+                MembershipTier.ULTRA: InclusionStatus.INCLUDED,
+            },
+        ),
+    ]
+
+    return CatalogVersion(
+        version_id="v1.0-vn",
+        status=CatalogStatus.PUBLISHED,
+        currency="VND",
+        preview_mode=False,
+        disclaimer="Giá niêm yết VNĐ · Thanh toán tự động qua VietQR / PayOS.",
+        plans=plans,
+        prices=prices,
+        matrix_features=matrix_features,
+        published_at=datetime(2026, 11, 20, 0, 0, 0, tzinfo=timezone.utc),
+        notes="Vietnam commercial VND catalog for PayOS / VietQR checkout.",
+        schema_version=1,
+    )
+
+
+# ==============================================================================
 # CATALOG ENGINE SERVICE
 # ==============================================================================
 
@@ -393,9 +728,10 @@ class CatalogEngine:
     def __init__(self):
         self._versions: Dict[str, CatalogVersion] = {}
         self._active_version_id: Optional[str] = None
-        # Bootstrap canonical preview version
-        initial_catalog = _build_v1_preview_catalog()
-        self._register_internal(initial_catalog, set_active=True)
+        # Keep v1.0-preview registered for backward-compatible version lookup
+        self._register_internal(_build_v1_preview_catalog(), set_active=False)
+        # Bootstrap commercial VND catalog as default active
+        self._register_internal(_build_v1_vn_commercial_catalog(), set_active=True)
 
     @classmethod
     def get_instance(cls) -> "CatalogEngine":

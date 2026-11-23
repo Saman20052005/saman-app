@@ -81,12 +81,12 @@ class _PlanGeneratorSheetState extends ConsumerState<PlanGeneratorSheet> {
         // BUG FIX #1: context.surfaceColor (extension, có thể fail)
         // → Theme.of(context).colorScheme.surface (luôn an toàn)
         color: isDark
-            ? const Color(0xFF1C1C1C)
+            ? const Color(0xFF16171B)
             : Theme.of(context).colorScheme.surface,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
         border: Border(
           top: BorderSide(
-            color: isDark ? const Color(0xFF2A2A2A) : const Color(0xFFEEEEEE),
+            color: isDark ? const Color(0xFF26282F) : const Color(0xFFEEEEEE),
           ),
         ),
       ),
@@ -246,14 +246,14 @@ class _PlanGeneratorSheetState extends ConsumerState<PlanGeneratorSheet> {
                         color: selected
                             ? colors.onSurface
                             : isDark
-                                ? const Color(0xFF252525)
+                                ? const Color(0xFF1E2026)
                                 : const Color(0xFFF5F5F5),
                         borderRadius: BorderRadius.circular(16),
                         border: Border.all(
                           color: selected
                               ? colors.onSurface
                               : isDark
-                                  ? const Color(0xFF333333)
+                                  ? const Color(0xFF26282F)
                                   : const Color(0xFFDDDDDD),
                           width: 1.5,
                         ),
@@ -372,14 +372,14 @@ class _StyleCard extends StatelessWidget {
             color: selected
                 ? colors.onSurface
                 : isDark
-                    ? const Color(0xFF252525)
+                    ? const Color(0xFF1E2026)
                     : const Color(0xFFF5F5F5),
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
               color: selected
                   ? colors.onSurface
                   : isDark
-                      ? const Color(0xFF333333)
+                      ? const Color(0xFF26282F)
                       : const Color(0xFFDDDDDD),
               width: 1.5,
             ),

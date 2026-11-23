@@ -39,6 +39,7 @@ class _SamanFoodAnalysisLoadingState extends State<SamanFoodAnalysisLoading>
 
   @override
   Widget build(BuildContext context) {
+    final t = SamanChatTokens.of(context);
     final disableAnimations =
         MediaQuery.maybeOf(context)?.disableAnimations ?? false;
 
@@ -51,26 +52,26 @@ class _SamanFoodAnalysisLoadingState extends State<SamanFoodAnalysisLoading>
           mainAxisSize: MainAxisSize.min,
           children: [
             // Assistant identity header
-            const Row(
+            Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                SamanMonogram.chat(),
-                SizedBox(width: 8.0),
+                const SamanMonogram.chat(),
+                const SizedBox(width: 8.0),
                 Text(
                   'Saman',
-                  style: SamanChatTokens.assistantName,
+                  style: t.assistantName,
                 ),
               ],
             ),
             const SizedBox(height: 8.0),
 
             // Looking at your meal title
-            const Text(
+            Text(
               'Looking at your meal...',
               style: TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w400,
-                color: SamanChatTokens.textWhite,
+                color: t.textWhite,
                 height: 1.4,
               ),
             ),
@@ -80,10 +81,10 @@ class _SamanFoodAnalysisLoadingState extends State<SamanFoodAnalysisLoading>
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 14.0, vertical: 8.0),
               decoration: BoxDecoration(
-                color: SamanChatTokens.surface,
+                color: t.surface,
                 borderRadius: BorderRadius.circular(10.0),
                 border: Border.all(
-                  color: SamanChatTokens.borderSubtle,
+                  color: t.borderSubtle,
                   width: 1.0,
                 ),
               ),
@@ -104,7 +105,7 @@ class _SamanFoodAnalysisLoadingState extends State<SamanFoodAnalysisLoading>
                         width: 6.0,
                         height: 6.0,
                         decoration: BoxDecoration(
-                          color: SamanChatTokens.textSecondary.withOpacity(opacity),
+                          color: t.textSecondary.withOpacity(opacity),
                           shape: BoxShape.circle,
                         ),
                       );
@@ -116,11 +117,11 @@ class _SamanFoodAnalysisLoadingState extends State<SamanFoodAnalysisLoading>
             const SizedBox(height: 8.0),
 
             // Helper text
-            const Text(
+            Text(
               'Checking the portion and main ingredients...',
               style: TextStyle(
                 fontSize: 12,
-                color: SamanChatTokens.textMuted,
+                color: t.textMuted,
                 height: 1.3,
               ),
             ),

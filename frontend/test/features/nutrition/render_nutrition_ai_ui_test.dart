@@ -76,8 +76,8 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('Tiêu chuẩn'), findsOneWidget);
-    expect(find.text('✨ AI nâng cao'), findsOneWidget);
+    expect(find.text('Core 3'), findsOneWidget);
+    expect(find.text('Pro 3'), findsOneWidget);
     expect(find.text('Lưu Nhật Ký Ảnh'), findsOneWidget);
 
     await _captureRepaintBoundary(

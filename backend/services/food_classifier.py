@@ -141,7 +141,7 @@ class FoodClassifier:
 
     def predict(self, image_bytes: bytes) -> dict:
         if not self.ready:
-            return self._mock_predict()
+            raise RuntimeError("Food classification model is not ready (mock fallback disabled)")
         return self._real_predict(image_bytes)
 
     def _real_predict(self, image_bytes: bytes) -> dict:

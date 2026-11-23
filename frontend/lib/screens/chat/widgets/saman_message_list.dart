@@ -17,6 +17,7 @@ class SamanMessageList extends StatelessWidget {
   final List<ChatMessage> messages;
   final ScrollController scrollController;
   final bool isLoading;
+  final bool isStreaming;
   final String? errorMessage;
   final VoidCallback? onRetry;
   final VoidCallback? onEditQuestion;
@@ -32,6 +33,7 @@ class SamanMessageList extends StatelessWidget {
     required this.messages,
     required this.scrollController,
     this.isLoading = false,
+    this.isStreaming = false,
     this.errorMessage,
     this.onRetry,
     this.onEditQuestion,
@@ -47,7 +49,7 @@ class SamanMessageList extends StatelessWidget {
   Widget build(BuildContext context) {
     final foodCount = foodAnalysisState != null ? 2 : 0;
     final hasError = errorMessage != null && errorMessage!.isNotEmpty;
-    final extraCount = (isLoading || hasError) ? 1 : 0;
+    final extraCount = ((isLoading && !isStreaming) || hasError) ? 1 : 0;
     final nudgeCount = activeNudge != null ? 1 : 0;
     final totalCount = foodCount + messages.length + extraCount + nudgeCount;
 
@@ -124,7 +126,10 @@ class SamanMessageList extends StatelessWidget {
                 onEditQuestion: onEditQuestion,
               );
             }
-            return const SamanGeneratingIndicator();
+            if (isLoading && !isStreaming) {
+              return const SamanGeneratingIndicator();
+            }
+            return const SizedBox.shrink();
           },
         ),
       ),

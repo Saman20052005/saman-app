@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import '../../../../screens/home/tokens/saman_home_tokens.dart';
 import '../../domain/models/journal_article.dart';
+import '../../domain/models/journal_search_result.dart';
+import '../screens/journal_search_screen.dart';
 import 'journal_preview_sheet.dart';
 
 /// 2-column knowledge library cards (Exercises, Foods) in R01.
@@ -17,6 +19,7 @@ class JournalLibraryEntryCards extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (entries.isEmpty) return const SizedBox.shrink();
+    final tokens = SamanHomeTokens.of(context);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -24,12 +27,12 @@ class JournalLibraryEntryCards extends StatelessWidget {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            const Text(
+            Text(
               'Thư viện',
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w700,
-                color: SamanHomeTokens.textWhite,
+                color: tokens.textWhite,
               ),
             ),
             Material(
@@ -48,14 +51,14 @@ class JournalLibraryEntryCards extends StatelessWidget {
                       );
                     },
                 borderRadius: BorderRadius.circular(4),
-                child: const Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
                   child: Text(
                     'Xem tất cả',
                     style: TextStyle(
                       fontSize: 12.5,
                       fontWeight: FontWeight.w600,
-                      color: SamanHomeTokens.greenAccent,
+                      color: tokens.greenAccent,
                     ),
                   ),
                 ),
@@ -89,31 +92,33 @@ class _LibraryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = SamanHomeTokens.of(context);
     return Material(
       color: Colors.transparent,
       child: InkWell(
         onTap: () {
-          JournalPreviewSheet.show(
-            context,
-            title: entry.title,
-            categoryLabel: 'Thư viện',
-            description: entry.routeDescription ??
-                'Dữ liệu chuẩn hóa với ${entry.itemCountLabel}.',
-            metricLabel: entry.itemCountLabel,
-            imageAsset: entry.coverImageAsset,
-            icon: entry.icon,
-            notice:
-                'Màn duyệt chi tiết của Thư viện đang được xây dựng theo lộ trình phát triển.',
+          final targetCategory = switch (entry.id) {
+            'library_exercises' => JournalSearchCategory.exercises,
+            'library_foods' => JournalSearchCategory.foods,
+            _ => JournalSearchCategory.all,
+          };
+          Navigator.of(context).push(
+            MaterialPageRoute<void>(
+              builder: (_) => JournalSearchScreen(
+                initialCategory: targetCategory,
+                initialQuery: '',
+              ),
+            ),
           );
         },
         borderRadius: BorderRadius.circular(SamanHomeTokens.radiusLg),
         child: Container(
           height: 165,
           decoration: BoxDecoration(
-            color: SamanHomeTokens.cardSurface,
+            color: tokens.cardSurface,
             borderRadius: BorderRadius.circular(SamanHomeTokens.radiusLg),
             border: Border.all(
-              color: SamanHomeTokens.borderSubtle,
+              color: tokens.borderSubtle,
               width: 1,
             ),
           ),
@@ -125,18 +130,18 @@ class _LibraryCard extends StatelessWidget {
                 entry.coverImageAsset,
                 fit: BoxFit.cover,
                 errorBuilder: (_, __, ___) => Container(
-                  color: SamanHomeTokens.cardSurfaceElevated,
+                  color: tokens.cardSurfaceElevated,
                   child: Center(
                     child: Icon(
                       entry.icon,
                       size: 32,
-                      color: SamanHomeTokens.greenAccent,
+                      color: tokens.greenAccent,
                     ),
                   ),
                 ),
               ),
-              // Dark gradient
-              Positioned.fill(
+              // Dark scrim gradient kept in both light & dark mode for legible text over cover photo
+              const Positioned.fill(
                 child: DecoratedBox(
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
@@ -144,10 +149,10 @@ class _LibraryCard extends StatelessWidget {
                       end: Alignment.bottomCenter,
                       colors: [
                         Colors.transparent,
-                        SamanHomeTokens.canvas.withOpacity(0.4),
-                        SamanHomeTokens.canvas.withOpacity(0.95),
+                        Color(0x660C0D0E),
+                        Color(0xF20C0D0E),
                       ],
-                      stops: const [0.2, 0.65, 1.0],
+                      stops: [0.2, 0.65, 1.0],
                     ),
                   ),
                 ),
@@ -164,13 +169,13 @@ class _LibraryCard extends StatelessWidget {
                       width: 28,
                       height: 28,
                       decoration: BoxDecoration(
-                        color: SamanHomeTokens.cardSurfaceElevated.withOpacity(0.85),
+                        color: const Color(0xFF1B2127).withOpacity(0.85),
                         borderRadius: BorderRadius.circular(6),
                       ),
                       child: Icon(
                         entry.icon,
                         size: 16,
-                        color: SamanHomeTokens.greenAccent,
+                        color: const Color(0xFF5BBFA0),
                       ),
                     ),
                     const SizedBox(height: 6),
@@ -179,7 +184,7 @@ class _LibraryCard extends StatelessWidget {
                       style: const TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w700,
-                        color: SamanHomeTokens.textWhite,
+                        color: Color(0xFFF9FAFB),
                         height: 1.25,
                       ),
                       maxLines: 2,
@@ -189,7 +194,7 @@ class _LibraryCard extends StatelessWidget {
                       entry.itemCountLabel,
                       style: const TextStyle(
                         fontSize: 11.5,
-                        color: SamanHomeTokens.textSecondary,
+                        color: Color(0xFFCBD5E1),
                         fontWeight: FontWeight.w400,
                       ),
                     ),

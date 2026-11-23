@@ -17,12 +17,13 @@ class SessionDetailScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final t = SamanWorkoutTokens.of(context);
     final sessionAsync = ref.watch(sessionDetailProvider(sessionId));
 
     return Scaffold(
-      backgroundColor: SamanWorkoutTokens.canvas,
+      backgroundColor: t.canvas,
       appBar: AppBar(
-        backgroundColor: SamanWorkoutTokens.canvas,
+        backgroundColor: t.canvas,
         elevation: 0,
         surfaceTintColor: Colors.transparent,
         leading: Navigator.canPop(context)
@@ -36,21 +37,21 @@ class SessionDetailScreen extends ConsumerWidget {
                       width: 40,
                       height: 40,
                       decoration: BoxDecoration(
-                        color: SamanWorkoutTokens.cardSurface,
+                        color: t.cardSurface,
                         borderRadius: BorderRadius.circular(SamanWorkoutTokens.radiusMd),
-                        border: Border.all(color: SamanWorkoutTokens.border),
+                        border: Border.all(color: t.border),
                       ),
-                      child: const Icon(
+                      child: Icon(
                         Icons.arrow_back,
                         size: 20,
-                        color: SamanWorkoutTokens.textSecondary,
+                        color: t.textSecondary,
                       ),
                     ),
                   ),
                 ),
               )
             : null,
-        title: const Text(
+        title: Text(
           'Session Summary',
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
@@ -58,7 +59,7 @@ class SessionDetailScreen extends ConsumerWidget {
             fontFamily: 'Space Grotesk',
             fontSize: 20,
             fontWeight: FontWeight.w600,
-            color: SamanWorkoutTokens.textPrimary,
+            color: t.textPrimary,
             letterSpacing: -0.5,
           ),
         ),
@@ -109,28 +110,28 @@ class SessionDetailScreen extends ConsumerWidget {
                 return Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Hero Image Card
+                    // Hero Image Card (dark scrim preserved across Light/Dark)
                     Container(
                       margin: const EdgeInsets.only(bottom: 16),
                       height: 180,
                       decoration: BoxDecoration(
-                        color: SamanWorkoutTokens.surfaceElevated,
+                        color: t.surfaceElevated,
                         borderRadius: BorderRadius.circular(SamanWorkoutTokens.radiusLg),
-                        border: Border.all(color: SamanWorkoutTokens.border),
+                        border: Border.all(color: t.border),
                       ),
                       clipBehavior: Clip.antiAlias,
                       child: Stack(
                         fit: StackFit.expand,
                         children: [
-                          _buildHeroImage(heroImagePath),
+                          _buildHeroImage(heroImagePath, t),
                           Container(
                             decoration: BoxDecoration(
                               gradient: LinearGradient(
                                 begin: Alignment.bottomCenter,
                                 end: Alignment.topCenter,
                                 colors: [
-                                  SamanWorkoutTokens.cardSurface,
-                                  SamanWorkoutTokens.cardSurface.withOpacity(0.6),
+                                  const Color(0xFF16171B),
+                                  const Color(0xFF16171B).withOpacity(0.6),
                                   Colors.transparent,
                                 ],
                               ),
@@ -151,7 +152,7 @@ class SessionDetailScreen extends ConsumerWidget {
                                   constraints: const BoxConstraints(maxWidth: 180),
                                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                                   decoration: BoxDecoration(
-                                    color: SamanWorkoutTokens.canvas.withOpacity(0.75),
+                                    color: const Color(0xFF0C0D0E).withOpacity(0.75),
                                     borderRadius: BorderRadius.circular(SamanWorkoutTokens.radiusSm),
                                     border: Border.all(color: SamanWorkoutTokens.border),
                                   ),
@@ -201,7 +202,7 @@ class SessionDetailScreen extends ConsumerWidget {
                               ],
                             ),
                           ),
-                          // Bottom Title
+                          // Bottom Title (light text preserved over dark scrim)
                           Positioned(
                             bottom: 12,
                             left: 16,
@@ -226,89 +227,89 @@ class SessionDetailScreen extends ConsumerWidget {
                       margin: const EdgeInsets.only(bottom: 16),
                       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                       decoration: BoxDecoration(
-                        color: SamanWorkoutTokens.cardSurface,
+                        color: t.cardSurface,
                         borderRadius: BorderRadius.circular(SamanWorkoutTokens.radiusLg),
-                        border: Border.all(color: SamanWorkoutTokens.border),
+                        border: Border.all(color: t.border),
                       ),
                       child: Row(
                         children: [
                           Expanded(
                             child: Column(
                               children: [
-                                const Icon(Icons.fitness_center, size: 18, color: SamanWorkoutTokens.textSecondary),
+                                Icon(Icons.fitness_center, size: 18, color: t.textSecondary),
                                 const SizedBox(height: 4),
                                 Text(
                                   '${metrics.completedExercisesCount}',
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                     fontFamily: 'Space Grotesk',
                                     fontSize: 16,
                                     fontWeight: FontWeight.w700,
-                                    color: SamanWorkoutTokens.textPrimary,
+                                    color: t.textPrimary,
                                   ),
                                 ),
                                 const SizedBox(height: 2),
-                                const Text(
+                                Text(
                                   'EXERCISES',
                                   style: TextStyle(
                                     fontFamily: 'monospace',
                                     fontSize: 9,
-                                    color: SamanWorkoutTokens.textSecondary,
+                                    color: t.textSecondary,
                                     letterSpacing: 0.8,
                                   ),
                                 ),
                               ],
                             ),
                           ),
-                          Container(width: 1, height: 36, color: SamanWorkoutTokens.border),
+                          Container(width: 1, height: 36, color: t.border),
                           Expanded(
                             child: Column(
                               children: [
-                                const Icon(Icons.timer_outlined, size: 18, color: SamanWorkoutTokens.textSecondary),
+                                Icon(Icons.timer_outlined, size: 18, color: t.textSecondary),
                                 const SizedBox(height: 4),
                                 Text(
                                   durationText,
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                     fontFamily: 'Space Grotesk',
                                     fontSize: 16,
                                     fontWeight: FontWeight.w700,
-                                    color: SamanWorkoutTokens.textPrimary,
+                                    color: t.textPrimary,
                                   ),
                                 ),
                                 const SizedBox(height: 2),
-                                const Text(
+                                Text(
                                   'DURATION',
                                   style: TextStyle(
                                     fontFamily: 'monospace',
                                     fontSize: 9,
-                                    color: SamanWorkoutTokens.textSecondary,
+                                    color: t.textSecondary,
                                     letterSpacing: 0.8,
                                   ),
                                 ),
                               ],
                             ),
                           ),
-                          Container(width: 1, height: 36, color: SamanWorkoutTokens.border),
+                          Container(width: 1, height: 36, color: t.border),
                           Expanded(
                             child: Column(
                               children: [
-                                const Icon(Icons.scale, size: 18, color: SamanWorkoutTokens.textSecondary),
+                                Icon(Icons.scale, size: 18, color: t.textSecondary),
                                 const SizedBox(height: 4),
                                 Text(
                                   metrics.totalVolumeKg == 0 ? '—' : '${_formatVolume(metrics.totalVolumeKg)} kg',
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                     fontFamily: 'Space Grotesk',
                                     fontSize: 16,
                                     fontWeight: FontWeight.w700,
-                                    color: SamanWorkoutTokens.textPrimary,
+                                    color: t.textPrimary,
                                   ),
                                 ),
                                 const SizedBox(height: 2),
-                                const Text(
+                                Text(
                                   'VOLUME',
                                   style: TextStyle(
                                     fontFamily: 'monospace',
                                     fontSize: 9,
-                                    color: SamanWorkoutTokens.textSecondary,
+                                    color: t.textSecondary,
                                     letterSpacing: 0.8,
                                   ),
                                 ),
@@ -328,24 +329,24 @@ class SessionDetailScreen extends ConsumerWidget {
                         '${metrics.totalReps} total reps / ${metrics.totalTimedSeconds} timed seconds\n'
                         '${_formatVolume(metrics.totalVolumeKg)} kg external load volume / '
                         '${metrics.durationSeconds == null ? "Unknown duration" : "${metrics.durationSeconds} s session duration"}',
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 11,
-                          color: SamanWorkoutTokens.textMuted,
+                          color: t.textMuted,
                           height: 1.4,
                         ),
                       ),
                     ),
 
                     // Section Heading
-                    const Padding(
-                      padding: EdgeInsets.only(bottom: 10, left: 2),
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 10, left: 2),
                       child: Text(
                         'EXERCISES PERFORMED',
                         style: TextStyle(
                           fontFamily: 'monospace',
                           fontSize: 11,
                           fontWeight: FontWeight.w600,
-                          color: SamanWorkoutTokens.textSecondary,
+                          color: t.textSecondary,
                           letterSpacing: 0.8,
                         ),
                       ),
@@ -366,19 +367,19 @@ class SessionDetailScreen extends ConsumerWidget {
                 margin: const EdgeInsets.only(bottom: 16),
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: SamanWorkoutTokens.cardSurface,
+                  color: t.cardSurface,
                   borderRadius: BorderRadius.circular(SamanWorkoutTokens.radiusLg),
-                  border: Border.all(color: SamanWorkoutTokens.border),
+                  border: Border.all(color: t.border),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     DefaultTextStyle.merge(
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontFamily: 'Space Grotesk',
                         fontSize: 18,
                         fontWeight: FontWeight.w700,
-                        color: SamanWorkoutTokens.textPrimary,
+                        color: t.textPrimary,
                       ),
                       child: _SessionExerciseName(
                         key: ValueKey(exerciseId),
@@ -391,12 +392,12 @@ class SessionDetailScreen extends ConsumerWidget {
                       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                       margin: const EdgeInsets.only(bottom: 6),
                       decoration: BoxDecoration(
-                        color: SamanWorkoutTokens.surfaceElevated,
+                        color: t.surfaceElevated,
                         borderRadius: BorderRadius.circular(SamanWorkoutTokens.radiusSm),
                       ),
                       child: Row(
                         children: [
-                          const Expanded(
+                          Expanded(
                             flex: 2,
                             child: Text(
                               'Set',
@@ -406,7 +407,7 @@ class SessionDetailScreen extends ConsumerWidget {
                                 fontFamily: 'monospace',
                                 fontSize: 11,
                                 fontWeight: FontWeight.w600,
-                                color: SamanWorkoutTokens.textSecondary,
+                                color: t.textSecondary,
                               ),
                             ),
                           ),
@@ -421,17 +422,17 @@ class SessionDetailScreen extends ConsumerWidget {
                                       : 'Reps / Seconds',
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontFamily: 'monospace',
                                 fontSize: 11,
                                 fontWeight: FontWeight.w600,
-                                color: SamanWorkoutTokens.textSecondary,
+                                color: t.textSecondary,
                               ),
                             ),
                           ),
                           if (logs.any((log) => log.effectiveUnit == SetUnit.reps)) ...[
                             const SizedBox(width: 8),
-                            const Expanded(
+                            Expanded(
                               flex: 3,
                               child: Text(
                                 'Weight (kg)',
@@ -441,7 +442,7 @@ class SessionDetailScreen extends ConsumerWidget {
                                   fontFamily: 'monospace',
                                   fontSize: 11,
                                   fontWeight: FontWeight.w600,
-                                  color: SamanWorkoutTokens.textSecondary,
+                                  color: t.textSecondary,
                                 ),
                               ),
                             ),
@@ -462,22 +463,22 @@ class SessionDetailScreen extends ConsumerWidget {
                       alignment: Alignment.centerRight,
                       child: Text(
                         'Total volume: ${_formatVolume(group.totalVolumeKg)} kg',
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontFamily: 'Space Grotesk',
                           fontWeight: FontWeight.w600,
                           fontSize: 14,
-                          color: SamanWorkoutTokens.textPrimary,
+                          color: t.textPrimary,
                         ),
                       ),
                     ),
                     if (!group.hasExternalLoad)
-                      const Padding(
-                        padding: EdgeInsets.only(top: 4),
+                      Padding(
+                        padding: const EdgeInsets.only(top: 4),
                         child: Text(
                           'External load only; timed sets and bodyweight add no kg volume.',
                           style: TextStyle(
                             fontSize: 11,
-                            color: SamanWorkoutTokens.textMuted,
+                            color: t.textMuted,
                           ),
                         ),
                       ),
@@ -487,29 +488,29 @@ class SessionDetailScreen extends ConsumerWidget {
             },
           );
         },
-        loading: () => const Center(
-          child: CircularProgressIndicator(color: SamanWorkoutTokens.emeraldAccent),
+        loading: () => Center(
+          child: CircularProgressIndicator(color: t.emeraldAccent),
         ),
         error: (err, stack) => Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Icon(Icons.error_outline, size: 40, color: SamanWorkoutTokens.crimsonAccent),
+              Icon(Icons.error_outline, size: 40, color: t.crimsonAccent),
               const SizedBox(height: 12),
-              const Text(
+              Text(
                 'Không tải được buổi tập',
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w600,
-                  color: SamanWorkoutTokens.textPrimary,
+                  color: t.textPrimary,
                 ),
               ),
               const SizedBox(height: 16),
               ElevatedButton(
                 onPressed: () => ref.invalidate(sessionDetailProvider(sessionId)),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: SamanWorkoutTokens.buttonPrimary,
-                  foregroundColor: SamanWorkoutTokens.buttonPrimaryText,
+                  backgroundColor: t.buttonPrimary,
+                  foregroundColor: t.buttonPrimaryText,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(SamanWorkoutTokens.radiusMd),
                   ),
@@ -523,32 +524,32 @@ class SessionDetailScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildHeroImage(String? imagePath) {
+  Widget _buildHeroImage(String? imagePath, SamanWorkoutPalette t) {
     if (imagePath != null && imagePath.isNotEmpty) {
       if (imagePath.startsWith('http')) {
         return CachedNetworkImage(
           imageUrl: imagePath,
           fit: BoxFit.cover,
-          errorWidget: (_, __, ___) => _fallbackHero(),
+          errorWidget: (_, __, ___) => _fallbackHero(t),
         );
       }
       return Image.asset(
         imagePath,
         fit: BoxFit.cover,
-        errorBuilder: (_, __, ___) => _fallbackHero(),
+        errorBuilder: (_, __, ___) => _fallbackHero(t),
       );
     }
-    return _fallbackHero();
+    return _fallbackHero(t);
   }
 
-  Widget _fallbackHero() {
+  Widget _fallbackHero(SamanWorkoutPalette t) {
     return Image.asset(
       'assets/images/home_workout_upper.jpg',
       fit: BoxFit.cover,
       errorBuilder: (_, __, ___) => Container(
-        color: SamanWorkoutTokens.surfaceElevated,
-        child: const Center(
-          child: Icon(Icons.fitness_center, size: 48, color: SamanWorkoutTokens.border),
+        color: t.surfaceElevated,
+        child: Center(
+          child: Icon(Icons.fitness_center, size: 48, color: t.border),
         ),
       ),
     );
@@ -595,15 +596,16 @@ class _SessionExerciseNameState extends ConsumerState<_SessionExerciseName> {
 
   @override
   Widget build(BuildContext context) {
+    final t = SamanWorkoutTokens.of(context);
     return FutureBuilder<Exercise>(
       future: _exercise,
       builder: (context, snapshot) {
         if (snapshot.connectionState != ConnectionState.done) {
-          return const Text(
+          return Text(
             'Đang tải tên bài tập…',
             style: TextStyle(
               fontSize: 14,
-              color: SamanWorkoutTokens.textSecondary,
+              color: t.textSecondary,
             ),
           );
         }
@@ -612,22 +614,22 @@ class _SessionExerciseNameState extends ConsumerState<_SessionExerciseName> {
           final notFound = error is StateError ||
               (error is DioException && error.response?.statusCode == 404);
           if (notFound) {
-            return const Text(
+            return Text(
               'Bài tập không còn trong thư viện',
               style: TextStyle(
                 fontSize: 14,
-                color: SamanWorkoutTokens.textSecondary,
+                color: t.textSecondary,
               ),
             );
           }
           return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
+              Text(
                 'Không tải được tên bài tập',
                 style: TextStyle(
                   fontSize: 14,
-                  color: SamanWorkoutTokens.crimsonAccent,
+                  color: t.crimsonAccent,
                 ),
               ),
               const SizedBox(height: 4),
@@ -639,7 +641,7 @@ class _SessionExerciseNameState extends ConsumerState<_SessionExerciseName> {
                   });
                 },
                 style: TextButton.styleFrom(
-                  foregroundColor: SamanWorkoutTokens.emeraldAccent,
+                  foregroundColor: t.emeraldAccent,
                   padding: EdgeInsets.zero,
                   minimumSize: const Size(50, 30),
                   tapTargetSize: MaterialTapTargetSize.shrinkWrap,
@@ -663,12 +665,12 @@ class _SessionExerciseNameState extends ConsumerState<_SessionExerciseName> {
               height: 36,
               margin: const EdgeInsets.only(right: 12),
               decoration: BoxDecoration(
-                color: SamanWorkoutTokens.surfaceElevated,
+                color: t.surfaceElevated,
                 borderRadius: BorderRadius.circular(SamanWorkoutTokens.radiusSm),
-                border: Border.all(color: SamanWorkoutTokens.border),
+                border: Border.all(color: t.border),
               ),
               clipBehavior: Clip.antiAlias,
-              child: _buildThumb(exercise.thumbnailUrl),
+              child: _buildThumb(exercise.thumbnailUrl, t),
             ),
             Expanded(
               child: Column(
@@ -676,11 +678,11 @@ class _SessionExerciseNameState extends ConsumerState<_SessionExerciseName> {
                 children: [
                   Text(
                     name.isEmpty ? 'Bài tập không có tên' : name,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontFamily: 'Space Grotesk',
                       fontSize: 16,
                       fontWeight: FontWeight.w700,
-                      color: SamanWorkoutTokens.textPrimary,
+                      color: t.textPrimary,
                     ),
                   ),
                   const SizedBox(height: 2),
@@ -688,10 +690,10 @@ class _SessionExerciseNameState extends ConsumerState<_SessionExerciseName> {
                     muscles.isEmpty
                         ? 'Muscle information unavailable'
                         : 'Muscles: $muscles',
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w400,
-                      color: SamanWorkoutTokens.textSecondary,
+                      color: t.textSecondary,
                     ),
                   ),
                 ],
@@ -703,21 +705,21 @@ class _SessionExerciseNameState extends ConsumerState<_SessionExerciseName> {
     );
   }
 
-  Widget _buildThumb(String url) {
+  Widget _buildThumb(String url, SamanWorkoutPalette t) {
     if (url.startsWith('assets/')) {
       return Image.asset(
         url,
         fit: BoxFit.cover,
-        errorBuilder: (_, __, ___) => const Center(
-          child: Icon(Icons.fitness_center, size: 18, color: SamanWorkoutTokens.textSecondary),
+        errorBuilder: (_, __, ___) => Center(
+          child: Icon(Icons.fitness_center, size: 18, color: t.textSecondary),
         ),
       );
     }
     return CachedNetworkImage(
       imageUrl: url,
       fit: BoxFit.cover,
-      errorWidget: (_, __, ___) => const Center(
-        child: Icon(Icons.fitness_center, size: 18, color: SamanWorkoutTokens.textSecondary),
+      errorWidget: (_, __, ___) => Center(
+        child: Icon(Icons.fitness_center, size: 18, color: t.textSecondary),
       ),
     );
   }

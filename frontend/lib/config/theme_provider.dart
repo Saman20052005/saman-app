@@ -22,25 +22,52 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 // ── Notifier (không thay đổi gì) ─────────────────────────────────────────────
 class ThemeNotifier extends StateNotifier<ThemeMode> {
-  ThemeNotifier() : super(ThemeMode.light) {
+  ThemeNotifier() : super(ThemeMode.dark) {
     _loadTheme();
   }
 
+  static const _themeModeKey = 'theme_mode';
+  static const _isDarkModeKey = 'is_dark_mode';
+
   Future<void> _loadTheme() async {
     final prefs = await SharedPreferences.getInstance();
-    final isDark = prefs.getBool('is_dark_mode') ?? false; // key giữ nguyên
+    final savedMode = prefs.getString(_themeModeKey);
+    if (savedMode == 'light') {
+      state = ThemeMode.light;
+      return;
+    }
+    if (savedMode == 'dark') {
+      state = ThemeMode.dark;
+      return;
+    }
+    if (savedMode == 'system') {
+      state = ThemeMode.system;
+      return;
+    }
+    final isDark = prefs.getBool(_isDarkModeKey) ?? true; // key giữ nguyên
     state = isDark ? ThemeMode.dark : ThemeMode.light;
   }
 
-  Future<void> toggleTheme() async {
+  Future<void> setThemeMode(ThemeMode mode) async {
+    state = mode;
     final prefs = await SharedPreferences.getInstance();
-    if (state == ThemeMode.light) {
-      state = ThemeMode.dark;
-      await prefs.setBool('is_dark_mode', true);
-    } else {
-      state = ThemeMode.light;
-      await prefs.setBool('is_dark_mode', false);
+    final modeValue = switch (mode) {
+      ThemeMode.light => 'light',
+      ThemeMode.dark => 'dark',
+      ThemeMode.system => 'system',
+    };
+    await prefs.setString(_themeModeKey, modeValue);
+    if (mode == ThemeMode.light) {
+      await prefs.setBool(_isDarkModeKey, false);
+    } else if (mode == ThemeMode.dark) {
+      await prefs.setBool(_isDarkModeKey, true);
     }
+  }
+
+  Future<void> toggleTheme() async {
+    final nextMode =
+        state == ThemeMode.light ? ThemeMode.dark : ThemeMode.light;
+    await setThemeMode(nextMode);
   }
 }
 

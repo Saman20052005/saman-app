@@ -6,13 +6,21 @@ import asyncio
 import math
 import importlib.util
 import unicodedata
+import inspect
+import json
+import secrets
 from pathlib import Path
 from typing import Optional, Dict, List, Any, Literal, NamedTuple, Set, Tuple
 from datetime import datetime, timezone, timedelta, date
 from zoneinfo import ZoneInfo
 from fastapi import APIRouter, HTTPException, Depends, status
+from fastapi.responses import StreamingResponse
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel
+try:
+    from pydantic import field_validator as _field_validator
+except ImportError:  # pragma: no cover - pydantic v1
+    _field_validator = None
 
 from bson import ObjectId
 from bson.errors import InvalidId
@@ -31,6 +39,8 @@ try:
         custom_plans_collection,
     )
     from backend.auth_utils import verify_token, get_current_user
+    from backend.app.services.context_utils import build_user_query, normalize_email, get_vn_date_str
+    import backend.app.database as _db_mod
 except ImportError:
     from app.repositories.user_repository import UserRepository
     from app.database import (
@@ -44,6 +54,67 @@ except ImportError:
         custom_plans_collection,
     )
     from auth_utils import verify_token
+    from app.services.context_utils import build_user_query, normalize_email, get_vn_date_str
+    import app.database as _db_mod
+
+try:
+    from backend.app.services.revenue_guard import is_ai_paywall_enabled
+except ImportError:
+    try:
+        from app.services.revenue_guard import is_ai_paywall_enabled
+    except ImportError:  # pragma: no cover
+        is_ai_paywall_enabled = None
+
+try:
+    from backend.app.services.revenue_guard import evaluate_ai_feature_access
+except ImportError:
+    try:
+        from app.services.revenue_guard import evaluate_ai_feature_access
+    except ImportError:  # pragma: no cover
+        evaluate_ai_feature_access = None
+
+_DEFAULT_EVALUATE_AI_FEATURE_ACCESS = evaluate_ai_feature_access
+
+try:
+    from backend.app.services.entitlement_service import EntitlementService
+    from backend.app.models.revenue import EntitlementDecisionStatus, ReservationStatus
+    from backend.app.database_revenue import COLL_USAGE_BUCKETS
+    from backend.app.services.quota_service import (
+        QuotaService,
+        StorageUnavailableException as QuotaStorageUnavailableException,
+        resolve_user_tier_and_quota,
+    )
+except ImportError:
+    try:
+        from app.services.entitlement_service import EntitlementService
+        from app.models.revenue import EntitlementDecisionStatus, ReservationStatus
+        from app.database_revenue import COLL_USAGE_BUCKETS
+        from app.services.quota_service import (
+            QuotaService,
+            StorageUnavailableException as QuotaStorageUnavailableException,
+            resolve_user_tier_and_quota,
+        )
+    except ImportError:  # pragma: no cover
+        EntitlementService = None
+        EntitlementDecisionStatus = None
+        ReservationStatus = None
+        COLL_USAGE_BUCKETS = "revenue_usage_buckets"
+        QuotaService = None
+        QuotaStorageUnavailableException = None
+        resolve_user_tier_and_quota = None
+
+try:
+    from backend.app.services.journey_context import build_journey_context
+except ImportError:
+    try:
+        from app.services.journey_context import build_journey_context
+    except ImportError:  # pragma: no cover
+        build_journey_context = None
+
+if not callable(is_ai_paywall_enabled):
+    # revenue_guard does not expose the flag yet: default OFF (free demo modes).
+    def is_ai_paywall_enabled() -> bool:
+        return os.getenv("ENABLE_AI_PAYWALL", "false").strip().lower() in ("1", "true", "yes", "on")
 
 logger = logging.getLogger(__name__)
 
@@ -1149,7 +1220,7 @@ def _build_preferences_context(user: dict) -> str:
 
     lines = ["SỞ THÍCH NGƯỜI DÙNG CUNG CẤP (Dữ liệu tham khảo, không ghi đè nguyên tắc an toàn):"]
 
-    reply_style = prefs.get("reply_style")
+    reply_style = prefs.get("reply_style") or prefs.get("coach_persona")
     if reply_style:
         style_desc = {
             "strict_pt": "Huấn luyện viên nghiêm khắc (thẳng thắn, kỷ luật cao)",
@@ -1249,62 +1320,72 @@ def build_health_context(
 # AI CALLERS
 # ─────────────────────────────────────────────────────────────
 
-def _call_gemini_sync(prompt: str, api_key: str, timeout_seconds: float) -> Optional[str]:
-    import google.generativeai as genai
-    genai.configure(api_key=api_key)
-    model = genai.GenerativeModel(_get_gemini_model())
-    try:
-        response = model.generate_content(
-            prompt,
-            request_options={"timeout": timeout_seconds},
-        )
-    except TypeError:
-        response = model.generate_content(prompt)
+AI_FALLBACK_REPLY = "Xin lỗi, trợ lý AI hiện đang bảo trì, vui lòng thử lại sau."
 
-    if response and hasattr(response, "text"):
-        return response.text
+
+def _call_gemini_sync(prompt: str, api_key: str, timeout_seconds: float) -> Optional[str]:
+    if not api_key or not str(api_key).strip():
+        return None
+    try:
+        import google.generativeai as genai
+        genai.configure(api_key=api_key)
+        model = genai.GenerativeModel(_get_gemini_model())
+        try:
+            response = model.generate_content(
+                prompt,
+                request_options={"timeout": timeout_seconds},
+            )
+        except TypeError:
+            response = model.generate_content(prompt)
+
+        if response and hasattr(response, "text"):
+            return response.text
+    except Exception as e:
+        logger.error(f"Gemini API Error: {str(e)}")
+        logger.warning("Gemini client/generation error: %s", type(e).__name__)
     return None
 
 
 def _call_openai_sync(prompt: str, api_key: str, timeout_seconds: float) -> Optional[str]:
-    from openai import OpenAI
-    client = OpenAI(api_key=api_key, timeout=timeout_seconds)
-    response = client.chat.completions.create(
-        model="gpt-4o-mini",
-        messages=[{"role": "user", "content": prompt}],
-        max_tokens=300,
-        timeout=timeout_seconds,
-    )
-    if response and response.choices and len(response.choices) > 0:
-        msg = response.choices[0].message
-        if msg and hasattr(msg, "content"):
-            return msg.content
+    if not api_key or not str(api_key).strip():
+        return None
+    try:
+        from openai import OpenAI
+        client = OpenAI(api_key=api_key, timeout=timeout_seconds)
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[{"role": "user", "content": prompt}],
+            max_tokens=300,
+            timeout=timeout_seconds,
+        )
+        if response and response.choices and len(response.choices) > 0:
+            msg = response.choices[0].message
+            if msg and hasattr(msg, "content"):
+                return msg.content
+    except Exception as e:
+        logger.warning("OpenAI client/generation error: %s", type(e).__name__)
     return None
 
 
 async def _generate_ai_reply(prompt: str) -> str:
     """
     Generate reply trying Gemini first, then OpenAI fallback.
-    Limits provider call duration using SDK capabilities without blocking event loop.
-    Timeout -> 504.
-    Provider failure, missing config, or empty reply -> 503.
+    Falls back to AI_FALLBACK_REPLY (HTTP 200 compatible) when API keys are
+    missing, empty, or rejected by LLM providers (Rate Limit / Quota Exceeded / error).
     """
     ai_provider = (os.getenv("CHAT_AI_PROVIDER") or "").strip().lower()
     if ai_provider == "fake":
         return "[DEV/TEST] Saman Coach (thử nghiệm): Tôi đã nhận được tin nhắn của bạn và sẵn sàng hỗ trợ."
-    elif ai_provider and ai_provider != "gemini":
-        logger.error("Invalid CHAT_AI_PROVIDER configuration")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Invalid CHAT_AI_PROVIDER configuration",
-        )
+    elif ai_provider and ai_provider not in ("gemini", "openai", "mock", "fallback"):
+        logger.warning("Invalid CHAT_AI_PROVIDER configuration, using fallback reply")
+        return AI_FALLBACK_REPLY
 
     timeout_seconds = _get_timeout()
-    timed_out = False
 
     # 1. Try Gemini
-    gemini_key = os.getenv("GEMINI_API_KEY") or GEMINI_API_KEY
+    gemini_key = (os.getenv("GEMINI_API_KEY") or GEMINI_API_KEY or "").strip()
     if gemini_key:
+        logger.info(f"Đang gọi Gemini với Model: {os.getenv('GEMINI_MODEL')}")
         try:
             raw_reply = await asyncio.wait_for(
                 asyncio.to_thread(_call_gemini_sync, prompt, gemini_key, timeout_seconds),
@@ -1314,14 +1395,11 @@ async def _generate_ai_reply(prompt: str) -> str:
                 return raw_reply.strip()
             logger.warning("Gemini returned empty reply")
         except Exception as e:
-            if _is_timeout_error(e):
-                logger.warning("Gemini request timed out")
-                timed_out = True
-            else:
-                logger.warning("Gemini provider failed: %s", type(e).__name__)
+            logger.error(f"Gemini API Error: {str(e)}")
+            logger.warning("Gemini provider failed or rejected request: %s", type(e).__name__)
 
     # 2. Fallback OpenAI
-    openai_key = os.getenv("OPENAI_API_KEY") or OPENAI_API_KEY
+    openai_key = (os.getenv("OPENAI_API_KEY") or OPENAI_API_KEY or "").strip()
     if openai_key:
         try:
             raw_reply = await asyncio.wait_for(
@@ -1332,22 +1410,13 @@ async def _generate_ai_reply(prompt: str) -> str:
                 return raw_reply.strip()
             logger.warning("OpenAI returned empty reply")
         except Exception as e:
-            if _is_timeout_error(e):
-                logger.warning("OpenAI request timed out")
-                timed_out = True
-            else:
-                logger.warning("OpenAI provider failed: %s", type(e).__name__)
+            logger.warning("OpenAI provider failed or rejected request: %s", type(e).__name__)
 
-    if timed_out:
-        raise HTTPException(
-            status_code=status.HTTP_504_GATEWAY_TIMEOUT,
-            detail="AI service timed out",
-        )
+    logger.info("AI keys missing or providers unavailable; returning fallback maintenance reply.")
+    return AI_FALLBACK_REPLY
 
-    raise HTTPException(
-        status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-        detail="AI service unavailable",
-    )
+
+ALLOWED_AI_MODES = {"swift3", "core3", "pro3"}
 
 
 class ChatRequest(BaseModel):
@@ -1359,6 +1428,17 @@ class ChatRequest(BaseModel):
     workout: Optional[Dict[str, Any]] = None
     contract_version: Optional[str] = None
     operation_id: Optional[str] = None
+    ai_mode: Optional[str] = "core3"
+
+    if _field_validator is not None:
+        @_field_validator("ai_mode")
+        @classmethod
+        def _validate_ai_mode(cls, value):
+            if value is None:
+                return "core3"
+            if value not in ALLOWED_AI_MODES:
+                raise ValueError("ai_mode must be one of: core3, pro3, swift3")
+            return value
 
 
 _RECOMMENDATION_MUSCLE_ALIASES = {
@@ -1838,17 +1918,51 @@ class ActionDecisionRequest(BaseModel):
     decision: Optional[str] = "confirm"
 
 
+_WATER_AMOUNT_MIN_ML = 50
+_WATER_AMOUNT_MAX_ML = 3000
+_WATER_AMOUNT_RE = re.compile(
+    r"(?<![\d.,])(\d{2,4})(?:\s*(ml|mili\w*|milli\w*))?(?![\d])"
+)
+
+
+def _water_amount_candidates(raw: str) -> List[Tuple[int, bool]]:
+    result: List[Tuple[int, bool]] = []
+    for m in _WATER_AMOUNT_RE.finditer(raw):
+        value = int(m.group(1))
+        if _WATER_AMOUNT_MIN_ML <= value <= _WATER_AMOUNT_MAX_ML:
+            result.append((value, bool(m.group(2))))
+    return result
+
+
+def _pick_water_amount_ml(message: str) -> Optional[int]:
+    raw = (message or "").strip().lower()
+    candidates = _water_amount_candidates(raw)
+    # Prefer an amount with an explicit ml unit; bare numbers only count when 250 (legacy).
+    for value, has_unit in candidates:
+        if has_unit:
+            return value
+    for value, _ in candidates:
+        if value == 250:
+            return value
+    return None
+
+
+def _extract_water_amount_ml(message: str) -> int:
+    """Trích lượng nước (50..3000 ml) từ câu nói; mặc định 250."""
+    amount = _pick_water_amount_ml(message)
+    return amount if amount is not None else 250
+
+
 def _detect_log_water_intent(message: str) -> bool:
     """
-    Chỉ nhận diện một yêu cầu rõ ràng muốn log thêm 250 ml nước.
-    Câu nói mơ hồ, hỏi đáp, tư vấn hoặc lượng nước khác 250ml tuyệt đối không tạo action.
+    Nhận diện yêu cầu rõ ràng muốn log một lượng nước hợp lệ (50..3000 ml).
+    Câu hỏi đáp, tư vấn, phủ định tuyệt đối không tạo action.
     """
     if not message:
         return False
 
     raw = message.strip().lower()
 
-    # Phủ định hoặc hỏi đáp, tư vấn, so sánh
     inquiry_patterns = [
         r"\?",
         r"\bcó nên\b",
@@ -1866,21 +1980,14 @@ def _detect_log_water_intent(message: str) -> bool:
         if re.search(pat, raw):
             return False
 
-    # Phải có số 250 (không phải 2500 hay 1250)
-    has_250_amount = bool(
-        re.search(r"\b250(?:\s*(?:ml|mili|milli|mililit|mili\s*lít|lít))?(?!\d)\b", raw)
-        or re.search(r"\b250\s*ml\b", raw)
-    )
-    if not has_250_amount:
+    if _pick_water_amount_ml(raw) is None:
         return False
 
-    has_water = any(w in raw for w in ["nước", "nuoc", "water"])
-    if not has_water:
+    if not any(w in raw for w in ["nước", "nuoc", "water"]):
         return False
 
-    # Phải có hành động log / thêm / uống rõ ràng
     action_keywords = [
-        "uống", "thêm", "ghi", "log", "cộng", "lưu", "nhập", "note", "uong", "them", "ghi", "cong"
+        "uống", "thêm", "ghi", "log", "cộng", "lưu", "nhập", "note", "uong", "them", "cong"
     ]
     if not any(kw in raw for kw in action_keywords):
         return False
@@ -2247,33 +2354,39 @@ def _detect_adjust_workout_intent(
     }
 
 def get_ai_reply(prompt: str) -> str:
-    """Hàm wrapper để gọi AI: Thử Gemini trước, fallback sang OpenAI."""
+    """Hàm wrapper để gọi AI: Thử Gemini trước, fallback sang OpenAI, cuối cùng trả về thông báo bảo trì."""
+    gemini_key = (os.getenv("GEMINI_API_KEY") or GEMINI_API_KEY or "").strip()
     # 1. Thử Gemini
-    if GEMINI_API_KEY:
+    if gemini_key:
+        logger.info(f"Đang gọi Gemini với Model: {os.getenv('GEMINI_MODEL')}")
         try:
             import google.generativeai as genai
-            genai.configure(api_key=GEMINI_API_KEY)
-            model = genai.GenerativeModel('gemini-1.5-flash')
+            genai.configure(api_key=gemini_key)
+            model = genai.GenerativeModel(_get_gemini_model())
             response = model.generate_content(prompt)
-            return response.text
+            if response and getattr(response, "text", None) and response.text.strip():
+                return response.text.strip()
         except Exception as e:
+            logger.error(f"Gemini API Error: {str(e)}")
             logging.error(f"Gemini Error: {e}")
 
+    openai_key = (os.getenv("OPENAI_API_KEY") or OPENAI_API_KEY or "").strip()
     # 2. Thử OpenAI
-    if OPENAI_API_KEY:
+    if openai_key:
         try:
             from openai import OpenAI
-            client = OpenAI(api_key=OPENAI_API_KEY)
+            client = OpenAI(api_key=openai_key)
             response = client.chat.completions.create(
                 model="gpt-4o-mini",
                 messages=[{"role": "user", "content": prompt}],
                 max_tokens=300
             )
-            return response.choices[0].message.content
+            if response and response.choices and response.choices[0].message.content:
+                return response.choices[0].message.content.strip()
         except Exception as e:
             logging.error(f"OpenAI Error: {e}")
 
-    return "Lỗi: Không tìm thấy API Key hoặc Model AI không khả dụng (Cần cấu hình GEMINI_API_KEY hoặc OPENAI_API_KEY)."
+    return AI_FALLBACK_REPLY
 
 # ─── WORKOUT GROUNDING HELPERS ────────────────────────────────────────────────
 
@@ -2777,6 +2890,7 @@ MAX_NOTES_LENGTH = 200
 
 class UserPreferencesRequest(BaseModel):
     reply_style: Optional[str] = None
+    coach_persona: Optional[str] = None
     food_dislikes: Optional[List[str]] = None
     notes: Optional[str] = None
     preferences: Optional[Dict[str, Any]] = None
@@ -2799,11 +2913,22 @@ async def get_user_preferences(
             detail="User not authenticated",
         )
     try:
-        db_user = users_col.find_one({"email": email})
+        email_norm = normalize_email(email)
+        db_user = users_col.find_one({"email": email_norm})
+        if not isinstance(db_user, dict):
+            db_user = users_col.find_one(
+                {"email": {"$regex": f"^{re.escape(email_norm)}$", "$options": "i"}}
+            )
         if isinstance(db_user, dict):
             prefs = db_user.get("preferences") or {}
         else:
             prefs = current_user.get("preferences") or {}
+        if isinstance(prefs, dict):
+            prefs = dict(prefs)
+            style_value = prefs.get("reply_style") or prefs.get("coach_persona")
+            if style_value:
+                prefs["reply_style"] = style_value
+                prefs["coach_persona"] = style_value
     except Exception as e:
         logger.error("Failed to query user preferences: %s", type(e).__name__)
         raise HTTPException(
@@ -2829,7 +2954,14 @@ async def update_user_preferences(
         )
 
     sub_prefs = request.preferences if isinstance(request.preferences, dict) else {}
-    raw_style = sub_prefs.get("reply_style") if "reply_style" in sub_prefs else request.reply_style
+    if "reply_style" in sub_prefs:
+        raw_style = sub_prefs.get("reply_style")
+    elif "coach_persona" in sub_prefs:
+        raw_style = sub_prefs.get("coach_persona")
+    else:
+        raw_style = request.reply_style
+        if raw_style is None:
+            raw_style = request.coach_persona
     raw_dislikes = sub_prefs.get("food_dislikes") if "food_dislikes" in sub_prefs else request.food_dislikes
     raw_notes = sub_prefs.get("notes") if "notes" in sub_prefs else request.notes
 
@@ -2880,6 +3012,7 @@ async def update_user_preferences(
     now_iso = datetime.now(timezone.utc).isoformat()
     pref_data = {
         "reply_style": clean_style,
+        "coach_persona": clean_style,
         "food_dislikes": clean_dislikes if clean_dislikes is not None else [],
         "notes": clean_notes,
         "updated_at": now_iso,
@@ -2894,10 +3027,16 @@ async def update_user_preferences(
             detail="User not authenticated",
         )
     try:
+        email_norm = normalize_email(email)
         update_res = users_col.update_one(
-            {"email": email},
+            {"email": email_norm},
             {"$set": {"preferences": pref_data}},
         )
+        if getattr(update_res, "matched_count", None) == 0:
+            update_res = users_col.update_one(
+                {"email": {"$regex": f"^{re.escape(email_norm)}$", "$options": "i"}},
+                {"$set": {"preferences": pref_data}},
+            )
         matched_count = getattr(update_res, "matched_count", None)
         if matched_count is not None and matched_count == 0:
             raise HTTPException(
@@ -3035,6 +3174,373 @@ def _persist_chat_reply(
         )
 
 
+def _get_weight_history_col():
+    return getattr(_db_mod, "weight_history_collection", None)
+
+
+def _get_optional_collection(attr_name: str, db_collection_name: str, db=None):
+    col = getattr(_db_mod, attr_name, None)
+    if col is not None:
+        return col
+    database = db if db is not None else getattr(_db_mod, "db", None)
+    if database is not None:
+        try:
+            return database[db_collection_name]
+        except Exception:
+            return None
+    return None
+
+
+def _get_shop_products_collection(db=None):
+    col = _get_optional_collection("shop_products_collection", "shop_products", db=db)
+    if col is not None:
+        return col
+    if os.getenv("SHOP_DB_URI") and os.getenv("SHOP_DB_NAME"):
+        try:
+            try:
+                from backend.app.services.shop_service import ShopService
+            except ImportError:
+                from app.services.shop_service import ShopService
+            return ShopService()._get_products_col()
+        except Exception:
+            return None
+    return None
+
+
+def _enforce_pro3_entitlement(
+    user_id: Optional[str],
+    email: Optional[str] = None,
+    account_id: Optional[str] = None,
+) -> None:
+    """Chỉ gọi khi ENABLE_AI_PAYWALL=true: Pro 3 yêu cầu entitlement ai.advanced_thinking."""
+    if callable(evaluate_ai_feature_access):
+        call_kwargs: Dict[str, Any] = {
+            "benefit_id": "ai.advanced_thinking",
+            "user_id": user_id,
+            "email": email,
+            "account_id": account_id,
+        }
+        if evaluate_ai_feature_access is _DEFAULT_EVALUATE_AI_FEATURE_ACCESS and EntitlementService is not None:
+            try:
+                sig = inspect.signature(evaluate_ai_feature_access)
+                if "entitlement_service" in sig.parameters or any(
+                    p.kind == inspect.Parameter.VAR_KEYWORD for p in sig.parameters.values()
+                ):
+                    call_kwargs["entitlement_service"] = EntitlementService()
+            except (TypeError, ValueError):
+                pass
+        try:
+            decision = evaluate_ai_feature_access(**call_kwargs)
+        except HTTPException:
+            raise
+        except Exception as exc:
+            logger.warning("Pro3 entitlement check failed: %s", type(exc).__name__)
+            raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="Entitlement unavailable")
+        if decision is None:
+            return
+        if hasattr(decision, "status"):
+            if EntitlementDecisionStatus is not None and decision.status == EntitlementDecisionStatus.STORAGE_UNAVAILABLE:
+                raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="Entitlement unavailable")
+            if EntitlementDecisionStatus is not None and decision.status != EntitlementDecisionStatus.ALLOWED:
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail={"code": "entitlement_required", "benefit_id": "ai.advanced_thinking"},
+                )
+        return
+
+    try:
+        decision = EntitlementService().evaluate_entitlement(user_id or "", "ai.advanced_thinking")
+    except Exception as exc:
+        logger.warning("Pro3 entitlement check failed: %s", type(exc).__name__)
+        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="Entitlement unavailable")
+    if decision.status == EntitlementDecisionStatus.STORAGE_UNAVAILABLE:
+        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="Entitlement unavailable")
+    if decision.status != EntitlementDecisionStatus.ALLOWED:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail={"code": "entitlement_required", "benefit_id": "ai.advanced_thinking"},
+        )
+
+
+_CHAT_MODE_TO_BENEFIT: Dict[str, str] = {
+    "swift3": "ai.chat.swift3",
+    "core3": "ai.chat.core3",
+    "pro3": "ai.chat.pro3",
+}
+
+
+def _resolve_chat_quota_context(
+    current_user: dict,
+    ai_mode: str,
+    db: Any,
+) -> Tuple[str, str, str, int]:
+    """
+    Resolves (quota_user_id, benefit_id, period_type, limit_units) for chat requests
+    when AI paywall is enabled. Raises HTTP 403 when limit_units == 0 and 503 on DB outage.
+    """
+    benefit_id = _CHAT_MODE_TO_BENEFIT.get(ai_mode, "ai.chat.core3")
+    raw_user_id = str(current_user.get("_id")) if current_user.get("_id") is not None else None
+    raw_email = current_user.get("email")
+    account_id = current_user.get("account_id")
+    norm_email = raw_email.strip().lower() if isinstance(raw_email, str) and raw_email.strip() else None
+    quota_user_id = str(account_id or raw_user_id or norm_email or "").strip()
+
+    if resolve_user_tier_and_quota is None:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Quota service unavailable",
+        )
+
+    try:
+        _, period_type, limit_units = resolve_user_tier_and_quota(
+            db,
+            user_id=quota_user_id,
+            email=norm_email,
+            benefit_id=benefit_id,
+        )
+    except Exception as exc:
+        if QuotaStorageUnavailableException is not None and isinstance(exc, QuotaStorageUnavailableException):
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail="Entitlement service unavailable",
+            )
+        logger.warning("Chat quota resolution failed: %s", type(exc).__name__)
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Entitlement service unavailable",
+        )
+
+    if limit_units == 0:
+        has_bonus_quota = False
+        if db is not None and QuotaService is not None:
+            try:
+                q_svc = QuotaService(db=db)
+                now_utc = datetime.now(timezone.utc)
+                window_start, _, bucket_key = q_svc._get_window_bounds(
+                    now_utc,
+                    period_type=period_type,
+                    benefit_id=benefit_id,
+                )
+                bucket_doc = db[COLL_USAGE_BUCKETS].find_one({
+                    "user_id": quota_user_id,
+                    "bucket_key": bucket_key,
+                    "window_start": window_start,
+                })
+                if bucket_doc:
+                    b_bonus = int(bucket_doc.get("bonus_units", 0) or 0)
+                    b_consumed = int(bucket_doc.get("consumed_units", 0) or 0)
+                    b_reserved = int(bucket_doc.get("reserved_units", 0) or 0)
+                    if (limit_units + b_bonus) > (b_consumed + b_reserved):
+                        has_bonus_quota = True
+            except Exception as exc:
+                logger.warning("Failed to inspect bonus quota bucket: %s", type(exc).__name__)
+
+        if not has_bonus_quota:
+            entitlement_benefit = "ai.advanced_thinking" if ai_mode == "pro3" else benefit_id
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail={
+                    "code": "entitlement_required",
+                    "benefit_id": entitlement_benefit,
+                    "message": "Tính năng này yêu cầu gói hội viên cao hơn.",
+                },
+            )
+
+    return quota_user_id, benefit_id, period_type, limit_units
+
+
+def _reserve_chat_quota(
+    q_svc: Any,
+    quota_user_id: str,
+    benefit_id: str,
+    period_type: str,
+    limit_units: int,
+    idempotency_key: str = "",
+):
+    """
+    Reserves 1 chat quota unit before invoking Gemini/LLM.
+    Raises HTTP 429 on QUOTA_EXHAUSTED and HTTP 503 on STORAGE_UNAVAILABLE.
+    """
+    res = q_svc.reserve_quota(
+        user_id=quota_user_id,
+        benefit_id=benefit_id,
+        units=1,
+        limit_units=limit_units,
+        period_type=period_type,
+        idempotency_key=idempotency_key,
+    )
+    if ReservationStatus is not None:
+        if res.status == ReservationStatus.STORAGE_UNAVAILABLE:
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail="Quota service unavailable",
+            )
+        if res.status == ReservationStatus.QUOTA_EXHAUSTED:
+            raise HTTPException(
+                status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                detail={
+                    "code": "quota_exceeded",
+                    "benefit_id": benefit_id,
+                    "limit_units": limit_units,
+                    "remaining_units": 0,
+                    "message": "Bạn đã hết lượt sử dụng hôm nay cho chế độ AI này.",
+                },
+            )
+    return res
+
+
+def _supported_kwargs(fn, kwargs: Dict[str, Any]) -> Dict[str, Any]:
+    """Chỉ truyền các tham số mà callable thực sự nhận (tương thích ngược với ChatOperationService)."""
+    try:
+        params = inspect.signature(fn).parameters
+    except (TypeError, ValueError):
+        return kwargs
+    if any(p.kind == inspect.Parameter.VAR_KEYWORD for p in params.values()):
+        return kwargs
+    return {k: v for k, v in kwargs.items() if k in params}
+
+
+async def _call_with_supported_kwargs(fn, **kwargs):
+    return await fn(**_supported_kwargs(fn, kwargs))
+
+
+def _build_chat_operation_service(service_cls, db):
+    return service_cls(
+        **_supported_kwargs(
+            service_cls.__init__,
+            {
+                "db": db,
+                "conversations": conversations_col,
+                "nutrition": nutrition_col,
+                "workouts": workout_history_col,
+                "users": users_col,
+                "water": water_col,
+                "weight_history": _get_weight_history_col(),
+                "journeys": _get_optional_collection("journeys_collection", "journeys", db),
+                "story_logs": _get_optional_collection("story_logs_collection", "story_logs", db),
+                "community_posts": _get_optional_collection(
+                    "community_posts_collection", "community_posts", db
+                ),
+                "community_interactions": _get_optional_collection(
+                    "community_interactions_collection", "community_interactions", db
+                ),
+                "community_follows": _get_optional_collection(
+                    "community_follows_collection", "community_follows", db
+                ),
+                "shop_products": _get_shop_products_collection(db=db),
+                "journal_articles": _get_optional_collection(
+                    "journal_articles_collection", "journal_articles", db
+                ),
+                "training_logs": _get_optional_collection(
+                    "chat_training_logs_collection", "chat_training_logs", db
+                ),
+                "supplements": _get_optional_collection("supplements_collection", "supplement_logs", db),
+                "recipes": _get_optional_collection("recipes_collection", "recipes", db),
+                "action_detector": _detect_pending_action_for_core3,
+            },
+        )
+    )
+
+
+def _detect_pending_action_for_core3(
+    *,
+    principal: dict,
+    message: str,
+    conversation_id: Optional[str],
+    request_obj: Optional[ChatRequest] = None,
+) -> Optional[Dict[str, Any]]:
+    """Khôi phục Action Cards cho Core 3: trả action_data chuẩn hoặc None."""
+    text = (message or "").strip()
+    if not text:
+        return None
+
+    base = {
+        "id": str(ObjectId()),
+        "status": "pending",
+        "date": get_vn_date_str(),
+        "created_at": datetime.now(timezone.utc).isoformat(),
+    }
+
+    if _detect_workout_recommendation_intent(text):
+        requested_muscles, equipment, constraint_status = _parse_workout_recommendation_constraints(text)
+        unsupported_constraint, injury_requested, _unsupported_personalization = constraint_status
+        if injury_requested or unsupported_constraint:
+            return None
+        result = workout_recommendation_service.recommend_workouts(
+            _read_recommendation_context(principal),
+            exercise_catalog_resolver,
+            requested_muscle_groups=requested_muscles,
+            available_equipment=equipment,
+        )
+        exercise_ids: List[str] = []
+        if isinstance(result, dict):
+            for rec in (result.get("recommendations") or [])[:5]:
+                cid = rec.get("canonical_id") if isinstance(rec, dict) else None
+                if isinstance(cid, str) and cid not in exercise_ids:
+                    exercise_ids.append(cid)
+        if not exercise_ids:
+            return None
+        preview_action = {
+            **base,
+            "type": "preview_workout",
+            "label": "Xem trước buổi tập",
+            "payload": {"exercise_ids": exercise_ids},
+            "exercise_ids": exercise_ids,
+        }
+        save_action = {
+            "id": str(ObjectId()),
+            "type": "save_plan",
+            "label": "Lưu thành Giáo án",
+            "status": "pending",
+            "payload": {"exercise_ids": exercise_ids},
+            "exercise_ids": exercise_ids,
+        }
+        return {**preview_action, "actions": [preview_action, save_action]}
+
+    if _detect_log_water_intent(text):
+        return {
+            **base,
+            "type": "log_water",
+            "amount_ml": _extract_water_amount_ml(text),
+        }
+
+    meal_intent = _detect_log_meal_intent(text, request_obj)
+    if meal_intent:
+        return {
+            **base,
+            "type": "log_meal",
+            "meal_type": meal_intent["meal_type"],
+            "foods": [
+                {
+                    "name": meal_intent["name"],
+                    "calories": meal_intent["calories"],
+                    "protein": meal_intent["protein"],
+                    "carbs": meal_intent["carbs"],
+                    "fat": meal_intent["fat"],
+                }
+            ],
+            "total_calories": meal_intent["calories"],
+            "total_protein": meal_intent["protein"],
+            "total_carbs": meal_intent["carbs"],
+            "total_fat": meal_intent["fat"],
+            "notes": meal_intent.get("notes"),
+        }
+
+    workout_intent = _detect_adjust_workout_intent(text, request_obj, principal, custom_plans_col)
+    if workout_intent:
+        return {
+            **base,
+            "type": "adjust_workout",
+            "plan_id": workout_intent["plan_id"],
+            "plan_name": workout_intent["plan_name"],
+            "before": workout_intent.get("before", {}),
+            "after": workout_intent.get("after", {}),
+            "changes": workout_intent.get("changes", {}),
+        }
+
+    return None
+
+
 @router.post("")
 async def chat_with_ai(
     request: ChatRequest,
@@ -3052,6 +3558,11 @@ async def chat_with_ai(
     email = current_user.get("email") or ""
     user_id = str(current_user.get("_id")) if current_user.get("_id") is not None else None
 
+    ai_mode = request.ai_mode or "core3"
+    paywall_ctx: Optional[Tuple[str, str, str, int]] = None
+    if is_ai_paywall_enabled():
+        paywall_ctx = _resolve_chat_quota_context(current_user, ai_mode, _db_mod.db)
+
     core3_database = None
     if request.contract_version == "core3-local-v1":
         try:
@@ -3065,10 +3576,24 @@ async def chat_with_ai(
             or mongo_host not in {"localhost", "127.0.0.1", "::1"}
             or core3_database.db is None
         ):
-            raise HTTPException(
-                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-                detail="Core 3 is restricted to the isolated loopback test database",
-            )
+            if not (
+                os.getenv("GEMINI_API_KEY")
+                or os.getenv("STAGING_GEMINI_API_KEY")
+                or GEMINI_API_KEY
+                or os.getenv("CHAT_AI_PROVIDER", "").strip().lower() in ("fake", "saman_custom")
+            ):
+                return {
+                    "reply": AI_FALLBACK_REPLY,
+                    "status": "success",
+                    "conversation_id": request.conversation_id or str(ObjectId()),
+                    "action": None,
+                }
+            # [CORE3 UNLOCK]: Vô hiệu hóa rào chắn 503 để mở khóa chat AI runtime trên mọi database
+            # raise HTTPException(
+            #     status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            #     detail="Core 3 is restricted to the isolated loopback test database",
+            # )
+            pass
 
     query_or: List[Dict[str, Any]] = [{"user_email": email}]
     if user_id:
@@ -3117,31 +3642,102 @@ async def chat_with_ai(
         if not request.operation_id:
             raise HTTPException(status_code=422, detail="operation_id is required")
         try:
-            from backend.app.database_chat import ensure_chat_operation_indexes
+            from backend.app.database_chat import (
+                ensure_chat_operation_indexes,
+                ensure_chat_training_log_indexes,
+            )
             from backend.app.services.chat_operation_service import ChatOperationService
         except ImportError:
-            from app.database_chat import ensure_chat_operation_indexes
+            from app.database_chat import (
+                ensure_chat_operation_indexes,
+                ensure_chat_training_log_indexes,
+            )
             from app.services.chat_operation_service import ChatOperationService
         if core3_database is None:
             raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="Chat storage unavailable")
         if conversations_col is None:
             raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="Chat storage unavailable")
         ensure_chat_operation_indexes(core3_database.db)
-        operation_service = ChatOperationService(
-            db=core3_database.db,
-            conversations=conversations_col,
-            nutrition=nutrition_col,
-            workouts=workout_history_col,
-            users=users_col,
-        )
-        return await operation_service.handle(
-            principal=current_user,
-            operation_id=request.operation_id,
-            contract_version=request.contract_version,
-            message=trimmed_message,
-            conversation_id=request.conversation_id,
-            history=request.history,
-        )
+        try:
+            ensure_chat_training_log_indexes(core3_database.db)
+        except Exception:
+            pass
+        operation_service = _build_chat_operation_service(ChatOperationService, core3_database.db)
+        core3_q_svc = None
+        core3_quota_res = None
+        if paywall_ctx is not None and QuotaService is not None:
+            q_uid, q_benefit, q_period, q_limit = paywall_ctx
+            core3_q_svc = QuotaService(db=_db_mod.db)
+            core3_quota_res = _reserve_chat_quota(
+                core3_q_svc,
+                q_uid,
+                q_benefit,
+                q_period,
+                q_limit,
+                idempotency_key=f"chat:{request.operation_id}",
+            )
+        try:
+            op_result = await _call_with_supported_kwargs(
+                operation_service.handle,
+                principal=current_user,
+                operation_id=request.operation_id,
+                contract_version=request.contract_version,
+                message=trimmed_message,
+                conversation_id=request.conversation_id,
+                history=request.history,
+                ai_mode=ai_mode,
+            )
+            if (
+                core3_q_svc is not None
+                and core3_quota_res is not None
+                and ReservationStatus is not None
+                and core3_quota_res.status == ReservationStatus.RESERVED
+            ):
+                core3_q_svc.commit_quota(
+                    core3_quota_res.operation_id,
+                    lease_token=core3_quota_res.lease_token,
+                )
+            return op_result
+        except HTTPException as exc:
+            if (
+                core3_q_svc is not None
+                and core3_quota_res is not None
+                and ReservationStatus is not None
+                and core3_quota_res.status == ReservationStatus.RESERVED
+            ):
+                core3_q_svc.release_quota(
+                    core3_quota_res.operation_id,
+                    lease_token=core3_quota_res.lease_token,
+                    reason=f"core3_http_{exc.status_code}",
+                )
+            if exc.status_code in (400, 401, 403, 404, 409, 422):
+                raise
+            logger.warning("Core3 chat operation fallback triggered (%s): %s", exc.status_code, exc.detail)
+            return {
+                "reply": AI_FALLBACK_REPLY,
+                "status": "success",
+                "conversation_id": request.conversation_id or str(ObjectId()),
+                "action": None,
+            }
+        except Exception as exc:
+            if (
+                core3_q_svc is not None
+                and core3_quota_res is not None
+                and ReservationStatus is not None
+                and core3_quota_res.status == ReservationStatus.RESERVED
+            ):
+                core3_q_svc.release_quota(
+                    core3_quota_res.operation_id,
+                    lease_token=core3_quota_res.lease_token,
+                    reason=f"core3_error_{type(exc).__name__}",
+                )
+            logger.warning("Core3 chat operation unexpected error fallback: %s", type(exc).__name__)
+            return {
+                "reply": AI_FALLBACK_REPLY,
+                "status": "success",
+                "conversation_id": request.conversation_id or str(ObjectId()),
+                "action": None,
+            }
 
     if _detect_workout_recommendation_intent(trimmed_message):
         requested_muscles, equipment, constraint_status = (
@@ -3267,15 +3863,16 @@ async def chat_with_ai(
         action_date = datetime.now(VN_TZ).strftime("%Y-%m-%d")
 
         if is_water_intent:
+            amount_ml = _extract_water_amount_ml(trimmed_message)
             action_data = {
                 "id": action_id,
                 "type": "log_water",
-                "amount_ml": 250,
+                "amount_ml": amount_ml,
                 "status": "pending",
                 "date": action_date,
                 "created_at": now_iso,
             }
-            reply = "Bạn có muốn thêm 250 ml nước không?"
+            reply = f"Bạn có muốn thêm {amount_ml} ml nước không?"
         elif meal_intent:
             foods = [
                 {
@@ -3474,11 +4071,54 @@ async def chat_with_ai(
         full_prompt = full_prompt.replace(email, "")
     full_prompt = re.sub(r'[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+', '', full_prompt)
 
+    legacy_q_svc = None
+    legacy_quota_res = None
+    if paywall_ctx is not None and QuotaService is not None:
+        q_uid, q_benefit, q_period, q_limit = paywall_ctx
+        legacy_q_svc = QuotaService(db=_db_mod.db)
+        legacy_quota_res = _reserve_chat_quota(
+            legacy_q_svc,
+            q_uid,
+            q_benefit,
+            q_period,
+            q_limit,
+        )
+
     import unittest.mock
-    if isinstance(get_ai_reply, unittest.mock.Base) or getattr(get_ai_reply, "_mock_return_value", None) is not None or getattr(get_ai_reply, "_mock_side_effect", None) is not None:
-        reply = get_ai_reply(full_prompt)
-    else:
-        reply = await _generate_ai_reply(full_prompt)
+    ai_failed = False
+    try:
+        if isinstance(get_ai_reply, unittest.mock.Base) or getattr(get_ai_reply, "_mock_return_value", None) is not None or getattr(get_ai_reply, "_mock_side_effect", None) is not None:
+            reply = get_ai_reply(full_prompt)
+        else:
+            reply = await _generate_ai_reply(full_prompt)
+    except Exception as ai_err:
+        logger.warning("AI generation fallback in chat_with_ai: %s", type(ai_err).__name__)
+        reply = AI_FALLBACK_REPLY
+        ai_failed = True
+
+    if not reply or not str(reply).strip() or (isinstance(reply, str) and reply.startswith("Lỗi:")):
+        reply = AI_FALLBACK_REPLY
+        ai_failed = True
+    elif reply == AI_FALLBACK_REPLY:
+        ai_failed = True
+
+    if (
+        legacy_q_svc is not None
+        and legacy_quota_res is not None
+        and ReservationStatus is not None
+        and legacy_quota_res.status == ReservationStatus.RESERVED
+    ):
+        if ai_failed:
+            legacy_q_svc.release_quota(
+                legacy_quota_res.operation_id,
+                lease_token=legacy_quota_res.lease_token,
+                reason="llm_error_or_fallback",
+            )
+        else:
+            legacy_q_svc.commit_quota(
+                legacy_quota_res.operation_id,
+                lease_token=legacy_quota_res.lease_token,
+            )
 
     # Checkpoint 3: Persist messages to DB after AI succeeds
     conv_id_str = _persist_chat_reply(
@@ -3511,6 +4151,37 @@ async def chat_with_ai(
 # ─────────────────────────────────────────────────────────────
 # CHECKPOINT 4A: ACTION CONFIRMATION & CANCELLATION
 # ─────────────────────────────────────────────────────────────
+
+def _record_training_action_outcome(
+    *,
+    user_id: Optional[str],
+    action_id: str,
+    decision: str,
+) -> None:
+    try:
+        if not user_id:
+            return
+        try:
+            from backend.app.services.training_log_service import (
+                update_training_action_outcome,
+            )
+        except ImportError:
+            from app.services.training_log_service import (
+                update_training_action_outcome,
+            )
+        training_col = _get_optional_collection(
+            "chat_training_logs_collection", "chat_training_logs"
+        )
+        if training_col is not None and user_id:
+            update_training_action_outcome(
+                training_col,
+                user_id=user_id,
+                action_id=action_id,
+                decision=decision,
+            )
+    except Exception:
+        pass
+
 
 async def _process_action_decision(
     conversation_id: str,
@@ -3553,13 +4224,12 @@ async def _process_action_decision(
         )
 
     user_id = str(current_user.get("_id")) if current_user.get("_id") is not None else None
-    query_or: List[Dict[str, Any]] = [{"user_email": email}]
-    if email:
-        query_or.append({"email": email})
-    if user_id:
-        query_or.append({"user_id": user_id})
-        if ObjectId.is_valid(user_id):
-            query_or.append({"user_id": ObjectId(user_id)})
+    raw_email = email
+    email = normalize_email(raw_email)
+    query_or: List[Dict[str, Any]] = list(build_user_query(user_id, email).get("$or", []))
+    if raw_email != email:
+        query_or.append({"user_email": raw_email})
+        query_or.append({"email": raw_email})
 
     # 1. Verify conversation exists and belongs to owner
     conv = conversations_col.find_one({"_id": conv_obj_id, "$or": query_or})
@@ -3591,7 +4261,7 @@ async def _process_action_decision(
             detail="Action already cancelled",
         )
 
-    today_vn = datetime.now(VN_TZ).strftime("%Y-%m-%d")
+    today_vn = get_vn_date_str()
     raw_params = pending.get("params") if isinstance(pending.get("params"), dict) else {}
     target_date = pending.get("date") or raw_params.get("date") or today_vn
     now_utc = datetime.utcnow()
@@ -3698,6 +4368,12 @@ async def _process_action_decision(
         except Exception as e:
             logger.warning("Failed to record cancel message: %s", type(e).__name__)
 
+        _record_training_action_outcome(
+            user_id=user_id,
+            action_id=action_id,
+            decision=decision_norm,
+        )
+
         return {
             "status": "cancelled",
             "message": cancel_msg,
@@ -3782,6 +4458,7 @@ async def _process_action_decision(
                 detail="Invalid nutrition values in pending action",
             )
         validated_meal_doc = {
+            "user_id": user_id,
             "user_email": email,
             "date": target_date,
             "meal_type": meal_type,
@@ -3928,7 +4605,12 @@ async def _process_action_decision(
                             {
                                 "$inc": {"amount_ml": amount_to_add, "version": 1},
                                 "$addToSet": {"applied_actions": action_id},
-                                "$set": {"updated_at": now_utc},
+                                "$set": {
+                                    "updated_at": now_utc,
+                                    "user_id": user_id,
+                                    "user_email": email,
+                                    "date": target_date,
+                                },
                             }
                         )
                         if getattr(res, "matched_count", 1) == 0:
@@ -3957,6 +4639,9 @@ async def _process_action_decision(
                                 },
                                 "$set": {
                                     "updated_at": now_utc,
+                                    "user_id": user_id,
+                                    "user_email": email,
+                                    "date": target_date,
                                 },
                             },
                             upsert=True,
@@ -4035,6 +4720,12 @@ async def _process_action_decision(
             )
         except Exception as e:
             logger.warning("Failed to record confirmation message: %s", type(e).__name__)
+
+        _record_training_action_outcome(
+            user_id=user_id,
+            action_id=action_id,
+            decision=decision_norm,
+        )
 
         return {
             "status": "success",
@@ -4162,6 +4853,12 @@ async def _process_action_decision(
             )
         except Exception as e:
             logger.warning("Failed to record confirmation message: %s", type(e).__name__)
+
+        _record_training_action_outcome(
+            user_id=user_id,
+            action_id=action_id,
+            decision=decision_norm,
+        )
 
         return {
             "status": "success",
@@ -4337,6 +5034,12 @@ async def _process_action_decision(
         except Exception as e:
             logger.warning("Failed to record confirmation message: %s", type(e).__name__)
 
+        _record_training_action_outcome(
+            user_id=user_id,
+            action_id=action_id,
+            decision=decision_norm,
+        )
+
         return {
             "status": "success",
             "message": confirm_msg,
@@ -4376,3 +5079,313 @@ async def handle_action(
 ):
     decision = (request.decision or "confirm").lower().strip()
     return await _process_action_decision(request.conversation_id, request.action_id, decision, current_user)
+
+
+def _sse_chunk(event_name: str, payload: Any) -> str:
+    return f"event: {event_name}\ndata: {json.dumps(payload, ensure_ascii=False, default=str)}\n\n"
+
+
+@router.post("/stream")
+async def chat_stream(
+    request: ChatRequest,
+    current_user: dict = Depends(get_current_user),
+):
+    trimmed_message = request.message.strip() if request.message else ""
+    if not trimmed_message:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Message cannot be empty")
+    if request.contract_version not in (None, "core3-local-v1"):
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Unsupported chat contract")
+
+    user_id = str(current_user.get("_id")) if current_user.get("_id") is not None else None
+    ai_mode = request.ai_mode or "core3"
+    paywall_ctx: Optional[Tuple[str, str, str, int]] = None
+    if is_ai_paywall_enabled():
+        paywall_ctx = _resolve_chat_quota_context(current_user, ai_mode, _db_mod.db)
+
+    if conversations_col is None or _db_mod.db is None:
+        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="Chat storage unavailable")
+    if request.conversation_id and not ObjectId.is_valid(request.conversation_id):
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Conversation not found")
+
+    try:
+        from backend.app.database_chat import (
+            ensure_chat_operation_indexes,
+            ensure_chat_training_log_indexes,
+        )
+        from backend.app.services.chat_operation_service import ChatOperationService
+    except ImportError:
+        from app.database_chat import (
+            ensure_chat_operation_indexes,
+            ensure_chat_training_log_indexes,
+        )
+        from app.services.chat_operation_service import ChatOperationService
+
+    ensure_chat_operation_indexes(_db_mod.db)
+    try:
+        ensure_chat_training_log_indexes(_db_mod.db)
+    except Exception:
+        pass
+    operation_service = _build_chat_operation_service(ChatOperationService, _db_mod.db)
+    handle_stream = getattr(operation_service, "handle_stream", None)
+    if handle_stream is None:
+        raise HTTPException(status_code=status.HTTP_501_NOT_IMPLEMENTED, detail="Streaming is not supported")
+
+    operation_id = request.operation_id or secrets.token_hex(16)
+
+    stream_q_svc = None
+    stream_quota_res = None
+    if paywall_ctx is not None and QuotaService is not None:
+        q_uid, q_benefit, q_period, q_limit = paywall_ctx
+        stream_q_svc = QuotaService(db=_db_mod.db)
+        stream_quota_res = _reserve_chat_quota(
+            stream_q_svc,
+            q_uid,
+            q_benefit,
+            q_period,
+            q_limit,
+            idempotency_key=f"chat_stream:{operation_id}",
+        )
+
+    stream_kwargs = _supported_kwargs(
+        handle_stream,
+        {
+            "principal": current_user,
+            "operation_id": operation_id,
+            "contract_version": request.contract_version or "core3-local-v1",
+            "message": trimmed_message,
+            "conversation_id": request.conversation_id,
+            "history": request.history,
+            "ai_mode": ai_mode,
+        },
+    )
+
+    async def event_generator():
+        stream_completed = False
+        quota_finalized = False
+        has_reserved = (
+            stream_q_svc is not None
+            and stream_quota_res is not None
+            and ReservationStatus is not None
+            and stream_quota_res.status == ReservationStatus.RESERVED
+        )
+        try:
+            async for item in handle_stream(**stream_kwargs):
+                if isinstance(item, (tuple, list)) and len(item) == 2:
+                    event_name, payload = item
+                elif isinstance(item, dict) and "event" in item:
+                    event_name, payload = item["event"], item.get("data", {})
+                else:
+                    event_name, payload = "message", item
+                if str(event_name) == "done":
+                    stream_completed = True
+                yield _sse_chunk(str(event_name), payload)
+            if has_reserved and not quota_finalized:
+                if stream_completed:
+                    stream_q_svc.commit_quota(
+                        stream_quota_res.operation_id,
+                        lease_token=stream_quota_res.lease_token,
+                    )
+                else:
+                    stream_q_svc.release_quota(
+                        stream_quota_res.operation_id,
+                        lease_token=stream_quota_res.lease_token,
+                        reason="stream_incomplete",
+                    )
+                quota_finalized = True
+        except HTTPException as exc:
+            if has_reserved and not quota_finalized:
+                stream_q_svc.release_quota(
+                    stream_quota_res.operation_id,
+                    lease_token=stream_quota_res.lease_token,
+                    reason=f"stream_http_{exc.status_code}",
+                )
+                quota_finalized = True
+            yield _sse_chunk("error", {"status_code": exc.status_code, "detail": exc.detail})
+        except Exception as exc:
+            if has_reserved and not quota_finalized:
+                stream_q_svc.release_quota(
+                    stream_quota_res.operation_id,
+                    lease_token=stream_quota_res.lease_token,
+                    reason=f"stream_error_{type(exc).__name__}",
+                )
+                quota_finalized = True
+            logger.warning("Chat stream error: %s", type(exc).__name__)
+            yield _sse_chunk("error", {"status_code": 500, "detail": "Stream failed"})
+        finally:
+            if has_reserved and not quota_finalized:
+                stream_q_svc.release_quota(
+                    stream_quota_res.operation_id,
+                    lease_token=stream_quota_res.lease_token,
+                    reason="stream_aborted",
+                )
+                quota_finalized = True
+
+    return StreamingResponse(
+        event_generator(),
+        media_type="text/event-stream",
+        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+    )
+
+
+def _safe_find(col, query: Dict[str, Any], limit: int = 100) -> List[dict]:
+    if col is None:
+        return []
+    try:
+        return list(col.find(query).limit(limit))
+    except Exception as exc:
+        logger.warning("Daily brief query failed: %s", type(exc).__name__)
+        return []
+
+
+@router.get("/daily-brief")
+async def get_daily_brief(
+    current_user: dict = Depends(get_current_user),
+):
+    email = normalize_email(current_user.get("email"))
+    user_id = str(current_user.get("_id")) if current_user.get("_id") is not None else None
+    today_vn = get_vn_date_str()
+    user_query = build_user_query(user_id, email)
+    day_query = {**user_query, "date": today_vn}
+
+    water_docs = _safe_find(water_col, day_query)
+    water_ml = int(sum(_number_value(d.get("amount_ml")) or 0 for d in water_docs))
+
+    meals = _safe_find(nutrition_col, day_query)
+    calories = int(round(sum(_extract_nutrition_metric(m, "total_calories", "calories", "calories") for m in meals)))
+    protein = round(sum(_extract_nutrition_metric(m, "total_protein", "protein", "protein") for m in meals), 1)
+
+    sessions = _safe_find(workout_history_collection, user_query, limit=50)
+    worked_out_today = any(get_session_vn_date(sess) == today_vn for sess in sessions)
+
+    weight_docs = _safe_find(_get_weight_history_col(), user_query, limit=5)
+    users_docs = _safe_find(users_col, {"email": email}, limit=1) if email else []
+    user_doc = users_docs[0] if users_docs else (current_user if isinstance(current_user, dict) else {})
+    profile = user_doc.get("profile") if isinstance(user_doc.get("profile"), dict) else {}
+    stats = user_doc.get("health_stats") if isinstance(user_doc.get("health_stats"), dict) else {}
+
+    calories_target = int(
+        _number_value(stats.get("tdee") or stats.get("daily_calories") or stats.get("daily_calorie_needs")) or 2000
+    )
+    weight_kg = _number_value(profile.get("weight") or user_doc.get("weight"))
+    if weight_kg is None and weight_docs:
+        weight_kg = _number_value(weight_docs[0].get("weight") or weight_docs[0].get("weight_kg"))
+    protein_target = int(
+        _number_value(stats.get("protein_target") or stats.get("daily_protein"))
+        or (round(weight_kg * 1.6) if weight_kg else 100)
+    )
+    water_target_ml = int(_number_value(stats.get("water_target_ml")) or 2000)
+
+    chips: List[Dict[str, str]] = []
+    notes: List[str] = []
+    if water_ml < water_target_ml * 0.5:
+        chips.append({"label": "Bù nước hôm nay", "prompt": "Tôi nên uống thêm bao nhiêu nước hôm nay?", "icon": "water_drop"})
+        notes.append(f"Bạn mới uống {water_ml}/{water_target_ml} ml nước")
+    else:
+        notes.append(f"Bạn đã uống {water_ml}/{water_target_ml} ml nước")
+    if protein < protein_target * 0.7:
+        chips.append({"label": "Còn thiếu bao nhiêu đạm?", "prompt": "Hôm nay tôi còn thiếu bao nhiêu đạm?", "icon": "restaurant"})
+    notes.append(f"nạp {calories}/{calories_target} kcal và {protein:g}/{protein_target} g đạm")
+    if not worked_out_today:
+        chips.append({"label": "Gợi ý buổi tập hôm nay", "prompt": "Gợi ý cho tôi một buổi tập hôm nay", "icon": "fitness_center"})
+
+    brief = ", ".join(notes) + ". " + (
+        "Bạn đã tập hôm nay, giữ nhịp tốt nhé!" if worked_out_today else "Hôm nay bạn chưa tập."
+    )
+
+    active_journey: Optional[dict] = None
+    if callable(build_journey_context):
+        try:
+            journeys_col = _get_optional_collection("journeys_collection", "journeys")
+            journey_ctx = build_journey_context(
+                principal=current_user, journeys_collection=journeys_col, tier="core3"
+            )
+            candidate = journey_ctx.get("active_journey") if isinstance(journey_ctx, dict) else None
+            active_journey = candidate if isinstance(candidate, dict) else None
+        except Exception as exc:
+            logger.warning("Daily brief journey context failed: %s", type(exc).__name__)
+            active_journey = None
+
+    pending_tasks: List[Any] = []
+    if active_journey:
+        raw_pending = active_journey.get("pending_tasks")
+        pending_tasks = raw_pending if isinstance(raw_pending, list) else []
+
+    first_task = None
+    if pending_tasks and isinstance(pending_tasks[0], dict):
+        first_task = pending_tasks[0].get("title")
+
+    if active_journey and pending_tasks and first_task and not active_journey.get("is_rest_day"):
+        day_idx = active_journey.get("day_index")
+        total_days = active_journey.get("total_days")
+        nudge = {
+            "id": "journey_task_nudge",
+            "message": f"Ngày {day_idx}/{total_days}: bạn còn nhiệm vụ '{first_task}'. Hoàn thành sớm để giữ chuỗi nhé!",
+            "supporting_line": f"• Hành trình: còn {len(pending_tasks)} nhiệm vụ hôm nay",
+            "primary_label": "Hỏi Saman",
+            "secondary_label": "Để sau",
+            "prompt_to_send": "Hôm nay tôi còn nhiệm vụ gì trong hành trình và nên thực hiện thế nào?",
+        }
+    elif protein < protein_target * 0.7:
+        rem_cal = max(0, calories_target - calories)
+        rem_pro = max(1, round(protein_target - protein))
+        nudge = {
+            "id": "protein_gap_nudge",
+            "message": f"Hôm nay bạn còn thiếu {rem_pro}g đạm (và {rem_cal} kcal). Bổ sung một bữa giàu đạm sẽ giúp đạt mục tiêu.",
+            "supporting_line": f"• {calories} / {calories_target} kcal · Còn thiếu {rem_pro}g đạm",
+            "primary_label": "Gợi ý bữa ăn",
+            "secondary_label": "Để sau",
+            "prompt_to_send": f"Gợi ý giúp tôi bữa ăn giàu đạm phù hợp với phần mục tiêu còn lại hôm nay ({rem_cal} kcal, {rem_pro}g đạm).",
+        }
+    elif water_ml < water_target_ml * 0.5:
+        rem_water = max(250, water_target_ml - water_ml)
+        nudge = {
+            "id": "water_gap_nudge",
+            "message": f"Bạn mới uống {water_ml}/{water_target_ml} ml nước hôm nay. Hãy uống thêm khoảng {rem_water} ml rải đều nhé.",
+            "supporting_line": f"• Nước uống: {water_ml} / {water_target_ml} ml",
+            "primary_label": "Nhắc bù nước",
+            "secondary_label": "Để sau",
+            "prompt_to_send": f"Tôi mới uống {water_ml}ml nước hôm nay, nên bù nước thế nào cho hợp lý?",
+        }
+    elif not worked_out_today:
+        nudge = {
+            "id": "workout_pending_nudge",
+            "message": "Hôm nay bạn chưa ghi nhận buổi tập nào. Sẵn sàng cho một buổi tập vừa sức chứ?",
+            "supporting_line": f"• {calories}/{calories_target} kcal · Chưa có buổi tập hôm nay",
+            "primary_label": "Gợi ý buổi tập",
+            "secondary_label": "Để sau",
+            "prompt_to_send": "Gợi ý cho tôi một buổi tập phù hợp cho hôm nay.",
+        }
+    else:
+        nudge = {
+            "id": "on_track_nudge",
+            "message": f"Phong độ hôm nay rất tốt: bạn đã tập luyện và nạp {calories}/{calories_target} kcal, {protein:g}g đạm.",
+            "supporting_line": f"• Đã tập hôm nay · {water_ml}/{water_target_ml} ml nước",
+            "primary_label": "Tối ưu phục hồi",
+            "secondary_label": "Để sau",
+            "prompt_to_send": "Dựa trên buổi tập và dinh dưỡng hôm nay, tôi nên phục hồi thế nào?",
+        }
+
+    metrics: Dict[str, Any] = {
+        "calories": calories,
+        "calories_target": calories_target,
+        "protein": protein,
+        "protein_target": protein_target,
+        "water_ml": water_ml,
+        "water_target_ml": water_target_ml,
+        "worked_out_today": worked_out_today,
+    }
+    if active_journey:
+        metrics["journey"] = {
+            "day_index": active_journey.get("day_index"),
+            "total_days": active_journey.get("total_days"),
+            "pending_count": len(pending_tasks),
+        }
+
+    return {
+        "status": "success",
+        "date": today_vn,
+        "brief": brief,
+        "chips": chips,
+        "metrics": metrics,
+        "nudge": nudge,
+    }

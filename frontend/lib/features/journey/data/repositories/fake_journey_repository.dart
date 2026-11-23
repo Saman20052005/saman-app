@@ -33,8 +33,8 @@ class FakeJourneyRepository implements JourneyRepository {
       aiCredits: 1,
       category: 'ai_credit',
       iconName: 'smart_toy',
-      isAvailable: false,
-      statusNote: 'Chưa khả dụng · Đang kết nối hạ tầng AI quota',
+      isAvailable: true,
+      statusNote: 'Khả dụng · Đổi ngay',
     ),
     RewardItem(
       id: 'rew_ai_credit_3',
@@ -44,8 +44,8 @@ class FakeJourneyRepository implements JourneyRepository {
       aiCredits: 3,
       category: 'ai_credit',
       iconName: 'smart_toy',
-      isAvailable: false,
-      statusNote: 'Chưa khả dụng · Đang kết nối hạ tầng AI quota',
+      isAvailable: true,
+      statusNote: 'Khả dụng · Đổi ngay',
     ),
     RewardItem(
       id: 'rew_champion_badge',

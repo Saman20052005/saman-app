@@ -2,20 +2,12 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-<key>NSCameraUsageDescription</key>
-    <string>Ứng dụng cần truy cập Camera để bạn chụp ảnh bữa ăn.</string>
-    
+    <key>NSCameraUsageDescription</key>
+    <string>Ứng dụng cần truy cập Camera để bạn chụp ảnh bữa ăn và chia sẻ khoảnh khắc.</string>
     <key>NSPhotoLibraryUsageDescription</key>
-    <string>Ứng dụng cần truy cập thư viện để bạn chọn ảnh bữa ăn đã chụp.</string>
-    
+    <string>Ứng dụng cần truy cập thư viện ảnh và video để bạn chọn ảnh bữa ăn hoặc chia sẻ trong Cộng đồng.</string>
     <key>NSMicrophoneUsageDescription</key>
-    <string>Ứng dụng cần truy cập Micro cho tính năng video.</string>
-    <key>NSPhotoLibraryUsageDescription</key>
-<string>Ứng dụng cần truy cập thư viện để chọn ảnh món ăn.</string>
-<key>NSCameraUsageDescription</key>
-<string>Ứng dụng cần truy cập camera để chụp ảnh món ăn.</string>
-<key>NSMicrophoneUsageDescription</key>
-<string>Ứng dụng cần truy cập microphone cho video (nếu có).</string>
+    <string>Ứng dụng cần truy cập Microphone để quay video và ghi âm tin nhắn thoại trong Cộng đồng.</string>
     <key>CFBundleDevelopmentRegion</key>
     <string>$(DEVELOPMENT_LANGUAGE)</string>
     <key>CFBundleDisplayName</key>

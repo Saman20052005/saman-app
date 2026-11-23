@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:health_ai_app/features/report/domain/entities/weekly_report_entity.dart';
+import '../../../../config/app_theme.dart';
 
 class CaloriesConsumedChartCard extends StatelessWidget {
   final List<DailyStats> days;
@@ -66,14 +67,39 @@ class CaloriesConsumedChartCard extends StatelessWidget {
       }
     }
 
+    final p = SamanPalette.of(context);
+    final isDark = p.isDark;
+    final cardBg = isDark ? const Color(0xFF16171A) : p.surface;
+    final borderCol = isDark ? const Color(0xFF26282F) : p.border;
+    final pillBg = isDark ? const Color(0xFF212329) : p.surfaceElevated;
+    final pillBorder = isDark ? Colors.white.withOpacity(0.06) : p.border;
+    final dotCol = isDark ? const Color(0xFFE5E7EB) : p.textPrimary;
+    final headingCol = isDark ? const Color(0xFFD1D5DB) : p.textPrimary;
+    final valueCol = isDark ? Colors.white : p.textPrimary;
+    final subCol = isDark ? const Color(0xFFA1A1AA) : p.textSecondary;
+    final mutedCol = isDark ? const Color(0xFF71717A) : p.textMuted;
+    final futureCol = isDark ? const Color(0xFF52525B) : const Color(0xFF94A3B8);
+    final goalTextCol = isDark ? const Color(0xFFE5E7EB) : p.textPrimary;
+    final baseLineCol = isDark ? const Color(0xFF2D3039) : const Color(0xFFCBD5E1);
+    final gridLineCol = isDark ? const Color(0xFF23252A) : p.border;
+    final activeBarCol = isDark ? const Color(0xFFF3F4F6) : const Color(0xFF0F172A);
+    final inactiveBarCol = isDark ? const Color(0xFF3A3D46) : const Color(0xFFCBD5E1);
+    final badgeBg = isDark ? Colors.white : const Color(0xFF0F172A);
+    final badgeTextCol = isDark ? Colors.black : Colors.white;
+    final activeBorderCol = isDark ? Colors.white : const Color(0xFF0F172A);
+    final activeDayPillBg = isDark
+        ? Colors.white.withOpacity(0.1)
+        : const Color(0xFF0F172A).withOpacity(0.08);
+    final activeDayTextCol = isDark ? Colors.white : p.textPrimary;
+
     final dayLabels = ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'];
 
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFF16171A),
+        color: cardBg,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFF26282F)),
+        border: Border.all(color: borderCol),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -92,13 +118,13 @@ class CaloriesConsumedChartCard extends StatelessWidget {
                         Container(
                           width: 8,
                           height: 8,
-                          decoration: const BoxDecoration(
-                            color: Color(0xFFE5E7EB),
+                          decoration: BoxDecoration(
+                            color: dotCol,
                             shape: BoxShape.circle,
                           ),
                         ),
                         const SizedBox(width: 6),
-                        const Flexible(
+                        Flexible(
                           child: Text(
                             'CALORIES CONSUMED',
                             maxLines: 1,
@@ -107,7 +133,7 @@ class CaloriesConsumedChartCard extends StatelessWidget {
                               fontSize: 11,
                               fontWeight: FontWeight.w700,
                               letterSpacing: 0.8,
-                              color: Color(0xFFD1D5DB),
+                              color: headingCol,
                             ),
                           ),
                         ),
@@ -119,20 +145,20 @@ class CaloriesConsumedChartCard extends StatelessWidget {
                       children: [
                         Text(
                           NumberFormat('#,###').format(avgCalories.round()),
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 26,
                             fontWeight: FontWeight.w700,
                             letterSpacing: -0.5,
-                            color: Colors.white,
+                            color: valueCol,
                           ),
                         ),
                         const SizedBox(width: 6),
-                        const Text(
+                        Text(
                           'kcal / day avg',
                           style: TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.w400,
-                            color: Color(0xFFA1A1AA),
+                            color: subCol,
                           ),
                         ),
                       ],
@@ -144,13 +170,13 @@ class CaloriesConsumedChartCard extends StatelessWidget {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
-                  const Text(
+                  Text(
                     'DAILY GOAL',
                     style: TextStyle(
                       fontSize: 10,
                       fontWeight: FontWeight.w600,
                       letterSpacing: 0.6,
-                      color: Color(0xFF71717A),
+                      color: mutedCol,
                     ),
                   ),
                   const SizedBox(height: 3),
@@ -158,18 +184,18 @@ class CaloriesConsumedChartCard extends StatelessWidget {
                     padding:
                         const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                     decoration: BoxDecoration(
-                      color: const Color(0xFF212329),
+                      color: pillBg,
                       borderRadius: BorderRadius.circular(6),
-                      border: Border.all(color: Colors.white.withOpacity(0.06)),
+                      border: Border.all(color: pillBorder),
                     ),
                     child: Text(
                       targetCalories > 0
                           ? '${NumberFormat('#,###').format(targetCalories)} kcal'
                           : 'No goal set',
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 11.5,
                         fontWeight: FontWeight.w600,
-                        color: Color(0xFFE5E7EB),
+                        color: goalTextCol,
                       ),
                     ),
                   ),
@@ -214,10 +240,10 @@ class CaloriesConsumedChartCard extends StatelessWidget {
                                         ? '0'
                                         : NumberFormat('#,###').format(val.toInt()),
                                     maxLines: 1,
-                                    style: const TextStyle(
+                                    style: TextStyle(
                                       fontSize: 9.5,
                                       fontFamily: 'monospace',
-                                      color: Color(0xFF71717A),
+                                      color: mutedCol,
                                     ),
                                   ),
                                 ),
@@ -226,9 +252,7 @@ class CaloriesConsumedChartCard extends StatelessWidget {
                               Expanded(
                                 child: Container(
                                   height: 1,
-                                  color: val == 0
-                                      ? const Color(0xFF2D3039)
-                                      : const Color(0xFF23252A),
+                                  color: val == 0 ? baseLineCol : gridLineCol,
                                 ),
                               ),
                             ],
@@ -249,7 +273,7 @@ class CaloriesConsumedChartCard extends StatelessWidget {
                               child: CustomPaint(
                                 size: Size(plotWidth, 1),
                                 painter: DashedLinePainter(
-                                  color: const Color(0xFF71717A).withOpacity(0.6),
+                                  color: mutedCol.withOpacity(0.6),
                                 ),
                               ),
                             ),
@@ -257,15 +281,15 @@ class CaloriesConsumedChartCard extends StatelessWidget {
                               padding: const EdgeInsets.symmetric(
                                   horizontal: 4, vertical: 1),
                               decoration: BoxDecoration(
-                                color: const Color(0xFF16171A),
+                                color: cardBg,
                                 borderRadius: BorderRadius.circular(2),
                               ),
-                              child: const Text(
+                              child: Text(
                                 'Goal',
                                 style: TextStyle(
                                   fontSize: 9,
                                   fontWeight: FontWeight.w600,
-                                  color: Color(0xFFA1A1AA),
+                                  color: subCol,
                                 ),
                               ),
                             ),
@@ -303,21 +327,21 @@ class CaloriesConsumedChartCard extends StatelessWidget {
                                       padding: const EdgeInsets.symmetric(
                                           horizontal: 4, vertical: 1.5),
                                       decoration: BoxDecoration(
-                                        color: Colors.white,
+                                        color: badgeBg,
                                         borderRadius: BorderRadius.circular(4),
                                         boxShadow: [
                                           BoxShadow(
-                                            color: Colors.black.withOpacity(0.3),
+                                            color: Colors.black.withOpacity(isDark ? 0.3 : 0.12),
                                             blurRadius: 4,
                                           )
                                         ],
                                       ),
                                       child: Text(
                                         NumberFormat('#,###').format(val.round()),
-                                        style: const TextStyle(
+                                        style: TextStyle(
                                           fontSize: 9,
                                           fontWeight: FontWeight.w700,
-                                          color: Colors.black,
+                                          color: badgeTextCol,
                                         ),
                                       ),
                                     ),
@@ -327,19 +351,21 @@ class CaloriesConsumedChartCard extends StatelessWidget {
                                       height: barHeight,
                                       decoration: BoxDecoration(
                                         color: isSelected
-                                            ? const Color(0xFFF3F4F6)
-                                            : const Color(0xFF3A3D46),
+                                            ? activeBarCol
+                                            : inactiveBarCol,
                                         borderRadius: const BorderRadius.vertical(
                                           top: Radius.circular(4),
                                         ),
                                         border: isSelected
                                             ? Border.all(
-                                                color: Colors.white, width: 1)
+                                                color: activeBorderCol, width: 1)
                                             : null,
                                         boxShadow: isSelected
                                             ? [
                                                 BoxShadow(
-                                                  color: Colors.white
+                                                  color: (isDark
+                                                          ? Colors.white
+                                                          : activeBarCol)
                                                       .withOpacity(0.2),
                                                   blurRadius: 8,
                                                 )
@@ -357,8 +383,8 @@ class CaloriesConsumedChartCard extends StatelessWidget {
                                           fontSize: 13,
                                           fontFamily: 'monospace',
                                           color: day != null && day.isFuture
-                                              ? const Color(0xFF52525B)
-                                              : const Color(0xFF71717A),
+                                              ? futureCol
+                                              : mutedCol,
                                         ),
                                       ),
                                     ),
@@ -389,7 +415,7 @@ class CaloriesConsumedChartCard extends StatelessWidget {
                                 alignment: Alignment.center,
                                 decoration: isSelected
                                     ? BoxDecoration(
-                                        color: Colors.white.withOpacity(0.1),
+                                        color: activeDayPillBg,
                                         borderRadius: BorderRadius.circular(4),
                                       )
                                     : null,
@@ -401,10 +427,8 @@ class CaloriesConsumedChartCard extends StatelessWidget {
                                         ? FontWeight.w700
                                         : FontWeight.w400,
                                     color: isSelected
-                                        ? Colors.white
-                                        : (isFuture
-                                            ? const Color(0xFF52525B)
-                                            : const Color(0xFFA1A1AA)),
+                                        ? activeDayTextCol
+                                        : (isFuture ? futureCol : subCol),
                                   ),
                                 ),
                               ),
@@ -423,9 +447,9 @@ class CaloriesConsumedChartCard extends StatelessWidget {
           // Selected Date & Value Footer
           Container(
             padding: const EdgeInsets.only(top: 10),
-            decoration: const BoxDecoration(
+            decoration: BoxDecoration(
               border: Border(
-                top: BorderSide(color: Color(0xFF23252A), width: 1),
+                top: BorderSide(color: gridLineCol, width: 1),
               ),
             ),
             child: Wrap(
@@ -440,18 +464,18 @@ class CaloriesConsumedChartCard extends StatelessWidget {
                     Container(
                       width: 6,
                       height: 6,
-                      decoration: const BoxDecoration(
-                        color: Colors.white,
+                      decoration: BoxDecoration(
+                        color: valueCol,
                         shape: BoxShape.circle,
                       ),
                     ),
                     const SizedBox(width: 8),
                     Text(
                       selectedDateLabel,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 11.5,
                         fontWeight: FontWeight.w500,
-                        color: Color(0xFFD1D5DB),
+                        color: headingCol,
                       ),
                     ),
                   ],
@@ -462,19 +486,19 @@ class CaloriesConsumedChartCard extends StatelessWidget {
                   children: [
                     Text(
                       selectedValLabel,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w700,
-                        color: Colors.white,
+                        color: valueCol,
                       ),
                     ),
                     if (deltaLabel.isNotEmpty)
                       Text(
                         deltaLabel,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 10,
                           fontWeight: FontWeight.w400,
-                          color: Color(0xFFA1A1AA),
+                          color: subCol,
                         ),
                       ),
                   ],

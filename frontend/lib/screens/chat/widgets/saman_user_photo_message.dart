@@ -21,6 +21,7 @@ class SamanUserPhotoMessage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = SamanChatTokens.of(context);
     final timeStr = DateFormat('HH:mm').format(timestamp ?? DateTime.now());
     final isNetwork = imagePath.startsWith('http://') || imagePath.startsWith('https://');
     final fileExists = !isNetwork && File(imagePath).existsSync();
@@ -37,7 +38,7 @@ class SamanUserPhotoMessage extends StatelessWidget {
               constraints: const BoxConstraints(maxWidth: 260.0),
               padding: const EdgeInsets.all(10.0),
               decoration: BoxDecoration(
-                color: SamanChatTokens.userBubble,
+                color: t.userBubble,
                 borderRadius: const BorderRadius.only(
                   topLeft: Radius.circular(18.0),
                   topRight: Radius.circular(4.0),
@@ -45,7 +46,7 @@ class SamanUserPhotoMessage extends StatelessWidget {
                   bottomRight: Radius.circular(18.0),
                 ),
                 border: Border.all(
-                  color: SamanChatTokens.borderSubtle,
+                  color: t.borderSubtle,
                   width: 1.0,
                 ),
               ),
@@ -59,9 +60,9 @@ class SamanUserPhotoMessage extends StatelessWidget {
                     child: Container(
                       width: double.infinity,
                       decoration: BoxDecoration(
-                        color: SamanChatTokens.surface,
+                        color: t.surface,
                         border: Border.all(
-                          color: SamanChatTokens.borderSubtle,
+                          color: t.borderSubtle,
                           width: 1.0,
                         ),
                         borderRadius: BorderRadius.circular(12.0),
@@ -72,15 +73,15 @@ class SamanUserPhotoMessage extends StatelessWidget {
                             ? Image.network(
                                 imagePath,
                                 fit: BoxFit.cover,
-                                errorBuilder: (_, __, ___) => _buildPlaceholder(),
+                                errorBuilder: (_, __, ___) => _buildPlaceholder(t),
                               )
                             : fileExists
                                 ? Image.file(
                                     File(imagePath),
                                     fit: BoxFit.cover,
-                                    errorBuilder: (_, __, ___) => _buildPlaceholder(),
+                                    errorBuilder: (_, __, ___) => _buildPlaceholder(t),
                                   )
-                                : _buildPlaceholder(),
+                                : _buildPlaceholder(t),
                       ),
                     ),
                   ),
@@ -92,7 +93,7 @@ class SamanUserPhotoMessage extends StatelessWidget {
                       padding: const EdgeInsets.symmetric(horizontal: 2.0),
                       child: Text(
                         caption!.trim(),
-                        style: SamanChatTokens.userMessage,
+                        style: t.userMessage,
                       ),
                     ),
                   ],
@@ -104,9 +105,9 @@ class SamanUserPhotoMessage extends StatelessWidget {
               padding: const EdgeInsets.only(right: 2.0),
               child: Text(
                 timeStr,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 11,
-                  color: SamanChatTokens.textMuted,
+                  color: t.textMuted,
                 ),
               ),
             ),
@@ -116,13 +117,13 @@ class SamanUserPhotoMessage extends StatelessWidget {
     );
   }
 
-  Widget _buildPlaceholder() {
+  Widget _buildPlaceholder(SamanChatPalette t) {
     return Container(
-      color: SamanChatTokens.surfaceElevated,
-      child: const Center(
+      color: t.surfaceElevated,
+      child: Center(
         child: Icon(
           Icons.restaurant_rounded,
-          color: SamanChatTokens.textMuted,
+          color: t.textMuted,
           size: 32,
         ),
       ),

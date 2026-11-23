@@ -181,22 +181,39 @@ class TestRevenueGateIntegration(unittest.IsolatedAsyncioTestCase):
             # Verify 0 quota buckets created
             self.assertEqual(len(self.mock_db[COLL_USAGE_BUCKETS].docs), 0)
 
-    async def test_enforcement_off_unallowlisted_raises_403(self):
+    async def test_enforcement_off_unallowlisted_succeeds_without_quota_mutation(self):
         with patch.dict(os.environ, {
             "REVENUE_ENFORCEMENT_ENABLED": "false",
             "GEMINI_ALLOWED_EMAILS": "other@saman.test",
+        }):
+            result = await orchestrate_nutrition_analysis(
+                image_bytes=b"sample_food_bytes",
+                mime_type="image/jpeg",
+                grams=100.0,
+                email="any_authenticated@saman.test",
+                provider_callback=self.fake_gemini_provider,
+                db=self.mock_db,
+            )
+            self.assertEqual(result["food_name"], "Phở Bò")
+            self.assertEqual(self.dispatch_count, 1)
+            self.assertEqual(len(self.mock_db[COLL_USAGE_BUCKETS].docs), 0)
+
+    async def test_gemini_configuration_error_returns_503(self):
+        with patch.dict(os.environ, {
+            "REVENUE_ENFORCEMENT_ENABLED": "false",
+            "GEMINI_API_KEY": "",
+            "ENABLE_GEMINI_FOOD_ANALYSIS": "true",
         }):
             with self.assertRaises(HTTPException) as ctx:
                 await orchestrate_nutrition_analysis(
                     image_bytes=b"sample_food_bytes",
                     mime_type="image/jpeg",
                     grams=100.0,
-                    email="unauthorized@saman.test",
-                    provider_callback=self.fake_gemini_provider,
+                    email="any_authenticated@saman.test",
                     db=self.mock_db,
                 )
-            self.assertEqual(ctx.exception.status_code, 403)
-            self.assertEqual(self.dispatch_count, 0)
+            self.assertEqual(ctx.exception.status_code, 503)
+            self.assertEqual(ctx.exception.detail["error"], "gemini_unavailable")
 
     # 2. Enforcement ON: Missing Entitlement -> Zero Dispatch
     async def test_enforcement_on_unentitled_user_raises_403_zero_dispatch(self):

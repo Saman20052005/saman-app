@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../config/app_translations.dart';
 import 'history_analytics_sheet.dart';
 import '../tokens/saman_chat_tokens.dart';
 
@@ -7,6 +8,7 @@ class SamanChatActionItem {
   final IconData icon;
   final Color? iconColor;
   final String title;
+  final String? titleKey;
   final String prompt;
   final bool opensAnalytics;
 
@@ -14,6 +16,7 @@ class SamanChatActionItem {
     required this.icon,
     this.iconColor,
     required this.title,
+    this.titleKey,
     required this.prompt,
     this.opensAnalytics = false,
   });
@@ -38,6 +41,7 @@ class SamanChatActionItem {
     SamanChatActionItem(
       icon: Icons.insights,
       title: 'Phân tích xu hướng',
+      titleKey: 'action_trend_analytics',
       prompt: '',
       opensAnalytics: true,
     ),
@@ -69,6 +73,12 @@ class SamanChatActionRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = SamanChatTokens.of(context);
+    final displayTitle = item.titleKey != null
+        ? context.tr(item.titleKey!)
+        : (item.title == 'Phân tích xu hướng'
+            ? context.tr('action_trend_analytics')
+            : item.title);
     return Material(
       color: Colors.transparent,
       child: InkWell(
@@ -79,18 +89,18 @@ class SamanChatActionRow extends StatelessWidget {
                   builder: analyticsSheetBuilder,
                 )
             : () => onTap(item.prompt),
-        hoverColor: SamanChatTokens.actionRowHoverBg,
-        focusColor: SamanChatTokens.actionRowFocusBg,
-        splashColor: SamanChatTokens.actionRowPressedBg,
-        highlightColor: SamanChatTokens.actionRowPressedBg,
+        hoverColor: t.actionRowHoverBg,
+        focusColor: t.actionRowFocusBg,
+        splashColor: t.actionRowPressedBg,
+        highlightColor: t.actionRowPressedBg,
         child: Ink(
           height: 46.0,
           padding: const EdgeInsets.symmetric(horizontal: 15.0),
           decoration: BoxDecoration(
-            color: SamanChatTokens.actionRowBg,
+            color: t.actionRowBg,
             borderRadius: BorderRadius.circular(12.0),
             border: Border.all(
-              color: SamanChatTokens.actionRowBorder,
+              color: t.actionRowBorder,
               width: 1.0,
             ),
           ),
@@ -100,21 +110,21 @@ class SamanChatActionRow extends StatelessWidget {
               Icon(
                 item.icon,
                 size: 18,
-                color: item.iconColor ?? SamanChatTokens.actionRowIconColor,
+                color: item.iconColor ?? t.actionRowIconColor,
               ),
               const SizedBox(width: 12.0),
               Expanded(
                 child: Text(
-                  item.title,
-                  style: SamanChatTokens.actionRowLabel,
+                  displayTitle,
+                  style: t.actionRowLabel,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
-              const Icon(
+              Icon(
                 Icons.chevron_right_rounded,
                 size: 16,
-                color: SamanChatTokens.actionRowChevronColor,
+                color: t.actionRowChevronColor,
               ),
             ],
           ),

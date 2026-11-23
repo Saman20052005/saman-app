@@ -105,6 +105,8 @@ class CommunityPost {
   final PostAttachmentSnapshot? activitySnapshot;
   final int likeCount;
   final int commentCount;
+  final int shareCount;
+  final bool isLikeCountHidden;
   final bool isLiked;
   final bool isBookmarked;
   final List<String> likedByNames;
@@ -126,6 +128,8 @@ class CommunityPost {
     this.activitySnapshot,
     this.likeCount = 0,
     this.commentCount = 0,
+    this.shareCount = 0,
+    this.isLikeCountHidden = false,
     this.isLiked = false,
     this.isBookmarked = false,
     this.likedByNames = const [],
@@ -148,6 +152,8 @@ class CommunityPost {
     PostAttachmentSnapshot? activitySnapshot,
     int? likeCount,
     int? commentCount,
+    int? shareCount,
+    bool? isLikeCountHidden,
     bool? isLiked,
     bool? isBookmarked,
     List<String>? likedByNames,
@@ -168,6 +174,8 @@ class CommunityPost {
       activitySnapshot: activitySnapshot ?? this.activitySnapshot,
       likeCount: likeCount ?? this.likeCount,
       commentCount: commentCount ?? this.commentCount,
+      shareCount: shareCount ?? this.shareCount,
+      isLikeCountHidden: isLikeCountHidden ?? this.isLikeCountHidden,
       isLiked: isLiked ?? this.isLiked,
       isBookmarked: isBookmarked ?? this.isBookmarked,
       likedByNames: likedByNames ?? this.likedByNames,

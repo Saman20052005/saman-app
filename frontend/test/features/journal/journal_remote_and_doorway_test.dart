@@ -192,6 +192,114 @@ void main() {
         throwsA(isA<DioException>()),
       );
     });
+
+    test('getReadingProgress, bookmarks, library-summary, guided-series work with mock Dio', () async {
+      final mockDio = MockDio(
+        handler: (options) async {
+          if (options.path == '/api/journal/reading-progress') {
+            return Response(
+              requestOptions: options,
+              statusCode: 200,
+              data: {
+                'progress': {
+                  'article_id': 'art_progress_01',
+                  'title': 'Test Article Progress',
+                  'progress_percent': 0.65,
+                  'remaining_minutes': 2,
+                  'cover_image_asset': 'assets/images/nutrition.jpg',
+                  'summary': 'Summary',
+                }
+              },
+            );
+          } else if (options.path == '/api/journal/bookmarks') {
+            return Response(
+              requestOptions: options,
+              statusCode: 200,
+              data: {
+                'articles': [
+                  {
+                    'id': 'art_bm_01',
+                    'title': 'Bookmarked Art',
+                    'summary': 'Summary',
+                    'topic': 'nutrition',
+                    'read_time_minutes': 5,
+                    'cover_image_asset': 'assets/images/nutrition.jpg',
+                    'is_bookmarked': true,
+                  }
+                ],
+                'total': 1,
+              },
+            );
+          } else if (options.path == '/api/journal/library-summary') {
+            return Response(
+              requestOptions: options,
+              statusCode: 200,
+              data: {
+                'entries': [
+                  {
+                    'id': 'library_exercises',
+                    'title': 'Thư viện bài tập',
+                    'item_count_label': '128 bài tập',
+                    'category': 'exercises',
+                    'cover_image_asset': 'assets/images/workout.jpg',
+                    'route_description': 'Description',
+                    'count': 128,
+                  }
+                ]
+              },
+            );
+          } else if (options.path == '/api/journal/guided-series') {
+            return Response(
+              requestOptions: options,
+              statusCode: 200,
+              data: {
+                'series': {
+                  'id': 'series_foundation',
+                  'title': 'Bắt đầu cùng Saman',
+                  'subtitle': 'Lộ trình nền tảng',
+                  'badge_label': 'Chuỗi hướng dẫn',
+                  'total_lessons': 1,
+                  'cover_image_asset': 'assets/images/home_hero_leg_day.jpg',
+                  'lessons': [
+                    {
+                      'id': 'lesson_01',
+                      'title': 'Lesson 1',
+                      'summary': 'Summary lesson',
+                      'topic': 'habits',
+                      'read_time_minutes': 4,
+                      'cover_image_asset': 'assets/images/home_hero_leg_day.jpg',
+                    }
+                  ],
+                }
+              },
+            );
+          }
+          throw UnimplementedError(options.path);
+        },
+      );
+
+      final ds = JournalRemoteDatasourceImpl(dio: mockDio);
+
+      final progress = await ds.getReadingProgress();
+      expect(progress, isNotNull);
+      expect(progress!.articleId, 'art_progress_01');
+      expect(progress.percentDisplay, 65);
+
+      final bookmarks = await ds.getBookmarkedArticles();
+      expect(bookmarks.length, 1);
+      expect(bookmarks[0].id, 'art_bm_01');
+      expect(bookmarks[0].isBookmarked, isTrue);
+
+      final libraries = await ds.getLibrarySummary();
+      expect(libraries.length, 1);
+      expect(libraries[0].id, 'library_exercises');
+      expect(libraries[0].count, 128);
+
+      final series = await ds.getGuidedSeries();
+      expect(series, isNotNull);
+      expect(series!.id, 'series_foundation');
+      expect(series.lessons.length, 1);
+    });
   });
 
   group('JCOM-05-02 — JournalRepositoryImpl Remote Invariant Tests', () {

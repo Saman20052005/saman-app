@@ -16,9 +16,16 @@ Catalog administration (adding, modifying, hiding, publishing, seeding)
 is managed through the controlled local CLI: backend.scripts.shop_admin.
 """
 
-from typing import List, Optional
+from datetime import datetime, timezone
 import logging
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+import sys
+from typing import Any, Dict, List, Optional
+
+from bson import ObjectId
+from fastapi import APIRouter, Body, Depends, HTTPException, Query, status
+from pydantic import BaseModel, Field
+
+from backend.auth_utils import get_current_user
 
 from backend.app.models.shop import (
     ShopBatchLookupRequest,
@@ -141,3 +148,191 @@ async def batch_lookup_products(
 ):
     items = service.get_products_by_ids(payload.ids)
     return ShopBatchLookupResponse(items=items)
+
+
+def _get_users_collection():
+    mod = sys.modules.get("backend.app.database")
+    if mod is None:
+        try:
+            import backend.app.database as mod
+        except Exception:
+            return None
+    col = getattr(mod, "users_collection", None)
+    if col is not None:
+        return col
+    database = getattr(mod, "db", None)
+    if database is not None:
+        return database["users"]
+    return None
+
+
+class ShopWishlistSyncRequest(BaseModel):
+    saved_product_ids: Optional[List[str]] = Field(default=None, max_length=100)
+    product_ids: Optional[List[str]] = Field(default=None, max_length=100)
+
+
+def _normalize_product_ids(raw_ids: Any) -> List[str]:
+    if not isinstance(raw_ids, (list, tuple)):
+        return []
+    normalized: List[str] = []
+    seen = set()
+    for item in raw_ids:
+        if not isinstance(item, str):
+            continue
+        cleaned = item.strip()
+        if not cleaned or cleaned in seen:
+            continue
+        seen.add(cleaned)
+        normalized.append(cleaned)
+        if len(normalized) >= 100:
+            break
+    return normalized
+
+
+def _candidate_user_filters(current_user: Dict[str, Any]) -> List[Dict[str, Any]]:
+    filters: List[Dict[str, Any]] = []
+    raw_id = (
+        current_user.get("_id")
+        if current_user.get("_id") is not None
+        else (current_user.get("user_id") if current_user.get("user_id") is not None else current_user.get("id"))
+    )
+    if isinstance(raw_id, ObjectId):
+        filters.append({"_id": raw_id})
+        filters.append({"_id": str(raw_id)})
+    elif isinstance(raw_id, str) and raw_id.strip():
+        rid = raw_id.strip()
+        if ObjectId.is_valid(rid):
+            filters.append({"_id": ObjectId(rid)})
+        filters.append({"_id": rid})
+
+    raw_email = current_user.get("email") or current_user.get("user_email")
+    if isinstance(raw_email, str) and raw_email.strip():
+        filters.append({"email": raw_email.strip().lower()})
+    return filters
+
+
+@router.get(
+    "/wishlist",
+    summary="Get authenticated user's shop wishlist",
+    description="Returns normalized saved_product_ids for the authenticated user.",
+)
+async def get_shop_wishlist(
+    current_user: dict = Depends(get_current_user),
+):
+    users_col = _get_users_collection()
+    user_doc: Optional[Dict[str, Any]] = None
+    if users_col is not None:
+        for query in _candidate_user_filters(current_user):
+            found = users_col.find_one(query)
+            if isinstance(found, dict):
+                user_doc = found
+                break
+
+    if user_doc is None:
+        user_doc = current_user if isinstance(current_user, dict) else {}
+
+    top_prefs = user_doc.get("preferences")
+    if not isinstance(top_prefs, dict):
+        top_prefs = {}
+    profile = user_doc.get("profile")
+    if not isinstance(profile, dict):
+        profile = {}
+    profile_prefs = profile.get("preferences")
+    if not isinstance(profile_prefs, dict):
+        profile_prefs = {}
+
+    if "saved_product_ids" in top_prefs:
+        raw_ids = top_prefs.get("saved_product_ids")
+    else:
+        raw_ids = profile_prefs.get("saved_product_ids", [])
+
+    clean_ids = _normalize_product_ids(raw_ids)
+    return {
+        "status": "success",
+        "saved_product_ids": clean_ids,
+        "product_ids": clean_ids,
+    }
+
+
+@router.put(
+    "/wishlist",
+    summary="Sync authenticated user's shop wishlist",
+    description="Persists normalized saved_product_ids for the authenticated user.",
+)
+async def sync_shop_wishlist(
+    payload: ShopWishlistSyncRequest,
+    current_user: dict = Depends(get_current_user),
+):
+    raw_input = (
+        payload.saved_product_ids
+        if payload.saved_product_ids is not None
+        else (payload.product_ids if payload.product_ids is not None else [])
+    )
+    clean_ids = _normalize_product_ids(raw_input)
+    users_col = _get_users_collection()
+    if users_col is None:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="User storage unavailable",
+        )
+
+    filters = _candidate_user_filters(current_user)
+    if not filters:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="User identifier missing",
+        )
+
+    existing_doc: Optional[Dict[str, Any]] = None
+    matched_query: Optional[Dict[str, Any]] = None
+    for query in filters:
+        found = users_col.find_one(query)
+        if isinstance(found, dict):
+            existing_doc = found
+            matched_query = query
+            break
+
+    now_iso = datetime.now(timezone.utc).isoformat()
+    update_fields: Dict[str, Any] = {}
+
+    if existing_doc is not None and "preferences" in existing_doc and not isinstance(existing_doc.get("preferences"), dict):
+        update_fields["preferences"] = {
+            "saved_product_ids": clean_ids,
+            "wishlist_updated_at": now_iso,
+        }
+    else:
+        update_fields["preferences.saved_product_ids"] = clean_ids
+        update_fields["preferences.wishlist_updated_at"] = now_iso
+
+    if existing_doc is not None and "profile" in existing_doc and not isinstance(existing_doc.get("profile"), dict):
+        update_fields["profile"] = {
+            "preferences": {
+                "saved_product_ids": clean_ids,
+            }
+        }
+    elif (
+        existing_doc is not None
+        and isinstance(existing_doc.get("profile"), dict)
+        and "preferences" in existing_doc["profile"]
+        and not isinstance(existing_doc["profile"].get("preferences"), dict)
+    ):
+        update_fields["profile.preferences"] = {
+            "saved_product_ids": clean_ids,
+        }
+    else:
+        update_fields["profile.preferences.saved_product_ids"] = clean_ids
+
+    if matched_query is not None:
+        users_col.update_one(matched_query, {"$set": update_fields})
+    else:
+        for query in filters:
+            res = users_col.update_one(query, {"$set": update_fields})
+            if getattr(res, "matched_count", 1) != 0:
+                break
+
+    return {
+        "status": "success",
+        "saved_product_ids": clean_ids,
+        "product_ids": clean_ids,
+    }
+

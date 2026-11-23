@@ -1,17 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../../../config/app_translations.dart';
 import '../../../../../config/routes.dart';
 import '../../../../../providers/profile_provider.dart';
 import '../../../../../screens/home/tokens/saman_home_tokens.dart';
+import '../../../../../widgets/saman_feedback_snackbar.dart';
 import '../../../domain/models/community_author.dart';
 import '../../../domain/models/community_post.dart';
+import '../../providers/community_dm_provider.dart';
 import '../../providers/community_providers.dart';
+import '../../providers/community_social_providers.dart';
 import '../../widgets/community_bottom_navigation_bar.dart';
 import '../../widgets/create_content_bottom_sheet.dart';
+import '../../widgets/post_card_view.dart';
+import '../saved/community_saved_screen.dart';
 import 'community_edit_profile_screen.dart';
 import 'community_follow_list_screen.dart';
-import '../drafts/community_drafts_screen.dart';
-import '../saved/community_saved_screen.dart';
 
 class CommunityProfileScreen extends ConsumerStatefulWidget {
   final String authorId;
@@ -30,21 +34,37 @@ class _CommunityProfileScreenState
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
   CommunityAuthor? _author;
-  String _bio =
-      'Yêu thích rèn luyện thể chất và dinh dưỡng cân bằng. Chia sẻ hành trình tập luyện thực tế mỗi ngày cùng Saman.';
+  List<CommunityPost> _posts = const [];
+  bool _isLoading = true;
+  bool _isGridView = true;
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
-    WidgetsBinding.instance.addPostFrameCallback((_) => _loadAuthor());
+    WidgetsBinding.instance.addPostFrameCallback((_) => _loadProfileData());
   }
 
-  Future<void> _loadAuthor() async {
-    final a = await ref
-        .read(communityRepositoryProvider)
-        .getAuthorProfile(widget.authorId);
-    if (mounted) setState(() => _author = a);
+  Future<void> _loadProfileData() async {
+    if (mounted) {
+      setState(() => _isLoading = true);
+    }
+    try {
+      final repo = ref.read(communityRepositoryProvider);
+      final results = await Future.wait<dynamic>([
+        repo.getAuthorProfile(widget.authorId),
+        repo.getAuthorPosts(widget.authorId),
+      ]);
+      if (!mounted) return;
+      setState(() {
+        _author = results[0] as CommunityAuthor;
+        _posts = results[1] as List<CommunityPost>;
+        _isLoading = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _isLoading = false);
+    }
   }
 
   @override
@@ -56,7 +76,9 @@ class _CommunityProfileScreenState
   bool get _isMe {
     if (widget.authorId == 'me') return true;
     final confirmedId = ref.read(profileProvider).confirmedUserId;
-    if (confirmedId != null && confirmedId.isNotEmpty && confirmedId == widget.authorId) {
+    if (confirmedId != null &&
+        confirmedId.isNotEmpty &&
+        confirmedId == widget.authorId) {
       return true;
     }
     final snapId = ref.read(profileProvider).snapshot?.userId;
@@ -67,6 +89,7 @@ class _CommunityProfileScreenState
   }
 
   bool _isTogglingFollow = false;
+  bool _isStartingChat = false;
 
   Future<void> _handleToggleFollow(CommunityAuthor author) async {
     if (_isTogglingFollow) return;
@@ -86,10 +109,10 @@ class _CommunityProfileScreenState
     });
 
     ref.read(communityFeedProvider.notifier).updateAuthorFollow(
-      authorId: author.id,
-      isFollowing: nextFollowing,
-      followerCount: nextFollowerCount,
-    );
+          authorId: author.id,
+          isFollowing: nextFollowing,
+          followerCount: nextFollowerCount,
+        );
 
     try {
       final actualState = await ref
@@ -100,9 +123,9 @@ class _CommunityProfileScreenState
           _author = _author?.copyWith(isFollowing: actualState);
         });
         ref.read(communityFeedProvider.notifier).updateAuthorFollow(
-          authorId: author.id,
-          isFollowing: actualState,
-        );
+              authorId: author.id,
+              isFollowing: actualState,
+            );
       }
     } catch (e) {
       if (mounted) {
@@ -110,15 +133,14 @@ class _CommunityProfileScreenState
           _author = author;
         });
         ref.read(communityFeedProvider.notifier).updateAuthorFollow(
-          authorId: author.id,
-          isFollowing: prevFollowing,
-          followerCount: author.followerCount,
-        );
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Không thể cập nhật theo dõi: ${e.toString()}'),
-            backgroundColor: Colors.redAccent,
-          ),
+              authorId: author.id,
+              isFollowing: prevFollowing,
+              followerCount: author.followerCount,
+            );
+        SamanFeedbackSnackBar.show(
+          context,
+          message: 'Không thể cập nhật theo dõi: ${e.toString()}',
+          type: FeedbackType.error,
         );
       }
     } finally {
@@ -126,90 +148,439 @@ class _CommunityProfileScreenState
     }
   }
 
+  String _formatCount(int count) {
+    if (count >= 1000) {
+      final formatted = (count / 1000).toStringAsFixed(1);
+      final clean = formatted.endsWith('.0')
+          ? formatted.substring(0, formatted.length - 2)
+          : formatted;
+      return '${clean}k';
+    }
+    return '$count';
+  }
+
+  void _openPost(CommunityPost post) {
+    if (post.type == CommunityPostType.qa) {
+      Navigator.pushNamed(
+        context,
+        AppRoutes.communityQuestionDetail,
+        arguments: post.id,
+      );
+    } else {
+      Navigator.pushNamed(
+        context,
+        AppRoutes.communityPost,
+        arguments: post.id,
+      );
+    }
+  }
+
+  Future<void> _handleStartChat(CommunityAuthor author) async {
+    if (_isStartingChat) return;
+    setState(() => _isStartingChat = true);
+    try {
+      final conv = await ref
+          .read(communityInboxProvider.notifier)
+          .createOrGetConversation(author.id);
+      if (!mounted) return;
+      await Navigator.pushNamed(
+        context,
+        AppRoutes.communityChat,
+        arguments: conv,
+      );
+    } catch (_) {
+      if (mounted) {
+        SamanFeedbackSnackBar.show(
+          context,
+          message: 'Không thể bắt đầu cuộc trò chuyện với ${author.name}.',
+          type: FeedbackType.error,
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isStartingChat = false);
+      }
+    }
+  }
+
+  void _showUserOptionsSheet(BuildContext context, CommunityAuthor author) {
+    final sheetBg = SamanHomeTokens.of(context).cardSurface;
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: sheetBg,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) {
+        final tokens = SamanHomeTokens.of(ctx);
+        final dangerColor = Theme.of(ctx).colorScheme.error;
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                key: const ValueKey('profile-options-mute-tile'),
+                leading: Icon(
+                  Icons.volume_off_outlined,
+                  color: tokens.textPrimary,
+                ),
+                title: Text(
+                  context.tr('profile_action_mute_user'),
+                  style: Theme.of(ctx).textTheme.bodyMedium?.copyWith(
+                    color: tokens.textPrimary,
+                  ),
+                ),
+                onTap: () async {
+                  Navigator.pop(ctx);
+                  await _handleMuteUser(author);
+                },
+              ),
+              ListTile(
+                key: const ValueKey('profile-options-block-tile'),
+                leading: Icon(Icons.block_rounded, color: dangerColor),
+                title: Text(
+                  context.tr('profile_action_block_user'),
+                  style: Theme.of(ctx).textTheme.bodyMedium?.copyWith(
+                    color: dangerColor,
+                  ),
+                ),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _showBlockUserConfirmation(author);
+                },
+              ),
+              ListTile(
+                key: const ValueKey('profile-options-report-tile'),
+                leading: Icon(Icons.flag_outlined, color: dangerColor),
+                title: Text(
+                  context.tr('profile_action_report_user'),
+                  style: Theme.of(ctx).textTheme.bodyMedium?.copyWith(
+                    color: dangerColor,
+                  ),
+                ),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _showReportUserReasonSheet(author);
+                },
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> _handleMuteUser(CommunityAuthor author) async {
+    try {
+      await ref.read(communitySettingsProvider.notifier).muteUser(author.id);
+      await ref.read(communityFeedProvider.notifier).refresh();
+      if (mounted) {
+        SamanFeedbackSnackBar.show(
+          context,
+          message: context.tr('post_mute_success'),
+          type: FeedbackType.info,
+        );
+      }
+    } catch (_) {
+      if (mounted) {
+        SamanFeedbackSnackBar.show(
+          context,
+          message: context.tr('post_report_error'),
+          type: FeedbackType.error,
+        );
+      }
+    }
+  }
+
+  Future<void> _showBlockUserConfirmation(CommunityAuthor author) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogCtx) {
+        final tokens = SamanHomeTokens.of(dialogCtx);
+        final dangerColor = Theme.of(dialogCtx).colorScheme.error;
+        return AlertDialog(
+          backgroundColor: tokens.cardSurface,
+          title: Text(
+            context.tr('post_block_confirm_title'),
+            style: Theme.of(dialogCtx).textTheme.titleMedium?.copyWith(
+              color: tokens.textPrimary,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          content: Text(
+            context.tr('post_block_confirm_msg'),
+            style: Theme.of(dialogCtx).textTheme.bodyMedium?.copyWith(
+              color: tokens.textSecondary,
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogCtx, false),
+              child: Text(
+                context.tr('compose_discard'),
+                style: Theme.of(dialogCtx).textTheme.labelLarge?.copyWith(
+                  color: tokens.textMuted,
+                ),
+              ),
+            ),
+            TextButton(
+              key: const ValueKey('profile-confirm-block-button'),
+              onPressed: () => Navigator.pop(dialogCtx, true),
+              child: Text(
+                context.tr('post_block_confirm_btn'),
+                style: Theme.of(dialogCtx).textTheme.labelLarge?.copyWith(
+                  color: dangerColor,
+                ),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (confirmed == true && mounted) {
+      try {
+        await ref.read(communitySettingsProvider.notifier).blockUser(author.id);
+        await ref.read(communityFeedProvider.notifier).refresh();
+        if (mounted) {
+          SamanFeedbackSnackBar.show(
+            context,
+            message: context.tr('post_block_success'),
+            type: FeedbackType.info,
+          );
+          if (Navigator.canPop(context)) {
+            Navigator.pop(context);
+          }
+        }
+      } catch (_) {
+        if (mounted) {
+          SamanFeedbackSnackBar.show(
+            context,
+            message: context.tr('post_report_error'),
+            type: FeedbackType.error,
+          );
+        }
+      }
+    }
+  }
+
+  void _showReportUserReasonSheet(CommunityAuthor author) {
+    final tokens = SamanHomeTokens.of(context);
+    final reasons = <({String key, String labelKey})>[
+      (key: 'spam', labelKey: 'post_report_reason_spam'),
+      (key: 'harassment', labelKey: 'post_report_reason_harassment'),
+      (key: 'misinformation', labelKey: 'post_report_reason_misinformation'),
+      (key: 'inappropriate', labelKey: 'post_report_reason_inappropriate'),
+      (key: 'other', labelKey: 'post_report_reason_other'),
+    ];
+
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: tokens.cardSurface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (sheetCtx) {
+        final sheetTokens = SamanHomeTokens.of(sheetCtx);
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  context.tr('profile_action_report_user'),
+                  style: Theme.of(sheetCtx).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w700,
+                    color: sheetTokens.textPrimary,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                ...reasons.map(
+                  (r) => ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    title: Text(
+                      context.tr(r.labelKey),
+                      style: Theme.of(sheetCtx).textTheme.bodyMedium?.copyWith(
+                        fontSize: 14,
+                        color: sheetTokens.textPrimary,
+                      ),
+                    ),
+                    trailing: Icon(
+                      Icons.chevron_right_rounded,
+                      color: sheetTokens.textSecondary,
+                    ),
+                    onTap: () async {
+                      Navigator.pop(sheetCtx);
+                      try {
+                        await ref
+                            .read(communitySettingsProvider.notifier)
+                            .reportContent(
+                              targetType: 'user',
+                              targetId: author.id,
+                              reason: r.key,
+                            );
+                        if (mounted) {
+                          SamanFeedbackSnackBar.show(
+                            context,
+                            message: context.tr('post_report_success'),
+                            type: FeedbackType.success,
+                          );
+                        }
+                      } catch (_) {
+                        if (mounted) {
+                          SamanFeedbackSnackBar.show(
+                            context,
+                            message: context.tr('post_report_error'),
+                            type: FeedbackType.error,
+                          );
+                        }
+                      }
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    final tokens = SamanHomeTokens.of(context);
     final author = _author ??
         const CommunityAuthor(
           id: 'me',
           name: 'Linh Nguyễn',
           isVerified: true,
-          title: 'Thành viên chia sẻ (Mẫu)',
+          title: 'Thành viên chia sẻ',
         );
-    final feedState = ref.watch(communityFeedProvider);
+
+    final workoutPosts = _posts
+        .where(
+          (p) =>
+              p.type == CommunityPostType.workout ||
+              p.workoutAttachment != null,
+        )
+        .toList();
+    final mealPosts = _posts
+        .where(
+          (p) =>
+              p.type == CommunityPostType.meal || p.nutritionInfo != null,
+        )
+        .toList();
 
     return Scaffold(
-      backgroundColor: const Color(0xFF121314),
+      backgroundColor: tokens.canvas,
       body: SafeArea(
         bottom: false,
         child: Column(
           children: [
-            _buildAppBar(context, author),
-            _buildPreviewNoticeBanner(),
+            _buildAppBar(context, author, tokens),
             Expanded(
-              child: NestedScrollView(
-                headerSliverBuilder: (context, innerBoxIsScrolled) {
-                  return [
-                    SliverToBoxAdapter(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+              child: _isLoading && _author == null
+                  ? Center(
+                      child: CircularProgressIndicator(
+                        color: tokens.greenAccent,
+                      ),
+                    )
+                  : NestedScrollView(
+                      headerSliverBuilder: (context, innerBoxIsScrolled) {
+                        return [
+                          SliverToBoxAdapter(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                _buildProfileHeader(context, author, tokens),
+                                const SizedBox(height: 12),
+                                _buildActionStrip(context, author, tokens),
+                                const SizedBox(height: 16),
+                                _buildStatsStrip(author, tokens),
+                                const SizedBox(height: 16),
+                              ],
+                            ),
+                          ),
+                          SliverPersistentHeader(
+                            pinned: true,
+                            delegate: _SliverTabBarDelegate(
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: TabBar(
+                                      controller: _tabController,
+                                      indicatorColor: tokens.greenAccent,
+                                      dividerColor: tokens.borderSubtle,
+                                      labelColor: tokens.greenAccent,
+                                      unselectedLabelColor:
+                                          tokens.textSecondary,
+                                      tabs: const [
+                                        Tab(text: 'Bài viết'),
+                                        Tab(text: 'Buổi tập'),
+                                        Tab(text: 'Bữa ăn'),
+                                      ],
+                                    ),
+                                  ),
+                                  IconButton(
+                                    key: const ValueKey('profile-view-toggle'),
+                                    constraints: const BoxConstraints(
+                                      minWidth: 44,
+                                      minHeight: 44,
+                                    ),
+                                    onPressed: () {
+                                      setState(
+                                        () => _isGridView = !_isGridView,
+                                      );
+                                    },
+                                    tooltip: _isGridView
+                                        ? 'Xem dạng danh sách'
+                                        : 'Xem dạng lưới',
+                                    icon: Icon(
+                                      _isGridView
+                                          ? Icons.view_agenda_outlined
+                                          : Icons.grid_view_rounded,
+                                      color: tokens.textSecondary,
+                                      size: 20,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ];
+                      },
+                      body: TabBarView(
+                        controller: _tabController,
                         children: [
-                          _buildProfileHeader(context, author),
-                          const SizedBox(height: 12),
-                          _buildActionStrip(context, author),
-                          const SizedBox(height: 16),
-                          _buildStatsStrip(),
-                          const SizedBox(height: 16),
+                          _buildPostsBody(_posts, tokens),
+                          _buildPostsBody(workoutPosts, tokens),
+                          _buildPostsBody(mealPosts, tokens),
                         ],
                       ),
                     ),
-                    SliverPersistentHeader(
-                      pinned: true,
-                      delegate: _SliverTabBarDelegate(
-                        TabBar(
-                          controller: _tabController,
-                          indicatorColor: SamanHomeTokens.greenAccent,
-                          labelColor: SamanHomeTokens.greenAccent,
-                          unselectedLabelColor: const Color(0xFFBBCAAF),
-                          tabs: const [
-                            Tab(text: 'Bài viết'),
-                            Tab(text: 'Buổi tập'),
-                            Tab(text: 'Bữa ăn'),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ];
-                },
-                body: TabBarView(
-                  controller: _tabController,
-                  children: [
-                    _buildPostGrid(feedState.posts),
-                    _buildPostGrid(
-                      feedState.posts
-                          .where((p) => p.type == CommunityPostType.workout)
-                          .toList(),
-                    ),
-                    _buildPostGrid(
-                      feedState.posts
-                          .where((p) => p.nutritionInfo != null)
-                          .toList(),
-                    ),
-                  ],
-                ),
-              ),
             ),
             CommunityBottomNavigationBar(
               currentTab: CommunityNavTab.profile,
               onTabSelected: (tab) {
                 if (tab == CommunityNavTab.feed) {
-                  Navigator.pushReplacementNamed(context, AppRoutes.communityFeed);
+                  Navigator.pushReplacementNamed(
+                    context,
+                    AppRoutes.communityFeed,
+                  );
                 } else if (tab == CommunityNavTab.discover) {
                   Navigator.pushReplacementNamed(
-                      context, AppRoutes.communityDiscover);
+                    context,
+                    AppRoutes.communityDiscover,
+                  );
                 } else if (tab == CommunityNavTab.create) {
                   CreateContentBottomSheet.show(context);
                 } else if (tab == CommunityNavTab.notifications) {
-                  Navigator.pushNamed(context, '/community/notifications');
+                  Navigator.pushNamed(
+                    context,
+                    AppRoutes.communityNotifications,
+                  );
                 }
               },
             ),
@@ -219,82 +590,96 @@ class _CommunityProfileScreenState
     );
   }
 
-  Widget _buildPreviewNoticeBanner() {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-      color: const Color(0xFF1B1C1D),
-      child: const Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            Icons.info_outline_rounded,
-            size: 13,
-            color: SamanHomeTokens.greenAccent,
-          ),
-          SizedBox(width: 6),
-          Flexible(
-            child: Text(
-              'Bản xem trước giao diện • Dữ liệu mẫu thử nghiệm',
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                fontSize: 11,
-                color: Color(0xFFBBCAAF),
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+  Widget _buildAppBar(
+    BuildContext context,
+    CommunityAuthor author,
+    SamanHomePalette tokens,
+  ) {
+    final handleText =
+        (author.handle != null && author.handle!.trim().isNotEmpty)
+            ? '@${author.handle!.trim()}'
+            : '@${author.name.toLowerCase().replaceAll(' ', '.')}';
 
-  Widget _buildAppBar(BuildContext context, CommunityAuthor author) {
     return Container(
       height: 52,
       padding: const EdgeInsets.symmetric(horizontal: 16),
-      decoration: const BoxDecoration(
-        color: Color(0xFF121314),
-        border: Border(bottom: BorderSide(color: Color(0xFF1F2021), width: 1)),
+      decoration: BoxDecoration(
+        color: tokens.canvas,
+        border: Border(bottom: BorderSide(color: tokens.border, width: 1)),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           IconButton(
+            constraints: const BoxConstraints(minWidth: 44, minHeight: 44),
             onPressed: () => Navigator.pop(context),
-            icon: const Icon(
+            icon: Icon(
               Icons.arrow_back_rounded,
-              color: SamanHomeTokens.textWhite,
+              color: tokens.textPrimary,
               size: 22,
             ),
           ),
           Expanded(
             child: Text(
-              '@${author.name.toLowerCase().replaceAll(' ', '.')}',
+              handleText,
               textAlign: TextAlign.center,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                fontSize: 16,
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
                 fontWeight: FontWeight.w700,
-                color: SamanHomeTokens.textWhite,
+                color: tokens.textPrimary,
               ),
             ),
           ),
-          IconButton(
-            onPressed: () {},
-            icon: const Icon(
-              Icons.share_outlined,
-              color: SamanHomeTokens.textWhite,
-              size: 20,
-            ),
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (_isMe)
+                IconButton(
+                  key: const ValueKey('profile-settings-btn'),
+                  constraints: const BoxConstraints(
+                    minWidth: 44,
+                    minHeight: 44,
+                  ),
+                  onPressed: () {
+                    Navigator.pushNamed(context, AppRoutes.communitySettings);
+                  },
+                  icon: Icon(
+                    Icons.settings_outlined,
+                    color: tokens.textPrimary,
+                    size: 22,
+                  ),
+                )
+              else
+                IconButton(
+                  key: const ValueKey('profile-more-btn'),
+                  constraints: const BoxConstraints(
+                    minWidth: 44,
+                    minHeight: 44,
+                  ),
+                  onPressed: () => _showUserOptionsSheet(context, author),
+                  icon: Icon(
+                    Icons.more_horiz_rounded,
+                    color: tokens.textPrimary,
+                    size: 22,
+                  ),
+                ),
+            ],
           ),
         ],
       ),
     );
   }
 
-  Widget _buildProfileHeader(BuildContext context, CommunityAuthor author) {
+  Widget _buildProfileHeader(
+    BuildContext context,
+    CommunityAuthor author,
+    SamanHomePalette tokens,
+  ) {
+    final initial = author.name.isNotEmpty ? author.name[0].toUpperCase() : 'S';
+    final bioText = (author.bio != null && author.bio!.trim().isNotEmpty)
+        ? author.bio!.trim()
+        : 'Thành viên cộng đồng Saman';
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       child: Column(
@@ -308,21 +693,43 @@ class _CommunityProfileScreenState
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   border: Border.all(
-                    color: SamanHomeTokens.greenAccent,
+                    color: tokens.greenAccent,
                     width: 2,
                   ),
-                  color: const Color(0xFF292A2B),
+                  color: tokens.secondarySurface,
                 ),
-                child: Center(
-                  child: Text(
-                    author.name.isNotEmpty ? author.name[0] : 'S',
-                    style: const TextStyle(
-                      fontSize: 28,
-                      fontWeight: FontWeight.w700,
-                      color: SamanHomeTokens.greenAccent,
-                    ),
-                  ),
-                ),
+                clipBehavior: Clip.antiAlias,
+                child: author.avatarUrl != null && author.avatarUrl!.isNotEmpty
+                    ? Image.network(
+                        author.avatarUrl!,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) => Center(
+                          child: Text(
+                            initial,
+                            style: Theme.of(context)
+                                .textTheme
+                                .headlineMedium
+                                ?.copyWith(
+                                  fontSize: 28,
+                                  fontWeight: FontWeight.w700,
+                                  color: tokens.greenAccent,
+                                ),
+                          ),
+                        ),
+                      )
+                    : Center(
+                        child: Text(
+                          initial,
+                          style: Theme.of(context)
+                              .textTheme
+                              .headlineMedium
+                              ?.copyWith(
+                                fontSize: 28,
+                                fontWeight: FontWeight.w700,
+                                color: tokens.greenAccent,
+                              ),
+                        ),
+                      ),
               ),
               const SizedBox(width: 16),
               Expanded(
@@ -335,19 +742,22 @@ class _CommunityProfileScreenState
                           child: Text(
                             author.name,
                             overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.w700,
-                              color: SamanHomeTokens.textWhite,
-                            ),
+                            style: Theme.of(context)
+                                .textTheme
+                                .titleLarge
+                                ?.copyWith(
+                                  fontWeight: FontWeight.w700,
+                                  color: tokens.textPrimary,
+                                  height: 1.25,
+                                ),
                           ),
                         ),
                         if (author.isVerified) ...[
                           const SizedBox(width: 4),
-                          const Icon(
+                          Icon(
                             Icons.verified_rounded,
                             size: 16,
-                            color: SamanHomeTokens.greenAccent,
+                            color: tokens.greenAccent,
                           ),
                         ],
                       ],
@@ -355,9 +765,9 @@ class _CommunityProfileScreenState
                     const SizedBox(height: 2),
                     Text(
                       author.title ?? '',
-                      style: const TextStyle(
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
                         fontSize: 12,
-                        color: Color(0xFFBBCAAF),
+                        color: tokens.textSecondary,
                       ),
                     ),
                     const SizedBox(height: 8),
@@ -376,25 +786,31 @@ class _CommunityProfileScreenState
                                 ),
                               ),
                             );
-                            if (mounted) _loadAuthor();
+                            if (mounted) _loadProfileData();
                           },
                           child: Text.rich(
                             TextSpan(
                               children: [
                                 TextSpan(
                                   text: '${author.followingCount} ',
-                                  style: const TextStyle(
-                                    fontWeight: FontWeight.w700,
-                                    color: SamanHomeTokens.textWhite,
-                                    fontSize: 13,
-                                  ),
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .labelMedium
+                                      ?.copyWith(
+                                        fontWeight: FontWeight.w700,
+                                        color: tokens.textPrimary,
+                                        fontSize: 13,
+                                      ),
                                 ),
-                                const TextSpan(
+                                TextSpan(
                                   text: 'Đang theo dõi  •  ',
-                                  style: TextStyle(
-                                    color: Color(0xFFBBCAAF),
-                                    fontSize: 12,
-                                  ),
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .bodySmall
+                                      ?.copyWith(
+                                        color: tokens.textSecondary,
+                                        fontSize: 12,
+                                      ),
                                 ),
                               ],
                             ),
@@ -412,25 +828,31 @@ class _CommunityProfileScreenState
                                 ),
                               ),
                             );
-                            if (mounted) _loadAuthor();
+                            if (mounted) _loadProfileData();
                           },
                           child: Text.rich(
                             TextSpan(
                               children: [
                                 TextSpan(
                                   text: '${author.followerCount} ',
-                                  style: const TextStyle(
-                                    fontWeight: FontWeight.w700,
-                                    color: SamanHomeTokens.textWhite,
-                                    fontSize: 13,
-                                  ),
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .labelMedium
+                                      ?.copyWith(
+                                        fontWeight: FontWeight.w700,
+                                        color: tokens.textPrimary,
+                                        fontSize: 13,
+                                      ),
                                 ),
-                                const TextSpan(
+                                TextSpan(
                                   text: 'Người theo dõi',
-                                  style: TextStyle(
-                                    color: Color(0xFFBBCAAF),
-                                    fontSize: 12,
-                                  ),
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .bodySmall
+                                      ?.copyWith(
+                                        color: tokens.textSecondary,
+                                        fontSize: 12,
+                                      ),
                                 ),
                               ],
                             ),
@@ -445,56 +867,153 @@ class _CommunityProfileScreenState
           ),
           const SizedBox(height: 12),
           Text(
-            _bio,
-            style: const TextStyle(
+            bioText,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
               fontSize: 13,
-              color: SamanHomeTokens.textWhite,
-              height: 1.4,
+              color: tokens.textPrimary,
+              height: 1.5,
             ),
           ),
+          if (author.interestTopics.isNotEmpty) ...[
+            const SizedBox(height: 10),
+            Wrap(
+              spacing: 6,
+              runSpacing: 6,
+              children: author.interestTopics
+                  .map(
+                    (topic) => Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: tokens.secondarySurface,
+                        borderRadius: BorderRadius.circular(
+                          SamanHomeTokens.radiusSm,
+                        ),
+                        border: Border.all(color: tokens.border),
+                      ),
+                      child: Text(
+                        topic,
+                        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                          color: tokens.greenAccent,
+                        ),
+                      ),
+                    ),
+                  )
+                  .toList(),
+            ),
+          ],
         ],
       ),
     );
   }
 
-  Widget _buildActionStrip(BuildContext context, CommunityAuthor author) {
+  Widget _buildActionStrip(
+    BuildContext context,
+    CommunityAuthor author,
+    SamanHomePalette tokens,
+  ) {
     if (!_isMe) {
       final isFollowing = author.isFollowing;
       return Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16),
-        child: SizedBox(
-          width: double.infinity,
-          height: 38,
-          child: isFollowing
-              ? OutlinedButton(
-                  onPressed: () => _handleToggleFollow(author),
+        child: Row(
+          children: [
+            Expanded(
+              child: SizedBox(
+                height: 44,
+                child: isFollowing
+                    ? OutlinedButton(
+                        onPressed: () => _handleToggleFollow(author),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: tokens.textSecondary,
+                          side: BorderSide(color: tokens.border),
+                          padding: const EdgeInsets.symmetric(horizontal: 10),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(
+                              SamanHomeTokens.radiusMd,
+                            ),
+                          ),
+                        ),
+                        child: Text(
+                          'Đang theo dõi',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: tokens.textSecondary,
+                          ),
+                        ),
+                      )
+                    : ElevatedButton(
+                        onPressed: () => _handleToggleFollow(author),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: tokens.greenAccent,
+                          foregroundColor:
+                              Theme.of(context).colorScheme.onPrimary,
+                          padding: const EdgeInsets.symmetric(horizontal: 10),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(
+                              SamanHomeTokens.radiusMd,
+                            ),
+                          ),
+                          elevation: 0,
+                        ),
+                        child: Text(
+                          'Theo dõi',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                            color: Theme.of(context).colorScheme.onPrimary,
+                          ),
+                        ),
+                      ),
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: SizedBox(
+                height: 44,
+                child: OutlinedButton.icon(
+                  key: const ValueKey('profile-message-btn'),
+                  onPressed: _isStartingChat
+                      ? null
+                      : () => _handleStartChat(author),
+                  icon: Icon(
+                    Icons.chat_bubble_outline_rounded,
+                    size: 16,
+                    color: tokens.textPrimary,
+                  ),
+                  label: Text(
+                    context.tr('profile_action_message'),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: tokens.textPrimary,
+                    ),
+                  ),
                   style: OutlinedButton.styleFrom(
-                    foregroundColor: const Color(0xFFBBCAAF),
-                    side: const BorderSide(color: Color(0xFF343536)),
+                    foregroundColor: tokens.textPrimary,
+                    side: BorderSide(color: tokens.border),
+                    padding: const EdgeInsets.symmetric(horizontal: 10),
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
+                      borderRadius: BorderRadius.circular(
+                        SamanHomeTokens.radiusMd,
+                      ),
                     ),
-                  ),
-                  child: const Text(
-                    'Đang theo dõi',
-                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
-                  ),
-                )
-              : ElevatedButton(
-                  onPressed: () => _handleToggleFollow(author),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: SamanHomeTokens.greenAccent,
-                    foregroundColor: const Color(0xFF003824),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    elevation: 0,
-                  ),
-                  child: const Text(
-                    'Theo dõi',
-                    style: TextStyle(fontWeight: FontWeight.w700),
                   ),
                 ),
+              ),
+            ),
+          ],
         ),
       );
     }
@@ -504,95 +1023,145 @@ class _CommunityProfileScreenState
       child: Row(
         children: [
           Expanded(
+            flex: 4,
             child: SizedBox(
-              height: 36,
+              height: 44,
               child: OutlinedButton(
                 onPressed: () async {
-                  final result = await Navigator.push(
+                  await Navigator.push(
                     context,
                     MaterialPageRoute(
                       builder: (_) => CommunityEditProfileScreen(
                         initialName: author.name,
+                        initialHandle: author.handle,
                         initialTitle: author.title,
-                        initialBio: _bio,
+                        initialBio: author.bio ?? '',
+                        initialAvatarUrl: author.avatarUrl,
+                        initialInterestTopics: author.interestTopics,
+                        onSaveProfile: (payload) async {
+                          try {
+                            await ref
+                                .read(communityRepositoryProvider)
+                                .updateProfile(
+                                  name: payload['name'] as String?,
+                                  handle: payload['handle'] as String?,
+                                  title: payload['title'] as String?,
+                                  bio: payload['bio'] as String?,
+                                  interestTopics:
+                                      (payload['interestTopics'] as List<dynamic>?)
+                                          ?.map((e) => e.toString())
+                                          .toList(),
+                                  avatarUrl: payload['avatarUrl'] as String?,
+                                  localAvatarPath:
+                                      payload['avatarPath'] as String?,
+                                  removeAvatar:
+                                      payload['avatarRemoved'] == true,
+                                );
+                            if (mounted) {
+                              await _loadProfileData();
+                              ref
+                                  .read(communityFeedProvider.notifier)
+                                  .refresh();
+                            }
+                            return true;
+                          } catch (_) {
+                            return false;
+                          }
+                        },
                       ),
                     ),
                   );
-                  if (result is Map<String, dynamic> && mounted) {
-                    setState(() {
-                      if (result['bio'] != null &&
-                          (result['bio'] as String).isNotEmpty) {
-                        _bio = result['bio'] as String;
-                      }
-                      if (result['name'] != null &&
-                          (result['name'] as String).isNotEmpty) {
-                        _author = (_author ?? author)
-                            .copyWith(name: result['name'] as String);
-                      }
-                      if (result['title'] != null &&
-                          (result['title'] as String).isNotEmpty) {
-                        _author = (_author ?? author)
-                            .copyWith(title: result['title'] as String);
-                      }
-                    });
-                  }
                 },
                 style: OutlinedButton.styleFrom(
-                  foregroundColor: SamanHomeTokens.textWhite,
-                  side: const BorderSide(color: Color(0xFF343536)),
+                  foregroundColor: tokens.textPrimary,
+                  side: BorderSide(color: tokens.border),
+                  padding: const EdgeInsets.symmetric(horizontal: 10),
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
+                    borderRadius: BorderRadius.circular(
+                      SamanHomeTokens.radiusMd,
+                    ),
                   ),
                 ),
-                child: const Text(
+                child: Text(
                   'Chỉnh sửa hồ sơ',
-                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: tokens.textPrimary,
+                  ),
                 ),
               ),
             ),
           ),
           const SizedBox(width: 8),
-          SizedBox(
-            height: 36,
-            child: OutlinedButton.icon(
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => const CommunitySavedScreen(),
+          Flexible(
+            flex: 3,
+            child: SizedBox(
+              height: 44,
+              child: OutlinedButton.icon(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const CommunitySavedScreen(),
+                    ),
+                  );
+                },
+                icon: const Icon(Icons.bookmark_border_rounded, size: 16),
+                label: Text(
+                  'Đã lưu',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: tokens.textSecondary,
                   ),
-                );
-              },
-              icon: const Icon(Icons.bookmark_border_rounded, size: 16),
-              label: const Text('Đã lưu', style: TextStyle(fontSize: 12)),
-              style: OutlinedButton.styleFrom(
-                foregroundColor: const Color(0xFFBBCAAF),
-                side: const BorderSide(color: Color(0xFF343536)),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
+                ),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: tokens.textSecondary,
+                  side: BorderSide(color: tokens.border),
+                  padding: const EdgeInsets.symmetric(horizontal: 10),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(
+                      SamanHomeTokens.radiusMd,
+                    ),
+                  ),
                 ),
               ),
             ),
           ),
           const SizedBox(width: 8),
-          SizedBox(
-            height: 36,
-            child: OutlinedButton.icon(
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => const CommunityDraftsScreen(),
+          Flexible(
+            flex: 3,
+            child: SizedBox(
+              height: 44,
+              child: OutlinedButton.icon(
+                onPressed: () {
+                  Navigator.pushNamed(context, AppRoutes.communityDrafts);
+                },
+                icon: const Icon(Icons.edit_note_rounded, size: 16),
+                label: Text(
+                  'Bản nháp',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: tokens.textSecondary,
                   ),
-                );
-              },
-              icon: const Icon(Icons.edit_note_rounded, size: 16),
-              label: const Text('Bản nháp', style: TextStyle(fontSize: 12)),
-              style: OutlinedButton.styleFrom(
-                foregroundColor: const Color(0xFFBBCAAF),
-                side: const BorderSide(color: Color(0xFF343536)),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
+                ),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: tokens.textSecondary,
+                  side: BorderSide(color: tokens.border),
+                  padding: const EdgeInsets.symmetric(horizontal: 10),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(
+                      SamanHomeTokens.radiusMd,
+                    ),
+                  ),
                 ),
               ),
             ),
@@ -602,38 +1171,53 @@ class _CommunityProfileScreenState
     );
   }
 
-  Widget _buildStatsStrip() {
+  Widget _buildStatsStrip(CommunityAuthor author, SamanHomePalette tokens) {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
       decoration: BoxDecoration(
-        color: const Color(0xFF1E1F21),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(0xFF292A2B)),
+        color: tokens.cardSurface,
+        borderRadius: BorderRadius.circular(SamanHomeTokens.radiusLg),
+        border: Border.all(color: tokens.borderSubtle),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
-          _buildStatItem('42', 'Buổi tập chia sẻ'),
-          Container(width: 1, height: 24, color: const Color(0xFF2E3033)),
-          _buildStatItem('18', 'Bữa ăn dinh dưỡng'),
-          Container(width: 1, height: 24, color: const Color(0xFF2E3033)),
-          _buildStatItem('1.2k', 'Lượt thích nhận'),
+          _buildStatItem(
+            '${author.workoutPostCount}',
+            'Buổi tập chia sẻ',
+            tokens,
+          ),
+          Container(width: 1, height: 24, color: tokens.borderSubtle),
+          _buildStatItem(
+            '${author.mealPostCount}',
+            'Bữa ăn dinh dưỡng',
+            tokens,
+          ),
+          Container(width: 1, height: 24, color: tokens.borderSubtle),
+          _buildStatItem(
+            _formatCount(author.totalLikesReceived),
+            'Lượt thích nhận',
+            tokens,
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildStatItem(String value, String label) {
+  Widget _buildStatItem(
+    String value,
+    String label,
+    SamanHomePalette tokens,
+  ) {
     return Expanded(
       child: Column(
         children: [
           Text(
             value,
-            style: const TextStyle(
-              fontSize: 16,
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
               fontWeight: FontWeight.w700,
-              color: SamanHomeTokens.greenAccent,
+              color: tokens.greenAccent,
             ),
           ),
           const SizedBox(height: 2),
@@ -642,9 +1226,9 @@ class _CommunityProfileScreenState
             textAlign: TextAlign.center,
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
+            style: Theme.of(context).textTheme.labelSmall?.copyWith(
               fontSize: 11,
-              color: Color(0xFFBBCAAF),
+              color: tokens.textSecondary,
             ),
           ),
         ],
@@ -652,13 +1236,37 @@ class _CommunityProfileScreenState
     );
   }
 
-  Widget _buildPostGrid(List<CommunityPost> posts) {
+  Widget _buildPostsBody(
+    List<CommunityPost> posts,
+    SamanHomePalette tokens,
+  ) {
     if (posts.isEmpty) {
-      return const Center(
+      return Center(
         child: Text(
           'Chưa có bài viết nào trong mục này.',
-          style: TextStyle(color: Color(0xFF71767B), fontSize: 13),
+          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+            color: tokens.textMuted,
+          ),
         ),
+      );
+    }
+
+    if (!_isGridView) {
+      return ListView.builder(
+        padding: const EdgeInsets.symmetric(vertical: 8),
+        itemCount: posts.length,
+        itemBuilder: (context, index) {
+          final post = posts[index];
+          return PostCardView(
+            post: post,
+            onOpenDetail: () => _openPost(post),
+            onLikeToggle: () =>
+                ref.read(communityFeedProvider.notifier).toggleLike(post.id),
+            onBookmarkToggle: () => ref
+                .read(communityFeedProvider.notifier)
+                .toggleBookmark(post.id),
+          );
+        },
       );
     }
 
@@ -677,15 +1285,9 @@ class _CommunityProfileScreenState
             : 'assets/images/nutrition/meal_pho.jpg';
 
         return InkWell(
-          onTap: () {
-            Navigator.pushNamed(
-              context,
-              AppRoutes.communityPost,
-              arguments: post.id,
-            );
-          },
+          onTap: () => _openPost(post),
           child: Container(
-            color: const Color(0xFF1F2021),
+            color: tokens.cardSurface,
             child: Stack(
               fit: StackFit.expand,
               children: [
@@ -693,21 +1295,33 @@ class _CommunityProfileScreenState
                   img,
                   fit: BoxFit.cover,
                   errorBuilder: (_, __, ___) => Container(
-                    color: const Color(0xFF292A2B),
-                    child: const Icon(
-                      Icons.fitness_center_rounded,
-                      color: Color(0xFF55585C),
+                    color: tokens.secondarySurface,
+                    child: Icon(
+                      post.type == CommunityPostType.qa
+                          ? Icons.question_answer_rounded
+                          : Icons.fitness_center_rounded,
+                      color: tokens.textMuted,
                       size: 24,
                     ),
                   ),
                 ),
                 if (post.type == CommunityPostType.workout)
-                  const Positioned(
+                  Positioned(
                     top: 4,
                     right: 4,
                     child: Icon(
                       Icons.bolt_rounded,
-                      color: SamanHomeTokens.greenAccent,
+                      color: tokens.greenAccent,
+                      size: 16,
+                    ),
+                  ),
+                if (post.type == CommunityPostType.qa)
+                  Positioned(
+                    top: 4,
+                    right: 4,
+                    child: Icon(
+                      Icons.help_outline_rounded,
+                      color: tokens.greenAccent,
                       size: 16,
                     ),
                   ),
@@ -721,25 +1335,29 @@ class _CommunityProfileScreenState
 }
 
 class _SliverTabBarDelegate extends SliverPersistentHeaderDelegate {
-  final TabBar _tabBar;
-  _SliverTabBarDelegate(this._tabBar);
+  final Widget _child;
+  _SliverTabBarDelegate(this._child);
 
   @override
-  double get minExtent => _tabBar.preferredSize.height;
+  double get minExtent => 48;
   @override
-  double get maxExtent => _tabBar.preferredSize.height;
+  double get maxExtent => 48;
 
   @override
   Widget build(
-      BuildContext context, double shrinkOffset, bool overlapsContent) {
+    BuildContext context,
+    double shrinkOffset,
+    bool overlapsContent,
+  ) {
+    final tokens = SamanHomeTokens.of(context);
     return Container(
-      color: const Color(0xFF121314),
-      child: _tabBar,
+      color: tokens.canvas,
+      child: _child,
     );
   }
 
   @override
   bool shouldRebuild(_SliverTabBarDelegate oldDelegate) {
-    return false;
+    return true;
   }
 }

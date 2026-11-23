@@ -27,6 +27,9 @@ class SamanReminderNudge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = SamanChatTokens.of(context);
+    final primaryFg =
+        t.isDark ? const Color(0xFF003824) : const Color(0xFFFFFFFF);
     return Align(
       alignment: Alignment.centerLeft,
       child: ConstrainedBox(
@@ -41,24 +44,24 @@ class SamanReminderNudge extends StatelessWidget {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Row(
+                  Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      SamanMonogram.chat(),
-                      SizedBox(width: 8.0),
+                      const SamanMonogram.chat(),
+                      const SizedBox(width: 8.0),
                       Text(
                         'Saman',
-                        style: SamanChatTokens.assistantName,
+                        style: t.assistantName,
                       ),
                     ],
                   ),
                   if (nudge.timestamp != null)
                     Text(
                       _formatTimestamp(nudge.timestamp!),
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w400,
-                        color: SamanChatTokens.textMuted,
+                        color: t.textMuted,
                       ),
                     ),
                 ],
@@ -72,16 +75,18 @@ class SamanReminderNudge extends StatelessWidget {
               width: double.infinity,
               padding: const EdgeInsets.all(14.0),
               decoration: BoxDecoration(
-                color: SamanChatTokens.surface,
+                color: t.surface,
                 borderRadius: BorderRadius.circular(14.0),
                 border: Border.all(
-                  color: SamanChatTokens.borderSubtle,
+                  color: t.borderSubtle,
                   width: 1.0,
                 ),
-                boxShadow: const [
+                boxShadow: [
                   BoxShadow(
-                    color: Color(0x22000000),
-                    offset: Offset(0, 2),
+                    color: t.isDark
+                        ? const Color(0x22000000)
+                        : const Color(0x120F172A),
+                    offset: const Offset(0, 2),
                     blurRadius: 8,
                   ),
                 ],
@@ -93,10 +98,10 @@ class SamanReminderNudge extends StatelessWidget {
                   // Conversational message
                   Text(
                     nudge.message,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w400,
-                      color: SamanChatTokens.textWhite,
+                      color: t.textWhite,
                       height: 1.5,
                       letterSpacing: -0.1,
                     ),
@@ -108,10 +113,10 @@ class SamanReminderNudge extends StatelessWidget {
                     const SizedBox(height: 10.0),
                     Text(
                       nudge.supportingLine!,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w400,
-                        color: SamanChatTokens.textSecondary,
+                        color: t.textSecondary,
                         height: 1.3,
                       ),
                     ),
@@ -126,7 +131,7 @@ class SamanReminderNudge extends StatelessWidget {
                     children: [
                       // Primary action button
                       Material(
-                        color: SamanChatTokens.greenAccent,
+                        color: t.greenAccent,
                         borderRadius: BorderRadius.circular(8.0),
                         child: InkWell(
                           onTap: nudge.onPrimary,
@@ -141,17 +146,17 @@ class SamanReminderNudge extends StatelessWidget {
                               children: [
                                 Text(
                                   nudge.primaryLabel,
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                     fontSize: 13,
                                     fontWeight: FontWeight.w600,
-                                    color: Color(0xFF003824),
+                                    color: primaryFg,
                                   ),
                                 ),
                                 const SizedBox(width: 4.0),
-                                const Icon(
+                                Icon(
                                   Icons.arrow_forward_rounded,
                                   size: 15,
-                                  color: Color(0xFF003824),
+                                  color: primaryFg,
                                 ),
                               ],
                             ),
@@ -172,10 +177,10 @@ class SamanReminderNudge extends StatelessWidget {
                             ),
                             child: Text(
                               nudge.secondaryLabel,
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 12.5,
                                 fontWeight: FontWeight.w500,
-                                color: SamanChatTokens.textMuted,
+                                color: t.textMuted,
                               ),
                             ),
                           ),

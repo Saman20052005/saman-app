@@ -23,10 +23,11 @@ class StepActivityView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final p = OnboardingTokens.of(context);
     final canContinue = selectedChoice != null;
 
     return Scaffold(
-      backgroundColor: OnboardingTokens.canvas,
+      backgroundColor: p.canvas,
       body: SafeArea(
         child: Stack(
           children: [
@@ -52,9 +53,9 @@ class StepActivityView extends StatelessWidget {
                           begin: Alignment.topCenter,
                           end: Alignment.bottomCenter,
                           colors: [
-                            OnboardingTokens.canvas.withOpacity(0.3),
-                            OnboardingTokens.canvas.withOpacity(0.7),
-                            OnboardingTokens.canvas,
+                            p.canvas.withOpacity(0.3),
+                            p.canvas.withOpacity(0.7),
+                            p.canvas,
                           ],
                         ),
                       ),
@@ -66,8 +67,8 @@ class StepActivityView extends StatelessWidget {
                           end: Alignment.centerLeft,
                           colors: [
                             Colors.transparent,
-                            OnboardingTokens.canvas.withOpacity(0.6),
-                            OnboardingTokens.canvas,
+                            p.canvas.withOpacity(0.6),
+                            p.canvas,
                           ],
                         ),
                       ),
@@ -94,23 +95,23 @@ class StepActivityView extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         const SizedBox(height: 16),
-                        const Text(
+                        Text(
                           'How active is your usual week?',
                           style: TextStyle(
                             fontSize: 26,
                             fontWeight: FontWeight.w700,
-                            color: OnboardingTokens.textPrimary,
+                            color: p.textPrimary,
                             height: 1.15,
                             letterSpacing: -0.5,
                           ),
                         ),
                         const SizedBox(height: 8),
-                        const Text(
+                        Text(
                           'Think about your daily movement as well as exercise.',
                           style: TextStyle(
                             fontSize: 13,
                             fontWeight: FontWeight.w400,
-                            color: OnboardingTokens.textSecondary,
+                            color: p.textSecondary,
                             height: 1.4,
                           ),
                         ),
@@ -212,6 +213,15 @@ class _ActivityCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final p = OnboardingTokens.of(context);
+    final iconBoxBg = p.isDark ? const Color(0xFF212328) : p.surfaceSelected;
+    final radioSelectedBg = p.isDark ? Colors.white : const Color(0xFF059669);
+    final radioSelectedDot = p.isDark ? p.canvas : Colors.white;
+    final radioUnselectedBg =
+        p.isDark ? const Color(0xFF131417) : p.surface;
+    final radioUnselectedBorder =
+        p.isDark ? const Color(0xFF525252) : p.textDisabled;
+
     return Material(
       color: Colors.transparent,
       child: InkWell(
@@ -222,14 +232,10 @@ class _ActivityCard extends StatelessWidget {
           constraints: const BoxConstraints(minHeight: 76),
           padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
-            color: isSelected
-                ? OnboardingTokens.surfaceSelected
-                : OnboardingTokens.surface,
+            color: isSelected ? p.surfaceSelected : p.surface,
             borderRadius: BorderRadius.circular(OnboardingTokens.radiusCard),
             border: Border.all(
-              color: isSelected
-                  ? OnboardingTokens.borderSelected
-                  : OnboardingTokens.borderDefault,
+              color: isSelected ? p.borderSelected : p.borderDefault,
               width: isSelected ? 1.5 : 1.0,
             ),
           ),
@@ -239,15 +245,17 @@ class _ActivityCard extends StatelessWidget {
                 width: 36,
                 height: 36,
                 decoration: BoxDecoration(
-                  color: const Color(0xFF212328),
+                  color: iconBoxBg,
                   borderRadius: BorderRadius.circular(OnboardingTokens.radiusButton),
-                  border: Border.all(color: OnboardingTokens.borderDefault),
+                  border: Border.all(color: p.borderDefault),
                 ),
                 alignment: Alignment.center,
                 child: Icon(
                   icon,
                   size: 20,
-                  color: isSelected ? Colors.white : OnboardingTokens.textSecondary,
+                  color: isSelected
+                      ? (p.isDark ? Colors.white : p.textPrimary)
+                      : p.textSecondary,
                 ),
               ),
               const SizedBox(width: 12),
@@ -261,17 +269,15 @@ class _ActivityCard extends StatelessWidget {
                       style: TextStyle(
                         fontSize: 14,
                         fontWeight: isSelected ? FontWeight.w700 : FontWeight.w600,
-                        color: isSelected
-                            ? Colors.white
-                            : OnboardingTokens.textPrimary,
+                        color: p.textPrimary,
                       ),
                     ),
                     const SizedBox(height: 2),
                     Text(
                       choice.subtitle,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 12,
-                        color: OnboardingTokens.textSecondary,
+                        color: p.textSecondary,
                         height: 1.3,
                       ),
                     ),
@@ -284,9 +290,9 @@ class _ActivityCard extends StatelessWidget {
                 height: 20,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: isSelected ? Colors.white : const Color(0xFF131417),
+                  color: isSelected ? radioSelectedBg : radioUnselectedBg,
                   border: Border.all(
-                    color: isSelected ? Colors.white : const Color(0xFF525252),
+                    color: isSelected ? radioSelectedBg : radioUnselectedBorder,
                     width: 1.5,
                   ),
                 ),
@@ -295,9 +301,9 @@ class _ActivityCard extends StatelessWidget {
                     ? Container(
                         width: 8,
                         height: 8,
-                        decoration: const BoxDecoration(
+                        decoration: BoxDecoration(
                           shape: BoxShape.circle,
-                          color: OnboardingTokens.canvas,
+                          color: radioSelectedDot,
                         ),
                       )
                     : null,

@@ -1,10 +1,17 @@
 import 'dart:async';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../data/datasources/workout_cv_native_source.dart';
 import '../../domain/entities/exercise_cv_state.dart';
 import '../../domain/entities/pose_landmark.dart';
+import '../../domain/services/bicep_curl_baseline.dart';
 import '../../domain/services/lat_pulldown_baseline.dart';
+import '../../domain/services/overhead_press_baseline.dart';
+import '../../domain/services/pull_up_baseline.dart';
+import '../../domain/services/push_up_baseline.dart';
+import '../../domain/services/squat_baseline.dart';
+import '../../domain/services/workout_cv_exercise_registry.dart';
 import '../../domain/services/workout_cv_motion_features.dart';
 
 final workoutCvNativeSourceProvider = Provider<WorkoutCvNativeSource>((ref) {
@@ -27,7 +34,7 @@ class WorkoutCvNotifier extends StateNotifier<ExerciseCvState> {
   int _minRejectedSessionGen = 0;
   int _initGeneration = 0;
   bool _isStopped = false;
-  final LatPulldownBaseline _repTracker = LatPulldownBaseline();
+  dynamic _repTracker = LatPulldownBaseline();
   int? _repSessionGen;
   int? _lastRepPtsMs;
   bool _analysisClosed = false;
@@ -39,6 +46,7 @@ class WorkoutCvNotifier extends StateNotifier<ExerciseCvState> {
     required String exerciseId,
     required String exerciseSlug,
     bool videoReplay = false,
+    String? videoPath,
   }) async {
     final opId = ++_initGeneration;
     _isStopped = false;
@@ -46,6 +54,12 @@ class WorkoutCvNotifier extends StateNotifier<ExerciseCvState> {
     _subscription?.cancel();
     _subscription = null;
 
+    _repTracker = _createTrackerForModule(
+      WorkoutCvExerciseRegistry.resolveModule(
+        id: exerciseId,
+        slug: exerciseSlug,
+      ),
+    );
     _resetRepAnalysis();
 
     state = state.copyWith(
@@ -61,8 +75,15 @@ class WorkoutCvNotifier extends StateNotifier<ExerciseCvState> {
       clearErrorMessage: true,
     );
 
-    if (videoReplay) {
-      await startVideoReplay();
+    const isReplayTrial = bool.fromEnvironment('WORKOUT_CV_REPLAY_TRIAL');
+    if (videoPath != null && videoPath.isNotEmpty) {
+      await startVideoReplay(videoPath: videoPath);
+      return;
+    }
+    if (videoReplay || isReplayTrial) {
+      await startVideoReplay(
+        videoPath: '/storage/emulated/0/Download/cv_test.mp4',
+      );
       return;
     }
 
@@ -114,9 +135,14 @@ class WorkoutCvNotifier extends StateNotifier<ExerciseCvState> {
   }
 
   Future<void> startVideoReplay({String? videoPath}) async {
-    final path = videoPath ?? '/data/data/com.example.health_ai_app/files/test_videos/15620300_1080_1920_50fps.mp4';
+    final path = (videoPath != null && videoPath.isNotEmpty)
+        ? videoPath
+        : (_replayVideoPath != null && _replayVideoPath!.isNotEmpty
+            ? _replayVideoPath!
+            : '/storage/emulated/0/Download/cv_test.mp4');
     final name = path.split('/').last;
     _replayVideoPath = path;
+    debugPrint('VIDEO_REPLAY_MODE: Tích hợp thành công, đang đọc file...');
 
     final opId = ++_initGeneration;
     _isStopped = false;
@@ -460,23 +486,19 @@ class WorkoutCvNotifier extends StateNotifier<ExerciseCvState> {
         .map((m) => PoseLandmark.fromMap(m))
         .toList();
 
-    // Check critical upper body joints (shoulders: 11, 12, elbows: 13, 14, hips: 23, 24)
-    final hasShoulders =
-        _isJointConfident(parsedLandmarks, PoseLandmark.leftShoulder) &&
-            _isJointConfident(parsedLandmarks, PoseLandmark.rightShoulder);
-    final hasElbows =
-        _isJointConfident(parsedLandmarks, PoseLandmark.leftElbow) ||
-            _isJointConfident(parsedLandmarks, PoseLandmark.rightElbow);
-    final hasHips = _isJointConfident(parsedLandmarks, PoseLandmark.leftHip) ||
-        _isJointConfident(parsedLandmarks, PoseLandmark.rightHip);
-
-    if (!hasShoulders || (!hasElbows && !hasHips)) {
-      // Incomplete upper body framing
+    final module = WorkoutCvExerciseRegistry.resolveModule(
+      id: state.exerciseId,
+      slug: state.exerciseSlug,
+    );
+    if (!_hasRequiredFraming(parsedLandmarks, module)) {
+      // Incomplete body framing for the active exercise module
       state = state.copyWith(
         trackingStatus: TrackingStatus.needsSetup,
         posesDetected: 1,
         landmarks: parsedLandmarks,
-        guideMessage: 'Align upper body (shoulders, arms, hips) inside frame.',
+        guideMessage: module == CvExerciseModule.squat
+            ? 'Align lower body (hips, knees, ankles) inside frame.'
+            : 'Align upper body (shoulders, arms, hips) inside frame.',
         latencyMs: latency,
         timestamp: timestamp,
         frameCount: newFrameCount,
@@ -510,6 +532,7 @@ class WorkoutCvNotifier extends StateNotifier<ExerciseCvState> {
       replayRepEvents: const [],
       analysisPhase: LatPulldownPhase.notReady,
       replayAnalysisStatus: ReplayAnalysisStatus.waiting,
+      abortCount: 0,
     );
   }
 
@@ -534,7 +557,11 @@ class WorkoutCvNotifier extends StateNotifier<ExerciseCvState> {
     // Display handshakes/progress are not pose samples or recognition failures.
     if (event['status'] == 'replayPreparing' ||
         event['status'] == 'previewProgress') return;
-    if (state.exerciseSlug != 'lat-pulldown') return;
+    final module = WorkoutCvExerciseRegistry.resolveModule(
+      id: state.exerciseId,
+      slug: state.exerciseSlug,
+    );
+    if (module == null) return;
 
     final isReplay = state.sourceMode == 'video_replay';
     // Native camera timestamps are capture uptime, never inference arrival time.
@@ -555,25 +582,151 @@ class WorkoutCvNotifier extends StateNotifier<ExerciseCvState> {
     if (_lastRepPtsMs != null && ptsMs <= _lastRepPtsMs!) return;
     _lastRepPtsMs = ptsMs;
 
-    final features = WorkoutCvMotionFeatures.extractLatPulldownFeatures(
-      frameIndex: state.frameCount - 1,
-      timestampMs: ptsMs,
-      landmarks: state.landmarks,
-      imageWidth: (event['inputImageWidth'] as num?)?.toDouble() ?? 0,
-      imageHeight: (event['inputImageHeight'] as num?)?.toDouble() ?? 0,
-      isGateDetecting: state.trackingStatus == TrackingStatus.detecting &&
-          state.isSyncValid,
-    );
+    final imageWidth = (event['inputImageWidth'] as num?)?.toDouble() ?? 0;
+    final imageHeight = (event['inputImageHeight'] as num?)?.toDouble() ?? 0;
+    final isGateDetecting =
+        state.trackingStatus == TrackingStatus.detecting && state.isSyncValid;
+
     // Invalid/lost samples must reach the baseline to interrupt holds/cycles.
-    final result = _repTracker.processFrameFeatures(features);
+    final dynamic result;
+    if (module == CvExerciseModule.latPulldown ||
+        module == CvExerciseModule.pullUp) {
+      final features = WorkoutCvMotionFeatures.extractLatPulldownFeatures(
+        frameIndex: state.frameCount - 1,
+        timestampMs: ptsMs,
+        landmarks: state.landmarks,
+        imageWidth: imageWidth,
+        imageHeight: imageHeight,
+        isGateDetecting: isGateDetecting,
+      );
+      result = _repTracker.processFrameFeatures(features);
+    } else {
+      final features = WorkoutCvMotionFeatures.extractMultiExerciseAngles(
+        frameIndex: state.frameCount - 1,
+        timestampMs: ptsMs,
+        landmarks: state.landmarks,
+        imageWidth: imageWidth,
+        imageHeight: imageHeight,
+        isGateDetecting: isGateDetecting,
+      );
+      result = _repTracker.processFrameFeatures(features);
+    }
+
+    final phase = _toAnalysisPhase(result.phase);
+    final shouldIncrementAbort = result.resetReason != null &&
+        result.resetReason != 'droppedNonMonotonicTimestamp';
     state = state.copyWith(
-      replayRepEvents: _repTracker.repHistory,
-      analysisPhase: result.phase,
-      replayAnalysisStatus: result.isSampleValid &&
-              result.phase != LatPulldownPhase.notReady
+      replayRepEvents: _repTracker.repHistory as List<LatPulldownRepEvent>,
+      analysisPhase: phase,
+      replayAnalysisStatus: result.isSampleValid == true &&
+              phase != LatPulldownPhase.notReady
           ? ReplayAnalysisStatus.analyzing
           : ReplayAnalysisStatus.insufficientData,
+      abortCount:
+          shouldIncrementAbort ? state.abortCount + 1 : state.abortCount,
     );
+  }
+
+  dynamic _createTrackerForModule(CvExerciseModule? module) {
+    return switch (module) {
+      CvExerciseModule.pullUp => PullUpBaseline(),
+      CvExerciseModule.squat => SquatBaseline(),
+      CvExerciseModule.pushUp => PushUpBaseline(),
+      CvExerciseModule.overheadPress => OverheadPressBaseline(),
+      CvExerciseModule.bicepCurl => BicepCurlBaseline(),
+      CvExerciseModule.latPulldown || null => LatPulldownBaseline(),
+    };
+  }
+
+  bool _hasRequiredFraming(
+    List<PoseLandmark> landmarks,
+    CvExerciseModule? module,
+  ) {
+    switch (module) {
+      case CvExerciseModule.squat:
+        final hasLeftLeg =
+            _isJointConfident(landmarks, PoseLandmark.leftHip) &&
+                _isJointConfident(landmarks, PoseLandmark.leftKnee) &&
+                _isJointConfident(landmarks, PoseLandmark.leftAnkle);
+        final hasRightLeg =
+            _isJointConfident(landmarks, PoseLandmark.rightHip) &&
+                _isJointConfident(landmarks, PoseLandmark.rightKnee) &&
+                _isJointConfident(landmarks, PoseLandmark.rightAnkle);
+        return hasLeftLeg || hasRightLeg;
+      case CvExerciseModule.pushUp:
+      case CvExerciseModule.bicepCurl:
+      case CvExerciseModule.overheadPress:
+        final hasLeftArm =
+            _isJointConfident(landmarks, PoseLandmark.leftShoulder) &&
+                _isJointConfident(landmarks, PoseLandmark.leftElbow) &&
+                _isJointConfident(landmarks, PoseLandmark.leftWrist);
+        final hasRightArm =
+            _isJointConfident(landmarks, PoseLandmark.rightShoulder) &&
+                _isJointConfident(landmarks, PoseLandmark.rightElbow) &&
+                _isJointConfident(landmarks, PoseLandmark.rightWrist);
+        if (hasLeftArm || hasRightArm) return true;
+        return _hasUpperBodyPairFraming(landmarks);
+      case CvExerciseModule.latPulldown:
+      case CvExerciseModule.pullUp:
+      case null:
+        return _hasUpperBodyPairFraming(landmarks);
+    }
+  }
+
+  bool _hasUpperBodyPairFraming(List<PoseLandmark> landmarks) {
+    final hasShoulders =
+        _isJointConfident(landmarks, PoseLandmark.leftShoulder) &&
+            _isJointConfident(landmarks, PoseLandmark.rightShoulder);
+    final hasElbows =
+        _isJointConfident(landmarks, PoseLandmark.leftElbow) ||
+            _isJointConfident(landmarks, PoseLandmark.rightElbow);
+    final hasHips = _isJointConfident(landmarks, PoseLandmark.leftHip) ||
+        _isJointConfident(landmarks, PoseLandmark.rightHip);
+    return hasShoulders && (hasElbows || hasHips);
+  }
+
+  LatPulldownPhase _toAnalysisPhase(Object? phase) {
+    if (phase is LatPulldownPhase) return phase;
+    if (phase is PullUpPhase) {
+      return LatPulldownPhase.values.byName(phase.name);
+    }
+    if (phase is SquatPhase) {
+      return switch (phase) {
+        SquatPhase.notReady => LatPulldownPhase.notReady,
+        SquatPhase.standing => LatPulldownPhase.extended,
+        SquatPhase.descending => LatPulldownPhase.pulling,
+        SquatPhase.bottom => LatPulldownPhase.flexed,
+        SquatPhase.ascending => LatPulldownPhase.returning,
+      };
+    }
+    if (phase is PushUpPhase) {
+      return switch (phase) {
+        PushUpPhase.notReady => LatPulldownPhase.notReady,
+        PushUpPhase.extended => LatPulldownPhase.extended,
+        PushUpPhase.lowering => LatPulldownPhase.pulling,
+        PushUpPhase.bottom => LatPulldownPhase.flexed,
+        PushUpPhase.pushing => LatPulldownPhase.returning,
+      };
+    }
+    if (phase is OverheadPressPhase) {
+      return switch (phase) {
+        OverheadPressPhase.notReady => LatPulldownPhase.notReady,
+        OverheadPressPhase.ready => LatPulldownPhase.extended,
+        OverheadPressPhase.pressing => LatPulldownPhase.pulling,
+        OverheadPressPhase.lockout => LatPulldownPhase.flexed,
+        OverheadPressPhase.lowering => LatPulldownPhase.returning,
+      };
+    }
+    if (phase is BicepCurlPhase) {
+      return switch (phase) {
+        BicepCurlPhase.notReady => LatPulldownPhase.notReady,
+        BicepCurlPhase.extended => LatPulldownPhase.extended,
+        BicepCurlPhase.curling => LatPulldownPhase.pulling,
+        BicepCurlPhase.flexed => LatPulldownPhase.flexed,
+        BicepCurlPhase.lowering => LatPulldownPhase.returning,
+      };
+    }
+    return LatPulldownPhase.notReady;
   }
 
   void _acknowledgeAfterFrame(int generation, int ptsMs, String phase) {

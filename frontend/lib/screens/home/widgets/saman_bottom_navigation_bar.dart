@@ -26,15 +26,16 @@ class SamanBottomNavigationBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = SamanHomeTokens.of(context);
     final bottomInset = MediaQuery.paddingOf(context).bottom;
     final effectiveBottom = bottomInset > 0 ? bottomInset : 12.0;
 
     return Container(
-      decoration: const BoxDecoration(
-        color: SamanHomeTokens.canvas,
+      decoration: BoxDecoration(
+        color: tokens.isDark ? tokens.canvas : tokens.cardSurface,
         border: Border(
           top: BorderSide(
-            color: SamanHomeTokens.borderSubtle,
+            color: tokens.borderSubtle,
             width: 1.0,
           ),
         ),
@@ -48,20 +49,23 @@ class SamanBottomNavigationBar extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
-          _buildNavItem(0, context.tr('tab_home'), const _HomeIconPainter()),
-          _buildNavItem(1, context.tr('tab_workout'), const _WorkoutIconPainter()),
-          _buildNavItem(2, context.tr('tab_saman'), const _SamanIconPainter()),
-          _buildNavItem(3, context.tr('tab_nutrition'), const _NutritionIconPainter()),
-          _buildNavItem(4, context.tr('tab_profile'), const _ProfileIconPainter()),
+          _buildNavItem(context, 0, context.tr('tab_home'), const _HomeIconPainter()),
+          _buildNavItem(context, 1, context.tr('tab_workout'), const _WorkoutIconPainter()),
+          _buildNavItem(context, 2, context.tr('tab_saman'), const _SamanIconPainter()),
+          _buildNavItem(context, 3, context.tr('tab_nutrition'), const _NutritionIconPainter()),
+          _buildNavItem(context, 4, context.tr('tab_profile'), const _ProfileIconPainter()),
         ],
       ),
     );
   }
 
-  Widget _buildNavItem(int index, String label, _IconPainter painter) {
+  Widget _buildNavItem(
+      BuildContext context, int index, String label, _IconPainter painter) {
+    final tokens = SamanHomeTokens.of(context);
     final isSelected = currentIndex == index;
-    const activeColor = SamanHomeTokens.textWhite;
-    const inactiveColor = Color(0xFF9CA3AF);
+    final activeColor = tokens.textWhite;
+    final inactiveColor =
+        tokens.isDark ? const Color(0xFF9CA3AF) : tokens.textMuted;
     final color = isSelected ? activeColor : inactiveColor;
 
     return Expanded(
@@ -76,7 +80,9 @@ class SamanBottomNavigationBar extends StatelessWidget {
             radius: 28,
             containedInkWell: false,
             highlightColor: Colors.transparent,
-            splashColor: Colors.white.withOpacity(0.08),
+            splashColor: tokens.isDark
+                ? Colors.white.withOpacity(0.08)
+                : tokens.textPrimary.withOpacity(0.06),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               mainAxisAlignment: MainAxisAlignment.center,
@@ -107,7 +113,7 @@ class SamanBottomNavigationBar extends StatelessWidget {
                   height: 4,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    color: isSelected ? SamanHomeTokens.textWhite : Colors.transparent,
+                    color: isSelected ? activeColor : Colors.transparent,
                   ),
                 ),
               ],

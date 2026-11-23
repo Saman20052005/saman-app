@@ -37,10 +37,11 @@ class ShopHeader extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final t = ShopTheme.of(context);
     final savedCount = ref.watch(savedProductsCountProvider);
 
     return Container(
-      color: ShopTheme.canvas,
+      color: t.canvas,
       padding: const EdgeInsets.symmetric(
         horizontal: ShopTheme.paddingPage,
         vertical: 10.0,
@@ -57,10 +58,10 @@ class ShopHeader extends ConsumerWidget {
               color: Colors.transparent,
               child: IconButton(
                 onPressed: onBackTap ?? () => Navigator.maybePop(context),
-                icon: const Icon(
+                icon: Icon(
                   Icons.arrow_back_ios_new_rounded,
                   size: 18,
-                  color: ShopTheme.textPrimary,
+                  color: t.textPrimary,
                 ),
                 splashRadius: 20,
                 tooltip: MaterialLocalizations.of(context).backButtonTooltip,
@@ -73,7 +74,7 @@ class ShopHeader extends ConsumerWidget {
             child: Text(
               ShopTranslations.of(context, 'shop_title'),
               textAlign: TextAlign.center,
-              style: ShopTheme.headerTitle,
+              style: t.headerTitle,
             ),
           ),
 
@@ -91,9 +92,7 @@ class ShopHeader extends ConsumerWidget {
                         ? Icons.bookmark_rounded
                         : Icons.bookmark_outline_rounded,
                     size: 20,
-                    color: savedCount > 0
-                        ? ShopTheme.emerald
-                        : ShopTheme.textSecondary,
+                    color: savedCount > 0 ? t.emerald : t.textSecondary,
                   ),
                   splashRadius: 20,
                   tooltip: ShopTranslations.of(context, 'saved_title'),
@@ -104,8 +103,8 @@ class ShopHeader extends ConsumerWidget {
                     right: 6,
                     child: Container(
                       padding: const EdgeInsets.all(3.5),
-                      decoration: const BoxDecoration(
-                        color: ShopTheme.emerald,
+                      decoration: BoxDecoration(
+                        color: t.emerald,
                         shape: BoxShape.circle,
                       ),
                       constraints: const BoxConstraints(
@@ -115,10 +114,10 @@ class ShopHeader extends ConsumerWidget {
                       child: Text(
                         '$savedCount',
                         textAlign: TextAlign.center,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 8.5,
                           fontWeight: FontWeight.w700,
-                          color: ShopTheme.canvas,
+                          color: t.isDark ? t.canvas : const Color(0xFFFFFFFF),
                           height: 1.0,
                         ),
                       ),

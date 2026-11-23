@@ -16,6 +16,7 @@ import com.google.mediapipe.tasks.vision.poselandmarker.PoseLandmarkerResult
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.CopyOnWriteArrayList
 import java.util.concurrent.atomic.AtomicLong
+import kotlin.math.min
 
 class PoseLandmarkerHelper(
     private val context: Context,
@@ -48,6 +49,11 @@ class PoseLandmarkerHelper(
         val isPtsVerified: Boolean = true
     )
 
+    companion object {
+        private const val TAG = "PoseLandmarkerHelper"
+        private const val MODEL_NAME = "pose_landmarker_lite.task"
+    }
+
     private var poseLandmarker: PoseLandmarker? = null
     private var lastTimestampMs = Long.MIN_VALUE
     private val submitMetaMap = ConcurrentHashMap<Long, FrameSubmitMeta>()
@@ -61,52 +67,117 @@ class PoseLandmarkerHelper(
 
     fun setupPoseLandmarker() {
         if (poseLandmarker != null) return
+        // GPU delegate init can block the platform (main) thread forever in
+        // Graph.nativeWaitUntilGraphIdle on some devices (e.g. CPH2407/MediaTek),
+        // so it never throws and the CPU fallback is unreachable. Use CPU only.
         try {
-            val baseOptionBuilder = BaseOptions.builder()
-                .setModelAssetPath("pose_landmarker_lite.task")
-                .setDelegate(Delegate.CPU)
-
-            val optionsBuilder = PoseLandmarker.PoseLandmarkerOptions.builder()
-                .setBaseOptions(baseOptionBuilder.build())
-                .setMinPoseDetectionConfidence(0.5f)
-                .setMinTrackingConfidence(0.5f)
-                .setMinPosePresenceConfidence(0.5f)
-                .setNumPoses(2) // Max 2 poses to detect and gate multiple people
-                .setOutputSegmentationMasks(false)
-                .setRunningMode(RunningMode.LIVE_STREAM)
-                .setResultListener { result: PoseLandmarkerResult, input: MPImage ->
-                    val frameTime = result.timestampMs()
-                    val nowNs = SystemClock.elapsedRealtimeNanos()
-                    WorkoutCvPerfTracker.onCallback(frameTime)
-                    val meta = submitMetaMap.remove(frameTime)
-                    val inferenceTime = if (meta != null) {
-                        ((nowNs - meta.submitRealtimeNs) / 1_000_000L).coerceAtLeast(0L)
-                    } else {
-                        (SystemClock.uptimeMillis() - frameTime).coerceAtLeast(0L)
-                    }
-                    poseLandmarkerListener.onResults(
-                        ResultBundle(
-                            results = listOf(result),
-                            inferenceTime = inferenceTime,
-                            inputImageHeight = input.height,
-                            inputImageWidth = input.width,
-                            timestamp = frameTime,
-                            sessionGen = meta?.sessionGen ?: -1L,
-                            decoderPtsUs = meta?.decoderPtsUs ?: -1L,
-                            surfaceTimestampNs = meta?.surfaceTimestampNs ?: -1L,
-                            readbackMs = meta?.readbackMs ?: 0.0,
-                            isPtsVerified = meta?.isPtsVerified ?: false
-                        )
-                    )
-                }
-                .setErrorListener { error ->
-                    poseLandmarkerListener.onError(error.message ?: "MediaPipe detection error")
-                }
-
-            poseLandmarker = PoseLandmarker.createFromOptions(context, optionsBuilder.build())
-        } catch (e: Exception) {
+            poseLandmarker = PoseLandmarker.createFromOptions(
+                context,
+                buildPoseLandmarkerOptions(Delegate.CPU)
+            )
+            Log.i(TAG, "MediaPipe initialized with CPU Delegate")
+        } catch (cpuEx: Exception) {
             poseLandmarker = null
-            poseLandmarkerListener.onError("PoseLandmarker init failed: ${e.message}")
+            poseLandmarkerListener.onError("PoseLandmarker init failed: ${cpuEx.message}")
+        }
+    }
+
+    private fun buildPoseLandmarkerOptions(delegate: Delegate): PoseLandmarker.PoseLandmarkerOptions {
+        val baseOptionBuilder = BaseOptions.builder()
+            .setModelAssetPath(MODEL_NAME)
+            .setDelegate(delegate)
+
+        return PoseLandmarker.PoseLandmarkerOptions.builder()
+            .setBaseOptions(baseOptionBuilder.build())
+            .setMinPoseDetectionConfidence(0.4f)
+            .setMinTrackingConfidence(0.4f)
+            .setMinPosePresenceConfidence(0.4f)
+            .setNumPoses(1)
+            .setOutputSegmentationMasks(false)
+            .setRunningMode(RunningMode.LIVE_STREAM)
+            .setResultListener { result: PoseLandmarkerResult, input: MPImage ->
+                val frameTime = result.timestampMs()
+                val nowNs = SystemClock.elapsedRealtimeNanos()
+                WorkoutCvPerfTracker.onCallback(frameTime)
+                val meta = submitMetaMap.remove(frameTime)
+                val inferenceTime = if (meta != null) {
+                    ((nowNs - meta.submitRealtimeNs) / 1_000_000L).coerceAtLeast(0L)
+                } else {
+                    (SystemClock.uptimeMillis() - frameTime).coerceAtLeast(0L)
+                }
+                poseLandmarkerListener.onResults(
+                    ResultBundle(
+                        results = listOf(result),
+                        inferenceTime = inferenceTime,
+                        inputImageHeight = input.height,
+                        inputImageWidth = input.width,
+                        timestamp = frameTime,
+                        sessionGen = meta?.sessionGen ?: -1L,
+                        decoderPtsUs = meta?.decoderPtsUs ?: -1L,
+                        surfaceTimestampNs = meta?.surfaceTimestampNs ?: -1L,
+                        readbackMs = meta?.readbackMs ?: 0.0,
+                        isPtsVerified = meta?.isPtsVerified ?: false
+                    )
+                )
+            }
+            .setErrorListener { error ->
+                poseLandmarkerListener.onError(error.message ?: "MediaPipe detection error")
+            }
+            .build()
+    }
+
+    fun detectLiveStream(
+        bitmap: Bitmap,
+        rotationDegrees: Int,
+        isFrontCamera: Boolean,
+        frameTimeMs: Long
+    ) {
+        if (frameTimeMs <= lastTimestampMs) {
+            // Strictly monotonic timestamp required by MediaPipe LIVE_STREAM
+            return
+        }
+        val landmarker = poseLandmarker ?: return
+        lastTimestampMs = frameTimeMs
+
+        var tempBitmapToRecycle: Bitmap? = null
+        try {
+            val isFastPath = (rotationDegrees == 0 && !isFrontCamera && bitmap.width <= 360 && bitmap.height <= 480)
+            val mpImage: MPImage
+
+            if (isFastPath) {
+                // Zero-Copy Fast Path: Dùng trực tiếp bitmap từ pool, không qua Matrix
+                mpImage = BitmapImageBuilder(bitmap).build()
+            } else {
+                val matrix = Matrix().apply {
+                    postRotate(rotationDegrees.toFloat())
+                    if (isFrontCamera) {
+                        postScale(-1f, 1f, bitmap.width.toFloat(), bitmap.height.toFloat())
+                    }
+                }
+                val transformedBitmap = Bitmap.createBitmap(
+                    bitmap, 0, 0, bitmap.width, bitmap.height, matrix, true
+                )
+                mpImage = BitmapImageBuilder(transformedBitmap).build()
+                tempBitmapToRecycle = transformedBitmap
+            }
+
+            if (submitMetaMap.size > 64) submitMetaMap.clear()
+            submitMetaMap[frameTimeMs] = FrameSubmitMeta(
+                sessionGen = 0L,
+                submitRealtimeNs = SystemClock.elapsedRealtimeNanos(),
+                decoderPtsUs = frameTimeMs * 1000L,
+                surfaceTimestampNs = SystemClock.elapsedRealtimeNanos(),
+                readbackMs = 0.0,
+                isPtsVerified = true
+            )
+            WorkoutCvPerfTracker.onSubmit(frameTimeMs)
+            landmarker.detectAsync(mpImage, frameTimeMs)
+        } catch (e: Exception) {
+            submitMetaMap.remove(frameTimeMs)
+            poseLandmarkerListener.onError("Inference error: ${e.message}")
+        } finally {
+            // Bảo vệ bộ đệm tái sử dụng: Tuyệt đối KHÔNG recycle bitmap gốc truyền vào
+            tempBitmapToRecycle?.recycle()
         }
     }
 
@@ -134,14 +205,35 @@ class PoseLandmarkerHelper(
 
             val rotationDegrees = imageProxy.imageInfo.rotationDegrees
 
-            // Stage (c): Matrix rotation & transformation
+            // Stage (c): Matrix rotation & transformation (downscale if > 360x480 to avoid huge copies)
             val tTfm0 = SystemClock.elapsedRealtimeNanos()
-            val rotatedBitmap = if (rotationDegrees != 0 || isFrontCamera) {
+            val isRotated = (rotationDegrees == 90 || rotationDegrees == 270)
+            val rotatedW = if (isRotated) bitmap.height else bitmap.width
+            val rotatedH = if (isRotated) bitmap.width else bitmap.height
+
+            val maxTargetW = if (rotatedW <= rotatedH) 360 else 480
+            val maxTargetH = if (rotatedW <= rotatedH) 480 else 360
+
+            val scale = if (rotatedW > maxTargetW || rotatedH > maxTargetH) {
+                val scaleW = maxTargetW.toFloat() / rotatedW
+                val scaleH = maxTargetH.toFloat() / rotatedH
+                min(scaleW, scaleH)
+            } else {
+                1.0f
+            }
+
+            val needsTransform = rotationDegrees != 0 || isFrontCamera || scale < 1.0f
+            val rotatedBitmap = if (needsTransform) {
                 val matrix = Matrix().apply {
                     if (rotationDegrees != 0) postRotate(rotationDegrees.toFloat())
                     if (isFrontCamera) postScale(-1f, 1f, bitmap.width.toFloat(), bitmap.height.toFloat())
+                    if (scale < 1.0f) postScale(scale, scale)
                 }
-                Bitmap.createBitmap(bitmap, 0, 0, bitmap.width, bitmap.height, matrix, true)
+                val created = Bitmap.createBitmap(bitmap, 0, 0, bitmap.width, bitmap.height, matrix, true)
+                if (created != bitmap) {
+                    bitmap.recycle()
+                }
+                created
             } else {
                 bitmap
             }

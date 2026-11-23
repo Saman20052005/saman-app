@@ -66,6 +66,34 @@ abstract class INutritionRemoteDataSource {
   Future<Map<String, dynamic>> getWeeklyReport(String startDate);
   Future<List<dynamic>> searchFoods(String query, int limit);
   Future<Map<String, dynamic>?> getFoodById(String foodId);
+  Future<List<Map<String, dynamic>>> getRecentMeals({
+    int days = 14,
+    int limit = 10,
+  });
+  Future<bool> quickRelogMeal({
+    required String sourceLogId,
+    String? mealType,
+    String? date,
+  });
+  Future<List<Map<String, dynamic>>> getSupplements(String dateStr);
+  Future<Map<String, dynamic>> addSupplement(Map<String, dynamic> body);
+  Future<bool> deleteSupplement(String logId);
+  Future<List<Map<String, dynamic>>> getRecipes();
+  Future<Map<String, dynamic>> createRecipe(Map<String, dynamic> body);
+  Future<bool> deleteRecipe(String recipeId);
+  Future<bool> logRecipe(
+    String recipeId, {
+    String? date,
+    String mealType = 'snack',
+    double servingsConsumed = 1.0,
+  });
+  Future<Map<String, dynamic>> lookupBarcode(String barcode);
+  Future<Map<String, dynamic>> analyzeNutritionLabel({
+    required String barcode,
+    required XFile imageFile,
+    String? productName,
+    String? idempotencyKey,
+  });
 }
 
 class NutritionRemoteDataSourceImpl implements INutritionRemoteDataSource {
@@ -475,5 +503,273 @@ class NutritionRemoteDataSourceImpl implements INutritionRemoteDataSource {
       data: {'date': dateStr},
     );
     return response.statusCode == 200;
+  }
+
+  @override
+  Future<List<Map<String, dynamic>>> getRecentMeals({
+    int days = 14,
+    int limit = 10,
+  }) async {
+    final response = await _dio.get(
+      '${ApiConfig.baseUrl}/api/nutrition/recent-meals',
+      queryParameters: {'days': days, 'limit': limit},
+    );
+    if (response.statusCode == 200 &&
+        response.data != null &&
+        response.data != "null") {
+      final data = response.data is String
+          ? jsonDecode(response.data as String)
+          : response.data;
+      final rawList = (data is Map && data['recent_meals'] is List)
+          ? data['recent_meals'] as List<dynamic>
+          : (data is Map && data['meals'] is List)
+              ? data['meals'] as List<dynamic>
+              : (data is List ? data : const <dynamic>[]);
+      return rawList
+          .whereType<Map>()
+          .map((e) => Map<String, dynamic>.from(e))
+          .toList();
+    }
+    return [];
+  }
+
+  @override
+  Future<bool> quickRelogMeal({
+    required String sourceLogId,
+    String? mealType,
+    String? date,
+  }) async {
+    final response = await _dio.post(
+      '${ApiConfig.baseUrl}/api/nutrition/quick-relog',
+      data: {
+        'source_log_id': sourceLogId,
+        if (mealType != null) 'meal_type': mealType,
+        if (date != null) 'date': date,
+      },
+    );
+    return response.statusCode == 200 || response.statusCode == 201;
+  }
+
+  @override
+  Future<List<Map<String, dynamic>>> getSupplements(String dateStr) async {
+    final response = await _dio.get(
+      '${ApiConfig.baseUrl}/api/nutrition/supplements/$dateStr',
+    );
+    if (response.statusCode == 200 &&
+        response.data != null &&
+        response.data != "null") {
+      final data = response.data is String
+          ? jsonDecode(response.data as String)
+          : response.data;
+      final rawList = (data is Map && data['supplements'] is List)
+          ? data['supplements'] as List<dynamic>
+          : (data is Map && data['entries'] is List)
+              ? data['entries'] as List<dynamic>
+              : (data is Map && data['logs'] is List)
+                  ? data['logs'] as List<dynamic>
+                  : (data is List ? data : const <dynamic>[]);
+      return rawList
+          .whereType<Map>()
+          .map((e) => Map<String, dynamic>.from(e))
+          .toList();
+    }
+    return [];
+  }
+
+  @override
+  Future<Map<String, dynamic>> addSupplement(Map<String, dynamic> body) async {
+    final response = await _dio.post(
+      '${ApiConfig.baseUrl}/api/nutrition/supplements',
+      data: body,
+    );
+    if ((response.statusCode == 200 || response.statusCode == 201) &&
+        response.data != null &&
+        response.data != "null") {
+      final data = response.data is String
+          ? jsonDecode(response.data as String)
+          : response.data;
+      if (data is Map) {
+        return Map<String, dynamic>.from(data);
+      }
+    }
+    throw Exception('Failed to add supplement');
+  }
+
+  @override
+  Future<bool> deleteSupplement(String logId) async {
+    final response = await _dio.delete(
+      '${ApiConfig.baseUrl}/api/nutrition/supplements/$logId',
+    );
+    return response.statusCode == 200 || response.statusCode == 204;
+  }
+
+  @override
+  Future<List<Map<String, dynamic>>> getRecipes() async {
+    final response = await _dio.get(
+      '${ApiConfig.baseUrl}/api/nutrition/recipes',
+    );
+    if (response.statusCode == 200 &&
+        response.data != null &&
+        response.data != "null") {
+      final data = response.data is String
+          ? jsonDecode(response.data as String)
+          : response.data;
+      final rawList = (data is Map && data['recipes'] is List)
+          ? data['recipes'] as List<dynamic>
+          : (data is List ? data : const <dynamic>[]);
+      return rawList
+          .whereType<Map>()
+          .map((e) => Map<String, dynamic>.from(e))
+          .toList();
+    }
+    return [];
+  }
+
+  @override
+  Future<Map<String, dynamic>> createRecipe(Map<String, dynamic> body) async {
+    final response = await _dio.post(
+      '${ApiConfig.baseUrl}/api/nutrition/recipes',
+      data: body,
+    );
+    if ((response.statusCode == 200 || response.statusCode == 201) &&
+        response.data != null &&
+        response.data != "null") {
+      final data = response.data is String
+          ? jsonDecode(response.data as String)
+          : response.data;
+      if (data is Map) {
+        return Map<String, dynamic>.from(data);
+      }
+    }
+    throw Exception('Failed to create recipe');
+  }
+
+  @override
+  Future<bool> deleteRecipe(String recipeId) async {
+    final response = await _dio.delete(
+      '${ApiConfig.baseUrl}/api/nutrition/recipes/$recipeId',
+    );
+    return response.statusCode == 200 || response.statusCode == 204;
+  }
+
+  @override
+  Future<bool> logRecipe(
+    String recipeId, {
+    String? date,
+    String mealType = 'snack',
+    double servingsConsumed = 1.0,
+  }) async {
+    final response = await _dio.post(
+      '${ApiConfig.baseUrl}/api/nutrition/recipes/$recipeId/log',
+      data: {
+        if (date != null) 'date': date,
+        'meal_type': mealType,
+        'servings_consumed': servingsConsumed,
+      },
+    );
+    return response.statusCode == 200 || response.statusCode == 201;
+  }
+
+  dynamic _tryDecodeJson(String raw) {
+    try {
+      return jsonDecode(raw);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  @override
+  Future<Map<String, dynamic>> lookupBarcode(String barcode) async {
+    final cleanBarcode = barcode.trim();
+    try {
+      final response = await _dio.get(
+        '${ApiConfig.barcodeLookupEndpoint}/${Uri.encodeComponent(cleanBarcode)}',
+      );
+      if (response.statusCode == 200 &&
+          response.data != null &&
+          response.data != "null") {
+        final data = response.data is String
+            ? jsonDecode(response.data as String)
+            : response.data;
+        if (data is Map) {
+          return Map<String, dynamic>.from(data);
+        }
+      }
+      throw Exception('Failed to lookup barcode');
+    } on DioException catch (e) {
+      if (e.response?.statusCode == 404) {
+        final raw = e.response?.data;
+        final decoded = raw is String ? _tryDecodeJson(raw) : raw;
+        if (decoded is Map) {
+          final detail = decoded['detail'];
+          final code = (decoded['code'] ??
+                  decoded['error_code'] ??
+                  (detail is Map ? detail['code'] : null))
+              ?.toString();
+          if (code == 'barcode_not_found') {
+            final msg = (decoded['message'] ??
+                    (detail is Map ? detail['message'] : detail) ??
+                    'Sản phẩm chưa có trên Open Food Facts.')
+                .toString();
+            throw BarcodeNotFoundException(cleanBarcode, msg);
+          }
+        }
+      }
+      rethrow;
+    }
+  }
+
+  @override
+  Future<Map<String, dynamic>> analyzeNutritionLabel({
+    required String barcode,
+    required XFile imageFile,
+    String? productName,
+    String? idempotencyKey,
+  }) async {
+    final cleanBarcode = barcode.trim();
+    final bytes = await imageFile.readAsBytes();
+    final formData = FormData();
+    formData.fields.add(MapEntry('barcode', cleanBarcode));
+    if (productName != null && productName.trim().isNotEmpty) {
+      formData.fields.add(MapEntry('product_name', productName.trim()));
+    }
+    formData.files.add(MapEntry(
+      'image',
+      MultipartFile.fromBytes(
+        bytes,
+        filename: imageFile.name.isNotEmpty
+            ? imageFile.name
+            : 'nutrition_label.jpg',
+        contentType: MediaType('image', 'jpeg'),
+      ),
+    ));
+
+    final effectiveIdempotencyKey =
+        (idempotencyKey != null && idempotencyKey.trim().isNotEmpty)
+            ? idempotencyKey.trim()
+            : 'barcode_label_${cleanBarcode}_${bytes.length}_${imageFile.name.hashCode.abs()}';
+
+    final response = await _dio.post(
+      ApiConfig.barcodeAnalyzeLabelEndpoint,
+      data: formData,
+      options: Options(
+        contentType: 'multipart/form-data',
+        headers: {
+          'X-Idempotency-Key': effectiveIdempotencyKey,
+        },
+      ),
+    );
+
+    if ((response.statusCode == 200 || response.statusCode == 201) &&
+        response.data != null &&
+        response.data != "null") {
+      final data = response.data is String
+          ? jsonDecode(response.data as String)
+          : response.data;
+      if (data is Map) {
+        return Map<String, dynamic>.from(data);
+      }
+    }
+    throw Exception('Failed to analyze nutrition label');
   }
 }

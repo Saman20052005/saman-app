@@ -3,6 +3,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:health_ai_app/config/routes.dart';
+import 'package:health_ai_app/features/community/presentation/providers/community_providers.dart';
 import 'package:health_ai_app/features/journal/data/datasources/journal_fake_datasource.dart';
 import 'package:health_ai_app/features/journal/data/repositories/journal_repository_impl.dart';
 import 'package:health_ai_app/features/journal/presentation/providers/journal_providers.dart';
@@ -19,12 +20,14 @@ void main() {
     Widget? home,
     Locale locale = const Locale('vi'),
   }) {
+    final ds = datasource ?? JournalFakeDatasource(simulatedDelay: Duration.zero);
     return ProviderScope(
       overrides: [
-        if (datasource != null)
-          journalRepositoryProvider.overrideWithValue(
-            JournalRepositoryImpl(datasource: datasource),
-          ),
+        useRemoteJournalProvider.overrideWith((ref) => false),
+        useRemoteCommunityProvider.overrideWith((ref) => false),
+        journalRepositoryProvider.overrideWithValue(
+          JournalRepositoryImpl(fakeDatasource: ds),
+        ),
       ],
       child: MaterialApp(
         locale: locale,
@@ -206,7 +209,7 @@ void main() {
       expect(find.text('Khám phá cộng đồng'), findsOneWidget);
     });
 
-    testWidgets('Tapping internal tab Thư viện or Cẩm nang shows honest backlog notice',
+    testWidgets('Tapping internal tab Thư viện or Cẩm nang shows real data content',
         (tester) async {
       await tester.binding.setSurfaceSize(const Size(390, 844));
       addTearDown(() => tester.binding.setSurfaceSize(null));
@@ -219,11 +222,23 @@ void main() {
       await tester.tap(find.text('Thư viện').first);
       await tester.pumpAndSettle();
 
-      expect(find.text('Mục "Thư viện" đang được xây dựng'), findsOneWidget);
-      expect(find.text('Quay lại Khám phá'), findsOneWidget);
+      // Real Thư viện content rendered
+      expect(find.text('Tra cứu bài tập'), findsOneWidget);
+      expect(find.text('Tra cứu thực phẩm'), findsOneWidget);
+      expect(find.text('Bài viết đã lưu'), findsWidgets);
 
-      // Tap button to return to Khám phá
-      await tester.tap(find.text('Quay lại Khám phá'));
+      // Scroll tabs bar slightly if needed or tap Cẩm nang
+      await tester.ensureVisible(find.text('Cẩm nang').first);
+      await tester.tap(find.text('Cẩm nang').first);
+      await tester.pumpAndSettle();
+
+      // Real Cẩm nang content rendered
+      expect(find.text('Bài học trong lộ trình'), findsOneWidget);
+      expect(find.text('Khám phá theo chủ đề'), findsOneWidget);
+
+      // Tap back to Khám phá
+      await tester.ensureVisible(find.text('Khám phá').first);
+      await tester.tap(find.text('Khám phá').first);
       await tester.pumpAndSettle();
 
       // Confirmed back in Khám phá

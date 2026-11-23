@@ -10,6 +10,8 @@ import '../features/shop/presentation/screens/shop_saved_screen.dart';
 import '../features/journey/presentation/screens/create_journey_screen.dart';
 import '../features/journey/presentation/screens/my_journey_screen.dart';
 import '../features/journey/presentation/screens/wallet_rewards_screen.dart';
+import '../features/journal/domain/models/journal_article.dart';
+import '../features/journal/presentation/screens/journal_article_detail_screen.dart';
 import '../features/journal/presentation/screens/journal_discover_screen.dart';
 import '../features/journal/presentation/screens/journal_search_screen.dart';
 import '../features/community/presentation/screens/community_feed_screen.dart';
@@ -23,7 +25,13 @@ import '../features/community/presentation/screens/profile/community_profile_scr
 import '../features/community/presentation/screens/notifications/community_notifications_screen.dart';
 import '../features/community/presentation/screens/saved/community_saved_screen.dart';
 import '../features/community/presentation/screens/drafts/community_drafts_screen.dart';
+import '../features/community/domain/models/community_dm.dart';
+import '../features/community/domain/models/community_story.dart';
 import '../features/community/presentation/screens/qa/community_question_detail_screen.dart';
+import '../features/community/presentation/screens/dm/community_inbox_screen.dart';
+import '../features/community/presentation/screens/dm/community_chat_thread_screen.dart';
+import '../features/community/presentation/screens/settings/community_settings_screen.dart';
+import '../features/community/presentation/screens/stories/community_story_viewer_screen.dart';
 
 class AppRoutes {
   // 1. Định nghĩa Constants (Tránh gõ sai string)
@@ -39,6 +47,7 @@ class AppRoutes {
   static const String walletRewards = '/journey/wallet';
   static const String journal = '/journal';
   static const String journalSearch = '/journal/search';
+  static const String journalArticle = '/journal/article';
   static const String communityFeed = '/community/feed';
   static const String communityDiscover = '/community/discover';
   static const String communityPost = '/community/post';
@@ -51,6 +60,10 @@ class AppRoutes {
   static const String communitySaved = '/community/saved';
   static const String communityDrafts = '/community/drafts';
   static const String communityQuestionDetail = '/community/qa/detail';
+  static const String communityInbox = '/community/inbox';
+  static const String communitySettings = '/community/settings';
+  static const String communityChat = '/community/chat';
+  static const String communityStoryViewer = '/community/stories/viewer';
 
   // 2. Hàm Generate Route tập trung
   static Route<dynamic> onGenerateRoute(
@@ -126,6 +139,34 @@ class AppRoutes {
           builder: (_) => const JournalSearchScreen(),
         );
 
+      case journalArticle:
+        final args = settings.arguments;
+        final String articleId;
+        JournalArticle? initialArticle;
+        bool initialBookmarked = false;
+        double initialProgress = 0.0;
+
+        if (args is String) {
+          articleId = args;
+        } else if (args is Map<String, dynamic>) {
+          articleId = (args['articleId'] as String?) ?? '';
+          initialArticle = args['initialArticle'] as JournalArticle?;
+          initialBookmarked = (args['initialBookmarked'] as bool?) ?? false;
+          initialProgress = (args['initialProgress'] as num?)?.toDouble() ?? 0.0;
+        } else {
+          articleId = '';
+        }
+
+        return MaterialPageRoute(
+          settings: settings,
+          builder: (_) => JournalArticleDetailScreen(
+            articleId: articleId,
+            initialArticle: initialArticle,
+            initialBookmarked: initialBookmarked,
+            initialProgress: initialProgress,
+          ),
+        );
+
       case communityFeed:
         return MaterialPageRoute(
           settings: settings,
@@ -199,6 +240,72 @@ class AppRoutes {
         return MaterialPageRoute(
           settings: settings,
           builder: (_) => CommunityQuestionDetailScreen(questionId: questionId),
+        );
+
+      case communityInbox:
+        return MaterialPageRoute(
+          settings: settings,
+          builder: (_) => const CommunityInboxScreen(),
+        );
+
+      case communitySettings:
+        return MaterialPageRoute(
+          settings: settings,
+          builder: (_) => const CommunitySettingsScreen(),
+        );
+
+      case communityChat:
+        final args = settings.arguments;
+        if (args is DmConversation) {
+          return MaterialPageRoute(
+            settings: settings,
+            builder: (_) => CommunityChatThreadScreen(
+              conversationId: args.id,
+              peer: args.peer,
+              initialConversation: args,
+            ),
+          );
+        }
+        if (args is Map<String, dynamic>) {
+          final conversationId = (args['conversationId'] as String?) ?? '';
+          final peer = (args['peer'] as DmParticipant?) ??
+              const DmParticipant(id: '', name: '');
+          final initialConversation =
+              args['initialConversation'] as DmConversation?;
+          return MaterialPageRoute(
+            settings: settings,
+            builder: (_) => CommunityChatThreadScreen(
+              conversationId: conversationId,
+              peer: peer,
+              initialConversation: initialConversation,
+            ),
+          );
+        }
+        return MaterialPageRoute(
+          settings: settings,
+          builder: (_) => const CommunityChatThreadScreen(
+            conversationId: '',
+            peer: DmParticipant(id: '', name: ''),
+          ),
+        );
+
+      case communityStoryViewer:
+        final args = settings.arguments;
+        List<CommunityStoryAuthorGroup> groups = const [];
+        int initialGroupIndex = 0;
+        if (args is List<CommunityStoryAuthorGroup>) {
+          groups = args;
+        } else if (args is Map<String, dynamic>) {
+          groups =
+              (args['groups'] as List<CommunityStoryAuthorGroup>?) ?? const [];
+          initialGroupIndex = (args['initialGroupIndex'] as int?) ?? 0;
+        }
+        return MaterialPageRoute(
+          settings: settings,
+          builder: (_) => CommunityStoryViewerScreen(
+            groups: groups,
+            initialGroupIndex: initialGroupIndex,
+          ),
         );
 
       // Mặc định: Trả về trang lỗi hoặc Login nếu không tìm thấy route

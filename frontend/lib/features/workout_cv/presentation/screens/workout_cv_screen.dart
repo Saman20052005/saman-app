@@ -5,20 +5,26 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../presentation/tokens/saman_workout_tokens.dart';
 import '../../domain/entities/exercise_cv_state.dart';
+import '../../domain/services/cv_form_summary_calculator.dart';
+import '../../domain/services/lat_pulldown_baseline.dart';
+import '../../domain/services/workout_cv_exercise_registry.dart';
 import '../controllers/workout_cv_controller.dart';
 import '../widgets/pose_skeleton_painter.dart';
 import '../workout_cv_replay_trial.dart';
+import 'workout_cv_result_screen.dart';
 
 class WorkoutCvScreen extends ConsumerStatefulWidget {
   final String exerciseId;
   final String exerciseSlug;
   final String exerciseName;
+  final String? videoPath;
 
   const WorkoutCvScreen({
     super.key,
     required this.exerciseId,
     required this.exerciseSlug,
     required this.exerciseName,
+    this.videoPath,
   });
 
   @override
@@ -30,6 +36,9 @@ class _WorkoutCvScreenState extends ConsumerState<WorkoutCvScreen>
   bool get _useReplayTrial =>
       shouldUseWorkoutCvReplayTrial(exerciseSlug: widget.exerciseSlug);
 
+  bool get _hasUploadedVideo =>
+      widget.videoPath != null && widget.videoPath!.isNotEmpty;
+
   bool get _supportsCamera =>
       !kIsWeb && defaultTargetPlatform == TargetPlatform.android;
 
@@ -39,6 +48,7 @@ class _WorkoutCvScreenState extends ConsumerState<WorkoutCvScreen>
           exerciseId: widget.exerciseId,
           exerciseSlug: widget.exerciseSlug,
           videoReplay: _useReplayTrial,
+          videoPath: widget.videoPath,
         );
   }
 
@@ -151,20 +161,24 @@ class _WorkoutCvScreenState extends ConsumerState<WorkoutCvScreen>
               ),
               Text(
                 cvState.sourceMode == 'video_replay'
-                    ? 'Replay thử nghiệm • phát chậm'
+                    ? (_hasUploadedVideo
+                        ? 'Video Form Analysis'
+                        : 'Replay thử nghiệm • phát chậm')
                     : (_supportsCamera
-                        ? 'MediaPipe Pose Lite · Back Camera'
+                        ? 'Live Camera Analysis'
                         : 'Camera CV chỉ hỗ trợ Android'),
                 style: const TextStyle(
                   color: Colors.white70,
                   fontSize: 11,
                 ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
               ),
             ],
           ),
         ),
         const SizedBox(width: 8),
-        if (_useReplayTrial)
+        if (_useReplayTrial || _hasUploadedVideo)
           IconButton(
             key: const ValueKey('workout_cv_switch_replay_button'),
             tooltip: cvState.sourceMode == 'video_replay' ? 'Chạy lại từ 0' : 'Video Replay',
@@ -175,11 +189,45 @@ class _WorkoutCvScreenState extends ConsumerState<WorkoutCvScreen>
               if (cvState.sourceMode == 'video_replay') {
                 notifier.restartVideoReplay();
               } else {
-                notifier.startVideoReplay();
+                notifier.startVideoReplay(videoPath: widget.videoPath);
               }
             },
           ),
-        _buildStatusChip(cvState),
+        Flexible(child: _buildStatusChip(cvState)),
+        const SizedBox(width: 8),
+        IconButton(
+          key: const ValueKey('workout_cv_finish_button'),
+          tooltip: 'Hoàn thành / Stop',
+          icon: const Icon(
+            Icons.stop_circle_outlined,
+            color: SamanWorkoutTokens.emeraldAccent,
+            size: 28,
+          ),
+          onPressed: () {
+            final cvState = ref.read(workoutCvControllerProvider);
+            final summary = cvState.formSummary;
+            final repHistory = List<LatPulldownRepEvent>.from(
+              cvState.replayRepEvents,
+            );
+            ref.read(workoutCvControllerProvider.notifier).stop();
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (context.mounted) {
+                Navigator.of(context).pushReplacement(
+                  MaterialPageRoute<CvFormSummary>(
+                    builder: (_) => WorkoutCvResultScreen(
+                      repHistory: repHistory,
+                      exerciseName: widget.exerciseName,
+                      formSummary: summary,
+                    ),
+                  ),
+                );
+              }
+            });
+          },
+          style: IconButton.styleFrom(
+            backgroundColor: Colors.black45,
+          ),
+        ),
       ],
     );
   }
@@ -194,8 +242,10 @@ class _WorkoutCvScreenState extends ConsumerState<WorkoutCvScreen>
       case TrackingStatus.detecting:
         bg = const Color(0x3310B981);
         fg = const Color(0xFF10B981);
-        label = 'TRACKING';
-        icon = Icons.check_circle_outline;
+        label = cvState.replayAnalysisStatus == ReplayAnalysisStatus.analyzing
+            ? cvState.replayAnalysisLabel
+            : 'Đang phân tích';
+        icon = Icons.accessibility_new;
         break;
       case TrackingStatus.needsSetup:
         bg = const Color(0x33F59E0B);
@@ -272,13 +322,17 @@ class _WorkoutCvScreenState extends ConsumerState<WorkoutCvScreen>
         children: [
           Icon(icon, size: 13, color: fg),
           const SizedBox(width: 5),
-          Text(
-            label,
-            style: TextStyle(
-              color: fg,
-              fontSize: 11,
-              fontWeight: FontWeight.bold,
-              letterSpacing: 0.5,
+          Flexible(
+            child: Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: fg,
+                fontSize: 11,
+                fontWeight: FontWeight.bold,
+                letterSpacing: 0.5,
+              ),
             ),
           ),
         ],
@@ -298,13 +352,18 @@ class _WorkoutCvScreenState extends ConsumerState<WorkoutCvScreen>
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          if (cvState.exerciseSlug == 'lat-pulldown')
+          if (WorkoutCvExerciseRegistry.isSupported(
+            id: cvState.exerciseId,
+            slug: cvState.exerciseSlug,
+          ))
             _ReplayRepSummary(
               countLabel: cvState.repCountLabel,
               statusLabel:
                   '${cvState.replayAnalysisLabel} · Pha: ${cvState.analysisPhase.name}',
-              onRestart: _useReplayTrial
-                  ? () => ref.read(workoutCvControllerProvider.notifier).restartVideoReplay()
+              onRestart: cvState.sourceMode == 'video_replay'
+                  ? () => ref
+                      .read(workoutCvControllerProvider.notifier)
+                      .restartVideoReplay()
                   : null,
             ),
           // Guide banner
@@ -344,35 +403,40 @@ class _WorkoutCvScreenState extends ConsumerState<WorkoutCvScreen>
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                'FPS: ${cvState.fps.toStringAsFixed(1)} · Latency: ${cvState.latencyMs}ms',
-                style: const TextStyle(
-                  color: Colors.white70,
-                  fontSize: 11,
-                  fontFamily: 'monospace',
+              Flexible(
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    'FPS: ${cvState.fps.toStringAsFixed(1)} · Latency: ${cvState.latencyMs}ms',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: Colors.white70,
+                      fontSize: 11,
+                      fontFamily: 'monospace',
+                    ),
+                  ),
                 ),
               ),
-              Text(
-                'p50: ${cvState.p50LatencyMs}ms / p95: ${cvState.p95LatencyMs}ms',
-                style: const TextStyle(
-                  color: Colors.white54,
-                  fontSize: 11,
-                  fontFamily: 'monospace',
+              const SizedBox(width: 8),
+              Flexible(
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerRight,
+                  child: Text(
+                    'p50: ${cvState.p50LatencyMs}ms / p95: ${cvState.p95LatencyMs}ms',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: Colors.white54,
+                      fontSize: 11,
+                      fontFamily: 'monospace',
+                    ),
+                  ),
                 ),
               ),
             ],
-          ),
-          const SizedBox(height: 4),
-          Text(
-            cvState.sourceMode == 'video_replay'
-                ? 'Chỉ thử nghiệm • Không tự lưu lịch sử hoặc hoàn thành set'
-                : (cvState.exerciseSlug == 'lat-pulldown'
-                    ? 'Baseline quy tắc · Rep tạm tính · Không tự lưu vào buổi tập'
-                    : 'PoC Form Check · Không tự lưu vào buổi tập'),
-            style: const TextStyle(
-              color: Colors.white38,
-              fontSize: 10,
-            ),
           ),
         ],
       ),
@@ -447,28 +511,47 @@ class _ReplayRepSummary extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  countLabel,
-                  key: const ValueKey('workout_cv_replay_rep_count'),
-                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    color: SamanWorkoutTokens.textPrimary,
+                FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    countLabel,
+                    key: const ValueKey('workout_cv_replay_rep_count'),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                      color: SamanWorkoutTokens.textPrimary,
+                    ),
                   ),
                 ),
-                Text(
-                  statusLabel,
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: SamanWorkoutTokens.textSecondary,
+                FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    statusLabel,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: SamanWorkoutTokens.textSecondary,
+                    ),
                   ),
                 ),
               ],
             ),
           ),
           if (onRestart != null)
-            TextButton.icon(
-              onPressed: onRestart,
-              icon: const Icon(Icons.replay),
-              label: const Text('Chạy lại'),
-              style: TextButton.styleFrom(foregroundColor: SamanWorkoutTokens.textPrimary),
+            Flexible(
+              fit: FlexFit.loose,
+              child: TextButton.icon(
+                onPressed: onRestart,
+                icon: const Icon(Icons.replay),
+                label: const Text(
+                  'Chạy lại',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                style: TextButton.styleFrom(foregroundColor: SamanWorkoutTokens.textPrimary),
+              ),
             ),
         ],
       ),

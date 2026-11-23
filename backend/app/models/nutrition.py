@@ -53,6 +53,12 @@ class CreateRecipeRequest(BaseModel):
     cook_time: Optional[int] = None  # in minutes
     servings: int = Field(..., gt=0)
     category: Optional[str] = None
+    tags: List[str] = Field(default_factory=list)
+
+class RecipeLogRequest(BaseModel):
+    date: Optional[str] = None
+    meal_type: str = "snack"
+    servings_consumed: float = Field(default=1.0, gt=0, le=20)
 
 class RecipeDB(BaseModel):
     id: Optional[str] = None
@@ -84,7 +90,28 @@ class WaterLogRequest(BaseModel):
     time: Optional[datetime] = None
 
 class SupplementLogRequest(BaseModel):
-    supplement_name: str
-    dosage: str
+    user_id: Optional[str] = None
+    supplement_name: Optional[str] = None
+    dosage: Optional[str] = None
     time: Optional[datetime] = None
     notes: Optional[str] = None
+    name: Optional[str] = None
+    amount: Optional[float] = None
+    unit: Optional[str] = None
+    timing: Optional[str] = None
+    date: Optional[str] = None
+
+class SupplementLogDB(BaseModel):
+    id: Optional[str] = None
+    user_id: str
+    user_email: Optional[str] = None
+    date: str
+    name: str
+    supplement_name: str
+    amount: float = 1.0
+    unit: str = "serving"
+    dosage: str
+    time: str = ""
+    timing: str = ""
+    notes: Optional[str] = None
+    created_at: Optional[datetime] = None

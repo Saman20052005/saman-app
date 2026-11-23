@@ -152,12 +152,13 @@ class _WorkoutHeroCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = SamanHomeTokens.of(context);
     return Container(
       decoration: BoxDecoration(
-        color: SamanHomeTokens.cardSurface,
+        color: tokens.cardSurface,
         borderRadius: BorderRadius.circular(SamanHomeTokens.radiusXl),
         border: Border.all(
-          color: SamanHomeTokens.border,
+          color: tokens.border,
           width: 1,
         ),
       ),
@@ -169,31 +170,41 @@ class _WorkoutHeroCard extends StatelessWidget {
           Image.asset(
             workout.imageAssetPath,
             fit: BoxFit.cover,
-            alignment: Alignment.topCenter,
+            alignment: const Alignment(0.6, 0.0),
             errorBuilder: (_, __, ___) => const ColoredBox(
               color: SamanHomeTokens.cardSurface,
             ),
           ),
 
-          // 2. Obsidian cinematic gradient overlays
+          // 2. Moody local scrim overlays: heavy on left & bottom for contrast, open on right for barbell/lifter
           Container(
             decoration: const BoxDecoration(
               gradient: LinearGradient(
                 begin: Alignment.bottomCenter,
                 end: Alignment.topCenter,
                 colors: [
-                  Color(0xFF0C0D0E),
-                  Color(0xCC0C0D0E),
-                  Color(0x660C0D0E),
+                  Color(0xFF0D1013),
+                  Color(0xB30D1013), // 70%
                   Colors.transparent,
                 ],
-                stops: [0.0, 0.45, 0.75, 1.0],
+                stops: [0.0, 0.55, 1.0],
               ),
             ),
           ),
-
-          // Additional dimming for maximum text contrast
-          const ColoredBox(color: Color(0x33000000)),
+          Container(
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.centerLeft,
+                end: Alignment.centerRight,
+                colors: [
+                  Color(0xF20D1013), // 95%
+                  Color(0x990D1013), // 60%
+                  Colors.transparent,
+                ],
+                stops: [0.0, 0.45, 0.85],
+              ),
+            ),
+          ),
 
           // 3. Card Content
           Padding(
@@ -209,7 +220,7 @@ class _WorkoutHeroCard extends StatelessWidget {
                     Flexible(
                       child: _PillBadge(
                         label: workout.categoryBadge,
-                        backgroundColor: const Color(0xE61B1D22),
+                        backgroundColor: const Color(0xE61B2127),
                         textColor: SamanHomeTokens.textPrimary,
                       ),
                     ),
@@ -217,7 +228,7 @@ class _WorkoutHeroCard extends StatelessWidget {
                       const SizedBox(width: 8),
                       _PillBadge(
                         label: workout.weekIndicator!,
-                        backgroundColor: const Color(0x99000000),
+                        backgroundColor: const Color(0xE61B2127),
                         textColor: SamanHomeTokens.textSecondary,
                         borderRadius: SamanHomeTokens.radiusSm,
                       ),
@@ -235,9 +246,9 @@ class _WorkoutHeroCard extends StatelessWidget {
                         'BEST MATCH FOR YOUR RECOVERY',
                         style: TextStyle(
                           fontSize: 10,
-                          fontWeight: FontWeight.w600,
+                          fontWeight: FontWeight.w700,
                           letterSpacing: 1.1,
-                          color: SamanHomeTokens.textSecondary,
+                          color: SamanHomeTokens.greenAccent,
                         ),
                       ),
                       const SizedBox(height: 2),
@@ -250,19 +261,17 @@ class _WorkoutHeroCard extends StatelessWidget {
                         fontSize: 20,
                         fontWeight: FontWeight.w700,
                         letterSpacing: -0.4,
-                        color: SamanHomeTokens.textWhite,
+                        color: SamanHomeTokens.textPrimary,
                         height: 1.2,
                       ),
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      workout.isPrimary
-                          ? '${workout.durationMinutes} min · ${workout.subtitle}'
-                          : '${workout.durationMinutes} min · ${workout.subtitle}',
+                      '${workout.durationMinutes} min · ${workout.subtitle}',
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
-                        fontSize: 12,
+                        fontSize: 11.5,
                         fontWeight: FontWeight.w400,
                         color: SamanHomeTokens.textSecondary,
                       ),
@@ -282,12 +291,12 @@ class _WorkoutHeroCard extends StatelessWidget {
                               vertical: 3,
                             ),
                             decoration: BoxDecoration(
-                              color: const Color(0x80000000),
+                              color: const Color(0xE61B2127),
                               borderRadius: BorderRadius.circular(
                                 SamanHomeTokens.radiusXs,
                               ),
                               border: Border.all(
-                                color: Colors.white.withOpacity(0.12),
+                                color: SamanHomeTokens.border,
                                 width: 0.8,
                               ),
                             ),
@@ -296,7 +305,7 @@ class _WorkoutHeroCard extends StatelessWidget {
                               style: const TextStyle(
                                 fontSize: 10.5,
                                 color: SamanHomeTokens.textPrimary,
-                                fontWeight: FontWeight.w400,
+                                fontWeight: FontWeight.w500,
                               ),
                             ),
                           );
@@ -305,7 +314,7 @@ class _WorkoutHeroCard extends StatelessWidget {
                       const SizedBox(height: SamanHomeTokens.spacingSm),
                     ],
 
-                    // CTA button / action
+                    // Primary Action Button: Mint #54DFAC background, dark graphite #092018 text and icon
                     if (workout.isPrimary)
                       SizedBox(
                         width: double.infinity,
@@ -313,14 +322,9 @@ class _WorkoutHeroCard extends StatelessWidget {
                         child: ElevatedButton(
                           onPressed: onStartWorkout,
                           style: ElevatedButton.styleFrom(
-                            backgroundColor:
-                                SamanHomeTokens.actionButtonSurface,
-                            foregroundColor: SamanHomeTokens.textWhite,
+                            backgroundColor: SamanHomeTokens.mintAccent,
+                            foregroundColor: SamanHomeTokens.mintCtaText,
                             elevation: 0,
-                            side: const BorderSide(
-                              color: SamanHomeTokens.borderHigh,
-                              width: 1,
-                            ),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(
                                 SamanHomeTokens.radiusMd,
@@ -331,14 +335,19 @@ class _WorkoutHeroCard extends StatelessWidget {
                           child: const Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              Icon(Icons.play_arrow_rounded, size: 18),
+                              Icon(
+                                Icons.play_arrow_rounded,
+                                size: 18,
+                                color: SamanHomeTokens.mintCtaText,
+                              ),
                               SizedBox(width: 4),
                               Text(
                                 'Start Workout →',
                                 style: TextStyle(
                                   fontSize: 13,
-                                  fontWeight: FontWeight.w600,
+                                  fontWeight: FontWeight.w700,
                                   letterSpacing: 0.2,
+                                  color: SamanHomeTokens.mintCtaText,
                                 ),
                               ),
                             ],
@@ -363,14 +372,14 @@ class _WorkoutHeroCard extends StatelessWidget {
                                   style: TextStyle(
                                     fontSize: 12,
                                     fontWeight: FontWeight.w600,
-                                    color: SamanHomeTokens.textWhite,
+                                    color: SamanHomeTokens.textPrimary,
                                   ),
                                 ),
                                 SizedBox(width: 4),
                                 Icon(
                                   Icons.arrow_forward_rounded,
                                   size: 14,
-                                  color: SamanHomeTokens.textWhite,
+                                  color: SamanHomeTokens.textPrimary,
                                 ),
                               ],
                             ),

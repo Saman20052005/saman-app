@@ -23,10 +23,11 @@ class StepGoalView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final p = OnboardingTokens.of(context);
     final canContinue = selectedGoal != null;
 
     return Scaffold(
-      backgroundColor: OnboardingTokens.canvas,
+      backgroundColor: p.canvas,
       body: SafeArea(
         child: Stack(
           children: [
@@ -52,9 +53,9 @@ class StepGoalView extends StatelessWidget {
                           begin: Alignment.topCenter,
                           end: Alignment.bottomCenter,
                           colors: [
-                            OnboardingTokens.canvas.withOpacity(0.3),
-                            OnboardingTokens.canvas.withOpacity(0.7),
-                            OnboardingTokens.canvas,
+                            p.canvas.withOpacity(0.3),
+                            p.canvas.withOpacity(0.7),
+                            p.canvas,
                           ],
                         ),
                       ),
@@ -65,8 +66,8 @@ class StepGoalView extends StatelessWidget {
                           begin: Alignment.centerLeft,
                           end: Alignment.centerRight,
                           colors: [
-                            OnboardingTokens.canvas.withOpacity(0.9),
-                            OnboardingTokens.canvas.withOpacity(0.6),
+                            p.canvas.withOpacity(0.9),
+                            p.canvas.withOpacity(0.6),
                             Colors.transparent,
                           ],
                         ),
@@ -94,23 +95,23 @@ class StepGoalView extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         const SizedBox(height: 16),
-                        const Text(
+                        Text(
                           'What’s your\nmain goal?',
                           style: TextStyle(
                             fontSize: 30,
                             fontWeight: FontWeight.w700,
-                            color: OnboardingTokens.textPrimary,
+                            color: p.textPrimary,
                             height: 1.15,
                             letterSpacing: -0.5,
                           ),
                         ),
                         const SizedBox(height: 8),
-                        const Text(
+                        Text(
                           'Choose what you’d like to focus on.',
                           style: TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.w400,
-                            color: OnboardingTokens.textSecondary,
+                            color: p.textSecondary,
                             height: 1.4,
                           ),
                         ),
@@ -194,6 +195,13 @@ class _GoalCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final p = OnboardingTokens.of(context);
+    final cardSurface = isSelected ? p.surfaceSelected : p.surface;
+    final radioSelectedBg = p.isDark ? Colors.white : const Color(0xFF059669);
+    final radioSelectedDot = p.isDark ? p.canvas : Colors.white;
+    final radioUnselectedBorder =
+        p.isDark ? const Color(0xFF525252) : p.textDisabled;
+
     return Material(
       color: Colors.transparent,
       child: InkWell(
@@ -204,14 +212,10 @@ class _GoalCard extends StatelessWidget {
           height: 120,
           clipBehavior: Clip.antiAlias,
           decoration: BoxDecoration(
-            color: isSelected
-                ? OnboardingTokens.surfaceSelected
-                : OnboardingTokens.surface,
+            color: cardSurface,
             borderRadius: BorderRadius.circular(OnboardingTokens.radiusCard),
             border: Border.all(
-              color: isSelected
-                  ? OnboardingTokens.borderSelected
-                  : OnboardingTokens.borderDefault,
+              color: isSelected ? p.borderSelected : p.borderDefault,
               width: isSelected ? 1.5 : 1.0,
             ),
           ),
@@ -248,13 +252,8 @@ class _GoalCard extends StatelessWidget {
                           begin: Alignment.centerLeft,
                           end: Alignment.centerRight,
                           colors: [
-                            isSelected
-                                ? OnboardingTokens.surfaceSelected
-                                : OnboardingTokens.surface,
-                            (isSelected
-                                    ? OnboardingTokens.surfaceSelected
-                                    : OnboardingTokens.surface)
-                                .withOpacity(0.5),
+                            cardSurface,
+                            cardSurface.withOpacity(0.5),
                             Colors.transparent,
                           ],
                         ),
@@ -280,17 +279,15 @@ class _GoalCard extends StatelessWidget {
                               fontSize: 16,
                               fontWeight:
                                   isSelected ? FontWeight.w700 : FontWeight.w600,
-                              color: isSelected
-                                  ? Colors.white
-                                  : OnboardingTokens.textPrimary,
+                              color: p.textPrimary,
                             ),
                           ),
                           const SizedBox(height: 4),
                           Text(
                             subtitle,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 12,
-                              color: OnboardingTokens.textSecondary,
+                              color: p.textSecondary,
                               height: 1.3,
                             ),
                           ),
@@ -305,12 +302,12 @@ class _GoalCard extends StatelessWidget {
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
                         color: isSelected
-                            ? Colors.white
-                            : OnboardingTokens.surface.withOpacity(0.9),
+                            ? radioSelectedBg
+                            : p.surface.withOpacity(0.9),
                         border: Border.all(
                           color: isSelected
-                              ? Colors.white
-                              : const Color(0xFF525252),
+                              ? radioSelectedBg
+                              : radioUnselectedBorder,
                           width: 1.5,
                         ),
                       ),
@@ -319,9 +316,9 @@ class _GoalCard extends StatelessWidget {
                           ? Container(
                               width: 10,
                               height: 10,
-                              decoration: const BoxDecoration(
+                              decoration: BoxDecoration(
                                 shape: BoxShape.circle,
-                                color: OnboardingTokens.canvas,
+                                color: radioSelectedDot,
                               ),
                             )
                           : null,

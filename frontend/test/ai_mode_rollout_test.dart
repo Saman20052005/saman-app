@@ -9,7 +9,7 @@ void main() {
   for (final size in const [Size(390, 844), Size(1440, 960)]) {
     for (final textScale in [1.0, 2.0]) {
       testWidgets(
-          'Core 3 is the only selectable mode at $size, scale $textScale',
+          'All 3 AI modes are selectable at $size, scale $textScale',
           (tester) async {
         tester.view.physicalSize = size;
         tester.view.devicePixelRatio = 1;
@@ -58,43 +58,27 @@ void main() {
         expect(chip('Core 3').onSelected, isNotNull);
         expect(chip('Core 3').selectedColor, AppColors.primary);
         expect(find.text('Đang dùng'), findsOneWidget);
-        expect(find.text('Sắp ra mắt'), findsNWidgets(2));
-        expect(find.byIcon(Icons.lock_outline), findsNWidgets(2));
+        expect(find.text('Sắp ra mắt'), findsNothing);
+        expect(find.byIcon(Icons.lock_outline), findsNothing);
 
-        for (final (name, message) in [
-          (
-            'Swift 3',
-            'Chế độ Swift 3 đang được hiệu chuẩn, vui lòng trải nghiệm Core 3.',
-          ),
-          ('Pro 3', 'Chế độ Pro 3 sẽ ra mắt trong bản cập nhật tới.'),
+        for (final (name, expectedMode) in [
+          ('Swift 3', AIMode.swift3),
+          ('Pro 3', AIMode.pro3),
+          ('Core 3', AIMode.core3),
         ]) {
-          expect(chip(name).selected, isFalse);
-          expect(chip(name).onSelected, isNull);
-          await tester.tap(find
-              .ancestor(
-                of: find.text(name),
-                matching: find.byType(InkWell),
-              )
-              .last);
+          expect(chip(name).onSelected, isNotNull);
+          await tester.tap(
+            find.ancestor(
+              of: find.text(name),
+              matching: find.byType(ChoiceChip),
+            ),
+          );
           await tester.pump();
-          await tester.pump(const Duration(milliseconds: 300));
-          expect(find.text(message), findsOneWidget);
-          expect(container.read(chatControllerProvider), same(initialState));
           expect(container.read(chatControllerProvider).selectedAIMode,
-              AIMode.core3);
-          expect(chip('Core 3').selected, isTrue);
-          expect(chip(name).onSelected, isNull);
+              expectedMode);
+          expect(chip(name).selected, isTrue);
           expect(tester.takeException(), isNull);
         }
-        await tester.tap(find
-            .ancestor(
-              of: find.text('Core 3'),
-              matching: find.byType(InkWell),
-            )
-            .last);
-        await tester.pump();
-        expect(container.read(chatControllerProvider), same(initialState));
-        expect(tester.takeException(), isNull);
         await tester.pumpWidget(const SizedBox.shrink());
       });
     }

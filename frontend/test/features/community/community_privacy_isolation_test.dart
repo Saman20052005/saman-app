@@ -76,10 +76,10 @@ void main() {
       // Permitted fields retained
       expect(clean.durationFormatted, '55 phút');
       expect(clean.exerciseCount, 3);
-      expect(clean.setCount, 14);
       expect(clean.exercises.length, 3);
 
       // Excluded load/macros strictly null
+      expect(clean.setCount, isNull);
       expect(clean.loadSummaryFormatted, isNull);
       expect(clean.calories, isNull);
       expect(clean.macrosSummaryFormatted, isNull);
@@ -236,9 +236,12 @@ void main() {
     });
 
     test('Riverpod DI container override maintains account isolation when switching identities', () async {
+      CommunityFakeDatasource.resetStorage();
+
       // Container 1: User Alpha
       final containerAlpha = ProviderContainer(
         overrides: [
+          useRemoteCommunityProvider.overrideWith((ref) => false),
           communityFakeDatasourceProvider.overrideWithValue(
             CommunityFakeDatasource(currentUserId: 'user_alpha'),
           ),
@@ -260,6 +263,7 @@ void main() {
       // Container 2: User Beta
       final containerBeta = ProviderContainer(
         overrides: [
+          useRemoteCommunityProvider.overrideWith((ref) => false),
           communityFakeDatasourceProvider.overrideWithValue(
             CommunityFakeDatasource(currentUserId: 'user_beta'),
           ),

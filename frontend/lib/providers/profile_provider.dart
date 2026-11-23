@@ -24,13 +24,47 @@ final sharedPreferencesProvider = Provider<SharedPreferences>((ref) {
   throw UnimplementedError('SharedPreferences not initialized');
 });
 
+class _FallbackProfileRepository implements ProfileRepository {
+  const _FallbackProfileRepository();
+
+  @override
+  Future<ProfileSnapshot?> fetchProfileSnapshot(
+          {bool cacheOnSuccess = false}) async =>
+      null;
+
+  @override
+  Future<ProfileEntity?> fetchProfile() async => null;
+
+  @override
+  Future<void> syncProfile(ProfileEntity profile) async {}
+
+  @override
+  Future<void> cacheSnapshot(ProfileSnapshot snapshot) async {}
+
+  @override
+  Future<void> clearLocalProfile({String? userId}) async {}
+
+  @override
+  Future<void> saveDraft(OnboardingDraft draft) async {}
+
+  @override
+  Future<OnboardingDraft?> getDraft(String userId) async => null;
+
+  @override
+  Future<void> clearDraft(String userId) async {}
+}
+
 final profileRepositoryProvider = Provider<ProfileRepository>((ref) {
-  final dio = ref.watch(dioProvider);
-  final prefs = ref.watch(sharedPreferencesProvider);
-  return ProfileRepositoryImpl(
-    remoteDataSource: ProfileRemoteDataSourceImpl(dio: dio),
-    localDataSource: ProfileLocalDataSourceImpl(sharedPreferences: prefs),
-  );
+  try {
+    final dio = ref.watch(dioProvider);
+    final prefs = ref.watch(sharedPreferencesProvider);
+    return ProfileRepositoryImpl(
+      remoteDataSource: ProfileRemoteDataSourceImpl(dio: dio),
+      localDataSource: ProfileLocalDataSourceImpl(sharedPreferences: prefs),
+    );
+  } on UnimplementedError {
+    return const _FallbackProfileRepository();
+  }
 });
 
 final avatarRepositoryProvider = Provider<AvatarRepository>((ref) {
@@ -109,7 +143,17 @@ class ProfileState {
   bool get isLoading =>
       _legacyIsLoading ??
       (status == ProfileStatus.loading || status == ProfileStatus.initial);
-  bool get isProfileValid => profile.isValid;
+  bool get isProfileValid =>
+      profile.isValid &&
+      profile.age != null &&
+      profile.age! >= 13 &&
+      profile.age! <= 120 &&
+      profile.height != null &&
+      profile.height!.isFinite &&
+      profile.height! > 0 &&
+      profile.weight != null &&
+      profile.weight!.isFinite &&
+      profile.weight! > 0;
   bool get hasError => status == ProfileStatus.error;
   bool get isOffline => status == ProfileStatus.offline || isFromCache;
   bool get isUnauthorized => status == ProfileStatus.unauthorized;
