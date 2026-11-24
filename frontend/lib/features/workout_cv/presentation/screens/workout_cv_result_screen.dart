@@ -4,11 +4,19 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
 
+import '../../../../config/app_translations.dart';
+import '../../../community/domain/models/community_post.dart';
+import '../../../community/domain/models/post_attachment_snapshot.dart';
+import '../../../community/presentation/providers/community_composer_provider.dart';
+import '../../../community/presentation/screens/compose/post_compose_publish_screen.dart';
+import '../../../community/presentation/widgets/community_create_story_sheet.dart';
 import '../../data/datasources/workout_cv_replay_source.dart';
 import '../../domain/entities/exercise_cv_state.dart';
 import '../../domain/services/cv_form_summary_calculator.dart';
 import '../../domain/services/lat_pulldown_baseline.dart';
+import '../../domain/services/workout_cv_exercise_registry.dart';
 import '../controllers/workout_cv_controller.dart';
 import '../widgets/pose_skeleton_painter.dart';
 
@@ -92,8 +100,8 @@ class _CalmAthleticismReportTokens {
     double? letterSpacing,
   }) {
     return TextStyle(
-      fontFamily: 'Space Grotesk',
-      fontFamilyFallback: const ['Manrope', 'Inter', 'sans-serif'],
+      fontFamily: 'Manrope',
+      fontFamilyFallback: const ['sans-serif'],
       fontSize: fontSize,
       fontWeight: fontWeight,
       color: color,
@@ -111,8 +119,8 @@ class _CalmAthleticismReportTokens {
     double? letterSpacing,
   }) {
     return TextStyle(
-      fontFamily: 'Inter',
-      fontFamilyFallback: const ['Manrope', 'sans-serif'],
+      fontFamily: 'Manrope',
+      fontFamilyFallback: const ['sans-serif'],
       fontSize: fontSize,
       fontWeight: fontWeight,
       color: color,
@@ -130,8 +138,8 @@ class _CalmAthleticismReportTokens {
     double? letterSpacing,
   }) {
     return TextStyle(
-      fontFamily: 'JetBrains Mono',
-      fontFamilyFallback: const ['monospace', 'Courier New'],
+      fontFamily: 'monospace',
+      fontFamilyFallback: const ['Courier New'],
       fontSize: fontSize,
       fontWeight: fontWeight,
       color: color,
@@ -142,9 +150,14 @@ class _CalmAthleticismReportTokens {
   }
 }
 
+bool _isVietnameseLocale(BuildContext context) =>
+    Localizations.maybeLocaleOf(context)?.languageCode == 'vi';
+
 class WorkoutCvResultScreen extends ConsumerStatefulWidget {
   final List<LatPulldownRepEvent> repHistory;
   final String? exerciseName;
+  final String exerciseId;
+  final String exerciseSlug;
   final String? replayVideoPath;
   final WorkoutCvReplaySource? replaySource;
   final VoidCallback? onDone;
@@ -154,17 +167,19 @@ class WorkoutCvResultScreen extends ConsumerStatefulWidget {
     super.key,
     required this.repHistory,
     this.exerciseName,
+    this.exerciseId = '',
+    this.exerciseSlug = '',
     this.replayVideoPath,
     this.replaySource,
     this.onDone,
     this.formSummary,
   });
 
-  static bool isRepStandardMet(LatPulldownRepEvent rep) {
-    final durationSec = rep.durationMs / 1000.0;
-    return rep.minElbowAngleDeg < 45.0 &&
-        durationSec >= 2.0 &&
-        durationSec <= 3.0;
+  static bool isRepStandardMet(
+    LatPulldownRepEvent rep, {
+    CvExerciseModule? module,
+  }) {
+    return CvFormSummaryCalculator.isRepStandardMet(rep, module: module);
   }
 
   @override
@@ -203,6 +218,24 @@ class _WorkoutCvResultScreenState extends ConsumerState<WorkoutCvResultScreen>
 
   ExerciseCvState _currentCvState() =>
       _hasScope ? ref.read(workoutCvControllerProvider) : const ExerciseCvState();
+
+  CvExerciseModule? _resolveModule(ExerciseCvState cvState) {
+    final effectiveId =
+        widget.exerciseId.isNotEmpty ? widget.exerciseId : cvState.exerciseId;
+    final effectiveSlug = widget.exerciseSlug.isNotEmpty
+        ? widget.exerciseSlug
+        : cvState.exerciseSlug;
+    return WorkoutCvExerciseRegistry.resolveModule(
+      id: effectiveId,
+      slug: effectiveSlug,
+    );
+  }
+
+  String _effectiveReplaySlug(ExerciseCvState cvState) {
+    if (widget.exerciseSlug.isNotEmpty) return widget.exerciseSlug;
+    if (cvState.exerciseSlug.isNotEmpty) return cvState.exerciseSlug;
+    return 'lat-pulldown';
+  }
 
   /// A recording exists only for video-replay sessions (or an explicit path).
   /// Live-camera sessions are never recorded, so nothing is replayed for them.
@@ -329,10 +362,13 @@ class _WorkoutCvResultScreenState extends ConsumerState<WorkoutCvResultScreen>
       _revealControls();
     }
 
+    final cvState = _currentCvState();
+    final effectiveSlug = _effectiveReplaySlug(cvState);
+
     final directReplaySource = widget.replaySource;
     if (directReplaySource != null) {
       if (!directReplaySource.isPlaying) {
-        await directReplaySource.startSession('lat-pulldown');
+        await directReplaySource.startSession(effectiveSlug);
       }
       if (timestampMs != null) {
         directReplaySource.seekTo(timestampMs);
@@ -346,7 +382,7 @@ class _WorkoutCvResultScreenState extends ConsumerState<WorkoutCvResultScreen>
     final nativeSource = ref.read(workoutCvNativeSourceProvider);
     if (nativeSource is WorkoutCvReplaySource) {
       if (!nativeSource.isPlaying) {
-        await nativeSource.startSession('lat-pulldown');
+        await nativeSource.startSession(effectiveSlug);
       }
       if (timestampMs != null) {
         nativeSource.seekTo(timestampMs);
@@ -381,16 +417,183 @@ class _WorkoutCvResultScreenState extends ConsumerState<WorkoutCvResultScreen>
   void _handleExit() {
     _stopReplay();
     final cvState = _currentCvState();
+    final module = _resolveModule(cvState);
     final effectiveReps = widget.repHistory.isNotEmpty
         ? widget.repHistory
         : cvState.replayRepEvents;
-    final summaryToReturn =
-        widget.formSummary ?? CvFormSummaryCalculator.compute(reps: effectiveReps);
+    final summaryToReturn = widget.formSummary ??
+        CvFormSummaryCalculator.compute(
+          reps: effectiveReps,
+          module: module,
+        );
     if (widget.onDone != null) {
       widget.onDone!();
     } else {
       Navigator.of(context).pop<CvFormSummary>(summaryToReturn);
     }
+  }
+
+  Future<void> _showShareSheet({
+    required int totalReps,
+    required int standardReps,
+    required CvExerciseModule? module,
+  }) async {
+    final t = _CalmAthleticismReportTokens.of(context);
+    final isVi = _isVietnameseLocale(context);
+    final rawName = widget.exerciseName?.trim() ?? '';
+    final exerciseLabel =
+        rawName.isNotEmpty ? rawName : (module?.name ?? 'Workout CV');
+    final standardPct =
+        totalReps > 0 ? ((standardReps / totalReps) * 100).round() : 0;
+    final summaryLabel = isVi
+        ? '$standardReps/$totalReps ($standardPct% Chuẩn)'
+        : '$standardReps/$totalReps ($standardPct% Form)';
+    final dateStr = DateFormat('MMM d, yyyy • h:mm a').format(DateTime.now());
+
+    await showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: t.cardSurface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (sheetContext) {
+        return SafeArea(
+          top: false,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  sheetContext.tr('workout_share_sheet_title'),
+                  style: _CalmAthleticismReportTokens.headline(
+                    fontSize: 16,
+                    color: t.textPrimary,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  sheetContext.tr('workout_share_sheet_subtitle'),
+                  style: _CalmAthleticismReportTokens.body(
+                    fontSize: 12,
+                    color: t.textSecondary,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                ListTile(
+                  key: const ValueKey('workout_cv_share_post_option'),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 8),
+                  leading: CircleAvatar(
+                    backgroundColor: t.iconContainer,
+                    child: Icon(Icons.post_add_outlined, color: t.statusValid),
+                  ),
+                  title: Text(
+                    sheetContext.tr('workout_share_post_title'),
+                    style: _CalmAthleticismReportTokens.body(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: t.textPrimary,
+                    ),
+                  ),
+                  subtitle: Text(
+                    '$exerciseLabel • $summaryLabel',
+                    style: _CalmAthleticismReportTokens.body(
+                      fontSize: 12,
+                      color: t.textSecondary,
+                    ),
+                  ),
+                  onTap: () {
+                    Navigator.of(sheetContext).pop();
+                    final exId = widget.exerciseId.trim().isNotEmpty
+                        ? widget.exerciseId.trim()
+                        : (module?.name ?? 'cv');
+                    final snapshot = PostAttachmentSnapshot(
+                      type: AttachmentType.workout,
+                      id: 'cv_${exId}_${DateTime.now().millisecondsSinceEpoch}',
+                      title: '$exerciseLabel — $summaryLabel',
+                      dateFormatted: dateStr,
+                      category: 'Saman Workout CV',
+                      includeDuration: true,
+                      includeExercisesOrFoods: true,
+                      includeLoadOrMacros: false,
+                      exerciseCount: 1,
+                      exercises: [
+                        ExerciseThumbnailPreview(
+                          title: '$exerciseLabel ($summaryLabel)',
+                        ),
+                      ],
+                      sharedSnapshot: <String, dynamic>{
+                        'exercise_count': 1,
+                        'exercises': <Map<String, dynamic>>[
+                          <String, dynamic>{
+                            'name': '$exerciseLabel ($summaryLabel)',
+                          },
+                        ],
+                      },
+                    ).sanitize();
+
+                    final composerNotifier =
+                        ref.read(communityComposerProvider.notifier);
+                    if (!ref
+                        .read(communityComposerProvider)
+                        .hasPendingSubmission) {
+                      composerNotifier.reset();
+                    }
+                    composerNotifier.setAttachment(snapshot);
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => const PostComposePublishScreen(),
+                      ),
+                    );
+                  },
+                ),
+                ListTile(
+                  key: const ValueKey('workout_cv_share_story_option'),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 8),
+                  leading: CircleAvatar(
+                    backgroundColor: t.iconContainer,
+                    child: Icon(
+                      Icons.auto_awesome_outlined,
+                      color: t.statusValid,
+                    ),
+                  ),
+                  title: Text(
+                    sheetContext.tr('workout_share_story_title'),
+                    style: _CalmAthleticismReportTokens.body(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: t.textPrimary,
+                    ),
+                  ),
+                  subtitle: Text(
+                    '$exerciseLabel • $summaryLabel',
+                    style: _CalmAthleticismReportTokens.body(
+                      fontSize: 12,
+                      color: t.textSecondary,
+                    ),
+                  ),
+                  onTap: () {
+                    Navigator.of(sheetContext).pop();
+                    final prefill = context
+                        .tr('workout_cv_share_story_prefill')
+                        .replaceAll('{exercise}', exerciseLabel)
+                        .replaceAll('{standard}', '$standardReps')
+                        .replaceAll('{total}', '$totalReps')
+                        .replaceAll('{pct}', '$standardPct');
+                    CommunityCreateStorySheet.show(
+                      context,
+                      initialCaption: prefill,
+                      initialPrivacy: 'followers_only',
+                    );
+                  },
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
   }
 
   @override
@@ -399,13 +602,21 @@ class _WorkoutCvResultScreenState extends ConsumerState<WorkoutCvResultScreen>
     final cvState = _hasScope
         ? ref.watch(workoutCvControllerProvider)
         : const ExerciseCvState();
+    final module = _resolveModule(cvState);
+    final criteria = ExerciseFormCriteria.forModule(module);
 
     final effectiveReps = widget.repHistory.isNotEmpty
         ? widget.repHistory
         : cvState.replayRepEvents;
     final totalReps = effectiveReps.length;
-    final standardCount =
-        effectiveReps.where(WorkoutCvResultScreen.isRepStandardMet).length;
+    final standardCount = effectiveReps
+        .where(
+          (rep) => WorkoutCvResultScreen.isRepStandardMet(
+            rep,
+            module: module,
+          ),
+        )
+        .length;
     final isPlaying = _isPlayingNow(cvState);
 
     return Scaffold(
@@ -456,12 +667,15 @@ class _WorkoutCvResultScreenState extends ConsumerState<WorkoutCvResultScreen>
                     standardReps: standardCount,
                   ),
                   const SizedBox(height: 16),
-                  const _CriteriaBanner(
-                    key: ValueKey('workout_cv_result_criteria_banner'),
+                  _CriteriaBanner(
+                    key: const ValueKey('workout_cv_result_criteria_banner'),
+                    criteria: criteria,
                   ),
                   const SizedBox(height: 16),
                   _RepBreakdownSection(
                     repHistory: effectiveReps,
+                    module: module,
+                    criteria: criteria,
                     selectedRepNumber: _selectedRepNumber,
                     onRepTap: _onRepSelected,
                   ),
@@ -473,6 +687,11 @@ class _WorkoutCvResultScreenState extends ConsumerState<WorkoutCvResultScreen>
       ),
       bottomNavigationBar: _StickyBottomCta(
         onDone: _handleExit,
+        onShare: () => _showShareSheet(
+          totalReps: totalReps,
+          standardReps: standardCount,
+          module: module,
+        ),
       ),
     );
   }
@@ -490,12 +709,14 @@ class _TopHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final t = _CalmAthleticismReportTokens.of(context);
+    final isVi = _isVietnameseLocale(context);
     final trimmedName = exerciseName?.trim() ?? '';
     final hasExerciseName = trimmedName.isNotEmpty;
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           SizedBox(
             width: 36,
@@ -531,9 +752,9 @@ class _TopHeader extends StatelessWidget {
               children: [
                 Text.rich(
                   TextSpan(
-                    text: 'Báo cáo CV',
+                    text: isVi ? 'Báo cáo CV' : 'CV Report',
                     style: _CalmAthleticismReportTokens.headline(
-                      fontSize: 19,
+                      fontSize: 18,
                       fontWeight: FontWeight.w600,
                       color: t.textPrimary,
                       height: 1.2,
@@ -544,7 +765,7 @@ class _TopHeader extends StatelessWidget {
                         TextSpan(
                           text: ' · $trimmedName',
                           style: _CalmAthleticismReportTokens.headline(
-                            fontSize: 19,
+                            fontSize: 18,
                             fontWeight: FontWeight.w400,
                             color: t.textSecondary,
                             height: 1.2,
@@ -553,28 +774,31 @@ class _TopHeader extends StatelessWidget {
                         ),
                     ],
                   ),
-                  maxLines: 1,
+                  maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  'COMPUTER VISION ANALYSIS',
-                  maxLines: 1,
+                  isVi ? 'PHÂN TÍCH THỊ GIÁC MÁY' : 'COMPUTER VISION ANALYSIS',
+                  maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                   style: _CalmAthleticismReportTokens.mono(
                     fontSize: 11,
                     fontWeight: FontWeight.w500,
                     color: t.textSecondary,
-                    letterSpacing: 0.8,
+                    letterSpacing: 0.7,
                   ),
                 ),
               ],
             ),
           ),
           const SizedBox(width: 8),
-          _NeutralStatusBadge(
-            dotColor: t.statusValid,
-            label: 'AI VERIFIED',
+          Padding(
+            padding: const EdgeInsets.only(top: 2),
+            child: _NeutralStatusBadge(
+              dotColor: t.statusValid,
+              label: isVi ? 'AI XÁC THỰC' : 'AI VERIFIED',
+            ),
           ),
         ],
       ),
@@ -628,6 +852,7 @@ class _SessionReplayVideoCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     const dark = _CalmAthleticismReportTokens.dark;
+    final isVi = _isVietnameseLocale(context);
     final hasError = cvState.trackingStatus == TrackingStatus.error;
     final canRenderNativeView =
         supportsNativeVideoView && cvState.isCameraActive && !hasError;
@@ -635,7 +860,7 @@ class _SessionReplayVideoCard extends StatelessWidget {
         ? cvState.clipName.trim()
         : (exerciseName?.trim().isNotEmpty == true
             ? exerciseName!.trim()
-            : 'Session Replay');
+            : (isVi ? 'Phát lại buổi tập' : 'Session Replay'));
 
     final activePtsMs = cvState.videoPtsMs > 0
         ? cvState.videoPtsMs
@@ -761,8 +986,12 @@ class _SessionReplayVideoCard extends StatelessWidget {
                                   selectedRepNumber != null
                                       ? 'REP $selectedRepNumber · ${_formatMsToSeconds(activePtsMs)}'
                                       : (isPlaying
-                                          ? 'REPLAY · ${_formatMsToSeconds(activePtsMs)}'
-                                          : 'SESSION REPLAY'),
+                                          ? (isVi
+                                              ? 'PHÁT LẠI · ${_formatMsToSeconds(activePtsMs)}'
+                                              : 'REPLAY · ${_formatMsToSeconds(activePtsMs)}')
+                                          : (isVi
+                                              ? 'PHÁT LẠI BUỔI TẬP'
+                                              : 'SESSION REPLAY')),
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
                                   style: _CalmAthleticismReportTokens.mono(
@@ -808,8 +1037,12 @@ class _SessionReplayVideoCard extends StatelessWidget {
                                       const SizedBox(width: 4),
                                       Text(
                                         showSkeletonOverlay
-                                            ? 'SKELETON ON'
-                                            : 'SKELETON OFF',
+                                            ? (isVi
+                                                ? 'KHUNG XƯƠNG BẬT'
+                                                : 'SKELETON ON')
+                                            : (isVi
+                                                ? 'KHUNG XƯƠNG TẮT'
+                                                : 'SKELETON OFF'),
                                         style:
                                             _CalmAthleticismReportTokens.mono(
                                           fontSize: 10,
@@ -874,9 +1107,13 @@ class _SessionReplayVideoCard extends StatelessWidget {
                               Flexible(
                                 child: Text(
                                   hasError
-                                      ? 'Video phiên tập chưa sẵn sàng để phát lại'
+                                      ? (isVi
+                                          ? 'Video phiên tập chưa sẵn sàng để phát lại'
+                                          : 'Session video is not ready for replay')
                                       : (selectedRepNumber != null
-                                          ? 'Đang định vị mốc Rep $selectedRepNumber (${_formatMsToSeconds(activePtsMs)})'
+                                          ? (isVi
+                                              ? 'Đang định vị mốc Rep $selectedRepNumber (${_formatMsToSeconds(activePtsMs)})'
+                                              : 'Seeking to Rep $selectedRepNumber (${_formatMsToSeconds(activePtsMs)})')
                                           : clipLabel),
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
@@ -931,20 +1168,39 @@ class _MinimalReplaySurfaceFallback extends StatelessWidget {
     required this.seekTimestampMs,
   });
 
-  String get _message {
-    if (hasError) return 'Không thể tải video phiên tập trên thiết bị này';
-    if (!hasReplay) return 'Phiên này không có video ghi lại để phát lại';
-    if (isLoading) return 'Đang tải video phiên tập…';
-    if (selectedRepNumber != null && seekTimestampMs != null) {
-      return 'Đã chọn Rep $selectedRepNumber • Nhấn Play để phát lại';
+  String _message(bool isVi) {
+    if (hasError) {
+      return isVi
+          ? 'Không thể tải video phiên tập trên thiết bị này'
+          : 'Unable to load session video on this device';
     }
-    if (repCount > 0) return 'Nhấn Play hoặc chạm vào từng Rep để xem lại';
-    return 'Chưa có bản ghi video trong phiên này';
+    if (!hasReplay) {
+      return isVi
+          ? 'Phiên này không có video ghi lại để phát lại'
+          : 'No recorded video is available for replay in this session';
+    }
+    if (isLoading) {
+      return isVi ? 'Đang tải video phiên tập…' : 'Loading session video…';
+    }
+    if (selectedRepNumber != null && seekTimestampMs != null) {
+      return isVi
+          ? 'Đã chọn Rep $selectedRepNumber • Nhấn Phát để xem lại'
+          : 'Selected Rep $selectedRepNumber • Tap Play to replay';
+    }
+    if (repCount > 0) {
+      return isVi
+          ? 'Nhấn Phát hoặc chạm vào từng Rep để xem lại'
+          : 'Tap Play or select a Rep to review';
+    }
+    return isVi
+        ? 'Chưa có bản ghi video trong phiên này'
+        : 'No video recording captured in this session';
   }
 
   @override
   Widget build(BuildContext context) {
     const dark = _CalmAthleticismReportTokens.dark;
+    final isVi = _isVietnameseLocale(context);
     return ColoredBox(
       color: dark.cardSurface,
       child: CustomPaint(
@@ -953,7 +1209,7 @@ class _MinimalReplaySurfaceFallback extends StatelessWidget {
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 28),
             child: Text(
-              _message,
+              _message(isVi),
               textAlign: TextAlign.center,
               maxLines: 3,
               overflow: TextOverflow.ellipsis,
@@ -1050,6 +1306,7 @@ class _HeroSummaryCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final t = _CalmAthleticismReportTokens.of(context);
+    final isVi = _isVietnameseLocale(context);
     final needsImprovementReps = (totalReps - standardReps).clamp(0, totalReps);
     final standardPct =
         totalReps > 0 ? ((standardReps * 100) / totalReps).round() : 0;
@@ -1092,21 +1349,25 @@ class _HeroSummaryCard extends StatelessWidget {
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
-                  'TỔNG SỐ REP HỢP LỆ',
-                  maxLines: 1,
+                  isVi ? 'TỔNG SỐ REP HỢP LỆ' : 'TOTAL VALID REPS',
+                  maxLines: 2,
+                  softWrap: true,
                   overflow: TextOverflow.ellipsis,
                   style: _CalmAthleticismReportTokens.mono(
                     fontSize: 11,
                     fontWeight: FontWeight.w600,
                     color: t.textSecondary,
-                    letterSpacing: 0.7,
+                    height: 1.25,
+                    letterSpacing: 0.5,
                   ),
                 ),
               ),
               const SizedBox(width: 8),
               _NeutralStatusBadge(
                 dotColor: t.statusValid,
-                label: 'ĐẠT CHUẨN: $standardReps/$totalReps REP',
+                label: isVi
+                    ? 'ĐẠT CHUẨN: $standardReps/$totalReps REP'
+                    : 'STANDARD: $standardReps/$totalReps REPS',
               ),
             ],
           ),
@@ -1128,7 +1389,7 @@ class _HeroSummaryCard extends StatelessWidget {
               ),
               const SizedBox(width: 8),
               Text(
-                'Rep',
+                isVi ? 'Rep' : (totalReps == 1 ? 'Rep' : 'Reps'),
                 style: _CalmAthleticismReportTokens.body(
                   fontSize: 18,
                   fontWeight: FontWeight.w400,
@@ -1189,11 +1450,15 @@ class _HeroSummaryCard extends StatelessWidget {
             children: [
               _ProgressLegendItem(
                 dotColor: t.statusValid,
-                label: '$standardReps Rep đạt chuẩn ($standardPct%)',
+                label: isVi
+                    ? '$standardReps Rep đạt chuẩn ($standardPct%)'
+                    : '$standardReps Standard ($standardPct%)',
               ),
               _ProgressLegendItem(
                 dotColor: t.statusWarning,
-                label: '$needsImprovementReps Cần cải thiện ($improvementPct%)',
+                label: isVi
+                    ? '$needsImprovementReps Cần cải thiện ($improvementPct%)'
+                    : '$needsImprovementReps Needs work ($improvementPct%)',
               ),
             ],
           ),
@@ -1241,11 +1506,17 @@ class _ProgressLegendItem extends StatelessWidget {
 }
 
 class _CriteriaBanner extends StatelessWidget {
-  const _CriteriaBanner({super.key});
+  final ExerciseFormCriteria criteria;
+
+  const _CriteriaBanner({
+    super.key,
+    required this.criteria,
+  });
 
   @override
   Widget build(BuildContext context) {
     final t = _CalmAthleticismReportTokens.of(context);
+    final isVi = _isVietnameseLocale(context);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
       decoration: BoxDecoration(
@@ -1280,8 +1551,8 @@ class _CriteriaBanner extends StatelessWidget {
           const SizedBox(width: 8),
           Expanded(
             child: Text(
-              'MỨC CHUẨN ĐỘNG TÁC',
-              maxLines: 1,
+              isVi ? 'MỨC CHUẨN ĐỘNG TÁC' : 'FORM CRITERIA',
+              maxLines: 2,
               overflow: TextOverflow.ellipsis,
               style: _CalmAthleticismReportTokens.mono(
                 fontSize: 11,
@@ -1296,7 +1567,7 @@ class _CriteriaBanner extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               Text(
-                'Góc < 45°',
+                criteria.localizedCriteriaDisplayText(isVietnamese: isVi),
                 style: _CalmAthleticismReportTokens.mono(
                   fontSize: 12,
                   fontWeight: FontWeight.w500,
@@ -1315,7 +1586,7 @@ class _CriteriaBanner extends StatelessWidget {
                 ),
               ),
               Text(
-                '2–3s',
+                criteria.tempoDisplayText,
                 style: _CalmAthleticismReportTokens.mono(
                   fontSize: 12,
                   fontWeight: FontWeight.w500,
@@ -1332,11 +1603,15 @@ class _CriteriaBanner extends StatelessWidget {
 
 class _RepBreakdownSection extends StatelessWidget {
   final List<LatPulldownRepEvent> repHistory;
+  final CvExerciseModule? module;
+  final ExerciseFormCriteria criteria;
   final int? selectedRepNumber;
   final void Function(LatPulldownRepEvent rep, int displayIndex) onRepTap;
 
   const _RepBreakdownSection({
     required this.repHistory,
+    required this.module,
+    required this.criteria,
     required this.selectedRepNumber,
     required this.onRepTap,
   });
@@ -1344,6 +1619,7 @@ class _RepBreakdownSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final t = _CalmAthleticismReportTokens.of(context);
+    final isVi = _isVietnameseLocale(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -1352,21 +1628,33 @@ class _RepBreakdownSection extends StatelessWidget {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                'CHI TIẾT TỪNG REP',
-                style: _CalmAthleticismReportTokens.mono(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                  color: t.textSecondary,
-                  letterSpacing: 0.7,
+              Expanded(
+                child: Text(
+                  isVi ? 'CHI TIẾT TỪNG REP' : 'REP BREAKDOWN',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: _CalmAthleticismReportTokens.mono(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: t.textSecondary,
+                    letterSpacing: 0.7,
+                  ),
                 ),
               ),
-              Text(
-                '${repHistory.length} reps đã phân tích',
-                style: _CalmAthleticismReportTokens.mono(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w400,
-                  color: t.textSecondary,
+              const SizedBox(width: 8),
+              Flexible(
+                child: Text(
+                  isVi
+                      ? '${repHistory.length} reps đã phân tích'
+                      : '${repHistory.length} ${repHistory.length == 1 ? 'rep' : 'reps'} analyzed',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  textAlign: TextAlign.end,
+                  style: _CalmAthleticismReportTokens.mono(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w400,
+                    color: t.textSecondary,
+                  ),
                 ),
               ),
             ],
@@ -1399,6 +1687,8 @@ class _RepBreakdownSection extends StatelessWidget {
                           'cv_result_rep_${repHistory[index].repNumber}_$index',
                         ),
                         rep: repHistory[index],
+                        module: module,
+                        criteria: criteria,
                         displayIndex: repHistory[index].repNumber > 0
                             ? repHistory[index].repNumber
                             : index + 1,
@@ -1424,6 +1714,8 @@ class _RepBreakdownSection extends StatelessWidget {
 
 class _RepResultRow extends StatelessWidget {
   final LatPulldownRepEvent rep;
+  final CvExerciseModule? module;
+  final ExerciseFormCriteria criteria;
   final int displayIndex;
   final bool isSelected;
   final VoidCallback onTap;
@@ -1431,6 +1723,8 @@ class _RepResultRow extends StatelessWidget {
   const _RepResultRow({
     super.key,
     required this.rep,
+    required this.module,
+    required this.criteria,
     required this.displayIndex,
     required this.isSelected,
     required this.onTap,
@@ -1439,8 +1733,10 @@ class _RepResultRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final t = _CalmAthleticismReportTokens.of(context);
+    final isVi = _isVietnameseLocale(context);
     final durationSec = rep.durationMs / 1000.0;
-    final isStandardMet = WorkoutCvResultScreen.isRepStandardMet(rep);
+    final isStandardMet =
+        WorkoutCvResultScreen.isRepStandardMet(rep, module: module);
     final statusColor = isStandardMet ? t.statusValid : t.statusWarning;
 
     final durationText = durationSec.toStringAsFixed(1);
@@ -1510,7 +1806,8 @@ class _RepResultRow extends StatelessWidget {
                             ),
                           ),
                           TextSpan(
-                            text: 'Góc khuỷu tay: $angleText°',
+                            text:
+                                '${criteria.localizedAngleMetricLabel(isVietnamese: isVi)}: $angleText°',
                             style: _CalmAthleticismReportTokens.mono(
                               fontSize: 13,
                               fontWeight: FontWeight.w400,
@@ -1527,7 +1824,9 @@ class _RepResultRow extends StatelessWidget {
               const SizedBox(width: 10),
               _NeutralStatusBadge(
                 dotColor: statusColor,
-                label: isStandardMet ? 'ĐẠT CHUẨN' : 'CẦN CẢI THIỆN',
+                label: isStandardMet
+                    ? (isVi ? 'ĐẠT CHUẨN' : 'STANDARD')
+                    : (isVi ? 'CẦN CẢI THIỆN' : 'NEEDS WORK'),
               ),
             ],
           ),
@@ -1594,6 +1893,7 @@ class _EmptyRepHistoryCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final t = _CalmAthleticismReportTokens.of(context);
+    final isVi = _isVietnameseLocale(context);
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
       child: Column(
@@ -1620,7 +1920,9 @@ class _EmptyRepHistoryCard extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           Text(
-            'Chưa ghi nhận Rep hợp lệ nào trong phiên này.',
+            isVi
+                ? 'Chưa ghi nhận Rep hợp lệ nào trong phiên này.'
+                : 'No completed reps were recorded in this session.',
             textAlign: TextAlign.center,
             style: _CalmAthleticismReportTokens.body(
               fontSize: 14,
@@ -1636,14 +1938,17 @@ class _EmptyRepHistoryCard extends StatelessWidget {
 
 class _StickyBottomCta extends StatelessWidget {
   final VoidCallback onDone;
+  final VoidCallback onShare;
 
   const _StickyBottomCta({
     required this.onDone,
+    required this.onShare,
   });
 
   @override
   Widget build(BuildContext context) {
     final t = _CalmAthleticismReportTokens.of(context);
+    final isVi = _isVietnameseLocale(context);
     return Container(
       decoration: BoxDecoration(
         color: t.canvas,
@@ -1662,34 +1967,68 @@ class _StickyBottomCta extends StatelessWidget {
             heightFactor: 1.0,
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 448),
-              child: SizedBox(
-                width: double.infinity,
-                height: 48,
-                child: ElevatedButton.icon(
-                  key: const ValueKey('workout_cv_result_done_button'),
-                  onPressed: onDone,
-                  icon: Icon(
-                    Icons.check_circle_outline_rounded,
-                    size: 20,
-                    color: t.ctaForeground,
-                  ),
-                  label: Text(
-                    'Hoàn thành',
-                    style: _CalmAthleticismReportTokens.body(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w600,
-                      color: t.ctaForeground,
+              child: Row(
+                children: [
+                  SizedBox(
+                    height: 48,
+                    child: OutlinedButton.icon(
+                      key: const ValueKey('workout_cv_result_share_button'),
+                      onPressed: onShare,
+                      icon: Icon(
+                        Icons.share_outlined,
+                        size: 18,
+                        color: t.textPrimary,
+                      ),
+                      label: Text(
+                        context.tr('workout_share_short_cta'),
+                        style: _CalmAthleticismReportTokens.body(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: t.textPrimary,
+                        ),
+                      ),
+                      style: OutlinedButton.styleFrom(
+                        backgroundColor: t.cardSurface,
+                        side: BorderSide(color: t.border),
+                        padding: const EdgeInsets.symmetric(horizontal: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
                     ),
                   ),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: t.ctaBackground,
-                    foregroundColor: t.ctaForeground,
-                    elevation: 0,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: SizedBox(
+                      height: 48,
+                      child: ElevatedButton.icon(
+                        key: const ValueKey('workout_cv_result_done_button'),
+                        onPressed: onDone,
+                        icon: Icon(
+                          Icons.check_circle_outline_rounded,
+                          size: 20,
+                          color: t.ctaForeground,
+                        ),
+                        label: Text(
+                          isVi ? 'Hoàn thành' : 'Done',
+                          style: _CalmAthleticismReportTokens.body(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w600,
+                            color: t.ctaForeground,
+                          ),
+                        ),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: t.ctaBackground,
+                          foregroundColor: t.ctaForeground,
+                          elevation: 0,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                      ),
                     ),
                   ),
-                ),
+                ],
               ),
             ),
           ),

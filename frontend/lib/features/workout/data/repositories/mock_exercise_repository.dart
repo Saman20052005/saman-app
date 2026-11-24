@@ -123,4 +123,7 @@ class MockExerciseRepository implements ExerciseRepository {
 
   @override
   Future<List<MuscleGroup>> getMuscleGroups() async => [];
+
+  @override
+  Future<List<MuscleRecoveryItem>> getMuscleRecovery() async => const [];
 }

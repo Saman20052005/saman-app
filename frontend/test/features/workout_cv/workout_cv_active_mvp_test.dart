@@ -214,7 +214,7 @@ void main() {
     await tester.tap(
         find.byKey(const ValueKey('active_workout_form_check_badge')));
     await tester.pumpAndSettle();
-    expect(find.textContaining('Web/iOS chưa có replay'), findsOneWidget);
+    expect(find.textContaining('Web/iOS does not include packaged demo landmarks'), findsOneWidget);
     expect(find.byType(WorkoutCvScreen), findsNothing);
     expect(source.startSessionCalled, isFalse);
     expect(source.startVideoReplayCalled, isFalse);
@@ -250,9 +250,9 @@ void main() {
       await tester.idle();
       await tester.pump();
     }
-    expect(find.text('Số lần kéo: 1'), findsOneWidget);
-    expect(find.textContaining('Pha: extended'), findsOneWidget);
-    expect(find.textContaining('Baseline quy tắc'), findsOneWidget);
+    expect(find.text('Pulls: 1'), findsOneWidget);
+    expect(find.textContaining('Ready'), findsOneWidget);
+    expect(find.textContaining('Pha:'), findsNothing);
     expect(identical(before, container.read(activeWorkoutSessionProvider)), isTrue);
     expect(tester.takeException(), isNull);
     await tester.pumpWidget(const SizedBox.shrink());

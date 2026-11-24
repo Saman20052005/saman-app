@@ -44,6 +44,31 @@ class ExerciseRepositoryImpl implements ExerciseRepository {
   }
 
   @override
+  Future<List<MuscleRecoveryItem>> getMuscleRecovery() async {
+    final response = await dio.get(
+      '${ApiConfig.baseUrl}/api/workouts/muscle-recovery',
+    );
+    final dynamic resData = response.data is String
+        ? jsonDecode(response.data as String)
+        : response.data;
+    final dynamic rawMuscles = resData is Map ? resData['muscles'] : null;
+    if (rawMuscles is! List) return const [];
+
+    final items = <MuscleRecoveryItem>[];
+    for (final raw in rawMuscles) {
+      if (raw is! Map) continue;
+      try {
+        items.add(
+          MuscleRecoveryItem.fromJson(Map<String, dynamic>.from(raw)),
+        );
+      } on Object {
+        // Ignore malformed entries while preserving valid muscle items.
+      }
+    }
+    return items;
+  }
+
+  @override
   Future<List<MuscleGroup>> getMuscleGroups() async {
     final Response<dynamic> response =
         await dio.get(ApiConfig.muscleGroupsEndpoint);
@@ -118,13 +143,30 @@ class ExerciseRepositoryImpl implements ExerciseRepository {
 
     final dynamic resData = response.data;
     if (resData is Map<String, dynamic>) {
+      final rawPrs = resData['new_prs'] ?? resData['newPrs'];
+      final parsedPrs = rawPrs is List
+          ? rawPrs
+              .whereType<Map>()
+              .map((e) => Map<String, dynamic>.from(e))
+              .toList(growable: false)
+          : const <Map<String, dynamic>>[];
+
       final sessionJson = resData['session'];
       if (sessionJson is Map<String, dynamic>) {
-        return WorkoutSession.fromJson(sessionJson);
+        final parsedSession = WorkoutSession.fromJson(sessionJson);
+        return parsedPrs.isNotEmpty
+            ? parsedSession.copyWith(newPrs: parsedPrs)
+            : parsedSession;
       }
       final returnedId = resData['session_id'] as String?;
       if (returnedId != null && returnedId.isNotEmpty) {
-        return session.copyWith(id: returnedId);
+        return session.copyWith(
+          id: returnedId,
+          newPrs: parsedPrs.isNotEmpty ? parsedPrs : session.newPrs,
+        );
+      }
+      if (parsedPrs.isNotEmpty) {
+        return session.copyWith(newPrs: parsedPrs);
       }
     }
     return session;

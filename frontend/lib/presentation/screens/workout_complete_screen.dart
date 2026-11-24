@@ -2,7 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
+import '../../config/app_translations.dart';
 import '../../data/models/exercise.dart';
+import '../../features/community/domain/models/community_post.dart';
+import '../../features/community/domain/models/post_attachment_snapshot.dart';
+import '../../features/community/presentation/providers/community_composer_provider.dart';
+import '../../features/community/presentation/screens/compose/post_compose_publish_screen.dart';
+import '../../features/community/presentation/widgets/community_create_story_sheet.dart';
 import '../providers/active_workout_providers.dart';
 import '../providers/exercise_providers.dart';
 import '../providers/session_detail_providers.dart';
@@ -19,6 +25,11 @@ class WorkoutCompleteScreen extends ConsumerWidget {
     required this.sessionId,
   });
 
+  bool _isVi(BuildContext context) {
+    final locale = Localizations.maybeLocaleOf(context) ?? const Locale('en');
+    return locale.languageCode == 'vi';
+  }
+
   String _formatWeight(double weight) {
     if (weight % 1 == 0) {
       return weight.toInt().toString();
@@ -33,9 +44,175 @@ class WorkoutCompleteScreen extends ConsumerWidget {
     return NumberFormat('#,##0.#').format(volume);
   }
 
+  Future<void> _showShareSheet({
+    required BuildContext context,
+    required WidgetRef ref,
+    required WorkoutSession session,
+    required String dateStr,
+    required int? durationMinutes,
+    required int distinctExerciseCount,
+    required List<String> exerciseNames,
+  }) async {
+    final t = SamanWorkoutTokens.of(context);
+    final title = session.planName.trim().isNotEmpty
+        ? session.planName.trim()
+        : 'Saman Workout';
+
+    await showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: t.cardSurface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (sheetContext) {
+        final isVi = _isVi(sheetContext);
+        return SafeArea(
+          top: false,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  sheetContext.tr('workout_share_sheet_title'),
+                  style: TextStyle(
+                    fontFamily: 'Manrope',
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: t.textPrimary,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  sheetContext.tr('workout_share_sheet_subtitle'),
+                  style: TextStyle(
+                    fontFamily: 'Manrope',
+                    fontSize: 12,
+                    color: t.textSecondary,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                ListTile(
+                  key: const ValueKey('workout_share_post_option'),
+                  minVerticalPadding: 10,
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 8),
+                  leading: CircleAvatar(
+                    backgroundColor: t.emeraldBadgeBg,
+                    child: Icon(Icons.post_add_outlined, color: t.emeraldAccent),
+                  ),
+                  title: Text(
+                    sheetContext.tr('workout_share_post_title'),
+                    style: TextStyle(
+                      fontFamily: 'Manrope',
+                      fontWeight: FontWeight.w600,
+                      color: t.textPrimary,
+                    ),
+                  ),
+                  subtitle: Text(
+                    sheetContext.tr('workout_share_post_subtitle'),
+                    style: TextStyle(
+                      fontFamily: 'Manrope',
+                      fontSize: 12,
+                      color: t.textSecondary,
+                    ),
+                  ),
+                  onTap: () {
+                    Navigator.of(sheetContext).pop();
+                    final snapshot = PostAttachmentSnapshot(
+                      type: AttachmentType.workout,
+                      id: session.id,
+                      title: title,
+                      dateFormatted: dateStr,
+                      category: 'Saman Kinetic',
+                      includeDuration: durationMinutes != null,
+                      includeExercisesOrFoods: exerciseNames.isNotEmpty,
+                      includeLoadOrMacros: false,
+                      durationFormatted: durationMinutes != null
+                          ? (isVi ? '$durationMinutes phút' : '$durationMinutes min')
+                          : null,
+                      exerciseCount: distinctExerciseCount,
+                      exercises: exerciseNames
+                          .map((name) => ExerciseThumbnailPreview(title: name))
+                          .toList(),
+                      sharedSnapshot: <String, dynamic>{
+                        if (durationMinutes != null)
+                          'duration_minutes': durationMinutes,
+                        if (distinctExerciseCount > 0)
+                          'exercise_count': distinctExerciseCount,
+                        if (exerciseNames.isNotEmpty)
+                          'exercises': exerciseNames
+                              .map((name) => <String, dynamic>{'name': name})
+                              .toList(),
+                      },
+                    ).sanitize();
+
+                    final composerNotifier =
+                        ref.read(communityComposerProvider.notifier);
+                    if (!ref
+                        .read(communityComposerProvider)
+                        .hasPendingSubmission) {
+                      composerNotifier.reset();
+                    }
+                    composerNotifier.setAttachment(snapshot);
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => const PostComposePublishScreen(),
+                      ),
+                    );
+                  },
+                ),
+                ListTile(
+                  key: const ValueKey('workout_share_story_option'),
+                  minVerticalPadding: 10,
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 8),
+                  leading: CircleAvatar(
+                    backgroundColor: t.emeraldBadgeBg,
+                    child: Icon(
+                      Icons.auto_awesome_outlined,
+                      color: t.emeraldAccent,
+                    ),
+                  ),
+                  title: Text(
+                    sheetContext.tr('workout_share_story_title'),
+                    style: TextStyle(
+                      fontFamily: 'Manrope',
+                      fontWeight: FontWeight.w600,
+                      color: t.textPrimary,
+                    ),
+                  ),
+                  subtitle: Text(
+                    sheetContext.tr('workout_share_story_subtitle'),
+                    style: TextStyle(
+                      fontFamily: 'Manrope',
+                      fontSize: 12,
+                      color: t.textSecondary,
+                    ),
+                  ),
+                  onTap: () {
+                    Navigator.of(sheetContext).pop();
+                    final prefill = context
+                        .tr('workout_share_story_prefill')
+                        .replaceAll('{title}', title);
+                    CommunityCreateStorySheet.show(
+                      context,
+                      initialCaption: prefill,
+                      initialPrivacy: 'followers_only',
+                    );
+                  },
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final t = SamanWorkoutTokens.of(context);
+    final isVi = _isVi(context);
     final sessionAsync = ref.watch(sessionDetailProvider(sessionId));
 
     return Scaffold(
@@ -60,8 +237,9 @@ class WorkoutCompleteScreen extends ConsumerWidget {
                 const SizedBox(width: 6),
                 Flexible(
                   child: Text(
-                    'Workout',
+                    context.tr('workout_title'),
                     style: TextStyle(
+                      fontFamily: 'Manrope',
                       fontSize: 14,
                       fontWeight: FontWeight.w500,
                       color: t.textSecondary,
@@ -97,7 +275,7 @@ class WorkoutCompleteScreen extends ConsumerWidget {
                     ),
                     const SizedBox(width: 6),
                     Text(
-                      'SESSION COMPLETE',
+                      isVi ? 'HOÀN THÀNH BUỔI TẬP' : 'SESSION COMPLETE',
                       style: TextStyle(
                         fontFamily: 'monospace',
                         fontSize: 10,
@@ -188,415 +366,495 @@ class WorkoutCompleteScreen extends ConsumerWidget {
               session.startedAt.toUtc().add(const Duration(hours: 7));
           final dateStr = DateFormat('MMM d, yyyy • h:mm a').format(startedVn);
 
-          return Stack(
+          return Column(
             children: [
-              SingleChildScrollView(
-                padding: EdgeInsets.fromLTRB(16, 8, 16, 164 + MediaQuery.paddingOf(context).bottom),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Photographic Cinematic Hero (dark scrim preserved across Light/Dark)
-                    Container(
-                      height: 190,
-                      width: double.infinity,
-                      decoration: BoxDecoration(
-                        color: t.cardSurface,
-                        borderRadius:
-                            BorderRadius.circular(SamanWorkoutTokens.radiusLg),
-                        border: Border.all(color: t.border),
-                      ),
-                      clipBehavior: Clip.antiAlias,
-                      child: Stack(
-                        fit: StackFit.expand,
-                        children: [
-                          Image.asset(
-                            'assets/images/home_workout_upper.jpg',
-                            fit: BoxFit.cover,
-                            errorBuilder: (_, __, ___) => Container(
-                              color: t.cardSurface,
-                              child: Center(
-                                child: Icon(
-                                  Icons.fitness_center,
-                                  size: 56,
-                                  color: t.border,
+              Expanded(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Photographic Cinematic Hero (dark scrim preserved across Light/Dark)
+                      Container(
+                        height: 190,
+                        width: double.infinity,
+                        decoration: BoxDecoration(
+                          color: t.cardSurface,
+                          borderRadius:
+                              BorderRadius.circular(SamanWorkoutTokens.radiusLg),
+                          border: Border.all(color: t.border),
+                        ),
+                        clipBehavior: Clip.antiAlias,
+                        child: Stack(
+                          fit: StackFit.expand,
+                          children: [
+                            Image.asset(
+                              'assets/images/home_workout_upper.jpg',
+                              fit: BoxFit.cover,
+                              errorBuilder: (_, __, ___) => Container(
+                                color: t.cardSurface,
+                                child: Center(
+                                  child: Icon(
+                                    Icons.fitness_center,
+                                    size: 56,
+                                    color: t.border,
+                                  ),
                                 ),
                               ),
                             ),
-                          ),
-                          Container(
-                            decoration: BoxDecoration(
-                              gradient: LinearGradient(
-                                begin: Alignment.bottomCenter,
-                                end: Alignment.topCenter,
-                                colors: [
-                                  const Color(0xFF0C0D0E).withOpacity(0.95),
-                                  const Color(0xFF0C0D0E).withOpacity(0.6),
-                                  Colors.transparent,
+                            Container(
+                              decoration: BoxDecoration(
+                                gradient: LinearGradient(
+                                  begin: Alignment.bottomCenter,
+                                  end: Alignment.topCenter,
+                                  colors: [
+                                    const Color(0xFF0C0D0E).withOpacity(0.95),
+                                    const Color(0xFF0C0D0E).withOpacity(0.6),
+                                    Colors.transparent,
+                                  ],
+                                ),
+                              ),
+                            ),
+                            Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 12,
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                mainAxisAlignment: MainAxisAlignment.end,
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Row(
+                                    children: [
+                                      const Icon(
+                                        Icons.check_circle,
+                                        size: 16,
+                                        color: SamanWorkoutTokens.emeraldAccent,
+                                      ),
+                                      const SizedBox(width: 6),
+                                      Text(
+                                        dateStr,
+                                        style: const TextStyle(
+                                          fontFamily: 'monospace',
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w500,
+                                          color: SamanWorkoutTokens.textSub,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    isVi
+                                        ? 'Hoàn thành buổi tập'
+                                        : 'Workout complete',
+                                    style: const TextStyle(
+                                      fontFamily: 'Manrope',
+                                      fontSize: 26,
+                                      fontWeight: FontWeight.bold,
+                                      letterSpacing: -0.5,
+                                      color: SamanWorkoutTokens.textPrimary,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    session.planName,
+                                    style: const TextStyle(
+                                      fontFamily: 'Manrope',
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w600,
+                                      color: SamanWorkoutTokens.textSecondary,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    isVi
+                                        ? 'Một buổi tập tuyệt vời đã được ghi lại.'
+                                        : 'A solid session in the books.',
+                                    style: const TextStyle(
+                                      fontFamily: 'Manrope',
+                                      fontSize: 13,
+                                      color: SamanWorkoutTokens.emeraldAccent,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
                                 ],
                               ),
                             ),
-                          ),
-                          Padding(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 16,
-                              vertical: 12,
-                            ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              mainAxisAlignment: MainAxisAlignment.end,
-                              mainAxisSize: MainAxisSize.min,
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+
+                      // Primary Metric Ledger Card
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: t.cardSurface,
+                          borderRadius:
+                              BorderRadius.circular(SamanWorkoutTokens.radiusMd),
+                          border: Border.all(color: t.border),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                Row(
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    const Icon(
-                                      Icons.check_circle,
-                                      size: 16,
-                                      color: SamanWorkoutTokens.emeraldAccent,
-                                    ),
-                                    const SizedBox(width: 6),
                                     Text(
-                                      dateStr,
-                                      style: const TextStyle(
+                                      isVi ? 'TỔNG KHỐI LƯỢNG' : 'VOLUME LIFTED',
+                                      style: TextStyle(
                                         fontFamily: 'monospace',
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.w500,
-                                        color: SamanWorkoutTokens.textSub,
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w600,
+                                        letterSpacing: 0.8,
+                                        color: t.textSecondary,
                                       ),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Row(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.baseline,
+                                      textBaseline: TextBaseline.alphabetic,
+                                      children: [
+                                        Text(
+                                          _formatVolume(totalVolume),
+                                          style: TextStyle(
+                                            fontFamily: 'monospace',
+                                            fontSize: 32,
+                                            fontWeight: FontWeight.bold,
+                                            letterSpacing: -1,
+                                            color: t.emeraldAccent,
+                                          ),
+                                        ),
+                                        const SizedBox(width: 4),
+                                        Text(
+                                          'kg',
+                                          style: TextStyle(
+                                            fontFamily: 'monospace',
+                                            fontSize: 13,
+                                            color: t.textSecondary,
+                                          ),
+                                        ),
+                                      ],
                                     ),
                                   ],
                                 ),
-                                const SizedBox(height: 4),
-                                const Text(
-                                  'Workout complete',
-                                  style: TextStyle(
-                                    fontSize: 26,
-                                    fontWeight: FontWeight.bold,
-                                    letterSpacing: -0.5,
-                                    color: SamanWorkoutTokens.textPrimary,
-                                  ),
-                                ),
-                                const SizedBox(height: 2),
-                                Text(
-                                  session.planName,
-                                  style: const TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w600,
-                                    color: SamanWorkoutTokens.textSecondary,
-                                  ),
-                                ),
-                                const SizedBox(height: 2),
-                                const Text(
-                                  'A solid session in the books.',
-                                  style: TextStyle(
-                                    fontSize: 13,
-                                    color: SamanWorkoutTokens.emeraldAccent,
-                                    fontWeight: FontWeight.w500,
-                                  ),
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.end,
+                                  children: [
+                                    Text(
+                                      isVi
+                                          ? 'THỜI GIAN TẬP'
+                                          : 'ACTIVE DURATION',
+                                      style: TextStyle(
+                                        fontFamily: 'monospace',
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w600,
+                                        letterSpacing: 0.8,
+                                        color: t.textSecondary,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Row(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.baseline,
+                                      textBaseline: TextBaseline.alphabetic,
+                                      children: [
+                                        Text(
+                                          durationText,
+                                          style: TextStyle(
+                                            fontFamily: 'monospace',
+                                            fontSize: 32,
+                                            fontWeight: FontWeight.bold,
+                                            letterSpacing: -0.5,
+                                            color: t.textPrimary,
+                                          ),
+                                        ),
+                                        const SizedBox(width: 4),
+                                        Text(
+                                          isVi ? 'phút' : 'min',
+                                          style: TextStyle(
+                                            fontFamily: 'monospace',
+                                            fontSize: 13,
+                                            color: t.textSecondary,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ],
                                 ),
                               ],
                             ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-
-                    // Primary Metric Ledger Card
-                    Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: t.cardSurface,
-                        borderRadius:
-                            BorderRadius.circular(SamanWorkoutTokens.radiusMd),
-                        border: Border.all(color: t.border),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    'VOLUME LIFTED',
-                                    style: TextStyle(
-                                      fontFamily: 'monospace',
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.w600,
-                                      letterSpacing: 0.8,
-                                      color: t.textSecondary,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Row(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.baseline,
-                                    textBaseline: TextBaseline.alphabetic,
-                                    children: [
-                                      Text(
-                                        _formatVolume(totalVolume),
-                                        style: TextStyle(
-                                          fontFamily: 'monospace',
-                                          fontSize: 32,
-                                          fontWeight: FontWeight.bold,
-                                          letterSpacing: -1,
-                                          color: t.emeraldAccent,
-                                        ),
-                                      ),
-                                      const SizedBox(width: 4),
-                                      Text(
-                                        'kg',
-                                        style: TextStyle(
-                                          fontFamily: 'monospace',
-                                          fontSize: 13,
-                                          color: t.textSecondary,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ],
-                              ),
-                              Column(
-                                crossAxisAlignment: CrossAxisAlignment.end,
-                                children: [
-                                  Text(
-                                    'ACTIVE DURATION',
-                                    style: TextStyle(
-                                      fontFamily: 'monospace',
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.w600,
-                                      letterSpacing: 0.8,
-                                      color: t.textSecondary,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Row(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.baseline,
-                                    textBaseline: TextBaseline.alphabetic,
-                                    children: [
-                                      Text(
-                                        durationText,
-                                        style: TextStyle(
-                                          fontFamily: 'monospace',
-                                          fontSize: 32,
-                                          fontWeight: FontWeight.bold,
-                                          letterSpacing: -0.5,
-                                          color: t.textPrimary,
-                                        ),
-                                      ),
-                                      const SizedBox(width: 4),
-                                      Text(
-                                        'min',
-                                        style: TextStyle(
-                                          fontFamily: 'monospace',
-                                          fontSize: 13,
-                                          color: t.textSecondary,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ],
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 14),
-                          Divider(
-                            color: t.border,
-                            height: 1,
-                          ),
-                          const SizedBox(height: 12),
-                          Row(
-                            children: [
-                              CircleAvatar(
-                                radius: 3,
-                                backgroundColor: t.textSecondary,
-                              ),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                child: Text(
-                                  '${session.exerciseLogs.length} ${session.exerciseLogs.length == 1 ? 'set' : 'sets'} logged • $distinctExerciseCount ${distinctExerciseCount == 1 ? 'exercise' : 'exercises'}',
-                                  style: TextStyle(
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.w500,
-                                    color: t.textSecondary,
-                                  ),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 20),
-
-                    // Header for What You Trained
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          'WHAT YOU TRAINED',
-                          style: TextStyle(
-                            fontFamily: 'monospace',
-                            fontSize: 11,
-                            fontWeight: FontWeight.w600,
-                            letterSpacing: 0.8,
-                            color: t.textSecondary,
-                          ),
-                        ),
-                        Text(
-                          '$distinctExerciseCount ${distinctExerciseCount == 1 ? 'exercise' : 'exercises'}',
-                          style: TextStyle(
-                            fontFamily: 'monospace',
-                            fontSize: 11,
-                            fontWeight: FontWeight.w600,
-                            color: t.textSecondary,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 10),
-
-                    // Exercise Journal Cards
-                    for (final entry in groupedLogs.entries) ...[
-                      _buildJournalCard(
-                        t: t,
-                        exerciseId: entry.key,
-                        logs: entry.value,
-                        exerciseVolume: exerciseVolumes[entry.key] ?? 0.0,
-                        name: resolveName(
-                            entry.key, entry.value.first.exerciseSlug),
-                        category: resolveCategory(
-                            entry.key, entry.value.first.exerciseSlug),
-                      ),
-                      const SizedBox(height: 12),
-                    ],
-
-                    // Volume by Exercise breakdown (only if total volume > 0)
-                    if (totalVolume > 0 && groupedLogs.isNotEmpty) ...[
-                      const SizedBox(height: 10),
-                      _buildVolumeBreakdown(
-                        t: t,
-                        groupedLogs: groupedLogs,
-                        exerciseVolumes: exerciseVolumes,
-                        totalVolume: totalVolume,
-                        resolveName: resolveName,
-                      ),
-                    ],
-
-                    const SizedBox(height: 16),
-
-                    // Session history guidance
-                    Container(
-                      padding: const EdgeInsets.all(14),
-                      decoration: BoxDecoration(
-                        color: t.cardSurface,
-                        borderRadius:
-                            BorderRadius.circular(SamanWorkoutTokens.radiusMd),
-                        border: Border.all(color: t.border),
-                      ),
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Icon(
-                            Icons.info_outline,
-                            size: 18,
-                            color: t.textSecondary,
-                          ),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: Text(
-                              'View this session in your workout history.',
-                              style: TextStyle(
-                                fontSize: 13,
-                                height: 1.4,
-                                color: t.textSecondary,
-                              ),
+                            const SizedBox(height: 14),
+                            Divider(
+                              color: t.border,
+                              height: 1,
                             ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-
-              // Fixed Bottom Action Dock
-              Positioned(
-                left: 0,
-                right: 0,
-                bottom: 0,
-                child: Container(
-                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
-                  decoration: BoxDecoration(
-                    color: t.canvas.withOpacity(0.95),
-                    border: Border(
-                      top: BorderSide(color: t.border),
-                    ),
-                  ),
-                  child: SafeArea(
-                    top: false,
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        SizedBox(
-                          width: double.infinity,
-                          height: 50,
-                          child: ElevatedButton(
-                            key: const ValueKey('view_workout_history_button'),
-                            onPressed: () {
-                              Navigator.of(context).push(
-                                MaterialPageRoute(
-                                  builder: (_) => const WorkoutHistoryScreen(),
-                                ),
-                              );
-                            },
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: t.buttonPrimary,
-                              foregroundColor: t.buttonPrimaryText,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(
-                                    SamanWorkoutTokens.radiusMd),
-                              ),
-                              elevation: 0,
-                            ),
-                            child: const Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
+                            const SizedBox(height: 12),
+                            Row(
                               children: [
-                                Icon(
-                                  Icons.history,
-                                  size: 18,
+                                CircleAvatar(
+                                  radius: 3,
+                                  backgroundColor: t.textSecondary,
                                 ),
-                                SizedBox(width: 8),
-                                Text(
-                                  'View workout history',
-                                  style: TextStyle(
-                                    fontSize: 15,
-                                    fontWeight: FontWeight.bold,
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(
+                                    isVi
+                                        ? 'Đã ghi ${session.exerciseLogs.length} hiệp • $distinctExerciseCount bài tập'
+                                        : '${session.exerciseLogs.length} ${session.exerciseLogs.length == 1 ? 'set' : 'sets'} logged • $distinctExerciseCount ${distinctExerciseCount == 1 ? 'exercise' : 'exercises'}',
+                                    style: TextStyle(
+                                      fontFamily: 'Manrope',
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w500,
+                                      color: t.textSecondary,
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
                                   ),
                                 ),
                               ],
                             ),
-                          ),
+                          ],
                         ),
-                        const SizedBox(height: 6),
-                        TextButton(
-                          key: const ValueKey('workout_complete_done_button'),
-                          onPressed: () => Navigator.of(context).pop(),
-                          child: Text(
-                            'Back to Workout',
+                      ),
+                      const SizedBox(height: 20),
+
+                      // Header for What You Trained
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            isVi ? 'CÁC BÀI ĐÃ TẬP' : 'WHAT YOU TRAINED',
                             style: TextStyle(
-                              fontSize: 14,
+                              fontFamily: 'monospace',
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                              letterSpacing: 0.8,
                               color: t.textSecondary,
                             ),
                           ),
+                          Text(
+                            isVi
+                                ? '$distinctExerciseCount bài tập'
+                                : '$distinctExerciseCount ${distinctExerciseCount == 1 ? 'exercise' : 'exercises'}',
+                            style: TextStyle(
+                              fontFamily: 'monospace',
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                              color: t.textSecondary,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 10),
+
+                      // Exercise Journal Cards
+                      for (final entry in groupedLogs.entries) ...[
+                        _buildJournalCard(
+                          t: t,
+                          isVi: isVi,
+                          exerciseId: entry.key,
+                          logs: entry.value,
+                          exerciseVolume: exerciseVolumes[entry.key] ?? 0.0,
+                          name: resolveName(
+                              entry.key, entry.value.first.exerciseSlug),
+                          category: resolveCategory(
+                              entry.key, entry.value.first.exerciseSlug),
+                        ),
+                        const SizedBox(height: 12),
+                      ],
+
+                      // Volume by Exercise breakdown (only if total volume > 0)
+                      if (totalVolume > 0 && groupedLogs.isNotEmpty) ...[
+                        const SizedBox(height: 10),
+                        _buildVolumeBreakdown(
+                          t: t,
+                          isVi: isVi,
+                          groupedLogs: groupedLogs,
+                          exerciseVolumes: exerciseVolumes,
+                          totalVolume: totalVolume,
+                          resolveName: resolveName,
                         ),
                       ],
-                    ),
+
+                      const SizedBox(height: 16),
+
+                      // Session history guidance
+                      Container(
+                        padding: const EdgeInsets.all(14),
+                        decoration: BoxDecoration(
+                          color: t.cardSurface,
+                          borderRadius:
+                              BorderRadius.circular(SamanWorkoutTokens.radiusMd),
+                          border: Border.all(color: t.border),
+                        ),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Icon(
+                              Icons.info_outline,
+                              size: 18,
+                              color: t.textSecondary,
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Text(
+                                isVi
+                                    ? 'Xem buổi tập này trong lịch sử tập luyện của bạn.'
+                                    : 'View this session in your workout history.',
+                                style: TextStyle(
+                                  fontFamily: 'Manrope',
+                                  fontSize: 13,
+                                  height: 1.4,
+                                  color: t.textSecondary,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+
+              // Opaque Grounded Bottom Action Dock
+              Container(
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+                decoration: BoxDecoration(
+                  color: t.canvas,
+                  border: Border(
+                    top: BorderSide(color: t.borderSubtle),
+                  ),
+                ),
+                child: SafeArea(
+                  top: false,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      OutlinedButton.icon(
+                        key: const ValueKey('workout_complete_share_button'),
+                        onPressed: () {
+                          final exerciseNames = groupedLogs.keys
+                              .map((exId) {
+                                final logs = groupedLogs[exId]!;
+                                final slug = logs.isNotEmpty
+                                    ? logs.first.exerciseSlug
+                                    : '';
+                                return resolveName(exId, slug);
+                              })
+                              .toList();
+                          _showShareSheet(
+                            context: context,
+                            ref: ref,
+                            session: session,
+                            dateStr: dateStr,
+                            durationMinutes: durationVal,
+                            distinctExerciseCount: distinctExerciseCount,
+                            exerciseNames: exerciseNames,
+                          );
+                        },
+                        icon: Icon(
+                          Icons.share_outlined,
+                          size: 18,
+                          color: t.textPrimary,
+                        ),
+                        label: Text(
+                          context.tr('workout_share_community_cta'),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontFamily: 'Manrope',
+                            fontSize: 14,
+                            height: 1.2,
+                            fontWeight: FontWeight.w600,
+                            color: t.textPrimary,
+                          ),
+                        ),
+                        style: OutlinedButton.styleFrom(
+                          minimumSize: const Size(double.infinity, 48),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 12,
+                          ),
+                          backgroundColor: t.cardSurface,
+                          side: BorderSide(color: t.border),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(
+                                SamanWorkoutTokens.radiusMd),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      ElevatedButton(
+                        key: const ValueKey('view_workout_history_button'),
+                        onPressed: () {
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (_) => const WorkoutHistoryScreen(),
+                            ),
+                          );
+                        },
+                        style: ElevatedButton.styleFrom(
+                          minimumSize: const Size(double.infinity, 50),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 12,
+                          ),
+                          backgroundColor: t.buttonPrimary,
+                          foregroundColor: t.buttonPrimaryText,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(
+                                SamanWorkoutTokens.radiusMd),
+                          ),
+                          elevation: 0,
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Icon(
+                              Icons.history,
+                              size: 18,
+                            ),
+                            const SizedBox(width: 8),
+                            Flexible(
+                              child: Text(
+                                isVi
+                                    ? 'Xem lịch sử tập luyện'
+                                    : 'View workout history',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  fontFamily: 'Manrope',
+                                  fontSize: 15,
+                                  height: 1.2,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      TextButton(
+                        key: const ValueKey('workout_complete_done_button'),
+                        onPressed: () => Navigator.of(context).pop(),
+                        child: Text(
+                          context.tr('back_to_workout'),
+                          style: TextStyle(
+                            fontFamily: 'Manrope',
+                            fontSize: 14,
+                            color: t.textSecondary,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ),
@@ -610,8 +868,10 @@ class WorkoutCompleteScreen extends ConsumerWidget {
         ),
         error: (err, stack) => Center(
           child: Text(
-            'Failed to load session: $err',
-            style: TextStyle(color: t.crimsonAccent),
+            isVi
+                ? 'Không thể tải buổi tập: $err'
+                : 'Failed to load session: $err',
+            style: TextStyle(fontFamily: 'Manrope', color: t.crimsonAccent),
           ),
         ),
       ),
@@ -620,6 +880,7 @@ class WorkoutCompleteScreen extends ConsumerWidget {
 
   Widget _buildJournalCard({
     required SamanWorkoutPalette t,
+    required bool isVi,
     required String exerciseId,
     required List<ExerciseSetLog> logs,
     required double exerciseVolume,
@@ -647,6 +908,7 @@ class WorkoutCompleteScreen extends ConsumerWidget {
                     Text(
                       name,
                       style: TextStyle(
+                        fontFamily: 'Manrope',
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
                         color: t.textPrimary,
@@ -659,6 +921,7 @@ class WorkoutCompleteScreen extends ConsumerWidget {
                       Text(
                         category,
                         style: TextStyle(
+                          fontFamily: 'Manrope',
                           fontSize: 12,
                           color: t.textSecondary,
                         ),
@@ -666,8 +929,11 @@ class WorkoutCompleteScreen extends ConsumerWidget {
                     ],
                     const SizedBox(height: 4),
                     Text(
-                      '${logs.length} ${logs.length == 1 ? 'set' : 'sets'}',
+                      isVi
+                          ? '${logs.length} hiệp'
+                          : '${logs.length} ${logs.length == 1 ? 'set' : 'sets'}',
                       style: TextStyle(
+                        fontFamily: 'Manrope',
                         fontSize: 12,
                         color: t.textSecondary,
                       ),
@@ -689,7 +955,7 @@ class WorkoutCompleteScreen extends ConsumerWidget {
                   ),
                   const SizedBox(width: 2),
                   Text(
-                    'kg total',
+                    isVi ? 'kg tổng' : 'kg total',
                     style: TextStyle(
                       fontFamily: 'monospace',
                       fontSize: 12,
@@ -728,9 +994,11 @@ class WorkoutCompleteScreen extends ConsumerWidget {
                             child: Row(
                               children: [
                                 SizedBox(
-                                  width: 44,
+                                  width: 52,
                                   child: Text(
-                                    'SET ${log.setNumber}',
+                                    isVi
+                                        ? 'HIỆP ${log.setNumber}'
+                                        : 'SET ${log.setNumber}',
                                     style: TextStyle(
                                       fontFamily: 'monospace',
                                       fontSize: 11,
@@ -778,6 +1046,7 @@ class WorkoutCompleteScreen extends ConsumerWidget {
 
   Widget _buildVolumeBreakdown({
     required SamanWorkoutPalette t,
+    required bool isVi,
     required Map<String, List<ExerciseSetLog>> groupedLogs,
     required Map<String, double> exerciseVolumes,
     required double totalVolume,
@@ -805,18 +1074,25 @@ class WorkoutCompleteScreen extends ConsumerWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                'VOLUME BY EXERCISE',
-                style: TextStyle(
-                  fontFamily: 'monospace',
-                  fontSize: 11,
-                  fontWeight: FontWeight.w600,
-                  letterSpacing: 0.8,
-                  color: t.textSecondary,
+              Expanded(
+                child: Text(
+                  isVi ? 'KHỐI LƯỢNG THEO BÀI TẬP' : 'VOLUME BY EXERCISE',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontFamily: 'monospace',
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: 0.8,
+                    color: t.textSecondary,
+                  ),
                 ),
               ),
+              const SizedBox(width: 8),
               Text(
-                '${_formatVolume(totalVolume)} kg total',
+                isVi
+                    ? '${_formatVolume(totalVolume)} kg tổng'
+                    : '${_formatVolume(totalVolume)} kg total',
                 style: TextStyle(
                   fontFamily: 'monospace',
                   fontSize: 11,

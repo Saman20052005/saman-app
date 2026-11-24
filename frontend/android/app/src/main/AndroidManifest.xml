@@ -77,6 +77,9 @@
             <action android:name="android.intent.action.PROCESS_TEXT"/>
             <data android:mimeType="text/plain"/>
         </intent>
+        <intent>
+            <action android:name="android.intent.action.TTS_SERVICE" />
+        </intent>
         <provider android:authorities="com.facebook.katana.provider.PlatformProvider" />
         <package android:name="com.facebook.katana" />
     </queries>

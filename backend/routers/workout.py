@@ -2,8 +2,9 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
 from datetime import datetime, date, timedelta, timezone
 from zoneinfo import ZoneInfo
-from typing import Optional, List, Dict, Any
+from typing import Optional, List, Dict, Any, Literal, Tuple
 import hashlib
+import math
 import re
 import pydantic as pd
 from bson import ObjectId
@@ -157,6 +158,97 @@ def _extract_session_date(session: dict) -> Optional[str]:
         return dt[:10]
     return None
 
+def _safe_non_neg_int(val: Any) -> int:
+    if val is None or isinstance(val, bool):
+        return 0
+    try:
+        return max(0, int(val))
+    except (ValueError, TypeError):
+        return 0
+
+
+def _is_cv_detected(item: dict) -> bool:
+    for k in ("cv_detected", "cvDetected"):
+        if k in item and item[k] is not None:
+            return bool(item[k])
+    return False
+
+
+def _compute_cv_form_metrics(
+    matching_logs: List[Tuple[int, dict]],
+    session: dict,
+) -> Optional[Dict[str, Any]]:
+    valid_reps = 0
+    fast_reps = 0
+    abort_count = 0
+    sum_reps_in_cv_logs = 0
+    found_cv = False
+
+    for entry in matching_logs:
+        item = entry[1] if isinstance(entry, tuple) and len(entry) == 2 else entry
+        if not isinstance(item, dict):
+            continue
+        summary = item.get("cv_form_summary") or item.get("cvFormSummary")
+        if isinstance(summary, dict) and summary:
+            found_cv = True
+            valid_reps += _safe_non_neg_int(summary.get("valid_reps"))
+            fast_reps += _safe_non_neg_int(summary.get("fast_reps"))
+            abort_count += _safe_non_neg_int(summary.get("abort_count"))
+            sum_reps_in_cv_logs += max(0, _extract_reps(item))
+
+    if not found_cv and isinstance(session, dict):
+        session_summary = session.get("cv_form_summary") or session.get("cvFormSummary")
+        if isinstance(session_summary, dict) and session_summary:
+            raw_logs = session.get("exercise_logs") or session.get("completed_exercises") or []
+            matched_items = [
+                entry[1] if isinstance(entry, tuple) and len(entry) == 2 else entry
+                for entry in matching_logs
+            ]
+            any_cv_detected = any(
+                isinstance(item, dict) and _is_cv_detected(item)
+                for item in matched_items
+            )
+            other_log_has_summary = any(
+                isinstance(log, dict)
+                and bool(log.get("cv_form_summary") or log.get("cvFormSummary"))
+                for log in raw_logs
+            )
+            all_logs_belong_to_exercise = len(raw_logs) == len(matched_items) and len(matched_items) > 0
+
+            if any_cv_detected or (not other_log_has_summary and all_logs_belong_to_exercise):
+                found_cv = True
+                valid_reps = _safe_non_neg_int(session_summary.get("valid_reps"))
+                fast_reps = _safe_non_neg_int(session_summary.get("fast_reps"))
+                abort_count = _safe_non_neg_int(session_summary.get("abort_count"))
+                if any_cv_detected:
+                    for item in matched_items:
+                        if isinstance(item, dict) and _is_cv_detected(item):
+                            sum_reps_in_cv_logs += max(0, _extract_reps(item))
+                elif len(matched_items) == 1 and isinstance(matched_items[0], dict):
+                    sum_reps_in_cv_logs = max(0, _extract_reps(matched_items[0]))
+
+    if not found_cv:
+        return None
+
+    denom = max(sum_reps_in_cv_logs, valid_reps + fast_reps)
+    if denom <= 0:
+        return None
+
+    raw_score = int(round((valid_reps / denom) * 100))
+    if abort_count >= 2:
+        raw_score -= min(15, abort_count * 5)
+    form_score = max(0, min(100, raw_score))
+    fast_ratio = fast_reps / denom
+
+    return {
+        "form_score": form_score,
+        "fast_reps": fast_reps,
+        "fast_ratio": fast_ratio,
+        "valid_reps": valid_reps,
+        "abort_count": abort_count,
+    }
+
+
 def _find_last_performance_for_exercise(sessions: List[dict], target_id: str) -> Optional[dict]:
     clean_target = target_id.strip()
     if not clean_target:
@@ -192,19 +284,49 @@ def _find_last_performance_for_exercise(sessions: List[dict], target_id: str) ->
         last_weight_kg = _extract_weight_kg(best_set)
         last_reps = _extract_reps(best_set)
 
-        if all_sets_completed and last_reps >= 8:
-            if last_weight_kg > 0:
-                suggested_weight_kg = round(last_weight_kg + 2.5, 1)
+        cv_metrics = _compute_cv_form_metrics(matching_logs, session)
+        if cv_metrics is not None:
+            form_score = cv_metrics["form_score"]
+            fast_reps = cv_metrics["fast_reps"]
+            fast_ratio = cv_metrics["fast_ratio"]
+            if (
+                form_score >= 85
+                and fast_ratio <= 0.25
+                and all_sets_completed
+                and last_reps >= 8
+            ):
+                if last_weight_kg > 0:
+                    suggested_weight_kg = round(last_weight_kg + 2.5, 1)
+                    suggested_reps = last_reps
+                    suggestion_reason = "cv_form_verified_add_weight"
+                else:
+                    suggested_weight_kg = 0.0
+                    suggested_reps = last_reps + 1
+                    suggestion_reason = "cv_form_verified_add_rep"
+            elif form_score < 70:
+                suggested_weight_kg = last_weight_kg
                 suggested_reps = last_reps
-                suggestion_reason = "completed_target_add_weight"
+                suggestion_reason = "cv_form_refine_technique"
             else:
-                suggested_weight_kg = 0.0
-                suggested_reps = last_reps + 1
-                suggestion_reason = "completed_target_add_rep"
+                suggested_weight_kg = last_weight_kg
+                suggested_reps = last_reps
+                suggestion_reason = "maintain_current_load"
         else:
-            suggested_weight_kg = last_weight_kg
-            suggested_reps = last_reps
-            suggestion_reason = "maintain_current_load"
+            form_score = None
+            fast_reps = None
+            if all_sets_completed and last_reps >= 8:
+                if last_weight_kg > 0:
+                    suggested_weight_kg = round(last_weight_kg + 2.5, 1)
+                    suggested_reps = last_reps
+                    suggestion_reason = "completed_target_add_weight"
+                else:
+                    suggested_weight_kg = 0.0
+                    suggested_reps = last_reps + 1
+                    suggestion_reason = "completed_target_add_rep"
+            else:
+                suggested_weight_kg = last_weight_kg
+                suggested_reps = last_reps
+                suggestion_reason = "maintain_current_load"
 
         last_date = _extract_session_date(session)
 
@@ -216,6 +338,8 @@ def _find_last_performance_for_exercise(sessions: List[dict], target_id: str) ->
             "suggested_reps": suggested_reps,
             "suggestion_reason": suggestion_reason,
             "last_date": last_date,
+            "cv_form_score": form_score,
+            "cv_fast_reps": fast_reps,
         }
 
     return None
@@ -269,9 +393,13 @@ class ExerciseSetLogIn(pd.BaseModel):
     rest_taken_seconds: Optional[int] = pd.Field(None, alias="restTakenSeconds")
     cv_detected: bool = pd.Field(False, alias="cvDetected")
     cv_form_summary: Optional[Dict[str, Any]] = pd.Field(None, alias="cvFormSummary")
+    set_type: Literal["warmup", "normal", "drop", "failure"] = pd.Field("normal", alias="setType")
+    rpe: Optional[float] = pd.Field(None, ge=1, le=10)
+    note: Optional[str] = pd.Field(None, max_length=300)
+    superset_group_id: Optional[str] = pd.Field(None, alias="supersetGroupId")
+    is_pr: bool = pd.Field(False, alias="isPr")
 
-    class Config:
-        allow_population_by_field_name = True
+    model_config = pd.ConfigDict(populate_by_name=True)
 
 
 class WorkoutSession(pd.BaseModel):
@@ -334,13 +462,479 @@ def _utc_ms(value: Optional[datetime]) -> Optional[datetime]:
     return value.replace(microsecond=value.microsecond // 1000 * 1000)
 
 
+_VALID_SET_TYPES = ("warmup", "normal", "drop", "failure")
+_CANONICAL_MUSCLE_GROUPS = ("chest", "back", "legs", "shoulders", "arms", "core")
+
+_MUSCLE_GROUP_ALIASES: Dict[str, str] = {
+    "chest": "chest",
+    "pectorals": "chest",
+    "pecs": "chest",
+    "upper_chest": "chest",
+    "lower_chest": "chest",
+    "inner_chest": "chest",
+    "back": "back",
+    "lats": "back",
+    "latissimus": "back",
+    "latissimus_dorsi": "back",
+    "upper_back": "back",
+    "lower_back": "back",
+    "middle_back": "back",
+    "traps": "back",
+    "trapezius": "back",
+    "rhomboids": "back",
+    "erector_spinae": "back",
+    "legs": "legs",
+    "leg": "legs",
+    "quads": "legs",
+    "quadriceps": "legs",
+    "hamstrings": "legs",
+    "glutes": "legs",
+    "gluteus": "legs",
+    "calves": "legs",
+    "calf": "legs",
+    "lower_body": "legs",
+    "thighs": "legs",
+    "adductors": "legs",
+    "abductors": "legs",
+    "hip_flexors": "legs",
+    "shoulders": "shoulders",
+    "shoulder": "shoulders",
+    "delts": "shoulders",
+    "deltoids": "shoulders",
+    "front_delts": "shoulders",
+    "side_delts": "shoulders",
+    "rear_delts": "shoulders",
+    "lateral_delts": "shoulders",
+    "anterior_deltoid": "shoulders",
+    "posterior_deltoid": "shoulders",
+    "arms": "arms",
+    "arm": "arms",
+    "biceps": "arms",
+    "triceps": "arms",
+    "forearms": "arms",
+    "forearm": "arms",
+    "brachialis": "arms",
+    "wrists": "arms",
+    "core": "core",
+    "abs": "core",
+    "abdominals": "core",
+    "obliques": "core",
+    "rectus_abdominis": "core",
+    "transverse_abdominis": "core",
+    "lower_abs": "core",
+}
+
+_FALLBACK_SLUG_MUSCLE_RULES: Tuple[Tuple[str, Tuple[str, ...]], ...] = (
+    (
+        "core",
+        (
+            "leg-raise",
+            "leg_raise",
+            "plank",
+            "crunch",
+            "sit-up",
+            "situp",
+            "oblique",
+            "russian-twist",
+            "dead-bug",
+            "ab-",
+            "abs",
+            "core",
+        ),
+    ),
+    (
+        "legs",
+        (
+            "leg-curl",
+            "leg_curl",
+            "hamstring-curl",
+            "hamstring_curl",
+            "nordic-curl",
+        ),
+    ),
+    (
+        "arms",
+        (
+            "curl",
+            "tricep",
+            "bicep",
+            "pushdown",
+            "skullcrusher",
+            "skull-crusher",
+            "preacher",
+            "forearm",
+            "wrist",
+        ),
+    ),
+    (
+        "chest",
+        (
+            "bench",
+            "chest",
+            "pec",
+            "fly",
+            "push-up",
+            "pushup",
+            "incline-press",
+            "decline-press",
+            "crossover",
+        ),
+    ),
+    (
+        "shoulders",
+        (
+            "face-pull",
+            "face_pull",
+            "lateral-raise",
+            "lateral_raise",
+            "front-raise",
+            "rear-delt",
+            "shoulder",
+            "overhead-press",
+            "overhead_press",
+            "military-press",
+            "arnold-press",
+            "upright-row",
+            "shrug",
+            "delt",
+        ),
+    ),
+    (
+        "legs",
+        (
+            "squat",
+            "lunge",
+            "leg-press",
+            "leg_press",
+            "leg-extension",
+            "leg-",
+            "leg_",
+            "calf",
+            "calves",
+            "glute",
+            "hip-thrust",
+            "bulgarian",
+            "step-up",
+            "hamstring",
+            "quad",
+            "rdl",
+        ),
+    ),
+    (
+        "back",
+        (
+            "row",
+            "pulldown",
+            "pull-down",
+            "pull-up",
+            "pullup",
+            "chin-up",
+            "chinup",
+            "deadlift",
+            "lat-",
+            "lat_",
+            "back",
+            "hyperextension",
+            "good-morning",
+        ),
+    ),
+    ("shoulders", ("press",)),
+)
+
+
+def _normalize_set_type(value: Any) -> str:
+    if isinstance(value, str) and value in _VALID_SET_TYPES:
+        return value
+    return "normal"
+
+
+def _estimate_epley_1rm(weight_kg: float, reps: int) -> float:
+    if weight_kg <= 0 or reps <= 0:
+        return 0.0
+    return weight_kg * (1.0 + reps / 30.0)
+
+
+def _is_pr_eligible_set(item: Any) -> bool:
+    if not isinstance(item, dict):
+        return False
+    if not _is_set_completed(item):
+        return False
+    set_type = _normalize_set_type(
+        item.get("set_type") if item.get("set_type") is not None else item.get("setType")
+    )
+    if set_type == "warmup":
+        return False
+    return _extract_weight_kg(item) > 0 and _extract_reps(item) > 0
+
+
+def _detect_and_mark_prs(
+    logs_data: List[dict],
+    owner_query: dict,
+    exclude_session_id: Optional[ObjectId] = None,
+) -> List[dict]:
+    """Detect Personal Records (weight & Epley 1RM) against prior sessions and mark is_pr in-place."""
+    if not logs_data:
+        return []
+
+    alias_to_key: Dict[str, str] = {}
+    session_ex_keys: List[str] = []
+    for item in logs_data:
+        if not isinstance(item, dict):
+            continue
+        item["is_pr"] = False
+        ex_id = str(item.get("exercise_id") or item.get("exerciseId") or "").strip()
+        ex_slug = str(item.get("exercise_slug") or item.get("exerciseSlug") or "").strip()
+        ex_key = alias_to_key.get(ex_id) or alias_to_key.get(ex_slug) or ex_id or ex_slug
+        if not ex_key:
+            continue
+        if ex_key not in session_ex_keys:
+            session_ex_keys.append(ex_key)
+        if ex_id:
+            alias_to_key.setdefault(ex_id, ex_key)
+        if ex_slug:
+            alias_to_key.setdefault(ex_slug, ex_key)
+
+    if not session_ex_keys:
+        return []
+
+    prior_sessions = _safe_find(workout_history_collection, owner_query)
+    prev_best_weight: Dict[str, float] = {k: 0.0 for k in session_ex_keys}
+    prev_best_1rm: Dict[str, float] = {k: 0.0 for k in session_ex_keys}
+
+    for hist_doc in prior_sessions:
+        if exclude_session_id is not None and hist_doc.get("_id") == exclude_session_id:
+            continue
+        raw_hist_logs = hist_doc.get("exercise_logs") or hist_doc.get("completed_exercises") or []
+        for h_item in raw_hist_logs:
+            if not _is_pr_eligible_set(h_item):
+                continue
+            h_id = str(h_item.get("exercise_id") or h_item.get("exerciseId") or "").strip()
+            h_slug = str(h_item.get("exercise_slug") or h_item.get("exerciseSlug") or "").strip()
+            matched_key = alias_to_key.get(h_id) or alias_to_key.get(h_slug)
+            if not matched_key:
+                continue
+            w = _extract_weight_kg(h_item)
+            r = _extract_reps(h_item)
+            est = _estimate_epley_1rm(w, r)
+            if w > prev_best_weight[matched_key]:
+                prev_best_weight[matched_key] = w
+            if est > prev_best_1rm[matched_key]:
+                prev_best_1rm[matched_key] = est
+
+    eligible_indices_by_key: Dict[str, List[int]] = {k: [] for k in session_ex_keys}
+    for idx, item in enumerate(logs_data):
+        if not _is_pr_eligible_set(item):
+            continue
+        ex_id = str(item.get("exercise_id") or item.get("exerciseId") or "").strip()
+        ex_slug = str(item.get("exercise_slug") or item.get("exerciseSlug") or "").strip()
+        matched_key = alias_to_key.get(ex_id) or alias_to_key.get(ex_slug)
+        if matched_key:
+            eligible_indices_by_key[matched_key].append(idx)
+
+    pr_by_index: Dict[int, str] = {}
+    eps = 1e-9
+
+    for ex_key, indices in eligible_indices_by_key.items():
+        if not indices:
+            continue
+        has_history = prev_best_weight[ex_key] > 0.0 or prev_best_1rm[ex_key] > 0.0
+        if has_history:
+            running_weight = prev_best_weight[ex_key]
+            running_1rm = prev_best_1rm[ex_key]
+            for idx in indices:
+                item = logs_data[idx]
+                w = _extract_weight_kg(item)
+                r = _extract_reps(item)
+                est = _estimate_epley_1rm(w, r)
+                beat_weight = w > running_weight + eps
+                beat_1rm = est > running_1rm + eps
+                if beat_weight or beat_1rm:
+                    if beat_weight and beat_1rm:
+                        pr_by_index[idx] = "both"
+                    elif beat_weight:
+                        pr_by_index[idx] = "weight"
+                    else:
+                        pr_by_index[idx] = "1rm"
+                    if beat_weight:
+                        running_weight = w
+                    if beat_1rm:
+                        running_1rm = est
+        else:
+            best_1rm_idx = indices[0]
+            best_1rm_score = (-1.0, -1.0)
+            best_weight_idx = indices[0]
+            best_weight_score = (-1.0, -1.0)
+            for idx in indices:
+                item = logs_data[idx]
+                w = _extract_weight_kg(item)
+                r = _extract_reps(item)
+                est = _estimate_epley_1rm(w, r)
+                if (est > best_1rm_score[0] + eps) or (
+                    abs(est - best_1rm_score[0]) <= eps and w > best_1rm_score[1] + eps
+                ):
+                    best_1rm_score = (est, w)
+                    best_1rm_idx = idx
+                if (w > best_weight_score[0] + eps) or (
+                    abs(w - best_weight_score[0]) <= eps and est > best_weight_score[1] + eps
+                ):
+                    best_weight_score = (w, est)
+                    best_weight_idx = idx
+            if best_1rm_idx == best_weight_idx:
+                pr_by_index[best_1rm_idx] = "both"
+            else:
+                pr_by_index[best_weight_idx] = "weight"
+                pr_by_index[best_1rm_idx] = "1rm"
+
+    new_prs: List[dict] = []
+    for idx in sorted(pr_by_index.keys()):
+        item = logs_data[idx]
+        item["is_pr"] = True
+        w = _extract_weight_kg(item)
+        r = _extract_reps(item)
+        est = _estimate_epley_1rm(w, r)
+        new_prs.append({
+            "exerciseId": str(item.get("exercise_id") or item.get("exerciseId") or ""),
+            "exerciseSlug": str(item.get("exercise_slug") or item.get("exerciseSlug") or ""),
+            "setNumber": _extract_set_number(item, default=idx + 1),
+            "weightKg": w,
+            "repsCompleted": r,
+            "estimated1Rm": round(est, 2),
+            "prType": pr_by_index[idx],
+        })
+
+    return new_prs
+
+
+def _parse_utc_datetime(val: Any) -> Optional[datetime]:
+    if val is None:
+        return None
+    if isinstance(val, datetime):
+        if val.tzinfo is None:
+            return val.replace(tzinfo=timezone.utc)
+        return val.astimezone(timezone.utc)
+    if isinstance(val, str):
+        try:
+            dt = datetime.fromisoformat(val.replace("Z", "+00:00"))
+            if dt.tzinfo is None:
+                return dt.replace(tzinfo=timezone.utc)
+            return dt.astimezone(timezone.utc)
+        except Exception:
+            return None
+    return None
+
+
+def _normalize_muscle_group(raw: Any) -> Optional[str]:
+    if not isinstance(raw, str):
+        return None
+    cleaned = raw.strip().lower().replace("-", "_").replace(" ", "_")
+    if not cleaned:
+        return None
+    if cleaned in _MUSCLE_GROUP_ALIASES:
+        return _MUSCLE_GROUP_ALIASES[cleaned]
+    if "pec" in cleaned or "chest" in cleaned:
+        return "chest"
+    if "lat" in cleaned or "trap" in cleaned or "rhomb" in cleaned or "back" in cleaned:
+        return "back"
+    if "quad" in cleaned or "hamstring" in cleaned or "glute" in cleaned or "calf" in cleaned or "calves" in cleaned or "leg" in cleaned:
+        return "legs"
+    if "delt" in cleaned or "shoulder" in cleaned:
+        return "shoulders"
+    if "bicep" in cleaned or "tricep" in cleaned or "forearm" in cleaned or "arm" in cleaned:
+        return "arms"
+    if "ab" in cleaned or "oblique" in cleaned or "core" in cleaned:
+        return "core"
+    return None
+
+
+def _resolve_exercise_muscles(
+    exercise_id: str,
+    exercise_slug: str,
+    cache: Dict[Tuple[str, str], Dict[str, float]],
+) -> Dict[str, float]:
+    cache_key = (exercise_id, exercise_slug)
+    if cache_key in cache:
+        return cache[cache_key]
+
+    muscles: Dict[str, float] = {}
+
+    if exercises_collection is not None and (exercise_id or exercise_slug):
+        or_clauses: List[dict] = []
+        if exercise_slug:
+            or_clauses.append({"slug": exercise_slug})
+        if exercise_id:
+            or_clauses.append({"id": exercise_id})
+            if exercise_id != exercise_slug:
+                or_clauses.append({"slug": exercise_id})
+            if ObjectId.is_valid(exercise_id):
+                or_clauses.append({"_id": ObjectId(exercise_id)})
+        try:
+            ex_doc = exercises_collection.find_one({"$or": or_clauses}) if or_clauses else None
+        except Exception:
+            ex_doc = None
+
+        if isinstance(ex_doc, dict):
+            primary = _normalize_muscle_group(ex_doc.get("muscleGroup") or ex_doc.get("muscle_group"))
+            if primary:
+                muscles[primary] = 1.0
+            else:
+                target_muscles = ex_doc.get("targetMuscles") or ex_doc.get("target_muscles") or []
+                if isinstance(target_muscles, list):
+                    for tm in target_muscles:
+                        norm_tm = _normalize_muscle_group(tm)
+                        if norm_tm:
+                            muscles[norm_tm] = 1.0
+                            break
+
+            secondary_muscles = ex_doc.get("secondaryMuscles") or ex_doc.get("secondary_muscles") or []
+            if isinstance(secondary_muscles, list):
+                for sm in secondary_muscles:
+                    norm_sm = _normalize_muscle_group(sm)
+                    if norm_sm and norm_sm not in muscles:
+                        muscles[norm_sm] = 0.4
+
+    if not muscles:
+        combined = f"{exercise_slug} {exercise_id}".lower().strip()
+        if combined:
+            for muscle_group, keywords in _FALLBACK_SLUG_MUSCLE_RULES:
+                if any(kw in combined for kw in keywords):
+                    muscles[muscle_group] = 1.0
+                    break
+
+    cache[cache_key] = muscles
+    return muscles
+
+
+def _normalize_log_for_fingerprint(item: Any) -> tuple:
+    if not isinstance(item, dict):
+        return ()
+    return (
+        item.get("exercise_id"),
+        item.get("exercise_slug"),
+        item.get("set_number"),
+        item.get("reps_completed"),
+        item.get("unit"),
+        item.get("seconds_completed"),
+        item.get("weight_kg"),
+        item.get("is_completed"),
+        item.get("rest_taken_seconds"),
+        item.get("cv_detected"),
+        item.get("cv_form_summary"),
+        _normalize_set_type(item.get("set_type")),
+        item.get("rpe"),
+        item.get("note"),
+        item.get("superset_group_id"),
+    )
+
+
 def _session_fingerprint(doc: dict) -> tuple:
+    raw_logs = doc.get("exercise_logs") or []
+    normalized_logs = tuple(_normalize_log_for_fingerprint(item) for item in raw_logs)
     return (
         doc.get("plan_id"),
         doc.get("plan_name"),
         _utc_ms(doc.get("started_at")),
         _utc_ms(doc.get("finished_at")),
-        doc.get("exercise_logs") or [],
+        normalized_logs,
         doc.get("total_duration_minutes"),
         doc.get("total_volume_kg"),
         doc.get("cv_form_summary"),
@@ -354,6 +948,18 @@ def _serialize_workout_session(doc: dict) -> dict:
     raw_logs = doc.get("exercise_logs") or doc.get("completed_exercises") or []
     exercise_logs = []
     for item in raw_logs:
+        raw_rpe = item.get("rpe")
+        rpe_val = float(raw_rpe) if raw_rpe is not None else None
+        raw_note = item.get("note")
+        note_val = str(raw_note) if raw_note is not None else None
+        superset_raw = (
+            item.get("superset_group_id")
+            if item.get("superset_group_id") is not None
+            else item.get("supersetGroupId")
+        )
+        superset_val = str(superset_raw) if superset_raw is not None else None
+        is_pr_raw = item.get("is_pr") if item.get("is_pr") is not None else item.get("isPr", False)
+
         exercise_logs.append({
             "exerciseId": str(item.get("exercise_id") or item.get("exerciseId") or ""),
             "exerciseSlug": str(item.get("exercise_slug") or item.get("exerciseSlug") or ""),
@@ -366,6 +972,11 @@ def _serialize_workout_session(doc: dict) -> dict:
             "restTakenSeconds": item.get("rest_taken_seconds") if item.get("rest_taken_seconds") is not None else item.get("restTakenSeconds"),
             "cvDetected": bool(item.get("cv_detected") if item.get("cv_detected") is not None else item.get("cvDetected", False)),
             "cvFormSummary": item.get("cv_form_summary") or item.get("cvFormSummary"),
+            "setType": _normalize_set_type(item.get("set_type") if item.get("set_type") is not None else item.get("setType")),
+            "rpe": rpe_val,
+            "note": note_val,
+            "supersetGroupId": superset_val,
+            "isPr": bool(is_pr_raw),
         })
 
     started_at = _format_utc_iso(doc.get("started_at") or doc.get("start_time") or doc.get("created_at"))
@@ -665,6 +1276,11 @@ async def log_workout_session(
                     "rest_taken_seconds": item.rest_taken_seconds,
                     "cv_detected": item.cv_detected,
                     "cv_form_summary": cv_summary,
+                    "set_type": item.set_type,
+                    "rpe": item.rpe,
+                    "note": item.note,
+                    "superset_group_id": item.superset_group_id,
+                    "is_pr": False,
                 })
         elif session.completed_exercises:
             for e in session.completed_exercises:
@@ -673,7 +1289,26 @@ async def log_workout_session(
                 if not isinstance(cv_summary, dict):
                     cv_summary = None
                 raw_item["cv_form_summary"] = cv_summary
+                raw_item["set_type"] = _normalize_set_type(
+                    raw_item.get("set_type") if raw_item.get("set_type") is not None else raw_item.get("setType")
+                )
+                raw_item["rpe"] = raw_item.get("rpe")
+                raw_item["note"] = raw_item.get("note")
+                raw_item["superset_group_id"] = (
+                    raw_item.get("superset_group_id")
+                    if raw_item.get("superset_group_id") is not None
+                    else raw_item.get("supersetGroupId")
+                )
+                raw_item["is_pr"] = False
                 logs_data.append(raw_item)
+
+        idempotent_id = _idempotent_session_object_id(user_id, session.id)
+        owner_query = build_user_query(user_id, email)
+        new_prs = _detect_and_mark_prs(
+            logs_data,
+            owner_query,
+            exclude_session_id=idempotent_id,
+        )
 
         total_duration = session.total_duration_minutes if session.total_duration_minutes is not None else session.duration_minutes
         plan_title = session.plan_name or session.name or "Workout Session"
@@ -695,7 +1330,6 @@ async def log_workout_session(
         if session.cv_form_summary is not None:
             doc["cv_form_summary"] = session.cv_form_summary
 
-        idempotent_id = _idempotent_session_object_id(user_id, session.id)
         logged_at = now_utc
         if idempotent_id is None:
             result = workout_history_collection.insert_one(doc)
@@ -724,6 +1358,7 @@ async def log_workout_session(
             "session_id": str(doc["_id"]),
             "session": serialized,
             "logged_at": logged_at.isoformat(),
+            "new_prs": new_prs,
         }
     except HTTPException:
         raise
@@ -1016,6 +1651,135 @@ async def get_exercise_last_performance(
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to fetch last performance: {str(e)}")
+
+
+# ─── MUSCLE RECOVERY ENDPOINT ─────────────────────────────────────────────────
+
+@router.get("/muscle-recovery", response_model=dict)
+async def get_workout_muscle_recovery(
+    current_user: dict = Depends(get_current_user),
+):
+    """Estimate 0-100% muscle recovery across 6 canonical muscle groups from the last 72 hours."""
+    try:
+        user_id = str(current_user["_id"]) if current_user.get("_id") is not None else None
+        email = current_user.get("email")
+        if not email and not user_id:
+            raise HTTPException(status_code=401, detail="Unauthorized")
+
+        now_utc = datetime.now(timezone.utc)
+        owner_query = build_user_query(user_id, email)
+        sessions = _safe_find(
+            workout_history_collection,
+            owner_query,
+            sort=[("started_at", -1), ("created_at", -1)],
+            limit=100,
+        )
+
+        set_type_multiplier = {
+            "warmup": 0.3,
+            "normal": 1.0,
+            "drop": 1.15,
+            "failure": 1.25,
+        }
+        base_points_per_set = 10.5
+        fatigue_scale = 85.0
+        decay_exponent = 1.45
+
+        muscle_fatigue_load: Dict[str, float] = {m: 0.0 for m in _CANONICAL_MUSCLE_GROUPS}
+        muscle_last_trained: Dict[str, Optional[datetime]] = {m: None for m in _CANONICAL_MUSCLE_GROUPS}
+        muscle_recent_sets: Dict[str, int] = {m: 0 for m in _CANONICAL_MUSCLE_GROUPS}
+        exercise_muscle_cache: Dict[Tuple[str, str], Dict[str, float]] = {}
+
+        for session_doc in sessions:
+            session_dt = (
+                _parse_utc_datetime(session_doc.get("finished_at"))
+                or _parse_utc_datetime(session_doc.get("end_time"))
+                or _parse_utc_datetime(session_doc.get("started_at"))
+                or _parse_utc_datetime(session_doc.get("start_time"))
+                or _parse_utc_datetime(session_doc.get("created_at"))
+            )
+            if session_dt is None:
+                continue
+
+            hours_ago = (now_utc - session_dt).total_seconds() / 3600.0
+            if hours_ago < 0.0:
+                hours_ago = 0.0
+            if hours_ago > 72.0:
+                continue
+
+            time_decay = max(0.0, 1.0 - hours_ago / 72.0) ** decay_exponent
+            raw_logs = session_doc.get("exercise_logs") or session_doc.get("completed_exercises") or []
+
+            for item in raw_logs:
+                if not isinstance(item, dict) or not _is_set_completed(item):
+                    continue
+                ex_id = str(item.get("exercise_id") or item.get("exerciseId") or "").strip()
+                ex_slug = str(item.get("exercise_slug") or item.get("exerciseSlug") or "").strip()
+                muscles = _resolve_exercise_muscles(ex_id, ex_slug, exercise_muscle_cache)
+                if not muscles:
+                    continue
+
+                set_type = _normalize_set_type(
+                    item.get("set_type") if item.get("set_type") is not None else item.get("setType")
+                )
+                type_mult = set_type_multiplier.get(set_type, 1.0)
+
+                raw_rpe = item.get("rpe")
+                if raw_rpe is not None:
+                    try:
+                        rpe_mult = max(0.7, min(1.3, float(raw_rpe) / 8.0))
+                    except (ValueError, TypeError):
+                        rpe_mult = 1.0
+                else:
+                    rpe_mult = 1.0
+
+                set_load = base_points_per_set * type_mult * rpe_mult * time_decay
+
+                for muscle_name, muscle_factor in muscles.items():
+                    if muscle_name not in muscle_fatigue_load:
+                        continue
+                    muscle_fatigue_load[muscle_name] += set_load * muscle_factor
+                    muscle_recent_sets[muscle_name] += 1
+                    prev_dt = muscle_last_trained[muscle_name]
+                    if prev_dt is None or session_dt > prev_dt:
+                        muscle_last_trained[muscle_name] = session_dt
+
+        muscles_out: List[dict] = []
+        for muscle_name in _CANONICAL_MUSCLE_GROUPS:
+            raw_load = muscle_fatigue_load[muscle_name]
+            fatigue = 100.0 * (1.0 - math.exp(-raw_load / fatigue_scale)) if raw_load > 0.0 else 0.0
+            recovery_percent = int(round(max(0.0, min(100.0, 100.0 - fatigue))))
+            if recovery_percent >= 80:
+                status = "ready"
+            elif recovery_percent >= 50:
+                status = "recovering"
+            else:
+                status = "fatigued"
+
+            last_dt = muscle_last_trained[muscle_name]
+            hours_since = (
+                round(max(0.0, (now_utc - last_dt).total_seconds() / 3600.0), 1)
+                if last_dt is not None
+                else None
+            )
+
+            muscles_out.append({
+                "muscleGroup": muscle_name,
+                "recoveryPercent": recovery_percent,
+                "status": status,
+                "lastTrainedAt": _format_utc_iso(last_dt),
+                "hoursSinceLastTrained": hours_since,
+                "recentSets": muscle_recent_sets[muscle_name],
+            })
+
+        return {
+            "muscles": muscles_out,
+            "generatedAt": _format_utc_iso(now_utc),
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Muscle recovery error: {str(e)}")
 
 
 # ─── MUSCLE GROUP ENDPOINTS ───────────────────────────────────────────────────

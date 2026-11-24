@@ -12,11 +12,31 @@ enum SquatPhase {
   /// Eccentric lowering phase (knee angle < 140 deg toward bottom).
   descending,
 
-  /// Bottom of the squat (knee angle <= 95 deg).
+  /// Bottom of the squat (knee angle <= 100 deg).
   bottom,
 
-  /// Concentric rising phase (knee angle > 110 deg back toward standing).
+  /// Concentric rising phase (knee angle > 115 deg back toward standing).
   ascending,
+}
+
+/// A completed Squat rep event emitted when returning to the standing position.
+class SquatRepEvent extends LatPulldownRepEvent {
+  final double? maxTorsoLeanDeg;
+  final double? minHipAngleDeg;
+  final bool? isBackStraight;
+
+  const SquatRepEvent({
+    required super.repNumber,
+    required super.startTimestampMs,
+    required super.bottomTimestampMs,
+    required super.endTimestampMs,
+    required super.durationMs,
+    required super.minElbowAngleDeg,
+    super.status = 'PROVISIONAL',
+    this.maxTorsoLeanDeg,
+    this.minHipAngleDeg,
+    this.isBackStraight,
+  });
 }
 
 /// Configuration parameters for Squat rule-based state machine.
@@ -30,17 +50,29 @@ class SquatBaselineConfig {
   final int minReadyHoldMs;
   final int minExtendedHoldMs;
   final int minRepDurationMs;
+  final int maxRepDurationMs;
   final int maxAllowedGapMs;
+  final double maxStandingTorsoLeanDeg;
+  final double minStandingHipAngleDeg;
+  final double maxBottomHipAngleDeg;
+  final double maxValidTorsoLeanDeg;
+  final double maxPlausibleTorsoLeanDeg;
 
   const SquatBaselineConfig({
     this.standingEnterDeg = 155.0,
     this.descendingEnterDeg = 140.0,
-    this.bottomEnterDeg = 95.0,
-    this.ascendingEnterDeg = 110.0,
+    this.bottomEnterDeg = 100.0,
+    this.ascendingEnterDeg = 115.0,
     this.minReadyHoldMs = 200,
     this.minExtendedHoldMs = 150,
     this.minRepDurationMs = 800,
+    this.maxRepDurationMs = 12000,
     this.maxAllowedGapMs = 500,
+    this.maxStandingTorsoLeanDeg = 35.0,
+    this.minStandingHipAngleDeg = 140.0,
+    this.maxBottomHipAngleDeg = 145.0,
+    this.maxValidTorsoLeanDeg = 55.0,
+    this.maxPlausibleTorsoLeanDeg = 75.0,
   });
 }
 
@@ -50,7 +82,7 @@ class SquatBaselineFrameResult {
   final int timestampMs;
   final SquatPhase phase;
   final int completedReps;
-  final LatPulldownRepEvent? newRepEvent;
+  final SquatRepEvent? newRepEvent;
   final double? kneeAngleDeg;
   final bool isSampleValid;
   final String? transitionReason;
@@ -74,13 +106,14 @@ class SquatBaselineFrameResult {
 /// Pure Dart causal rule-based state machine for Squat repetition counting.
 ///
 /// Operates strictly forward in time (no lookahead, no offline smoothing).
-/// Uses best-confidence knee angle (Hip -> Knee -> Ankle) in pixel space.
+/// Uses best-confidence knee angle (Hip -> Knee -> Ankle), hip flexion angle,
+/// and torso lean angle in pixel space.
 class SquatBaseline {
   final SquatBaselineConfig config;
 
   SquatPhase _phase = SquatPhase.notReady;
   int _completedReps = 0;
-  final List<LatPulldownRepEvent> _repHistory = [];
+  final List<SquatRepEvent> _repHistory = [];
 
   int? _lastValidTimestampMs;
   int? _lastTimestampMs;
@@ -89,6 +122,8 @@ class SquatBaseline {
   int? _repStartTimestampMs;
   int? _bottomReachedTimestampMs;
   double _minKneeAngleInCurrentRep = 180.0;
+  double? _maxTorsoLeanInCurrentRep;
+  double? _minHipAngleInCurrentRep;
   int _droppedNonMonotonicFrames = 0;
 
   SquatBaseline({SquatBaselineConfig? config})
@@ -96,7 +131,7 @@ class SquatBaseline {
 
   SquatPhase get phase => _phase;
   int get completedReps => _completedReps;
-  List<LatPulldownRepEvent> get repHistory => List.unmodifiable(_repHistory);
+  List<SquatRepEvent> get repHistory => List.unmodifiable(_repHistory);
   int get droppedNonMonotonicFrames => _droppedNonMonotonicFrames;
 
   void reset() {
@@ -110,7 +145,30 @@ class SquatBaseline {
     _repStartTimestampMs = null;
     _bottomReachedTimestampMs = null;
     _minKneeAngleInCurrentRep = 180.0;
+    _maxTorsoLeanInCurrentRep = null;
+    _minHipAngleInCurrentRep = null;
     _droppedNonMonotonicFrames = 0;
+  }
+
+  /// Processes a [SquatFrameFeatures] container extracted by [WorkoutCvMotionFeatures].
+  SquatBaselineFrameResult processSquatFeatures(SquatFrameFeatures features) {
+    final isAngleValid = features.bestKneeAngleDeg.isValid;
+    final angle = isAngleValid ? features.bestKneeAngleDeg.value : null;
+    final hipAngle = features.bestHipAngleDeg.isValid
+        ? features.bestHipAngleDeg.value
+        : null;
+    final torsoLean =
+        features.torsoLeanDeg.isValid ? features.torsoLeanDeg.value : null;
+
+    return processSample(
+      frameIndex: features.frameIndex,
+      timestampMs: features.timestampMs,
+      kneeAngleDeg: angle,
+      hipAngleDeg: hipAngle,
+      torsoLeanDeg: torsoLean,
+      isSampleValid: isAngleValid && features.isGateDetecting,
+      isGateDetecting: features.isGateDetecting,
+    );
   }
 
   SquatBaselineFrameResult processFrameFeatures(
@@ -131,6 +189,8 @@ class SquatBaseline {
     required int frameIndex,
     required int timestampMs,
     double? kneeAngleDeg,
+    double? hipAngleDeg,
+    double? torsoLeanDeg,
     required bool isSampleValid,
     bool isGateDetecting = true,
   }) {
@@ -200,11 +260,19 @@ class SquatBaseline {
     _lastValidTimestampMs = timestampMs;
 
     String? transitionReason;
-    LatPulldownRepEvent? newRepEvent;
+    SquatRepEvent? newRepEvent;
+
+    final bool hipValidForBottom = hipAngleDeg == null ||
+        !hipAngleDeg.isFinite ||
+        hipAngleDeg <= config.maxBottomHipAngleDeg;
+    final bool torsoValidForBottom = torsoLeanDeg == null ||
+        !torsoLeanDeg.isFinite ||
+        torsoLeanDeg <= config.maxPlausibleTorsoLeanDeg;
 
     switch (_phase) {
       case SquatPhase.notReady:
-        if (kneeAngleDeg >= config.standingEnterDeg) {
+        if (kneeAngleDeg >= config.standingEnterDeg &&
+            _isUprightForStanding(hipAngleDeg, torsoLeanDeg)) {
           _readyCandidateStartMs ??= timestampMs;
           if ((timestampMs - _readyCandidateStartMs!) >=
               config.minReadyHoldMs) {
@@ -212,6 +280,8 @@ class SquatBaseline {
             transitionReason = 'readyHoldSatisfied';
             _readyCandidateStartMs = null;
             _repStartTimestampMs = null;
+            _maxTorsoLeanInCurrentRep = null;
+            _minHipAngleInCurrentRep = null;
           }
         } else {
           _readyCandidateStartMs = null;
@@ -226,6 +296,9 @@ class SquatBaseline {
           _bottomReachedTimestampMs = null;
           _extendedCandidateStartMs = null;
           _minKneeAngleInCurrentRep = kneeAngleDeg;
+          _maxTorsoLeanInCurrentRep = null;
+          _minHipAngleInCurrentRep = null;
+          _updateCurrentRepUpperBodyMetrics(hipAngleDeg, torsoLeanDeg);
         }
         break;
 
@@ -233,8 +306,11 @@ class SquatBaseline {
         if (kneeAngleDeg < _minKneeAngleInCurrentRep) {
           _minKneeAngleInCurrentRep = kneeAngleDeg;
         }
+        _updateCurrentRepUpperBodyMetrics(hipAngleDeg, torsoLeanDeg);
 
-        if (kneeAngleDeg <= config.bottomEnterDeg) {
+        if (kneeAngleDeg <= config.bottomEnterDeg &&
+            hipValidForBottom &&
+            torsoValidForBottom) {
           _phase = SquatPhase.bottom;
           transitionReason = 'bottomReached';
           _bottomReachedTimestampMs = timestampMs;
@@ -242,6 +318,8 @@ class SquatBaseline {
           _phase = SquatPhase.standing;
           transitionReason = 'incompleteDescentReturnedToStanding';
           _repStartTimestampMs = null;
+          _maxTorsoLeanInCurrentRep = null;
+          _minHipAngleInCurrentRep = null;
         }
         break;
 
@@ -250,6 +328,7 @@ class SquatBaseline {
           _minKneeAngleInCurrentRep = kneeAngleDeg;
           _bottomReachedTimestampMs = timestampMs;
         }
+        _updateCurrentRepUpperBodyMetrics(hipAngleDeg, torsoLeanDeg);
 
         if (kneeAngleDeg > config.ascendingEnterDeg) {
           _phase = SquatPhase.ascending;
@@ -259,7 +338,14 @@ class SquatBaseline {
         break;
 
       case SquatPhase.ascending:
-        if (kneeAngleDeg <= config.bottomEnterDeg) {
+        if (kneeAngleDeg < _minKneeAngleInCurrentRep) {
+          _minKneeAngleInCurrentRep = kneeAngleDeg;
+        }
+        _updateCurrentRepUpperBodyMetrics(hipAngleDeg, torsoLeanDeg);
+
+        if (kneeAngleDeg <= config.bottomEnterDeg &&
+            hipValidForBottom &&
+            torsoValidForBottom) {
           _phase = SquatPhase.bottom;
           transitionReason = 'reBottomedDuringAscent';
           _extendedCandidateStartMs = null;
@@ -270,9 +356,13 @@ class SquatBaseline {
             final repStart = _repStartTimestampMs ?? timestampMs;
             final duration = timestampMs - repStart;
 
-            if (duration >= config.minRepDurationMs) {
+            if (duration >= config.minRepDurationMs &&
+                duration <= config.maxRepDurationMs) {
               _completedReps++;
-              newRepEvent = LatPulldownRepEvent(
+              final isBackStraight = _maxTorsoLeanInCurrentRep != null
+                  ? _maxTorsoLeanInCurrentRep! <= config.maxValidTorsoLeanDeg
+                  : null;
+              newRepEvent = SquatRepEvent(
                 repNumber: _completedReps,
                 startTimestampMs: repStart,
                 bottomTimestampMs: _bottomReachedTimestampMs ??
@@ -281,11 +371,16 @@ class SquatBaseline {
                 durationMs: duration,
                 minElbowAngleDeg: _minKneeAngleInCurrentRep,
                 status: 'PROVISIONAL',
+                maxTorsoLeanDeg: _maxTorsoLeanInCurrentRep,
+                minHipAngleDeg: _minHipAngleInCurrentRep,
+                isBackStraight: isBackStraight,
               );
               _repHistory.add(newRepEvent);
               transitionReason = 'repCompleted';
-            } else {
+            } else if (duration < config.minRepDurationMs) {
               transitionReason = 'repTooShortIgnored';
+            } else {
+              transitionReason = 'repTooLongIgnored';
             }
 
             _phase = SquatPhase.standing;
@@ -293,6 +388,8 @@ class SquatBaseline {
             _bottomReachedTimestampMs = null;
             _extendedCandidateStartMs = null;
             _minKneeAngleInCurrentRep = 180.0;
+            _maxTorsoLeanInCurrentRep = null;
+            _minHipAngleInCurrentRep = null;
           }
         } else {
           _extendedCandidateStartMs = null;
@@ -313,6 +410,38 @@ class SquatBaseline {
     );
   }
 
+  bool _isUprightForStanding(double? hipAngleDeg, double? torsoLeanDeg) {
+    if (torsoLeanDeg != null &&
+        torsoLeanDeg.isFinite &&
+        torsoLeanDeg > config.maxStandingTorsoLeanDeg) {
+      return false;
+    }
+    if (hipAngleDeg != null &&
+        hipAngleDeg.isFinite &&
+        hipAngleDeg < config.minStandingHipAngleDeg) {
+      return false;
+    }
+    return true;
+  }
+
+  void _updateCurrentRepUpperBodyMetrics(
+    double? hipAngleDeg,
+    double? torsoLeanDeg,
+  ) {
+    if (torsoLeanDeg != null && torsoLeanDeg.isFinite) {
+      if (_maxTorsoLeanInCurrentRep == null ||
+          torsoLeanDeg > _maxTorsoLeanInCurrentRep!) {
+        _maxTorsoLeanInCurrentRep = torsoLeanDeg;
+      }
+    }
+    if (hipAngleDeg != null && hipAngleDeg.isFinite) {
+      if (_minHipAngleInCurrentRep == null ||
+          hipAngleDeg < _minHipAngleInCurrentRep!) {
+        _minHipAngleInCurrentRep = hipAngleDeg;
+      }
+    }
+  }
+
   void _abortInProgressCycle() {
     _phase = SquatPhase.notReady;
     _readyCandidateStartMs = null;
@@ -320,5 +449,7 @@ class SquatBaseline {
     _repStartTimestampMs = null;
     _bottomReachedTimestampMs = null;
     _minKneeAngleInCurrentRep = 180.0;
+    _maxTorsoLeanInCurrentRep = null;
+    _minHipAngleInCurrentRep = null;
   }
 }

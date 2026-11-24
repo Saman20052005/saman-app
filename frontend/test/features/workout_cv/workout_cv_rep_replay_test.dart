@@ -5,7 +5,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:health_ai_app/features/workout_cv/domain/entities/exercise_cv_state.dart';
 import 'package:health_ai_app/features/workout_cv/presentation/controllers/workout_cv_controller.dart';
 import 'package:health_ai_app/features/workout_cv/presentation/screens/workout_cv_screen.dart';
-import 'package:health_ai_app/features/workout_cv/presentation/workout_cv_replay_trial.dart';
 import 'workout_cv_controller_test.dart' show MockWorkoutCvNativeSource;
 
 // A geometric cycle through the existing default bands, with no injected tracker.
@@ -295,30 +294,25 @@ void main() {
     source.emitEvent(pose(20, 40));
     await tester.idle();
     await tester.pump();
-    expect(find.text('Số lần kéo: 0'), findsOneWidget);
-    expect(find.text('Replay thử nghiệm • phát chậm'), findsOneWidget);
-    expect(find.text('Chưa đủ dữ liệu'), findsWidgets);
+    expect(find.text('Pulls: 0'), findsOneWidget);
+    expect(find.text('Trial Replay · Slow'), findsOneWidget);
+    expect(find.text('Insufficient data'), findsWidgets);
     for (final (pts, angle) in cycle) {
       source.emitEvent(pose(pts + 100, angle));
       await tester.idle();
       await tester.pump();
     }
-    expect(find.text('Số lần kéo: 1'), findsOneWidget);
+    expect(find.text('Pulls: 1'), findsOneWidget);
     source.emitEvent(
         {'status': 'endOfStream', 'sessionGen': 5, 'videoPtsMs': 1320});
     await tester.idle();
     await tester.pump();
-    expect(find.text('Đã kết thúc'), findsWidgets);
+    expect(find.text('Finished'), findsWidgets);
     expect(find.text('TRACKING'), findsNothing);
-    expect(find.text('Số lần kéo: 1'), findsOneWidget);
-    if (workoutCvReplayTrialEnabled) {
-      await tester.tap(find.text('Chạy lại'));
-    } else {
-      expect(find.text('Chạy lại'), findsNothing);
-      await uiController.restartVideoReplay();
-    }
+    expect(find.text('Pulls: 1'), findsOneWidget);
+    await tester.tap(find.text('Replay'));
     await tester.pump();
-    expect(find.text('Số lần kéo: 0'), findsOneWidget);
+    expect(find.text('Pulls: 0'), findsOneWidget);
     source.emitEvent({
       'status': 'error',
       'sessionGen': 6,
@@ -327,9 +321,9 @@ void main() {
     });
     await tester.idle();
     await tester.pump();
-    expect(find.text('Lỗi phân tích'), findsOneWidget);
+    expect(find.text('Analysis error'), findsOneWidget);
     expect(find.text('decode failed'), findsOneWidget);
-    expect(find.text('Số lần kéo: 0'), findsOneWidget);
+    expect(find.text('Pulls: 0'), findsOneWidget);
     expect(tester.takeException(), isNull);
     await tester.pumpWidget(const SizedBox.shrink());
     container.dispose();

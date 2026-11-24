@@ -33,6 +33,28 @@ class Exercise with _$Exercise {
 
 enum SetUnit { reps, seconds }
 
+enum SetType { warmup, normal, drop, failure }
+
+SetType parseSetType(dynamic raw) {
+  if (raw is SetType) return raw;
+  if (raw is String) {
+    switch (raw.trim().toLowerCase()) {
+      case 'warmup':
+        return SetType.warmup;
+      case 'drop':
+      case 'dropset':
+      case 'drop_set':
+        return SetType.drop;
+      case 'failure':
+        return SetType.failure;
+      case 'normal':
+      default:
+        return SetType.normal;
+    }
+  }
+  return SetType.normal;
+}
+
 double workoutSetVolumeKg({
   required SetUnit unit,
   required int repsCompleted,
@@ -43,16 +65,20 @@ double workoutSetVolumeKg({
 class ExerciseSetLog with _$ExerciseSetLog {
   ExerciseSetLog._() {
     if (effectiveUnit == SetUnit.seconds &&
-        (repsCompleted != 0 || secondsCompleted == null ||
-            secondsCompleted! < 1 || secondsCompleted! > 999)) {
+        (repsCompleted != 0 ||
+            secondsCompleted == null ||
+            secondsCompleted! < 1 ||
+            secondsCompleted! > 999)) {
       throw ArgumentError('Timed sets require 1-999 seconds and zero reps');
     }
   }
 
   SetUnit get effectiveUnit => unit ?? SetUnit.reps;
   double get volumeKg => workoutSetVolumeKg(
-    unit: effectiveUnit, repsCompleted: repsCompleted, weightKg: weightKg,
-  );
+        unit: effectiveUnit,
+        repsCompleted: repsCompleted,
+        weightKg: weightKg,
+      );
 
   factory ExerciseSetLog({
     required String exerciseId,
@@ -66,39 +92,78 @@ class ExerciseSetLog with _$ExerciseSetLog {
     int? restTakenSeconds,
     @Default(false) bool cvDetected,
     Map<String, dynamic>? cvFormSummary,
+    @Default(SetType.normal) SetType setType,
+    double? rpe,
+    String? note,
+    String? supersetGroupId,
+    @Default(false) bool isPr,
   }) = _ExerciseSetLog;
 
   factory ExerciseSetLog.fromJson(Map<String, dynamic> json) =>
       _$ExerciseSetLogFromJson(_validateJson(json));
 
-  // Keep the legacy nullable key while omitting only the two new null keys.
+  // Keep the legacy nullable key while omitting default/null optional keys.
   Map<String, dynamic> toJson() => {
-    'exerciseId': exerciseId,
-    'exerciseSlug': exerciseSlug,
-    'setNumber': setNumber,
-    'repsCompleted': repsCompleted,
-    if (unit != null) 'unit': unit!.name,
-    if (secondsCompleted != null) 'secondsCompleted': secondsCompleted,
-    'weightKg': weightKg,
-    'isCompleted': isCompleted,
-    'restTakenSeconds': restTakenSeconds,
-    'cvDetected': cvDetected,
-    if (cvFormSummary != null) 'cvFormSummary': cvFormSummary,
-  };
+        'exerciseId': exerciseId,
+        'exerciseSlug': exerciseSlug,
+        'setNumber': setNumber,
+        'repsCompleted': repsCompleted,
+        if (unit != null) 'unit': unit!.name,
+        if (secondsCompleted != null) 'secondsCompleted': secondsCompleted,
+        'weightKg': weightKg,
+        'isCompleted': isCompleted,
+        'restTakenSeconds': restTakenSeconds,
+        'cvDetected': cvDetected,
+        if (cvFormSummary != null) 'cvFormSummary': cvFormSummary,
+        if (setType != SetType.normal) 'setType': setType.name,
+        if (rpe != null) 'rpe': rpe,
+        if (note != null && note!.isNotEmpty) 'note': note,
+        if (supersetGroupId != null) 'supersetGroupId': supersetGroupId,
+        if (isPr) 'isPr': isPr,
+      };
 
   static Map<String, dynamic> _validateJson(Map<String, dynamic> json) {
-    final normalized = json['cvFormSummary'] == null &&
-            json['cv_form_summary'] is Map
+    final needsCv =
+        json['cvFormSummary'] == null && json['cv_form_summary'] is Map;
+    final needsSetType = json['setType'] == null && json['set_type'] != null;
+    final rawSetType = needsSetType ? json['set_type'] : json['setType'];
+    final needsSetTypeNormalization = rawSetType != null &&
+        (rawSetType is! String ||
+            !SetType.values.any((t) => t.name == rawSetType));
+    final needsSuperset =
+        json['supersetGroupId'] == null && json['superset_group_id'] != null;
+    final needsIsPr = json['isPr'] == null && json['is_pr'] != null;
+    final rawIsPr = needsIsPr ? json['is_pr'] : json['isPr'];
+    final needsIsPrNormalization = rawIsPr != null && rawIsPr is! bool;
+
+    final normalized = (needsCv ||
+            needsSetType ||
+            needsSetTypeNormalization ||
+            needsSuperset ||
+            needsIsPr ||
+            needsIsPrNormalization)
         ? Map<String, dynamic>.from(json)
         : json;
-    if (!identical(normalized, json)) {
+    if (needsCv) {
       normalized['cvFormSummary'] = normalized['cv_form_summary'];
+    }
+    if (needsSetType || needsSetTypeNormalization) {
+      normalized['setType'] = parseSetType(rawSetType).name;
+    }
+    if (needsSuperset) {
+      normalized['supersetGroupId'] = normalized['superset_group_id'];
+    }
+    if (needsIsPr || needsIsPrNormalization) {
+      normalized['isPr'] =
+          rawIsPr is bool ? rawIsPr : (rawIsPr is num ? rawIsPr != 0 : false);
     }
     // JSON numbers must not be truncated into valid timed results.
     if (normalized['unit'] == 'seconds' &&
         (normalized['secondsCompleted'] is! int ||
             normalized['repsCompleted'] != 0)) {
-      throw const FormatException('Timed sets require integer seconds and zero reps');
+      throw const FormatException(
+        'Timed sets require integer seconds and zero reps',
+      );
     }
     return normalized;
   }
@@ -112,6 +177,8 @@ class LastExercisePerformance {
   final int suggestedReps;
   final String suggestionReason;
   final String? lastDate;
+  final int? cvFormScore;
+  final int? cvFastReps;
 
   const LastExercisePerformance({
     required this.exerciseId,
@@ -121,9 +188,13 @@ class LastExercisePerformance {
     required this.suggestedReps,
     required this.suggestionReason,
     this.lastDate,
+    this.cvFormScore,
+    this.cvFastReps,
   });
 
   factory LastExercisePerformance.fromJson(Map<String, dynamic> json) {
+    final rawCvFormScore = json['cv_form_score'] ?? json['cvFormScore'];
+    final rawCvFastReps = json['cv_fast_reps'] ?? json['cvFastReps'];
     return LastExercisePerformance(
       exerciseId: (json['exercise_id'] ?? json['exerciseId'] ?? '').toString(),
       lastWeightKg: (json['last_weight_kg'] as num?)?.toDouble() ?? 0.0,
@@ -134,6 +205,8 @@ class LastExercisePerformance {
       suggestionReason:
           (json['suggestion_reason'] ?? 'maintain_current_load').toString(),
       lastDate: json['last_date']?.toString(),
+      cvFormScore: rawCvFormScore is num ? rawCvFormScore.toInt() : null,
+      cvFastReps: rawCvFastReps is num ? rawCvFastReps.toInt() : null,
     );
   }
 }
@@ -148,8 +221,94 @@ class WorkoutSession with _$WorkoutSession {
     required List<ExerciseSetLog> exerciseLogs,
     int? totalDurationMinutes,
     @Default(0) int totalVolumeKg,
+    @Default([]) List<Map<String, dynamic>> newPrs,
   }) = _WorkoutSession;
 
   factory WorkoutSession.fromJson(Map<String, dynamic> json) =>
       _$WorkoutSessionFromJson(json);
+}
+
+@immutable
+class MuscleRecoveryItem {
+  final String muscleGroup;
+  final int recoveryPercent;
+  final String status;
+  final DateTime? lastTrainedAt;
+  final double? hoursSinceLastTrained;
+  final int recentSets;
+
+  const MuscleRecoveryItem({
+    required this.muscleGroup,
+    required this.recoveryPercent,
+    required this.status,
+    this.lastTrainedAt,
+    this.hoursSinceLastTrained,
+    this.recentSets = 0,
+  });
+
+  factory MuscleRecoveryItem.fromJson(Map<String, dynamic> json) {
+    final rawLastTrained = json['lastTrainedAt'] ?? json['last_trained_at'];
+    DateTime? parsedLastTrained;
+    if (rawLastTrained is DateTime) {
+      parsedLastTrained = rawLastTrained;
+    } else if (rawLastTrained is String && rawLastTrained.isNotEmpty) {
+      parsedLastTrained = DateTime.tryParse(rawLastTrained);
+    }
+
+    final rawPercent = json['recoveryPercent'] ?? json['recovery_percent'];
+    final percent = rawPercent is num ? rawPercent.round().clamp(0, 100) : 100;
+
+    final rawHours =
+        json['hoursSinceLastTrained'] ?? json['hours_since_last_trained'];
+    final rawSets = json['recentSets'] ?? json['recent_sets'];
+
+    return MuscleRecoveryItem(
+      muscleGroup:
+          (json['muscleGroup'] ?? json['muscle_group'] ?? '').toString(),
+      recoveryPercent: percent,
+      status: (json['status'] ??
+              (percent >= 80
+                  ? 'ready'
+                  : percent >= 50
+                      ? 'recovering'
+                      : 'fatigued'))
+          .toString(),
+      lastTrainedAt: parsedLastTrained,
+      hoursSinceLastTrained: rawHours is num ? rawHours.toDouble() : null,
+      recentSets: rawSets is num ? rawSets.toInt() : 0,
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+        'muscleGroup': muscleGroup,
+        'recoveryPercent': recoveryPercent,
+        'status': status,
+        if (lastTrainedAt != null)
+          'lastTrainedAt': lastTrainedAt!.toUtc().toIso8601String(),
+        if (hoursSinceLastTrained != null)
+          'hoursSinceLastTrained': hoursSinceLastTrained,
+        'recentSets': recentSets,
+      };
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is MuscleRecoveryItem &&
+          runtimeType == other.runtimeType &&
+          muscleGroup == other.muscleGroup &&
+          recoveryPercent == other.recoveryPercent &&
+          status == other.status &&
+          lastTrainedAt == other.lastTrainedAt &&
+          hoursSinceLastTrained == other.hoursSinceLastTrained &&
+          recentSets == other.recentSets;
+
+  @override
+  int get hashCode => Object.hash(
+        muscleGroup,
+        recoveryPercent,
+        status,
+        lastTrainedAt,
+        hoursSinceLastTrained,
+        recentSets,
+      );
 }

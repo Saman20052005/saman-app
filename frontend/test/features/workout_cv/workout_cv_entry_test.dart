@@ -120,9 +120,9 @@ Exercise _createBenchPressExercise() {
 Exercise _createSpoofedDisplayNameExercise() {
   return const Exercise(
     id: 'ex_1',
-    slug: 'seated-cable-row',
+    slug: 'dumbbell-bench-press',
     name: 'Pull-up',
-    nameVi: 'Ngồi kéo cáp',
+    nameVi: 'Đẩy ngực tạ đơn',
     muscleGroup: 'Back',
     targetMuscles: ['Back'],
     secondaryMuscles: ['Biceps'],
@@ -221,11 +221,13 @@ void main() {
       final initialDraftReps = initialSession.currentExercise!.draftReps;
       final initialDraftWeight = initialSession.currentExercise!.draftWeightKg;
 
-      // Tap form check badge
+      // Tap form check badge and select real-time camera mode
       final formCheckBadge =
           find.byKey(const ValueKey('active_workout_form_check_badge'));
       expect(formCheckBadge, findsOneWidget);
       await tester.tap(formCheckBadge);
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('form_check_mode_realtime')));
       await tester.pumpAndSettle();
 
       // Verified WorkoutCvScreen is opened
@@ -295,6 +297,8 @@ void main() {
       // Open CV
       await tester
           .tap(find.byKey(const ValueKey('active_workout_form_check_badge')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('form_check_mode_realtime')));
       await tester.pumpAndSettle();
       expect(find.byType(WorkoutCvScreen), findsOneWidget);
 
@@ -383,6 +387,8 @@ void main() {
       await tester
           .tap(find.byKey(const ValueKey('active_workout_form_check_badge')));
       await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('form_check_mode_realtime')));
+      await tester.pumpAndSettle();
       expect(find.byType(WorkoutCvScreen), findsOneWidget);
       expect(find.text('Lat Pulldown'), findsOneWidget);
 
@@ -436,6 +442,8 @@ void main() {
       await tester
           .tap(find.byKey(const ValueKey('active_workout_form_check_badge')));
       await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('form_check_mode_realtime')));
+      await tester.pumpAndSettle();
       expect(find.byType(WorkoutCvScreen), findsOneWidget);
 
       final notifier = capturedRef.read(activeWorkoutSessionProvider.notifier);
@@ -455,6 +463,8 @@ void main() {
 
       await tester
           .tap(find.byKey(const ValueKey('active_workout_form_check_badge')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('form_check_mode_realtime')));
       await tester.pumpAndSettle();
       expect(find.byType(WorkoutCvScreen), findsOneWidget);
 
@@ -497,6 +507,8 @@ void main() {
 
       await tester
           .tap(find.byKey(const ValueKey('active_workout_form_check_badge')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('form_check_mode_realtime')));
       await tester.pumpAndSettle();
 
       // Permission denied UI is shown

@@ -30,4 +30,6 @@ abstract class ExerciseRepository {
   Future<Map<String, LastExercisePerformance>> getLastPerformances(
     List<String> exerciseIds,
   );
+
+  Future<List<MuscleRecoveryItem>> getMuscleRecovery();
 }

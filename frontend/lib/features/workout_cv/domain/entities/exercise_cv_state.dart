@@ -86,32 +86,69 @@ class ExerciseCvState {
   });
 
   int get completedReps => replayRepEvents.length;
-  String get repCountLabel {
+  String get repCountLabel => localizedRepCountLabel(isVietnamese: true);
+
+  String localizedRepCountLabel({required bool isVietnamese}) {
     final module = WorkoutCvExerciseRegistry.resolveModule(
       id: exerciseId,
       slug: exerciseSlug,
     );
+    if (module == CvExerciseModule.plankHold) {
+      return isVietnamese
+          ? 'Giữ chuẩn: ${completedReps}s'
+          : 'Valid hold: ${completedReps}s';
+    }
     if (module == CvExerciseModule.latPulldown ||
         module == CvExerciseModule.pullUp ||
         module == null) {
-      return 'Số lần kéo: $completedReps';
+      return isVietnamese
+          ? 'Số lần kéo: $completedReps'
+          : 'Pulls: $completedReps';
     }
-    return 'Số rep: $completedReps';
+    return isVietnamese ? 'Số rep: $completedReps' : 'Reps: $completedReps';
   }
-  CvFormSummary get formSummary =>
-      CvFormSummaryCalculator.compute(reps: replayRepEvents, abortCount: abortCount);
-  String get replayAnalysisLabel {
+
+  CvFormSummary get formSummary {
+    final module = WorkoutCvExerciseRegistry.resolveModule(
+      id: exerciseId,
+      slug: exerciseSlug,
+    );
+    return CvFormSummaryCalculator.compute(
+      reps: replayRepEvents,
+      abortCount: abortCount,
+      module: module,
+    );
+  }
+
+  String get replayAnalysisLabel =>
+      localizedReplayAnalysisLabel(isVietnamese: true);
+
+  String localizedReplayAnalysisLabel({required bool isVietnamese}) {
     switch (replayAnalysisStatus) {
       case ReplayAnalysisStatus.waiting:
-        return 'Đang phân tích';
       case ReplayAnalysisStatus.analyzing:
-        return 'Đang phân tích';
+        return isVietnamese ? 'Đang phân tích' : 'Analyzing';
       case ReplayAnalysisStatus.insufficientData:
-        return 'Chưa đủ dữ liệu';
+        return isVietnamese ? 'Chưa đủ dữ liệu' : 'Insufficient data';
       case ReplayAnalysisStatus.finished:
-        return 'Đã kết thúc';
+        return isVietnamese ? 'Đã kết thúc' : 'Finished';
       case ReplayAnalysisStatus.error:
-        return 'Lỗi phân tích';
+        return isVietnamese ? 'Lỗi phân tích' : 'Analysis error';
+    }
+  }
+
+  String localizedPhaseLabel({required bool isVietnamese}) {
+    switch (analysisPhase) {
+      case LatPulldownPhase.notReady:
+        return isVietnamese ? 'Đang chuẩn bị' : 'Getting ready';
+      case LatPulldownPhase.extended:
+        return isVietnamese ? 'Tư thế nghỉ' : 'Ready';
+      case LatPulldownPhase.pulling:
+        return isVietnamese ? 'Đang thực hiện' : 'Active';
+      case LatPulldownPhase.flexed:
+        return isVietnamese ? 'Đạt đỉnh' : 'Peak';
+      case LatPulldownPhase.returning:
+        return isVietnamese ? 'Trở về' : 'Returning';
     }
   }
 

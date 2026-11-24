@@ -16,9 +16,20 @@ import '../providers/community_social_providers.dart';
 import '../tokens/saman_ig_tokens.dart';
 
 class CommunityCreateStorySheet extends ConsumerStatefulWidget {
-  const CommunityCreateStorySheet({super.key});
+  final String? initialCaption;
+  final String? initialPrivacy;
 
-  static Future<CommunityStory?> show(BuildContext context) async {
+  const CommunityCreateStorySheet({
+    super.key,
+    this.initialCaption,
+    this.initialPrivacy,
+  });
+
+  static Future<CommunityStory?> show(
+    BuildContext context, {
+    String? initialCaption,
+    String? initialPrivacy,
+  }) async {
     final messenger = ScaffoldMessenger.maybeOf(context);
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final ig = SamanIgTokens.of(context);
@@ -31,7 +42,10 @@ class CommunityCreateStorySheet extends ConsumerStatefulWidget {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
-      builder: (_) => const CommunityCreateStorySheet(),
+      builder: (_) => CommunityCreateStorySheet(
+        initialCaption: initialCaption,
+        initialPrivacy: initialPrivacy,
+      ),
     );
 
     if (story != null && messenger != null && context.mounted) {
@@ -90,6 +104,19 @@ class _CommunityCreateStorySheetState
   WorkoutSession? _selectedWorkout;
   MealLog? _selectedMeal;
   bool _includeDetailedMetrics = false;
+
+  @override
+  void initState() {
+    super.initState();
+    final initialCaption = widget.initialCaption?.trim();
+    if (initialCaption != null && initialCaption.isNotEmpty) {
+      _captionController.text = initialCaption;
+    }
+    if (widget.initialPrivacy == 'followers_only' ||
+        widget.initialPrivacy == 'public') {
+      _privacy = widget.initialPrivacy!;
+    }
+  }
 
   @override
   void dispose() {

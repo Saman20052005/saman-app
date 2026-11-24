@@ -19,6 +19,30 @@ enum BicepCurlPhase {
   lowering,
 }
 
+/// A completed Bicep Curl rep event emitted when returning to extension.
+class BicepCurlRepEvent extends LatPulldownRepEvent {
+  final String? activeSide;
+  final double? maxUpperArmSwingDeg;
+  final double? maxTorsoLeanDeg;
+  final bool? isElbowPinned;
+  final bool? isTorsoStable;
+
+  const BicepCurlRepEvent({
+    required super.repNumber,
+    required super.startTimestampMs,
+    required super.bottomTimestampMs,
+    required super.endTimestampMs,
+    required super.durationMs,
+    required super.minElbowAngleDeg,
+    super.status = 'PROVISIONAL',
+    this.activeSide,
+    this.maxUpperArmSwingDeg,
+    this.maxTorsoLeanDeg,
+    this.isElbowPinned,
+    this.isTorsoStable,
+  });
+}
+
 /// Configuration parameters for Bicep Curl rule-based state machine.
 class BicepCurlBaselineConfig {
   final double extendedEnterDeg;
@@ -28,7 +52,10 @@ class BicepCurlBaselineConfig {
   final int minReadyHoldMs;
   final int minExtendedHoldMs;
   final int minRepDurationMs;
+  final int maxRepDurationMs;
   final int maxAllowedGapMs;
+  final double maxValidUpperArmSwingDeg;
+  final double maxValidTorsoLeanDeg;
 
   const BicepCurlBaselineConfig({
     this.extendedEnterDeg = 145.0,
@@ -38,7 +65,10 @@ class BicepCurlBaselineConfig {
     this.minReadyHoldMs = 200,
     this.minExtendedHoldMs = 150,
     this.minRepDurationMs = 800,
+    this.maxRepDurationMs = 10000,
     this.maxAllowedGapMs = 500,
+    this.maxValidUpperArmSwingDeg = 35.0,
+    this.maxValidTorsoLeanDeg = 25.0,
   });
 }
 
@@ -48,8 +78,9 @@ class BicepCurlBaselineFrameResult {
   final int timestampMs;
   final BicepCurlPhase phase;
   final int completedReps;
-  final LatPulldownRepEvent? newRepEvent;
+  final BicepCurlRepEvent? newRepEvent;
   final double? elbowAngleDeg;
+  final String? activeSide;
   final bool isSampleValid;
   final String? transitionReason;
   final String? resetReason;
@@ -61,6 +92,7 @@ class BicepCurlBaselineFrameResult {
     required this.completedReps,
     this.newRepEvent,
     this.elbowAngleDeg,
+    this.activeSide,
     required this.isSampleValid,
     this.transitionReason,
     this.resetReason,
@@ -72,13 +104,15 @@ class BicepCurlBaselineFrameResult {
 /// Pure Dart causal rule-based state machine for Bicep Curl repetition counting.
 ///
 /// Operates strictly forward in time (no lookahead, no offline smoothing).
-/// Uses best-confidence elbow angle (Shoulder -> Elbow -> Wrist) in pixel space.
+/// Uses side-locking during each rep to prevent left/right jumping on
+/// alternating curls, and tracks upper-arm swing (`Hip -> Shoulder -> Elbow`)
+/// and torso stability.
 class BicepCurlBaseline {
   final BicepCurlBaselineConfig config;
 
   BicepCurlPhase _phase = BicepCurlPhase.notReady;
   int _completedReps = 0;
-  final List<LatPulldownRepEvent> _repHistory = [];
+  final List<BicepCurlRepEvent> _repHistory = [];
 
   int? _lastValidTimestampMs;
   int? _lastTimestampMs;
@@ -87,14 +121,41 @@ class BicepCurlBaseline {
   int? _repStartTimestampMs;
   int? _peakFlexedTimestampMs;
   double _minElbowAngleInCurrentRep = 180.0;
+  double? _maxUpperArmSwingInCurrentRep;
+  double? _maxTorsoLeanInCurrentRep;
+  String? _lockedSide;
   int _droppedNonMonotonicFrames = 0;
 
-  BicepCurlBaseline({BicepCurlBaselineConfig? config})
-      : config = config ?? const BicepCurlBaselineConfig();
+  BicepCurlBaseline({
+    BicepCurlBaselineConfig? config,
+    double? maxValidUpperArmSwingDeg,
+  }) : config = _resolveConfig(config, maxValidUpperArmSwingDeg);
+
+  static BicepCurlBaselineConfig _resolveConfig(
+    BicepCurlBaselineConfig? config,
+    double? maxValidUpperArmSwingDeg,
+  ) {
+    final base = config ?? const BicepCurlBaselineConfig();
+    if (maxValidUpperArmSwingDeg == null) return base;
+    return BicepCurlBaselineConfig(
+      extendedEnterDeg: base.extendedEnterDeg,
+      curlingEnterDeg: base.curlingEnterDeg,
+      flexedEnterDeg: base.flexedEnterDeg,
+      loweringEnterDeg: base.loweringEnterDeg,
+      minReadyHoldMs: base.minReadyHoldMs,
+      minExtendedHoldMs: base.minExtendedHoldMs,
+      minRepDurationMs: base.minRepDurationMs,
+      maxRepDurationMs: base.maxRepDurationMs,
+      maxAllowedGapMs: base.maxAllowedGapMs,
+      maxValidUpperArmSwingDeg: maxValidUpperArmSwingDeg,
+      maxValidTorsoLeanDeg: base.maxValidTorsoLeanDeg,
+    );
+  }
 
   BicepCurlPhase get phase => _phase;
   int get completedReps => _completedReps;
-  List<LatPulldownRepEvent> get repHistory => List.unmodifiable(_repHistory);
+  List<BicepCurlRepEvent> get repHistory => List.unmodifiable(_repHistory);
+  String? get lockedSide => _lockedSide;
   int get droppedNonMonotonicFrames => _droppedNonMonotonicFrames;
 
   void reset() {
@@ -108,7 +169,142 @@ class BicepCurlBaseline {
     _repStartTimestampMs = null;
     _peakFlexedTimestampMs = null;
     _minElbowAngleInCurrentRep = 180.0;
+    _maxUpperArmSwingInCurrentRep = null;
+    _maxTorsoLeanInCurrentRep = null;
+    _lockedSide = null;
     _droppedNonMonotonicFrames = 0;
+  }
+
+  /// Processes a [BicepCurlFrameFeatures] container with per-rep side-locking.
+  BicepCurlBaselineFrameResult processBicepCurlFeatures(
+      BicepCurlFrameFeatures features) {
+    if (_lastTimestampMs != null && features.timestampMs <= _lastTimestampMs!) {
+      _droppedNonMonotonicFrames++;
+      return BicepCurlBaselineFrameResult(
+        frameIndex: features.frameIndex,
+        timestampMs: features.timestampMs,
+        phase: _phase,
+        completedReps: _completedReps,
+        activeSide: _lockedSide,
+        isSampleValid: false,
+        resetReason: 'droppedNonMonotonicTimestamp',
+      );
+    }
+    _lastTimestampMs = features.timestampMs;
+
+    if (!features.isGateDetecting) {
+      const resetReason = 'gateNotDetecting';
+      _abortInProgressCycle();
+      return BicepCurlBaselineFrameResult(
+        frameIndex: features.frameIndex,
+        timestampMs: features.timestampMs,
+        phase: _phase,
+        completedReps: _completedReps,
+        isSampleValid: false,
+        resetReason: resetReason,
+      );
+    }
+
+    final leftValid = features.leftElbowAngleDeg.isValid &&
+        features.leftElbowAngleDeg.value != null &&
+        features.leftElbowAngleDeg.value!.isFinite;
+    final rightValid = features.rightElbowAngleDeg.isValid &&
+        features.rightElbowAngleDeg.value != null &&
+        features.rightElbowAngleDeg.value!.isFinite;
+
+    final leftAngle = leftValid ? features.leftElbowAngleDeg.value! : null;
+    final rightAngle = rightValid ? features.rightElbowAngleDeg.value! : null;
+    final leftSwing = features.leftUpperArmSwingDeg.isValid
+        ? features.leftUpperArmSwingDeg.value
+        : null;
+    final rightSwing = features.rightUpperArmSwingDeg.isValid
+        ? features.rightUpperArmSwingDeg.value
+        : null;
+    final torsoLean =
+        features.torsoLeanDeg.isValid ? features.torsoLeanDeg.value : null;
+
+    if (_lockedSide != null) {
+      final lockedAngle = _lockedSide == 'left' ? leftAngle : rightAngle;
+      final lockedSwing = _lockedSide == 'left' ? leftSwing : rightSwing;
+      return _processValidatedSample(
+        frameIndex: features.frameIndex,
+        timestampMs: features.timestampMs,
+        elbowAngleDeg: lockedAngle,
+        upperArmSwingDeg: lockedSwing,
+        torsoLeanDeg: torsoLean,
+        activeSide: _lockedSide,
+        isSampleValid: lockedAngle != null,
+      );
+    }
+
+    // No side locked yet (notReady or extended).
+    if (!leftValid && !rightValid) {
+      return _processValidatedSample(
+        frameIndex: features.frameIndex,
+        timestampMs: features.timestampMs,
+        elbowAngleDeg: null,
+        isSampleValid: false,
+      );
+    }
+
+    // Check data gap before evaluating side-lock so stale state cannot lock a side.
+    String? preLockGapResetReason;
+    if (_lastValidTimestampMs != null &&
+        (features.timestampMs - _lastValidTimestampMs!) >
+            config.maxAllowedGapMs) {
+      if (_phase != BicepCurlPhase.notReady) {
+        preLockGapResetReason = 'dataLossGapBeforeValidSample';
+      }
+      _abortInProgressCycle();
+    }
+
+    String? selectedSide;
+    double? selectedAngle;
+    double? selectedSwing;
+
+    if (_phase == BicepCurlPhase.extended) {
+      final leftCurling = leftAngle != null && leftAngle < config.curlingEnterDeg;
+      final rightCurling =
+          rightAngle != null && rightAngle < config.curlingEnterDeg;
+      if (leftCurling && rightCurling) {
+        selectedSide = features.leftElbowVisibilityScore >=
+                features.rightElbowVisibilityScore
+            ? 'left'
+            : 'right';
+      } else if (leftCurling) {
+        selectedSide = 'left';
+      } else if (rightCurling) {
+        selectedSide = 'right';
+      }
+
+      if (selectedSide != null) {
+        _lockedSide = selectedSide;
+        selectedAngle = selectedSide == 'left' ? leftAngle : rightAngle;
+        selectedSwing = selectedSide == 'left' ? leftSwing : rightSwing;
+      }
+    }
+
+    if (selectedAngle == null) {
+      final useLeft = leftValid &&
+          (!rightValid ||
+              features.leftElbowVisibilityScore >=
+                  features.rightElbowVisibilityScore);
+      selectedSide = useLeft ? 'left' : 'right';
+      selectedAngle = useLeft ? leftAngle : rightAngle;
+      selectedSwing = useLeft ? leftSwing : rightSwing;
+    }
+
+    return _processValidatedSample(
+      frameIndex: features.frameIndex,
+      timestampMs: features.timestampMs,
+      elbowAngleDeg: selectedAngle,
+      upperArmSwingDeg: selectedSwing,
+      torsoLeanDeg: torsoLean,
+      activeSide: _lockedSide ?? selectedSide,
+      isSampleValid: true,
+      precheckedGapResetReason: preLockGapResetReason,
+      skipGapCheck: true,
+    );
   }
 
   BicepCurlBaselineFrameResult processFrameFeatures(
@@ -129,6 +325,9 @@ class BicepCurlBaseline {
     required int frameIndex,
     required int timestampMs,
     double? elbowAngleDeg,
+    double? upperArmSwingDeg,
+    double? torsoLeanDeg,
+    String? activeSide,
     required bool isSampleValid,
     bool isGateDetecting = true,
   }) {
@@ -140,6 +339,7 @@ class BicepCurlBaseline {
         phase: _phase,
         completedReps: _completedReps,
         elbowAngleDeg: elbowAngleDeg,
+        activeSide: _lockedSide ?? activeSide,
         isSampleValid: false,
         resetReason: 'droppedNonMonotonicTimestamp',
       );
@@ -160,6 +360,28 @@ class BicepCurlBaseline {
       );
     }
 
+    return _processValidatedSample(
+      frameIndex: frameIndex,
+      timestampMs: timestampMs,
+      elbowAngleDeg: elbowAngleDeg,
+      upperArmSwingDeg: upperArmSwingDeg,
+      torsoLeanDeg: torsoLeanDeg,
+      activeSide: activeSide,
+      isSampleValid: isSampleValid,
+    );
+  }
+
+  BicepCurlBaselineFrameResult _processValidatedSample({
+    required int frameIndex,
+    required int timestampMs,
+    double? elbowAngleDeg,
+    double? upperArmSwingDeg,
+    double? torsoLeanDeg,
+    String? activeSide,
+    required bool isSampleValid,
+    String? precheckedGapResetReason,
+    bool skipGapCheck = false,
+  }) {
     if (!isSampleValid || elbowAngleDeg == null || !elbowAngleDeg.isFinite) {
       _readyCandidateStartMs = null;
       _extendedCandidateStartMs = null;
@@ -183,22 +405,25 @@ class BicepCurlBaseline {
         timestampMs: timestampMs,
         phase: _phase,
         completedReps: _completedReps,
+        activeSide: _lockedSide ?? activeSide,
         isSampleValid: false,
       );
     }
 
-    String? gapResetReason;
-    if (_lastValidTimestampMs != null &&
-        (timestampMs - _lastValidTimestampMs!) > config.maxAllowedGapMs) {
-      if (_phase != BicepCurlPhase.notReady) {
-        gapResetReason = 'dataLossGapBeforeValidSample';
+    String? gapResetReason = precheckedGapResetReason;
+    if (!skipGapCheck) {
+      if (_lastValidTimestampMs != null &&
+          (timestampMs - _lastValidTimestampMs!) > config.maxAllowedGapMs) {
+        if (_phase != BicepCurlPhase.notReady) {
+          gapResetReason = 'dataLossGapBeforeValidSample';
+        }
+        _abortInProgressCycle();
       }
-      _abortInProgressCycle();
     }
     _lastValidTimestampMs = timestampMs;
 
     String? transitionReason;
-    LatPulldownRepEvent? newRepEvent;
+    BicepCurlRepEvent? newRepEvent;
 
     switch (_phase) {
       case BicepCurlPhase.notReady:
@@ -224,6 +449,12 @@ class BicepCurlBaseline {
           _peakFlexedTimestampMs = null;
           _extendedCandidateStartMs = null;
           _minElbowAngleInCurrentRep = elbowAngleDeg;
+          _maxUpperArmSwingInCurrentRep = null;
+          _maxTorsoLeanInCurrentRep = null;
+          if (_lockedSide == null && activeSide != null) {
+            _lockedSide = activeSide;
+          }
+          _updateFormMetrics(upperArmSwingDeg, torsoLeanDeg);
         }
         break;
 
@@ -231,6 +462,7 @@ class BicepCurlBaseline {
         if (elbowAngleDeg < _minElbowAngleInCurrentRep) {
           _minElbowAngleInCurrentRep = elbowAngleDeg;
         }
+        _updateFormMetrics(upperArmSwingDeg, torsoLeanDeg);
 
         if (elbowAngleDeg <= config.flexedEnterDeg) {
           _phase = BicepCurlPhase.flexed;
@@ -240,6 +472,9 @@ class BicepCurlBaseline {
           _phase = BicepCurlPhase.extended;
           transitionReason = 'incompleteCurlReturnedToExtended';
           _repStartTimestampMs = null;
+          _maxUpperArmSwingInCurrentRep = null;
+          _maxTorsoLeanInCurrentRep = null;
+          _lockedSide = null;
         }
         break;
 
@@ -248,6 +483,7 @@ class BicepCurlBaseline {
           _minElbowAngleInCurrentRep = elbowAngleDeg;
           _peakFlexedTimestampMs = timestampMs;
         }
+        _updateFormMetrics(upperArmSwingDeg, torsoLeanDeg);
 
         if (elbowAngleDeg > config.loweringEnterDeg) {
           _phase = BicepCurlPhase.lowering;
@@ -257,6 +493,8 @@ class BicepCurlBaseline {
         break;
 
       case BicepCurlPhase.lowering:
+        _updateFormMetrics(upperArmSwingDeg, torsoLeanDeg);
+
         if (elbowAngleDeg <= config.flexedEnterDeg) {
           _phase = BicepCurlPhase.flexed;
           transitionReason = 'reFlexedDuringLowering';
@@ -268,9 +506,17 @@ class BicepCurlBaseline {
             final repStart = _repStartTimestampMs ?? timestampMs;
             final duration = timestampMs - repStart;
 
-            if (duration >= config.minRepDurationMs) {
+            if (duration >= config.minRepDurationMs &&
+                duration <= config.maxRepDurationMs) {
               _completedReps++;
-              newRepEvent = LatPulldownRepEvent(
+              final isElbowPinned = _maxUpperArmSwingInCurrentRep != null
+                  ? _maxUpperArmSwingInCurrentRep! <=
+                      config.maxValidUpperArmSwingDeg
+                  : null;
+              final isTorsoStable = _maxTorsoLeanInCurrentRep != null
+                  ? _maxTorsoLeanInCurrentRep! <= config.maxValidTorsoLeanDeg
+                  : null;
+              newRepEvent = BicepCurlRepEvent(
                 repNumber: _completedReps,
                 startTimestampMs: repStart,
                 bottomTimestampMs: _peakFlexedTimestampMs ??
@@ -279,11 +525,18 @@ class BicepCurlBaseline {
                 durationMs: duration,
                 minElbowAngleDeg: _minElbowAngleInCurrentRep,
                 status: 'PROVISIONAL',
+                activeSide: _lockedSide ?? activeSide,
+                maxUpperArmSwingDeg: _maxUpperArmSwingInCurrentRep,
+                maxTorsoLeanDeg: _maxTorsoLeanInCurrentRep,
+                isElbowPinned: isElbowPinned,
+                isTorsoStable: isTorsoStable,
               );
               _repHistory.add(newRepEvent);
               transitionReason = 'repCompleted';
-            } else {
+            } else if (duration < config.minRepDurationMs) {
               transitionReason = 'repTooShortIgnored';
+            } else {
+              transitionReason = 'repTooLongIgnored';
             }
 
             _phase = BicepCurlPhase.extended;
@@ -291,6 +544,9 @@ class BicepCurlBaseline {
             _peakFlexedTimestampMs = null;
             _extendedCandidateStartMs = null;
             _minElbowAngleInCurrentRep = 180.0;
+            _maxUpperArmSwingInCurrentRep = null;
+            _maxTorsoLeanInCurrentRep = null;
+            _lockedSide = null;
           }
         } else {
           _extendedCandidateStartMs = null;
@@ -305,10 +561,26 @@ class BicepCurlBaseline {
       completedReps: _completedReps,
       newRepEvent: newRepEvent,
       elbowAngleDeg: elbowAngleDeg,
+      activeSide: _lockedSide ?? activeSide,
       isSampleValid: true,
       transitionReason: transitionReason,
       resetReason: gapResetReason,
     );
+  }
+
+  void _updateFormMetrics(double? upperArmSwingDeg, double? torsoLeanDeg) {
+    if (upperArmSwingDeg != null && upperArmSwingDeg.isFinite) {
+      if (_maxUpperArmSwingInCurrentRep == null ||
+          upperArmSwingDeg > _maxUpperArmSwingInCurrentRep!) {
+        _maxUpperArmSwingInCurrentRep = upperArmSwingDeg;
+      }
+    }
+    if (torsoLeanDeg != null && torsoLeanDeg.isFinite) {
+      if (_maxTorsoLeanInCurrentRep == null ||
+          torsoLeanDeg > _maxTorsoLeanInCurrentRep!) {
+        _maxTorsoLeanInCurrentRep = torsoLeanDeg;
+      }
+    }
   }
 
   void _abortInProgressCycle() {
@@ -318,5 +590,8 @@ class BicepCurlBaseline {
     _repStartTimestampMs = null;
     _peakFlexedTimestampMs = null;
     _minElbowAngleInCurrentRep = 180.0;
+    _maxUpperArmSwingInCurrentRep = null;
+    _maxTorsoLeanInCurrentRep = null;
+    _lockedSide = null;
   }
 }

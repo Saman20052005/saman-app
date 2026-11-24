@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../config/app_translations.dart';
 import '../widgets/exercise_thumbnail.dart';
 import '../../data/models/exercise.dart';
 import '../providers/exercise_providers.dart';
@@ -164,6 +165,77 @@ class _ExerciseLibraryScreenState extends ConsumerState<ExerciseLibraryScreen> {
     return e.equipment.any((item) => item.toLowerCase().contains(lowerFilter));
   }
 
+  bool _isVi(BuildContext context) {
+    final locale = Localizations.maybeLocaleOf(context) ?? const Locale('en');
+    return locale.languageCode == 'vi';
+  }
+
+  String _categoryLabel(BuildContext context, String category) {
+    if (!_isVi(context)) return category;
+    switch (category) {
+      case 'All':
+        return 'Tất cả';
+      case 'Upper Body':
+        return 'Thân trên';
+      case 'Lower Body':
+        return 'Thân dưới';
+      case 'Core':
+        return 'Cơ lõi';
+      default:
+        return category;
+    }
+  }
+
+  String _subFilterLabel(BuildContext context, String filter) {
+    if (!_isVi(context)) return filter;
+    switch (filter) {
+      case 'All':
+        return 'Tất cả';
+      case 'Chest':
+        return 'Ngực';
+      case 'Back':
+        return 'Lưng';
+      case 'Shoulders':
+        return 'Vai';
+      case 'Arms':
+        return 'Tay';
+      case 'Quads':
+        return 'Đùi trước';
+      case 'Glutes':
+        return 'Mông';
+      case 'Hamstrings':
+        return 'Đùi sau';
+      case 'Calves':
+        return 'Bắp chân';
+      case 'Abs':
+        return 'Bụng';
+      case 'Obliques':
+        return 'Liên sườn';
+      default:
+        return filter;
+    }
+  }
+
+  String _equipmentLabel(BuildContext context, String equipment) {
+    if (!_isVi(context)) return equipment;
+    switch (equipment) {
+      case 'All':
+        return 'Tất cả';
+      case 'Dumbbells':
+        return 'Tạ đơn';
+      case 'Barbell':
+        return 'Tạ đòn';
+      case 'Cable':
+        return 'Dây cáp';
+      case 'Machine':
+        return 'Máy tập';
+      case 'Bodyweight':
+        return 'Trọng lượng cơ thể';
+      default:
+        return equipment;
+    }
+  }
+
   void _showEquipmentFilterSheet() {
     showModalBottomSheet<void>(
       context: context,
@@ -171,6 +243,7 @@ class _ExerciseLibraryScreenState extends ConsumerState<ExerciseLibraryScreen> {
       backgroundColor: Colors.transparent,
       builder: (sheetCtx) {
         final t = SamanWorkoutTokens.of(sheetCtx);
+        final isVi = _isVi(sheetCtx);
         return Container(
           decoration: BoxDecoration(
             color: t.cardSurface,
@@ -212,10 +285,11 @@ class _ExerciseLibraryScreenState extends ConsumerState<ExerciseLibraryScreen> {
                     children: [
                       Expanded(
                         child: Text(
-                          'Filter by Equipment',
+                          isVi ? 'Lọc theo dụng cụ' : 'Filter by Equipment',
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(
+                            fontFamily: 'Manrope',
                             color: t.textPrimary,
                             fontSize: 16,
                             fontWeight: FontWeight.w600,
@@ -229,8 +303,9 @@ class _ExerciseLibraryScreenState extends ConsumerState<ExerciseLibraryScreen> {
                             Navigator.of(sheetCtx).pop();
                           },
                           child: Text(
-                            'Reset',
+                            isVi ? 'Đặt lại' : 'Reset',
                             style: TextStyle(
+                              fontFamily: 'Manrope',
                               color: t.emeraldAccent,
                               fontSize: 13,
                               fontWeight: FontWeight.w600,
@@ -278,10 +353,11 @@ class _ExerciseLibraryScreenState extends ConsumerState<ExerciseLibraryScreen> {
                             children: [
                               Expanded(
                                 child: Text(
-                                  equipment,
+                                  _equipmentLabel(sheetCtx, equipment),
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
                                   style: TextStyle(
+                                    fontFamily: 'Manrope',
                                     color: isSelected
                                         ? t.emeraldAccent
                                         : t.textPrimary,
@@ -322,6 +398,7 @@ class _ExerciseLibraryScreenState extends ConsumerState<ExerciseLibraryScreen> {
   @override
   Widget build(BuildContext context) {
     final t = SamanWorkoutTokens.of(context);
+    final isVi = _isVi(context);
     final exercisesAsync = ref.watch(exerciseLibraryListProvider);
 
     return Scaffold(
@@ -359,8 +436,9 @@ class _ExerciseLibraryScreenState extends ConsumerState<ExerciseLibraryScreen> {
           ),
         ),
         title: Text(
-          'Exercise Library',
+          isVi ? 'Thư viện bài tập' : 'Exercise Library',
           style: TextStyle(
+            fontFamily: 'Manrope',
             color: t.textPrimary,
             fontSize: 20,
             fontWeight: FontWeight.w600,
@@ -377,11 +455,14 @@ class _ExerciseLibraryScreenState extends ConsumerState<ExerciseLibraryScreen> {
                 borderRadius: BorderRadius.circular(10),
                 onTap: () {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
+                    SnackBar(
                       content: Text(
-                        'Bookmark feature is in development (no exercises are bookmarked yet).',
+                        isVi
+                            ? 'Tính năng đánh dấu bài tập đang được phát triển.'
+                            : 'Bookmark feature is in development (no exercises are bookmarked yet).',
+                        style: const TextStyle(fontFamily: 'Manrope'),
                       ),
-                      duration: Duration(seconds: 2),
+                      duration: const Duration(seconds: 2),
                     ),
                   );
                 },
@@ -440,13 +521,17 @@ class _ExerciseLibraryScreenState extends ConsumerState<ExerciseLibraryScreen> {
                         controller: _searchController,
                         cursorColor: t.emeraldAccent,
                         style: TextStyle(
+                          fontFamily: 'Manrope',
                           color: t.textPrimary,
                           fontSize: 14,
                         ),
                         onChanged: (_) => setState(() {}),
                         decoration: InputDecoration(
-                          hintText: 'Search exercises',
+                          hintText: isVi
+                              ? 'Tìm kiếm bài tập'
+                              : 'Search exercises',
                           hintStyle: TextStyle(
+                            fontFamily: 'Manrope',
                             color: t.textSecondary,
                             fontSize: 14,
                           ),
@@ -472,7 +557,7 @@ class _ExerciseLibraryScreenState extends ConsumerState<ExerciseLibraryScreen> {
                     ),
                   IconButton(
                     key: const ValueKey('exercise_filter_tune_button'),
-                    tooltip: 'Filter by equipment',
+                    tooltip: isVi ? 'Lọc theo dụng cụ' : 'Filter by equipment',
                     icon: Icon(
                       Icons.tune,
                       size: 18,
@@ -533,8 +618,9 @@ class _ExerciseLibraryScreenState extends ConsumerState<ExerciseLibraryScreen> {
                             const SizedBox(width: 6),
                           ],
                           Text(
-                            category,
+                            _categoryLabel(context, category),
                             style: TextStyle(
+                              fontFamily: 'Manrope',
                               color: isSelected
                                   ? t.textPrimary
                                   : t.textSecondary,
@@ -587,8 +673,9 @@ class _ExerciseLibraryScreenState extends ConsumerState<ExerciseLibraryScreen> {
                           ),
                         ),
                         child: Text(
-                          filter,
+                          _subFilterLabel(context, filter),
                           style: TextStyle(
+                            fontFamily: 'Manrope',
                             color: isSelected
                                 ? t.textPrimary
                                 : t.textSecondary,
@@ -627,9 +714,10 @@ class _ExerciseLibraryScreenState extends ConsumerState<ExerciseLibraryScreen> {
                       children: [
                         Text(
                           _selectedEquipment == 'All'
-                              ? 'Equipment'
-                              : _selectedEquipment,
+                              ? (isVi ? 'Dụng cụ' : 'Equipment')
+                              : _equipmentLabel(context, _selectedEquipment),
                           style: TextStyle(
+                            fontFamily: 'Manrope',
                             color: _selectedEquipment != 'All'
                                 ? t.emeraldAccent
                                 : t.textSecondary,
@@ -666,7 +754,7 @@ class _ExerciseLibraryScreenState extends ConsumerState<ExerciseLibraryScreen> {
             child: Row(
               children: [
                 Text(
-                  'MOVEMENTS',
+                  isVi ? 'BÀI TẬP' : 'MOVEMENTS',
                   style: TextStyle(
                     fontFamily: 'monospace',
                     fontSize: 11,
@@ -709,27 +797,47 @@ class _ExerciseLibraryScreenState extends ConsumerState<ExerciseLibraryScreen> {
                   final String emptyTitle;
                   final String emptySubtitle;
                   if (query.isNotEmpty) {
-                    emptyTitle = 'No exercises found';
-                    emptySubtitle = 'No exercises matching "$query"';
+                    emptyTitle = isVi
+                        ? 'Không tìm thấy bài tập'
+                        : 'No exercises found';
+                    emptySubtitle = isVi
+                        ? 'Không có bài tập khớp "$query"'
+                        : 'No exercises matching "$query"';
                   } else if (_selectedEquipment != 'All') {
-                    emptyTitle = 'No exercises match this filter';
-                    emptySubtitle =
-                        'Try clearing your search or equipment filter.';
+                    emptyTitle = isVi
+                        ? 'Không có bài tập phù hợp bộ lọc'
+                        : 'No exercises match this filter';
+                    emptySubtitle = isVi
+                        ? 'Thử xóa từ khóa tìm kiếm hoặc bộ lọc dụng cụ.'
+                        : 'Try clearing your search or equipment filter.';
                   } else if (_selectedCategory == 'Lower Body') {
-                    emptyTitle = 'No lower body exercises yet';
-                    emptySubtitle =
-                        'Try clearing your search or equipment filter.';
+                    emptyTitle = isVi
+                        ? 'Chưa có bài tập thân dưới'
+                        : 'No lower body exercises yet';
+                    emptySubtitle = isVi
+                        ? 'Thử xóa từ khóa tìm kiếm hoặc bộ lọc dụng cụ.'
+                        : 'Try clearing your search or equipment filter.';
                   } else if (_selectedCategory == 'Core') {
-                    emptyTitle = 'No core exercises yet';
-                    emptySubtitle =
-                        'Try clearing your search or equipment filter.';
+                    emptyTitle = isVi
+                        ? 'Chưa có bài tập cơ lõi'
+                        : 'No core exercises yet';
+                    emptySubtitle = isVi
+                        ? 'Thử xóa từ khóa tìm kiếm hoặc bộ lọc dụng cụ.'
+                        : 'Try clearing your search or equipment filter.';
                   } else if (_selectedSubFilter != 'All') {
-                    emptyTitle = 'No $_selectedSubFilter exercises';
-                    emptySubtitle = 'No exercises found for this muscle group.';
+                    emptyTitle = isVi
+                        ? 'Chưa có bài tập ${_subFilterLabel(context, _selectedSubFilter)}'
+                        : 'No $_selectedSubFilter exercises';
+                    emptySubtitle = isVi
+                        ? 'Không tìm thấy bài tập cho nhóm cơ này.'
+                        : 'No exercises found for this muscle group.';
                   } else {
-                    emptyTitle = 'No exercises match this filter';
-                    emptySubtitle =
-                        'Try clearing your search or equipment filter.';
+                    emptyTitle = isVi
+                        ? 'Không có bài tập phù hợp bộ lọc'
+                        : 'No exercises match this filter';
+                    emptySubtitle = isVi
+                        ? 'Thử xóa từ khóa tìm kiếm hoặc bộ lọc dụng cụ.'
+                        : 'Try clearing your search or equipment filter.';
                   }
 
                   return Center(
@@ -745,6 +853,7 @@ class _ExerciseLibraryScreenState extends ConsumerState<ExerciseLibraryScreen> {
                           Text(
                             emptyTitle,
                             style: TextStyle(
+                              fontFamily: 'Manrope',
                               color: t.textPrimary,
                               fontSize: 16,
                               fontWeight: FontWeight.w600,
@@ -755,6 +864,7 @@ class _ExerciseLibraryScreenState extends ConsumerState<ExerciseLibraryScreen> {
                             emptySubtitle,
                             textAlign: TextAlign.center,
                             style: TextStyle(
+                              fontFamily: 'Manrope',
                               color: t.textSecondary,
                               fontSize: 13,
                             ),
@@ -772,8 +882,9 @@ class _ExerciseLibraryScreenState extends ConsumerState<ExerciseLibraryScreen> {
                                 });
                               },
                               child: Text(
-                                'Clear filters',
+                                context.tr('clear_filters'),
                                 style: TextStyle(
+                                  fontFamily: 'Manrope',
                                   color: t.emeraldAccent,
                                   fontWeight: FontWeight.w600,
                                 ),
@@ -828,8 +939,10 @@ class _ExerciseLibraryScreenState extends ConsumerState<ExerciseLibraryScreen> {
               ),
               error: (err, _) => Center(
                 child: Text(
-                  'Error loading exercises: $err',
-                  style: TextStyle(color: t.textSecondary),
+                  isVi
+                      ? 'Lỗi tải danh sách bài tập: $err'
+                      : 'Error loading exercises: $err',
+                  style: TextStyle(fontFamily: 'Manrope', color: t.textSecondary),
                 ),
               ),
             ),
@@ -852,9 +965,13 @@ class _ExerciseLibraryScreenState extends ConsumerState<ExerciseLibraryScreen> {
                 if (!profileState.isProfileValid) {
                   ScaffoldMessenger.of(context).hideCurrentSnackBar();
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
+                    SnackBar(
                       content: Text(
-                          "⚠️ Vui lòng cập nhật Hồ sơ sức khỏe để tính Calories!"),
+                        isVi
+                            ? '⚠️ Vui lòng cập nhật Hồ sơ sức khỏe để tính Calories!'
+                            : '⚠️ Please update your Health Profile to calculate Calories!',
+                        style: const TextStyle(fontFamily: 'Manrope'),
+                      ),
                       backgroundColor: Colors.redAccent,
                       behavior: SnackBarBehavior.floating,
                     ),
@@ -892,8 +1009,13 @@ class _ExerciseMovementRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final t = SamanWorkoutTokens.of(context);
-    final equipmentStr =
-        exercise.equipment.isNotEmpty ? exercise.equipment.first : 'Bodyweight';
+    final isVi =
+        (Localizations.maybeLocaleOf(context)?.languageCode ?? 'en') == 'vi';
+    final equipmentStr = exercise.equipment.isNotEmpty
+        ? exercise.equipment.first
+        : (isVi ? 'Trọng lượng cơ thể' : 'Bodyweight');
+    final displayName =
+        (isVi && exercise.nameVi.isNotEmpty) ? exercise.nameVi : exercise.name;
     final subtitle = '${exercise.muscleGroup} • $equipmentStr';
 
     return InkWell(
@@ -925,10 +1047,11 @@ class _ExerciseMovementRow extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    exercise.name,
+                    displayName,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
+                      fontFamily: 'Manrope',
                       color: t.textPrimary,
                       fontWeight: FontWeight.w600,
                       fontSize: 14,
@@ -941,6 +1064,7 @@ class _ExerciseMovementRow extends StatelessWidget {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
+                      fontFamily: 'Manrope',
                       color: t.textSub,
                       fontSize: 12,
                     ),

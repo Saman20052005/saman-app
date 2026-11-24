@@ -12,11 +12,29 @@ enum PushUpPhase {
   /// Eccentric lowering phase (elbow angle < 135 deg toward floor).
   lowering,
 
-  /// Bottom of push-up (elbow angle <= 95 deg).
+  /// Bottom of push-up (elbow angle <= 100 deg).
   bottom,
 
-  /// Concentric pushing phase (elbow angle > 110 deg back toward lockout).
+  /// Concentric pushing phase (elbow angle > 115 deg back toward lockout).
   pushing,
+}
+
+/// A completed Push-up rep event emitted when returning to the extended plank position.
+class PushUpRepEvent extends LatPulldownRepEvent {
+  final double? minBodyAlignmentDeg;
+  final bool? isPlankAligned;
+
+  const PushUpRepEvent({
+    required super.repNumber,
+    required super.startTimestampMs,
+    required super.bottomTimestampMs,
+    required super.endTimestampMs,
+    required super.durationMs,
+    required super.minElbowAngleDeg,
+    super.status = 'PROVISIONAL',
+    this.minBodyAlignmentDeg,
+    this.isPlankAligned,
+  });
 }
 
 /// Configuration parameters for Push-up rule-based state machine.
@@ -28,17 +46,25 @@ class PushUpBaselineConfig {
   final int minReadyHoldMs;
   final int minExtendedHoldMs;
   final int minRepDurationMs;
+  final int maxRepDurationMs;
   final int maxAllowedGapMs;
+  final double minHorizontalTorsoLeanDeg;
+  final double minValidBodyAlignmentDeg;
+  final double minPlausibleBodyAlignmentDeg;
 
   const PushUpBaselineConfig({
     this.extendedEnterDeg = 150.0,
     this.loweringEnterDeg = 135.0,
-    this.bottomEnterDeg = 95.0,
-    this.pushingEnterDeg = 110.0,
+    this.bottomEnterDeg = 100.0,
+    this.pushingEnterDeg = 115.0,
     this.minReadyHoldMs = 200,
     this.minExtendedHoldMs = 150,
     this.minRepDurationMs = 800,
+    this.maxRepDurationMs = 10000,
     this.maxAllowedGapMs = 500,
+    this.minHorizontalTorsoLeanDeg = 45.0,
+    this.minValidBodyAlignmentDeg = 155.0,
+    this.minPlausibleBodyAlignmentDeg = 120.0,
   });
 }
 
@@ -48,7 +74,7 @@ class PushUpBaselineFrameResult {
   final int timestampMs;
   final PushUpPhase phase;
   final int completedReps;
-  final LatPulldownRepEvent? newRepEvent;
+  final PushUpRepEvent? newRepEvent;
   final double? elbowAngleDeg;
   final bool isSampleValid;
   final String? transitionReason;
@@ -72,13 +98,14 @@ class PushUpBaselineFrameResult {
 /// Pure Dart causal rule-based state machine for Push-up repetition counting.
 ///
 /// Operates strictly forward in time (no lookahead, no offline smoothing).
-/// Uses best-confidence elbow angle (Shoulder -> Elbow -> Wrist) in pixel space.
+/// Uses best-confidence elbow angle (Shoulder -> Elbow -> Wrist), torso lean,
+/// and Shoulder -> Hip -> Ankle alignment in pixel space.
 class PushUpBaseline {
   final PushUpBaselineConfig config;
 
   PushUpPhase _phase = PushUpPhase.notReady;
   int _completedReps = 0;
-  final List<LatPulldownRepEvent> _repHistory = [];
+  final List<PushUpRepEvent> _repHistory = [];
 
   int? _lastValidTimestampMs;
   int? _lastTimestampMs;
@@ -87,6 +114,7 @@ class PushUpBaseline {
   int? _repStartTimestampMs;
   int? _bottomReachedTimestampMs;
   double _minElbowAngleInCurrentRep = 180.0;
+  double? _minBodyAlignmentInCurrentRep;
   int _droppedNonMonotonicFrames = 0;
 
   PushUpBaseline({PushUpBaselineConfig? config})
@@ -94,7 +122,7 @@ class PushUpBaseline {
 
   PushUpPhase get phase => _phase;
   int get completedReps => _completedReps;
-  List<LatPulldownRepEvent> get repHistory => List.unmodifiable(_repHistory);
+  List<PushUpRepEvent> get repHistory => List.unmodifiable(_repHistory);
   int get droppedNonMonotonicFrames => _droppedNonMonotonicFrames;
 
   void reset() {
@@ -108,7 +136,29 @@ class PushUpBaseline {
     _repStartTimestampMs = null;
     _bottomReachedTimestampMs = null;
     _minElbowAngleInCurrentRep = 180.0;
+    _minBodyAlignmentInCurrentRep = null;
     _droppedNonMonotonicFrames = 0;
+  }
+
+  /// Processes a [PushUpFrameFeatures] container extracted by [WorkoutCvMotionFeatures].
+  PushUpBaselineFrameResult processPushUpFeatures(PushUpFrameFeatures features) {
+    final isAngleValid = features.bestElbowAngleDeg.isValid;
+    final angle = isAngleValid ? features.bestElbowAngleDeg.value : null;
+    final torsoLean =
+        features.torsoLeanDeg.isValid ? features.torsoLeanDeg.value : null;
+    final bodyAlignment = features.bodyAlignmentDeg.isValid
+        ? features.bodyAlignmentDeg.value
+        : null;
+
+    return processSample(
+      frameIndex: features.frameIndex,
+      timestampMs: features.timestampMs,
+      elbowAngleDeg: angle,
+      torsoLeanDeg: torsoLean,
+      bodyAlignmentDeg: bodyAlignment,
+      isSampleValid: isAngleValid && features.isGateDetecting,
+      isGateDetecting: features.isGateDetecting,
+    );
   }
 
   PushUpBaselineFrameResult processFrameFeatures(
@@ -129,6 +179,8 @@ class PushUpBaseline {
     required int frameIndex,
     required int timestampMs,
     double? elbowAngleDeg,
+    double? torsoLeanDeg,
+    double? bodyAlignmentDeg,
     required bool isSampleValid,
     bool isGateDetecting = true,
   }) {
@@ -198,11 +250,12 @@ class PushUpBaseline {
     _lastValidTimestampMs = timestampMs;
 
     String? transitionReason;
-    LatPulldownRepEvent? newRepEvent;
+    PushUpRepEvent? newRepEvent;
 
     switch (_phase) {
       case PushUpPhase.notReady:
-        if (elbowAngleDeg >= config.extendedEnterDeg) {
+        if (elbowAngleDeg >= config.extendedEnterDeg &&
+            _isPlankPosture(torsoLeanDeg, bodyAlignmentDeg)) {
           _readyCandidateStartMs ??= timestampMs;
           if ((timestampMs - _readyCandidateStartMs!) >=
               config.minReadyHoldMs) {
@@ -210,6 +263,7 @@ class PushUpBaseline {
             transitionReason = 'readyHoldSatisfied';
             _readyCandidateStartMs = null;
             _repStartTimestampMs = null;
+            _minBodyAlignmentInCurrentRep = null;
           }
         } else {
           _readyCandidateStartMs = null;
@@ -217,13 +271,22 @@ class PushUpBaseline {
         break;
 
       case PushUpPhase.extended:
-        if (elbowAngleDeg < config.loweringEnterDeg) {
+        if (!_isPlankPosture(torsoLeanDeg, bodyAlignmentDeg)) {
+          _phase = PushUpPhase.notReady;
+          transitionReason = 'leftPlankPosture';
+          _readyCandidateStartMs = null;
+          _extendedCandidateStartMs = null;
+          _repStartTimestampMs = null;
+          _minBodyAlignmentInCurrentRep = null;
+        } else if (elbowAngleDeg < config.loweringEnterDeg) {
           _phase = PushUpPhase.lowering;
           transitionReason = 'loweringStarted';
           _repStartTimestampMs = timestampMs;
           _bottomReachedTimestampMs = null;
           _extendedCandidateStartMs = null;
           _minElbowAngleInCurrentRep = elbowAngleDeg;
+          _minBodyAlignmentInCurrentRep = null;
+          _updateCurrentRepBodyAlignment(bodyAlignmentDeg);
         }
         break;
 
@@ -231,6 +294,7 @@ class PushUpBaseline {
         if (elbowAngleDeg < _minElbowAngleInCurrentRep) {
           _minElbowAngleInCurrentRep = elbowAngleDeg;
         }
+        _updateCurrentRepBodyAlignment(bodyAlignmentDeg);
 
         if (elbowAngleDeg <= config.bottomEnterDeg) {
           _phase = PushUpPhase.bottom;
@@ -240,6 +304,7 @@ class PushUpBaseline {
           _phase = PushUpPhase.extended;
           transitionReason = 'incompleteDescentReturnedToExtended';
           _repStartTimestampMs = null;
+          _minBodyAlignmentInCurrentRep = null;
         }
         break;
 
@@ -248,6 +313,7 @@ class PushUpBaseline {
           _minElbowAngleInCurrentRep = elbowAngleDeg;
           _bottomReachedTimestampMs = timestampMs;
         }
+        _updateCurrentRepBodyAlignment(bodyAlignmentDeg);
 
         if (elbowAngleDeg > config.pushingEnterDeg) {
           _phase = PushUpPhase.pushing;
@@ -257,6 +323,11 @@ class PushUpBaseline {
         break;
 
       case PushUpPhase.pushing:
+        if (elbowAngleDeg < _minElbowAngleInCurrentRep) {
+          _minElbowAngleInCurrentRep = elbowAngleDeg;
+        }
+        _updateCurrentRepBodyAlignment(bodyAlignmentDeg);
+
         if (elbowAngleDeg <= config.bottomEnterDeg) {
           _phase = PushUpPhase.bottom;
           transitionReason = 'reBottomedDuringPush';
@@ -267,10 +338,17 @@ class PushUpBaseline {
               config.minExtendedHoldMs) {
             final repStart = _repStartTimestampMs ?? timestampMs;
             final duration = timestampMs - repStart;
+            final isPlankNow = _isPlankPosture(torsoLeanDeg, bodyAlignmentDeg);
 
-            if (duration >= config.minRepDurationMs) {
+            if (duration >= config.minRepDurationMs &&
+                duration <= config.maxRepDurationMs &&
+                isPlankNow) {
               _completedReps++;
-              newRepEvent = LatPulldownRepEvent(
+              final isPlankAligned = _minBodyAlignmentInCurrentRep != null
+                  ? _minBodyAlignmentInCurrentRep! >=
+                      config.minValidBodyAlignmentDeg
+                  : null;
+              newRepEvent = PushUpRepEvent(
                 repNumber: _completedReps,
                 startTimestampMs: repStart,
                 bottomTimestampMs: _bottomReachedTimestampMs ??
@@ -279,18 +357,25 @@ class PushUpBaseline {
                 durationMs: duration,
                 minElbowAngleDeg: _minElbowAngleInCurrentRep,
                 status: 'PROVISIONAL',
+                minBodyAlignmentDeg: _minBodyAlignmentInCurrentRep,
+                isPlankAligned: isPlankAligned,
               );
               _repHistory.add(newRepEvent);
               transitionReason = 'repCompleted';
-            } else {
+            } else if (duration < config.minRepDurationMs) {
               transitionReason = 'repTooShortIgnored';
+            } else if (duration > config.maxRepDurationMs) {
+              transitionReason = 'repTooLongIgnored';
+            } else {
+              transitionReason = 'leftPlankPosture';
             }
 
-            _phase = PushUpPhase.extended;
+            _phase = isPlankNow ? PushUpPhase.extended : PushUpPhase.notReady;
             _repStartTimestampMs = null;
             _bottomReachedTimestampMs = null;
             _extendedCandidateStartMs = null;
             _minElbowAngleInCurrentRep = 180.0;
+            _minBodyAlignmentInCurrentRep = null;
           }
         } else {
           _extendedCandidateStartMs = null;
@@ -311,6 +396,29 @@ class PushUpBaseline {
     );
   }
 
+  bool _isPlankPosture(double? torsoLeanDeg, double? bodyAlignmentDeg) {
+    if (torsoLeanDeg != null &&
+        torsoLeanDeg.isFinite &&
+        torsoLeanDeg < config.minHorizontalTorsoLeanDeg) {
+      return false;
+    }
+    if (bodyAlignmentDeg != null &&
+        bodyAlignmentDeg.isFinite &&
+        bodyAlignmentDeg < config.minPlausibleBodyAlignmentDeg) {
+      return false;
+    }
+    return true;
+  }
+
+  void _updateCurrentRepBodyAlignment(double? bodyAlignmentDeg) {
+    if (bodyAlignmentDeg != null && bodyAlignmentDeg.isFinite) {
+      if (_minBodyAlignmentInCurrentRep == null ||
+          bodyAlignmentDeg < _minBodyAlignmentInCurrentRep!) {
+        _minBodyAlignmentInCurrentRep = bodyAlignmentDeg;
+      }
+    }
+  }
+
   void _abortInProgressCycle() {
     _phase = PushUpPhase.notReady;
     _readyCandidateStartMs = null;
@@ -318,5 +426,6 @@ class PushUpBaseline {
     _repStartTimestampMs = null;
     _bottomReachedTimestampMs = null;
     _minElbowAngleInCurrentRep = 180.0;
+    _minBodyAlignmentInCurrentRep = null;
   }
 }

@@ -2,9 +2,11 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 
+import '../../config/app_translations.dart';
 import '../../features/workout_cv/presentation/screens/workout_cv_screen.dart';
 
 import '../../data/models/exercise.dart';
@@ -17,6 +19,7 @@ import '../providers/workout_history_providers.dart';
 import '../../features/workout_cv/domain/services/cv_form_summary_calculator.dart';
 import '../../features/workout_cv/domain/services/workout_cv_exercise_registry.dart';
 import '../widgets/exercise_thumbnail.dart';
+import '../widgets/plate_calculator_sheet.dart';
 import 'workout_review_screen.dart';
 import 'workout_complete_screen.dart';
 import '../../features/journey/presentation/providers/journey_providers.dart';
@@ -114,6 +117,27 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
 
   String _formatWeight(double w) =>
       w == w.roundToDouble() ? w.toStringAsFixed(0) : w.toStringAsFixed(1);
+
+  String _formatRpe(double rpe) =>
+      rpe == rpe.roundToDouble() ? rpe.toInt().toString() : rpe.toStringAsFixed(1);
+
+  String _tr(BuildContext context, String key) {
+    final locale = Localizations.maybeLocaleOf(context) ?? const Locale('en');
+    return AppTranslations.text(key, locale);
+  }
+
+  bool _isVi(BuildContext context) {
+    final locale = Localizations.maybeLocaleOf(context) ?? const Locale('en');
+    return locale.languageCode == 'vi';
+  }
+
+  String _trOr(BuildContext context, String key, String en, String vi) {
+    final locale = Localizations.maybeLocaleOf(context) ?? const Locale('en');
+    final val = AppTranslations.text(key, locale);
+    if (val != key) return val;
+    return locale.languageCode == 'vi' ? vi : en;
+  }
+
   @override
   void dispose() {
     _autoTickTimer?.cancel();
@@ -129,6 +153,36 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
   @override
   Widget build(BuildContext context) {
     final t = SamanWorkoutTokens.of(context);
+    ref.listen<ActiveWorkoutSessionState>(
+      activeWorkoutSessionProvider,
+      (prev, next) {
+        if (prev != null && prev.restFinishedCount != next.restFinishedCount) {
+          HapticFeedback.heavyImpact();
+          SystemSound.play(SystemSoundType.alert);
+          final messenger = ScaffoldMessenger.maybeOf(context);
+          if (mounted && messenger != null) {
+            messenger
+              ..hideCurrentSnackBar()
+              ..showSnackBar(
+                SnackBar(
+                  content: Text(
+                    _tr(context, 'rest_finished_cue'),
+                    style: TextStyle(
+                      fontFamily: 'Manrope',
+                      fontWeight: FontWeight.w600,
+                      color: t.textPrimary,
+                    ),
+                  ),
+                  backgroundColor: t.surfaceElevated,
+                  behavior: SnackBarBehavior.floating,
+                  duration: const Duration(seconds: 2),
+                ),
+              );
+          }
+        }
+      },
+    );
+
     final session = ref.watch(activeWorkoutSessionProvider);
     final notifier = ref.read(activeWorkoutSessionProvider.notifier);
     final currentEx = session.currentExercise;
@@ -165,7 +219,7 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
                     const SizedBox(height: 16),
 
                     // Current Exercise Anchor Card
-                    _buildCurrentExerciseAnchor(currentEx, t),
+                    _buildCurrentExerciseAnchor(session, currentEx, notifier, t),
                     const SizedBox(height: 16),
 
                     // Compact Rest Strip (Only when resting)
@@ -175,7 +229,7 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
                     ],
 
                     // Scannable Set List Table
-                    _buildSetListTable(currentEx, notifier, t),
+                    _buildSetListTable(session, currentEx, notifier, t),
                     const SizedBox(height: 20),
 
                     // Secondary Up Next Queue
@@ -239,6 +293,7 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
                 Text(
                   session.title,
                   style: TextStyle(
+                    fontFamily: 'Manrope',
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
                     color: t.textPrimary,
@@ -286,7 +341,7 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
                         ),
                       ),
                       child: Text(
-                        'PAUSED',
+                        _isVi(context) ? 'TẠM DỪNG' : 'PAUSED',
                         style: TextStyle(
                           fontSize: 10,
                           fontWeight: FontWeight.bold,
@@ -316,8 +371,9 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
                 border: Border.all(color: t.borderSubtle),
               ),
               child: Text(
-                'Finish',
+                _trOr(context, 'finish_btn', 'Finish', 'Hoàn thành'),
                 style: TextStyle(
+                  fontFamily: 'Manrope',
                   fontSize: 12,
                   fontWeight: FontWeight.w500,
                   color: t.textPrimary,
@@ -336,6 +392,7 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
     ActiveExerciseInfo currentEx,
     SamanWorkoutPalette t,
   ) {
+    final isVi = _isVi(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -344,8 +401,11 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
           children: [
             Flexible(
               child: Text(
-                'Exercise ${session.currentExerciseNumber} of ${session.exerciseCount}',
+                isVi
+                    ? 'Bài ${session.currentExerciseNumber} / ${session.exerciseCount}'
+                    : 'Exercise ${session.currentExerciseNumber} of ${session.exerciseCount}',
                 style: TextStyle(
+                  fontFamily: 'Manrope',
                   fontSize: 12,
                   color: t.textSecondary,
                   fontWeight: FontWeight.w500,
@@ -357,8 +417,11 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
             const SizedBox(width: 8),
             Flexible(
               child: Text(
-                '${currentEx.completedSetsCount} of ${currentEx.totalSetsCount} sets completed',
+                isVi
+                    ? 'Đã xong ${currentEx.completedSetsCount}/${currentEx.totalSetsCount} hiệp'
+                    : '${currentEx.completedSetsCount} of ${currentEx.totalSetsCount} sets completed',
                 style: TextStyle(
+                  fontFamily: 'Manrope',
                   fontSize: 12,
                   color: t.emeraldAccent,
                   fontWeight: FontWeight.w500,
@@ -403,7 +466,18 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
   }
 
   Widget _buildCurrentExerciseAnchor(
-      ActiveExerciseInfo currentEx, SamanWorkoutPalette t) {
+    ActiveWorkoutSessionState session,
+    ActiveExerciseInfo currentEx,
+    ActiveWorkoutSessionNotifier notifier,
+    SamanWorkoutPalette t,
+  ) {
+    final exIdx = session.currentExerciseIndex;
+    final supersetBadge = session.supersetBadgeLabel(exIdx);
+    final hasNext = exIdx + 1 < session.exerciseCount;
+    final isLinkedWithNext = hasNext &&
+        currentEx.supersetGroupId != null &&
+        currentEx.supersetGroupId == session.nextExercise?.supersetGroupId;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -456,18 +530,19 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
                           BorderRadius.circular(SamanWorkoutTokens.radiusPill),
                       border: Border.all(color: const Color(0xFF26282F)),
                     ),
-                    child: const Row(
+                    child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(
+                        const Icon(
                           Icons.camera_alt_outlined,
                           size: 14,
                           color: SamanWorkoutTokens.emeraldAccent,
                         ),
-                        SizedBox(width: 5),
+                        const SizedBox(width: 5),
                         Text(
-                          'Form Check',
-                          style: TextStyle(
+                          _isVi(context) ? 'Kiểm tra Form' : 'Form Check',
+                          style: const TextStyle(
+                            fontFamily: 'Manrope',
                             fontSize: 11,
                             fontWeight: FontWeight.w600,
                             color: SamanWorkoutTokens.emeraldAccent,
@@ -495,18 +570,19 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
                           BorderRadius.circular(SamanWorkoutTokens.radiusPill),
                       border: Border.all(color: const Color(0xFF26282F)),
                     ),
-                    child: const Row(
+                    child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(
+                        const Icon(
                           Icons.play_arrow,
                           size: 15,
                           color: SamanWorkoutTokens.emeraldAccent,
                         ),
-                        SizedBox(width: 4),
+                        const SizedBox(width: 4),
                         Text(
-                          'Video Guide',
-                          style: TextStyle(
+                          _isVi(context) ? 'Video hướng dẫn' : 'Video Guide',
+                          style: const TextStyle(
+                            fontFamily: 'Manrope',
                             fontSize: 11,
                             fontWeight: FontWeight.w500,
                             color: Colors.white,
@@ -521,9 +597,32 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
           ),
         ),
         const SizedBox(height: 12),
+        if (supersetBadge != null) ...[
+          Container(
+            key: const ValueKey('active_workout_superset_badge'),
+            padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+            decoration: BoxDecoration(
+              color: t.tealAccent.withOpacity(0.15),
+              borderRadius: BorderRadius.circular(SamanWorkoutTokens.radiusXs),
+              border: Border.all(color: t.tealAccent.withOpacity(0.45)),
+            ),
+            child: Text(
+              '${_tr(context, 'superset_label')} $supersetBadge',
+              style: TextStyle(
+                fontFamily: 'monospace',
+                fontSize: 11,
+                fontWeight: FontWeight.w700,
+                letterSpacing: 0.8,
+                color: t.tealLightAccent,
+              ),
+            ),
+          ),
+          const SizedBox(height: 6),
+        ],
         Text(
           currentEx.name,
           style: TextStyle(
+            fontFamily: 'Manrope',
             fontSize: 20,
             fontWeight: FontWeight.w600,
             color: t.textPrimary,
@@ -534,9 +633,122 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
         Text(
           currentEx.subtitle,
           style: TextStyle(
+            fontFamily: 'Manrope',
             fontSize: 12,
             color: t.textSecondary,
           ),
+        ),
+        const SizedBox(height: 10),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            InkWell(
+              key: const ValueKey('active_workout_note_button'),
+              onTap: () => _showExerciseNoteSheet(
+                context,
+                exIdx,
+                currentEx.note,
+                notifier,
+              ),
+              borderRadius: BorderRadius.circular(SamanWorkoutTokens.radiusSm),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                decoration: BoxDecoration(
+                  color: t.cardSurface,
+                  borderRadius:
+                      BorderRadius.circular(SamanWorkoutTokens.radiusSm),
+                  border: Border.all(
+                    color: currentEx.note.trim().isNotEmpty
+                        ? t.emeraldBadgeBorder
+                        : t.borderSubtle,
+                  ),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.edit_note_rounded,
+                      size: 15,
+                      color: currentEx.note.trim().isNotEmpty
+                          ? t.emeraldAccent
+                          : t.textSecondary,
+                    ),
+                    const SizedBox(width: 5),
+                    Flexible(
+                      child: Text(
+                        currentEx.note.trim().isNotEmpty
+                            ? currentEx.note.trim()
+                            : _tr(context, 'exercise_note_hint'),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontFamily: 'Manrope',
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
+                          color: currentEx.note.trim().isNotEmpty
+                              ? t.textPrimary
+                              : t.textSecondary,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            if (hasNext)
+              InkWell(
+                key: const ValueKey('active_workout_toggle_superset_button'),
+                onTap: () => notifier.toggleSupersetWithNext(exIdx),
+                borderRadius:
+                    BorderRadius.circular(SamanWorkoutTokens.radiusSm),
+                child: Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: isLinkedWithNext
+                        ? t.tealAccent.withOpacity(0.15)
+                        : t.cardSurface,
+                    borderRadius:
+                        BorderRadius.circular(SamanWorkoutTokens.radiusSm),
+                    border: Border.all(
+                      color: isLinkedWithNext
+                          ? t.tealAccent.withOpacity(0.45)
+                          : t.borderSubtle,
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        isLinkedWithNext ? Icons.link_off : Icons.link,
+                        size: 14,
+                        color: isLinkedWithNext
+                            ? t.tealLightAccent
+                            : t.textSecondary,
+                      ),
+                      const SizedBox(width: 5),
+                      Text(
+                        _tr(
+                          context,
+                          isLinkedWithNext
+                              ? 'superset_unlink'
+                              : 'superset_link',
+                        ),
+                        style: TextStyle(
+                          fontFamily: 'Manrope',
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: isLinkedWithNext
+                              ? t.tealLightAccent
+                              : t.textSecondary,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+          ],
         ),
       ],
     );
@@ -597,7 +809,7 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
-                    'REST',
+                    _isVi(context) ? 'NGHỈ' : 'REST',
                     style: TextStyle(
                       fontSize: 10,
                       fontWeight: FontWeight.w600,
@@ -660,8 +872,9 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
                     ),
                   ),
                   child: Text(
-                    'Skip',
+                    _isVi(context) ? 'Bỏ qua' : 'Skip',
                     style: TextStyle(
+                      fontFamily: 'Manrope',
                       fontSize: 12,
                       fontWeight: FontWeight.w600,
                       color: t.emeraldAccent,
@@ -677,10 +890,12 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
   }
 
   Widget _buildSetListTable(
+    ActiveWorkoutSessionState session,
     ActiveExerciseInfo currentEx,
     ActiveWorkoutSessionNotifier notifier,
     SamanWorkoutPalette t,
   ) {
+    final exIdx = session.currentExerciseIndex;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -694,7 +909,7 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
               Expanded(
                 flex: 2,
                 child: Text(
-                  'SET',
+                  _isVi(context) ? 'HIỆP' : 'SET',
                   style: TextStyle(
                     fontSize: 11,
                     fontFamily: 'monospace',
@@ -732,7 +947,7 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
               Expanded(
                 flex: 3,
                 child: Text(
-                  'STATUS',
+                  _isVi(context) ? 'TRẠNG THÁI' : 'STATUS',
                   textAlign: TextAlign.right,
                   style: TextStyle(
                     fontSize: 11,
@@ -747,24 +962,35 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
         ),
 
         // Set Rows
-        ...currentEx.sets.map((set) {
-          if (set.unit == SetUnit.seconds) {
-            return _TimedSetRow(
-              key: ValueKey('${currentEx.id}_${set.setNumber}'),
-              set: set,
-              isActive: identical(set, currentEx.activeSet),
-              draftSeconds: currentEx.draftSeconds,
-              onSecondsChanged: notifier.setDraftSeconds,
-            );
-          }
-          if (set.isCompleted) {
-            return _buildCompletedSetRow(set, t);
-          } else if (set.isActive) {
-            return _buildActiveSetCard(set, currentEx, notifier, t);
-          } else {
-            return _buildUpcomingSetRow(set, t);
-          }
-        }),
+        for (var setIdx = 0; setIdx < currentEx.sets.length; setIdx++)
+          Builder(
+            builder: (_) {
+              final set = currentEx.sets[setIdx];
+              if (set.unit == SetUnit.seconds) {
+                return _TimedSetRow(
+                  key: ValueKey('${currentEx.id}_${set.setNumber}'),
+                  set: set,
+                  isActive: identical(set, currentEx.activeSet),
+                  draftSeconds: currentEx.draftSeconds,
+                  onSecondsChanged: notifier.setDraftSeconds,
+                );
+              }
+              if (set.isCompleted) {
+                return _buildCompletedSetRow(exIdx, setIdx, set, notifier, t);
+              } else if (set.isActive) {
+                return _buildActiveSetCard(
+                  exIdx,
+                  setIdx,
+                  set,
+                  currentEx,
+                  notifier,
+                  t,
+                );
+              } else {
+                return _buildUpcomingSetRow(exIdx, setIdx, set, notifier, t);
+              }
+            },
+          ),
 
         const SizedBox(height: 10),
 
@@ -793,8 +1019,9 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
                 ),
                 const SizedBox(width: 6),
                 Text(
-                  'Add set',
+                  _isVi(context) ? 'Thêm hiệp' : 'Add set',
                   style: TextStyle(
+                    fontFamily: 'Manrope',
                     fontSize: 12,
                     fontWeight: FontWeight.w500,
                     color: t.textSecondary,
@@ -809,90 +1036,192 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
   }
 
   Widget _buildCompletedSetRow(
-      ActiveWorkoutSetInfo set, SamanWorkoutPalette t) {
+    int exIdx,
+    int setIdx,
+    ActiveWorkoutSetInfo set,
+    ActiveWorkoutSessionNotifier notifier,
+    SamanWorkoutPalette t,
+  ) {
     return Container(
       margin: const EdgeInsets.only(bottom: 6),
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
         color: t.cardSurface.withOpacity(0.5),
         borderRadius: BorderRadius.circular(SamanWorkoutTokens.radiusMd),
-        border: Border.all(color: t.borderSubtle),
+        border: Border.all(
+          color: set.isPr ? t.amberAccent.withOpacity(0.45) : t.borderSubtle,
+        ),
       ),
-      child: Row(
-        children: [
-          Expanded(
-            flex: 2,
-            child: Text(
-              set.setNumber.toString(),
-              style: TextStyle(
-                fontSize: 13,
-                fontFamily: 'monospace',
-                fontWeight: FontWeight.w600,
-                color: t.textSecondary,
+      child: InkWell(
+        key: ValueKey('completed_set_row_$setIdx'),
+        onTap: () => _showEditCompletedSetSheet(
+          context,
+          exIdx,
+          setIdx,
+          set,
+          notifier,
+        ),
+        borderRadius: BorderRadius.circular(SamanWorkoutTokens.radiusMd),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    flex: 2,
+                    child: Align(
+                      alignment: Alignment.centerLeft,
+                      child: _SetTypeBadge(
+                        key: ValueKey('set_type_badge_${exIdx}_$setIdx'),
+                        setType: set.setType,
+                        setNumber: set.setNumber,
+                        palette: t,
+                        onTap: () => _showSetTypePicker(
+                          context,
+                          exIdx,
+                          setIdx,
+                          set.setType,
+                          notifier,
+                        ),
+                      ),
+                    ),
+                  ),
+                  Expanded(
+                    flex: 4,
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          _formatWeight(set.weightKg ?? set.targetWeightKg),
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontFamily: 'monospace',
+                            fontWeight: FontWeight.w500,
+                            color: t.textPrimary,
+                          ),
+                        ),
+                        const SizedBox(width: 3),
+                        Text(
+                          'kg',
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: t.textMuted,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Expanded(
+                    flex: 3,
+                    child: Text(
+                      '${set.reps ?? set.targetReps}',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontFamily: 'monospace',
+                        fontWeight: FontWeight.w500,
+                        color: t.textPrimary,
+                      ),
+                    ),
+                  ),
+                  Expanded(
+                    flex: 3,
+                    child: Align(
+                      alignment: Alignment.centerRight,
+                      child: Container(
+                        width: 22,
+                        height: 22,
+                        decoration: BoxDecoration(
+                          color: t.emeraldBadgeBg,
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: t.emeraldBadgeBorder,
+                          ),
+                        ),
+                        child: Icon(
+                          Icons.check,
+                          size: 13,
+                          color: t.emeraldAccent,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
               ),
-            ),
-          ),
-          Expanded(
-            flex: 4,
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(
-                  _formatWeight(set.weightKg ?? set.targetWeightKg),
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontFamily: 'monospace',
-                    fontWeight: FontWeight.w500,
-                    color: t.textPrimary,
-                  ),
-                ),
-                const SizedBox(width: 3),
-                Text(
-                  'kg',
-                  style: TextStyle(
-                    fontSize: 11,
-                    color: t.textMuted,
-                  ),
+              if (set.isPr || set.rpe != null) ...[
+                const SizedBox(height: 6),
+                Wrap(
+                  spacing: 6,
+                  runSpacing: 4,
+                  children: [
+                    if (set.isPr)
+                      Container(
+                        key: ValueKey('set_pr_badge_$setIdx'),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 7,
+                          vertical: 2,
+                        ),
+                        decoration: BoxDecoration(
+                          color: t.amberAccent.withOpacity(0.16),
+                          borderRadius: BorderRadius.circular(
+                            SamanWorkoutTokens.radiusXs,
+                          ),
+                          border: Border.all(
+                            color: t.amberAccent.withOpacity(0.45),
+                          ),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              Icons.emoji_events_rounded,
+                              size: 12,
+                              color: t.amberAccent,
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              _tr(context, 'pr_badge'),
+                              style: TextStyle(
+                                fontFamily: 'monospace',
+                                fontSize: 10,
+                                fontWeight: FontWeight.w700,
+                                color: t.amberAccent,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    if (set.rpe != null)
+                      Container(
+                        key: ValueKey('set_rpe_badge_$setIdx'),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 7,
+                          vertical: 2,
+                        ),
+                        decoration: BoxDecoration(
+                          color: t.surfaceElevated,
+                          borderRadius: BorderRadius.circular(
+                            SamanWorkoutTokens.radiusXs,
+                          ),
+                          border: Border.all(color: t.borderSubtle),
+                        ),
+                        child: Text(
+                          '${_tr(context, 'rpe_label')} ${_formatRpe(set.rpe!)}',
+                          style: TextStyle(
+                            fontFamily: 'monospace',
+                            fontSize: 10,
+                            fontWeight: FontWeight.w600,
+                            color: t.textSecondary,
+                          ),
+                        ),
+                      ),
+                  ],
                 ),
               ],
-            ),
+            ],
           ),
-          Expanded(
-            flex: 3,
-            child: Text(
-              '${set.reps ?? set.targetReps}',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 14,
-                fontFamily: 'monospace',
-                fontWeight: FontWeight.w500,
-                color: t.textPrimary,
-              ),
-            ),
-          ),
-          Expanded(
-            flex: 3,
-            child: Align(
-              alignment: Alignment.centerRight,
-              child: Container(
-                width: 22,
-                height: 22,
-                decoration: BoxDecoration(
-                  color: t.emeraldBadgeBg,
-                  shape: BoxShape.circle,
-                  border: Border.all(
-                    color: t.emeraldBadgeBorder,
-                  ),
-                ),
-                child: Icon(
-                  Icons.check,
-                  size: 13,
-                  color: t.emeraldAccent,
-                ),
-              ),
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }
@@ -903,50 +1232,197 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
     ActiveWorkoutSessionNotifier notifier,
     SamanWorkoutPalette t,
   ) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        borderRadius: BorderRadius.circular(8),
-        onTap: () {
-          notifier.setDraftWeight(hint.suggestedWeightKg);
-          notifier.setDraftReps(
-            hint.suggestedReps > 0 ? hint.suggestedReps : currentEx.draftReps,
-          );
-        },
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-          decoration: BoxDecoration(
-            color: t.cardSurface,
-            border: Border.all(color: t.border),
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: Text.rich(
-            TextSpan(
-              style: TextStyle(
-                fontSize: 11,
-                fontFamily: 'monospace',
-                color: t.textSecondary,
-              ),
-              children: [
-                TextSpan(
-                  text:
-                      'Lần trước: ${_formatWeight(hint.lastWeightKg)}kg × ${hint.lastReps} • ',
-                ),
-                TextSpan(
-                  text: 'Gợi ý: ${_formatWeight(hint.suggestedWeightKg)}kg',
-                  style: TextStyle(color: t.emeraldAccent),
-                ),
-              ],
-            ),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
+    final lastWeight = _formatWeight(hint.lastWeightKg);
+    final suggestedWeight = _formatWeight(hint.suggestedWeightKg);
+    final targetReps =
+        hint.suggestedReps > 0 ? hint.suggestedReps : currentEx.draftReps;
+    final score = hint.cvFormScore;
+    final Color? scoreColor = score == null
+        ? null
+        : (score >= 85
+            ? t.emeraldAccent
+            : (score < 70 ? t.amberAccent : t.tealLightAccent));
+
+    String? cvSuggestionText;
+    Color suggestionColor = t.emeraldAccent;
+    switch (hint.suggestionReason) {
+      case 'cv_form_verified_add_weight':
+        cvSuggestionText =
+            '${_tr(context, 'cv_overload_add_weight')} → ${suggestedWeight}kg × $targetReps';
+        suggestionColor = t.emeraldAccent;
+        break;
+      case 'cv_form_verified_add_rep':
+        cvSuggestionText =
+            '${_tr(context, 'cv_overload_add_rep')} → $targetReps reps';
+        suggestionColor = t.emeraldAccent;
+        break;
+      case 'cv_form_refine_technique':
+        cvSuggestionText =
+            '${_tr(context, 'cv_overload_refine_form')} (${lastWeight}kg × ${hint.lastReps})';
+        suggestionColor = t.amberAccent;
+        break;
+      default:
+        cvSuggestionText = null;
+    }
+
+    void applyOverload() {
+      notifier.setDraftWeight(hint.suggestedWeightKg);
+      notifier.setDraftReps(targetReps);
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      decoration: BoxDecoration(
+        color: t.cardSurface,
+        border: Border.all(
+          color: scoreColor != null ? scoreColor.withOpacity(0.35) : t.border,
         ),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Expanded(
+                child: Wrap(
+                  spacing: 6,
+                  runSpacing: 4,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  children: [
+                    if (cvSuggestionText != null)
+                      Text(
+                        _isVi(context)
+                            ? 'Lần trước: ${lastWeight}kg × ${hint.lastReps}'
+                            : 'Last: ${lastWeight}kg × ${hint.lastReps}',
+                        softWrap: true,
+                        maxLines: 2,
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontFamily: 'monospace',
+                          color: t.textSecondary,
+                        ),
+                      )
+                    else
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            _isVi(context)
+                                ? 'Lần trước: ${lastWeight}kg × ${hint.lastReps}'
+                                : 'Last: ${lastWeight}kg × ${hint.lastReps}',
+                            softWrap: true,
+                            maxLines: 2,
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontFamily: 'monospace',
+                              color: t.textSecondary,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            _isVi(context)
+                                ? 'Gợi ý: ${suggestedWeight}kg'
+                                : 'Suggested: ${suggestedWeight}kg',
+                            softWrap: true,
+                            maxLines: 2,
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontFamily: 'monospace',
+                              fontWeight: FontWeight.w600,
+                              color: t.emeraldAccent,
+                            ),
+                          ),
+                        ],
+                      ),
+                    if (score != null && scoreColor != null)
+                      Container(
+                        key: const ValueKey(
+                          'active_workout_cv_form_score_badge',
+                        ),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 6,
+                          vertical: 2,
+                        ),
+                        decoration: BoxDecoration(
+                          color: scoreColor.withOpacity(0.14),
+                          borderRadius: BorderRadius.circular(
+                            SamanWorkoutTokens.radiusXs,
+                          ),
+                          border: Border.all(
+                            color: scoreColor.withOpacity(0.45),
+                          ),
+                        ),
+                        child: Text(
+                          '${_tr(context, 'cv_form_score_badge')}: $score%',
+                          style: TextStyle(
+                            fontFamily: 'monospace',
+                            fontSize: 10,
+                            fontWeight: FontWeight.w700,
+                            color: scoreColor,
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  key: const ValueKey('active_workout_apply_overload_button'),
+                  onTap: applyOverload,
+                  borderRadius:
+                      BorderRadius.circular(SamanWorkoutTokens.radiusXs),
+                  child: Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: t.emeraldBadgeBg,
+                      borderRadius:
+                          BorderRadius.circular(SamanWorkoutTokens.radiusXs),
+                      border: Border.all(color: t.emeraldBadgeBorder),
+                    ),
+                    child: Text(
+                      _tr(context, 'apply_btn'),
+                      style: TextStyle(
+                        fontFamily: 'Manrope',
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                        color: t.emeraldAccent,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          if (cvSuggestionText != null) ...[
+            const SizedBox(height: 5),
+            Text(
+              cvSuggestionText,
+              key: const ValueKey('active_workout_cv_overload_suggestion_text'),
+              style: TextStyle(
+                fontFamily: 'Manrope',
+                fontSize: 11.5,
+                fontWeight: FontWeight.w600,
+                color: suggestionColor,
+                height: 1.3,
+              ),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ],
+        ],
       ),
     );
   }
 
   Widget _buildActiveSetCard(
+    int exIdx,
+    int setIdx,
     ActiveWorkoutSetInfo set,
     ActiveExerciseInfo currentEx,
     ActiveWorkoutSessionNotifier notifier,
@@ -970,6 +1446,20 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
               Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
+                  _SetTypeBadge(
+                    key: ValueKey('set_type_badge_${exIdx}_$setIdx'),
+                    setType: set.setType,
+                    setNumber: set.setNumber,
+                    palette: t,
+                    onTap: () => _showSetTypePicker(
+                      context,
+                      exIdx,
+                      setIdx,
+                      set.setType,
+                      notifier,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
                   Container(
                     width: 7,
                     height: 7,
@@ -978,10 +1468,13 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
                       shape: BoxShape.circle,
                     ),
                   ),
-                  const SizedBox(width: 8),
+                  const SizedBox(width: 6),
                   Text(
-                    'SET ' + set.setNumber.toString() + ' (ACTIVE)',
+                    _isVi(context)
+                        ? 'HIỆP ${set.setNumber} (ĐANG TẬP)'
+                        : 'SET ${set.setNumber} (ACTIVE)',
                     style: TextStyle(
+                      fontFamily: 'Manrope',
                       fontSize: 12,
                       fontWeight: FontWeight.bold,
                       color: t.textPrimary,
@@ -993,7 +1486,9 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
-                  'TARGET: ' + _formatWeight(set.targetWeightKg) + ' KG × ' + set.targetReps.toString(),
+                  _isVi(context)
+                      ? 'MỤC TIÊU: ${_formatWeight(set.targetWeightKg)} KG × ${set.targetReps}'
+                      : 'TARGET: ${_formatWeight(set.targetWeightKg)} KG × ${set.targetReps}',
                   style: TextStyle(
                     fontSize: 11,
                     fontFamily: 'monospace',
@@ -1007,6 +1502,64 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
               ),
             ],
           ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              InkWell(
+                key: const ValueKey('active_workout_rpe_button'),
+                onTap: () => _showRpePicker(
+                  context,
+                  exIdx,
+                  setIdx,
+                  set.rpe,
+                  notifier,
+                ),
+                borderRadius: BorderRadius.circular(SamanWorkoutTokens.radiusSm),
+                child: Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                  decoration: BoxDecoration(
+                    color: set.rpe != null
+                        ? t.emeraldBadgeBg
+                        : t.cardSurface,
+                    borderRadius:
+                        BorderRadius.circular(SamanWorkoutTokens.radiusSm),
+                    border: Border.all(
+                      color: set.rpe != null
+                          ? t.emeraldBadgeBorder
+                          : t.borderSubtle,
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.speed_rounded,
+                        size: 13,
+                        color: set.rpe != null
+                            ? t.emeraldAccent
+                            : t.textSecondary,
+                      ),
+                      const SizedBox(width: 5),
+                      Text(
+                        set.rpe != null
+                            ? '${_tr(context, 'rpe_label')} ${_formatRpe(set.rpe!)}'
+                            : _tr(context, 'rpe_label'),
+                        style: TextStyle(
+                          fontFamily: 'monospace',
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                          color: set.rpe != null
+                              ? t.emeraldAccent
+                              : t.textSecondary,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
           if (currentEx.lastPerformance != null) ...[
             const SizedBox(height: 8),
             _buildLastPerformancePill(
@@ -1014,7 +1567,7 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
           ],
           const SizedBox(height: 12),
 
-          // Steppers
+          // Steppers + Plate Calculator
           Row(
             children: [
               // Weight Stepper
@@ -1059,6 +1612,9 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
                               children: [
                                 Text(
                                   _formatWeight(currentEx.draftWeightKg),
+                                  key: const ValueKey(
+                                    'active_workout_draft_weight',
+                                  ),
                                   style: TextStyle(
                                     fontSize: 17,
                                     fontWeight: FontWeight.bold,
@@ -1097,6 +1653,34 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
                         ),
                       ),
                     ],
+                  ),
+                ),
+              ),
+              const SizedBox(width: 6),
+
+              // Plate Calculator button
+              InkWell(
+                key: const ValueKey('active_workout_plate_calc_button'),
+                onTap: () => showPlateCalculatorSheet(
+                  context,
+                  initialWeightKg: currentEx.draftWeightKg,
+                  onApplyWeight: (weight) => notifier.setDraftWeight(weight),
+                ),
+                borderRadius:
+                    BorderRadius.circular(SamanWorkoutTokens.radiusMd),
+                child: Container(
+                  width: 38,
+                  height: 46,
+                  decoration: BoxDecoration(
+                    color: stepperBg,
+                    borderRadius:
+                        BorderRadius.circular(SamanWorkoutTokens.radiusMd),
+                    border: Border.all(color: t.borderSubtle),
+                  ),
+                  child: Icon(
+                    Icons.calculate_outlined,
+                    size: 18,
+                    color: t.emeraldAccent,
                   ),
                 ),
               ),
@@ -1193,7 +1777,12 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
   }
 
   Widget _buildUpcomingSetRow(
-      ActiveWorkoutSetInfo set, SamanWorkoutPalette t) {
+    int exIdx,
+    int setIdx,
+    ActiveWorkoutSetInfo set,
+    ActiveWorkoutSessionNotifier notifier,
+    SamanWorkoutPalette t,
+  ) {
     return Container(
       margin: const EdgeInsets.only(bottom: 6),
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
@@ -1208,12 +1797,20 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
         children: [
           Expanded(
             flex: 2,
-            child: Text(
-              set.setNumber.toString(),
-              style: TextStyle(
-                fontSize: 13,
-                fontFamily: 'monospace',
-                color: t.textMuted,
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: _SetTypeBadge(
+                key: ValueKey('set_type_badge_${exIdx}_$setIdx'),
+                setType: set.setType,
+                setNumber: set.setNumber,
+                palette: t,
+                onTap: () => _showSetTypePicker(
+                  context,
+                  exIdx,
+                  setIdx,
+                  set.setType,
+                  notifier,
+                ),
               ),
             ),
           ),
@@ -1273,7 +1870,11 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
 
   Widget _buildUpNextQueue(
       ActiveWorkoutSessionState session, SamanWorkoutPalette t) {
+    final isVi = _isVi(context);
     final next = session.nextExercise;
+    final nextSupersetBadge = next != null
+        ? session.supersetBadgeLabel(session.currentExerciseIndex + 1)
+        : null;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -1281,7 +1882,7 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Text(
-              'UP NEXT',
+              isVi ? 'TIẾP THEO' : 'UP NEXT',
               style: TextStyle(
                 fontSize: 11,
                 fontFamily: 'monospace',
@@ -1291,78 +1892,170 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
             ),
             const SizedBox(width: 8),
             Flexible(
-              child: InkWell(
-                onTap: () => _showExerciseQueue(context, session),
-                child: Text(
-                'View all ${session.exerciseCount} exercises →',
-                style: TextStyle(
-                  fontSize: 12,
-                  color: t.textSecondary,
-                  fontWeight: FontWeight.w500,
-                ),
-                textAlign: TextAlign.right,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              )),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  InkWell(
+                    key: const ValueKey('active_workout_reorder_button'),
+                    onTap: () => _showExerciseQueue(context),
+                    borderRadius: BorderRadius.circular(6),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: t.cardSurface,
+                        borderRadius: BorderRadius.circular(6),
+                        border: Border.all(color: t.borderSubtle),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.swap_vert_rounded,
+                            size: 13,
+                            color: t.emeraldAccent,
+                          ),
+                          const SizedBox(width: 3),
+                          Text(
+                            _tr(context, 'reorder_short'),
+                            style: TextStyle(
+                              fontFamily: 'Manrope',
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                              color: t.textPrimary,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Flexible(
+                    child: InkWell(
+                      key: const ValueKey('active_workout_open_queue_button'),
+                      onTap: () => _showExerciseQueue(context),
+                      child: Text(
+                        isVi
+                            ? 'Xem tất cả ${session.exerciseCount} bài tập →'
+                            : 'View all ${session.exerciseCount} ${session.exerciseCount == 1 ? 'exercise' : 'exercises'} →',
+                        style: TextStyle(
+                          fontFamily: 'Manrope',
+                          fontSize: 12,
+                          color: t.textSecondary,
+                          fontWeight: FontWeight.w500,
+                        ),
+                        textAlign: TextAlign.right,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ],
         ),
         const SizedBox(height: 8),
-        Container(
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: t.cardSurface,
-            borderRadius: BorderRadius.circular(SamanWorkoutTokens.radiusMd),
-            border: Border.all(color: t.borderSubtle),
-          ),
-          child: Row(
-            children: [
-              Container(
-                width: 36,
-                height: 36,
-                decoration: BoxDecoration(
-                  color: t.surfaceElevated,
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: t.borderSubtle),
+        InkWell(
+          onTap: () => _showExerciseQueue(context),
+          borderRadius: BorderRadius.circular(SamanWorkoutTokens.radiusMd),
+          child: Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: t.cardSurface,
+              borderRadius: BorderRadius.circular(SamanWorkoutTokens.radiusMd),
+              border: Border.all(color: t.borderSubtle),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  width: 36,
+                  height: 36,
+                  decoration: BoxDecoration(
+                    color: t.surfaceElevated,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: t.borderSubtle),
+                  ),
+                  child: Icon(
+                    Icons.fitness_center,
+                    size: 18,
+                    color: t.textMuted,
+                  ),
                 ),
-                child: Icon(
-                  Icons.fitness_center,
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          if (nextSupersetBadge != null) ...[
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 6,
+                                vertical: 1,
+                              ),
+                              decoration: BoxDecoration(
+                                color: t.tealAccent.withOpacity(0.15),
+                                borderRadius: BorderRadius.circular(4),
+                                border: Border.all(
+                                  color: t.tealAccent.withOpacity(0.45),
+                                ),
+                              ),
+                              child: Text(
+                                nextSupersetBadge,
+                                style: TextStyle(
+                                  fontFamily: 'monospace',
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w700,
+                                  color: t.tealLightAccent,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 6),
+                          ],
+                          Expanded(
+                            child: Text(
+                              next?.name ??
+                                  (isVi
+                                      ? 'Không còn bài tập tiếp theo'
+                                      : 'No upcoming exercise'),
+                              style: TextStyle(
+                                fontFamily: 'Manrope',
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                                color: t.textPrimary,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        next?.subtitle ??
+                            (isVi
+                                ? 'Đã hoàn thành tất cả bài tập'
+                                : 'All exercises completed'),
+                        style: TextStyle(
+                          fontFamily: 'Manrope',
+                          fontSize: 11,
+                          color: t.textMuted,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Icon(
+                  Icons.chevron_right,
                   size: 18,
                   color: t.textMuted,
                 ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      next?.name ?? 'No upcoming exercise',
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                        color: t.textPrimary,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      next?.subtitle ?? 'All exercises completed',
-                      style: TextStyle(
-                        fontSize: 11,
-                        color: t.textMuted,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              Icon(
-                Icons.chevron_right,
-                size: 18,
-                color: t.textMuted,
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ],
@@ -1411,9 +2104,22 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
                 color: t.buttonPrimaryText,
               ),
               label: Text(
-                currentEx.activeSet != null ? 'Log Set $activeSetNumber'
-                    : session.nextExercise != null ? 'Next exercise' : 'Review session',
+                currentEx.activeSet != null
+                    ? (_isVi(context)
+                        ? 'Ghi hiệp $activeSetNumber'
+                        : 'Log Set $activeSetNumber')
+                    : session.nextExercise != null
+                        ? (_isVi(context)
+                            ? 'Bài tập tiếp theo'
+                            : 'Next exercise')
+                        : _trOr(
+                            context,
+                            'review_session_title',
+                            'Review session',
+                            'Xem lại buổi tập',
+                          ),
                 style: TextStyle(
+                  fontFamily: 'Manrope',
                   fontSize: 14,
                   fontWeight: FontWeight.bold,
                   color: t.buttonPrimaryText,
@@ -1451,8 +2157,9 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
                     ),
                     const SizedBox(width: 5),
                     Text(
-                      'Pause workout',
+                      _isVi(context) ? 'Tạm dừng buổi tập' : 'Pause workout',
                       style: TextStyle(
+                        fontFamily: 'Manrope',
                         fontSize: 12,
                         fontWeight: FontWeight.w500,
                         color: t.textSecondary,
@@ -1480,8 +2187,9 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
                     ),
                     const SizedBox(width: 5),
                     Text(
-                      'Resume workout',
+                      _isVi(context) ? 'Tiếp tục buổi tập' : 'Resume workout',
                       style: TextStyle(
+                        fontFamily: 'Manrope',
                         fontSize: 12,
                         fontWeight: FontWeight.w600,
                         color: t.emeraldAccent,
@@ -1496,25 +2204,640 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
     );
   }
 
-  void _showExerciseQueue(BuildContext context, ActiveWorkoutSessionState session) {
+  void _showExerciseQueue(BuildContext context) {
     final t = SamanWorkoutTokens.of(context);
     showModalBottomSheet<void>(
       context: context,
-      backgroundColor: t.cardSurface,
-      builder: (sheetContext) => SafeArea(child: ListView.builder(
-        shrinkWrap: true,
-        itemCount: session.exerciseCount,
-        itemBuilder: (_, index) => ListTile(
-          textColor: t.textPrimary,
-          selectedColor: t.emeraldAccent,
-          title: Text(session.exercises[index].name),
-          selected: index == session.currentExerciseIndex,
-          onTap: () {
-            ref.read(activeWorkoutSessionProvider.notifier).selectExercise(index);
-            Navigator.of(sheetContext).pop();
-          },
-        ),
-      )),
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (sheetContext) {
+        return Container(
+          height: MediaQuery.sizeOf(sheetContext).height * 0.65,
+          decoration: BoxDecoration(
+            color: t.cardSurface,
+            borderRadius: const BorderRadius.vertical(
+              top: Radius.circular(SamanWorkoutTokens.radiusXl),
+            ),
+            border: Border(
+              top: BorderSide(color: t.border),
+              left: BorderSide(color: t.border),
+              right: BorderSide(color: t.border),
+            ),
+          ),
+          child: SafeArea(
+            top: false,
+            child: Consumer(
+              builder: (ctx, consumerRef, _) {
+                final liveSession =
+                    consumerRef.watch(activeWorkoutSessionProvider);
+                final notifier =
+                    consumerRef.read(activeWorkoutSessionProvider.notifier);
+
+                // Generate stable unique keys even if an exercise id appears twice.
+                final seenIds = <String, int>{};
+                final itemKeys = liveSession.exercises.map((ex) {
+                  final count = seenIds[ex.id] ?? 0;
+                  seenIds[ex.id] = count + 1;
+                  return ValueKey('queue_ex_${ex.id}_$count');
+                }).toList();
+
+                return Column(
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 12, 8, 8),
+                      child: Column(
+                        children: [
+                          Center(
+                            child: Container(
+                              width: 38,
+                              height: 4,
+                              decoration: BoxDecoration(
+                                color: t.borderHover,
+                                borderRadius: BorderRadius.circular(2),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  _tr(ctx, 'exercise_queue_title'),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                    fontFamily: 'Manrope',
+                                    fontSize: 17,
+                                    fontWeight: FontWeight.w700,
+                                    color: t.textPrimary,
+                                  ),
+                                ),
+                              ),
+                              IconButton(
+                                key: const ValueKey('queue_close_button'),
+                                onPressed: () =>
+                                    Navigator.of(sheetContext).pop(),
+                                icon: Icon(
+                                  Icons.close,
+                                  color: t.textSecondary,
+                                  size: 20,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                    Divider(height: 1, color: t.border),
+                    Expanded(
+                      child: ReorderableListView.builder(
+                        buildDefaultDragHandles: false,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 10,
+                        ),
+                        itemCount: liveSession.exerciseCount,
+                        onReorder: notifier.reorderExercises,
+                        itemBuilder: (_, index) {
+                          final ex = liveSession.exercises[index];
+                          final isCurrent =
+                              index == liveSession.currentExerciseIndex;
+                          final badge = liveSession.supersetBadgeLabel(index);
+                          final inSuperset =
+                              liveSession.isInSuperset(index) || badge != null;
+                          final hasNext = index + 1 < liveSession.exerciseCount;
+                          final isLinkedToNext = hasNext &&
+                              ex.supersetGroupId != null &&
+                              ex.supersetGroupId ==
+                                  liveSession
+                                      .exercises[index + 1].supersetGroupId;
+
+                          return Container(
+                            key: itemKeys[index],
+                            margin: const EdgeInsets.only(bottom: 8),
+                            decoration: BoxDecoration(
+                              color: isCurrent
+                                  ? t.emeraldBadgeBg
+                                  : t.surfaceElevated,
+                              borderRadius: BorderRadius.circular(
+                                SamanWorkoutTokens.radiusMd,
+                              ),
+                              border: Border.all(
+                                color: isCurrent
+                                    ? t.emeraldBadgeBorder
+                                    : t.borderSubtle,
+                              ),
+                            ),
+                            child: IntrinsicHeight(
+                              child: Row(
+                                children: [
+                                  if (inSuperset)
+                                    Container(
+                                      key: ValueKey(
+                                        'queue_superset_bar_$index',
+                                      ),
+                                      width: 4,
+                                      decoration: BoxDecoration(
+                                        color: t.tealAccent,
+                                        borderRadius:
+                                            const BorderRadius.horizontal(
+                                          left: Radius.circular(
+                                            SamanWorkoutTokens.radiusMd,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  Expanded(
+                                    child: InkWell(
+                                      onTap: () {
+                                        notifier.selectExercise(index);
+                                        Navigator.of(sheetContext).pop();
+                                      },
+                                      borderRadius: BorderRadius.circular(
+                                        SamanWorkoutTokens.radiusMd,
+                                      ),
+                                      child: Padding(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 12,
+                                          vertical: 10,
+                                        ),
+                                        child: Row(
+                                          children: [
+                                            Expanded(
+                                              child: Column(
+                                                crossAxisAlignment:
+                                                    CrossAxisAlignment.start,
+                                                mainAxisAlignment:
+                                                    MainAxisAlignment.center,
+                                                children: [
+                                                  Row(
+                                                    children: [
+                                                      if (badge != null) ...[
+                                                        Container(
+                                                          key: ValueKey(
+                                                            'queue_superset_badge_$index',
+                                                          ),
+                                                          padding:
+                                                              const EdgeInsets
+                                                                  .symmetric(
+                                                            horizontal: 6,
+                                                            vertical: 2,
+                                                          ),
+                                                          decoration:
+                                                              BoxDecoration(
+                                                            color: t.tealAccent
+                                                                .withOpacity(
+                                                                    0.16),
+                                                            borderRadius:
+                                                                BorderRadius
+                                                                    .circular(
+                                                                        4),
+                                                            border: Border.all(
+                                                              color: t.tealAccent
+                                                                  .withOpacity(
+                                                                      0.45),
+                                                            ),
+                                                          ),
+                                                          child: Text(
+                                                            badge,
+                                                            style: TextStyle(
+                                                              fontFamily:
+                                                                  'monospace',
+                                                              fontSize: 10,
+                                                              fontWeight:
+                                                                  FontWeight
+                                                                      .w700,
+                                                              color: t
+                                                                  .tealLightAccent,
+                                                            ),
+                                                          ),
+                                                        ),
+                                                        const SizedBox(
+                                                            width: 6),
+                                                      ],
+                                                      Expanded(
+                                                        child: Text(
+                                                          ex.name,
+                                                          maxLines: 1,
+                                                          overflow: TextOverflow
+                                                              .ellipsis,
+                                                          style: TextStyle(
+                                                            fontFamily:
+                                                                'Manrope',
+                                                            fontSize: 14,
+                                                            fontWeight:
+                                                                FontWeight.w600,
+                                                            color: isCurrent
+                                                                ? t
+                                                                    .emeraldAccent
+                                                                : t.textPrimary,
+                                                          ),
+                                                        ),
+                                                      ),
+                                                    ],
+                                                  ),
+                                                  const SizedBox(height: 3),
+                                                  Text(
+                                                    _isVi(ctx)
+                                                        ? '${ex.completedSetsCount}/${ex.totalSetsCount} hiệp'
+                                                        : '${ex.completedSetsCount}/${ex.totalSetsCount} ${ex.totalSetsCount == 1 ? 'set' : 'sets'}',
+                                                    style: TextStyle(
+                                                      fontFamily: 'monospace',
+                                                      fontSize: 11,
+                                                      color: t.textSecondary,
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                            if (hasNext)
+                                              IconButton(
+                                                key: ValueKey(
+                                                  'queue_superset_toggle_$index',
+                                                ),
+                                                tooltip: _tr(
+                                                  ctx,
+                                                  isLinkedToNext
+                                                      ? 'superset_unlink'
+                                                      : 'superset_link',
+                                                ),
+                                                onPressed: () => notifier
+                                                    .toggleSupersetWithNext(
+                                                        index),
+                                                icon: Icon(
+                                                  isLinkedToNext
+                                                      ? Icons.link_off
+                                                      : Icons.link,
+                                                  size: 18,
+                                                  color: isLinkedToNext
+                                                      ? t.tealLightAccent
+                                                      : t.textSecondary,
+                                                ),
+                                              ),
+                                            ReorderableDragStartListener(
+                                              index: index,
+                                              child: Padding(
+                                                padding:
+                                                    const EdgeInsets.all(6),
+                                                child: Icon(
+                                                  Icons.drag_handle,
+                                                  key: ValueKey(
+                                                    'queue_drag_handle_$index',
+                                                  ),
+                                                  size: 20,
+                                                  color: t.textMuted,
+                                                ),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                  ],
+                );
+              },
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  void _showSetTypePicker(
+    BuildContext context,
+    int exIdx,
+    int setIdx,
+    SetType currentType,
+    ActiveWorkoutSessionNotifier notifier,
+  ) {
+    final t = SamanWorkoutTokens.of(context);
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (sheetContext) {
+        return Container(
+          decoration: BoxDecoration(
+            color: t.cardSurface,
+            borderRadius: const BorderRadius.vertical(
+              top: Radius.circular(SamanWorkoutTokens.radiusXl),
+            ),
+            border: Border(
+              top: BorderSide(color: t.border),
+              left: BorderSide(color: t.border),
+              right: BorderSide(color: t.border),
+            ),
+          ),
+          child: SafeArea(
+            top: false,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 20),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Center(
+                    child: Container(
+                      width: 38,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: t.borderHover,
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    _tr(sheetContext, 'set_type_title'),
+                    style: TextStyle(
+                      fontFamily: 'Manrope',
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700,
+                      color: t.textPrimary,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  for (final type in SetType.values)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 8),
+                      child: InkWell(
+                        key: ValueKey('set_type_option_${type.name}'),
+                        onTap: () {
+                          notifier.setSetType(exIdx, setIdx, type);
+                          Navigator.of(sheetContext).pop();
+                        },
+                        borderRadius: BorderRadius.circular(
+                          SamanWorkoutTokens.radiusMd,
+                        ),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 11,
+                          ),
+                          decoration: BoxDecoration(
+                            color: currentType == type
+                                ? t.emeraldBadgeBg
+                                : t.surfaceElevated,
+                            borderRadius: BorderRadius.circular(
+                              SamanWorkoutTokens.radiusMd,
+                            ),
+                            border: Border.all(
+                              color: currentType == type
+                                  ? t.emeraldBadgeBorder
+                                  : t.borderSubtle,
+                            ),
+                          ),
+                          child: Row(
+                            children: [
+                              _SetTypeBadge(
+                                setType: type,
+                                setNumber: setIdx + 1,
+                                palette: t,
+                                onTap: () {
+                                  notifier.setSetType(exIdx, setIdx, type);
+                                  Navigator.of(sheetContext).pop();
+                                },
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Text(
+                                  _labelForSetType(sheetContext, type),
+                                  style: TextStyle(
+                                    fontFamily: 'Manrope',
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w600,
+                                    color: t.textPrimary,
+                                  ),
+                                ),
+                              ),
+                              if (currentType == type)
+                                Icon(
+                                  Icons.check_circle_rounded,
+                                  size: 18,
+                                  color: t.emeraldAccent,
+                                ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  String _labelForSetType(BuildContext context, SetType type) {
+    switch (type) {
+      case SetType.warmup:
+        return _tr(context, 'warmup');
+      case SetType.normal:
+        return _tr(context, 'normal');
+      case SetType.drop:
+        return _tr(context, 'drop_set');
+      case SetType.failure:
+        return _tr(context, 'failure_set');
+    }
+  }
+
+  void _showRpePicker(
+    BuildContext context,
+    int exIdx,
+    int setIdx,
+    double? currentRpe,
+    ActiveWorkoutSessionNotifier notifier,
+  ) {
+    const rpeValues = <double>[
+      6.0,
+      6.5,
+      7.0,
+      7.5,
+      8.0,
+      8.5,
+      9.0,
+      9.5,
+      10.0,
+    ];
+    final t = SamanWorkoutTokens.of(context);
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (sheetContext) {
+        return Container(
+          decoration: BoxDecoration(
+            color: t.cardSurface,
+            borderRadius: const BorderRadius.vertical(
+              top: Radius.circular(SamanWorkoutTokens.radiusXl),
+            ),
+            border: Border(
+              top: BorderSide(color: t.border),
+              left: BorderSide(color: t.border),
+              right: BorderSide(color: t.border),
+            ),
+          ),
+          child: SafeArea(
+            top: false,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 20),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Center(
+                    child: Container(
+                      width: 38,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: t.borderHover,
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Expanded(
+                        child: Text(
+                          _tr(sheetContext, 'rpe_title'),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontFamily: 'Manrope',
+                            fontSize: 15,
+                            fontWeight: FontWeight.w700,
+                            color: t.textPrimary,
+                          ),
+                        ),
+                      ),
+                      if (currentRpe != null)
+                        TextButton(
+                          key: const ValueKey('rpe_option_clear'),
+                          onPressed: () {
+                            notifier.setSetRpe(exIdx, setIdx, null);
+                            Navigator.of(sheetContext).pop();
+                          },
+                          child: Text(
+                            _tr(sheetContext, 'rpe_clear'),
+                            style: TextStyle(
+                              fontFamily: 'Manrope',
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              color: t.crimsonAccent,
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: rpeValues.map((val) {
+                      final isSelected = currentRpe != null &&
+                          (currentRpe - val).abs() < 0.05;
+                      return InkWell(
+                        key: ValueKey('rpe_option_${_formatRpe(val)}'),
+                        onTap: () {
+                          notifier.setSetRpe(exIdx, setIdx, val);
+                          Navigator.of(sheetContext).pop();
+                        },
+                        borderRadius: BorderRadius.circular(
+                          SamanWorkoutTokens.radiusMd,
+                        ),
+                        child: Container(
+                          width: 68,
+                          padding: const EdgeInsets.symmetric(vertical: 11),
+                          decoration: BoxDecoration(
+                            color: isSelected
+                                ? t.emeraldBadgeBg
+                                : t.surfaceElevated,
+                            borderRadius: BorderRadius.circular(
+                              SamanWorkoutTokens.radiusMd,
+                            ),
+                            border: Border.all(
+                              color: isSelected
+                                  ? t.emeraldBadgeBorder
+                                  : t.borderSubtle,
+                            ),
+                          ),
+                          child: Center(
+                            child: Text(
+                              _formatRpe(val),
+                              style: TextStyle(
+                                fontFamily: 'monospace',
+                                fontSize: 14,
+                                fontWeight: FontWeight.w700,
+                                color: isSelected
+                                    ? t.emeraldAccent
+                                    : t.textPrimary,
+                              ),
+                            ),
+                          ),
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  void _showExerciseNoteSheet(
+    BuildContext context,
+    int exIdx,
+    String initialNote,
+    ActiveWorkoutSessionNotifier notifier,
+  ) {
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => _ExerciseNoteSheet(
+        initialNote: initialNote,
+        onSave: (note) => notifier.setExerciseNote(exIdx, note),
+      ),
+    );
+  }
+
+  void _showEditCompletedSetSheet(
+    BuildContext context,
+    int exIdx,
+    int setIdx,
+    ActiveWorkoutSetInfo set,
+    ActiveWorkoutSessionNotifier notifier,
+  ) {
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => _EditCompletedSetSheet(
+        setInfo: set,
+        onSave: (weightKg, reps, rpe, setType) {
+          notifier.updateCompletedSet(
+            setIndex: setIdx,
+            weightKg: weightKg,
+            reps: reps,
+            rpe: rpe,
+            setType: setType,
+          );
+        },
+      ),
     );
   }
 
@@ -1556,6 +2879,7 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       builder: (modalCtx) {
+        final isVi = _isVi(modalCtx);
         return Padding(
           padding: const EdgeInsets.fromLTRB(20, 24, 20, 36),
           child: Column(
@@ -1563,8 +2887,11 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                '${currentEx.name} — Video Guide',
+                isVi
+                    ? '${currentEx.name} — Video hướng dẫn'
+                    : '${currentEx.name} — Video Guide',
                 style: TextStyle(
+                  fontFamily: 'Manrope',
                   fontSize: 17,
                   fontWeight: FontWeight.bold,
                   color: t.textPrimary,
@@ -1572,8 +2899,11 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
               ),
               const SizedBox(height: 6),
               Text(
-                'Video Demo in Preparation · Verified Form Cues Active',
+                isVi
+                    ? 'Video minh họa đang chuẩn bị · Hướng dẫn kỹ thuật đã kích hoạt'
+                    : 'Video Demo in Preparation · Verified Form Cues Active',
                 style: TextStyle(
+                  fontFamily: 'Manrope',
                   fontSize: 12,
                   color: t.emeraldAccent,
                   fontWeight: FontWeight.w500,
@@ -1581,8 +2911,9 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
               ),
               const SizedBox(height: 16),
               Text(
-                'Key Movement Cues:',
+                isVi ? 'Lưu ý kỹ thuật chính:' : 'Key Movement Cues:',
                 style: TextStyle(
+                  fontFamily: 'Manrope',
                   fontSize: 13,
                   fontWeight: FontWeight.w600,
                   color: t.textPrimary,
@@ -1597,8 +2928,15 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
                     Text('• ', style: TextStyle(color: t.emeraldAccent, fontSize: 14)),
                     Expanded(
                       child: Text(
-                        'Keep your feet firmly planted on the floor',
-                        style: TextStyle(fontSize: 13, color: t.textSecondary, height: 1.4),
+                        isVi
+                            ? 'Giữ bàn chân đặt chắc chắn trên sàn'
+                            : 'Keep your feet firmly planted on the floor',
+                        style: TextStyle(
+                          fontFamily: 'Manrope',
+                          fontSize: 13,
+                          color: t.textSecondary,
+                          height: 1.4,
+                        ),
                       ),
                     ),
                   ],
@@ -1612,8 +2950,15 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
                     Text('• ', style: TextStyle(color: t.emeraldAccent, fontSize: 14)),
                     Expanded(
                       child: Text(
-                        'Retract your shoulder blades and maintain a slight natural arch',
-                        style: TextStyle(fontSize: 13, color: t.textSecondary, height: 1.4),
+                        isVi
+                            ? 'Khép chặt xương bả vai và giữ độ cong lưng tự nhiên'
+                            : 'Retract your shoulder blades and maintain a slight natural arch',
+                        style: TextStyle(
+                          fontFamily: 'Manrope',
+                          fontSize: 13,
+                          color: t.textSecondary,
+                          height: 1.4,
+                        ),
                       ),
                     ),
                   ],
@@ -1627,8 +2972,15 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
                     Text('• ', style: TextStyle(color: t.emeraldAccent, fontSize: 14)),
                     Expanded(
                       child: Text(
-                        'Control the eccentric descent down to chest level',
-                        style: TextStyle(fontSize: 13, color: t.textSecondary, height: 1.4),
+                        isVi
+                            ? 'Kiểm soát nhịp hạ tạ xuống ngang ngực'
+                            : 'Control the eccentric descent down to chest level',
+                        style: TextStyle(
+                          fontFamily: 'Manrope',
+                          fontSize: 13,
+                          color: t.textSecondary,
+                          height: 1.4,
+                        ),
                       ),
                     ),
                   ],
@@ -1652,7 +3004,10 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
                     ),
                     elevation: 0,
                   ),
-                  child: const Text('Close'),
+                  child: Text(
+                    _tr(modalCtx, 'close'),
+                    style: const TextStyle(fontFamily: 'Manrope'),
+                  ),
                 ),
               ),
             ],
@@ -1698,7 +3053,11 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('Failed to pick video: $e'),
+              content: Text(
+                _isVi(context)
+                    ? 'Không thể chọn video: $e'
+                    : 'Failed to pick video: $e',
+              ),
               backgroundColor: t.surfaceElevated,
             ),
           );
@@ -1760,6 +3119,7 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
         side: BorderSide(color: t.border, width: 1),
       ),
       builder: (modalCtx) {
+        final isVi = _isVi(modalCtx);
         return SafeArea(
           child: Padding(
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 20),
@@ -1808,33 +3168,26 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             Text(
-                              'Form Check Mode',
+                              isVi ? 'Chế độ Kiểm tra Form' : 'Form Check Mode',
                               style: TextStyle(
                                 fontSize: 19,
                                 fontWeight: FontWeight.w600,
                                 color: t.textPrimary,
                                 letterSpacing: -0.2,
-                                fontFamily: 'Space Grotesk',
-                                fontFamilyFallback: const [
-                                  'Manrope',
-                                  'Inter',
-                                  'sans-serif',
-                                ],
+                                fontFamily: 'Manrope',
                               ),
                             ),
                             const SizedBox(height: 2),
                             Text(
-                              'COMPUTER VISION ANALYSIS',
+                              isVi
+                                  ? 'PHÂN TÍCH COMPUTER VISION'
+                                  : 'COMPUTER VISION ANALYSIS',
                               style: TextStyle(
                                 fontSize: 11,
                                 fontWeight: FontWeight.w500,
                                 color: t.textSecondary,
                                 letterSpacing: 1.0,
-                                fontFamily: 'JetBrains Mono',
-                                fontFamilyFallback: const [
-                                  'monospace',
-                                  'Courier New',
-                                ],
+                                fontFamily: 'monospace',
                               ),
                             ),
                           ],
@@ -1864,17 +3217,13 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
                           ),
                           const SizedBox(width: 6),
                           Text(
-                            'AI VERIFIED',
+                            isVi ? 'AI XÁC THỰC' : 'AI VERIFIED',
                             style: TextStyle(
                               fontSize: 11,
                               fontWeight: FontWeight.w500,
                               color: t.textSub,
                               letterSpacing: 1.0,
-                              fontFamily: 'JetBrains Mono',
-                              fontFamilyFallback: const [
-                                'monospace',
-                                'Courier New',
-                              ],
+                              fontFamily: 'monospace',
                             ),
                           ),
                         ],
@@ -1917,17 +3266,13 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
                           ),
                           const SizedBox(width: 8),
                           Text(
-                            'SELECT INPUT SOURCE',
+                            isVi ? 'CHỌN NGUỒN VIDEO' : 'SELECT INPUT SOURCE',
                             style: TextStyle(
                               fontSize: 11,
                               fontWeight: FontWeight.w500,
                               color: t.textSecondary,
                               letterSpacing: 1.0,
-                              fontFamily: 'JetBrains Mono',
-                              fontFamilyFallback: const [
-                                'monospace',
-                                'Courier New',
-                              ],
+                              fontFamily: 'monospace',
                             ),
                           ),
                         ],
@@ -1938,11 +3283,7 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
                           fontSize: 12,
                           fontWeight: FontWeight.w500,
                           color: t.textPrimary,
-                          fontFamily: 'JetBrains Mono',
-                          fontFamilyFallback: const [
-                            'monospace',
-                            'Courier New',
-                          ],
+                          fontFamily: 'monospace',
                         ),
                       ),
                     ],
@@ -1999,30 +3340,26 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
                                         CrossAxisAlignment.start,
                                     children: [
                                       Text(
-                                        'Record Real-time',
+                                        isVi
+                                            ? 'Quay trực tiếp'
+                                            : 'Record Real-time',
                                         style: TextStyle(
                                           fontSize: 15,
                                           fontWeight: FontWeight.w600,
                                           color: t.textPrimary,
-                                          fontFamily: 'Inter',
-                                          fontFamilyFallback: const [
-                                            'Manrope',
-                                            'sans-serif',
-                                          ],
+                                          fontFamily: 'Manrope',
                                         ),
                                       ),
                                       const SizedBox(height: 3),
                                       Text(
-                                        'Use camera for live pose & rep tracking',
+                                        isVi
+                                            ? 'Dùng camera để đếm rep & chấm form trực tiếp'
+                                            : 'Use camera for live pose & rep tracking',
                                         style: TextStyle(
                                           fontSize: 12.5,
                                           fontWeight: FontWeight.w400,
                                           color: t.textSecondary,
-                                          fontFamily: 'Inter',
-                                          fontFamilyFallback: const [
-                                            'Manrope',
-                                            'sans-serif',
-                                          ],
+                                          fontFamily: 'Manrope',
                                         ),
                                       ),
                                     ],
@@ -2063,11 +3400,7 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
                                               fontWeight: FontWeight.w500,
                                               color: t.textSub,
                                               letterSpacing: 0.8,
-                                              fontFamily: 'JetBrains Mono',
-                                              fontFamilyFallback: const [
-                                                'monospace',
-                                                'Courier New',
-                                              ],
+                                              fontFamily: 'monospace',
                                             ),
                                           ),
                                         ],
@@ -2129,30 +3462,26 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
                                         CrossAxisAlignment.start,
                                     children: [
                                       Text(
-                                        'Upload from Device',
+                                        isVi
+                                            ? 'Tải video từ máy'
+                                            : 'Upload from Device',
                                         style: TextStyle(
                                           fontSize: 15,
                                           fontWeight: FontWeight.w600,
                                           color: t.textPrimary,
-                                          fontFamily: 'Inter',
-                                          fontFamilyFallback: const [
-                                            'Manrope',
-                                            'sans-serif',
-                                          ],
+                                          fontFamily: 'Manrope',
                                         ),
                                       ),
                                       const SizedBox(height: 3),
                                       Text(
-                                        'Select an .mp4 workout video from gallery',
+                                        isVi
+                                            ? 'Chọn video tập luyện .mp4 từ thư viện'
+                                            : 'Select an .mp4 workout video from gallery',
                                         style: TextStyle(
                                           fontSize: 12.5,
                                           fontWeight: FontWeight.w400,
                                           color: t.textSecondary,
-                                          fontFamily: 'Inter',
-                                          fontFamilyFallback: const [
-                                            'Manrope',
-                                            'sans-serif',
-                                          ],
+                                          fontFamily: 'Manrope',
                                         ),
                                       ),
                                     ],
@@ -2181,11 +3510,7 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
                                           fontWeight: FontWeight.w500,
                                           color: t.textSub,
                                           letterSpacing: 0.8,
-                                          fontFamily: 'JetBrains Mono',
-                                          fontFamilyFallback: const [
-                                            'monospace',
-                                            'Courier New',
-                                          ],
+                                          fontFamily: 'monospace',
                                         ),
                                       ),
                                     ),
@@ -2225,13 +3550,12 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
                       highlightColor: t.surfaceElevated.withOpacity(0.12),
                       child: Center(
                         child: Text(
-                          'Cancel',
+                          _tr(modalCtx, 'cancel'),
                           style: TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.w600,
                             color: t.textSub,
-                            fontFamily: 'Inter',
-                            fontFamilyFallback: const ['Manrope', 'sans-serif'],
+                            fontFamily: 'Manrope',
                           ),
                         ),
                       ),
@@ -2256,6 +3580,7 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       builder: (modalCtx) {
+        final isVi = _isVi(modalCtx);
         return Padding(
           padding: const EdgeInsets.fromLTRB(20, 24, 20, 36),
           child: Column(
@@ -2270,12 +3595,17 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
                     color: t.amberAccent,
                   ),
                   const SizedBox(width: 8),
-                  Text(
-                    'Live Form Check (Deferred)',
-                    style: TextStyle(
-                      fontSize: 17,
-                      fontWeight: FontWeight.bold,
-                      color: t.textPrimary,
+                  Expanded(
+                    child: Text(
+                      isVi
+                          ? 'Kiểm tra Form trực tiếp (Chưa hỗ trợ)'
+                          : 'Live Form Check (Deferred)',
+                      style: TextStyle(
+                        fontFamily: 'Manrope',
+                        fontSize: 17,
+                        fontWeight: FontWeight.bold,
+                        color: t.textPrimary,
+                      ),
                     ),
                   ),
                 ],
@@ -2283,9 +3613,14 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
               const SizedBox(height: 12),
               Text(
                 cameraUnavailable
-                    ? 'Camera CV chỉ hỗ trợ Android. Web/iOS chưa có replay landmarks được đóng gói để demo. Không gọi camera native, không tự ghi rep vào buổi tập.'
-                    : 'Computer Vision Form Check is planned for a future release (deferred checkpoint). No camera feed has been activated and no reps will be auto-logged.',
+                    ? (isVi
+                        ? 'Camera CV chỉ hỗ trợ Android. Web/iOS chưa có replay landmarks được đóng gói để demo. Không gọi camera native, không tự ghi rep vào buổi tập.'
+                        : 'CV Camera is only supported on Android. Web/iOS does not include packaged demo landmarks. Native camera is not opened and no reps are auto-logged.')
+                    : (isVi
+                        ? 'Tính năng Kiểm tra Form bằng Computer Vision đang được lên kế hoạch cho phiên bản tới. Camera chưa được kích hoạt và không có rep nào được tự động ghi.'
+                        : 'Computer Vision Form Check is planned for a future release (deferred checkpoint). No camera feed has been activated and no reps will be auto-logged.'),
                 style: TextStyle(
+                  fontFamily: 'Manrope',
                   fontSize: 13,
                   color: t.textSecondary,
                   height: 1.4,
@@ -2309,7 +3644,10 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
                     ),
                     elevation: 0,
                   ),
-                  child: const Text('Close'),
+                  child: Text(
+                    _tr(modalCtx, 'close'),
+                    style: const TextStyle(fontFamily: 'Manrope'),
+                  ),
                 ),
               ),
             ],
@@ -2326,12 +3664,14 @@ class _TimedSetHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final t = SamanWorkoutTokens.of(context);
+    final isVi =
+        (Localizations.maybeLocaleOf(context)?.languageCode ?? 'en') == 'vi';
     return Padding(
       padding: const EdgeInsetsDirectional.symmetric(horizontal: 12, vertical: 6),
       child: Row(children: [
-        Expanded(child: Text('SET', style: TextStyle(color: t.textMuted))),
-        Expanded(flex: 3, child: Text('SECONDS', style: TextStyle(color: t.textMuted))),
-        Text('STATUS', style: TextStyle(color: t.textMuted)),
+        Expanded(child: Text(isVi ? 'HIỆP' : 'SET', style: TextStyle(color: t.textMuted))),
+        Expanded(flex: 3, child: Text(isVi ? 'GIÂY' : 'SECONDS', style: TextStyle(color: t.textMuted))),
+        Text(isVi ? 'TRẠNG THÁI' : 'STATUS', style: TextStyle(color: t.textMuted)),
       ]),
     );
   }
@@ -2351,6 +3691,8 @@ class _TimedSetRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final t = SamanWorkoutTokens.of(context);
+    final isVi =
+        (Localizations.maybeLocaleOf(context)?.languageCode ?? 'en') == 'vi';
     return Container(
       margin: const EdgeInsetsDirectional.only(bottom: 6),
       padding: const EdgeInsetsDirectional.all(12),
@@ -2362,12 +3704,17 @@ class _TimedSetRow extends StatelessWidget {
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(children: [
           Expanded(child: Text(
-            isActive ? 'SET ${set.setNumber} (ACTIVE)' : 'SET ${set.setNumber}',
-            style: TextStyle(color: t.textSecondary),
+            isActive
+                ? (isVi ? 'HIỆP ${set.setNumber} (ĐANG TẬP)' : 'SET ${set.setNumber} (ACTIVE)')
+                : (isVi ? 'HIỆP ${set.setNumber}' : 'SET ${set.setNumber}'),
+            style: TextStyle(fontFamily: 'Manrope', color: t.textSecondary),
           )),
-          Text(isActive ? 'TARGET: ${set.targetSeconds} s'
-              : '${set.isCompleted ? set.seconds : set.targetSeconds} s',
-            style: TextStyle(color: t.textPrimary)),
+          Text(
+            isActive
+                ? (isVi ? 'MỤC TIÊU: ${set.targetSeconds} s' : 'TARGET: ${set.targetSeconds} s')
+                : '${set.isCompleted ? set.seconds : set.targetSeconds} s',
+            style: TextStyle(fontFamily: 'monospace', color: t.textPrimary),
+          ),
           const SizedBox(width: 8),
           if (set.isCompleted) Icon(Icons.check,
             color: t.emeraldAccent, size: 18),
@@ -2381,7 +3728,9 @@ class _TimedSetRow extends StatelessWidget {
             style: TextStyle(color: t.textPrimary),
             cursorColor: t.emeraldAccent,
             decoration: InputDecoration(
-              labelText: 'Seconds', suffixText: 's', helperText: 'Enter 1-999 seconds',
+              labelText: isVi ? 'Số giây' : 'Seconds',
+              suffixText: 's',
+              helperText: isVi ? 'Nhập 1-999 giây' : 'Enter 1-999 seconds',
               filled: true,
               fillColor: t.surfaceElevated,
               labelStyle: TextStyle(color: t.textSecondary),
@@ -2402,6 +3751,502 @@ class _TimedSetRow extends StatelessWidget {
           ),
         ],
       ]),
+    );
+  }
+}
+
+class _SetTypeBadge extends StatelessWidget {
+  const _SetTypeBadge({
+    super.key,
+    required this.setType,
+    required this.setNumber,
+    required this.palette,
+    required this.onTap,
+  });
+
+  final SetType setType;
+  final int setNumber;
+  final SamanWorkoutPalette palette;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final String label;
+    final Color fg;
+    final Color bg;
+    final Color border;
+
+    switch (setType) {
+      case SetType.warmup:
+        label = 'W';
+        fg = palette.amberAccent;
+        bg = palette.amberAccent.withOpacity(0.15);
+        border = palette.amberAccent.withOpacity(0.38);
+      case SetType.normal:
+        label = setNumber.toString();
+        fg = palette.textSecondary;
+        bg = palette.surfaceElevated;
+        border = palette.borderSubtle;
+      case SetType.drop:
+        label = 'D';
+        fg = const Color(0xFF818CF8);
+        bg = const Color(0xFF818CF8).withOpacity(0.15);
+        border = const Color(0xFF818CF8).withOpacity(0.38);
+      case SetType.failure:
+        label = 'F';
+        fg = palette.crimsonAccent;
+        bg = palette.crimsonAccent.withOpacity(0.15);
+        border = palette.crimsonAccent.withOpacity(0.38);
+    }
+
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: onTap,
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(minWidth: 44, minHeight: 44),
+        child: Center(
+          widthFactor: 1.0,
+          heightFactor: 1.0,
+          child: Container(
+            constraints: const BoxConstraints(minWidth: 28, minHeight: 26),
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+            decoration: BoxDecoration(
+              color: bg,
+              borderRadius: BorderRadius.circular(6),
+              border: Border.all(color: border),
+            ),
+            alignment: Alignment.center,
+            child: Text(
+              label,
+              style: TextStyle(
+                fontFamily: 'monospace',
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+                color: fg,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ExerciseNoteSheet extends StatefulWidget {
+  const _ExerciseNoteSheet({
+    required this.initialNote,
+    required this.onSave,
+  });
+
+  final String initialNote;
+  final ValueChanged<String> onSave;
+
+  @override
+  State<_ExerciseNoteSheet> createState() => _ExerciseNoteSheetState();
+}
+
+class _ExerciseNoteSheetState extends State<_ExerciseNoteSheet> {
+  late final TextEditingController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(text: widget.initialNote);
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  String _tr(BuildContext context, String key) {
+    final locale = Localizations.maybeLocaleOf(context) ?? const Locale('en');
+    return AppTranslations.text(key, locale);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final t = SamanWorkoutTokens.of(context);
+    final bottomInset = MediaQuery.viewInsetsOf(context).bottom;
+    return Container(
+      decoration: BoxDecoration(
+        color: t.cardSurface,
+        borderRadius: const BorderRadius.vertical(
+          top: Radius.circular(SamanWorkoutTokens.radiusXl),
+        ),
+        border: Border(
+          top: BorderSide(color: t.border),
+          left: BorderSide(color: t.border),
+          right: BorderSide(color: t.border),
+        ),
+      ),
+      child: SafeArea(
+        top: false,
+        child: Padding(
+          padding: EdgeInsets.fromLTRB(16, 12, 16, 20 + bottomInset),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Center(
+                child: Container(
+                  width: 38,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: t.borderHover,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                _tr(context, 'exercise_note_title'),
+                style: TextStyle(
+                  fontFamily: 'Manrope',
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                  color: t.textPrimary,
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                key: const ValueKey('active_workout_note_input'),
+                controller: _controller,
+                maxLines: 3,
+                autofocus: true,
+                cursorColor: t.emeraldAccent,
+                style: TextStyle(
+                  fontFamily: 'Manrope',
+                  fontSize: 14,
+                  color: t.textPrimary,
+                ),
+                decoration: InputDecoration(
+                  hintText: _tr(context, 'exercise_note_hint'),
+                  hintStyle: TextStyle(
+                    fontFamily: 'Manrope',
+                    fontSize: 14,
+                    color: t.textMuted,
+                  ),
+                  filled: true,
+                  fillColor: t.surfaceElevated,
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(
+                      SamanWorkoutTokens.radiusMd,
+                    ),
+                    borderSide: BorderSide(color: t.border),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(
+                      SamanWorkoutTokens.radiusMd,
+                    ),
+                    borderSide: BorderSide(color: t.emeraldAccent, width: 1.5),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 14),
+              SizedBox(
+                height: 46,
+                child: ElevatedButton(
+                  key: const ValueKey('active_workout_note_save_button'),
+                  onPressed: () {
+                    widget.onSave(_controller.text.trim());
+                    Navigator.of(context).pop();
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: t.buttonPrimary,
+                    foregroundColor: t.buttonPrimaryText,
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(
+                        SamanWorkoutTokens.radiusMd,
+                      ),
+                    ),
+                  ),
+                  child: Text(
+                    _tr(context, 'save_note'),
+                    style: TextStyle(
+                      fontFamily: 'Manrope',
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                      color: t.buttonPrimaryText,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _EditCompletedSetSheet extends StatefulWidget {
+  const _EditCompletedSetSheet({
+    required this.setInfo,
+    required this.onSave,
+  });
+
+  final ActiveWorkoutSetInfo setInfo;
+  final void Function(
+    double weightKg,
+    int reps,
+    double? rpe,
+    SetType setType,
+  ) onSave;
+
+  @override
+  State<_EditCompletedSetSheet> createState() => _EditCompletedSetSheetState();
+}
+
+class _EditCompletedSetSheetState extends State<_EditCompletedSetSheet> {
+  late final TextEditingController _weightController;
+  late final TextEditingController _repsController;
+  late SetType _setType;
+  double? _rpe;
+
+  static const List<double> _rpeChoices = [
+    6.0,
+    6.5,
+    7.0,
+    7.5,
+    8.0,
+    8.5,
+    9.0,
+    9.5,
+    10.0,
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    final weight = widget.setInfo.weightKg ?? widget.setInfo.targetWeightKg;
+    final reps = widget.setInfo.reps ?? widget.setInfo.targetReps;
+    _weightController = TextEditingController(
+      text: weight == weight.roundToDouble()
+          ? weight.toInt().toString()
+          : weight.toStringAsFixed(1),
+    );
+    _repsController = TextEditingController(text: reps.toString());
+    _setType = widget.setInfo.setType;
+    _rpe = widget.setInfo.rpe;
+  }
+
+  @override
+  void dispose() {
+    _weightController.dispose();
+    _repsController.dispose();
+    super.dispose();
+  }
+
+  String _tr(BuildContext context, String key) {
+    final locale = Localizations.maybeLocaleOf(context) ?? const Locale('en');
+    return AppTranslations.text(key, locale);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final t = SamanWorkoutTokens.of(context);
+    final bottomInset = MediaQuery.viewInsetsOf(context).bottom;
+    return Container(
+      decoration: BoxDecoration(
+        color: t.cardSurface,
+        borderRadius: const BorderRadius.vertical(
+          top: Radius.circular(SamanWorkoutTokens.radiusXl),
+        ),
+        border: Border(
+          top: BorderSide(color: t.border),
+          left: BorderSide(color: t.border),
+          right: BorderSide(color: t.border),
+        ),
+      ),
+      child: SafeArea(
+        top: false,
+        child: SingleChildScrollView(
+          padding: EdgeInsets.fromLTRB(16, 12, 16, 20 + bottomInset),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Center(
+                child: Container(
+                  width: 38,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: t.borderHover,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                '${_tr(context, 'edit_completed_set')} #${widget.setInfo.setNumber}',
+                style: TextStyle(
+                  fontFamily: 'Manrope',
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                  color: t.textPrimary,
+                ),
+              ),
+              const SizedBox(height: 14),
+              Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      key: const ValueKey('edit_completed_weight_input'),
+                      controller: _weightController,
+                      keyboardType:
+                          const TextInputType.numberWithOptions(decimal: true),
+                      style: TextStyle(
+                        fontFamily: 'monospace',
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                        color: t.textPrimary,
+                      ),
+                      decoration: InputDecoration(
+                        labelText: 'KG',
+                        filled: true,
+                        fillColor: t.surfaceElevated,
+                        labelStyle: TextStyle(color: t.textSecondary),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(
+                            SamanWorkoutTokens.radiusMd,
+                          ),
+                          borderSide: BorderSide(color: t.border),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(
+                            SamanWorkoutTokens.radiusMd,
+                          ),
+                          borderSide:
+                              BorderSide(color: t.emeraldAccent, width: 1.5),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: TextField(
+                      key: const ValueKey('edit_completed_reps_input'),
+                      controller: _repsController,
+                      keyboardType: TextInputType.number,
+                      style: TextStyle(
+                        fontFamily: 'monospace',
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                        color: t.textPrimary,
+                      ),
+                      decoration: InputDecoration(
+                        labelText: 'REPS',
+                        filled: true,
+                        fillColor: t.surfaceElevated,
+                        labelStyle: TextStyle(color: t.textSecondary),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(
+                            SamanWorkoutTokens.radiusMd,
+                          ),
+                          borderSide: BorderSide(color: t.border),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(
+                            SamanWorkoutTokens.radiusMd,
+                          ),
+                          borderSide:
+                              BorderSide(color: t.emeraldAccent, width: 1.5),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Text(
+                _tr(context, 'rpe_label'),
+                style: TextStyle(
+                  fontFamily: 'monospace',
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                  color: t.textMuted,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 6,
+                runSpacing: 6,
+                children: [
+                  for (final val in _rpeChoices)
+                    ChoiceChip(
+                      label: Text(
+                        val == val.roundToDouble()
+                            ? val.toInt().toString()
+                            : val.toStringAsFixed(1),
+                        style: TextStyle(
+                          fontFamily: 'monospace',
+                          fontSize: 12,
+                          color: _rpe == val ? t.emeraldAccent : t.textPrimary,
+                        ),
+                      ),
+                      selected: _rpe != null && (_rpe! - val).abs() < 0.05,
+                      selectedColor: t.emeraldBadgeBg,
+                      backgroundColor: t.surfaceElevated,
+                      side: BorderSide(
+                        color: _rpe != null && (_rpe! - val).abs() < 0.05
+                            ? t.emeraldBadgeBorder
+                            : t.borderSubtle,
+                      ),
+                      onSelected: (selected) {
+                        setState(() => _rpe = selected ? val : null);
+                      },
+                    ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              SizedBox(
+                height: 46,
+                child: ElevatedButton(
+                  key: const ValueKey('edit_completed_save_button'),
+                  onPressed: () {
+                    final parsedWeight = double.tryParse(
+                          _weightController.text.replaceAll(',', '.'),
+                        ) ??
+                        (widget.setInfo.weightKg ??
+                            widget.setInfo.targetWeightKg);
+                    final parsedReps = int.tryParse(_repsController.text) ??
+                        (widget.setInfo.reps ?? widget.setInfo.targetReps);
+                    widget.onSave(
+                      parsedWeight.clamp(0.0, 500.0),
+                      parsedReps.clamp(1, 999),
+                      _rpe,
+                      _setType,
+                    );
+                    Navigator.of(context).pop();
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: t.buttonPrimary,
+                    foregroundColor: t.buttonPrimaryText,
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(
+                        SamanWorkoutTokens.radiusMd,
+                      ),
+                    ),
+                  ),
+                  child: Text(
+                    _tr(context, 'save_note'),
+                    style: TextStyle(
+                      fontFamily: 'Manrope',
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                      color: t.buttonPrimaryText,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

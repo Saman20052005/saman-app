@@ -79,11 +79,24 @@ _$ExerciseSetLogImpl _$$ExerciseSetLogImplFromJson(Map<String, dynamic> json) =>
       restTakenSeconds: (json['restTakenSeconds'] as num?)?.toInt(),
       cvDetected: json['cvDetected'] as bool? ?? false,
       cvFormSummary: json['cvFormSummary'] as Map<String, dynamic>?,
+      setType: $enumDecodeNullable(_$SetTypeEnumMap, json['setType']) ??
+          SetType.normal,
+      rpe: (json['rpe'] as num?)?.toDouble(),
+      note: json['note'] as String?,
+      supersetGroupId: json['supersetGroupId'] as String?,
+      isPr: json['isPr'] as bool? ?? false,
     );
 
 const _$SetUnitEnumMap = {
   SetUnit.reps: 'reps',
   SetUnit.seconds: 'seconds',
+};
+
+const _$SetTypeEnumMap = {
+  SetType.warmup: 'warmup',
+  SetType.normal: 'normal',
+  SetType.drop: 'drop',
+  SetType.failure: 'failure',
 };
 
 _$WorkoutSessionImpl _$$WorkoutSessionImplFromJson(Map<String, dynamic> json) =>
@@ -99,6 +112,10 @@ _$WorkoutSessionImpl _$$WorkoutSessionImplFromJson(Map<String, dynamic> json) =>
           .toList(),
       totalDurationMinutes: (json['totalDurationMinutes'] as num?)?.toInt(),
       totalVolumeKg: (json['totalVolumeKg'] as num?)?.toInt() ?? 0,
+      newPrs: (json['newPrs'] as List<dynamic>?)
+              ?.map((e) => e as Map<String, dynamic>)
+              .toList() ??
+          const [],
     );
 
 Map<String, dynamic> _$$WorkoutSessionImplToJson(
@@ -111,4 +128,5 @@ Map<String, dynamic> _$$WorkoutSessionImplToJson(
       'exerciseLogs': instance.exerciseLogs,
       'totalDurationMinutes': instance.totalDurationMinutes,
       'totalVolumeKg': instance.totalVolumeKg,
+      'newPrs': instance.newPrs,
     };

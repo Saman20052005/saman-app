@@ -608,6 +608,11 @@ mixin _$ExerciseSetLog {
   int? get restTakenSeconds => throw _privateConstructorUsedError;
   bool get cvDetected => throw _privateConstructorUsedError;
   Map<String, dynamic>? get cvFormSummary => throw _privateConstructorUsedError;
+  SetType get setType => throw _privateConstructorUsedError;
+  double? get rpe => throw _privateConstructorUsedError;
+  String? get note => throw _privateConstructorUsedError;
+  String? get supersetGroupId => throw _privateConstructorUsedError;
+  bool get isPr => throw _privateConstructorUsedError;
 
   @JsonKey(ignore: true)
   $ExerciseSetLogCopyWith<ExerciseSetLog> get copyWith =>
@@ -631,7 +636,12 @@ abstract class $ExerciseSetLogCopyWith<$Res> {
       bool isCompleted,
       int? restTakenSeconds,
       bool cvDetected,
-      Map<String, dynamic>? cvFormSummary});
+      Map<String, dynamic>? cvFormSummary,
+      SetType setType,
+      double? rpe,
+      String? note,
+      String? supersetGroupId,
+      bool isPr});
 }
 
 /// @nodoc
@@ -658,6 +668,11 @@ class _$ExerciseSetLogCopyWithImpl<$Res, $Val extends ExerciseSetLog>
     Object? restTakenSeconds = freezed,
     Object? cvDetected = null,
     Object? cvFormSummary = freezed,
+    Object? setType = null,
+    Object? rpe = freezed,
+    Object? note = freezed,
+    Object? supersetGroupId = freezed,
+    Object? isPr = null,
   }) {
     return _then(_value.copyWith(
       exerciseId: null == exerciseId
@@ -704,6 +719,26 @@ class _$ExerciseSetLogCopyWithImpl<$Res, $Val extends ExerciseSetLog>
           ? _value.cvFormSummary
           : cvFormSummary // ignore: cast_nullable_to_non_nullable
               as Map<String, dynamic>?,
+      setType: null == setType
+          ? _value.setType
+          : setType // ignore: cast_nullable_to_non_nullable
+              as SetType,
+      rpe: freezed == rpe
+          ? _value.rpe
+          : rpe // ignore: cast_nullable_to_non_nullable
+              as double?,
+      note: freezed == note
+          ? _value.note
+          : note // ignore: cast_nullable_to_non_nullable
+              as String?,
+      supersetGroupId: freezed == supersetGroupId
+          ? _value.supersetGroupId
+          : supersetGroupId // ignore: cast_nullable_to_non_nullable
+              as String?,
+      isPr: null == isPr
+          ? _value.isPr
+          : isPr // ignore: cast_nullable_to_non_nullable
+              as bool,
     ) as $Val);
   }
 }
@@ -727,7 +762,12 @@ abstract class _$$ExerciseSetLogImplCopyWith<$Res>
       bool isCompleted,
       int? restTakenSeconds,
       bool cvDetected,
-      Map<String, dynamic>? cvFormSummary});
+      Map<String, dynamic>? cvFormSummary,
+      SetType setType,
+      double? rpe,
+      String? note,
+      String? supersetGroupId,
+      bool isPr});
 }
 
 /// @nodoc
@@ -752,6 +792,11 @@ class __$$ExerciseSetLogImplCopyWithImpl<$Res>
     Object? restTakenSeconds = freezed,
     Object? cvDetected = null,
     Object? cvFormSummary = freezed,
+    Object? setType = null,
+    Object? rpe = freezed,
+    Object? note = freezed,
+    Object? supersetGroupId = freezed,
+    Object? isPr = null,
   }) {
     return _then(_$ExerciseSetLogImpl(
       exerciseId: null == exerciseId
@@ -798,6 +843,26 @@ class __$$ExerciseSetLogImplCopyWithImpl<$Res>
           ? _value._cvFormSummary
           : cvFormSummary // ignore: cast_nullable_to_non_nullable
               as Map<String, dynamic>?,
+      setType: null == setType
+          ? _value.setType
+          : setType // ignore: cast_nullable_to_non_nullable
+              as SetType,
+      rpe: freezed == rpe
+          ? _value.rpe
+          : rpe // ignore: cast_nullable_to_non_nullable
+              as double?,
+      note: freezed == note
+          ? _value.note
+          : note // ignore: cast_nullable_to_non_nullable
+              as String?,
+      supersetGroupId: freezed == supersetGroupId
+          ? _value.supersetGroupId
+          : supersetGroupId // ignore: cast_nullable_to_non_nullable
+              as String?,
+      isPr: null == isPr
+          ? _value.isPr
+          : isPr // ignore: cast_nullable_to_non_nullable
+              as bool,
     ));
   }
 }
@@ -816,7 +881,12 @@ class _$ExerciseSetLogImpl extends _ExerciseSetLog {
       this.isCompleted = false,
       this.restTakenSeconds,
       this.cvDetected = false,
-      final Map<String, dynamic>? cvFormSummary})
+      final Map<String, dynamic>? cvFormSummary,
+      this.setType = SetType.normal,
+      this.rpe,
+      this.note,
+      this.supersetGroupId,
+      this.isPr = false})
       : _cvFormSummary = cvFormSummary,
         super._();
 
@@ -856,8 +926,21 @@ class _$ExerciseSetLogImpl extends _ExerciseSetLog {
   }
 
   @override
+  @JsonKey()
+  final SetType setType;
+  @override
+  final double? rpe;
+  @override
+  final String? note;
+  @override
+  final String? supersetGroupId;
+  @override
+  @JsonKey()
+  final bool isPr;
+
+  @override
   String toString() {
-    return 'ExerciseSetLog(exerciseId: $exerciseId, exerciseSlug: $exerciseSlug, setNumber: $setNumber, repsCompleted: $repsCompleted, unit: $unit, secondsCompleted: $secondsCompleted, weightKg: $weightKg, isCompleted: $isCompleted, restTakenSeconds: $restTakenSeconds, cvDetected: $cvDetected, cvFormSummary: $cvFormSummary)';
+    return 'ExerciseSetLog(exerciseId: $exerciseId, exerciseSlug: $exerciseSlug, setNumber: $setNumber, repsCompleted: $repsCompleted, unit: $unit, secondsCompleted: $secondsCompleted, weightKg: $weightKg, isCompleted: $isCompleted, restTakenSeconds: $restTakenSeconds, cvDetected: $cvDetected, cvFormSummary: $cvFormSummary, setType: $setType, rpe: $rpe, note: $note, supersetGroupId: $supersetGroupId, isPr: $isPr)';
   }
 
   @override
@@ -885,7 +968,13 @@ class _$ExerciseSetLogImpl extends _ExerciseSetLog {
             (identical(other.cvDetected, cvDetected) ||
                 other.cvDetected == cvDetected) &&
             const DeepCollectionEquality()
-                .equals(other._cvFormSummary, _cvFormSummary));
+                .equals(other._cvFormSummary, _cvFormSummary) &&
+            (identical(other.setType, setType) || other.setType == setType) &&
+            (identical(other.rpe, rpe) || other.rpe == rpe) &&
+            (identical(other.note, note) || other.note == note) &&
+            (identical(other.supersetGroupId, supersetGroupId) ||
+                other.supersetGroupId == supersetGroupId) &&
+            (identical(other.isPr, isPr) || other.isPr == isPr));
   }
 
   @JsonKey(ignore: true)
@@ -902,7 +991,12 @@ class _$ExerciseSetLogImpl extends _ExerciseSetLog {
       isCompleted,
       restTakenSeconds,
       cvDetected,
-      const DeepCollectionEquality().hash(_cvFormSummary));
+      const DeepCollectionEquality().hash(_cvFormSummary),
+      setType,
+      rpe,
+      note,
+      supersetGroupId,
+      isPr);
 
   @JsonKey(ignore: true)
   @override
@@ -924,7 +1018,12 @@ abstract class _ExerciseSetLog extends ExerciseSetLog {
       final bool isCompleted,
       final int? restTakenSeconds,
       final bool cvDetected,
-      final Map<String, dynamic>? cvFormSummary}) = _$ExerciseSetLogImpl;
+      final Map<String, dynamic>? cvFormSummary,
+      final SetType setType,
+      final double? rpe,
+      final String? note,
+      final String? supersetGroupId,
+      final bool isPr}) = _$ExerciseSetLogImpl;
   _ExerciseSetLog._() : super._();
 
   factory _ExerciseSetLog.fromJson(Map<String, dynamic> json) =
@@ -953,6 +1052,16 @@ abstract class _ExerciseSetLog extends ExerciseSetLog {
   @override
   Map<String, dynamic>? get cvFormSummary;
   @override
+  SetType get setType;
+  @override
+  double? get rpe;
+  @override
+  String? get note;
+  @override
+  String? get supersetGroupId;
+  @override
+  bool get isPr;
+  @override
   @JsonKey(ignore: true)
   _$$ExerciseSetLogImplCopyWith<_$ExerciseSetLogImpl> get copyWith =>
       throw _privateConstructorUsedError;
@@ -971,6 +1080,7 @@ mixin _$WorkoutSession {
   List<ExerciseSetLog> get exerciseLogs => throw _privateConstructorUsedError;
   int? get totalDurationMinutes => throw _privateConstructorUsedError;
   int get totalVolumeKg => throw _privateConstructorUsedError;
+  List<Map<String, dynamic>> get newPrs => throw _privateConstructorUsedError;
 
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
   @JsonKey(ignore: true)
@@ -991,7 +1101,8 @@ abstract class $WorkoutSessionCopyWith<$Res> {
       DateTime? finishedAt,
       List<ExerciseSetLog> exerciseLogs,
       int? totalDurationMinutes,
-      int totalVolumeKg});
+      int totalVolumeKg,
+      List<Map<String, dynamic>> newPrs});
 }
 
 /// @nodoc
@@ -1014,6 +1125,7 @@ class _$WorkoutSessionCopyWithImpl<$Res, $Val extends WorkoutSession>
     Object? exerciseLogs = null,
     Object? totalDurationMinutes = freezed,
     Object? totalVolumeKg = null,
+    Object? newPrs = null,
   }) {
     return _then(_value.copyWith(
       id: null == id
@@ -1044,6 +1156,10 @@ class _$WorkoutSessionCopyWithImpl<$Res, $Val extends WorkoutSession>
           ? _value.totalVolumeKg
           : totalVolumeKg // ignore: cast_nullable_to_non_nullable
               as int,
+      newPrs: null == newPrs
+          ? _value.newPrs
+          : newPrs // ignore: cast_nullable_to_non_nullable
+              as List<Map<String, dynamic>>,
     ) as $Val);
   }
 }
@@ -1063,7 +1179,8 @@ abstract class _$$WorkoutSessionImplCopyWith<$Res>
       DateTime? finishedAt,
       List<ExerciseSetLog> exerciseLogs,
       int? totalDurationMinutes,
-      int totalVolumeKg});
+      int totalVolumeKg,
+      List<Map<String, dynamic>> newPrs});
 }
 
 /// @nodoc
@@ -1084,6 +1201,7 @@ class __$$WorkoutSessionImplCopyWithImpl<$Res>
     Object? exerciseLogs = null,
     Object? totalDurationMinutes = freezed,
     Object? totalVolumeKg = null,
+    Object? newPrs = null,
   }) {
     return _then(_$WorkoutSessionImpl(
       id: null == id
@@ -1114,6 +1232,10 @@ class __$$WorkoutSessionImplCopyWithImpl<$Res>
           ? _value.totalVolumeKg
           : totalVolumeKg // ignore: cast_nullable_to_non_nullable
               as int,
+      newPrs: null == newPrs
+          ? _value._newPrs
+          : newPrs // ignore: cast_nullable_to_non_nullable
+              as List<Map<String, dynamic>>,
     ));
   }
 }
@@ -1128,8 +1250,10 @@ class _$WorkoutSessionImpl implements _WorkoutSession {
       this.finishedAt,
       required final List<ExerciseSetLog> exerciseLogs,
       this.totalDurationMinutes,
-      this.totalVolumeKg = 0})
-      : _exerciseLogs = exerciseLogs;
+      this.totalVolumeKg = 0,
+      final List<Map<String, dynamic>> newPrs = const []})
+      : _exerciseLogs = exerciseLogs,
+        _newPrs = newPrs;
 
   factory _$WorkoutSessionImpl.fromJson(Map<String, dynamic> json) =>
       _$$WorkoutSessionImplFromJson(json);
@@ -1155,10 +1279,18 @@ class _$WorkoutSessionImpl implements _WorkoutSession {
   @override
   @JsonKey()
   final int totalVolumeKg;
+  final List<Map<String, dynamic>> _newPrs;
+  @override
+  @JsonKey()
+  List<Map<String, dynamic>> get newPrs {
+    if (_newPrs is EqualUnmodifiableListView) return _newPrs;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableListView(_newPrs);
+  }
 
   @override
   String toString() {
-    return 'WorkoutSession(id: $id, planName: $planName, startedAt: $startedAt, finishedAt: $finishedAt, exerciseLogs: $exerciseLogs, totalDurationMinutes: $totalDurationMinutes, totalVolumeKg: $totalVolumeKg)';
+    return 'WorkoutSession(id: $id, planName: $planName, startedAt: $startedAt, finishedAt: $finishedAt, exerciseLogs: $exerciseLogs, totalDurationMinutes: $totalDurationMinutes, totalVolumeKg: $totalVolumeKg, newPrs: $newPrs)';
   }
 
   @override
@@ -1178,7 +1310,8 @@ class _$WorkoutSessionImpl implements _WorkoutSession {
             (identical(other.totalDurationMinutes, totalDurationMinutes) ||
                 other.totalDurationMinutes == totalDurationMinutes) &&
             (identical(other.totalVolumeKg, totalVolumeKg) ||
-                other.totalVolumeKg == totalVolumeKg));
+                other.totalVolumeKg == totalVolumeKg) &&
+            const DeepCollectionEquality().equals(other._newPrs, _newPrs));
   }
 
   @JsonKey(ignore: true)
@@ -1191,7 +1324,8 @@ class _$WorkoutSessionImpl implements _WorkoutSession {
       finishedAt,
       const DeepCollectionEquality().hash(_exerciseLogs),
       totalDurationMinutes,
-      totalVolumeKg);
+      totalVolumeKg,
+      const DeepCollectionEquality().hash(_newPrs));
 
   @JsonKey(ignore: true)
   @override
@@ -1216,7 +1350,8 @@ abstract class _WorkoutSession implements WorkoutSession {
       final DateTime? finishedAt,
       required final List<ExerciseSetLog> exerciseLogs,
       final int? totalDurationMinutes,
-      final int totalVolumeKg}) = _$WorkoutSessionImpl;
+      final int totalVolumeKg,
+      final List<Map<String, dynamic>> newPrs}) = _$WorkoutSessionImpl;
 
   factory _WorkoutSession.fromJson(Map<String, dynamic> json) =
       _$WorkoutSessionImpl.fromJson;
@@ -1235,6 +1370,8 @@ abstract class _WorkoutSession implements WorkoutSession {
   int? get totalDurationMinutes;
   @override
   int get totalVolumeKg;
+  @override
+  List<Map<String, dynamic>> get newPrs;
   @override
   @JsonKey(ignore: true)
   _$$WorkoutSessionImplCopyWith<_$WorkoutSessionImpl> get copyWith =>

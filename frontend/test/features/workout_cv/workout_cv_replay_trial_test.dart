@@ -21,12 +21,14 @@ class _RecordingNotifier extends WorkoutCvNotifier {
     required String exerciseId,
     required String exerciseSlug,
     bool videoReplay = false,
+    String? videoPath,
   }) {
     replayEntries.add(videoReplay);
     return super.initialize(
       exerciseId: exerciseId,
       exerciseSlug: exerciseSlug,
       videoReplay: videoReplay,
+      videoPath: videoPath,
     );
   }
 
@@ -93,7 +95,7 @@ void main() {
         expect(notifier.replayEntries, isEmpty);
         expect(source.startSessionCalled, isFalse);
         expect(source.startVideoReplayCalled, isFalse);
-        expect(find.textContaining('Web/iOS chưa có replay'), findsOneWidget);
+        expect(find.textContaining('Web/iOS does not bundle demo replay landmarks'), findsOneWidget);
         tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
         await tester.pumpAndSettle();
         tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
@@ -113,7 +115,7 @@ void main() {
       expect(source.startSessionCalled, !replayExpected);
       expect(find.byKey(const ValueKey('workout_cv_switch_replay_button')),
           replayExpected ? findsOneWidget : findsNothing);
-      expect(find.text('Chạy lại'),
+      expect(find.text('Replay'),
           replayExpected ? findsOneWidget : findsNothing);
 
       tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);

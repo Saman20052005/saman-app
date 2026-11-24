@@ -21,6 +21,8 @@ enum PullUpPhase {
 
 /// A completed rep event emitted when returning to the extended position.
 class PullUpRepEvent extends LatPulldownRepEvent {
+  final bool? isChinCleared;
+
   const PullUpRepEvent({
     required super.repNumber,
     required super.startTimestampMs,
@@ -29,6 +31,7 @@ class PullUpRepEvent extends LatPulldownRepEvent {
     required super.durationMs,
     required super.minElbowAngleDeg,
     super.status = 'PROVISIONAL',
+    this.isChinCleared,
   });
 }
 
@@ -60,15 +63,23 @@ class PullUpBaselineConfig {
   /// Maximum allowed duration (ms) of invalid samples or gap before in-progress cycle is aborted.
   final int maxAllowedGapMs;
 
+  /// Whether wrists must be above shoulders to enter/stay in extended dead-hang state.
+  final bool requireWristAboveShoulder;
+
+  /// Whether reaching top/bar-clearance position is required to transition pulling -> flexed.
+  final bool requireTopPositionForFlexed;
+
   const PullUpBaselineConfig({
-    this.extendedEnterDeg = 110.0,
+    this.extendedEnterDeg = 115.0,
     this.pullingEnterDeg = 100.0,
-    this.flexedEnterDeg = 60.0,
-    this.returningEnterDeg = 75.0,
+    this.flexedEnterDeg = 65.0,
+    this.returningEnterDeg = 80.0,
     this.minReadyHoldMs = 200,
     this.minExtendedHoldMs = 150,
-    this.minRepDurationMs = 800,
+    this.minRepDurationMs = 900,
     this.maxAllowedGapMs = 500,
+    this.requireWristAboveShoulder = true,
+    this.requireTopPositionForFlexed = true,
   });
 }
 
@@ -106,7 +117,7 @@ class PullUpBaselineFrameResult {
 /// Pure Dart causal rule-based state machine for Pull-up repetition counting.
 ///
 /// Operates strictly forward in time (no lookahead, no future frames, no offline smoothing).
-/// Fixed to Model Left elbow angle (Model IDs 11-13-15).
+/// Automatically selects the highest-visibility side's elbow angle.
 class PullUpBaseline {
   final PullUpBaselineConfig config;
 
@@ -122,6 +133,8 @@ class PullUpBaseline {
   int? _repStartTimestampMs;
   int? _bottomReachedTimestampMs;
   double _minElbowAngleInCurrentRep = 180.0;
+  bool? _anyChinClearedInRep;
+  bool _reachedFlexedAngleWithoutTop = false;
   int _droppedNonMonotonicFrames = 0;
 
   PullUpBaseline({PullUpBaselineConfig? config})
@@ -144,17 +157,17 @@ class PullUpBaseline {
     _repStartTimestampMs = null;
     _bottomReachedTimestampMs = null;
     _minElbowAngleInCurrentRep = 180.0;
+    _anyChinClearedInRep = null;
+    _reachedFlexedAngleWithoutTop = false;
     _droppedNonMonotonicFrames = 0;
   }
 
-  /// Processes a [LatPulldownFrameFeatures] container extracted by [WorkoutCvMotionFeatures].
-  ///
-  /// Uses Model Left elbow angle (IDs 11-13-15) as primary kinematic signal.
-  PullUpBaselineFrameResult processFrameFeatures(
-      LatPulldownFrameFeatures features) {
-    final leftSide = features.leftSide;
-    final isAngleValid = leftSide.elbowAngleDeg.isValid;
-    final angle = isAngleValid ? leftSide.elbowAngleDeg.value : null;
+  /// Processes a [PullUpFrameFeatures] container extracted by [WorkoutCvMotionFeatures].
+  PullUpBaselineFrameResult processPullUpFeatures(
+      PullUpFrameFeatures features) {
+    final bestAngle = features.bestElbowAngleDeg;
+    final isAngleValid = bestAngle.isValid;
+    final angle = isAngleValid ? bestAngle.value : null;
 
     return processSample(
       frameIndex: features.frameIndex,
@@ -162,6 +175,33 @@ class PullUpBaseline {
       elbowAngleDeg: angle,
       isSampleValid: isAngleValid && features.isGateDetecting,
       isGateDetecting: features.isGateDetecting,
+      isWristAboveShoulder: features.isWristAboveShoulder,
+      isTopPositionReached: features.isTopPositionReached,
+      isChinCleared: features.isChinCleared,
+    );
+  }
+
+  /// Processes a [LatPulldownFrameFeatures] container extracted by [WorkoutCvMotionFeatures].
+  ///
+  /// Uses the highest-visibility side's elbow angle (`features.bestElbowAngleDeg`)
+  /// as primary kinematic signal.
+  PullUpBaselineFrameResult processFrameFeatures(
+      LatPulldownFrameFeatures features) {
+    final bestAngle = features.bestElbowAngleDeg;
+    final isAngleValid = bestAngle.isValid;
+    final angle = isAngleValid ? bestAngle.value : null;
+    final wristRelY = features.bestSide.wristRelY;
+    final wristAboveShoulder =
+        wristRelY.isValid ? (wristRelY.value! < 0.0) : true;
+
+    return processSample(
+      frameIndex: features.frameIndex,
+      timestampMs: features.timestampMs,
+      elbowAngleDeg: angle,
+      isSampleValid: isAngleValid && features.isGateDetecting,
+      isGateDetecting: features.isGateDetecting,
+      isWristAboveShoulder: wristAboveShoulder,
+      isTopPositionReached: true,
     );
   }
 
@@ -172,6 +212,9 @@ class PullUpBaseline {
     double? elbowAngleDeg,
     required bool isSampleValid,
     bool isGateDetecting = true,
+    bool isWristAboveShoulder = true,
+    bool isTopPositionReached = true,
+    bool? isChinCleared,
   }) {
     // 1. Guard against non-monotonic timestamps (clock jitter or corrupted stream)
     if (_lastTimestampMs != null && timestampMs <= _lastTimestampMs!) {
@@ -240,19 +283,27 @@ class PullUpBaseline {
     }
 
     // Check gap since last valid sample even if this sample is valid
+    String? gapResetReason;
     if (_lastValidTimestampMs != null &&
         (timestampMs - _lastValidTimestampMs!) > config.maxAllowedGapMs) {
+      if (_phase != PullUpPhase.notReady) {
+        gapResetReason = 'dataLossGapBeforeValidSample';
+      }
       _abortInProgressCycle('dataLossGapBeforeValidSample');
     }
     _lastValidTimestampMs = timestampMs;
 
     String? transitionReason;
     PullUpRepEvent? newRepEvent;
+    final bool wristReady =
+        !config.requireWristAboveShoulder || isWristAboveShoulder;
+    final bool topReady =
+        !config.requireTopPositionForFlexed || isTopPositionReached;
 
     // 3. Causal FSM State Transitions
     switch (_phase) {
       case PullUpPhase.notReady:
-        if (elbowAngleDeg >= config.extendedEnterDeg) {
+        if (elbowAngleDeg >= config.extendedEnterDeg && wristReady) {
           _readyCandidateStartMs ??= timestampMs;
           if ((timestampMs - _readyCandidateStartMs!) >=
               config.minReadyHoldMs) {
@@ -260,6 +311,8 @@ class PullUpBaseline {
             transitionReason = 'readyHoldSatisfied';
             _readyCandidateStartMs = null;
             _repStartTimestampMs = null;
+            _anyChinClearedInRep = null;
+            _reachedFlexedAngleWithoutTop = false;
           }
         } else {
           _readyCandidateStartMs = null;
@@ -267,13 +320,23 @@ class PullUpBaseline {
         break;
 
       case PullUpPhase.extended:
-        if (elbowAngleDeg < config.pullingEnterDeg) {
+        if (config.requireWristAboveShoulder && !isWristAboveShoulder) {
+          _phase = PullUpPhase.notReady;
+          transitionReason = 'droppedFromBar';
+          _readyCandidateStartMs = null;
+          _extendedCandidateStartMs = null;
+          _repStartTimestampMs = null;
+          _anyChinClearedInRep = null;
+          _reachedFlexedAngleWithoutTop = false;
+        } else if (elbowAngleDeg < config.pullingEnterDeg) {
           _phase = PullUpPhase.pulling;
           transitionReason = 'pullingStarted';
           _repStartTimestampMs = timestampMs;
           _bottomReachedTimestampMs = null;
           _extendedCandidateStartMs = null;
           _minElbowAngleInCurrentRep = elbowAngleDeg;
+          _anyChinClearedInRep = null;
+          _reachedFlexedAngleWithoutTop = false;
         }
         break;
 
@@ -281,16 +344,29 @@ class PullUpBaseline {
         if (elbowAngleDeg < _minElbowAngleInCurrentRep) {
           _minElbowAngleInCurrentRep = elbowAngleDeg;
         }
+        if (isTopPositionReached || elbowAngleDeg <= config.flexedEnterDeg) {
+          _updateChinCleared(isChinCleared);
+        }
 
-        if (elbowAngleDeg <= config.flexedEnterDeg) {
+        if (elbowAngleDeg <= config.flexedEnterDeg && topReady) {
           _phase = PullUpPhase.flexed;
           transitionReason = 'flexedReached';
           _bottomReachedTimestampMs = timestampMs;
-        } else if (elbowAngleDeg >= config.pullingEnterDeg) {
-          // Aborted pull before reaching flexed: return to extended without counting rep
-          _phase = PullUpPhase.extended;
-          transitionReason = 'incompletePullReturnedToExtended';
-          _repStartTimestampMs = null;
+          _reachedFlexedAngleWithoutTop = false;
+        } else {
+          if (elbowAngleDeg <= config.flexedEnterDeg && !topReady) {
+            _reachedFlexedAngleWithoutTop = true;
+          }
+          if (elbowAngleDeg >= config.pullingEnterDeg) {
+            // Aborted pull before reaching flexed/top: return to extended without counting rep
+            _phase = PullUpPhase.extended;
+            transitionReason = _reachedFlexedAngleWithoutTop
+                ? 'incompletePullChinNotCleared'
+                : 'incompletePullReturnedToExtended';
+            _repStartTimestampMs = null;
+            _anyChinClearedInRep = null;
+            _reachedFlexedAngleWithoutTop = false;
+          }
         }
         break;
 
@@ -299,6 +375,7 @@ class PullUpBaseline {
           _minElbowAngleInCurrentRep = elbowAngleDeg;
           _bottomReachedTimestampMs = timestampMs;
         }
+        _updateChinCleared(isChinCleared);
 
         if (elbowAngleDeg > config.returningEnterDeg) {
           _phase = PullUpPhase.returning;
@@ -308,12 +385,13 @@ class PullUpBaseline {
         break;
 
       case PullUpPhase.returning:
-        if (elbowAngleDeg <= config.flexedEnterDeg) {
+        if (elbowAngleDeg <= config.flexedEnterDeg && topReady) {
           // Dip back into flexed zone
           _phase = PullUpPhase.flexed;
           transitionReason = 'reFlexedDuringReturn';
           _extendedCandidateStartMs = null;
-        } else if (elbowAngleDeg >= config.extendedEnterDeg) {
+          _updateChinCleared(isChinCleared);
+        } else if (elbowAngleDeg >= config.extendedEnterDeg && wristReady) {
           _extendedCandidateStartMs ??= timestampMs;
           if ((timestampMs - _extendedCandidateStartMs!) >=
               config.minExtendedHoldMs) {
@@ -331,6 +409,7 @@ class PullUpBaseline {
                 durationMs: duration,
                 minElbowAngleDeg: _minElbowAngleInCurrentRep,
                 status: 'PROVISIONAL',
+                isChinCleared: _anyChinClearedInRep,
               );
               _repHistory.add(newRepEvent);
               transitionReason = 'repCompleted';
@@ -343,9 +422,11 @@ class PullUpBaseline {
             _bottomReachedTimestampMs = null;
             _extendedCandidateStartMs = null;
             _minElbowAngleInCurrentRep = 180.0;
+            _anyChinClearedInRep = null;
+            _reachedFlexedAngleWithoutTop = false;
           }
         } else {
-          // Dropped below extendedEnterDeg while waiting for hold duration
+          // Dropped below extendedEnterDeg or wrist dropped below shoulder while waiting for hold duration
           _extendedCandidateStartMs = null;
         }
         break;
@@ -360,7 +441,14 @@ class PullUpBaseline {
       elbowAngleDeg: elbowAngleDeg,
       isSampleValid: true,
       transitionReason: transitionReason,
+      resetReason: gapResetReason,
     );
+  }
+
+  void _updateChinCleared(bool? isChinCleared) {
+    if (isChinCleared == null) return;
+    if (_anyChinClearedInRep == true) return;
+    _anyChinClearedInRep = isChinCleared;
   }
 
   void _abortInProgressCycle(String reason) {
@@ -372,5 +460,7 @@ class PullUpBaseline {
     _repStartTimestampMs = null;
     _bottomReachedTimestampMs = null;
     _minElbowAngleInCurrentRep = 180.0;
+    _anyChinClearedInRep = null;
+    _reachedFlexedAngleWithoutTop = false;
   }
 }

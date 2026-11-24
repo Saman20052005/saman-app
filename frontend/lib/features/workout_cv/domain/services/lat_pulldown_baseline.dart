@@ -122,7 +122,7 @@ class LatPulldownBaselineFrameResult {
 /// Pure Dart causal rule-based state machine for Lat Pulldown repetition counting.
 ///
 /// Operates strictly forward in time (no lookahead, no future frames, no offline smoothing).
-/// Fixed to Model Left elbow angle (Model IDs 11-13-15) for Clip 2 evaluation.
+/// Automatically selects the highest-visibility side's elbow angle.
 class LatPulldownBaseline {
   final LatPulldownBaselineConfig config;
 
@@ -165,12 +165,12 @@ class LatPulldownBaseline {
 
   /// Processes a [LatPulldownFrameFeatures] container extracted by [WorkoutCvMotionFeatures].
   ///
-  /// Uses Model Left elbow angle (IDs 11-13-15) as primary kinematic signal.
+  /// Uses the highest-visibility side's elbow angle (`features.bestElbowAngleDeg`) as primary kinematic signal.
   LatPulldownBaselineFrameResult processFrameFeatures(
       LatPulldownFrameFeatures features) {
-    final leftSide = features.leftSide;
-    final isAngleValid = leftSide.elbowAngleDeg.isValid;
-    final angle = isAngleValid ? leftSide.elbowAngleDeg.value : null;
+    final bestAngle = features.bestElbowAngleDeg;
+    final isAngleValid = bestAngle.isValid;
+    final angle = isAngleValid ? bestAngle.value : null;
 
     return processSample(
       frameIndex: features.frameIndex,

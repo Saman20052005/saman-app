@@ -9,6 +9,7 @@ import 'my_plans_screen.dart';
 import 'workout_history_screen.dart';
 import 'active_workout_screen.dart';
 import '../providers/active_workout_providers.dart';
+import '../widgets/muscle_recovery_card.dart';
 import '../../features/membership/domain/models/membership_plan.dart';
 import '../../features/membership/presentation/screens/plan_detail_screen.dart';
 import '../../features/membership/presentation/widgets/upgrade_bottom_sheet.dart';
@@ -72,6 +73,11 @@ class _WorkoutHomeScreenState extends ConsumerState<WorkoutHomeScreen> {
     ));
   }
 
+  bool _isVi(BuildContext context) {
+    final locale = Localizations.maybeLocaleOf(context) ?? const Locale('en');
+    return locale.languageCode == 'vi';
+  }
+
   Future<void> _handleQuickStart() async {
     final exercise = await Navigator.of(context).push<Exercise>(
       MaterialPageRoute(
@@ -81,10 +87,11 @@ class _WorkoutHomeScreenState extends ConsumerState<WorkoutHomeScreen> {
               )),
     );
     if (!mounted || exercise == null) return;
+    final quickTitle = _isVi(context) ? 'Bắt đầu nhanh' : 'Quick Start';
     Navigator.of(context).push(MaterialPageRoute(
       builder: (_) => ActiveWorkoutScreen.fromExercises(
         exercises: [exercise],
-        title: 'Quick Start',
+        title: quickTitle,
       ),
     ));
   }
@@ -165,8 +172,13 @@ class _WorkoutHomeScreenState extends ConsumerState<WorkoutHomeScreen> {
                       onPressed: () {
                         ref.read(mainNavIndexProvider.notifier).state = 4;
                         ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Vui lòng cập nhật Profile'),
+                          SnackBar(
+                            content: Text(
+                              _isVi(context)
+                                  ? 'Vui lòng cập nhật Profile'
+                                  : 'Please update your Profile',
+                              style: const TextStyle(fontFamily: 'Manrope'),
+                            ),
                           ),
                         );
                       },
@@ -231,6 +243,10 @@ class _WorkoutHomeScreenState extends ConsumerState<WorkoutHomeScreen> {
               _buildScheduledSessionHero(scheduled, t),
               const SizedBox(height: SamanWorkoutTokens.spacingLg),
 
+              // 2.5 Muscle Recovery Card
+              const MuscleRecoveryCard(),
+              const SizedBox(height: SamanWorkoutTokens.spacingLg),
+
               // 3. Quick Action Row
               _buildQuickActionRow(t),
               const SizedBox(height: SamanWorkoutTokens.spacingXl),
@@ -267,6 +283,7 @@ class _WorkoutHomeScreenState extends ConsumerState<WorkoutHomeScreen> {
                   Text(
                     context.tr('workout_title'),
                     style: TextStyle(
+                      fontFamily: 'Manrope',
                       color: t.textPrimary,
                       fontSize: 28,
                       fontWeight: FontWeight.w700,
@@ -277,6 +294,7 @@ class _WorkoutHomeScreenState extends ConsumerState<WorkoutHomeScreen> {
                   Text(
                     context.tr('workout_home_subtitle'),
                     style: TextStyle(
+                      fontFamily: 'Manrope',
                       color: t.textSecondary,
                       fontSize: 12,
                     ),
@@ -364,8 +382,9 @@ class _WorkoutHomeScreenState extends ConsumerState<WorkoutHomeScreen> {
                       ),
                     ),
                     TextSpan(
-                      text: ' · PREVIEW',
+                      text: _isVi(context) ? ' · XEM TRƯỚC' : ' · PREVIEW',
                       style: TextStyle(
+                        fontFamily: 'Manrope',
                         color: t.textSecondary,
                         fontSize: 11,
                         fontWeight: FontWeight.w600,
@@ -523,6 +542,7 @@ class _WorkoutHomeScreenState extends ConsumerState<WorkoutHomeScreen> {
                     Text(
                       session.title,
                       style: const TextStyle(
+                        fontFamily: 'Manrope',
                         color: SamanWorkoutTokens.textPrimary,
                         fontSize: 24,
                         fontWeight: FontWeight.w700,
@@ -538,8 +558,11 @@ class _WorkoutHomeScreenState extends ConsumerState<WorkoutHomeScreen> {
                             size: 16, color: SamanWorkoutTokens.textSub),
                         const SizedBox(width: 4),
                         Text(
-                          '${session.durationMinutes} min',
+                          _isVi(context)
+                              ? '${session.durationMinutes} phút'
+                              : '${session.durationMinutes} min',
                           style: const TextStyle(
+                            fontFamily: 'Manrope',
                             color: SamanWorkoutTokens.textPrimary,
                             fontSize: 13,
                             fontWeight: FontWeight.w500,
@@ -554,8 +577,11 @@ class _WorkoutHomeScreenState extends ConsumerState<WorkoutHomeScreen> {
                             size: 16, color: SamanWorkoutTokens.textSub),
                         const SizedBox(width: 4),
                         Text(
-                          '${session.exerciseCount} exercises',
+                          _isVi(context)
+                              ? '${session.exerciseCount} bài tập'
+                              : '${session.exerciseCount} ${session.exerciseCount == 1 ? 'exercise' : 'exercises'}',
                           style: const TextStyle(
+                            fontFamily: 'Manrope',
                             color: SamanWorkoutTokens.textPrimary,
                             fontSize: 13,
                             fontWeight: FontWeight.w500,
@@ -811,8 +837,10 @@ class _WorkoutHomeScreenState extends ConsumerState<WorkoutHomeScreen> {
             // Upper Body Card
             Expanded(
               child: _FocusCategoryCard(
-                title: 'Upper Body',
-                subtitle: 'Chest, Back, Arms',
+                title: _isVi(context) ? 'Thân trên' : 'Upper Body',
+                subtitle: _isVi(context)
+                    ? 'Ngực, Lưng, Tay'
+                    : 'Chest, Back, Arms',
                 imageUrl:
                     'https://lh3.googleusercontent.com/aida-public/AB6AXuCcanzIWbwr1wbgiYXZhgMavpn31gfEXKJTTVhG3mquc-uBH5EnvXNlZEn2tvJa2509Y8AAV8q2yKYpkns0qwUEZVDus2qc9VFylQ516_Hq1Mjl3KEiDeoevmknk51V83Mnpg6vtV74d533hkcOjlve55QtOPZXnvoFLwuQHbrJ-ZrJ1yV7bhiMrP4NA4ZRiUfuZaL7PA4zC5YPbomD8A-Ex10M9ou1Vzeei3-VoXwV4ZfCgbyY7Cd1',
                 onTap: () => _navigateToLibrary('Upper Body'),
@@ -823,8 +851,10 @@ class _WorkoutHomeScreenState extends ConsumerState<WorkoutHomeScreen> {
             // Lower Body Card
             Expanded(
               child: _FocusCategoryCard(
-                title: 'Lower Body',
-                subtitle: 'Quads, Glutes, Legs',
+                title: _isVi(context) ? 'Thân dưới' : 'Lower Body',
+                subtitle: _isVi(context)
+                    ? 'Đùi trước, Mông, Chân'
+                    : 'Quads, Glutes, Legs',
                 imageUrl:
                     'https://lh3.googleusercontent.com/aida-public/AB6AXuDrTlcWy4Im6QZihMwXHDm8qtDNHF9aIfXlkMfDMPbeSt3SEKpZcylKb8fHhO-FC5-uhmsT1lkJ5MspMUMssZKfj30ijhcVK7-Hg442bihGVzYUXiUotr-0XXGOUVx8VgQwldxSdTC3AminLzNQoU7ADaat_E3-9J15gY6qjXK6Pdui0DpighlW3JIihc7bFOOPWbs4T_LencKQ4KVQ_EBli7Xb9AEe0uh-ps9srVpebEFbeu-xJUFB',
                 onTap: () => _navigateToLibrary('Lower Body'),

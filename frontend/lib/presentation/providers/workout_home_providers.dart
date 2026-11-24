@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../config/app_translations.dart';
 import '../../data/models/exercise.dart';
 import 'exercise_providers.dart';
 import 'workout_history_providers.dart';
@@ -80,34 +81,38 @@ class RecentWorkoutSummary {
 
 /// Illustrative scheduled workout session provided via Riverpod
 final scheduledWorkoutProvider = Provider<ScheduledSessionInfo>((ref) {
-  return const ScheduledSessionInfo(
-    protocol: 'Upper Body Protocol',
-    title: 'Upper Body Strength',
+  final locale = ref.watch(languageProvider);
+  final isVi = locale.languageCode == 'vi';
+  return ScheduledSessionInfo(
+    protocol: isVi ? 'Giáo án Thân trên' : 'Upper Body Protocol',
+    title: isVi ? 'Sức mạnh Thân trên' : 'Upper Body Strength',
     durationMinutes: 50,
     exerciseCount: 5,
     imageUrl:
         'https://lh3.googleusercontent.com/aida-public/AB6AXuBgWvtzvWGeJfEEROJJeouakHsiO-tUOGhvcow8DiMS33mS03q7PVqlt6q-foe7bz7-Rp2AybLJM2ODNEeAajirmXdGgREKng-sy-3XrS0N78Cjd9dGR9qTQ2zusfsBEFLHiZFL3r0aMxrwNtyLdxbTf1QXbc7j_l-d4wDbA_MJ7J1q72jnieVdQg-blP8l-w6kDsaTCqxGhKCkFnfyyD1TXKUcxg3gyCmM-nouFckNoo2jDR-KOW6H',
-    status: 'Planned',
+    status: isVi ? 'Đã lên lịch' : 'Planned',
   );
 });
 
 /// Illustrative upcoming plan horizon provided via Riverpod
 final upcomingPlansProvider = Provider<List<UpcomingPlanSession>>((ref) {
-  return const [
+  final locale = ref.watch(languageProvider);
+  final isVi = locale.languageCode == 'vi';
+  return [
     UpcomingPlanSession(
-      dayName: 'Wed',
+      dayName: isVi ? 'T4' : 'Wed',
       dayNumber: '25',
-      title: 'Lower Body Strength',
-      metrics: '45 min · 5 exercises',
-      badge: 'Planned',
+      title: isVi ? 'Sức mạnh Thân dưới' : 'Lower Body Strength',
+      metrics: isVi ? '45 phút · 5 bài tập' : '45 min · 5 exercises',
+      badge: isVi ? 'Đã lên lịch' : 'Planned',
       isRest: false,
     ),
     UpcomingPlanSession(
-      dayName: 'Thu',
+      dayName: isVi ? 'T5' : 'Thu',
       dayNumber: '26',
-      title: 'Active Recovery',
-      metrics: '25 min flow · Mobility',
-      badge: 'Rest & Flow',
+      title: isVi ? 'Phục hồi chủ động' : 'Active Recovery',
+      metrics: isVi ? '25 phút giãn cơ · Linh hoạt' : '25 min flow · Mobility',
+      badge: isVi ? 'Nghỉ & Phục hồi' : 'Rest & Flow',
       isRest: true,
     ),
   ];
@@ -117,6 +122,8 @@ final upcomingPlansProvider = Provider<List<UpcomingPlanSession>>((ref) {
 /// Only saved sessions with finishedAt are considered completed history.
 final recentWorkoutSummaryProvider = Provider<RecentWorkoutSummary?>((ref) {
   final historyAsync = ref.watch(workoutHistoryProvider);
+  final locale = ref.watch(languageProvider);
+  final isVi = locale.languageCode == 'vi';
   return historyAsync.maybeWhen(
     data: (sessions) {
       final completed = sessions.where((s) => s.finishedAt != null).toList();
@@ -130,11 +137,13 @@ final recentWorkoutSummaryProvider = Provider<RecentWorkoutSummary?>((ref) {
       final diff = now.difference(finished);
       String relativeTime;
       if (diff.inDays == 0 && now.day == finished.day) {
-        relativeTime = 'Today';
+        relativeTime = isVi ? 'Hôm nay' : 'Today';
       } else if (diff.inDays <= 1) {
-        relativeTime = 'Yesterday';
+        relativeTime = isVi ? 'Hôm qua' : 'Yesterday';
       } else {
-        relativeTime = '${diff.inDays} days ago';
+        relativeTime = isVi
+            ? '${diff.inDays} ngày trước'
+            : '${diff.inDays} ${diff.inDays == 1 ? 'day' : 'days'} ago';
       }
 
       final duration = latest.totalDurationMinutes ??
@@ -147,11 +156,17 @@ final recentWorkoutSummaryProvider = Provider<RecentWorkoutSummary?>((ref) {
           .toSet()
           .length;
       final count = exerciseCount > 0 ? exerciseCount : latest.exerciseLogs.length;
+      final unitMin = isVi ? 'phút' : 'min';
+      final unitEx = isVi
+          ? 'bài tập'
+          : (count == 1 ? 'exercise' : 'exercises');
 
       return RecentWorkoutSummary(
-        title: latest.planName.isNotEmpty ? latest.planName : 'Workout Session',
+        title: latest.planName.isNotEmpty
+            ? latest.planName
+            : (isVi ? 'Buổi tập' : 'Workout Session'),
         relativeTime: relativeTime,
-        metrics: '$duration min • $count exercises',
+        metrics: '$duration $unitMin • $count $unitEx',
       );
     },
     orElse: () => null,

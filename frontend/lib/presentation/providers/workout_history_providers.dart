@@ -6,6 +6,7 @@ import '../../data/repositories/exercise_repository.dart';
 import '../../data/repositories/exercise_repository_impl.dart';
 import '../../services/api_client.dart';
 import 'active_workout_providers.dart';
+import 'muscle_recovery_provider.dart';
 
 import '../../controllers/chat_controller.dart';
 import '../../providers/nutrition_provider.dart';
@@ -81,6 +82,15 @@ class ActiveSessionSaver extends _$ActiveSessionSaver {
             isCompleted: true,
             cvDetected: exercise.cvFormSummary != null,
             cvFormSummary: exercise.cvFormSummary,
+            setType: set.setType,
+            rpe: set.rpe,
+            note: (set.note != null && set.note!.trim().isNotEmpty)
+                ? set.note!.trim()
+                : (exercise.note.trim().isNotEmpty
+                    ? exercise.note.trim()
+                    : null),
+            supersetGroupId: set.supersetGroupId ?? exercise.supersetGroupId,
+            isPr: set.isPr,
           ),
     ];
     final draft = WorkoutSession(
@@ -137,6 +147,7 @@ class ActiveSessionSaver extends _$ActiveSessionSaver {
           _saveStatus = SessionSaveStatus.saved;
           state = const AsyncValue.data(null);
           ref.invalidate(workoutHistoryProvider);
+          ref.invalidate(muscleRecoveryProvider);
           await _syncNutritionAndDailyBrief();
           return true;
         } else {
@@ -161,6 +172,7 @@ class ActiveSessionSaver extends _$ActiveSessionSaver {
     _saveStatus = SessionSaveStatus.saved;
     state = const AsyncValue.data(null);
     ref.invalidate(workoutHistoryProvider);
+    ref.invalidate(muscleRecoveryProvider);
     await _syncNutritionAndDailyBrief();
     return true;
   }

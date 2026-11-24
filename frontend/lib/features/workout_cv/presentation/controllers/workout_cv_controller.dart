@@ -6,11 +6,18 @@ import '../../data/datasources/workout_cv_native_source.dart';
 import '../../domain/entities/exercise_cv_state.dart';
 import '../../domain/entities/pose_landmark.dart';
 import '../../domain/services/bicep_curl_baseline.dart';
+import '../../domain/services/face_pull_baseline.dart';
+import '../../domain/services/hip_hinge_baseline.dart';
 import '../../domain/services/lat_pulldown_baseline.dart';
+import '../../domain/services/lateral_raise_baseline.dart';
+import '../../domain/services/leg_machine_baseline.dart';
 import '../../domain/services/overhead_press_baseline.dart';
+import '../../domain/services/plank_hold_baseline.dart';
 import '../../domain/services/pull_up_baseline.dart';
 import '../../domain/services/push_up_baseline.dart';
+import '../../domain/services/row_baseline.dart';
 import '../../domain/services/squat_baseline.dart';
+import '../../domain/services/tricep_extension_baseline.dart';
 import '../../domain/services/workout_cv_exercise_registry.dart';
 import '../../domain/services/workout_cv_motion_features.dart';
 
@@ -59,6 +66,7 @@ class WorkoutCvNotifier extends StateNotifier<ExerciseCvState> {
         id: exerciseId,
         slug: exerciseSlug,
       ),
+      slug: exerciseSlug.isNotEmpty ? exerciseSlug : exerciseId,
     );
     _resetRepAnalysis();
 
@@ -496,9 +504,13 @@ class WorkoutCvNotifier extends StateNotifier<ExerciseCvState> {
         trackingStatus: TrackingStatus.needsSetup,
         posesDetected: 1,
         landmarks: parsedLandmarks,
-        guideMessage: module == CvExerciseModule.squat
+        guideMessage: (module == CvExerciseModule.squat ||
+                module == CvExerciseModule.legExtension ||
+                module == CvExerciseModule.legCurl)
             ? 'Align lower body (hips, knees, ankles) inside frame.'
-            : 'Align upper body (shoulders, arms, hips) inside frame.',
+            : (module == CvExerciseModule.plankHold
+                ? 'Align full body (shoulders, hips, ankles) inside frame.'
+                : 'Align upper body (shoulders, arms, hips) inside frame.'),
         latencyMs: latency,
         timestamp: timestamp,
         frameCount: newFrameCount,
@@ -589,8 +601,91 @@ class WorkoutCvNotifier extends StateNotifier<ExerciseCvState> {
 
     // Invalid/lost samples must reach the baseline to interrupt holds/cycles.
     final dynamic result;
-    if (module == CvExerciseModule.latPulldown ||
-        module == CvExerciseModule.pullUp) {
+    if (module == CvExerciseModule.pullUp) {
+      final features = WorkoutCvMotionFeatures.extractPullUpFeatures(
+        frameIndex: state.frameCount - 1,
+        timestampMs: ptsMs,
+        landmarks: state.landmarks,
+        imageWidth: imageWidth,
+        imageHeight: imageHeight,
+        isGateDetecting: isGateDetecting,
+      );
+      result = (_repTracker as PullUpBaseline).processPullUpFeatures(features);
+    } else if (module == CvExerciseModule.squat) {
+      final features = WorkoutCvMotionFeatures.extractSquatFeatures(
+        frameIndex: state.frameCount - 1,
+        timestampMs: ptsMs,
+        landmarks: state.landmarks,
+        imageWidth: imageWidth,
+        imageHeight: imageHeight,
+        isGateDetecting: isGateDetecting,
+      );
+      result = (_repTracker as SquatBaseline).processSquatFeatures(features);
+    } else if (module == CvExerciseModule.pushUp) {
+      final features = WorkoutCvMotionFeatures.extractPushUpFeatures(
+        frameIndex: state.frameCount - 1,
+        timestampMs: ptsMs,
+        landmarks: state.landmarks,
+        imageWidth: imageWidth,
+        imageHeight: imageHeight,
+        isGateDetecting: isGateDetecting,
+      );
+      result = (_repTracker as PushUpBaseline).processPushUpFeatures(features);
+    } else if (module == CvExerciseModule.overheadPress) {
+      final features = WorkoutCvMotionFeatures.extractOverheadPressFeatures(
+        frameIndex: state.frameCount - 1,
+        timestampMs: ptsMs,
+        landmarks: state.landmarks,
+        imageWidth: imageWidth,
+        imageHeight: imageHeight,
+        isGateDetecting: isGateDetecting,
+      );
+      result = (_repTracker as OverheadPressBaseline)
+          .processOverheadPressFeatures(features);
+    } else if (module == CvExerciseModule.bicepCurl) {
+      final features = WorkoutCvMotionFeatures.extractBicepCurlFeatures(
+        frameIndex: state.frameCount - 1,
+        timestampMs: ptsMs,
+        landmarks: state.landmarks,
+        imageWidth: imageWidth,
+        imageHeight: imageHeight,
+        isGateDetecting: isGateDetecting,
+      );
+      result = (_repTracker as BicepCurlBaseline)
+          .processBicepCurlFeatures(features);
+    } else if (module == CvExerciseModule.plankHold) {
+      final features = WorkoutCvMotionFeatures.extractPlankHoldFeatures(
+        frameIndex: state.frameCount - 1,
+        timestampMs: ptsMs,
+        landmarks: state.landmarks,
+        imageWidth: imageWidth,
+        imageHeight: imageHeight,
+        isGateDetecting: isGateDetecting,
+      );
+      result = (_repTracker as PlankHoldBaseline)
+          .processPlankHoldFeatures(features);
+    } else if (module == CvExerciseModule.row) {
+      final features = WorkoutCvMotionFeatures.extractRowFeatures(
+        frameIndex: state.frameCount - 1,
+        timestampMs: ptsMs,
+        landmarks: state.landmarks,
+        imageWidth: imageWidth,
+        imageHeight: imageHeight,
+        isGateDetecting: isGateDetecting,
+      );
+      result = (_repTracker as RowBaseline).processRowFeatures(features);
+    } else if (module == CvExerciseModule.facePull) {
+      final features = WorkoutCvMotionFeatures.extractFacePullFeatures(
+        frameIndex: state.frameCount - 1,
+        timestampMs: ptsMs,
+        landmarks: state.landmarks,
+        imageWidth: imageWidth,
+        imageHeight: imageHeight,
+        isGateDetecting: isGateDetecting,
+      );
+      result = (_repTracker as FacePullBaseline)
+          .processFacePullFeatures(features);
+    } else if (module == CvExerciseModule.latPulldown) {
       final features = WorkoutCvMotionFeatures.extractLatPulldownFeatures(
         frameIndex: state.frameCount - 1,
         timestampMs: ptsMs,
@@ -600,6 +695,21 @@ class WorkoutCvNotifier extends StateNotifier<ExerciseCvState> {
         isGateDetecting: isGateDetecting,
       );
       result = _repTracker.processFrameFeatures(features);
+    } else if (module == CvExerciseModule.hipHinge ||
+        module == CvExerciseModule.hipThrust ||
+        module == CvExerciseModule.tricepExtension ||
+        module == CvExerciseModule.lateralRaise ||
+        module == CvExerciseModule.legExtension ||
+        module == CvExerciseModule.legCurl) {
+      final features = WorkoutCvMotionFeatures.extractExtendedLibraryFeatures(
+        frameIndex: state.frameCount - 1,
+        timestampMs: ptsMs,
+        landmarks: state.landmarks,
+        imageWidth: imageWidth,
+        imageHeight: imageHeight,
+        isGateDetecting: isGateDetecting,
+      );
+      result = _repTracker.processExtendedFeatures(features);
     } else {
       final features = WorkoutCvMotionFeatures.extractMultiExerciseAngles(
         frameIndex: state.frameCount - 1,
@@ -627,13 +737,31 @@ class WorkoutCvNotifier extends StateNotifier<ExerciseCvState> {
     );
   }
 
-  dynamic _createTrackerForModule(CvExerciseModule? module) {
+  dynamic _createTrackerForModule(
+    CvExerciseModule? module, {
+    String slug = '',
+  }) {
+    final normalizedSlug = slug.toLowerCase().trim();
     return switch (module) {
       CvExerciseModule.pullUp => PullUpBaseline(),
       CvExerciseModule.squat => SquatBaseline(),
       CvExerciseModule.pushUp => PushUpBaseline(),
       CvExerciseModule.overheadPress => OverheadPressBaseline(),
-      CvExerciseModule.bicepCurl => BicepCurlBaseline(),
+      CvExerciseModule.bicepCurl => BicepCurlBaseline(
+          maxValidUpperArmSwingDeg:
+              normalizedSlug == 'preacher-curl' ? 75.0 : 35.0,
+        ),
+      CvExerciseModule.hipHinge ||
+      CvExerciseModule.hipThrust =>
+        HipHingeBaseline.forSlug(normalizedSlug),
+      CvExerciseModule.tricepExtension => TricepExtensionBaseline(),
+      CvExerciseModule.lateralRaise => LateralRaiseBaseline(),
+      CvExerciseModule.legExtension ||
+      CvExerciseModule.legCurl =>
+        LegMachineBaseline.forSlug(normalizedSlug),
+      CvExerciseModule.plankHold => PlankHoldBaseline(),
+      CvExerciseModule.row => RowBaseline.forSlug(normalizedSlug),
+      CvExerciseModule.facePull => FacePullBaseline(),
       CvExerciseModule.latPulldown || null => LatPulldownBaseline(),
     };
   }
@@ -644,6 +772,8 @@ class WorkoutCvNotifier extends StateNotifier<ExerciseCvState> {
   ) {
     switch (module) {
       case CvExerciseModule.squat:
+      case CvExerciseModule.legExtension:
+      case CvExerciseModule.legCurl:
         final hasLeftLeg =
             _isJointConfident(landmarks, PoseLandmark.leftHip) &&
                 _isJointConfident(landmarks, PoseLandmark.leftKnee) &&
@@ -653,9 +783,71 @@ class WorkoutCvNotifier extends StateNotifier<ExerciseCvState> {
                 _isJointConfident(landmarks, PoseLandmark.rightKnee) &&
                 _isJointConfident(landmarks, PoseLandmark.rightAnkle);
         return hasLeftLeg || hasRightLeg;
+      case CvExerciseModule.hipHinge:
+      case CvExerciseModule.hipThrust:
+        final hasLeftHinge =
+            _isJointConfident(landmarks, PoseLandmark.leftShoulder) &&
+                _isJointConfident(landmarks, PoseLandmark.leftHip) &&
+                _isJointConfident(landmarks, PoseLandmark.leftKnee);
+        final hasRightHinge =
+            _isJointConfident(landmarks, PoseLandmark.rightShoulder) &&
+                _isJointConfident(landmarks, PoseLandmark.rightHip) &&
+                _isJointConfident(landmarks, PoseLandmark.rightKnee);
+        return hasLeftHinge || hasRightHinge;
+      case CvExerciseModule.lateralRaise:
+        final hasLeftAbduction =
+            _isJointConfident(landmarks, PoseLandmark.leftHip) &&
+                _isJointConfident(landmarks, PoseLandmark.leftShoulder) &&
+                _isJointConfident(landmarks, PoseLandmark.leftElbow);
+        final hasRightAbduction =
+            _isJointConfident(landmarks, PoseLandmark.rightHip) &&
+                _isJointConfident(landmarks, PoseLandmark.rightShoulder) &&
+                _isJointConfident(landmarks, PoseLandmark.rightElbow);
+        if (hasLeftAbduction || hasRightAbduction) return true;
+        return _hasUpperBodyPairFraming(landmarks);
       case CvExerciseModule.pushUp:
+        const pushUpThreshold = WorkoutCvMotionFeatures.pushUpMinVisibility;
+        final hasLeftArm =
+            _isJointConfident(landmarks, PoseLandmark.leftShoulder,
+                    threshold: pushUpThreshold) &&
+                _isJointConfident(landmarks, PoseLandmark.leftElbow,
+                    threshold: pushUpThreshold) &&
+                _isJointConfident(landmarks, PoseLandmark.leftWrist,
+                    threshold: pushUpThreshold);
+        final hasRightArm =
+            _isJointConfident(landmarks, PoseLandmark.rightShoulder,
+                    threshold: pushUpThreshold) &&
+                _isJointConfident(landmarks, PoseLandmark.rightElbow,
+                    threshold: pushUpThreshold) &&
+                _isJointConfident(landmarks, PoseLandmark.rightWrist,
+                    threshold: pushUpThreshold);
+        if (hasLeftArm || hasRightArm) return true;
+        return _hasUpperBodyPairFraming(
+          landmarks,
+          threshold: pushUpThreshold,
+        );
+      case CvExerciseModule.plankHold:
+        const plankThreshold = WorkoutCvMotionFeatures.pushUpMinVisibility;
+        final hasLeftPlank =
+            _isJointConfident(landmarks, PoseLandmark.leftShoulder,
+                    threshold: plankThreshold) &&
+                _isJointConfident(landmarks, PoseLandmark.leftHip,
+                    threshold: plankThreshold) &&
+                _isJointConfident(landmarks, PoseLandmark.leftAnkle,
+                    threshold: plankThreshold);
+        final hasRightPlank =
+            _isJointConfident(landmarks, PoseLandmark.rightShoulder,
+                    threshold: plankThreshold) &&
+                _isJointConfident(landmarks, PoseLandmark.rightHip,
+                    threshold: plankThreshold) &&
+                _isJointConfident(landmarks, PoseLandmark.rightAnkle,
+                    threshold: plankThreshold);
+        return hasLeftPlank || hasRightPlank;
       case CvExerciseModule.bicepCurl:
       case CvExerciseModule.overheadPress:
+      case CvExerciseModule.tricepExtension:
+      case CvExerciseModule.row:
+      case CvExerciseModule.facePull:
         final hasLeftArm =
             _isJointConfident(landmarks, PoseLandmark.leftShoulder) &&
                 _isJointConfident(landmarks, PoseLandmark.leftElbow) &&
@@ -673,15 +865,25 @@ class WorkoutCvNotifier extends StateNotifier<ExerciseCvState> {
     }
   }
 
-  bool _hasUpperBodyPairFraming(List<PoseLandmark> landmarks) {
+  bool _hasUpperBodyPairFraming(
+    List<PoseLandmark> landmarks, {
+    double threshold = 0.45,
+  }) {
     final hasShoulders =
-        _isJointConfident(landmarks, PoseLandmark.leftShoulder) &&
-            _isJointConfident(landmarks, PoseLandmark.rightShoulder);
+        _isJointConfident(landmarks, PoseLandmark.leftShoulder,
+                threshold: threshold) &&
+            _isJointConfident(landmarks, PoseLandmark.rightShoulder,
+                threshold: threshold);
     final hasElbows =
-        _isJointConfident(landmarks, PoseLandmark.leftElbow) ||
-            _isJointConfident(landmarks, PoseLandmark.rightElbow);
-    final hasHips = _isJointConfident(landmarks, PoseLandmark.leftHip) ||
-        _isJointConfident(landmarks, PoseLandmark.rightHip);
+        _isJointConfident(landmarks, PoseLandmark.leftElbow,
+                threshold: threshold) ||
+            _isJointConfident(landmarks, PoseLandmark.rightElbow,
+                threshold: threshold);
+    final hasHips =
+        _isJointConfident(landmarks, PoseLandmark.leftHip,
+                threshold: threshold) ||
+            _isJointConfident(landmarks, PoseLandmark.rightHip,
+                threshold: threshold);
     return hasShoulders && (hasElbows || hasHips);
   }
 
@@ -726,6 +928,66 @@ class WorkoutCvNotifier extends StateNotifier<ExerciseCvState> {
         BicepCurlPhase.lowering => LatPulldownPhase.returning,
       };
     }
+    if (phase is HipHingePhase) {
+      return switch (phase) {
+        HipHingePhase.notReady => LatPulldownPhase.notReady,
+        HipHingePhase.ready => LatPulldownPhase.extended,
+        HipHingePhase.hinging => LatPulldownPhase.pulling,
+        HipHingePhase.peak => LatPulldownPhase.flexed,
+        HipHingePhase.returning => LatPulldownPhase.returning,
+      };
+    }
+    if (phase is TricepExtensionPhase) {
+      return switch (phase) {
+        TricepExtensionPhase.notReady => LatPulldownPhase.notReady,
+        TricepExtensionPhase.ready => LatPulldownPhase.extended,
+        TricepExtensionPhase.extending => LatPulldownPhase.pulling,
+        TricepExtensionPhase.lockout => LatPulldownPhase.flexed,
+        TricepExtensionPhase.returning => LatPulldownPhase.returning,
+      };
+    }
+    if (phase is LateralRaisePhase) {
+      return switch (phase) {
+        LateralRaisePhase.notReady => LatPulldownPhase.notReady,
+        LateralRaisePhase.ready => LatPulldownPhase.extended,
+        LateralRaisePhase.raising => LatPulldownPhase.pulling,
+        LateralRaisePhase.peak => LatPulldownPhase.flexed,
+        LateralRaisePhase.lowering => LatPulldownPhase.returning,
+      };
+    }
+    if (phase is LegMachinePhase) {
+      return switch (phase) {
+        LegMachinePhase.notReady => LatPulldownPhase.notReady,
+        LegMachinePhase.ready => LatPulldownPhase.extended,
+        LegMachinePhase.active => LatPulldownPhase.pulling,
+        LegMachinePhase.peak => LatPulldownPhase.flexed,
+        LegMachinePhase.returning => LatPulldownPhase.returning,
+      };
+    }
+    if (phase is PlankHoldPhase) {
+      return switch (phase) {
+        PlankHoldPhase.notReady => LatPulldownPhase.notReady,
+        PlankHoldPhase.holding => LatPulldownPhase.flexed,
+      };
+    }
+    if (phase is RowPhase) {
+      return switch (phase) {
+        RowPhase.notReady => LatPulldownPhase.notReady,
+        RowPhase.extended => LatPulldownPhase.extended,
+        RowPhase.pulling => LatPulldownPhase.pulling,
+        RowPhase.flexed => LatPulldownPhase.flexed,
+        RowPhase.returning => LatPulldownPhase.returning,
+      };
+    }
+    if (phase is FacePullPhase) {
+      return switch (phase) {
+        FacePullPhase.notReady => LatPulldownPhase.notReady,
+        FacePullPhase.extended => LatPulldownPhase.extended,
+        FacePullPhase.pulling => LatPulldownPhase.pulling,
+        FacePullPhase.flexed => LatPulldownPhase.flexed,
+        FacePullPhase.returning => LatPulldownPhase.returning,
+      };
+    }
     return LatPulldownPhase.notReady;
   }
 
@@ -751,7 +1013,11 @@ class WorkoutCvNotifier extends StateNotifier<ExerciseCvState> {
     SchedulerBinding.instance.ensureVisualUpdate();
   }
 
-  bool _isJointConfident(List<PoseLandmark> landmarks, int index) {
+  bool _isJointConfident(
+    List<PoseLandmark> landmarks,
+    int index, {
+    double threshold = 0.45,
+  }) {
     PoseLandmark? lm;
     if (index < landmarks.length && landmarks[index].index == index) {
       lm = landmarks[index];
@@ -764,7 +1030,7 @@ class WorkoutCvNotifier extends StateNotifier<ExerciseCvState> {
       }
     }
     if (lm == null) return false;
-    if (!lm.isVisible(threshold: 0.45)) return false;
+    if (!lm.isVisible(threshold: threshold)) return false;
     if (!lm.x.isFinite || !lm.y.isFinite) return false;
     if (lm.x < 0.0 || lm.x > 1.0 || lm.y < 0.0 || lm.y > 1.0) return false;
     return true;

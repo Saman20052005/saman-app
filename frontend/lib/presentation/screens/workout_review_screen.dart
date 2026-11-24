@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
+import '../../config/app_translations.dart';
 import '../../data/models/exercise.dart';
 import '../providers/active_workout_providers.dart';
 import '../providers/active_workout_state.dart';
@@ -23,6 +24,17 @@ class WorkoutReviewScreen extends ConsumerStatefulWidget {
 class _WorkoutReviewScreenState extends ConsumerState<WorkoutReviewScreen> {
   bool _isSubmitting = false;
   bool _saveError = false;
+
+  bool _isVi(BuildContext context) {
+    final locale = Localizations.maybeLocaleOf(context) ?? const Locale('en');
+    return locale.languageCode == 'vi';
+  }
+
+  String _trOr(BuildContext context, String key, String en, String vi) {
+    final val = context.tr(key);
+    if (val != key) return val;
+    return _isVi(context) ? vi : en;
+  }
 
   String _formatWeight(double weight) {
     if (weight % 1 == 0) {
@@ -71,6 +83,7 @@ class _WorkoutReviewScreenState extends ConsumerState<WorkoutReviewScreen> {
   @override
   Widget build(BuildContext context) {
     final t = SamanWorkoutTokens.of(context);
+    final isVi = _isVi(context);
     final session = ref.watch(activeWorkoutSessionProvider);
     final saverState = ref.watch(activeSessionSaverProvider);
     final saver = ref.read(activeSessionSaverProvider.notifier);
@@ -103,8 +116,9 @@ class _WorkoutReviewScreenState extends ConsumerState<WorkoutReviewScreen> {
         nowVn.day == startedAtVn.day;
     final dateStr = DateFormat('MMM d, yyyy').format(startedAtVn);
     final timeStr = DateFormat('h:mm a').format(startedAtVn);
-    final sessionDateText =
-        '${isToday ? 'Today • ' : ''}$dateStr • Started $timeStr';
+    final sessionDateText = isVi
+        ? '${isToday ? 'Hôm nay • ' : ''}$dateStr • Bắt đầu $timeStr'
+        : '${isToday ? 'Today • ' : ''}$dateStr • Started $timeStr';
 
     final activeDurationMinutes = session.elapsedSeconds ~/ 60;
     final canSave = session.completedSetsCount > 0 && !isSaving && !isConflict;
@@ -135,8 +149,14 @@ class _WorkoutReviewScreenState extends ConsumerState<WorkoutReviewScreen> {
                   const SizedBox(width: 6),
                   Flexible(
                     child: Text(
-                      'Review session',
+                      _trOr(
+                        context,
+                        'review_session_title',
+                        'Review session',
+                        'Xem lại buổi tập',
+                      ),
                       style: TextStyle(
+                        fontFamily: 'Manrope',
                         fontSize: 14,
                         fontWeight: FontWeight.w500,
                         color: (isSaving || isUnconfirmed)
@@ -193,7 +213,12 @@ class _WorkoutReviewScreenState extends ConsumerState<WorkoutReviewScreen> {
                             ),
                             const SizedBox(width: 6),
                             Text(
-                              'STAGE • PENDING CONFIRMATION',
+                              _trOr(
+                                context,
+                                'review_stage_pending',
+                                'STAGE • PENDING CONFIRMATION',
+                                'CHỜ XÁC NHẬN LƯU',
+                              ),
                               style: TextStyle(
                                 fontFamily: 'monospace',
                                 fontSize: 10,
@@ -211,6 +236,7 @@ class _WorkoutReviewScreenState extends ConsumerState<WorkoutReviewScreen> {
                   Text(
                     session.title,
                     style: TextStyle(
+                      fontFamily: 'Manrope',
                       fontSize: 26,
                       fontWeight: FontWeight.bold,
                       letterSpacing: -0.5,
@@ -221,6 +247,7 @@ class _WorkoutReviewScreenState extends ConsumerState<WorkoutReviewScreen> {
                   Text(
                     sessionDateText,
                     style: TextStyle(
+                      fontFamily: 'Manrope',
                       fontSize: 13,
                       color: t.textSecondary,
                     ),
@@ -283,18 +310,23 @@ class _WorkoutReviewScreenState extends ConsumerState<WorkoutReviewScreen> {
                                 ),
                               ),
                               const SizedBox(width: 8),
-                              const Row(
+                              Row(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
-                                  Icon(
+                                  const Icon(
                                     Icons.motion_photos_on,
                                     size: 14,
                                     color: SamanWorkoutTokens.emeraldAccent,
                                   ),
-                                  SizedBox(width: 4),
+                                  const SizedBox(width: 4),
                                   Text(
-                                    'READY TO SAVE',
-                                    style: TextStyle(
+                                    _trOr(
+                                      context,
+                                      'review_ready_to_save',
+                                      'READY TO SAVE',
+                                      'SẴN SÀNG LƯU',
+                                    ),
+                                    style: const TextStyle(
                                       fontFamily: 'monospace',
                                       fontSize: 11,
                                       fontWeight: FontWeight.w600,
@@ -331,7 +363,12 @@ class _WorkoutReviewScreenState extends ConsumerState<WorkoutReviewScreen> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  'TOTAL VOLUME',
+                                  _trOr(
+                                    context,
+                                    'review_total_volume',
+                                    'TOTAL VOLUME',
+                                    'TỔNG KHỐI LƯỢNG',
+                                  ),
                                   style: TextStyle(
                                     fontFamily: 'monospace',
                                     fontSize: 11,
@@ -373,7 +410,12 @@ class _WorkoutReviewScreenState extends ConsumerState<WorkoutReviewScreen> {
                               crossAxisAlignment: CrossAxisAlignment.end,
                               children: [
                                 Text(
-                                  'ACTIVE DURATION',
+                                  _trOr(
+                                    context,
+                                    'review_active_duration',
+                                    'ACTIVE DURATION',
+                                    'THỜI GIAN TẬP',
+                                  ),
                                   style: TextStyle(
                                     fontFamily: 'monospace',
                                     fontSize: 11,
@@ -402,7 +444,7 @@ class _WorkoutReviewScreenState extends ConsumerState<WorkoutReviewScreen> {
                                     ),
                                     const SizedBox(width: 4),
                                     Text(
-                                      'min',
+                                      isVi ? 'phút' : 'min',
                                       style: TextStyle(
                                         fontFamily: 'monospace',
                                         fontSize: 13,
@@ -430,8 +472,11 @@ class _WorkoutReviewScreenState extends ConsumerState<WorkoutReviewScreen> {
                             const SizedBox(width: 8),
                             Expanded(
                               child: Text(
-                                '${session.completedSetsCount} ${session.completedSetsCount == 1 ? 'set' : 'sets'} logged • ${performedExercises.length} ${performedExercises.length == 1 ? 'exercise' : 'exercises'}',
+                                isVi
+                                    ? 'Đã ghi ${session.completedSetsCount} hiệp • ${performedExercises.length} bài tập'
+                                    : '${session.completedSetsCount} ${session.completedSetsCount == 1 ? 'set' : 'sets'} logged • ${performedExercises.length} ${performedExercises.length == 1 ? 'exercise' : 'exercises'}',
                                 style: TextStyle(
+                                  fontFamily: 'Manrope',
                                   fontSize: 13,
                                   color: t.textSecondary,
                                 ),
@@ -451,7 +496,12 @@ class _WorkoutReviewScreenState extends ConsumerState<WorkoutReviewScreen> {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
-                        'RECORDED MOVEMENTS',
+                        _trOr(
+                          context,
+                          'review_recorded_movements',
+                          'RECORDED MOVEMENTS',
+                          'BÀI TẬP ĐÃ GHI',
+                        ),
                         style: TextStyle(
                           fontFamily: 'monospace',
                           fontSize: 11,
@@ -461,7 +511,9 @@ class _WorkoutReviewScreenState extends ConsumerState<WorkoutReviewScreen> {
                         ),
                       ),
                       Text(
-                        '${performedExercises.length} ITEMS',
+                        isVi
+                            ? '${performedExercises.length} MỤC'
+                            : '${performedExercises.length} ${performedExercises.length == 1 ? 'ITEM' : 'ITEMS'}',
                         style: TextStyle(
                           fontFamily: 'monospace',
                           fontSize: 11,
@@ -475,7 +527,7 @@ class _WorkoutReviewScreenState extends ConsumerState<WorkoutReviewScreen> {
 
                   // Exercise Cards
                   for (final exercise in performedExercises) ...[
-                    _buildExerciseCard(exercise, t),
+                    _buildExerciseCard(exercise, t, isVi),
                     const SizedBox(height: 12),
                   ],
 
@@ -501,8 +553,14 @@ class _WorkoutReviewScreenState extends ConsumerState<WorkoutReviewScreen> {
                         const SizedBox(width: 10),
                         Expanded(
                           child: Text(
-                            'Review your sets and save this session when ready.',
+                            _trOr(
+                              context,
+                              'review_hint_text',
+                              'Review your sets and save this session when ready.',
+                              'Kiểm tra lại các hiệp tập và lưu buổi tập khi sẵn sàng.',
+                            ),
                             style: TextStyle(
+                              fontFamily: 'Manrope',
                               fontSize: 12,
                               height: 1.4,
                               color: t.textSecondary,
@@ -557,8 +615,11 @@ class _WorkoutReviewScreenState extends ConsumerState<WorkoutReviewScreen> {
                               Expanded(
                                 child: Text(
                                   saver.conflictMessage ??
-                                      'Session already exists on server with different data (409 Conflict). Draft is preserved in memory.',
+                                      (isVi
+                                          ? 'Buổi tập đã tồn tại trên máy chủ với dữ liệu khác (409 Conflict). Bản nháp vẫn được giữ lại.'
+                                          : 'Session already exists on server with different data (409 Conflict). Draft is preserved in memory.'),
                                   style: TextStyle(
+                                    fontFamily: 'Manrope',
                                     color: t.textPrimary,
                                     fontSize: 12,
                                   ),
@@ -589,8 +650,14 @@ class _WorkoutReviewScreenState extends ConsumerState<WorkoutReviewScreen> {
                               const SizedBox(width: 8),
                               Expanded(
                                 child: Text(
-                                  'Could not confirm the save. Please retry.',
+                                  _trOr(
+                                    context,
+                                    'review_save_error',
+                                    'Could not confirm the save. Please retry.',
+                                    'Không thể xác nhận lưu. Vui lòng thử lại.',
+                                  ),
                                   style: TextStyle(
+                                    fontFamily: 'Manrope',
                                     color: t.textPrimary,
                                     fontSize: 12,
                                   ),
@@ -607,8 +674,9 @@ class _WorkoutReviewScreenState extends ConsumerState<WorkoutReviewScreen> {
                                       MaterialTapTargetSize.shrinkWrap,
                                 ),
                                 child: Text(
-                                  'Retry',
+                                  context.tr('retry'),
                                   style: TextStyle(
+                                    fontFamily: 'Manrope',
                                     color: t.crimsonAccent,
                                     fontWeight: FontWeight.bold,
                                     fontSize: 12,
@@ -622,8 +690,11 @@ class _WorkoutReviewScreenState extends ConsumerState<WorkoutReviewScreen> {
                         Padding(
                           padding: const EdgeInsets.only(bottom: 8),
                           child: Text(
-                            'At least 1 completed set required to save',
+                            isVi
+                                ? 'Cần hoàn thành ít nhất 1 hiệp để lưu'
+                                : 'At least 1 completed set required to save',
                             style: TextStyle(
+                              fontFamily: 'Manrope',
                               color: t.amberAccent,
                               fontSize: 12,
                             ),
@@ -662,27 +733,39 @@ class _WorkoutReviewScreenState extends ConsumerState<WorkoutReviewScreen> {
                                       ),
                                     ),
                                     const SizedBox(width: 10),
-                                    const Text(
-                                      'Saving session...',
-                                      style: TextStyle(
+                                    Text(
+                                      _trOr(
+                                        context,
+                                        'review_saving_btn',
+                                        'Saving session...',
+                                        'Đang lưu buổi tập...',
+                                      ),
+                                      style: const TextStyle(
+                                        fontFamily: 'Manrope',
                                         fontSize: 15,
                                         fontWeight: FontWeight.bold,
                                       ),
                                     ),
                                   ],
                                 )
-                              : const Row(
+                              : Row(
                                   mainAxisAlignment: MainAxisAlignment.center,
                                   children: [
                                     Text(
-                                      'Save session',
-                                      style: TextStyle(
+                                      _trOr(
+                                        context,
+                                        'review_save_btn',
+                                        'Save session',
+                                        'Lưu buổi tập',
+                                      ),
+                                      style: const TextStyle(
+                                        fontFamily: 'Manrope',
                                         fontSize: 15,
                                         fontWeight: FontWeight.bold,
                                       ),
                                     ),
-                                    SizedBox(width: 8),
-                                    Icon(
+                                    const SizedBox(width: 8),
+                                    const Icon(
                                       Icons.arrow_forward,
                                       size: 18,
                                     ),
@@ -696,8 +779,14 @@ class _WorkoutReviewScreenState extends ConsumerState<WorkoutReviewScreen> {
                         onPressed:
                             (isSaving || isUnconfirmed) ? null : () => Navigator.of(context).pop(),
                         child: Text(
-                          'Keep training',
+                          _trOr(
+                            context,
+                            'review_keep_training_btn',
+                            'Keep training',
+                            'Tiếp tục tập',
+                          ),
                           style: TextStyle(
+                            fontFamily: 'Manrope',
                             fontSize: 14,
                             color: (isSaving || isUnconfirmed)
                                 ? t.textSecondary.withOpacity(0.3)
@@ -718,7 +807,7 @@ class _WorkoutReviewScreenState extends ConsumerState<WorkoutReviewScreen> {
   }
 
   Widget _buildExerciseCard(
-      ActiveExerciseInfo exercise, SamanWorkoutPalette t) {
+      ActiveExerciseInfo exercise, SamanWorkoutPalette t, bool isVi) {
     final completedSets =
         exercise.sets.where((s) => s.isCompleted).toList();
     double exerciseVolume = 0.0;
@@ -831,7 +920,7 @@ class _WorkoutReviewScreenState extends ConsumerState<WorkoutReviewScreen> {
                       color: t.border,
                       height: 12,
                     ),
-                  _buildSetRow(completedSets[i], t),
+                  _buildSetRow(completedSets[i], t, isVi),
                 ],
               ],
             ),
@@ -841,7 +930,7 @@ class _WorkoutReviewScreenState extends ConsumerState<WorkoutReviewScreen> {
     );
   }
 
-  Widget _buildSetRow(ActiveWorkoutSetInfo set, SamanWorkoutPalette t) {
+  Widget _buildSetRow(ActiveWorkoutSetInfo set, SamanWorkoutPalette t, bool isVi) {
     final w = set.weightKg ?? 0.0;
     final r = set.reps ?? 0;
     final setVolume = set.volumeKg;
@@ -853,9 +942,9 @@ class _WorkoutReviewScreenState extends ConsumerState<WorkoutReviewScreen> {
           child: Row(
             children: [
               SizedBox(
-                width: 44,
+                width: 52,
                 child: Text(
-                  'SET ${set.setNumber}',
+                  isVi ? 'HIỆP ${set.setNumber}' : 'SET ${set.setNumber}',
                   style: TextStyle(
                     fontFamily: 'monospace',
                     fontSize: 11,

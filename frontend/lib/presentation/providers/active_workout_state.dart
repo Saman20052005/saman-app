@@ -42,6 +42,7 @@ class CurrentSetState with _$CurrentSetState {
 }
 
 /// Detailed set info distinguishing planned targets from logged results
+@immutable
 class ActiveWorkoutSetInfo {
   final int setNumber;
   final double targetWeightKg;
@@ -53,6 +54,11 @@ class ActiveWorkoutSetInfo {
   final int? reps;
   final bool isCompleted;
   final bool isActive;
+  final SetType setType;
+  final double? rpe;
+  final String? note;
+  final String? supersetGroupId;
+  final bool isPr;
 
   const ActiveWorkoutSetInfo({
     required this.setNumber,
@@ -65,11 +71,18 @@ class ActiveWorkoutSetInfo {
     this.reps,
     this.isCompleted = false,
     this.isActive = false,
+    this.setType = SetType.normal,
+    this.rpe,
+    this.note,
+    this.supersetGroupId,
+    this.isPr = false,
   });
 
   double get volumeKg => workoutSetVolumeKg(
-    unit: unit, repsCompleted: reps ?? 0, weightKg: weightKg ?? 0,
-  );
+        unit: unit,
+        repsCompleted: reps ?? 0,
+        weightKg: weightKg ?? 0,
+      );
 
   ActiveWorkoutSetInfo copyWith({
     int? setNumber,
@@ -82,6 +95,14 @@ class ActiveWorkoutSetInfo {
     int? reps,
     bool? isCompleted,
     bool? isActive,
+    SetType? setType,
+    double? rpe,
+    bool clearRpe = false,
+    String? note,
+    bool clearNote = false,
+    String? supersetGroupId,
+    bool clearSupersetGroup = false,
+    bool? isPr,
   }) {
     return ActiveWorkoutSetInfo(
       setNumber: setNumber ?? this.setNumber,
@@ -94,11 +115,18 @@ class ActiveWorkoutSetInfo {
       reps: reps ?? this.reps,
       isCompleted: isCompleted ?? this.isCompleted,
       isActive: isActive ?? this.isActive,
+      setType: setType ?? this.setType,
+      rpe: clearRpe ? null : (rpe ?? this.rpe),
+      note: clearNote ? null : (note ?? this.note),
+      supersetGroupId:
+          clearSupersetGroup ? null : (supersetGroupId ?? this.supersetGroupId),
+      isPr: isPr ?? this.isPr,
     );
   }
 }
 
 /// Active exercise state tracking sets, active set index, and draft input values
+@immutable
 class ActiveExerciseInfo {
   final String id;
   final String slug;
@@ -113,6 +141,8 @@ class ActiveExerciseInfo {
   final int? draftSeconds;
   final Map<String, dynamic>? cvFormSummary;
   final LastExercisePerformance? lastPerformance;
+  final String note;
+  final String? supersetGroupId;
 
   const ActiveExerciseInfo({
     required this.id,
@@ -128,9 +158,12 @@ class ActiveExerciseInfo {
     this.draftSeconds,
     this.cvFormSummary,
     this.lastPerformance,
+    this.note = '',
+    this.supersetGroupId,
   });
 
-  bool get canLogSet => activeSet != null &&
+  bool get canLogSet =>
+      activeSet != null &&
       (unit == SetUnit.reps ||
           (draftSeconds != null && draftSeconds! >= 1 && draftSeconds! <= 999));
 
@@ -160,6 +193,10 @@ class ActiveExerciseInfo {
     bool clearDraftSeconds = false,
     Map<String, dynamic>? cvFormSummary,
     LastExercisePerformance? lastPerformance,
+    String? note,
+    bool clearNote = false,
+    String? supersetGroupId,
+    bool clearSupersetGroup = false,
   }) {
     return ActiveExerciseInfo(
       id: id ?? this.id,
@@ -172,14 +209,19 @@ class ActiveExerciseInfo {
       draftWeightKg: draftWeightKg ?? this.draftWeightKg,
       draftReps: draftReps ?? this.draftReps,
       unit: unit ?? this.unit,
-      draftSeconds: clearDraftSeconds ? null : draftSeconds ?? this.draftSeconds,
+      draftSeconds:
+          clearDraftSeconds ? null : draftSeconds ?? this.draftSeconds,
       cvFormSummary: cvFormSummary ?? this.cvFormSummary,
       lastPerformance: lastPerformance ?? this.lastPerformance,
+      note: clearNote ? '' : (note ?? this.note),
+      supersetGroupId:
+          clearSupersetGroup ? null : (supersetGroupId ?? this.supersetGroupId),
     );
   }
 }
 
 /// Active workout session model tracking live timer, pauses, rest, and exercise list
+@immutable
 class ActiveWorkoutSessionState {
   final String title;
   final List<ActiveExerciseInfo> exercises;
@@ -189,6 +231,7 @@ class ActiveWorkoutSessionState {
   final bool isResting;
   final int restSecondsLeft;
   final bool isFinished;
+  final int restFinishedCount;
 
   const ActiveWorkoutSessionState({
     required this.title,
@@ -199,9 +242,13 @@ class ActiveWorkoutSessionState {
     this.isResting = false,
     this.restSecondsLeft = 0,
     this.isFinished = false,
+    this.restFinishedCount = 0,
   });
 
-  factory ActiveWorkoutSessionState.fromExercises(List<Exercise> exercises, {String title = 'Workout Session'}) {
+  factory ActiveWorkoutSessionState.fromExercises(
+    List<Exercise> exercises, {
+    String title = 'Workout Session',
+  }) {
     final activeExercises = exercises.asMap().entries.map((entry) {
       final index = entry.key;
       final ex = entry.value;
@@ -225,7 +272,8 @@ class ActiveWorkoutSessionState {
         id: ex.id,
         slug: ex.slug,
         name: ex.name,
-        subtitle: '${ex.equipment.isNotEmpty ? ex.equipment.first : "Free Weight"} · ${ex.muscleGroup}',
+        subtitle:
+            '${ex.equipment.isNotEmpty ? ex.equipment.first : "Free Weight"} · ${ex.muscleGroup}',
         imageUrl: ex.thumbnailUrl,
         restSeconds: ex.restSeconds > 0 ? ex.restSeconds : 90,
         sets: sets,
@@ -260,6 +308,56 @@ class ActiveWorkoutSessionState {
   int get completedSetsCount =>
       exercises.fold(0, (sum, e) => sum + e.completedSetsCount);
 
+  bool isInSuperset(int exerciseIndex) {
+    if (exerciseIndex < 0 || exerciseIndex >= exercises.length) return false;
+    final groupId = exercises[exerciseIndex].supersetGroupId;
+    if (groupId == null || groupId.isEmpty) return false;
+    var count = 0;
+    for (final ex in exercises) {
+      if (ex.supersetGroupId == groupId) {
+        count++;
+        if (count >= 2) return true;
+      }
+    }
+    return false;
+  }
+
+  String? supersetBadgeLabel(int exerciseIndex) {
+    if (!isInSuperset(exerciseIndex)) return null;
+    final targetGroupId = exercises[exerciseIndex].supersetGroupId!;
+
+    final counts = <String, int>{};
+    for (final ex in exercises) {
+      final gid = ex.supersetGroupId;
+      if (gid != null && gid.isNotEmpty) {
+        counts[gid] = (counts[gid] ?? 0) + 1;
+      }
+    }
+
+    final groupLetters = <String, String>{};
+    var nextGroupOrdinal = 0;
+    var memberNumber = 0;
+
+    for (var i = 0; i < exercises.length; i++) {
+      final gid = exercises[i].supersetGroupId;
+      if (gid == null || gid.isEmpty || (counts[gid] ?? 0) < 2) continue;
+      groupLetters.putIfAbsent(gid, () {
+        final letter = nextGroupOrdinal < 26
+            ? String.fromCharCode(65 + nextGroupOrdinal)
+            : 'G${nextGroupOrdinal + 1}';
+        nextGroupOrdinal++;
+        return letter;
+      });
+      if (gid == targetGroupId) {
+        memberNumber++;
+        if (i == exerciseIndex) {
+          return '${groupLetters[gid]}$memberNumber';
+        }
+      }
+    }
+    return null;
+  }
+
   ActiveWorkoutSessionState copyWith({
     String? title,
     List<ActiveExerciseInfo>? exercises,
@@ -269,6 +367,7 @@ class ActiveWorkoutSessionState {
     bool? isResting,
     int? restSecondsLeft,
     bool? isFinished,
+    int? restFinishedCount,
   }) {
     return ActiveWorkoutSessionState(
       title: title ?? this.title,
@@ -280,6 +379,7 @@ class ActiveWorkoutSessionState {
       isResting: isResting ?? this.isResting,
       restSecondsLeft: restSecondsLeft ?? this.restSecondsLeft,
       isFinished: isFinished ?? this.isFinished,
+      restFinishedCount: restFinishedCount ?? this.restFinishedCount,
     );
   }
 }
@@ -296,7 +396,7 @@ ActiveWorkoutSessionState createDefaultUpperBodySession() {
         restSeconds: 90,
         draftWeightKg: 26.0,
         draftReps: 8,
-        sets: const [
+        sets: [
           ActiveWorkoutSetInfo(
             setNumber: 1,
             targetWeightKg: 26.0,
@@ -358,7 +458,8 @@ ActiveWorkoutSessionState createDefaultUpperBodySession() {
         id: 'ex_4',
         name: 'Overhead Triceps Extension',
         subtitle: '3 sets · Dumbbell',
-        imageUrl: 'assets/images/exercises/overhead-triceps-extension-thumb.jpg',
+        imageUrl:
+            'assets/images/exercises/overhead-triceps-extension-thumb.jpg',
         restSeconds: 60,
         draftWeightKg: 20.0,
         draftReps: 12,

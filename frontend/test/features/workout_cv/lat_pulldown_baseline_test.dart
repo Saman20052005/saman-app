@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 import 'package:flutter_test/flutter_test.dart';
+import 'package:health_ai_app/features/workout_cv/domain/entities/pose_landmark.dart';
 import 'package:health_ai_app/features/workout_cv/domain/services/lat_pulldown_baseline.dart';
 import 'package:health_ai_app/features/workout_cv/domain/services/workout_cv_motion_features.dart';
 
@@ -1034,6 +1035,138 @@ void main() {
       expect(result.timestampMs, 100);
       expect(result.elbowAngleDeg, closeTo(110.0, 1e-4));
       expect(result.isSampleValid, isTrue);
+    });
+
+    test(
+        '17. processFrameFeatures automatically selects right arm when left arm is occluded or lower visibility for LatPulldownBaseline',
+        () {
+      LatPulldownFrameFeatures buildFrame({
+        required int frameIndex,
+        required int timestampMs,
+        required double rightAngleDeg,
+        double leftAngleDeg = 175.0,
+        double leftVisibility = 0.1,
+        double rightVisibility = 0.95,
+      }) {
+        const imgW = 1080.0;
+        const imgH = 1920.0;
+        const ex = 700.0;
+        const ey = 960.0;
+        const seg = 180.0;
+        final rightRad = rightAngleDeg * math.pi / 180.0;
+        final leftRad = leftAngleDeg * math.pi / 180.0;
+
+        final landmarks = List.generate(
+          33,
+          (i) => PoseLandmark(
+            index: i,
+            x: 0.5,
+            y: 0.5,
+            z: 0.0,
+            visibility: 0.9,
+          ),
+        );
+
+        // Left arm (lower visibility or occluded)
+        landmarks[PoseLandmark.leftShoulder] = PoseLandmark(
+          index: PoseLandmark.leftShoulder,
+          x: 360.0 / imgW,
+          y: (ey - seg) / imgH,
+          z: 0.0,
+          visibility: leftVisibility,
+        );
+        landmarks[PoseLandmark.leftElbow] = PoseLandmark(
+          index: PoseLandmark.leftElbow,
+          x: 360.0 / imgW,
+          y: ey / imgH,
+          z: 0.0,
+          visibility: leftVisibility,
+        );
+        landmarks[PoseLandmark.leftWrist] = PoseLandmark(
+          index: PoseLandmark.leftWrist,
+          x: (360.0 + seg * math.sin(leftRad)) / imgW,
+          y: (ey - seg * math.cos(leftRad)) / imgH,
+          z: 0.0,
+          visibility: leftVisibility,
+        );
+
+        // Right arm (high visibility)
+        landmarks[PoseLandmark.rightShoulder] = PoseLandmark(
+          index: PoseLandmark.rightShoulder,
+          x: ex / imgW,
+          y: (ey - seg) / imgH,
+          z: 0.0,
+          visibility: rightVisibility,
+        );
+        landmarks[PoseLandmark.rightElbow] = PoseLandmark(
+          index: PoseLandmark.rightElbow,
+          x: ex / imgW,
+          y: ey / imgH,
+          z: 0.0,
+          visibility: rightVisibility,
+        );
+        landmarks[PoseLandmark.rightWrist] = PoseLandmark(
+          index: PoseLandmark.rightWrist,
+          x: (ex + seg * math.sin(rightRad)) / imgW,
+          y: (ey - seg * math.cos(rightRad)) / imgH,
+          z: 0.0,
+          visibility: rightVisibility,
+        );
+
+        return WorkoutCvMotionFeatures.extractLatPulldownFeatures(
+          frameIndex: frameIndex,
+          timestampMs: timestampMs,
+          landmarks: landmarks,
+          imageWidth: imgW,
+          imageHeight: imgH,
+        );
+      }
+
+      // Verify tie/higher-visibility selection when both sides are valid (left=0.55, right=0.95)
+      final bothValidFrame = buildFrame(
+        frameIndex: 0,
+        timestampMs: 0,
+        rightAngleDeg: 50.0,
+        leftAngleDeg: 165.0,
+        leftVisibility: 0.55,
+        rightVisibility: 0.95,
+      );
+      expect(bothValidFrame.leftSide.elbowAngleDeg.isValid, isTrue);
+      expect(bothValidFrame.rightSide.elbowAngleDeg.isValid, isTrue);
+      expect(bothValidFrame.bestSide.sideKey, 'model_right_12_14_16');
+      expect(bothValidFrame.bestElbowAngleDeg.value, closeTo(50.0, 0.5));
+
+      // Run a full rep cycle with left arm occluded (visibility 0.1)
+      const cycle = <(int, double)>[
+        (0, 120.0),
+        (150, 120.0),
+        (250, 120.0),
+        (400, 80.0),
+        (700, 42.0),
+        (900, 44.0),
+        (1150, 85.0),
+        (1400, 120.0),
+        (1600, 120.0),
+      ];
+
+      final latTracker = LatPulldownBaseline();
+
+      for (var i = 0; i < cycle.length; i++) {
+        final (t, angle) = cycle[i];
+        final frame = buildFrame(
+          frameIndex: i,
+          timestampMs: t,
+          rightAngleDeg: angle,
+          leftVisibility: 0.1,
+          rightVisibility: 0.95,
+        );
+        expect(frame.leftSide.elbowAngleDeg.isValid, isFalse);
+        expect(frame.bestSide.sideKey, 'model_right_12_14_16');
+        latTracker.processFrameFeatures(frame);
+      }
+
+      expect(latTracker.completedReps, 1);
+      expect(latTracker.repHistory.single.minElbowAngleDeg, closeTo(42.0, 0.5));
     });
   });
 }

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../config/app_metadata.dart';
@@ -38,7 +39,11 @@ class AppSettingsScreen extends ConsumerWidget {
         ? AppTranslations.text('units_sub_imperial', locale)
         : AppTranslations.text('units_sub_metric', locale);
 
-    return Scaffold(
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: palette.isDark
+          ? SystemUiOverlayStyle.light
+          : SystemUiOverlayStyle.dark,
+      child: Scaffold(
       backgroundColor:
           palette.isDark ? const Color(0xFF0A0A0C) : palette.canvas,
       body: SafeArea(
@@ -253,6 +258,7 @@ class AppSettingsScreen extends ConsumerWidget {
           ],
         ),
       ),
+      ),
     );
   }
 
@@ -260,6 +266,10 @@ class AppSettingsScreen extends ConsumerWidget {
   Widget _buildTopNavBar(BuildContext context, Locale locale) {
     final palette = context.samanColors;
     final textPrimary = palette.isDark ? Colors.white : palette.textPrimary;
+    final backLabel = AppTranslations.text('back_btn', locale);
+    final backTooltip = backLabel != 'back_btn'
+        ? backLabel
+        : (locale.languageCode == 'vi' ? 'Quay lại' : 'Back');
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       child: Row(
@@ -272,7 +282,7 @@ class AppSettingsScreen extends ConsumerWidget {
               size: 28,
             ),
             splashRadius: 24,
-            tooltip: 'Back',
+            tooltip: backTooltip,
             onPressed: () => Navigator.of(context).pop(),
           ),
           const SizedBox(width: 4),
@@ -499,6 +509,7 @@ class AppSettingsScreen extends ConsumerWidget {
                 ? const Color(0x33FFFFFF)
                 : sheetPalette.border;
             final activeMode = refConsumer.watch(languageModeProvider);
+            final activeLocale = refConsumer.watch(languageProvider);
 
             return SafeArea(
               child: Padding(
@@ -524,7 +535,7 @@ class AppSettingsScreen extends ConsumerWidget {
                         alignment: Alignment.centerLeft,
                         child: Text(
                           AppTranslations.text(
-                              'language_setting', currentLocale),
+                              'language_setting', activeLocale),
                           style: TextStyle(
                             fontSize: 17,
                             fontWeight: FontWeight.w700,
@@ -541,9 +552,9 @@ class AppSettingsScreen extends ConsumerWidget {
                       context: context,
                       key: const Key('language_option_system'),
                       title: AppTranslations.text(
-                          'use_device_language', currentLocale),
+                          'use_device_language', activeLocale),
                       subtitle: AppTranslations.text(
-                          'device_language_sub', currentLocale),
+                          'device_language_sub', activeLocale),
                       isSelected: activeMode == AppLanguageMode.system,
                       onTap: () async {
                         await refConsumer
@@ -558,7 +569,7 @@ class AppSettingsScreen extends ConsumerWidget {
                       context: context,
                       key: const Key('language_option_vi'),
                       title: 'Tiếng Việt',
-                      subtitle: 'Vietnamese',
+                      subtitle: AppTranslations.text('vi', activeLocale),
                       isSelected: activeMode == AppLanguageMode.vi,
                       onTap: () async {
                         await refConsumer
@@ -573,7 +584,7 @@ class AppSettingsScreen extends ConsumerWidget {
                       context: context,
                       key: const Key('language_option_en'),
                       title: 'English',
-                      subtitle: 'Tiếng Anh',
+                      subtitle: AppTranslations.text('en', activeLocale),
                       isSelected: activeMode == AppLanguageMode.en,
                       onTap: () async {
                         await refConsumer
