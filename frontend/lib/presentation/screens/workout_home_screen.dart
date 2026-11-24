@@ -9,6 +9,8 @@ import 'my_plans_screen.dart';
 import 'workout_history_screen.dart';
 import 'active_workout_screen.dart';
 import '../providers/active_workout_providers.dart';
+import '../providers/muscle_recovery_provider.dart';
+import '../providers/workout_history_providers.dart';
 import '../widgets/muscle_recovery_card.dart';
 import '../../features/membership/domain/models/membership_plan.dart';
 import '../../features/membership/presentation/screens/plan_detail_screen.dart';
@@ -64,13 +66,16 @@ class _WorkoutHomeScreenState extends ConsumerState<WorkoutHomeScreen> {
     );
   }
 
-  void _handleStartWorkout(ScheduledSessionInfo scheduled) {
+  Future<void> _handleStartWorkout(ScheduledSessionInfo scheduled) async {
     ref
         .read(activeWorkoutSessionProvider.notifier)
         .startScheduledSession(title: scheduled.title);
-    Navigator.of(context).push(MaterialPageRoute(
+    await Navigator.of(context).push(MaterialPageRoute(
       builder: (_) => const ActiveWorkoutScreen(),
     ));
+    if (mounted) {
+      ref.invalidate(muscleRecoveryProvider);
+    }
   }
 
   bool _isVi(BuildContext context) {
@@ -88,12 +93,15 @@ class _WorkoutHomeScreenState extends ConsumerState<WorkoutHomeScreen> {
     );
     if (!mounted || exercise == null) return;
     final quickTitle = _isVi(context) ? 'Bắt đầu nhanh' : 'Quick Start';
-    Navigator.of(context).push(MaterialPageRoute(
+    await Navigator.of(context).push(MaterialPageRoute(
       builder: (_) => ActiveWorkoutScreen.fromExercises(
         exercises: [exercise],
         title: quickTitle,
       ),
     ));
+    if (mounted) {
+      ref.invalidate(muscleRecoveryProvider);
+    }
   }
 
   @override
@@ -225,8 +233,16 @@ class _WorkoutHomeScreenState extends ConsumerState<WorkoutHomeScreen> {
     return Scaffold(
       backgroundColor: t.canvas,
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(
+        child: RefreshIndicator(
+          color: t.emeraldAccent,
+          backgroundColor: t.cardSurface,
+          onRefresh: () async {
+            ref.invalidate(muscleRecoveryProvider);
+            ref.invalidate(workoutHistoryProvider);
+          },
+          child: SingleChildScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: const EdgeInsets.fromLTRB(
             SamanWorkoutTokens.spacingLg,
             SamanWorkoutTokens.spacingSm,
             SamanWorkoutTokens.spacingLg,
@@ -263,6 +279,7 @@ class _WorkoutHomeScreenState extends ConsumerState<WorkoutHomeScreen> {
               _buildLastWorkout(recentWorkout, t),
             ],
           ),
+        ),
         ),
       ),
     );
@@ -1211,84 +1228,104 @@ class _FocusCategoryCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final t = SamanWorkoutTokens.of(context);
-    return InkWell(
-      borderRadius: BorderRadius.circular(SamanWorkoutTokens.radiusLg),
-      onTap: onTap,
-      child: Container(
-        height: 160,
-        decoration: BoxDecoration(
-          color: t.cardSurface,
-          borderRadius: BorderRadius.circular(SamanWorkoutTokens.radiusLg),
-          border: Border.all(color: t.border),
-        ),
-        clipBehavior: Clip.antiAlias,
-        child: Stack(
-          fit: StackFit.expand,
-          children: [
-            CachedNetworkImage(
-              imageUrl: imageUrl,
-              fit: BoxFit.cover,
-              placeholder: (_, __) =>
-                  Container(color: t.surfaceElevated),
-              errorWidget: (_, __, ___) => Container(
-                color: t.surfaceElevated,
-                child: Icon(Icons.fitness_center, color: t.textMuted),
-              ),
-            ),
-            // Dark scrim preserved across Light/Dark for light text legibility
-            Container(
-              decoration: const BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.bottomCenter,
-                  end: Alignment.topCenter,
-                  colors: [
-                    Color(0xFF0C0D0E),
-                    Color(0x800C0D0E),
-                    Colors.transparent,
-                  ],
-                  stops: [0.0, 0.5, 1.0],
+    final radius = BorderRadius.circular(SamanWorkoutTokens.radiusLg);
+    return Container(
+      height: 160,
+      foregroundDecoration: BoxDecoration(
+        borderRadius: radius,
+        border: Border.all(color: t.border, width: 1),
+      ),
+      child: ClipRRect(
+        borderRadius: radius,
+        child: Material(
+          color: t.isDark ? const Color(0xFF0C0D0E) : t.cardSurface,
+          child: InkWell(
+            borderRadius: radius,
+            onTap: onTap,
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                Positioned.fill(
+                  bottom: -1,
+                  child: CachedNetworkImage(
+                    imageUrl: imageUrl,
+                    fit: BoxFit.cover,
+                    alignment: Alignment.center,
+                    placeholder: (_, __) => ColoredBox(
+                      color: t.isDark
+                          ? const Color(0xFF0C0D0E)
+                          : t.surfaceElevated,
+                    ),
+                    errorWidget: (_, __, ___) => ColoredBox(
+                      color: t.isDark
+                          ? const Color(0xFF0C0D0E)
+                          : t.surfaceElevated,
+                      child: Icon(Icons.fitness_center, color: t.textMuted),
+                    ),
+                  ),
                 ),
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.all(SamanWorkoutTokens.spacingMd),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.end,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Expanded(
-                        child: Text(
-                          title,
-                          style: const TextStyle(
-                            color: SamanWorkoutTokens.textPrimary,
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
+                // Dark scrim anchored past bottom (-1) to prevent subpixel gap on odd DPRs
+                const Positioned.fill(
+                  bottom: -1,
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.bottomCenter,
+                        end: Alignment.topCenter,
+                        colors: [
+                          Color(0xFF0C0D0E),
+                          Color(0xF00C0D0E),
+                          Color(0x800C0D0E),
+                          Colors.transparent,
+                        ],
+                        stops: [0.0, 0.14, 0.55, 1.0],
                       ),
-                      const Icon(Icons.chevron_right,
-                          size: 16, color: SamanWorkoutTokens.textSub),
+                    ),
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.all(SamanWorkoutTokens.spacingMd),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Expanded(
+                            child: Text(
+                              title,
+                              style: const TextStyle(
+                                fontFamily: 'Manrope',
+                                color: SamanWorkoutTokens.textPrimary,
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          const Icon(Icons.chevron_right,
+                              size: 16, color: SamanWorkoutTokens.textSub),
+                        ],
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        subtitle,
+                        style: const TextStyle(
+                          fontFamily: 'Manrope',
+                          color: SamanWorkoutTokens.textSub,
+                          fontSize: 11,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
                     ],
                   ),
-                  const SizedBox(height: 2),
-                  Text(
-                    subtitle,
-                    style: const TextStyle(
-                      color: SamanWorkoutTokens.textSub,
-                      fontSize: 11,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ],
-              ),
+                ),
+              ],
             ),
-          ],
+          ),
         ),
       ),
     );

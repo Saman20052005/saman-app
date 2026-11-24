@@ -1,5 +1,6 @@
 import 'package:health_ai_app/presentation/screens/active_workout_screen.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:health_ai_app/data/models/exercise.dart';
@@ -8,9 +9,16 @@ import 'package:health_ai_app/presentation/screens/workout_home_screen.dart';
 import 'package:health_ai_app/presentation/screens/exercise_library_screen.dart';
 import 'package:health_ai_app/presentation/screens/exercise_detail_screen.dart';
 import 'package:health_ai_app/presentation/providers/exercise_providers.dart';
+import 'package:health_ai_app/presentation/providers/muscle_recovery_provider.dart';
 import 'package:health_ai_app/presentation/widgets/exercise_thumbnail.dart';
+import 'package:health_ai_app/presentation/widgets/muscle_recovery_card.dart';
 import 'package:health_ai_app/presentation/providers/workout_history_providers.dart';
 import 'package:health_ai_app/presentation/tokens/saman_workout_tokens.dart';
+import 'package:health_ai_app/features/profile/domain/entities/onboarding_draft.dart';
+import 'package:health_ai_app/features/profile/domain/entities/profile_entity.dart';
+import 'package:health_ai_app/features/profile/domain/entities/profile_snapshot.dart';
+import 'package:health_ai_app/features/profile/domain/repositories/profile_repository.dart';
+import 'package:health_ai_app/providers/profile_provider.dart';
 import 'package:health_ai_app/screens/home/widgets/saman_bottom_navigation_bar.dart';
 import 'package:health_ai_app/screens/main_screen.dart';
 
@@ -955,6 +963,218 @@ void main() {
     expect(exercises.map((e) => e.slug).toSet(), hasLength(35));
     expect(exercises, equals(curatedExerciseLibrary));
   });
+
+  group('Calm Athleticism Focus Cards & MuscleRecoveryCard', () {
+    const recoverySample = [
+      MuscleRecoveryItem(
+        muscleGroup: 'chest',
+        recoveryPercent: 92,
+        status: 'ready',
+      ),
+      MuscleRecoveryItem(
+        muscleGroup: 'back',
+        recoveryPercent: 85,
+        status: 'ready',
+      ),
+      MuscleRecoveryItem(
+        muscleGroup: 'legs',
+        recoveryPercent: 40,
+        status: 'fatigued',
+        hoursSinceLastTrained: 8.2,
+        recentSets: 12,
+      ),
+      MuscleRecoveryItem(
+        muscleGroup: 'shoulders',
+        recoveryPercent: 72,
+        status: 'recovering',
+        hoursSinceLastTrained: 12.0,
+        recentSets: 6,
+      ),
+      MuscleRecoveryItem(
+        muscleGroup: 'arms',
+        recoveryPercent: 64,
+        status: 'recovering',
+      ),
+      MuscleRecoveryItem(
+        muscleGroup: 'core',
+        recoveryPercent: 95,
+        status: 'ready',
+      ),
+    ];
+
+    testWidgets(
+        'MuscleRecoveryCard renders Calm Athleticism UI in Dark and Light themes without duplicate %',
+        (WidgetTester tester) async {
+      for (final theme in [ThemeData.dark(), ThemeData.light()]) {
+        await tester.pumpWidget(
+          ProviderScope(
+            overrides: [
+              muscleRecoveryProvider.overrideWith((ref) async => recoverySample),
+            ],
+            child: MaterialApp(
+              theme: theme,
+              locale: const Locale('en'),
+              home: const Scaffold(
+                body: SingleChildScrollView(
+                  padding: EdgeInsets.all(16),
+                  child: MuscleRecoveryCard(),
+                ),
+              ),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        expect(find.byKey(const ValueKey('muscle_recovery_card')), findsOneWidget);
+        expect(find.text('3/6 Ready'), findsOneWidget);
+        expect(find.text('Ready 92%'), findsNothing);
+        expect(find.text('Ready'), findsNWidgets(3));
+        expect(find.text('Recovering · 12h ago'), findsOneWidget);
+        expect(find.text('Fatigued · 8h ago'), findsOneWidget);
+        expect(find.text('Train now: Core (95%)'), findsOneWidget);
+        expect(find.byKey(const ValueKey('muscle_recovery_train_cta')),
+            findsOneWidget);
+        for (final item in recoverySample) {
+          expect(
+            find.byKey(ValueKey('muscle_recovery_item_${item.muscleGroup}')),
+            findsOneWidget,
+          );
+        }
+        expect(tester.takeException(), isNull);
+      }
+    });
+
+    testWidgets(
+        'MuscleRecoveryCard supports Vietnamese and tapping a muscle cell opens ExerciseLibraryScreen',
+        (WidgetTester tester) async {
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            muscleRecoveryProvider.overrideWith((ref) async => recoverySample),
+            exerciseLibraryListProvider.overrideWith((ref) async => const []),
+          ],
+          child: MaterialApp(
+            theme: ThemeData.dark(),
+            locale: const Locale('vi'),
+            localizationsDelegates: GlobalMaterialLocalizations.delegates,
+            supportedLocales: const [Locale('en'), Locale('vi')],
+            home: const Scaffold(
+              body: SingleChildScrollView(
+                padding: EdgeInsets.all(16),
+                child: MuscleRecoveryCard(),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('3/6 Sẵn sàng'), findsOneWidget);
+      expect(find.text('Mệt mỏi · 8h trước'), findsOneWidget);
+      expect(find.text('Tập ngay: Bụng (95%)'), findsOneWidget);
+
+      await tester.tap(find.byKey(const ValueKey('muscle_recovery_item_legs')));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(ExerciseLibraryScreen), findsOneWidget);
+      final library = tester.widget<ExerciseLibraryScreen>(
+        find.byType(ExerciseLibraryScreen),
+      );
+      expect(library.initialCategory, 'Lower Body');
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets(
+        'WorkoutHomeScreen FocusCategoryCard renders cleanly in Dark and Light themes with foreground border',
+        (WidgetTester tester) async {
+      const validProfile = ProfileEntity(
+        age: 24,
+        height: 175.0,
+        weight: 70.0,
+        gender: Gender.male,
+        activityCanonical: 'moderate',
+        goal: Goal.gain_muscle,
+      );
+
+      for (final theme in [ThemeData.dark(), ThemeData.light()]) {
+        await tester.pumpWidget(
+          ProviderScope(
+            overrides: [
+              profileProvider.overrideWith(
+                (ref) => _TestProfileNotifier(
+                  _FakeProfileRepo(),
+                  ProfileState(
+                    status: ProfileStatus.ready,
+                    profile: validProfile,
+                  ),
+                ),
+              ),
+              workoutHistoryProvider.overrideWith((ref) async => const []),
+              muscleRecoveryProvider
+                  .overrideWith((ref) async => recoverySample),
+            ],
+            child: MaterialApp(
+              theme: theme,
+              locale: const Locale('en'),
+              home: const WorkoutHomeScreen(),
+            ),
+          ),
+        );
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 50));
+
+        expect(find.text('TRAIN BY FOCUS'), findsOneWidget);
+        expect(find.text('Upper Body'), findsOneWidget);
+        expect(find.text('Lower Body'), findsOneWidget);
+
+        // Verify _FocusCategoryCard uses foregroundDecoration border and ClipRRect
+        final focusContainers = find.byWidgetPredicate(
+          (w) =>
+              w is Container &&
+              w.foregroundDecoration is BoxDecoration &&
+              w.child is ClipRRect,
+        );
+        expect(focusContainers, findsNWidgets(2));
+        expect(tester.takeException(), isNull);
+      }
+    });
+  });
+}
+
+class _FakeProfileRepo implements ProfileRepository {
+  @override
+  Future<ProfileSnapshot?> fetchProfileSnapshot({bool cacheOnSuccess = false}) async =>
+      null;
+
+  @override
+  Future<ProfileEntity?> fetchProfile() async => null;
+
+  @override
+  Future<void> syncProfile(ProfileEntity profile) async {}
+
+  @override
+  Future<void> cacheSnapshot(ProfileSnapshot snapshot) async {}
+
+  @override
+  Future<void> clearLocalProfile({String? userId}) async {}
+
+  @override
+  Future<OnboardingDraft?> getDraft(String userId) async => null;
+
+  @override
+  Future<void> clearDraft(String userId) async {}
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+}
+
+class _TestProfileNotifier extends ProfileNotifier {
+  _TestProfileNotifier(super.repository, ProfileState initialState) {
+    state = initialState;
+  }
+
+  @override
+  Future<void> loadProfile({bool forceRefresh = false}) async {}
 }
 
 class _ThrowingMockRepository implements ExerciseRepository {

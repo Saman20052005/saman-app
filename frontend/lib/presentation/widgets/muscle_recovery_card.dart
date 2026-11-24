@@ -75,21 +75,73 @@ class MuscleRecoveryCard extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final t = SamanWorkoutTokens.of(context);
     final recoveryAsync = ref.watch(muscleRecoveryProvider);
+    final isVi =
+        (Localizations.maybeLocaleOf(context) ?? const Locale('en'))
+                .languageCode ==
+            'vi';
+    final itemsOrNull = recoveryAsync.valueOrNull;
+    final readyCount = itemsOrNull == null
+        ? 0
+        : itemsOrNull.where((item) => item.recoveryPercent >= 80).length;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          _tr(context, 'muscle_recovery_title'),
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          style: TextStyle(
-            fontFamily: 'Manrope',
-            fontSize: 11,
-            fontWeight: FontWeight.w700,
-            letterSpacing: 0.9,
-            color: t.textMuted,
-          ),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Expanded(
+              child: Text(
+                _tr(context, 'muscle_recovery_title'),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontFamily: 'Manrope',
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 0.9,
+                  color: t.textMuted,
+                ),
+              ),
+            ),
+            if (itemsOrNull != null && itemsOrNull.isNotEmpty) ...[
+              const SizedBox(width: 8),
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color: t.emeraldBadgeBg,
+                  borderRadius:
+                      BorderRadius.circular(SamanWorkoutTokens.radiusPill),
+                  border: Border.all(color: t.emeraldBadgeBorder),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: 6,
+                      height: 6,
+                      decoration: BoxDecoration(
+                        color: t.emeraldAccent,
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                    const SizedBox(width: 5),
+                    Text(
+                      '$readyCount/${itemsOrNull.length} ${_tr(context, 'recovery_ready')}',
+                      style: TextStyle(
+                        fontFamily: 'Manrope',
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        fontFeatures: const [FontFeature.tabularFigures()],
+                        color: t.emeraldAccent,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ],
         ),
         const SizedBox(height: 8),
         recoveryAsync.when(
@@ -118,6 +170,13 @@ class MuscleRecoveryCard extends ConsumerWidget {
             final bestPct = best.recoveryPercent.round().clamp(0, 100);
             final bestMuscleName = _muscleLabel(context, best.muscleGroup);
 
+            final ctaBg = t.isDark
+                ? t.emeraldAccent.withOpacity(0.14)
+                : t.emeraldBadgeBg;
+            final ctaBorder = t.isDark
+                ? t.emeraldAccent.withOpacity(0.38)
+                : t.emeraldBadgeBorder;
+
             return Container(
               key: const ValueKey('muscle_recovery_card'),
               padding: const EdgeInsets.all(SamanWorkoutTokens.spacingMd),
@@ -132,12 +191,15 @@ class MuscleRecoveryCard extends ConsumerWidget {
                   _MuscleGrid(
                     items: items,
                     palette: t,
+                    isVi: isVi,
                     labelBuilder: (group) => _muscleLabel(context, group),
                     statusBuilder: (pct) => _statusLabel(context, pct),
                     colorBuilder: (pct) => _colorForPercent(pct, t),
+                    onItemTap: (group) =>
+                        _openLibrary(context, muscleGroup: group),
                   ),
                   const SizedBox(height: SamanWorkoutTokens.spacingMd),
-                  ElevatedButton.icon(
+                  OutlinedButton.icon(
                     key: const ValueKey('muscle_recovery_train_cta'),
                     onPressed: () => _openLibrary(
                       context,
@@ -146,7 +208,7 @@ class MuscleRecoveryCard extends ConsumerWidget {
                     icon: Icon(
                       Icons.bolt_rounded,
                       size: 18,
-                      color: t.buttonPrimaryText,
+                      color: t.emeraldAccent,
                     ),
                     label: Text(
                       '${_tr(context, 'train_muscle_cta')}: $bestMuscleName ($bestPct%)',
@@ -156,18 +218,20 @@ class MuscleRecoveryCard extends ConsumerWidget {
                         fontFamily: 'Manrope',
                         fontSize: 13,
                         height: 1.2,
-                        fontWeight: FontWeight.w700,
-                        color: t.buttonPrimaryText,
+                        fontWeight: FontWeight.w600,
+                        fontFeatures: const [FontFeature.tabularFigures()],
+                        color: t.emeraldAccent,
                       ),
                     ),
-                    style: ElevatedButton.styleFrom(
-                      minimumSize: const Size(double.infinity, 48),
+                    style: OutlinedButton.styleFrom(
+                      minimumSize: const Size(double.infinity, 44),
                       padding: const EdgeInsets.symmetric(
                         horizontal: 16,
-                        vertical: 12,
+                        vertical: 10,
                       ),
-                      backgroundColor: t.buttonPrimary,
-                      foregroundColor: t.buttonPrimaryText,
+                      backgroundColor: ctaBg,
+                      foregroundColor: t.emeraldAccent,
+                      side: BorderSide(color: ctaBorder),
                       elevation: 0,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(
@@ -190,16 +254,20 @@ class _MuscleGrid extends StatelessWidget {
   const _MuscleGrid({
     required this.items,
     required this.palette,
+    required this.isVi,
     required this.labelBuilder,
     required this.statusBuilder,
     required this.colorBuilder,
+    required this.onItemTap,
   });
 
   final List<MuscleRecoveryItem> items;
   final SamanWorkoutPalette palette;
+  final bool isVi;
   final String Function(String group) labelBuilder;
   final String Function(num percent) statusBuilder;
   final Color Function(num percent) colorBuilder;
+  final void Function(String group) onItemTap;
 
   @override
   Widget build(BuildContext context) {
@@ -217,9 +285,11 @@ class _MuscleGrid extends StatelessWidget {
                 ),
                 item: first,
                 palette: palette,
+                isVi: isVi,
                 muscleLabel: labelBuilder(first.muscleGroup),
                 statusLabel: statusBuilder(first.recoveryPercent),
                 accentColor: colorBuilder(first.recoveryPercent),
+                onTap: () => onItemTap(first.muscleGroup),
               ),
             ),
             const SizedBox(width: 8),
@@ -231,9 +301,11 @@ class _MuscleGrid extends StatelessWidget {
                       ),
                       item: second,
                       palette: palette,
+                      isVi: isVi,
                       muscleLabel: labelBuilder(second.muscleGroup),
                       statusLabel: statusBuilder(second.recoveryPercent),
                       accentColor: colorBuilder(second.recoveryPercent),
+                      onTap: () => onItemTap(second.muscleGroup),
                     )
                   : const SizedBox.shrink(),
             ),
@@ -257,92 +329,114 @@ class _MuscleCell extends StatelessWidget {
     super.key,
     required this.item,
     required this.palette,
+    required this.isVi,
     required this.muscleLabel,
     required this.statusLabel,
     required this.accentColor,
+    required this.onTap,
   });
 
   final MuscleRecoveryItem item;
   final SamanWorkoutPalette palette;
+  final bool isVi;
   final String muscleLabel;
   final String statusLabel;
   final Color accentColor;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     final pct = item.recoveryPercent.round().clamp(0, 100);
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
-      decoration: BoxDecoration(
-        color: palette.surfaceElevated,
-        borderRadius: BorderRadius.circular(SamanWorkoutTokens.radiusMd),
-        border: Border.all(color: palette.borderSubtle),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    final radius = BorderRadius.circular(SamanWorkoutTokens.radiusMd);
+    final subtitleText = (item.recentSets > 0 && item.hoursSinceLastTrained != null)
+        ? '$statusLabel · ${item.hoursSinceLastTrained!.round()}h ${isVi ? 'trước' : 'ago'}'
+        : statusLabel;
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: radius,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
+          decoration: BoxDecoration(
+            color: palette.surfaceElevated,
+            borderRadius: radius,
+            border: Border.all(color: palette.borderSubtle),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
             children: [
-              Expanded(
-                child: Text(
-                  muscleLabel,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    fontFamily: 'Manrope',
-                    fontSize: 13,
-                    fontWeight: FontWeight.w700,
-                    color: palette.textPrimary,
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Expanded(
+                    child: Text(
+                      muscleLabel,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontFamily: 'Manrope',
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: palette.textPrimary,
+                      ),
+                    ),
                   ),
+                  const SizedBox(width: 4),
+                  Text(
+                    '$pct%',
+                    style: TextStyle(
+                      fontFamily: 'Manrope',
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                      fontFeatures: const [FontFeature.tabularFigures()],
+                      color: accentColor,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 4),
+              Text(
+                subtitleText,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontFamily: 'Manrope',
+                  fontSize: 11,
+                  fontWeight: FontWeight.w500,
+                  color: palette.textSecondary,
                 ),
               ),
-              const SizedBox(width: 4),
-              Text(
-                '$pct%',
-                style: TextStyle(
-                  fontFamily: 'monospace',
-                  fontSize: 12,
-                  fontWeight: FontWeight.w700,
-                  color: accentColor,
+              const SizedBox(height: 6),
+              Container(
+                height: 4,
+                decoration: BoxDecoration(
+                  color: palette.isDark
+                      ? const Color(0xFF23262D)
+                      : palette.borderSubtle,
+                  borderRadius:
+                      BorderRadius.circular(SamanWorkoutTokens.radiusPill),
+                ),
+                alignment: Alignment.centerLeft,
+                child: AnimatedFractionallySizedBox(
+                  duration: const Duration(milliseconds: 350),
+                  curve: Curves.easeOutCubic,
+                  widthFactor: (pct / 100.0).clamp(0.0, 1.0),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: accentColor,
+                      borderRadius: BorderRadius.circular(
+                        SamanWorkoutTokens.radiusPill,
+                      ),
+                    ),
+                  ),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 4),
-          Text(
-            '$statusLabel $pct%',
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: TextStyle(
-              fontFamily: 'Manrope',
-              fontSize: 11,
-              fontWeight: FontWeight.w500,
-              color: palette.textSecondary,
-            ),
-          ),
-          const SizedBox(height: 6),
-          Container(
-            height: 5,
-            decoration: BoxDecoration(
-              color: palette.isDark
-                  ? const Color(0xFF262930)
-                  : palette.border,
-              borderRadius: BorderRadius.circular(3),
-            ),
-            alignment: Alignment.centerLeft,
-            child: FractionallySizedBox(
-              widthFactor: (pct / 100.0).clamp(0.0, 1.0),
-              child: Container(
-                decoration: BoxDecoration(
-                  color: accentColor,
-                  borderRadius: BorderRadius.circular(3),
-                ),
-              ),
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }
