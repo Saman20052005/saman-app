@@ -192,15 +192,31 @@ class WorkoutCameraView(
             }
 
         val analysis = ImageAnalysis.Builder()
-            .setTargetResolution(Size(480, 640))
+            .setTargetResolution(Size(240, 320))
             .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
             .setOutputImageFormat(ImageAnalysis.OUTPUT_IMAGE_FORMAT_RGBA_8888)
             .build()
 
         analysis.setAnalyzer(cameraExecutor) { imageProxy ->
+            WorkoutCvPerfTracker.onAnalyzerArrival()
             val helper = cvPlugin.poseHelper
             if (!isDisposed && cvPlugin.isSessionActive && cvPlugin.currentSourceMode == "camera" && helper != null) {
-                helper.detectLiveStream(imageProxy, isFrontCamera = false, sessionGen = cvPlugin.currentSessionGeneration)
+                if (cvPlugin.tryAcquireCameraFrameSlot()) {
+                    var submitted = false
+                    try {
+                        submitted = helper.detectLiveStream(
+                            imageProxy,
+                            isFrontCamera = false,
+                            sessionGen = cvPlugin.currentSessionGeneration
+                        )
+                    } finally {
+                        if (!submitted) {
+                            cvPlugin.releaseCameraFrameSlot()
+                        }
+                    }
+                } else {
+                    imageProxy.close()
+                }
             } else {
                 imageProxy.close()
             }

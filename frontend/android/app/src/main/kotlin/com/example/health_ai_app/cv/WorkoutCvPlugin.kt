@@ -2,9 +2,18 @@ package com.example.health_ai_app.cv
 
 import android.Manifest
 import android.app.Activity
+import android.app.ActivityManager
+import android.content.Context
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
+import android.graphics.Canvas
+import android.graphics.Color
+import android.graphics.Paint
 import android.graphics.SurfaceTexture
+import android.media.AudioAttributes
+import android.media.AudioFocusRequest
+import android.media.AudioManager
+import android.os.Build
 import android.os.Handler
 import android.os.Looper
 import android.os.SystemClock
@@ -12,6 +21,11 @@ import android.util.Log
 import android.view.TextureView
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import com.google.mediapipe.framework.image.BitmapImageBuilder
+import com.google.mediapipe.tasks.core.BaseOptions
+import com.google.mediapipe.tasks.core.Delegate
+import com.google.mediapipe.tasks.vision.core.RunningMode
+import com.google.mediapipe.tasks.vision.poselandmarker.PoseLandmarker
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.EventChannel
 import io.flutter.plugin.common.MethodCall
@@ -37,6 +51,14 @@ class WorkoutCvPlugin(private val activity: Activity) :
         private const val MAX_IN_FLIGHT_FRAMES = 2
         private const val CAPTURE_BITMAP_WIDTH = 192
         private const val CAPTURE_BITMAP_HEIGHT = 256
+        private const val BENCHMARK_MODEL_NAME = "pose_landmarker_lite.task"
+        private const val BENCHMARK_INPUT_WIDTH = 192
+        private const val BENCHMARK_INPUT_HEIGHT = 256
+        private const val BENCHMARK_DEFAULT_FRAMES = 12
+        private const val BENCHMARK_MIN_FRAMES = 5
+        private const val BENCHMARK_MAX_FRAMES = 20
+        private const val BENCHMARK_MAX_ELAPSED_MS = 2200.0
+        private const val BENCHMARK_EARLY_STOP_MIN_FRAMES = 3
         private const val VERBOSE_FRAME_LOGS = false
 
         fun registerWith(activity: Activity, flutterEngine: FlutterEngine): WorkoutCvPlugin {
@@ -81,10 +103,8 @@ class WorkoutCvPlugin(private val activity: Activity) :
         private set
 
     val inFlightCount = AtomicInteger(0)
-    private val bitmapPool = arrayOf(
-        Bitmap.createBitmap(CAPTURE_BITMAP_WIDTH, CAPTURE_BITMAP_HEIGHT, Bitmap.Config.ARGB_8888),
-        Bitmap.createBitmap(CAPTURE_BITMAP_WIDTH, CAPTURE_BITMAP_HEIGHT, Bitmap.Config.ARGB_8888)
-    )
+    private val bitmapPoolLock = Any()
+    private val bitmapPool: Array<Bitmap?> = arrayOfNulls(2)
     private var bitmapPoolIndex = 0
     val lastPoseSubmitRealtimeMs = AtomicLong(0L)
     val latestRenderedPtsUs = AtomicLong(0L)
@@ -125,6 +145,243 @@ class WorkoutCvPlugin(private val activity: Activity) :
     private var eventSink: EventChannel.EventSink? = null
     private val mainHandler = Handler(Looper.getMainLooper())
     private var pendingPermissionResult: MethodChannel.Result? = null
+    private val audioManager: AudioManager? =
+        activity.getSystemService(Context.AUDIO_SERVICE) as? AudioManager
+    private var activeAudioFocusRequest: Any? = null
+
+    fun tryAcquireCameraFrameSlot(): Boolean {
+        if (isDisposed || !isSessionActive || currentSourceMode != "camera") return false
+        val nowElapsedMs = SystemClock.elapsedRealtime()
+        val lastSubmitMs = lastPoseSubmitRealtimeMs.get()
+        if (lastSubmitMs > 0L && (nowElapsedMs - lastSubmitMs) < MIN_ML_SUBMIT_INTERVAL_MS) {
+            return false
+        }
+        while (true) {
+            val current = inFlightCount.get()
+            if (current >= MAX_IN_FLIGHT_FRAMES) {
+                return false
+            }
+            if (inFlightCount.compareAndSet(current, current + 1)) {
+                lastPoseSubmitRealtimeMs.set(nowElapsedMs)
+                return true
+            }
+        }
+    }
+
+    fun releaseCameraFrameSlot() {
+        inFlightCount.updateAndGet { maxOf(0, it - 1) }
+    }
+
+    private fun acquireReplayPoolBitmap(): Bitmap {
+        synchronized(bitmapPoolLock) {
+            val index = bitmapPoolIndex
+            bitmapPoolIndex = (bitmapPoolIndex + 1) % bitmapPool.size
+            val existing = bitmapPool[index]
+            if (existing != null && !existing.isRecycled &&
+                existing.width == CAPTURE_BITMAP_WIDTH &&
+                existing.height == CAPTURE_BITMAP_HEIGHT
+            ) {
+                return existing
+            }
+            val created = Bitmap.createBitmap(
+                CAPTURE_BITMAP_WIDTH,
+                CAPTURE_BITMAP_HEIGHT,
+                Bitmap.Config.ARGB_8888
+            )
+            bitmapPool[index] = created
+            return created
+        }
+    }
+
+    private fun clearReplayBitmapPool(recycleBitmaps: Boolean) {
+        synchronized(bitmapPoolLock) {
+            for (i in bitmapPool.indices) {
+                val bmp = bitmapPool[i]
+                bitmapPool[i] = null
+                if (recycleBitmaps && bmp != null && !bmp.isRecycled) {
+                    bmp.recycle()
+                }
+            }
+            bitmapPoolIndex = 0
+        }
+    }
+
+    private fun getDeviceHardwareInfo(): Map<String, Any> {
+        val activityManager = activity.getSystemService(Context.ACTIVITY_SERVICE) as? ActivityManager
+        val memInfo = ActivityManager.MemoryInfo()
+        activityManager?.getMemoryInfo(memInfo)
+        val totalRamMb = (memInfo.totalMem / (1024L * 1024L)).toInt()
+        val cpuCores = Runtime.getRuntime().availableProcessors()
+        val androidSdk = Build.VERSION.SDK_INT
+        val deviceModel = Build.MODEL ?: "Unknown"
+        val manufacturer = Build.MANUFACTURER ?: "Unknown"
+        val socHardware = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            (Build.SOC_MODEL ?: "").ifBlank { Build.HARDWARE ?: "Unknown" }
+        } else {
+            Build.HARDWARE ?: "Unknown"
+        }
+
+        return mapOf(
+            "totalRamMb" to totalRamMb,
+            "cpuCores" to cpuCores,
+            "androidSdk" to androidSdk,
+            "deviceModel" to deviceModel,
+            "manufacturer" to manufacturer,
+            "socHardware" to socHardware
+        )
+    }
+
+    private fun runPoseBenchmark(frameCountArg: Int?, result: MethodChannel.Result) {
+        val targetFrames = (frameCountArg ?: BENCHMARK_DEFAULT_FRAMES)
+            .coerceIn(BENCHMARK_MIN_FRAMES, BENCHMARK_MAX_FRAMES)
+        val appContext = activity.applicationContext
+
+        Thread({
+            var benchmarkLandmarker: PoseLandmarker? = null
+            var bitmap: Bitmap? = null
+            val payload: Map<String, Any?> = try {
+                val baseOptions = BaseOptions.builder()
+                    .setModelAssetPath(BENCHMARK_MODEL_NAME)
+                    .setDelegate(Delegate.CPU)
+                    .build()
+                val options = PoseLandmarker.PoseLandmarkerOptions.builder()
+                    .setBaseOptions(baseOptions)
+                    .setMinPoseDetectionConfidence(0.4f)
+                    .setMinTrackingConfidence(0.4f)
+                    .setMinPosePresenceConfidence(0.4f)
+                    .setNumPoses(1)
+                    .setOutputSegmentationMasks(false)
+                    .setRunningMode(RunningMode.IMAGE)
+                    .build()
+
+                benchmarkLandmarker = PoseLandmarker.createFromOptions(appContext, options)
+
+                bitmap = Bitmap.createBitmap(
+                    BENCHMARK_INPUT_WIDTH,
+                    BENCHMARK_INPUT_HEIGHT,
+                    Bitmap.Config.ARGB_8888
+                )
+                val canvas = Canvas(bitmap)
+                canvas.drawColor(Color.rgb(236, 240, 244))
+                val shapePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                    color = Color.rgb(64, 82, 108)
+                    style = Paint.Style.FILL
+                }
+                canvas.drawCircle(BENCHMARK_INPUT_WIDTH / 2f, 54f, 20f, shapePaint)
+                canvas.drawRect(68f, 80f, 124f, 166f, shapePaint)
+                canvas.drawRect(72f, 166f, 92f, 236f, shapePaint)
+                canvas.drawRect(100f, 166f, 120f, 236f, shapePaint)
+
+                // 1 warmup frame (excluded from timing)
+                benchmarkLandmarker.detect(BitmapImageBuilder(bitmap).build())
+
+                val startNs = SystemClock.elapsedRealtimeNanos()
+                var framesRun = 0
+                for (i in 0 until targetFrames) {
+                    benchmarkLandmarker.detect(BitmapImageBuilder(bitmap).build())
+                    framesRun++
+                    val elapsedMs = (SystemClock.elapsedRealtimeNanos() - startNs) / 1_000_000.0
+                    if (framesRun >= BENCHMARK_EARLY_STOP_MIN_FRAMES && elapsedMs > BENCHMARK_MAX_ELAPSED_MS) {
+                        break
+                    }
+                }
+                val totalMs = (SystemClock.elapsedRealtimeNanos() - startNs) / 1_000_000.0
+                val avgInferenceMs = if (framesRun > 0) totalMs / framesRun else 0.0
+                val measuredFps = if (totalMs > 0.0) (framesRun * 1000.0 / totalMs) else 0.0
+
+                mapOf(
+                    "success" to true,
+                    "measuredFps" to measuredFps,
+                    "avgInferenceMs" to avgInferenceMs,
+                    "framesRun" to framesRun,
+                    "inputWidth" to BENCHMARK_INPUT_WIDTH,
+                    "inputHeight" to BENCHMARK_INPUT_HEIGHT,
+                    "delegate" to "CPU",
+                    "errorMessage" to null
+                )
+            } catch (e: Exception) {
+                Log.e(TAG, "Pose benchmark failed: ${e.message}", e)
+                mapOf(
+                    "success" to false,
+                    "measuredFps" to 0.0,
+                    "avgInferenceMs" to 0.0,
+                    "framesRun" to 0,
+                    "inputWidth" to BENCHMARK_INPUT_WIDTH,
+                    "inputHeight" to BENCHMARK_INPUT_HEIGHT,
+                    "delegate" to "CPU",
+                    "errorMessage" to (e.message ?: "Pose benchmark failed")
+                )
+            } finally {
+                try {
+                    benchmarkLandmarker?.close()
+                } catch (closeEx: Exception) {
+                    Log.w(TAG, "Error closing benchmark PoseLandmarker: ${closeEx.message}")
+                }
+                if (bitmap != null && !bitmap.isRecycled) {
+                    bitmap.recycle()
+                }
+            }
+
+            mainHandler.post {
+                if (!isDisposed) {
+                    result.success(payload)
+                }
+            }
+        }, "WorkoutCvBenchmarkThread").apply {
+            isDaemon = true
+            start()
+        }
+    }
+
+    private fun requestAudioFocusInternal(): Boolean {
+        val manager = audioManager ?: return false
+        return try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                val focusRequest = (activeAudioFocusRequest as? AudioFocusRequest) ?: run {
+                    val attributes = AudioAttributes.Builder()
+                        .setUsage(AudioAttributes.USAGE_ASSISTANCE_ACCESSIBILITY)
+                        .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH)
+                        .build()
+                    AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN_TRANSIENT_MAY_DUCK)
+                        .setAudioAttributes(attributes)
+                        .build()
+                        .also { activeAudioFocusRequest = it }
+                }
+                manager.requestAudioFocus(focusRequest) == AudioManager.AUDIOFOCUS_REQUEST_GRANTED
+            } else {
+                @Suppress("DEPRECATION")
+                val focusResult = manager.requestAudioFocus(
+                    null,
+                    AudioManager.STREAM_MUSIC,
+                    AudioManager.AUDIOFOCUS_GAIN_TRANSIENT_MAY_DUCK
+                )
+                focusResult == AudioManager.AUDIOFOCUS_REQUEST_GRANTED
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "requestAudioFocus failed: ${e.message}")
+            false
+        }
+    }
+
+    private fun abandonAudioFocusInternal(): Boolean {
+        val manager = audioManager ?: return true
+        return try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                val focusRequest = activeAudioFocusRequest as? AudioFocusRequest
+                if (focusRequest != null) {
+                    manager.abandonAudioFocusRequest(focusRequest)
+                    activeAudioFocusRequest = null
+                }
+            } else {
+                @Suppress("DEPRECATION")
+                manager.abandonAudioFocus(null)
+            }
+            true
+        } catch (e: Exception) {
+            Log.w(TAG, "abandonAudioFocus failed: ${e.message}")
+            true
+        }
+    }
 
     fun hasCameraPermission(): Boolean = ContextCompat.checkSelfPermission(
         activity, Manifest.permission.CAMERA
@@ -155,6 +412,8 @@ class WorkoutCvPlugin(private val activity: Activity) :
         pendingPermissionResult?.success(false)
         pendingPermissionResult = null
         stopCurrentSession()
+        abandonAudioFocusInternal()
+        clearReplayBitmapPool(recycleBitmaps = true)
         val view = activeCameraView
         activeCameraView = null
         view?.dispose()
@@ -233,6 +492,19 @@ class WorkoutCvPlugin(private val activity: Activity) :
                     (activeCameraView?.acknowledgeReplayFrame(generation, ptsMs, phase) == true)
                 if (accepted) Log.i(TAG, "[CV_FLUTTER_ACK] sessionGen=$generation ptsMs=$ptsMs phase=$phase")
                 result.success(accepted)
+            }
+            "getDeviceHardwareInfo" -> {
+                result.success(getDeviceHardwareInfo())
+            }
+            "runPoseBenchmark" -> {
+                val frameCount = call.argument<Number>("frameCount")?.toInt()
+                runPoseBenchmark(frameCount, result)
+            }
+            "requestAudioFocus" -> {
+                result.success(requestAudioFocusInternal())
+            }
+            "abandonAudioFocus" -> {
+                result.success(abandonAudioFocusInternal())
             }
             else -> result.notImplemented()
         }
@@ -361,6 +633,8 @@ class WorkoutCvPlugin(private val activity: Activity) :
         activeCameraView?.stopCamera()
         poseHelper?.clearPoseLandmarker()
         poseHelper = null
+        abandonAudioFocusInternal()
+        clearReplayBitmapPool(recycleBitmaps = true)
         Log.i(TAG, "[CV_SYNC_SESSION] Stopped session gen=$endingGen -> new idle gen=$currentSessionGeneration")
     }
 
@@ -437,8 +711,7 @@ class WorkoutCvPlugin(private val activity: Activity) :
         // Measure readback duration separately and read the exact SurfaceTexture timestamp latched by copySurfaceInto.
         // Downscale to 192x256 (preserving 3:4 workout video aspect ratio) into a reusable pooled bitmap (no per-frame allocation).
         val tRead0 = SystemClock.elapsedRealtimeNanos()
-        val targetBitmap = bitmapPool[bitmapPoolIndex]
-        bitmapPoolIndex = (bitmapPoolIndex + 1) % bitmapPool.size
+        val targetBitmap = acquireReplayPoolBitmap()
         val bitmap = textureView.getBitmap(targetBitmap)
         val surfaceTsAfterNs = surfaceTexture.timestamp
         val tRead1 = SystemClock.elapsedRealtimeNanos()

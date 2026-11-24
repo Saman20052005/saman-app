@@ -108,6 +108,55 @@ class WorkoutCvNativeSource {
     }
   }
 
+  Future<Map<String, dynamic>?> getDeviceHardwareInfo() async {
+    if (kIsWeb || defaultTargetPlatform != TargetPlatform.android) return null;
+    try {
+      final result = await _methodChannel.invokeMethod<dynamic>('getDeviceHardwareInfo');
+      if (result is Map) {
+        return Map<String, dynamic>.from(result);
+      }
+      return null;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<Map<String, dynamic>?> runPoseBenchmark({int frameCount = 12}) async {
+    if (kIsWeb || defaultTargetPlatform != TargetPlatform.android) return null;
+    try {
+      final result = await _methodChannel.invokeMethod<dynamic>(
+        'runPoseBenchmark',
+        {'frameCount': frameCount},
+      );
+      if (result is Map) {
+        return Map<String, dynamic>.from(result);
+      }
+      return null;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<bool> requestAudioFocus() async {
+    if (kIsWeb || defaultTargetPlatform != TargetPlatform.android) return false;
+    try {
+      final result = await _methodChannel.invokeMethod<bool>('requestAudioFocus');
+      return result ?? false;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  Future<bool> abandonAudioFocus() async {
+    if (kIsWeb || defaultTargetPlatform != TargetPlatform.android) return false;
+    try {
+      final result = await _methodChannel.invokeMethod<bool>('abandonAudioFocus');
+      return result ?? false;
+    } catch (_) {
+      return false;
+    }
+  }
+
   Stream<Map<String, dynamic>> get eventStream {
     if (kIsWeb || defaultTargetPlatform != TargetPlatform.android) {
       return const Stream.empty();

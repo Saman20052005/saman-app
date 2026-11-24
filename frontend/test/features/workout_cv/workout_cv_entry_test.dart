@@ -48,6 +48,18 @@ class FakeWorkoutCvNativeSource implements WorkoutCvNativeSource {
   }
 
   @override
+  Future<Map<String, dynamic>?> getDeviceHardwareInfo() async => null;
+
+  @override
+  Future<Map<String, dynamic>?> runPoseBenchmark({int frameCount = 12}) async => null;
+
+  @override
+  Future<bool> requestAudioFocus() async => true;
+
+  @override
+  Future<bool> abandonAudioFocus() async => true;
+
+  @override
   Stream<Map<String, dynamic>> get eventStream => const Stream.empty();
 }
 

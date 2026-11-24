@@ -35,6 +35,8 @@ class BicepCurlRepEvent extends LatPulldownRepEvent {
     required super.durationMs,
     required super.minElbowAngleDeg,
     super.status = 'PROVISIONAL',
+    super.viewAngle = CameraViewAngle.unknown,
+    super.issueCode,
     this.activeSide,
     this.maxUpperArmSwingDeg,
     this.maxTorsoLeanDeg,
@@ -56,6 +58,8 @@ class BicepCurlBaselineConfig {
   final int maxAllowedGapMs;
   final double maxValidUpperArmSwingDeg;
   final double maxValidTorsoLeanDeg;
+  final bool enableAngleSmoothing;
+  final double smoothingAlpha;
 
   const BicepCurlBaselineConfig({
     this.extendedEnterDeg = 145.0,
@@ -69,6 +73,8 @@ class BicepCurlBaselineConfig {
     this.maxAllowedGapMs = 500,
     this.maxValidUpperArmSwingDeg = 35.0,
     this.maxValidTorsoLeanDeg = 25.0,
+    this.enableAngleSmoothing = false,
+    this.smoothingAlpha = 0.50,
   });
 }
 
@@ -124,7 +130,13 @@ class BicepCurlBaseline {
   double? _maxUpperArmSwingInCurrentRep;
   double? _maxTorsoLeanInCurrentRep;
   String? _lockedSide;
+  String? _preferredSide;
+  String? _lastSmoothedSide;
   int _droppedNonMonotonicFrames = 0;
+  late final AngleSmoother _angleSmoother = AngleSmoother(
+    alpha: config.smoothingAlpha,
+    maxGapMs: config.maxAllowedGapMs,
+  );
 
   BicepCurlBaseline({
     BicepCurlBaselineConfig? config,
@@ -149,6 +161,8 @@ class BicepCurlBaseline {
       maxAllowedGapMs: base.maxAllowedGapMs,
       maxValidUpperArmSwingDeg: maxValidUpperArmSwingDeg,
       maxValidTorsoLeanDeg: base.maxValidTorsoLeanDeg,
+      enableAngleSmoothing: base.enableAngleSmoothing,
+      smoothingAlpha: base.smoothingAlpha,
     );
   }
 
@@ -172,7 +186,10 @@ class BicepCurlBaseline {
     _maxUpperArmSwingInCurrentRep = null;
     _maxTorsoLeanInCurrentRep = null;
     _lockedSide = null;
+    _preferredSide = null;
+    _lastSmoothedSide = null;
     _droppedNonMonotonicFrames = 0;
+    _angleSmoother.reset();
   }
 
   /// Processes a [BicepCurlFrameFeatures] container with per-rep side-locking.
@@ -233,6 +250,7 @@ class BicepCurlBaseline {
         upperArmSwingDeg: lockedSwing,
         torsoLeanDeg: torsoLean,
         activeSide: _lockedSide,
+        viewAngle: features.viewAngle,
         isSampleValid: lockedAngle != null,
       );
     }
@@ -243,6 +261,7 @@ class BicepCurlBaseline {
         frameIndex: features.frameIndex,
         timestampMs: features.timestampMs,
         elbowAngleDeg: null,
+        viewAngle: features.viewAngle,
         isSampleValid: false,
       );
     }
@@ -258,6 +277,17 @@ class BicepCurlBaseline {
       _abortInProgressCycle();
     }
 
+    final leftScore = leftValid
+        ? (features.leftElbowVisibilityScore > 0.0
+            ? features.leftElbowVisibilityScore
+            : 1.0)
+        : 0.0;
+    final rightScore = rightValid
+        ? (features.rightElbowVisibilityScore > 0.0
+            ? features.rightElbowVisibilityScore
+            : 1.0)
+        : 0.0;
+
     String? selectedSide;
     double? selectedAngle;
     double? selectedSwing;
@@ -267,10 +297,15 @@ class BicepCurlBaseline {
       final rightCurling =
           rightAngle != null && rightAngle < config.curlingEnterDeg;
       if (leftCurling && rightCurling) {
-        selectedSide = features.leftElbowVisibilityScore >=
-                features.rightElbowVisibilityScore
-            ? 'left'
-            : 'right';
+        final locked = ViewAngleProjectionHelper.selectBestLockedSide(
+          leftScore: leftScore,
+          rightScore: rightScore,
+          lockedSide: _preferredSide,
+          viewAngle: features.viewAngle,
+        );
+        if (locked != 'none') {
+          selectedSide = locked;
+        }
       } else if (leftCurling) {
         selectedSide = 'left';
       } else if (rightCurling) {
@@ -279,16 +314,23 @@ class BicepCurlBaseline {
 
       if (selectedSide != null) {
         _lockedSide = selectedSide;
+        _preferredSide = selectedSide;
         selectedAngle = selectedSide == 'left' ? leftAngle : rightAngle;
         selectedSwing = selectedSide == 'left' ? leftSwing : rightSwing;
       }
     }
 
     if (selectedAngle == null) {
-      final useLeft = leftValid &&
-          (!rightValid ||
-              features.leftElbowVisibilityScore >=
-                  features.rightElbowVisibilityScore);
+      final locked = ViewAngleProjectionHelper.selectBestLockedSide(
+        leftScore: leftScore,
+        rightScore: rightScore,
+        lockedSide: _preferredSide,
+        viewAngle: features.viewAngle,
+      );
+      if (locked != 'none') {
+        _preferredSide = locked;
+      }
+      final useLeft = locked == 'left' || (locked == 'none' && leftValid);
       selectedSide = useLeft ? 'left' : 'right';
       selectedAngle = useLeft ? leftAngle : rightAngle;
       selectedSwing = useLeft ? leftSwing : rightSwing;
@@ -301,6 +343,7 @@ class BicepCurlBaseline {
       upperArmSwingDeg: selectedSwing,
       torsoLeanDeg: torsoLean,
       activeSide: _lockedSide ?? selectedSide,
+      viewAngle: features.viewAngle,
       isSampleValid: true,
       precheckedGapResetReason: preLockGapResetReason,
       skipGapCheck: true,
@@ -328,6 +371,7 @@ class BicepCurlBaseline {
     double? upperArmSwingDeg,
     double? torsoLeanDeg,
     String? activeSide,
+    CameraViewAngle viewAngle = CameraViewAngle.unknown,
     required bool isSampleValid,
     bool isGateDetecting = true,
   }) {
@@ -367,6 +411,7 @@ class BicepCurlBaseline {
       upperArmSwingDeg: upperArmSwingDeg,
       torsoLeanDeg: torsoLeanDeg,
       activeSide: activeSide,
+      viewAngle: viewAngle,
       isSampleValid: isSampleValid,
     );
   }
@@ -378,6 +423,7 @@ class BicepCurlBaseline {
     double? upperArmSwingDeg,
     double? torsoLeanDeg,
     String? activeSide,
+    CameraViewAngle viewAngle = CameraViewAngle.unknown,
     required bool isSampleValid,
     String? precheckedGapResetReason,
     bool skipGapCheck = false,
@@ -385,6 +431,9 @@ class BicepCurlBaseline {
     if (!isSampleValid || elbowAngleDeg == null || !elbowAngleDeg.isFinite) {
       _readyCandidateStartMs = null;
       _extendedCandidateStartMs = null;
+      if (config.enableAngleSmoothing) {
+        _angleSmoother.smooth(timestampMs: timestampMs, rawAngleDeg: null);
+      }
 
       if (_lastValidTimestampMs != null &&
           (timestampMs - _lastValidTimestampMs!) > config.maxAllowedGapMs) {
@@ -422,12 +471,37 @@ class BicepCurlBaseline {
     }
     _lastValidTimestampMs = timestampMs;
 
+    final effectiveSide = _lockedSide ?? activeSide;
+    if (config.enableAngleSmoothing &&
+        effectiveSide != null &&
+        _lastSmoothedSide != null &&
+        effectiveSide != _lastSmoothedSide) {
+      _angleSmoother.reset();
+    }
+    if (effectiveSide != null) {
+      _lastSmoothedSide = effectiveSide;
+    }
+
+    final effectiveAngle = config.enableAngleSmoothing
+        ? (_angleSmoother.smooth(
+              timestampMs: timestampMs,
+              rawAngleDeg: elbowAngleDeg,
+            ) ??
+            elbowAngleDeg)
+        : elbowAngleDeg;
+    final flexionOffset =
+        ViewAngleProjectionHelper.elbowFlexionOffsetDeg(viewAngle);
+    final extensionOffset =
+        ViewAngleProjectionHelper.elbowExtensionOffsetDeg(viewAngle);
+    final effectiveFlexedEnter = config.flexedEnterDeg + flexionOffset;
+    final effectiveExtendedEnter = config.extendedEnterDeg + extensionOffset;
+
     String? transitionReason;
     BicepCurlRepEvent? newRepEvent;
 
     switch (_phase) {
       case BicepCurlPhase.notReady:
-        if (elbowAngleDeg >= config.extendedEnterDeg) {
+        if (effectiveAngle >= effectiveExtendedEnter) {
           _readyCandidateStartMs ??= timestampMs;
           if ((timestampMs - _readyCandidateStartMs!) >=
               config.minReadyHoldMs) {
@@ -442,13 +516,13 @@ class BicepCurlBaseline {
         break;
 
       case BicepCurlPhase.extended:
-        if (elbowAngleDeg < config.curlingEnterDeg) {
+        if (effectiveAngle < config.curlingEnterDeg) {
           _phase = BicepCurlPhase.curling;
           transitionReason = 'curlStarted';
           _repStartTimestampMs = timestampMs;
           _peakFlexedTimestampMs = null;
           _extendedCandidateStartMs = null;
-          _minElbowAngleInCurrentRep = elbowAngleDeg;
+          _minElbowAngleInCurrentRep = effectiveAngle;
           _maxUpperArmSwingInCurrentRep = null;
           _maxTorsoLeanInCurrentRep = null;
           if (_lockedSide == null && activeSide != null) {
@@ -459,16 +533,16 @@ class BicepCurlBaseline {
         break;
 
       case BicepCurlPhase.curling:
-        if (elbowAngleDeg < _minElbowAngleInCurrentRep) {
-          _minElbowAngleInCurrentRep = elbowAngleDeg;
+        if (effectiveAngle < _minElbowAngleInCurrentRep) {
+          _minElbowAngleInCurrentRep = effectiveAngle;
         }
         _updateFormMetrics(upperArmSwingDeg, torsoLeanDeg);
 
-        if (elbowAngleDeg <= config.flexedEnterDeg) {
+        if (effectiveAngle <= effectiveFlexedEnter) {
           _phase = BicepCurlPhase.flexed;
           transitionReason = 'flexedReached';
           _peakFlexedTimestampMs = timestampMs;
-        } else if (elbowAngleDeg >= config.curlingEnterDeg) {
+        } else if (effectiveAngle >= config.curlingEnterDeg) {
           _phase = BicepCurlPhase.extended;
           transitionReason = 'incompleteCurlReturnedToExtended';
           _repStartTimestampMs = null;
@@ -479,13 +553,13 @@ class BicepCurlBaseline {
         break;
 
       case BicepCurlPhase.flexed:
-        if (elbowAngleDeg < _minElbowAngleInCurrentRep) {
-          _minElbowAngleInCurrentRep = elbowAngleDeg;
+        if (effectiveAngle < _minElbowAngleInCurrentRep) {
+          _minElbowAngleInCurrentRep = effectiveAngle;
           _peakFlexedTimestampMs = timestampMs;
         }
         _updateFormMetrics(upperArmSwingDeg, torsoLeanDeg);
 
-        if (elbowAngleDeg > config.loweringEnterDeg) {
+        if (effectiveAngle > config.loweringEnterDeg) {
           _phase = BicepCurlPhase.lowering;
           transitionReason = 'loweringStarted';
           _extendedCandidateStartMs = null;
@@ -495,11 +569,11 @@ class BicepCurlBaseline {
       case BicepCurlPhase.lowering:
         _updateFormMetrics(upperArmSwingDeg, torsoLeanDeg);
 
-        if (elbowAngleDeg <= config.flexedEnterDeg) {
+        if (effectiveAngle <= effectiveFlexedEnter) {
           _phase = BicepCurlPhase.flexed;
           transitionReason = 'reFlexedDuringLowering';
           _extendedCandidateStartMs = null;
-        } else if (elbowAngleDeg >= config.extendedEnterDeg) {
+        } else if (effectiveAngle >= effectiveExtendedEnter) {
           _extendedCandidateStartMs ??= timestampMs;
           if ((timestampMs - _extendedCandidateStartMs!) >=
               config.minExtendedHoldMs) {
@@ -516,6 +590,18 @@ class BicepCurlBaseline {
               final isTorsoStable = _maxTorsoLeanInCurrentRep != null
                   ? _maxTorsoLeanInCurrentRep! <= config.maxValidTorsoLeanDeg
                   : null;
+              final String? issueCode;
+              if (isElbowPinned == false) {
+                issueCode = 'elbowSwing';
+              } else if (isTorsoStable == false) {
+                issueCode = 'torsoLean';
+              } else if (duration < 1500) {
+                issueCode = 'tooFast';
+              } else if (_minElbowAngleInCurrentRep > 60.0 + flexionOffset) {
+                issueCode = 'shallowDepth';
+              } else {
+                issueCode = null;
+              }
               newRepEvent = BicepCurlRepEvent(
                 repNumber: _completedReps,
                 startTimestampMs: repStart,
@@ -525,6 +611,8 @@ class BicepCurlBaseline {
                 durationMs: duration,
                 minElbowAngleDeg: _minElbowAngleInCurrentRep,
                 status: 'PROVISIONAL',
+                viewAngle: viewAngle,
+                issueCode: issueCode,
                 activeSide: _lockedSide ?? activeSide,
                 maxUpperArmSwingDeg: _maxUpperArmSwingInCurrentRep,
                 maxTorsoLeanDeg: _maxTorsoLeanInCurrentRep,
@@ -560,7 +648,7 @@ class BicepCurlBaseline {
       phase: _phase,
       completedReps: _completedReps,
       newRepEvent: newRepEvent,
-      elbowAngleDeg: elbowAngleDeg,
+      elbowAngleDeg: effectiveAngle,
       activeSide: _lockedSide ?? activeSide,
       isSampleValid: true,
       transitionReason: transitionReason,
@@ -593,5 +681,8 @@ class BicepCurlBaseline {
     _maxUpperArmSwingInCurrentRep = null;
     _maxTorsoLeanInCurrentRep = null;
     _lockedSide = null;
+    _preferredSide = null;
+    _lastSmoothedSide = null;
+    _angleSmoother.reset();
   }
 }

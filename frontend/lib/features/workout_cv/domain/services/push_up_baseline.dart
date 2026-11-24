@@ -32,6 +32,8 @@ class PushUpRepEvent extends LatPulldownRepEvent {
     required super.durationMs,
     required super.minElbowAngleDeg,
     super.status = 'PROVISIONAL',
+    super.viewAngle = CameraViewAngle.unknown,
+    super.issueCode,
     this.minBodyAlignmentDeg,
     this.isPlankAligned,
   });
@@ -51,6 +53,8 @@ class PushUpBaselineConfig {
   final double minHorizontalTorsoLeanDeg;
   final double minValidBodyAlignmentDeg;
   final double minPlausibleBodyAlignmentDeg;
+  final bool enableAngleSmoothing;
+  final double smoothingAlpha;
 
   const PushUpBaselineConfig({
     this.extendedEnterDeg = 150.0,
@@ -65,6 +69,8 @@ class PushUpBaselineConfig {
     this.minHorizontalTorsoLeanDeg = 45.0,
     this.minValidBodyAlignmentDeg = 155.0,
     this.minPlausibleBodyAlignmentDeg = 120.0,
+    this.enableAngleSmoothing = false,
+    this.smoothingAlpha = 0.50,
   });
 }
 
@@ -77,6 +83,7 @@ class PushUpBaselineFrameResult {
   final PushUpRepEvent? newRepEvent;
   final double? elbowAngleDeg;
   final bool isSampleValid;
+  final bool isFrontalAngleWarning;
   final String? transitionReason;
   final String? resetReason;
 
@@ -88,6 +95,7 @@ class PushUpBaselineFrameResult {
     this.newRepEvent,
     this.elbowAngleDeg,
     required this.isSampleValid,
+    this.isFrontalAngleWarning = false,
     this.transitionReason,
     this.resetReason,
   });
@@ -116,6 +124,10 @@ class PushUpBaseline {
   double _minElbowAngleInCurrentRep = 180.0;
   double? _minBodyAlignmentInCurrentRep;
   int _droppedNonMonotonicFrames = 0;
+  late final AngleSmoother _angleSmoother = AngleSmoother(
+    alpha: config.smoothingAlpha,
+    maxGapMs: config.maxAllowedGapMs,
+  );
 
   PushUpBaseline({PushUpBaselineConfig? config})
       : config = config ?? const PushUpBaselineConfig();
@@ -138,6 +150,7 @@ class PushUpBaseline {
     _minElbowAngleInCurrentRep = 180.0;
     _minBodyAlignmentInCurrentRep = null;
     _droppedNonMonotonicFrames = 0;
+    _angleSmoother.reset();
   }
 
   /// Processes a [PushUpFrameFeatures] container extracted by [WorkoutCvMotionFeatures].
@@ -156,6 +169,7 @@ class PushUpBaseline {
       elbowAngleDeg: angle,
       torsoLeanDeg: torsoLean,
       bodyAlignmentDeg: bodyAlignment,
+      viewAngle: features.viewAngle,
       isSampleValid: isAngleValid && features.isGateDetecting,
       isGateDetecting: features.isGateDetecting,
     );
@@ -181,9 +195,12 @@ class PushUpBaseline {
     double? elbowAngleDeg,
     double? torsoLeanDeg,
     double? bodyAlignmentDeg,
+    CameraViewAngle viewAngle = CameraViewAngle.unknown,
     required bool isSampleValid,
     bool isGateDetecting = true,
   }) {
+    final isFrontalWarning = viewAngle == CameraViewAngle.frontal;
+
     if (_lastTimestampMs != null && timestampMs <= _lastTimestampMs!) {
       _droppedNonMonotonicFrames++;
       return PushUpBaselineFrameResult(
@@ -193,6 +210,7 @@ class PushUpBaseline {
         completedReps: _completedReps,
         elbowAngleDeg: elbowAngleDeg,
         isSampleValid: false,
+        isFrontalAngleWarning: isFrontalWarning,
         resetReason: 'droppedNonMonotonicTimestamp',
       );
     }
@@ -208,6 +226,7 @@ class PushUpBaseline {
         completedReps: _completedReps,
         elbowAngleDeg: elbowAngleDeg,
         isSampleValid: false,
+        isFrontalAngleWarning: isFrontalWarning,
         resetReason: resetReason,
       );
     }
@@ -215,6 +234,9 @@ class PushUpBaseline {
     if (!isSampleValid || elbowAngleDeg == null || !elbowAngleDeg.isFinite) {
       _readyCandidateStartMs = null;
       _extendedCandidateStartMs = null;
+      if (config.enableAngleSmoothing) {
+        _angleSmoother.smooth(timestampMs: timestampMs, rawAngleDeg: null);
+      }
 
       if (_lastValidTimestampMs != null &&
           (timestampMs - _lastValidTimestampMs!) > config.maxAllowedGapMs) {
@@ -226,6 +248,7 @@ class PushUpBaseline {
           phase: _phase,
           completedReps: _completedReps,
           isSampleValid: false,
+          isFrontalAngleWarning: isFrontalWarning,
           resetReason: resetReason,
         );
       }
@@ -236,6 +259,7 @@ class PushUpBaseline {
         phase: _phase,
         completedReps: _completedReps,
         isSampleValid: false,
+        isFrontalAngleWarning: isFrontalWarning,
       );
     }
 
@@ -249,12 +273,27 @@ class PushUpBaseline {
     }
     _lastValidTimestampMs = timestampMs;
 
+    final effectiveAngle = config.enableAngleSmoothing
+        ? (_angleSmoother.smooth(
+              timestampMs: timestampMs,
+              rawAngleDeg: elbowAngleDeg,
+            ) ??
+            elbowAngleDeg)
+        : elbowAngleDeg;
+    final flexionOffset =
+        ViewAngleProjectionHelper.elbowFlexionOffsetDeg(viewAngle);
+    final extensionOffset =
+        ViewAngleProjectionHelper.elbowExtensionOffsetDeg(viewAngle);
+    final effectiveBottomEnter = config.bottomEnterDeg + flexionOffset;
+    final effectivePushingEnter = config.pushingEnterDeg + flexionOffset;
+    final effectiveExtendedEnter = config.extendedEnterDeg + extensionOffset;
+
     String? transitionReason;
     PushUpRepEvent? newRepEvent;
 
     switch (_phase) {
       case PushUpPhase.notReady:
-        if (elbowAngleDeg >= config.extendedEnterDeg &&
+        if (effectiveAngle >= effectiveExtendedEnter &&
             _isPlankPosture(torsoLeanDeg, bodyAlignmentDeg)) {
           _readyCandidateStartMs ??= timestampMs;
           if ((timestampMs - _readyCandidateStartMs!) >=
@@ -278,29 +317,29 @@ class PushUpBaseline {
           _extendedCandidateStartMs = null;
           _repStartTimestampMs = null;
           _minBodyAlignmentInCurrentRep = null;
-        } else if (elbowAngleDeg < config.loweringEnterDeg) {
+        } else if (effectiveAngle < config.loweringEnterDeg) {
           _phase = PushUpPhase.lowering;
           transitionReason = 'loweringStarted';
           _repStartTimestampMs = timestampMs;
           _bottomReachedTimestampMs = null;
           _extendedCandidateStartMs = null;
-          _minElbowAngleInCurrentRep = elbowAngleDeg;
+          _minElbowAngleInCurrentRep = effectiveAngle;
           _minBodyAlignmentInCurrentRep = null;
           _updateCurrentRepBodyAlignment(bodyAlignmentDeg);
         }
         break;
 
       case PushUpPhase.lowering:
-        if (elbowAngleDeg < _minElbowAngleInCurrentRep) {
-          _minElbowAngleInCurrentRep = elbowAngleDeg;
+        if (effectiveAngle < _minElbowAngleInCurrentRep) {
+          _minElbowAngleInCurrentRep = effectiveAngle;
         }
         _updateCurrentRepBodyAlignment(bodyAlignmentDeg);
 
-        if (elbowAngleDeg <= config.bottomEnterDeg) {
+        if (effectiveAngle <= effectiveBottomEnter) {
           _phase = PushUpPhase.bottom;
           transitionReason = 'bottomReached';
           _bottomReachedTimestampMs = timestampMs;
-        } else if (elbowAngleDeg >= config.loweringEnterDeg) {
+        } else if (effectiveAngle >= config.loweringEnterDeg) {
           _phase = PushUpPhase.extended;
           transitionReason = 'incompleteDescentReturnedToExtended';
           _repStartTimestampMs = null;
@@ -309,13 +348,13 @@ class PushUpBaseline {
         break;
 
       case PushUpPhase.bottom:
-        if (elbowAngleDeg < _minElbowAngleInCurrentRep) {
-          _minElbowAngleInCurrentRep = elbowAngleDeg;
+        if (effectiveAngle < _minElbowAngleInCurrentRep) {
+          _minElbowAngleInCurrentRep = effectiveAngle;
           _bottomReachedTimestampMs = timestampMs;
         }
         _updateCurrentRepBodyAlignment(bodyAlignmentDeg);
 
-        if (elbowAngleDeg > config.pushingEnterDeg) {
+        if (effectiveAngle > effectivePushingEnter) {
           _phase = PushUpPhase.pushing;
           transitionReason = 'pushStarted';
           _extendedCandidateStartMs = null;
@@ -323,16 +362,16 @@ class PushUpBaseline {
         break;
 
       case PushUpPhase.pushing:
-        if (elbowAngleDeg < _minElbowAngleInCurrentRep) {
-          _minElbowAngleInCurrentRep = elbowAngleDeg;
+        if (effectiveAngle < _minElbowAngleInCurrentRep) {
+          _minElbowAngleInCurrentRep = effectiveAngle;
         }
         _updateCurrentRepBodyAlignment(bodyAlignmentDeg);
 
-        if (elbowAngleDeg <= config.bottomEnterDeg) {
+        if (effectiveAngle <= effectiveBottomEnter) {
           _phase = PushUpPhase.bottom;
           transitionReason = 'reBottomedDuringPush';
           _extendedCandidateStartMs = null;
-        } else if (elbowAngleDeg >= config.extendedEnterDeg) {
+        } else if (effectiveAngle >= effectiveExtendedEnter) {
           _extendedCandidateStartMs ??= timestampMs;
           if ((timestampMs - _extendedCandidateStartMs!) >=
               config.minExtendedHoldMs) {
@@ -348,6 +387,18 @@ class PushUpBaseline {
                   ? _minBodyAlignmentInCurrentRep! >=
                       config.minValidBodyAlignmentDeg
                   : null;
+              final String? issueCode;
+              if (isFrontalWarning) {
+                issueCode = 'frontalAngleWarning';
+              } else if (isPlankAligned == false) {
+                issueCode = 'hipSag';
+              } else if (duration < 1200) {
+                issueCode = 'tooFast';
+              } else if (_minElbowAngleInCurrentRep > 95.0 + flexionOffset) {
+                issueCode = 'shallowDepth';
+              } else {
+                issueCode = null;
+              }
               newRepEvent = PushUpRepEvent(
                 repNumber: _completedReps,
                 startTimestampMs: repStart,
@@ -357,6 +408,8 @@ class PushUpBaseline {
                 durationMs: duration,
                 minElbowAngleDeg: _minElbowAngleInCurrentRep,
                 status: 'PROVISIONAL',
+                viewAngle: viewAngle,
+                issueCode: issueCode,
                 minBodyAlignmentDeg: _minBodyAlignmentInCurrentRep,
                 isPlankAligned: isPlankAligned,
               );
@@ -389,8 +442,9 @@ class PushUpBaseline {
       phase: _phase,
       completedReps: _completedReps,
       newRepEvent: newRepEvent,
-      elbowAngleDeg: elbowAngleDeg,
+      elbowAngleDeg: effectiveAngle,
       isSampleValid: true,
+      isFrontalAngleWarning: isFrontalWarning,
       transitionReason: transitionReason,
       resetReason: gapResetReason,
     );
@@ -427,5 +481,6 @@ class PushUpBaseline {
     _bottomReachedTimestampMs = null;
     _minElbowAngleInCurrentRep = 180.0;
     _minBodyAlignmentInCurrentRep = null;
+    _angleSmoother.reset();
   }
 }

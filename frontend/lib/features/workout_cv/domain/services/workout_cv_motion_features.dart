@@ -36,6 +36,343 @@ class MotionMeasurement {
   String toString() => isValid ? '$value' : 'INVALID($failure)';
 }
 
+/// Detected camera viewpoint relative to the user's torso plane.
+enum CameraViewAngle {
+  frontal,
+  oblique45,
+  side90,
+  unknown,
+}
+
+/// Strictly causal viewpoint detector using 2D shoulder-width to torso-height ratio
+/// with hysteresis and multi-frame confirmation to prevent angle flicker.
+class ViewAngleDetector {
+  static const double defaultFrontalEnterRatio = 0.58;
+  static const double defaultFrontalExitRatio = 0.50;
+  static const double defaultSideEnterRatio = 0.30;
+  static const double defaultSideExitRatio = 0.36;
+  static const int defaultConfirmFrames = 3;
+  static const double minTorsoHeightPx = 10.0;
+
+  final double frontalEnterRatio;
+  final double frontalExitRatio;
+  final double sideEnterRatio;
+  final double sideExitRatio;
+  final int confirmFrames;
+
+  CameraViewAngle _currentAngle = CameraViewAngle.unknown;
+  CameraViewAngle? _candidateAngle;
+  int _candidateStreak = 0;
+  double? _lastRatio;
+
+  ViewAngleDetector({
+    this.frontalEnterRatio = defaultFrontalEnterRatio,
+    this.frontalExitRatio = defaultFrontalExitRatio,
+    this.sideEnterRatio = defaultSideEnterRatio,
+    this.sideExitRatio = defaultSideExitRatio,
+    this.confirmFrames = defaultConfirmFrames,
+  }) : assert(confirmFrames >= 1);
+
+  CameraViewAngle get currentAngle => _currentAngle;
+  double? get lastRatio => _lastRatio;
+
+  /// Computes `shoulderWidthPx / torsoHeightPx` in pixel space where torso height is
+  /// the 2D distance from `midpoint(shoulders)` to `midpoint(hips)`.
+  ///
+  /// Returns `null` if any required landmark is invalid or torso height is `< 10px`.
+  static double? computeShoulderToTorsoRatio({
+    required List<PoseLandmark> landmarks,
+    required double imageWidth,
+    required double imageHeight,
+    double minVisibility = 0.40,
+  }) {
+    if (!imageWidth.isFinite ||
+        !imageHeight.isFinite ||
+        imageWidth <= 0 ||
+        imageHeight <= 0) {
+      return null;
+    }
+
+    final lShoulder =
+        WorkoutCvMotionFeatures._findLandmark(landmarks, PoseLandmark.leftShoulder);
+    final rShoulder =
+        WorkoutCvMotionFeatures._findLandmark(landmarks, PoseLandmark.rightShoulder);
+    final lHip =
+        WorkoutCvMotionFeatures._findLandmark(landmarks, PoseLandmark.leftHip);
+    final rHip =
+        WorkoutCvMotionFeatures._findLandmark(landmarks, PoseLandmark.rightHip);
+
+    if (WorkoutCvMotionFeatures._validateLandmark(lShoulder, minVisibility) !=
+            MotionMetricFailure.none ||
+        WorkoutCvMotionFeatures._validateLandmark(rShoulder, minVisibility) !=
+            MotionMetricFailure.none ||
+        WorkoutCvMotionFeatures._validateLandmark(lHip, minVisibility) !=
+            MotionMetricFailure.none ||
+        WorkoutCvMotionFeatures._validateLandmark(rHip, minVisibility) !=
+            MotionMetricFailure.none) {
+      return null;
+    }
+
+    final pLSh = WorkoutCvMotionFeatures._toPixelPoint(
+      lShoulder!,
+      imageWidth,
+      imageHeight,
+    );
+    final pRSh = WorkoutCvMotionFeatures._toPixelPoint(
+      rShoulder!,
+      imageWidth,
+      imageHeight,
+    );
+    final pLHip = WorkoutCvMotionFeatures._toPixelPoint(
+      lHip!,
+      imageWidth,
+      imageHeight,
+    );
+    final pRHip = WorkoutCvMotionFeatures._toPixelPoint(
+      rHip!,
+      imageWidth,
+      imageHeight,
+    );
+
+    final shoulderWidthPx = WorkoutCvMotionFeatures._distance2D(pLSh, pRSh);
+    final midShoulder = _PixelPoint(
+      (pLSh.x + pRSh.x) / 2.0,
+      (pLSh.y + pRSh.y) / 2.0,
+    );
+    final midHip = _PixelPoint(
+      (pLHip.x + pRHip.x) / 2.0,
+      (pLHip.y + pRHip.y) / 2.0,
+    );
+    final torsoHeightPx =
+        WorkoutCvMotionFeatures._distance2D(midShoulder, midHip);
+
+    if (!torsoHeightPx.isFinite || torsoHeightPx < minTorsoHeightPx) {
+      return null;
+    }
+
+    final ratio = shoulderWidthPx / torsoHeightPx;
+    return ratio.isFinite ? ratio : null;
+  }
+
+  /// Classifies a `shoulderWidth / torsoHeight` [ratio] with hysteresis around [current].
+  static CameraViewAngle classifyRatio(
+    double ratio, {
+    CameraViewAngle current = CameraViewAngle.unknown,
+    double frontalEnterRatio = defaultFrontalEnterRatio,
+    double frontalExitRatio = defaultFrontalExitRatio,
+    double sideEnterRatio = defaultSideEnterRatio,
+    double sideExitRatio = defaultSideExitRatio,
+  }) {
+    if (!ratio.isFinite || ratio < 0.0) {
+      return CameraViewAngle.unknown;
+    }
+
+    switch (current) {
+      case CameraViewAngle.frontal:
+        if (ratio >= frontalExitRatio) return CameraViewAngle.frontal;
+        if (ratio <= sideEnterRatio) return CameraViewAngle.side90;
+        return CameraViewAngle.oblique45;
+      case CameraViewAngle.side90:
+        if (ratio <= sideExitRatio) return CameraViewAngle.side90;
+        if (ratio >= frontalEnterRatio) return CameraViewAngle.frontal;
+        return CameraViewAngle.oblique45;
+      case CameraViewAngle.oblique45:
+      case CameraViewAngle.unknown:
+        if (ratio >= frontalEnterRatio) return CameraViewAngle.frontal;
+        if (ratio <= sideEnterRatio) return CameraViewAngle.side90;
+        return CameraViewAngle.oblique45;
+    }
+  }
+
+  /// Updates the detector state with the latest frame landmarks (strictly causal).
+  CameraViewAngle update({
+    required List<PoseLandmark> landmarks,
+    required double imageWidth,
+    required double imageHeight,
+    double minVisibility = 0.40,
+  }) {
+    final ratio = computeShoulderToTorsoRatio(
+      landmarks: landmarks,
+      imageWidth: imageWidth,
+      imageHeight: imageHeight,
+      minVisibility: minVisibility,
+    );
+    _lastRatio = ratio;
+
+    if (ratio == null) {
+      _candidateAngle = null;
+      _candidateStreak = 0;
+      return _currentAngle;
+    }
+
+    final classified = classifyRatio(
+      ratio,
+      current: _currentAngle,
+      frontalEnterRatio: frontalEnterRatio,
+      frontalExitRatio: frontalExitRatio,
+      sideEnterRatio: sideEnterRatio,
+      sideExitRatio: sideExitRatio,
+    );
+
+    if (classified == _currentAngle) {
+      _candidateAngle = null;
+      _candidateStreak = 0;
+      return _currentAngle;
+    }
+
+    if (_candidateAngle == classified) {
+      _candidateStreak++;
+    } else {
+      _candidateAngle = classified;
+      _candidateStreak = 1;
+    }
+
+    if (_candidateStreak >= confirmFrames) {
+      _currentAngle = classified;
+      _candidateAngle = null;
+      _candidateStreak = 0;
+    }
+
+    return _currentAngle;
+  }
+
+  void reset() {
+    _currentAngle = CameraViewAngle.unknown;
+    _candidateAngle = null;
+    _candidateStreak = 0;
+    _lastRatio = null;
+  }
+}
+
+/// Strictly causal exponential moving average (EMA) angle smoother.
+///
+/// Never fabricates values when [rawAngleDeg] is invalid and automatically resets
+/// internal state when the gap since the last valid sample exceeds [maxGapMs].
+class AngleSmoother {
+  final double alpha;
+  final int maxGapMs;
+
+  double? _smoothed;
+  int? _lastValidTimestampMs;
+
+  AngleSmoother({
+    this.alpha = 0.40,
+    this.maxGapMs = 500,
+  })  : assert(alpha > 0.0 && alpha <= 1.0),
+        assert(maxGapMs >= 0);
+
+  double? get currentValue => _smoothed;
+
+  double? smooth({
+    required int timestampMs,
+    required double? rawAngleDeg,
+  }) {
+    if (rawAngleDeg == null || !rawAngleDeg.isFinite) {
+      if (_lastValidTimestampMs != null &&
+          (timestampMs - _lastValidTimestampMs! > maxGapMs ||
+              timestampMs < _lastValidTimestampMs!)) {
+        reset();
+      }
+      return null;
+    }
+
+    if (_smoothed == null ||
+        _lastValidTimestampMs == null ||
+        timestampMs - _lastValidTimestampMs! > maxGapMs ||
+        timestampMs < _lastValidTimestampMs!) {
+      _smoothed = rawAngleDeg;
+      _lastValidTimestampMs = timestampMs;
+      return _smoothed;
+    }
+
+    _smoothed = alpha * rawAngleDeg + (1.0 - alpha) * _smoothed!;
+    _lastValidTimestampMs = timestampMs;
+    return _smoothed;
+  }
+
+  void reset() {
+    _smoothed = null;
+    _lastValidTimestampMs = null;
+  }
+}
+
+/// Compensates 2D foreshortening offsets across camera angles and provides
+/// hysteresis-based side-locking for oblique/side viewpoints.
+class ViewAngleProjectionHelper {
+  const ViewAngleProjectionHelper._();
+
+  static double elbowFlexionOffsetDeg(CameraViewAngle angle) {
+    switch (angle) {
+      case CameraViewAngle.side90:
+      case CameraViewAngle.unknown:
+        return 0.0;
+      case CameraViewAngle.oblique45:
+        return 6.0;
+      case CameraViewAngle.frontal:
+        return 12.0;
+    }
+  }
+
+  static double kneeDepthOffsetDeg(CameraViewAngle angle) {
+    switch (angle) {
+      case CameraViewAngle.side90:
+      case CameraViewAngle.unknown:
+        return 0.0;
+      case CameraViewAngle.oblique45:
+        return 6.0;
+      case CameraViewAngle.frontal:
+        return 15.0;
+    }
+  }
+
+  static double elbowExtensionOffsetDeg(CameraViewAngle angle) {
+    switch (angle) {
+      case CameraViewAngle.side90:
+      case CameraViewAngle.unknown:
+        return 0.0;
+      case CameraViewAngle.oblique45:
+        return -4.0;
+      case CameraViewAngle.frontal:
+        return -8.0;
+    }
+  }
+
+  /// Selects `'left'`, `'right'`, or `'none'` with side-locking hysteresis for
+  /// [CameraViewAngle.oblique45] and [CameraViewAngle.side90].
+  static String selectBestLockedSide({
+    required double leftScore,
+    required double rightScore,
+    String? lockedSide,
+    required CameraViewAngle viewAngle,
+    double switchMargin = 0.12,
+  }) {
+    final leftValid = leftScore.isFinite && leftScore > 0.0;
+    final rightValid = rightScore.isFinite && rightScore > 0.0;
+
+    if (!leftValid && !rightValid) return 'none';
+    if (leftValid && !rightValid) return 'left';
+    if (!leftValid && rightValid) return 'right';
+
+    if (viewAngle == CameraViewAngle.oblique45 ||
+        viewAngle == CameraViewAngle.side90) {
+      if (lockedSide == 'left') {
+        final shouldSwitch = switchMargin <= 0.0
+            ? rightScore > leftScore
+            : (rightScore - leftScore) >= (switchMargin - 1e-9);
+        return shouldSwitch ? 'right' : 'left';
+      }
+      if (lockedSide == 'right') {
+        final shouldSwitch = switchMargin <= 0.0
+            ? leftScore > rightScore
+            : (leftScore - rightScore) >= (switchMargin - 1e-9);
+        return shouldSwitch ? 'left' : 'right';
+      }
+    }
+
+    return leftScore >= rightScore ? 'left' : 'right';
+  }
+}
+
 /// Helper 2D pixel coordinate container for geometric calculations.
 class _PixelPoint {
   final double x;
@@ -91,6 +428,8 @@ class LatPulldownFrameFeatures {
   final MotionMeasurement shoulderWidthPx;
   final LatPulldownSideFeatures leftSide; // Model IDs 11, 13, 15
   final LatPulldownSideFeatures rightSide; // Model IDs 12, 14, 16
+  final CameraViewAngle viewAngle;
+  final MotionMeasurement torsoLeanDeg;
 
   const LatPulldownFrameFeatures({
     required this.frameIndex,
@@ -99,6 +438,10 @@ class LatPulldownFrameFeatures {
     required this.shoulderWidthPx,
     required this.leftSide,
     required this.rightSide,
+    this.viewAngle = CameraViewAngle.unknown,
+    this.torsoLeanDeg = const MotionMeasurement.invalid(
+      MotionMetricFailure.missingLandmark,
+    ),
   });
 
   bool get hasAnyValidSignal =>
@@ -135,6 +478,7 @@ class PullUpFrameFeatures {
   final bool isTopPositionReached;
   final bool? isChinCleared;
   final MotionMeasurement headToBarNorm;
+  final CameraViewAngle viewAngle;
 
   const PullUpFrameFeatures({
     required this.frameIndex,
@@ -146,6 +490,7 @@ class PullUpFrameFeatures {
     required this.isTopPositionReached,
     required this.isChinCleared,
     required this.headToBarNorm,
+    this.viewAngle = CameraViewAngle.unknown,
   });
 }
 
@@ -158,6 +503,9 @@ class SquatFrameFeatures {
   final String bestSideKey;
   final MotionMeasurement bestHipAngleDeg;
   final MotionMeasurement torsoLeanDeg;
+  final CameraViewAngle viewAngle;
+  final MotionMeasurement kneeValgusRatio;
+  final MotionMeasurement hipBelowKneeNorm;
 
   const SquatFrameFeatures({
     required this.frameIndex,
@@ -167,6 +515,13 @@ class SquatFrameFeatures {
     required this.bestSideKey,
     required this.bestHipAngleDeg,
     required this.torsoLeanDeg,
+    this.viewAngle = CameraViewAngle.unknown,
+    this.kneeValgusRatio = const MotionMeasurement.invalid(
+      MotionMetricFailure.missingLandmark,
+    ),
+    this.hipBelowKneeNorm = const MotionMeasurement.invalid(
+      MotionMetricFailure.missingLandmark,
+    ),
   });
 }
 
@@ -179,6 +534,7 @@ class PushUpFrameFeatures {
   final String bestSideKey;
   final MotionMeasurement torsoLeanDeg;
   final MotionMeasurement bodyAlignmentDeg;
+  final CameraViewAngle viewAngle;
 
   const PushUpFrameFeatures({
     required this.frameIndex,
@@ -188,6 +544,7 @@ class PushUpFrameFeatures {
     required this.bestSideKey,
     required this.torsoLeanDeg,
     required this.bodyAlignmentDeg,
+    this.viewAngle = CameraViewAngle.unknown,
   });
 }
 
@@ -224,6 +581,7 @@ class BicepCurlFrameFeatures {
   final MotionMeasurement leftUpperArmSwingDeg;
   final MotionMeasurement rightUpperArmSwingDeg;
   final MotionMeasurement torsoLeanDeg;
+  final CameraViewAngle viewAngle;
 
   const BicepCurlFrameFeatures({
     required this.frameIndex,
@@ -236,6 +594,7 @@ class BicepCurlFrameFeatures {
     required this.leftUpperArmSwingDeg,
     required this.rightUpperArmSwingDeg,
     required this.torsoLeanDeg,
+    this.viewAngle = CameraViewAngle.unknown,
   });
 
   MotionMeasurement get bestElbowAngleDeg {
@@ -404,6 +763,7 @@ class WorkoutCvMotionFeatures {
     required double imageHeight,
     bool isGateDetecting = true,
     double minVisibility = defaultMinVisibility,
+    CameraViewAngle viewAngle = CameraViewAngle.unknown,
   }) {
     // 1. Gate precondition: If quality gate is not 'detecting', whole frame features are invalid
     if (!isGateDetecting) {
@@ -432,6 +792,8 @@ class WorkoutCvMotionFeatures {
           failure: MotionMetricFailure.gateNotDetecting,
           reason: 'Quality gate is not detecting',
         ),
+        viewAngle: viewAngle,
+        torsoLeanDeg: invalidGate,
       );
     }
 
@@ -463,6 +825,8 @@ class WorkoutCvMotionFeatures {
           wristId: PoseLandmark.rightWrist,
           failure: MotionMetricFailure.invalidImageDimensions,
         ),
+        viewAngle: viewAngle,
+        torsoLeanDeg: invalidDim,
       );
     }
 
@@ -473,6 +837,8 @@ class WorkoutCvMotionFeatures {
     final rElbow = _findLandmark(landmarks, PoseLandmark.rightElbow);
     final lWrist = _findLandmark(landmarks, PoseLandmark.leftWrist);
     final rWrist = _findLandmark(landmarks, PoseLandmark.rightWrist);
+    final lHip = _findLandmark(landmarks, PoseLandmark.leftHip);
+    final rHip = _findLandmark(landmarks, PoseLandmark.rightHip);
 
     // 4. Validate and measure shoulder width
     final lShCheck = _validateLandmark(lShoulder, minVisibility);
@@ -533,6 +899,45 @@ class WorkoutCvMotionFeatures {
       minVisibility: minVisibility,
     );
 
+    // 7. Extract torso lean angle from upward vertical (0, -1) to Hip -> Shoulder
+    const leftSideKey = 'model_left_11_13_15';
+    const rightSideKey = 'model_right_12_14_16';
+    final String bestSideKey;
+    if (leftSideFeatures.elbowAngleDeg.isValid &&
+        rightSideFeatures.elbowAngleDeg.isValid) {
+      bestSideKey = leftSideFeatures.elbowVisibilityScore >=
+              rightSideFeatures.elbowVisibilityScore
+          ? leftSideKey
+          : rightSideKey;
+    } else if (leftSideFeatures.elbowAngleDeg.isValid) {
+      bestSideKey = leftSideKey;
+    } else if (rightSideFeatures.elbowAngleDeg.isValid) {
+      bestSideKey = rightSideKey;
+    } else {
+      bestSideKey = 'none';
+    }
+    final leftTorso = _measureTorsoLean(
+      shoulder: lShoulder,
+      hip: lHip,
+      imageWidth: imageWidth,
+      imageHeight: imageHeight,
+      minVisibility: minVisibility,
+    );
+    final rightTorso = _measureTorsoLean(
+      shoulder: rShoulder,
+      hip: rHip,
+      imageWidth: imageWidth,
+      imageHeight: imageHeight,
+      minVisibility: minVisibility,
+    );
+    final torsoLean = _selectSidePreferredMeasurement(
+      bestSideKey: bestSideKey,
+      leftSideKey: leftSideKey,
+      rightSideKey: rightSideKey,
+      left: leftTorso,
+      right: rightTorso,
+    );
+
     return LatPulldownFrameFeatures(
       frameIndex: frameIndex,
       timestampMs: timestampMs,
@@ -540,6 +945,8 @@ class WorkoutCvMotionFeatures {
       shoulderWidthPx: shoulderWidthMeasurement,
       leftSide: leftSideFeatures,
       rightSide: rightSideFeatures,
+      viewAngle: viewAngle,
+      torsoLeanDeg: torsoLean,
     );
   }
 
@@ -692,6 +1099,7 @@ class WorkoutCvMotionFeatures {
     required double imageHeight,
     bool isGateDetecting = true,
     double minVisibility = defaultMinVisibility,
+    CameraViewAngle viewAngle = CameraViewAngle.unknown,
   }) {
     if (!isGateDetecting) {
       const invalidGate = MotionMeasurement.invalid(
@@ -708,6 +1116,7 @@ class WorkoutCvMotionFeatures {
         isTopPositionReached: false,
         isChinCleared: null,
         headToBarNorm: invalidGate,
+        viewAngle: viewAngle,
       );
     }
 
@@ -729,6 +1138,7 @@ class WorkoutCvMotionFeatures {
         isTopPositionReached: false,
         isChinCleared: null,
         headToBarNorm: invalidDim,
+        viewAngle: viewAngle,
       );
     }
 
@@ -802,6 +1212,7 @@ class WorkoutCvMotionFeatures {
           wristFailure,
           'No valid wrist landmark for bar reference',
         ),
+        viewAngle: viewAngle,
       );
     }
 
@@ -923,6 +1334,7 @@ class WorkoutCvMotionFeatures {
       isTopPositionReached: isTopPositionReached,
       isChinCleared: isChinCleared,
       headToBarNorm: headToBarNorm,
+      viewAngle: viewAngle,
     );
   }
 
@@ -939,6 +1351,7 @@ class WorkoutCvMotionFeatures {
     required double imageHeight,
     bool isGateDetecting = true,
     double minVisibility = defaultMinVisibility,
+    CameraViewAngle viewAngle = CameraViewAngle.unknown,
   }) {
     if (!isGateDetecting) {
       const invalidGate = MotionMeasurement.invalid(
@@ -953,6 +1366,9 @@ class WorkoutCvMotionFeatures {
         bestSideKey: 'none',
         bestHipAngleDeg: invalidGate,
         torsoLeanDeg: invalidGate,
+        viewAngle: viewAngle,
+        kneeValgusRatio: invalidGate,
+        hipBelowKneeNorm: invalidGate,
       );
     }
 
@@ -972,6 +1388,9 @@ class WorkoutCvMotionFeatures {
         bestSideKey: 'none',
         bestHipAngleDeg: invalidDim,
         torsoLeanDeg: invalidDim,
+        viewAngle: viewAngle,
+        kneeValgusRatio: invalidDim,
+        hipBelowKneeNorm: invalidDim,
       );
     }
 
@@ -1066,6 +1485,30 @@ class WorkoutCvMotionFeatures {
       right: rightTorso,
     );
 
+    final kneeValgusRatio = _measureKneeValgusRatio(
+      lKnee: lKnee,
+      rKnee: rKnee,
+      lAnkle: lAnkle,
+      rAnkle: rAnkle,
+      lHip: lHip,
+      rHip: rHip,
+      imageWidth: imageWidth,
+      imageHeight: imageHeight,
+      minVisibility: minVisibility,
+    );
+
+    final hipBelowKneeNorm = _measureHipBelowKneeNorm(
+      lShoulder: lShoulder,
+      rShoulder: rShoulder,
+      lHip: lHip,
+      rHip: rHip,
+      lKnee: lKnee,
+      rKnee: rKnee,
+      imageWidth: imageWidth,
+      imageHeight: imageHeight,
+      minVisibility: minVisibility,
+    );
+
     return SquatFrameFeatures(
       frameIndex: frameIndex,
       timestampMs: timestampMs,
@@ -1074,6 +1517,9 @@ class WorkoutCvMotionFeatures {
       bestSideKey: bestSideKey,
       bestHipAngleDeg: bestHip,
       torsoLeanDeg: torsoLean,
+      viewAngle: viewAngle,
+      kneeValgusRatio: kneeValgusRatio,
+      hipBelowKneeNorm: hipBelowKneeNorm,
     );
   }
 
@@ -1092,6 +1538,7 @@ class WorkoutCvMotionFeatures {
     required double imageHeight,
     bool isGateDetecting = true,
     double minVisibility = pushUpMinVisibility,
+    CameraViewAngle viewAngle = CameraViewAngle.unknown,
   }) {
     if (!isGateDetecting) {
       const invalidGate = MotionMeasurement.invalid(
@@ -1106,6 +1553,7 @@ class WorkoutCvMotionFeatures {
         bestSideKey: 'none',
         torsoLeanDeg: invalidGate,
         bodyAlignmentDeg: invalidGate,
+        viewAngle: viewAngle,
       );
     }
 
@@ -1125,6 +1573,7 @@ class WorkoutCvMotionFeatures {
         bestSideKey: 'none',
         torsoLeanDeg: invalidDim,
         bodyAlignmentDeg: invalidDim,
+        viewAngle: viewAngle,
       );
     }
 
@@ -1229,6 +1678,7 @@ class WorkoutCvMotionFeatures {
       bestSideKey: bestSideKey,
       torsoLeanDeg: torsoLean,
       bodyAlignmentDeg: bodyAlignment,
+      viewAngle: viewAngle,
     );
   }
 
@@ -1391,6 +1841,7 @@ class WorkoutCvMotionFeatures {
     required double imageHeight,
     bool isGateDetecting = true,
     double minVisibility = defaultMinVisibility,
+    CameraViewAngle viewAngle = CameraViewAngle.unknown,
   }) {
     if (!isGateDetecting) {
       const invalidGate = MotionMeasurement.invalid(
@@ -1408,6 +1859,7 @@ class WorkoutCvMotionFeatures {
         leftUpperArmSwingDeg: invalidGate,
         rightUpperArmSwingDeg: invalidGate,
         torsoLeanDeg: invalidGate,
+        viewAngle: viewAngle,
       );
     }
 
@@ -1430,6 +1882,7 @@ class WorkoutCvMotionFeatures {
         leftUpperArmSwingDeg: invalidDim,
         rightUpperArmSwingDeg: invalidDim,
         torsoLeanDeg: invalidDim,
+        viewAngle: viewAngle,
       );
     }
 
@@ -1518,6 +1971,7 @@ class WorkoutCvMotionFeatures {
       leftUpperArmSwingDeg: leftSwing.$1,
       rightUpperArmSwingDeg: rightSwing.$1,
       torsoLeanDeg: torsoLean,
+      viewAngle: viewAngle,
     );
   }
 
@@ -2226,6 +2680,178 @@ class WorkoutCvMotionFeatures {
     final minVis = math.min(shoulder.visibility, hip.visibility);
     final avgVis = (shoulder.visibility + hip.visibility) / 2.0;
     return (MotionMeasurement.valid(torsoLeanDeg), minVis + avgVis * 1e-3);
+  }
+
+  static MotionMeasurement _measureKneeValgusRatio({
+    required PoseLandmark? lKnee,
+    required PoseLandmark? rKnee,
+    required PoseLandmark? lAnkle,
+    required PoseLandmark? rAnkle,
+    required PoseLandmark? lHip,
+    required PoseLandmark? rHip,
+    required double imageWidth,
+    required double imageHeight,
+    required double minVisibility,
+  }) {
+    const double minReferenceWidthPx = 10.0;
+
+    final lKneeCheck = _validateLandmark(lKnee, minVisibility);
+    if (lKneeCheck != MotionMetricFailure.none) {
+      return MotionMeasurement.invalid(lKneeCheck, 'Left knee invalid');
+    }
+    final rKneeCheck = _validateLandmark(rKnee, minVisibility);
+    if (rKneeCheck != MotionMetricFailure.none) {
+      return MotionMeasurement.invalid(rKneeCheck, 'Right knee invalid');
+    }
+
+    final pLKnee = _toPixelPoint(lKnee!, imageWidth, imageHeight);
+    final pRKnee = _toPixelPoint(rKnee!, imageWidth, imageHeight);
+    final kneeWidthPx = (pLKnee.x - pRKnee.x).abs();
+
+    final lAnkleCheck = _validateLandmark(lAnkle, minVisibility);
+    final rAnkleCheck = _validateLandmark(rAnkle, minVisibility);
+    final bool anklesValid = lAnkleCheck == MotionMetricFailure.none &&
+        rAnkleCheck == MotionMetricFailure.none;
+    final double? ankleWidthPx = anklesValid
+        ? (_toPixelPoint(lAnkle!, imageWidth, imageHeight).x -
+                _toPixelPoint(rAnkle!, imageWidth, imageHeight).x)
+            .abs()
+        : null;
+
+    final lHipCheck = _validateLandmark(lHip, minVisibility);
+    final rHipCheck = _validateLandmark(rHip, minVisibility);
+    final bool hipsValid = lHipCheck == MotionMetricFailure.none &&
+        rHipCheck == MotionMetricFailure.none;
+    final double? hipWidthPx = hipsValid
+        ? (_toPixelPoint(lHip!, imageWidth, imageHeight).x -
+                _toPixelPoint(rHip!, imageWidth, imageHeight).x)
+            .abs()
+        : null;
+
+    double? referenceWidthPx;
+    final bool ankleNarrowComparedToHip = ankleWidthPx != null &&
+        hipWidthPx != null &&
+        hipWidthPx >= minReferenceWidthPx &&
+        ankleWidthPx < hipWidthPx * 0.35;
+
+    if (ankleWidthPx != null &&
+        ankleWidthPx >= minReferenceWidthPx &&
+        !ankleNarrowComparedToHip) {
+      referenceWidthPx = ankleWidthPx;
+    } else if (hipWidthPx != null && hipWidthPx >= minReferenceWidthPx) {
+      referenceWidthPx = hipWidthPx;
+    } else if (ankleWidthPx != null && ankleWidthPx >= minReferenceWidthPx) {
+      referenceWidthPx = ankleWidthPx;
+    }
+
+    if (referenceWidthPx == null) {
+      if (!anklesValid && !hipsValid) {
+        final failure = lAnkleCheck != MotionMetricFailure.none
+            ? lAnkleCheck
+            : rAnkleCheck;
+        return MotionMeasurement.invalid(
+          failure,
+          'Ankle and hip landmarks invalid for knee valgus ratio',
+        );
+      }
+      return const MotionMeasurement.invalid(
+        MotionMetricFailure.degenerateGeometry,
+        'Ankle and hip reference width degenerate (< 10 px)',
+      );
+    }
+
+    final ratio = kneeWidthPx / referenceWidthPx;
+    return ratio.isFinite
+        ? MotionMeasurement.valid(ratio)
+        : const MotionMeasurement.invalid(
+            MotionMetricFailure.nonFiniteCoordinate,
+          );
+  }
+
+  static MotionMeasurement _measureHipBelowKneeNorm({
+    required PoseLandmark? lShoulder,
+    required PoseLandmark? rShoulder,
+    required PoseLandmark? lHip,
+    required PoseLandmark? rHip,
+    required PoseLandmark? lKnee,
+    required PoseLandmark? rKnee,
+    required double imageWidth,
+    required double imageHeight,
+    required double minVisibility,
+  }) {
+    const double minTorsoHeightPx = 10.0;
+
+    final lShCheck = _validateLandmark(lShoulder, minVisibility);
+    final rShCheck = _validateLandmark(rShoulder, minVisibility);
+    final lHipCheck = _validateLandmark(lHip, minVisibility);
+    final rHipCheck = _validateLandmark(rHip, minVisibility);
+    final lKneeCheck = _validateLandmark(lKnee, minVisibility);
+    final rKneeCheck = _validateLandmark(rKnee, minVisibility);
+
+    final pLSh = lShCheck == MotionMetricFailure.none
+        ? _toPixelPoint(lShoulder!, imageWidth, imageHeight)
+        : null;
+    final pRSh = rShCheck == MotionMetricFailure.none
+        ? _toPixelPoint(rShoulder!, imageWidth, imageHeight)
+        : null;
+    final pLHip = lHipCheck == MotionMetricFailure.none
+        ? _toPixelPoint(lHip!, imageWidth, imageHeight)
+        : null;
+    final pRHip = rHipCheck == MotionMetricFailure.none
+        ? _toPixelPoint(rHip!, imageWidth, imageHeight)
+        : null;
+    final pLKnee = lKneeCheck == MotionMetricFailure.none
+        ? _toPixelPoint(lKnee!, imageWidth, imageHeight)
+        : null;
+    final pRKnee = rKneeCheck == MotionMetricFailure.none
+        ? _toPixelPoint(rKnee!, imageWidth, imageHeight)
+        : null;
+
+    final midShoulder = _midpoint(pLSh, pRSh);
+    if (midShoulder == null) {
+      final failure = lShCheck != MotionMetricFailure.missingLandmark
+          ? lShCheck
+          : rShCheck;
+      return MotionMeasurement.invalid(failure, 'No valid shoulder landmark');
+    }
+
+    final midHip = _midpoint(pLHip, pRHip);
+    if (midHip == null) {
+      final failure = lHipCheck != MotionMetricFailure.missingLandmark
+          ? lHipCheck
+          : rHipCheck;
+      return MotionMeasurement.invalid(failure, 'No valid hip landmark');
+    }
+
+    final avgKneeY = _averageY(pLKnee, pRKnee);
+    if (avgKneeY == null) {
+      final failure = lKneeCheck != MotionMetricFailure.missingLandmark
+          ? lKneeCheck
+          : rKneeCheck;
+      return MotionMeasurement.invalid(failure, 'No valid knee landmark');
+    }
+
+    final torsoHeightPx = _distance2D(midShoulder, midHip);
+    if (!torsoHeightPx.isFinite || torsoHeightPx < minTorsoHeightPx) {
+      return const MotionMeasurement.invalid(
+        MotionMetricFailure.degenerateGeometry,
+        'Torso height degenerate (< 10 px)',
+      );
+    }
+
+    final norm = (midHip.y - avgKneeY) / torsoHeightPx;
+    return norm.isFinite
+        ? MotionMeasurement.valid(norm)
+        : const MotionMeasurement.invalid(
+            MotionMetricFailure.nonFiniteCoordinate,
+          );
+  }
+
+  static _PixelPoint? _midpoint(_PixelPoint? a, _PixelPoint? b) {
+    if (a != null && b != null) {
+      return _PixelPoint((a.x + b.x) / 2.0, (a.y + b.y) / 2.0);
+    }
+    return a ?? b;
   }
 
   static double? _averageY(_PixelPoint? a, _PixelPoint? b) {

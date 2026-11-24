@@ -33,6 +33,12 @@ class LatPulldownRepEvent {
   /// until confirmed by human ground truth.
   final String status;
 
+  /// Camera view angle under which this rep was recorded.
+  final CameraViewAngle viewAngle;
+
+  /// Optional machine-classified form/tempo issue code for RepRecord mapping.
+  final String? issueCode;
+
   const LatPulldownRepEvent({
     required this.repNumber,
     required this.startTimestampMs,
@@ -41,6 +47,8 @@ class LatPulldownRepEvent {
     required this.durationMs,
     required this.minElbowAngleDeg,
     this.status = 'PROVISIONAL',
+    this.viewAngle = CameraViewAngle.unknown,
+    this.issueCode,
   });
 
   @override
@@ -76,6 +84,15 @@ class LatPulldownBaselineConfig {
   /// Maximum allowed duration (ms) of invalid samples or gap before in-progress cycle is aborted.
   final int maxAllowedGapMs;
 
+  /// Whether causal EMA smoothing is applied to incoming elbow angles.
+  final bool enableAngleSmoothing;
+
+  /// Smoothing factor for [AngleSmoother] when [enableAngleSmoothing] is true.
+  final double smoothingAlpha;
+
+  /// Maximum valid torso lean angle (degrees) before flagging torsoLean.
+  final double maxValidTorsoLeanDeg;
+
   const LatPulldownBaselineConfig({
     this.extendedEnterDeg = 105.0,
     this.pullingEnterDeg = 95.0,
@@ -85,6 +102,9 @@ class LatPulldownBaselineConfig {
     this.minExtendedHoldMs = 150,
     this.minRepDurationMs = 800,
     this.maxAllowedGapMs = 500,
+    this.enableAngleSmoothing = false,
+    this.smoothingAlpha = 0.50,
+    this.maxValidTorsoLeanDeg = 35.0,
   });
 }
 
@@ -138,7 +158,13 @@ class LatPulldownBaseline {
   int? _repStartTimestampMs;
   int? _bottomReachedTimestampMs;
   double _minElbowAngleInCurrentRep = 180.0;
+  double? _maxTorsoLeanInCurrentRep;
+  String? _lockedSide;
   int _droppedNonMonotonicFrames = 0;
+  late final AngleSmoother _angleSmoother = AngleSmoother(
+    alpha: config.smoothingAlpha,
+    maxGapMs: config.maxAllowedGapMs,
+  );
 
   LatPulldownBaseline({LatPulldownBaselineConfig? config})
       : config = config ?? const LatPulldownBaselineConfig();
@@ -160,22 +186,66 @@ class LatPulldownBaseline {
     _repStartTimestampMs = null;
     _bottomReachedTimestampMs = null;
     _minElbowAngleInCurrentRep = 180.0;
+    _maxTorsoLeanInCurrentRep = null;
+    _lockedSide = null;
     _droppedNonMonotonicFrames = 0;
+    _angleSmoother.reset();
   }
 
   /// Processes a [LatPulldownFrameFeatures] container extracted by [WorkoutCvMotionFeatures].
   ///
-  /// Uses the highest-visibility side's elbow angle (`features.bestElbowAngleDeg`) as primary kinematic signal.
+  /// Uses [ViewAngleProjectionHelper.selectBestLockedSide] to pick and stabilize
+  /// the highest-visibility side for oblique/side viewpoints.
   LatPulldownBaselineFrameResult processFrameFeatures(
       LatPulldownFrameFeatures features) {
-    final bestAngle = features.bestElbowAngleDeg;
+    final leftValid = features.leftSide.elbowAngleDeg.isValid &&
+        features.leftSide.elbowAngleDeg.value != null &&
+        features.leftSide.elbowAngleDeg.value!.isFinite;
+    final rightValid = features.rightSide.elbowAngleDeg.isValid &&
+        features.rightSide.elbowAngleDeg.value != null &&
+        features.rightSide.elbowAngleDeg.value!.isFinite;
+    final leftScore = leftValid
+        ? (features.leftSide.elbowVisibilityScore > 0.0
+            ? features.leftSide.elbowVisibilityScore
+            : 1.0)
+        : 0.0;
+    final rightScore = rightValid
+        ? (features.rightSide.elbowVisibilityScore > 0.0
+            ? features.rightSide.elbowVisibilityScore
+            : 1.0)
+        : 0.0;
+
+    final selectedSide = ViewAngleProjectionHelper.selectBestLockedSide(
+      leftScore: leftScore,
+      rightScore: rightScore,
+      lockedSide: _lockedSide,
+      viewAngle: features.viewAngle,
+    );
+    if (selectedSide != 'none') {
+      _lockedSide = selectedSide;
+    }
+
+    final LatPulldownSideFeatures activeSide;
+    if (selectedSide == 'right') {
+      activeSide = features.rightSide;
+    } else if (selectedSide == 'left') {
+      activeSide = features.leftSide;
+    } else {
+      activeSide = features.bestSide;
+    }
+
+    final bestAngle = activeSide.elbowAngleDeg;
     final isAngleValid = bestAngle.isValid;
     final angle = isAngleValid ? bestAngle.value : null;
+    final torsoLean =
+        features.torsoLeanDeg.isValid ? features.torsoLeanDeg.value : null;
 
     return processSample(
       frameIndex: features.frameIndex,
       timestampMs: features.timestampMs,
       elbowAngleDeg: angle,
+      torsoLeanDeg: torsoLean,
+      viewAngle: features.viewAngle,
       isSampleValid: isAngleValid && features.isGateDetecting,
       isGateDetecting: features.isGateDetecting,
     );
@@ -186,6 +256,8 @@ class LatPulldownBaseline {
     required int frameIndex,
     required int timestampMs,
     double? elbowAngleDeg,
+    double? torsoLeanDeg,
+    CameraViewAngle viewAngle = CameraViewAngle.unknown,
     required bool isSampleValid,
     bool isGateDetecting = true,
   }) {
@@ -225,6 +297,9 @@ class LatPulldownBaseline {
       // An invalid sample interrupts any continuous posture hold candidates
       _readyCandidateStartMs = null;
       _extendedCandidateStartMs = null;
+      if (config.enableAngleSmoothing) {
+        _angleSmoother.smooth(timestampMs: timestampMs, rawAngleDeg: null);
+      }
 
       // Check gap duration since last valid sample
       if (_lastValidTimestampMs != null &&
@@ -262,13 +337,27 @@ class LatPulldownBaseline {
     }
     _lastValidTimestampMs = timestampMs;
 
+    final effectiveAngle = config.enableAngleSmoothing
+        ? (_angleSmoother.smooth(
+              timestampMs: timestampMs,
+              rawAngleDeg: elbowAngleDeg,
+            ) ??
+            elbowAngleDeg)
+        : elbowAngleDeg;
+    final flexionOffset =
+        ViewAngleProjectionHelper.elbowFlexionOffsetDeg(viewAngle);
+    final extensionOffset =
+        ViewAngleProjectionHelper.elbowExtensionOffsetDeg(viewAngle);
+    final effectiveFlexedEnter = config.flexedEnterDeg + flexionOffset;
+    final effectiveExtendedEnter = config.extendedEnterDeg + extensionOffset;
+
     String? transitionReason;
     LatPulldownRepEvent? newRepEvent;
 
     // 3. Causal FSM State Transitions
     switch (_phase) {
       case LatPulldownPhase.notReady:
-        if (elbowAngleDeg >= config.extendedEnterDeg) {
+        if (effectiveAngle >= effectiveExtendedEnter) {
           _readyCandidateStartMs ??= timestampMs;
           if ((timestampMs - _readyCandidateStartMs!) >=
               config.minReadyHoldMs) {
@@ -276,6 +365,7 @@ class LatPulldownBaseline {
             transitionReason = 'readyHoldSatisfied';
             _readyCandidateStartMs = null;
             _repStartTimestampMs = null;
+            _maxTorsoLeanInCurrentRep = null;
           }
         } else {
           _readyCandidateStartMs = null;
@@ -283,40 +373,45 @@ class LatPulldownBaseline {
         break;
 
       case LatPulldownPhase.extended:
-        if (elbowAngleDeg < config.pullingEnterDeg) {
+        if (effectiveAngle < config.pullingEnterDeg) {
           _phase = LatPulldownPhase.pulling;
           transitionReason = 'pullingStarted';
           _repStartTimestampMs = timestampMs;
           _bottomReachedTimestampMs = null;
           _extendedCandidateStartMs = null;
-          _minElbowAngleInCurrentRep = elbowAngleDeg;
+          _minElbowAngleInCurrentRep = effectiveAngle;
+          _maxTorsoLeanInCurrentRep = null;
+          _updateTorsoLean(torsoLeanDeg);
         }
         break;
 
       case LatPulldownPhase.pulling:
-        if (elbowAngleDeg < _minElbowAngleInCurrentRep) {
-          _minElbowAngleInCurrentRep = elbowAngleDeg;
+        if (effectiveAngle < _minElbowAngleInCurrentRep) {
+          _minElbowAngleInCurrentRep = effectiveAngle;
         }
+        _updateTorsoLean(torsoLeanDeg);
 
-        if (elbowAngleDeg <= config.flexedEnterDeg) {
+        if (effectiveAngle <= effectiveFlexedEnter) {
           _phase = LatPulldownPhase.flexed;
           transitionReason = 'flexedReached';
           _bottomReachedTimestampMs = timestampMs;
-        } else if (elbowAngleDeg >= config.pullingEnterDeg) {
+        } else if (effectiveAngle >= config.pullingEnterDeg) {
           // Aborted pull before reaching flexed: return to extended without counting rep
           _phase = LatPulldownPhase.extended;
           transitionReason = 'incompletePullReturnedToExtended';
           _repStartTimestampMs = null;
+          _maxTorsoLeanInCurrentRep = null;
         }
         break;
 
       case LatPulldownPhase.flexed:
-        if (elbowAngleDeg < _minElbowAngleInCurrentRep) {
-          _minElbowAngleInCurrentRep = elbowAngleDeg;
+        if (effectiveAngle < _minElbowAngleInCurrentRep) {
+          _minElbowAngleInCurrentRep = effectiveAngle;
           _bottomReachedTimestampMs = timestampMs;
         }
+        _updateTorsoLean(torsoLeanDeg);
 
-        if (elbowAngleDeg > config.returningEnterDeg) {
+        if (effectiveAngle > config.returningEnterDeg) {
           _phase = LatPulldownPhase.returning;
           transitionReason = 'returnStarted';
           _extendedCandidateStartMs = null;
@@ -324,12 +419,13 @@ class LatPulldownBaseline {
         break;
 
       case LatPulldownPhase.returning:
-        if (elbowAngleDeg <= config.flexedEnterDeg) {
+        _updateTorsoLean(torsoLeanDeg);
+        if (effectiveAngle <= effectiveFlexedEnter) {
           // Dip back into flexed zone
           _phase = LatPulldownPhase.flexed;
           transitionReason = 'reFlexedDuringReturn';
           _extendedCandidateStartMs = null;
-        } else if (elbowAngleDeg >= config.extendedEnterDeg) {
+        } else if (effectiveAngle >= effectiveExtendedEnter) {
           _extendedCandidateStartMs ??= timestampMs;
           if ((timestampMs - _extendedCandidateStartMs!) >=
               config.minExtendedHoldMs) {
@@ -346,6 +442,18 @@ class LatPulldownBaseline {
               final durationMs = endMs - startMs;
               final minElbowDeg = _minElbowAngleInCurrentRep;
 
+              final String? issueCode;
+              if (_maxTorsoLeanInCurrentRep != null &&
+                  _maxTorsoLeanInCurrentRep! > config.maxValidTorsoLeanDeg) {
+                issueCode = 'torsoLean';
+              } else if (durationMs < 2000) {
+                issueCode = 'tooFast';
+              } else if (minElbowDeg >= 45.0 + flexionOffset) {
+                issueCode = 'shallowDepth';
+              } else {
+                issueCode = null;
+              }
+
               debugPrint(
                   'CSV_QA: LAT_PULLDOWN, $repCount, $startMs, $bottomMs, $endMs, $durationMs, $minElbowDeg');
 
@@ -357,6 +465,8 @@ class LatPulldownBaseline {
                 durationMs: durationMs,
                 minElbowAngleDeg: minElbowDeg,
                 status: 'PROVISIONAL',
+                viewAngle: viewAngle,
+                issueCode: issueCode,
               );
               _repHistory.add(newRepEvent);
               transitionReason = 'repCompleted';
@@ -369,6 +479,7 @@ class LatPulldownBaseline {
             _bottomReachedTimestampMs = null;
             _extendedCandidateStartMs = null;
             _minElbowAngleInCurrentRep = 180.0;
+            _maxTorsoLeanInCurrentRep = null;
           }
         } else {
           // Dropped below extendedEnterDeg while waiting for hold duration
@@ -383,10 +494,19 @@ class LatPulldownBaseline {
       phase: _phase,
       completedReps: _completedReps,
       newRepEvent: newRepEvent,
-      elbowAngleDeg: elbowAngleDeg,
+      elbowAngleDeg: effectiveAngle,
       isSampleValid: true,
       transitionReason: transitionReason,
     );
+  }
+
+  void _updateTorsoLean(double? torsoLeanDeg) {
+    if (torsoLeanDeg != null && torsoLeanDeg.isFinite) {
+      if (_maxTorsoLeanInCurrentRep == null ||
+          torsoLeanDeg > _maxTorsoLeanInCurrentRep!) {
+        _maxTorsoLeanInCurrentRep = torsoLeanDeg;
+      }
+    }
   }
 
   void _abortInProgressCycle(String reason) {
@@ -398,5 +518,8 @@ class LatPulldownBaseline {
     _repStartTimestampMs = null;
     _bottomReachedTimestampMs = null;
     _minElbowAngleInCurrentRep = 180.0;
+    _maxTorsoLeanInCurrentRep = null;
+    _lockedSide = null;
+    _angleSmoother.reset();
   }
 }

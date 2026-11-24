@@ -7,11 +7,15 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../presentation/tokens/saman_workout_tokens.dart';
 import '../../domain/entities/exercise_cv_state.dart';
 import '../../domain/services/cv_form_summary_calculator.dart';
+import '../../domain/services/cv_hardware_radar_service.dart';
 import '../../domain/services/cv_tts_coach.dart';
 import '../../domain/services/lat_pulldown_baseline.dart';
 import '../../domain/services/workout_cv_exercise_registry.dart';
+import '../../domain/services/workout_cv_motion_features.dart';
 import '../controllers/workout_cv_controller.dart';
 import '../widgets/cv_calibration_overlay.dart';
+import '../widgets/cv_exercise_guide_sheet.dart';
+import '../widgets/cv_hardware_radar_sheet.dart';
 import '../widgets/pose_skeleton_painter.dart';
 import '../workout_cv_replay_trial.dart';
 import 'workout_cv_result_screen.dart';
@@ -22,6 +26,8 @@ class WorkoutCvScreen extends ConsumerStatefulWidget {
   final String exerciseName;
   final String? videoPath;
   final CvTtsCoach? ttsCoach;
+  final CvHardwareRadarService? hardwareRadarService;
+  final bool? autoCheckHardwareRadar;
 
   const WorkoutCvScreen({
     super.key,
@@ -30,6 +36,8 @@ class WorkoutCvScreen extends ConsumerStatefulWidget {
     required this.exerciseName,
     this.videoPath,
     this.ttsCoach,
+    this.hardwareRadarService,
+    this.autoCheckHardwareRadar,
   });
 
   @override
@@ -40,7 +48,11 @@ class _WorkoutCvScreenState extends ConsumerState<WorkoutCvScreen>
     with WidgetsBindingObserver {
   late final CvTtsCoach _ttsCoach;
   late final bool _ownsTtsCoach;
+  late final CvHardwareRadarService _hardwareRadarService;
   late bool _isCalibrated;
+  bool _hasCheckedHardwareRadar = false;
+  Color? _borderPulseColor;
+  Timer? _borderPulseTimer;
 
   bool get _useReplayTrial =>
       shouldUseWorkoutCvReplayTrial(exerciseSlug: widget.exerciseSlug);
@@ -54,6 +66,28 @@ class _WorkoutCvScreenState extends ConsumerState<WorkoutCvScreen>
   bool get _isVietnamese =>
       Localizations.maybeLocaleOf(context)?.languageCode == 'vi';
 
+  Future<void> _bootstrapSession() async {
+    final shouldAutoCheck = widget.autoCheckHardwareRadar ??
+        (!kIsWeb &&
+            Platform.isAndroid &&
+            !_hasUploadedVideo &&
+            !_useReplayTrial);
+    if (shouldAutoCheck && !_hasCheckedHardwareRadar) {
+      _hasCheckedHardwareRadar = true;
+      final shouldShow = await _hardwareRadarService.shouldShowRadarSheet();
+      if (!mounted) return;
+      if (shouldShow) {
+        await showCvHardwareRadarSheet(
+          context,
+          service: _hardwareRadarService,
+          isVietnamese: _isVietnamese,
+        );
+        if (!mounted) return;
+      }
+    }
+    await _initializeSession();
+  }
+
   Future<void> _initializeSession() async {
     if (!_supportsCamera) return;
     await ref.read(workoutCvControllerProvider.notifier).initialize(
@@ -64,15 +98,71 @@ class _WorkoutCvScreenState extends ConsumerState<WorkoutCvScreen>
         );
   }
 
+  Future<void> _openExerciseGuideSheet() async {
+    await showCvExerciseGuideSheet(
+      context,
+      exerciseId: widget.exerciseId,
+      exerciseSlug: widget.exerciseSlug,
+      exerciseName: widget.exerciseName,
+      isVietnamese: _isVietnamese,
+    );
+  }
+
+  Future<void> _openHardwareRadarSheet() async {
+    await showCvHardwareRadarSheet(
+      context,
+      service: _hardwareRadarService,
+      isVietnamese: _isVietnamese,
+    );
+  }
+
+  void _triggerBorderPulse(Color color, Duration duration) {
+    _borderPulseTimer?.cancel();
+    if (!mounted) return;
+    setState(() {
+      _borderPulseColor = color;
+    });
+    _borderPulseTimer = Timer(duration, () {
+      _borderPulseTimer = null;
+      if (!mounted) return;
+      setState(() {
+        _borderPulseColor = null;
+      });
+    });
+  }
+
+  Color _resolveStatusBorderColor(ExerciseCvState cvState) {
+    switch (cvState.trackingStatus) {
+      case TrackingStatus.lost:
+      case TrackingStatus.multiplePeople:
+      case TrackingStatus.error:
+      case TrackingStatus.permissionDenied:
+        return SamanWorkoutTokens.crimsonAccent;
+      case TrackingStatus.needsSetup:
+        return SamanWorkoutTokens.amberAccent;
+      case TrackingStatus.detecting:
+        return _borderPulseColor ?? SamanWorkoutTokens.emeraldAccent;
+      case TrackingStatus.uninitialized:
+        return Colors.transparent;
+    }
+  }
+
   @override
   void initState() {
     super.initState();
     _ownsTtsCoach = widget.ttsCoach == null;
-    _ttsCoach = widget.ttsCoach ?? CvTtsCoach();
+    final nativeSource = ref.read(workoutCvNativeSourceProvider);
+    _ttsCoach = widget.ttsCoach ??
+        CvTtsCoach(
+          onRequestAudioFocus: nativeSource.requestAudioFocus,
+          onAbandonAudioFocus: nativeSource.abandonAudioFocus,
+        );
+    _hardwareRadarService =
+        widget.hardwareRadarService ?? CvHardwareRadarService();
     _isCalibrated = _useReplayTrial || _hasUploadedVideo;
     WidgetsBinding.instance.addObserver(this);
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) _initializeSession();
+      if (mounted) unawaited(_bootstrapSession());
     });
   }
 
@@ -98,12 +188,75 @@ class _WorkoutCvScreenState extends ConsumerState<WorkoutCvScreen>
 
   @override
   void dispose() {
+    _borderPulseTimer?.cancel();
+    _borderPulseTimer = null;
     WidgetsBinding.instance.removeObserver(this);
     unawaited(_ttsCoach.stop());
     if (_ownsTtsCoach) {
       unawaited(_ttsCoach.dispose());
     }
     super.dispose();
+  }
+
+  String _formCorrectionCueForModule(
+    CvExerciseModule? module, {
+    required bool isVietnamese,
+  }) {
+    switch (module) {
+      case CvExerciseModule.squat:
+        return isVietnamese ? 'Xuống sâu hơn nữa' : 'Go deeper';
+      case CvExerciseModule.pullUp:
+      case CvExerciseModule.latPulldown:
+        return isVietnamese
+            ? 'Kéo sát người hơn'
+            : 'Pull closer to your chest';
+      case CvExerciseModule.pushUp:
+        return isVietnamese
+            ? 'Xuống sâu hơn và giữ lưng thẳng'
+            : 'Go lower and keep your back straight';
+      case CvExerciseModule.bicepCurl:
+        return isVietnamese
+            ? 'Giữ cùi chỏ sát sườn'
+            : 'Keep your elbows pinned';
+      case CvExerciseModule.overheadPress:
+        return isVietnamese
+            ? 'Đẩy thẳng tay qua đầu'
+            : 'Press all the way overhead';
+      case CvExerciseModule.hipHinge:
+        return isVietnamese
+            ? 'Đẩy hông ra sau và giữ thẳng lưng'
+            : 'Hinge at the hips and keep your back flat';
+      case CvExerciseModule.hipThrust:
+        return isVietnamese
+            ? 'Đẩy hông lên cao hết biên độ'
+            : 'Drive your hips fully to the top';
+      case CvExerciseModule.tricepExtension:
+        return isVietnamese
+            ? 'Duỗi thẳng hết cánh tay và cố định cùi chỏ'
+            : 'Extend fully and keep your elbows still';
+      case CvExerciseModule.lateralRaise:
+        return isVietnamese
+            ? 'Nâng tay ngang vai có kiểm soát'
+            : 'Raise smoothly to shoulder height';
+      case CvExerciseModule.legExtension:
+      case CvExerciseModule.legCurl:
+        return isVietnamese
+            ? 'Hoàn thành hết biên độ gối'
+            : 'Complete the full knee range of motion';
+      case CvExerciseModule.plankHold:
+        return isVietnamese
+            ? 'Giữ hông thẳng hàng với vai'
+            : 'Keep your hips aligned with your shoulders';
+      case CvExerciseModule.row:
+      case CvExerciseModule.facePull:
+        return isVietnamese
+            ? 'Kéo hết biên độ và siết bả vai'
+            : 'Pull through full range and squeeze your shoulder blades';
+      case null:
+        return isVietnamese
+            ? 'Điều chỉnh biên độ và giữ chuẩn tư thế'
+            : 'Adjust range of motion and keep good form';
+    }
   }
 
   void _handleCvStateChange(ExerciseCvState? previous, ExerciseCvState next) {
@@ -127,15 +280,24 @@ class _WorkoutCvScreenState extends ConsumerState<WorkoutCvScreen>
 
     if (next.trackingStatus == TrackingStatus.multiplePeople) {
       unawaited(
-        _ttsCoach.speakFormCue(
+        _ttsCoach.speakUrgent(
           'multi_person',
           isVi
-              ? 'Chỉ giữ một người trong khung hình'
-              : 'Only one person in frame',
+              ? 'Có người khác trong khung hình, tạm dừng đếm'
+              : 'Another person is in frame, pausing count',
+        ),
+      );
+    } else if (next.trackingStatus == TrackingStatus.lost &&
+        next.isCameraActive) {
+      unawaited(
+        _ttsCoach.speakUrgent(
+          'lost_body',
+          isVi ? 'Bước lại vào khung hình' : 'Step back into the frame',
         ),
       );
     } else if (next.trackingStatus == TrackingStatus.needsSetup &&
-        next.isCameraActive) {
+        next.isCameraActive &&
+        isCalibrated) {
       unawaited(
         _ttsCoach.speakFormCue(
           'framing',
@@ -153,7 +315,24 @@ class _WorkoutCvScreenState extends ConsumerState<WorkoutCvScreen>
       slug:
           next.exerciseSlug.isNotEmpty ? next.exerciseSlug : widget.exerciseSlug,
     );
-    final isHoldExercise = module?.name == 'plankHold';
+    final isHoldExercise = module == CvExerciseModule.plankHold;
+
+    if (module == CvExerciseModule.pushUp &&
+        next.detectedViewAngle == CameraViewAngle.frontal &&
+        isCalibrated) {
+      _triggerBorderPulse(
+        SamanWorkoutTokens.amberAccent,
+        const Duration(milliseconds: 1800),
+      );
+      unawaited(
+        _ttsCoach.speakFormCue(
+          'pushup_frontal_warning',
+          isVi
+              ? 'Góc chính diện khó đo độ sâu, hãy đặt máy chếch nghiêng 45 độ'
+              : 'Frontal angle limits depth tracking, please place camera at a 45 degree angle',
+        ),
+      );
+    }
 
     if (next.completedReps > prevReps) {
       unawaited(
@@ -169,31 +348,42 @@ class _WorkoutCvScreenState extends ConsumerState<WorkoutCvScreen>
       final prevValidReps = prevSummary?.validReps ?? 0;
 
       if (nextSummary.fastReps > prevFastReps) {
+        _triggerBorderPulse(
+          SamanWorkoutTokens.amberAccent,
+          const Duration(milliseconds: 1800),
+        );
         unawaited(
           _ttsCoach.speakFormCue(
-            'tempo_or_form',
-            isVi
-                ? 'Chậm lại để kiểm soát chuyển động'
-                : 'Slow down to control your tempo',
+            'tempo_fast',
+            isVi ? 'Chậm lại một chút' : 'Slow down a bit',
           ),
         );
       } else if (nextSummary.validReps == prevValidReps) {
+        _triggerBorderPulse(
+          SamanWorkoutTokens.amberAccent,
+          const Duration(milliseconds: 1800),
+        );
         unawaited(
           _ttsCoach.speakFormCue(
-            'tempo_or_form',
-            isVi
-                ? 'Điều chỉnh biên độ và giữ chuẩn tư thế'
-                : 'Adjust range of motion and keep good form',
+            'form_depth_${module?.name ?? 'generic'}',
+            _formCorrectionCueForModule(module, isVietnamese: isVi),
           ),
+        );
+      } else {
+        _triggerBorderPulse(
+          SamanWorkoutTokens.emeraldAccent,
+          const Duration(milliseconds: 900),
         );
       }
     } else if (next.abortCount > (previous?.abortCount ?? 0)) {
+      _triggerBorderPulse(
+        SamanWorkoutTokens.amberAccent,
+        const Duration(milliseconds: 1800),
+      );
       unawaited(
         _ttsCoach.speakFormCue(
-          'tempo_or_form',
-          isVi
-              ? 'Hoàn thành trọn vẹn biên độ động tác'
-              : 'Complete the full range of motion',
+          'form_abort_${module?.name ?? 'generic'}',
+          _formCorrectionCueForModule(module, isVietnamese: isVi),
         ),
       );
     }
@@ -205,7 +395,7 @@ class _WorkoutCvScreenState extends ConsumerState<WorkoutCvScreen>
       _isCalibrated = true;
     });
     unawaited(
-      _ttsCoach.speakCountdown(_isVietnamese ? 'Bắt đầu' : 'Start'),
+      _ttsCoach.speakCountdown(_isVietnamese ? 'Bắt đầu!' : 'Start!'),
     );
   }
 
@@ -280,15 +470,46 @@ class _WorkoutCvScreenState extends ConsumerState<WorkoutCvScreen>
                 child: CvCalibrationOverlay(
                   trackingStatus: cvState.trackingStatus,
                   posesDetected: cvState.posesDetected,
+                  landmarks: cvState.landmarks,
+                  exerciseModule: module,
                   cameraAngleHint: cameraAngleHint,
                   isVietnamese: isVi,
+                  onGuidanceCue: (cueKey, message) {
+                    if ((cueKey == 'multi_person' &&
+                            cvState.trackingStatus ==
+                                TrackingStatus.multiplePeople) ||
+                        (cueKey == 'lost_body' &&
+                            cvState.trackingStatus == TrackingStatus.lost)) {
+                      return;
+                    }
+                    unawaited(_ttsCoach.speakCalibrationCue(cueKey, message));
+                  },
                   onCountdownTick: (seconds) {
-                    unawaited(_ttsCoach.speakCountdown('$seconds'));
+                    final speech = seconds == 3
+                        ? (isVi ? 'Giữ yên, 3' : 'Hold steady, 3')
+                        : '$seconds';
+                    unawaited(_ttsCoach.speakCountdown(speech));
                   },
                   onCalibrated: _handleCalibrationCompleted,
                   onSkip: _handleCalibrationSkipped,
                 ),
               ),
+
+            // 2.75. Visual 4px Status Border Layer (Green / Amber / Red)
+            Positioned.fill(
+              child: IgnorePointer(
+                child: AnimatedContainer(
+                  key: const ValueKey('workout_cv_status_border'),
+                  duration: const Duration(milliseconds: 220),
+                  decoration: BoxDecoration(
+                    border: Border.all(
+                      color: _resolveStatusBorderColor(cvState),
+                      width: 4.0,
+                    ),
+                  ),
+                ),
+              ),
+            ),
 
             // 3. Header & Controls Layer
             Positioned(
@@ -331,19 +552,24 @@ class _WorkoutCvScreenState extends ConsumerState<WorkoutCvScreen>
             ? (isVi ? 'Camera trực tiếp' : 'Live Camera')
             : (isVi ? 'Chỉ hỗ trợ Android' : 'Android only'));
 
+    final compactButtonStyle = IconButton.styleFrom(
+      backgroundColor: overlayButtonBg,
+      visualDensity: VisualDensity.compact,
+      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+      minimumSize: const Size(34, 34),
+      padding: const EdgeInsets.all(6),
+    );
+
     return Row(
       children: [
         IconButton(
           key: const ValueKey('workout_cv_close_button'),
           tooltip: isVi ? 'Đóng' : 'Close',
-          icon: const Icon(Icons.close, color: Colors.white, size: 24),
+          icon: const Icon(Icons.close, color: Colors.white, size: 22),
           onPressed: () => Navigator.of(context).pop(),
-          style: IconButton.styleFrom(
-            backgroundColor: overlayButtonBg,
-            visualDensity: VisualDensity.compact,
-          ),
+          style: compactButtonStyle,
         ),
-        const SizedBox(width: 8),
+        const SizedBox(width: 6),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -354,7 +580,7 @@ class _WorkoutCvScreenState extends ConsumerState<WorkoutCvScreen>
                 style: const TextStyle(
                   fontFamily: 'Manrope',
                   color: Colors.white,
-                  fontSize: 15,
+                  fontSize: 14,
                   fontWeight: FontWeight.w700,
                 ),
                 maxLines: 1,
@@ -377,18 +603,17 @@ class _WorkoutCvScreenState extends ConsumerState<WorkoutCvScreen>
             ],
           ),
         ),
-        const SizedBox(width: 6),
+        const SizedBox(width: 4),
         if (_useReplayTrial || _hasUploadedVideo) ...[
           IconButton(
             key: const ValueKey('workout_cv_switch_replay_button'),
             tooltip: cvState.sourceMode == 'video_replay'
                 ? (isVi ? 'Chạy lại từ đầu' : 'Restart replay')
                 : (isVi ? 'Phát lại video' : 'Video Replay'),
-            icon: const Icon(Icons.video_library_outlined, size: 22),
-            style: IconButton.styleFrom(
-              foregroundColor: SamanWorkoutTokens.textPrimary,
-              backgroundColor: overlayButtonBg,
-              visualDensity: VisualDensity.compact,
+            icon: const Icon(Icons.video_library_outlined, size: 20),
+            style: compactButtonStyle.copyWith(
+              foregroundColor:
+                  WidgetStateProperty.all(SamanWorkoutTokens.textPrimary),
             ),
             onPressed: () {
               final notifier = ref.read(workoutCvControllerProvider.notifier);
@@ -399,8 +624,22 @@ class _WorkoutCvScreenState extends ConsumerState<WorkoutCvScreen>
               }
             },
           ),
-          const SizedBox(width: 6),
+          const SizedBox(width: 4),
         ],
+        IconButton(
+          key: const ValueKey('workout_cv_guide_button'),
+          tooltip: isVi
+              ? 'Hướng dẫn đặt máy & điểm mù AI'
+              : 'Camera guide & AI blind spots',
+          icon: const Icon(
+            Icons.help_outline_rounded,
+            color: Colors.white,
+            size: 19,
+          ),
+          onPressed: _openExerciseGuideSheet,
+          style: compactButtonStyle,
+        ),
+        const SizedBox(width: 4),
         IconButton(
           key: const ValueKey('workout_cv_tts_toggle_button'),
           tooltip: _ttsCoach.isMuted
@@ -411,31 +650,31 @@ class _WorkoutCvScreenState extends ConsumerState<WorkoutCvScreen>
                 ? Icons.volume_off_rounded
                 : Icons.volume_up_rounded,
             color: _ttsCoach.isMuted ? Colors.white54 : Colors.white,
-            size: 20,
+            size: 19,
           ),
           onPressed: () {
             setState(() {
               _ttsCoach.setMuted(!_ttsCoach.isMuted);
             });
           },
-          style: IconButton.styleFrom(
-            backgroundColor: overlayButtonBg,
-            visualDensity: VisualDensity.compact,
-          ),
+          style: compactButtonStyle,
         ),
-        const SizedBox(width: 6),
+        const SizedBox(width: 4),
         Flexible(
           flex: 0,
-          child: _buildStatusChip(cvState, isVi: isVi),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 102),
+            child: _buildStatusChip(cvState, isVi: isVi),
+          ),
         ),
-        const SizedBox(width: 6),
+        const SizedBox(width: 4),
         IconButton(
           key: const ValueKey('workout_cv_finish_button'),
           tooltip: isVi ? 'Hoàn thành' : 'Finish',
           icon: Icon(
             Icons.stop_circle_outlined,
             color: t.isDark ? t.emeraldAccent : SamanWorkoutTokens.emeraldAccent,
-            size: 26,
+            size: 24,
           ),
           onPressed: () {
             final cvState = ref.read(workoutCvControllerProvider);
@@ -443,6 +682,7 @@ class _WorkoutCvScreenState extends ConsumerState<WorkoutCvScreen>
             final repHistory = List<LatPulldownRepEvent>.from(
               cvState.replayRepEvents,
             );
+            final repRecords = List<RepRecord>.from(cvState.repRecords);
             unawaited(_ttsCoach.stop());
             ref.read(workoutCvControllerProvider.notifier).stop();
             WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -451,6 +691,7 @@ class _WorkoutCvScreenState extends ConsumerState<WorkoutCvScreen>
                   MaterialPageRoute<CvFormSummary>(
                     builder: (_) => WorkoutCvResultScreen(
                       repHistory: repHistory,
+                      repRecords: repRecords,
                       exerciseName: widget.exerciseName,
                       exerciseId: widget.exerciseId,
                       exerciseSlug: widget.exerciseSlug,
@@ -461,10 +702,7 @@ class _WorkoutCvScreenState extends ConsumerState<WorkoutCvScreen>
               }
             });
           },
-          style: IconButton.styleFrom(
-            backgroundColor: overlayButtonBg,
-            visualDensity: VisualDensity.compact,
-          ),
+          style: compactButtonStyle,
         ),
       ],
     );
@@ -628,6 +866,8 @@ class _WorkoutCvScreenState extends ConsumerState<WorkoutCvScreen>
         return 'Căn phần thân trên (vai, tay, hông) vào khung hình.';
       case 'Pose detected. Tracking active.':
         return 'Đã nhận diện tư thế. Đang theo dõi.';
+      case 'Frontal angle limits depth tracking. Place camera at a 45° angle.':
+        return 'Góc chính diện khó đo độ sâu, hãy đặt máy chếch nghiêng 45 độ.';
       case 'Replay stopped. Restart to try again.':
         return 'Đã dừng phát lại. Nhấn Chạy lại để thử lại.';
       default:
@@ -732,39 +972,129 @@ class _WorkoutCvScreenState extends ConsumerState<WorkoutCvScreen>
           const Divider(color: Colors.white12, height: 1),
           const SizedBox(height: 8),
 
-          // Telemetry Row
+          // Telemetry Row + Hardware Radar trigger
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Flexible(
-                child: FittedBox(
-                  fit: BoxFit.scaleDown,
-                  alignment: Alignment.centerLeft,
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    FittedBox(
+                      fit: BoxFit.scaleDown,
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        'FPS: ${cvState.fps.toStringAsFixed(1)} · Latency: ${cvState.latencyMs}ms',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: Colors.white70,
+                          fontSize: 11,
+                          fontFamily: 'monospace',
+                        ),
+                      ),
+                    ),
+                    FittedBox(
+                      fit: BoxFit.scaleDown,
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        'p50: ${cvState.p50LatencyMs}ms / p95: ${cvState.p95LatencyMs}ms',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: Colors.white54,
+                          fontSize: 10,
+                          fontFamily: 'monospace',
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              if (cvState.detectedViewAngle != CameraViewAngle.unknown) ...[
+                const SizedBox(width: 6),
+                Container(
+                  key: const ValueKey('workout_cv_detected_angle_badge'),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 4,
+                  ),
+                  decoration: BoxDecoration(
+                    color: cvState.detectedViewAngle == CameraViewAngle.frontal &&
+                            module == CvExerciseModule.pushUp
+                        ? SamanWorkoutTokens.amberAccent.withOpacity(0.16)
+                        : Colors.white10,
+                    borderRadius:
+                        BorderRadius.circular(SamanWorkoutTokens.radiusPill),
+                    border: Border.all(
+                      color: cvState.detectedViewAngle == CameraViewAngle.frontal &&
+                              module == CvExerciseModule.pushUp
+                          ? SamanWorkoutTokens.amberAccent.withOpacity(0.55)
+                          : Colors.white24,
+                    ),
+                  ),
                   child: Text(
-                    'FPS: ${cvState.fps.toStringAsFixed(1)} · Latency: ${cvState.latencyMs}ms',
+                    RepRecord(
+                      repIndex: 0,
+                      timestampSec: 0,
+                      durationSec: 0,
+                      isValid: true,
+                      viewAngle: cvState.detectedViewAngle,
+                    ).localizedViewAngleLabel(isVietnamese: isVi),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: Colors.white70,
-                      fontSize: 11,
-                      fontFamily: 'monospace',
+                    style: TextStyle(
+                      fontFamily: 'Manrope',
+                      fontSize: 10.5,
+                      fontWeight: FontWeight.w600,
+                      color: cvState.detectedViewAngle == CameraViewAngle.frontal &&
+                              module == CvExerciseModule.pushUp
+                          ? SamanWorkoutTokens.amberAccent
+                          : Colors.white70,
                     ),
                   ),
                 ),
-              ),
-              const SizedBox(width: 8),
-              Flexible(
-                child: FittedBox(
-                  fit: BoxFit.scaleDown,
-                  alignment: Alignment.centerRight,
-                  child: Text(
-                    'p50: ${cvState.p50LatencyMs}ms / p95: ${cvState.p95LatencyMs}ms',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: Colors.white54,
-                      fontSize: 11,
-                      fontFamily: 'monospace',
+              ],
+              const SizedBox(width: 6),
+              Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  key: const ValueKey('workout_cv_hardware_radar_button'),
+                  onTap: _openHardwareRadarSheet,
+                  borderRadius:
+                      BorderRadius.circular(SamanWorkoutTokens.radiusPill),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 5,
+                    ),
+                    decoration: BoxDecoration(
+                      color: SamanWorkoutTokens.tealAccent.withOpacity(0.14),
+                      borderRadius:
+                          BorderRadius.circular(SamanWorkoutTokens.radiusPill),
+                      border: Border.all(
+                        color: SamanWorkoutTokens.tealAccent.withOpacity(0.45),
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(
+                          Icons.radar_rounded,
+                          size: 14,
+                          color: SamanWorkoutTokens.tealAccent,
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          isVi ? 'Radar' : 'Radar',
+                          style: const TextStyle(
+                            fontFamily: 'Manrope',
+                            color: SamanWorkoutTokens.tealAccent,
+                            fontSize: 11,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ),

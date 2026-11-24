@@ -6,6 +6,7 @@ import '../../data/datasources/workout_cv_native_source.dart';
 import '../../domain/entities/exercise_cv_state.dart';
 import '../../domain/entities/pose_landmark.dart';
 import '../../domain/services/bicep_curl_baseline.dart';
+import '../../domain/services/cv_form_summary_calculator.dart';
 import '../../domain/services/face_pull_baseline.dart';
 import '../../domain/services/hip_hinge_baseline.dart';
 import '../../domain/services/lat_pulldown_baseline.dart';
@@ -42,6 +43,7 @@ class WorkoutCvNotifier extends StateNotifier<ExerciseCvState> {
   int _initGeneration = 0;
   bool _isStopped = false;
   dynamic _repTracker = LatPulldownBaseline();
+  final ViewAngleDetector _viewAngleDetector = ViewAngleDetector();
   int? _repSessionGen;
   int? _lastRepPtsMs;
   bool _analysisClosed = false;
@@ -537,11 +539,14 @@ class WorkoutCvNotifier extends StateNotifier<ExerciseCvState> {
 
   void _resetRepAnalysis() {
     _repTracker.reset();
+    _viewAngleDetector.reset();
     _repSessionGen = null;
     _lastRepPtsMs = null;
     _analysisClosed = false;
     state = state.copyWith(
       replayRepEvents: const [],
+      repRecords: const [],
+      detectedViewAngle: CameraViewAngle.unknown,
       analysisPhase: LatPulldownPhase.notReady,
       replayAnalysisStatus: ReplayAnalysisStatus.waiting,
       abortCount: 0,
@@ -598,6 +603,16 @@ class WorkoutCvNotifier extends StateNotifier<ExerciseCvState> {
     final imageHeight = (event['inputImageHeight'] as num?)?.toDouble() ?? 0;
     final isGateDetecting =
         state.trackingStatus == TrackingStatus.detecting && state.isSyncValid;
+    final CameraViewAngle detectedAngle;
+    if (isGateDetecting && imageWidth > 0 && imageHeight > 0) {
+      detectedAngle = _viewAngleDetector.update(
+        landmarks: state.landmarks,
+        imageWidth: imageWidth,
+        imageHeight: imageHeight,
+      );
+    } else {
+      detectedAngle = state.detectedViewAngle;
+    }
 
     // Invalid/lost samples must reach the baseline to interrupt holds/cycles.
     final dynamic result;
@@ -609,6 +624,7 @@ class WorkoutCvNotifier extends StateNotifier<ExerciseCvState> {
         imageWidth: imageWidth,
         imageHeight: imageHeight,
         isGateDetecting: isGateDetecting,
+        viewAngle: detectedAngle,
       );
       result = (_repTracker as PullUpBaseline).processPullUpFeatures(features);
     } else if (module == CvExerciseModule.squat) {
@@ -619,6 +635,7 @@ class WorkoutCvNotifier extends StateNotifier<ExerciseCvState> {
         imageWidth: imageWidth,
         imageHeight: imageHeight,
         isGateDetecting: isGateDetecting,
+        viewAngle: detectedAngle,
       );
       result = (_repTracker as SquatBaseline).processSquatFeatures(features);
     } else if (module == CvExerciseModule.pushUp) {
@@ -629,6 +646,7 @@ class WorkoutCvNotifier extends StateNotifier<ExerciseCvState> {
         imageWidth: imageWidth,
         imageHeight: imageHeight,
         isGateDetecting: isGateDetecting,
+        viewAngle: detectedAngle,
       );
       result = (_repTracker as PushUpBaseline).processPushUpFeatures(features);
     } else if (module == CvExerciseModule.overheadPress) {
@@ -650,6 +668,7 @@ class WorkoutCvNotifier extends StateNotifier<ExerciseCvState> {
         imageWidth: imageWidth,
         imageHeight: imageHeight,
         isGateDetecting: isGateDetecting,
+        viewAngle: detectedAngle,
       );
       result = (_repTracker as BicepCurlBaseline)
           .processBicepCurlFeatures(features);
@@ -693,6 +712,7 @@ class WorkoutCvNotifier extends StateNotifier<ExerciseCvState> {
         imageWidth: imageWidth,
         imageHeight: imageHeight,
         isGateDetecting: isGateDetecting,
+        viewAngle: detectedAngle,
       );
       result = _repTracker.processFrameFeatures(features);
     } else if (module == CvExerciseModule.hipHinge ||
@@ -725,8 +745,18 @@ class WorkoutCvNotifier extends StateNotifier<ExerciseCvState> {
     final phase = _toAnalysisPhase(result.phase);
     final shouldIncrementAbort = result.resetReason != null &&
         result.resetReason != 'droppedNonMonotonicTimestamp';
+    final repHistory = _repTracker.repHistory as List<LatPulldownRepEvent>;
+    final repRecords = _buildRepRecords(repHistory, module, detectedAngle);
+    final String? updatedGuideMessage = (module == CvExerciseModule.pushUp &&
+            detectedAngle == CameraViewAngle.frontal &&
+            state.trackingStatus == TrackingStatus.detecting)
+        ? 'Frontal angle limits depth tracking. Place camera at a 45° angle.'
+        : null;
     state = state.copyWith(
-      replayRepEvents: _repTracker.repHistory as List<LatPulldownRepEvent>,
+      replayRepEvents: repHistory,
+      repRecords: repRecords,
+      detectedViewAngle: detectedAngle,
+      guideMessage: updatedGuideMessage,
       analysisPhase: phase,
       replayAnalysisStatus: result.isSampleValid == true &&
               phase != LatPulldownPhase.notReady
@@ -735,6 +765,54 @@ class WorkoutCvNotifier extends StateNotifier<ExerciseCvState> {
       abortCount:
           shouldIncrementAbort ? state.abortCount + 1 : state.abortCount,
     );
+  }
+
+  List<RepRecord> _buildRepRecords(
+    List<LatPulldownRepEvent> reps,
+    CvExerciseModule module,
+    CameraViewAngle detectedAngle,
+  ) {
+    final criteria = ExerciseFormCriteria.forModule(module);
+    return reps.map((rep) {
+      final isStandardMet = CvFormSummaryCalculator.isRepStandardMet(
+        rep,
+        module: module,
+      );
+      var issueType = _mapIssueCode(rep.issueCode);
+      if (issueType == RepIssueType.none && !isStandardMet) {
+        issueType = rep.durationMs < criteria.fastDurationMsThreshold
+            ? RepIssueType.tooFast
+            : RepIssueType.shallowDepth;
+      }
+      final effectiveViewAngle = rep.viewAngle != CameraViewAngle.unknown
+          ? rep.viewAngle
+          : detectedAngle;
+      return RepRecord(
+        repIndex: rep.repNumber,
+        timestampSec: rep.endTimestampMs / 1000.0,
+        durationSec: rep.durationMs / 1000.0,
+        metricAngleDeg: rep.minElbowAngleDeg,
+        isValid: isStandardMet && issueType == RepIssueType.none,
+        issueType: issueType,
+        viewAngle: effectiveViewAngle,
+      );
+    }).toList(growable: false);
+  }
+
+  RepIssueType _mapIssueCode(String? code) {
+    return switch (code) {
+      'tooFast' => RepIssueType.tooFast,
+      'shallowDepth' => RepIssueType.shallowDepth,
+      'incompleteLockout' => RepIssueType.incompleteLockout,
+      'torsoLean' => RepIssueType.torsoLean,
+      'hipSag' => RepIssueType.hipSag,
+      'elbowSwing' => RepIssueType.elbowSwing,
+      'kneeValgus' => RepIssueType.kneeValgus,
+      'chinNotCleared' => RepIssueType.chinNotCleared,
+      'frontalAngleWarning' => RepIssueType.frontalAngleWarning,
+      'aborted' => RepIssueType.aborted,
+      _ => RepIssueType.none,
+    };
   }
 
   dynamic _createTrackerForModule(

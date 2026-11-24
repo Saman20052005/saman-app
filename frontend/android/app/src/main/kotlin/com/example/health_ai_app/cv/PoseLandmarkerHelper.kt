@@ -2,7 +2,10 @@ package com.example.health_ai_app.cv
 
 import android.content.Context
 import android.graphics.Bitmap
+import android.graphics.Canvas
 import android.graphics.Matrix
+import android.graphics.Paint
+import android.graphics.PixelFormat
 import android.os.SystemClock
 import android.util.Log
 import androidx.camera.core.ImageProxy
@@ -17,6 +20,7 @@ import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.CopyOnWriteArrayList
 import java.util.concurrent.atomic.AtomicLong
 import kotlin.math.min
+import kotlin.math.roundToInt
 
 class PoseLandmarkerHelper(
     private val context: Context,
@@ -52,11 +56,23 @@ class PoseLandmarkerHelper(
     companion object {
         private const val TAG = "PoseLandmarkerHelper"
         private const val MODEL_NAME = "pose_landmarker_lite.task"
+        private const val LIVE_MAX_LONG_EDGE = 256
+        private const val LIVE_MAX_SHORT_EDGE = 192
     }
 
+    @Volatile
     private var poseLandmarker: PoseLandmarker? = null
     private var lastTimestampMs = Long.MIN_VALUE
     private val submitMetaMap = ConcurrentHashMap<Long, FrameSubmitMeta>()
+
+    // Reusable live-stream buffers to eliminate per-frame Bitmap/Matrix/Canvas allocations (GC & thermal reduction)
+    private val liveBufferLock = Any()
+    private var reusableSrcBitmap: Bitmap? = null
+    private val liveOutputBitmapPool: Array<Bitmap?> = arrayOfNulls(2)
+    private var liveOutputPoolIndex = 0
+    private val liveCanvas = Canvas()
+    private val liveMatrix = Matrix()
+    private val livePaint = Paint(Paint.FILTER_BITMAP_FLAG)
 
     val isInitialized: Boolean
         get() = poseLandmarker != null
@@ -181,68 +197,122 @@ class PoseLandmarkerHelper(
         }
     }
 
-    fun detectLiveStream(imageProxy: ImageProxy, isFrontCamera: Boolean, sessionGen: Long = 0L) {
+    fun detectLiveStream(imageProxy: ImageProxy, isFrontCamera: Boolean, sessionGen: Long = 0L): Boolean {
         val frameTime = SystemClock.uptimeMillis()
-        if (frameTime <= lastTimestampMs) {
+        val landmarker = poseLandmarker
+        if (landmarker == null || frameTime <= lastTimestampMs) {
             // Strictly monotonic timestamp required by MediaPipe LIVE_STREAM
             imageProxy.close()
-            return
-        }
-        lastTimestampMs = frameTime
-
-        val landmarker = poseLandmarker
-        if (landmarker == null) {
-            imageProxy.close()
-            return
+            return false
         }
 
-        try {
-            // Stage (b): Bitmap conversion
-            val tBmp0 = SystemClock.elapsedRealtimeNanos()
-            val bitmap = imageProxy.toBitmap()
-            val tBmp1 = SystemClock.elapsedRealtimeNanos()
-            WorkoutCvPerfTracker.recordBitmapDuration((tBmp1 - tBmp0) / 1_000_000.0)
+        var tempSrcBitmapToRecycle: Bitmap? = null
+        return try {
+            val mpImage: MPImage
+            synchronized(liveBufferLock) {
+                // Stage (b): Direct RGBA buffer copy when rowStride has no padding; fallback to toBitmap()
+                val tBmp0 = SystemClock.elapsedRealtimeNanos()
+                val srcWidth = imageProxy.width
+                val srcHeight = imageProxy.height
+                val planes = imageProxy.planes
+                val canDirectCopyRgba = imageProxy.format == PixelFormat.RGBA_8888 &&
+                    planes.isNotEmpty() &&
+                    planes[0].pixelStride == 4 &&
+                    planes[0].rowStride == srcWidth * 4
 
-            val rotationDegrees = imageProxy.imageInfo.rotationDegrees
+                val srcBitmap: Bitmap = if (canDirectCopyRgba) {
+                    val buffer = planes[0].buffer
+                    buffer.rewind()
+                    val requiredBytes = srcWidth * srcHeight * 4
+                    if (buffer.remaining() >= requiredBytes) {
+                        var reused = reusableSrcBitmap
+                        if (reused == null || reused.isRecycled ||
+                            reused.width != srcWidth || reused.height != srcHeight
+                        ) {
+                            if (reused != null && !reused.isRecycled) {
+                                reused.recycle()
+                            }
+                            reused = Bitmap.createBitmap(srcWidth, srcHeight, Bitmap.Config.ARGB_8888)
+                            reusableSrcBitmap = reused
+                        }
+                        reused.copyPixelsFromBuffer(buffer)
+                        reused
+                    } else {
+                        imageProxy.toBitmap().also { tempSrcBitmapToRecycle = it }
+                    }
+                } else {
+                    imageProxy.toBitmap().also { tempSrcBitmapToRecycle = it }
+                }
+                val tBmp1 = SystemClock.elapsedRealtimeNanos()
+                WorkoutCvPerfTracker.recordBitmapDuration((tBmp1 - tBmp0) / 1_000_000.0)
 
-            // Stage (c): Matrix rotation & transformation (downscale if > 360x480 to avoid huge copies)
-            val tTfm0 = SystemClock.elapsedRealtimeNanos()
-            val isRotated = (rotationDegrees == 90 || rotationDegrees == 270)
-            val rotatedW = if (isRotated) bitmap.height else bitmap.width
-            val rotatedH = if (isRotated) bitmap.width else bitmap.height
+                val rotationDegrees = imageProxy.imageInfo.rotationDegrees
 
-            val maxTargetW = if (rotatedW <= rotatedH) 360 else 480
-            val maxTargetH = if (rotatedW <= rotatedH) 480 else 360
+                // Stage (c): Reusable Canvas + Matrix rotation/mirror/downscale into 2-slot output pool (<= 192x256 / 256x192)
+                val tTfm0 = SystemClock.elapsedRealtimeNanos()
+                val isRotated = (rotationDegrees == 90 || rotationDegrees == 270)
+                val rotatedW = if (isRotated) srcBitmap.height else srcBitmap.width
+                val rotatedH = if (isRotated) srcBitmap.width else srcBitmap.height
 
-            val scale = if (rotatedW > maxTargetW || rotatedH > maxTargetH) {
-                val scaleW = maxTargetW.toFloat() / rotatedW
-                val scaleH = maxTargetH.toFloat() / rotatedH
-                min(scaleW, scaleH)
-            } else {
-                1.0f
+                val maxTargetW = if (rotatedW <= rotatedH) LIVE_MAX_SHORT_EDGE else LIVE_MAX_LONG_EDGE
+                val maxTargetH = if (rotatedW <= rotatedH) LIVE_MAX_LONG_EDGE else LIVE_MAX_SHORT_EDGE
+
+                val scale = if (rotatedW > maxTargetW || rotatedH > maxTargetH) {
+                    val scaleW = maxTargetW.toFloat() / rotatedW
+                    val scaleH = maxTargetH.toFloat() / rotatedH
+                    min(scaleW, scaleH)
+                } else {
+                    1.0f
+                }
+
+                val targetW = (rotatedW * scale).roundToInt().coerceAtLeast(1)
+                val targetH = (rotatedH * scale).roundToInt().coerceAtLeast(1)
+
+                val poolIndex = liveOutputPoolIndex
+                liveOutputPoolIndex = (liveOutputPoolIndex + 1) % liveOutputBitmapPool.size
+                var dstBitmap = liveOutputBitmapPool[poolIndex]
+                if (dstBitmap == null || dstBitmap.isRecycled ||
+                    dstBitmap.width != targetW || dstBitmap.height != targetH
+                ) {
+                    dstBitmap = Bitmap.createBitmap(targetW, targetH, Bitmap.Config.ARGB_8888)
+                    liveOutputBitmapPool[poolIndex] = dstBitmap
+                }
+
+                liveMatrix.reset()
+                liveMatrix.postTranslate(-srcBitmap.width / 2f, -srcBitmap.height / 2f)
+                if (rotationDegrees != 0) {
+                    liveMatrix.postRotate(rotationDegrees.toFloat())
+                }
+                if (isFrontCamera) {
+                    liveMatrix.postScale(-1f, 1f)
+                }
+                liveMatrix.postScale(
+                    targetW.toFloat() / rotatedW.toFloat(),
+                    targetH.toFloat() / rotatedH.toFloat()
+                )
+                liveMatrix.postTranslate(targetW / 2f, targetH / 2f)
+
+                liveCanvas.setBitmap(dstBitmap)
+                liveCanvas.drawBitmap(srcBitmap, liveMatrix, livePaint)
+                liveCanvas.setBitmap(null)
+
+                // Recycle fallback temporary source bitmap immediately after drawing
+                tempSrcBitmapToRecycle?.let { temp ->
+                    if (!temp.isRecycled) temp.recycle()
+                    tempSrcBitmapToRecycle = null
+                }
+
+                mpImage = BitmapImageBuilder(dstBitmap).build()
+                val tTfm1 = SystemClock.elapsedRealtimeNanos()
+                WorkoutCvPerfTracker.recordTransformDuration((tTfm1 - tTfm0) / 1_000_000.0)
             }
 
-            val needsTransform = rotationDegrees != 0 || isFrontCamera || scale < 1.0f
-            val rotatedBitmap = if (needsTransform) {
-                val matrix = Matrix().apply {
-                    if (rotationDegrees != 0) postRotate(rotationDegrees.toFloat())
-                    if (isFrontCamera) postScale(-1f, 1f, bitmap.width.toFloat(), bitmap.height.toFloat())
-                    if (scale < 1.0f) postScale(scale, scale)
-                }
-                val created = Bitmap.createBitmap(bitmap, 0, 0, bitmap.width, bitmap.height, matrix, true)
-                if (created != bitmap) {
-                    bitmap.recycle()
-                }
-                created
-            } else {
-                bitmap
+            if (poseLandmarker == null) {
+                return false
             }
-
-            val mpImage = BitmapImageBuilder(rotatedBitmap).build()
-            val tTfm1 = SystemClock.elapsedRealtimeNanos()
-            WorkoutCvPerfTracker.recordTransformDuration((tTfm1 - tTfm0) / 1_000_000.0)
 
             // Stage (d): Submit MediaPipe async task
+            lastTimestampMs = frameTime
             val submitNs = SystemClock.elapsedRealtimeNanos()
             if (submitMetaMap.size > 64) submitMetaMap.clear()
             submitMetaMap[frameTime] = FrameSubmitMeta(
@@ -255,9 +325,17 @@ class PoseLandmarkerHelper(
             )
             WorkoutCvPerfTracker.onSubmit(frameTime)
             landmarker.detectAsync(mpImage, frameTime)
+            true
         } catch (e: Exception) {
-            poseLandmarkerListener.onError("Inference error: ${e.message}")
+            submitMetaMap.remove(frameTime)
+            if (poseLandmarker != null) {
+                poseLandmarkerListener.onError("Inference error: ${e.message}")
+            }
+            false
         } finally {
+            tempSrcBitmapToRecycle?.let { temp ->
+                if (!temp.isRecycled) temp.recycle()
+            }
             imageProxy.close()
         }
     }
@@ -306,9 +384,29 @@ class PoseLandmarkerHelper(
 
     fun clearPoseLandmarker() {
         submitMetaMap.clear()
-        val landmarker = poseLandmarker ?: return
+        lastTimestampMs = Long.MIN_VALUE
+        val landmarker = poseLandmarker
         poseLandmarker = null
-        landmarker.close()
+        if (landmarker != null) {
+            try {
+                landmarker.close()
+            } catch (e: Exception) {
+                Log.w(TAG, "Error closing PoseLandmarker: ${e.message}")
+            }
+        }
+        synchronized(liveBufferLock) {
+            liveCanvas.setBitmap(null)
+            liveMatrix.reset()
+            reusableSrcBitmap?.let { bmp ->
+                if (!bmp.isRecycled) bmp.recycle()
+            }
+            reusableSrcBitmap = null
+            // Release references without force-recycling in case MediaPipe still holds a final frame wrapper
+            for (i in liveOutputBitmapPool.indices) {
+                liveOutputBitmapPool[i] = null
+            }
+            liveOutputPoolIndex = 0
+        }
     }
 
 }

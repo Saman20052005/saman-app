@@ -1,7 +1,10 @@
+import 'package:flutter/foundation.dart';
+
 import 'pose_landmark.dart';
 import '../services/cv_form_summary_calculator.dart';
 import '../services/lat_pulldown_baseline.dart';
 import '../services/workout_cv_exercise_registry.dart';
+import '../services/workout_cv_motion_features.dart';
 
 enum ReplayAnalysisStatus { waiting, analyzing, insufficientData, finished, error }
 
@@ -13,6 +16,116 @@ enum TrackingStatus {
   lost,
   multiplePeople,
   error,
+}
+
+/// Primary form or execution issue classified for a single recorded rep.
+enum RepIssueType {
+  none,
+  tooFast,
+  shallowDepth,
+  incompleteLockout,
+  torsoLean,
+  hipSag,
+  elbowSwing,
+  kneeValgus,
+  chinNotCleared,
+  frontalAngleWarning,
+  aborted,
+}
+
+/// Immutable per-rep log record for multi-angle CV feedback and result breakdown.
+@immutable
+class RepRecord {
+  final int repIndex;
+  final double timestampSec;
+  final double durationSec;
+  final double? metricAngleDeg;
+  final bool isValid;
+  final RepIssueType issueType;
+  final CameraViewAngle viewAngle;
+
+  const RepRecord({
+    required this.repIndex,
+    required this.timestampSec,
+    required this.durationSec,
+    this.metricAngleDeg,
+    required this.isValid,
+    this.issueType = RepIssueType.none,
+    this.viewAngle = CameraViewAngle.unknown,
+  });
+
+  String localizedIssueLabel({required bool isVietnamese}) {
+    switch (issueType) {
+      case RepIssueType.none:
+        return isVietnamese ? 'Đạt chuẩn' : 'Good form';
+      case RepIssueType.tooFast:
+        return isVietnamese ? 'Nhịp quá nhanh' : 'Too fast';
+      case RepIssueType.shallowDepth:
+        return isVietnamese ? 'Chưa đủ độ sâu' : 'Insufficient depth';
+      case RepIssueType.incompleteLockout:
+        return isVietnamese ? 'Chưa duỗi hết tay' : 'Incomplete lockout';
+      case RepIssueType.torsoLean:
+        return isVietnamese ? 'Ngả thân quá mức' : 'Excessive torso lean';
+      case RepIssueType.hipSag:
+        return isVietnamese ? 'Võng lưng / tụt hông' : 'Hip sag';
+      case RepIssueType.elbowSwing:
+        return isVietnamese ? 'Vung cùi chỏ' : 'Elbow swing';
+      case RepIssueType.kneeValgus:
+        return isVietnamese ? 'Gối chụm vào trong' : 'Knee valgus';
+      case RepIssueType.chinNotCleared:
+        return isVietnamese ? 'Chưa lên hết tầm' : 'Incomplete top range';
+      case RepIssueType.frontalAngleWarning:
+        return isVietnamese
+            ? 'Góc chính diện khó đo sâu'
+            : 'Frontal view limits depth';
+      case RepIssueType.aborted:
+        return isVietnamese ? 'Chưa hoàn thành rep' : 'Incomplete rep';
+    }
+  }
+
+  String localizedViewAngleLabel({required bool isVietnamese}) {
+    switch (viewAngle) {
+      case CameraViewAngle.frontal:
+        return isVietnamese ? '0° Chính diện' : '0° Front';
+      case CameraViewAngle.oblique45:
+        return isVietnamese ? '45° Nghiêng' : '45° Oblique';
+      case CameraViewAngle.side90:
+        return isVietnamese ? '90° Ngang' : '90° Side';
+      case CameraViewAngle.unknown:
+        return isVietnamese ? 'Tự động' : 'Auto';
+    }
+  }
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is RepRecord &&
+          runtimeType == other.runtimeType &&
+          repIndex == other.repIndex &&
+          timestampSec == other.timestampSec &&
+          durationSec == other.durationSec &&
+          metricAngleDeg == other.metricAngleDeg &&
+          isValid == other.isValid &&
+          issueType == other.issueType &&
+          viewAngle == other.viewAngle;
+
+  @override
+  int get hashCode => Object.hash(
+        repIndex,
+        timestampSec,
+        durationSec,
+        metricAngleDeg,
+        isValid,
+        issueType,
+        viewAngle,
+      );
+
+  @override
+  String toString() {
+    return 'RepRecord(repIndex: $repIndex, timestampSec: $timestampSec, '
+        'durationSec: $durationSec, metricAngleDeg: $metricAngleDeg, '
+        'isValid: $isValid, issueType: $issueType, viewAngle: $viewAngle)';
+  }
 }
 
 class ExerciseCvState {
@@ -50,6 +163,8 @@ class ExerciseCvState {
   final LatPulldownPhase analysisPhase;
   final List<LatPulldownRepEvent> replayRepEvents;
   final int abortCount;
+  final List<RepRecord> repRecords;
+  final CameraViewAngle detectedViewAngle;
 
   const ExerciseCvState({
     this.trackingStatus = TrackingStatus.uninitialized,
@@ -83,6 +198,8 @@ class ExerciseCvState {
     this.replayRepEvents = const [],
     this.analysisPhase = LatPulldownPhase.notReady,
     this.abortCount = 0,
+    this.repRecords = const [],
+    this.detectedViewAngle = CameraViewAngle.unknown,
   });
 
   int get completedReps => replayRepEvents.length;
@@ -192,6 +309,8 @@ class ExerciseCvState {
     List<LatPulldownRepEvent>? replayRepEvents,
     LatPulldownPhase? analysisPhase,
     int? abortCount,
+    List<RepRecord>? repRecords,
+    CameraViewAngle? detectedViewAngle,
   }) {
     return ExerciseCvState(
       trackingStatus: trackingStatus ?? this.trackingStatus,
@@ -225,6 +344,8 @@ class ExerciseCvState {
       replayRepEvents: replayRepEvents ?? this.replayRepEvents,
       analysisPhase: analysisPhase ?? this.analysisPhase,
       abortCount: abortCount ?? this.abortCount,
+      repRecords: repRecords ?? this.repRecords,
+      detectedViewAngle: detectedViewAngle ?? this.detectedViewAngle,
     );
   }
 
