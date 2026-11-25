@@ -685,20 +685,23 @@ class _WorkoutCvScreenState extends ConsumerState<WorkoutCvScreen>
             final repRecords = List<RepRecord>.from(cvState.repRecords);
             unawaited(_ttsCoach.stop());
             ref.read(workoutCvControllerProvider.notifier).stop();
-            WidgetsBinding.instance.addPostFrameCallback((_) {
-              if (context.mounted) {
-                Navigator.of(context).pushReplacement(
-                  MaterialPageRoute<CvFormSummary>(
-                    builder: (_) => WorkoutCvResultScreen(
-                      repHistory: repHistory,
-                      repRecords: repRecords,
-                      exerciseName: widget.exerciseName,
-                      exerciseId: widget.exerciseId,
-                      exerciseSlug: widget.exerciseSlug,
-                      formSummary: summary,
-                    ),
+            WidgetsBinding.instance.addPostFrameCallback((_) async {
+              if (!mounted) return;
+              final navigator = Navigator.of(context);
+              final result = await navigator.push<CvFormSummary>(
+                MaterialPageRoute<CvFormSummary>(
+                  builder: (_) => WorkoutCvResultScreen(
+                    repHistory: repHistory,
+                    repRecords: repRecords,
+                    exerciseName: widget.exerciseName,
+                    exerciseId: widget.exerciseId,
+                    exerciseSlug: widget.exerciseSlug,
+                    formSummary: summary,
                   ),
-                );
+                ),
+              );
+              if (mounted) {
+                navigator.pop<CvFormSummary>(result);
               }
             });
           },
