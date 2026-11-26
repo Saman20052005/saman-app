@@ -82,6 +82,7 @@ try:
     from backend.app.services.quota_service import (
         QuotaService,
         StorageUnavailableException as QuotaStorageUnavailableException,
+        get_video_citation_days,
         resolve_user_tier_and_quota,
     )
 except ImportError:
@@ -92,6 +93,7 @@ except ImportError:
         from app.services.quota_service import (
             QuotaService,
             StorageUnavailableException as QuotaStorageUnavailableException,
+            get_video_citation_days,
             resolve_user_tier_and_quota,
         )
     except ImportError:  # pragma: no cover
@@ -102,6 +104,13 @@ except ImportError:
         QuotaService = None
         QuotaStorageUnavailableException = None
         resolve_user_tier_and_quota = None
+        def get_video_citation_days(tier: str) -> int:
+            return {"free": 0, "plus": 7, "pro": 14, "ultra": 30}.get((tier or "free").lower(), 0)
+
+try:
+    from backend.app.services.intent_router import IntentRouteResult, classify_chat_intent
+except ImportError:
+    from app.services.intent_router import IntentRouteResult, classify_chat_intent
 
 try:
     from backend.app.services.journey_context import build_journey_context
@@ -2852,11 +2861,14 @@ async def get_conversation_details(
     if isinstance(raw_msgs, list):
         for m in raw_msgs:
             if isinstance(m, dict):
-                messages.append({
+                msg_item: Dict[str, Any] = {
                     "role": m.get("role", "user"),
                     "content": m.get("content", ""),
                     "created_at": m.get("created_at", ""),
-                })
+                }
+                if isinstance(m.get("video_citations"), list):
+                    msg_item["video_citations"] = m["video_citations"]
+                messages.append(msg_item)
 
     res_dict = {
         "id": str(conv["_id"]),
@@ -3112,6 +3124,7 @@ def _persist_chat_reply(
     user_id: Optional[str],
     conv: Optional[dict],
     query_or: List[Dict[str, Any]],
+    video_citations: Optional[List[Dict[str, Any]]] = None,
 ) -> str:
     if conversations_col is None:
         logger.error("Conversations collection is not available")
@@ -3121,9 +3134,12 @@ def _persist_chat_reply(
         )
 
     now_iso = datetime.now(timezone.utc).isoformat()
+    assistant_msg: Dict[str, Any] = {"role": "assistant", "content": reply, "created_at": now_iso}
+    if video_citations is not None:
+        assistant_msg["video_citations"] = list(video_citations)
     messages = [
         {"role": "user", "content": trimmed_message, "created_at": now_iso},
-        {"role": "assistant", "content": reply, "created_at": now_iso},
+        assistant_msg,
     ]
     if conv:
         try:
@@ -3404,6 +3420,251 @@ async def _call_with_supported_kwargs(fn, **kwargs):
     return await fn(**_supported_kwargs(fn, kwargs))
 
 
+_VALID_MEMBERSHIP_TIERS = {"free", "plus", "pro", "ultra"}
+
+
+def _resolve_account_and_membership_tier(
+    current_user: dict,
+    db: Any = None,
+    ai_mode: str = "core3",
+) -> Tuple[Optional[str], str]:
+    """Resolve canonical account_id and membership_tier safely (fallback 'free' offline/dev)."""
+    raw_account = current_user.get("account_id")
+    raw_uid = current_user.get("_id")
+    account_id = str(raw_account or raw_uid or "").strip() or None
+
+    raw_email = current_user.get("email")
+    norm_email = raw_email.strip().lower() if isinstance(raw_email, str) and raw_email.strip() else None
+
+    fallback_tier = str(
+        current_user.get("membership_tier") or current_user.get("tier") or "free"
+    ).strip().lower()
+    if fallback_tier not in _VALID_MEMBERSHIP_TIERS:
+        fallback_tier = "free"
+
+    if db is not None and resolve_user_tier_and_quota is not None and (account_id or norm_email):
+        try:
+            benefit_id = _CHAT_MODE_TO_BENEFIT.get(ai_mode, "ai.chat.core3")
+            resolved_tier, _, _ = resolve_user_tier_and_quota(
+                db,
+                user_id=account_id,
+                email=norm_email,
+                benefit_id=benefit_id,
+            )
+            tier_str = (
+                resolved_tier.value
+                if hasattr(resolved_tier, "value")
+                else str(resolved_tier or "free")
+            ).strip().lower()
+            if tier_str in _VALID_MEMBERSHIP_TIERS:
+                if tier_str == "free" and fallback_tier != "free":
+                    return account_id, fallback_tier
+                return account_id, tier_str
+        except Exception:
+            pass
+
+    return account_id, fallback_tier
+
+
+def _parse_story_utc(val: Any) -> Optional[datetime]:
+    if val is None:
+        return None
+    if isinstance(val, datetime):
+        if val.tzinfo is None:
+            return val.replace(tzinfo=timezone.utc)
+        return val.astimezone(timezone.utc)
+    if isinstance(val, str):
+        cleaned = val.strip()
+        if not cleaned:
+            return None
+        try:
+            dt = datetime.fromisoformat(cleaned.replace("Z", "+00:00"))
+            if dt.tzinfo is None:
+                return dt.replace(tzinfo=timezone.utc)
+            return dt.astimezone(timezone.utc)
+        except Exception:
+            return None
+    return None
+
+
+def _pretty_exercise_name(exercise_slug: str) -> str:
+    words = [w for w in re.split(r"[-_\s]+", (exercise_slug or "").strip()) if w]
+    if not words:
+        return "Bài tập"
+    return " ".join(w[:1].upper() + w[1:] for w in words)
+
+
+def _normalize_match_text(text: str) -> str:
+    normalized = unicodedata.normalize("NFD", (text or "").lower())
+    normalized = "".join(ch for ch in normalized if unicodedata.category(ch) != "Mn")
+    normalized = re.sub(r"[-_]+", " ", normalized)
+    return re.sub(r"\s+", " ", normalized).strip()
+
+
+def _resolve_verified_video_citations(
+    video_stories_collection: Any,
+    *,
+    account_id: Optional[str],
+    membership_tier: str,
+    message: str,
+    intent_route: IntentRouteResult,
+    now_utc: Optional[datetime] = None,
+    max_citations: int = 3,
+) -> List[Dict[str, Any]]:
+    """Deterministic tenant-isolated Video Citation Resolver (never trusts LLM URLs)."""
+    if (
+        intent_route is None
+        or not intent_route.include_video_citations
+        or not account_id
+        or video_stories_collection is None
+    ):
+        return []
+
+    citation_days = get_video_citation_days(membership_tier)
+    if citation_days <= 0:
+        return []
+
+    acct_str = str(account_id).strip()
+    if not acct_str:
+        return []
+
+    now_dt = now_utc or datetime.now(timezone.utc)
+    if now_dt.tzinfo is None:
+        now_dt = now_dt.replace(tzinfo=timezone.utc)
+    else:
+        now_dt = now_dt.astimezone(timezone.utc)
+    cutoff_dt = now_dt - timedelta(days=citation_days)
+
+    try:
+        cursor = video_stories_collection.find({"account_id": acct_str})
+        if hasattr(cursor, "sort"):
+            try:
+                cursor = cursor.sort([("created_at", -1), ("_id", -1)])
+            except Exception:
+                pass
+        if hasattr(cursor, "limit"):
+            try:
+                cursor = cursor.limit(20)
+            except Exception:
+                pass
+        raw_stories = list(cursor)
+    except Exception as exc:
+        logger.warning("Video citation query failed: %s", type(exc).__name__)
+        return []
+
+    eligible_stories: List[Tuple[datetime, dict]] = []
+    min_dt = datetime.min.replace(tzinfo=timezone.utc)
+    for story in raw_stories:
+        if not isinstance(story, dict):
+            continue
+        if str(story.get("account_id") or "").strip() != acct_str:
+            continue
+        video_url = str(story.get("video_url") or "").strip()
+        if not (video_url.startswith("https://") or video_url.startswith("http://")):
+            continue
+        created_dt = _parse_story_utc(story.get("created_at"))
+        if created_dt is not None and created_dt < cutoff_dt:
+            continue
+        eligible_stories.append((created_dt or min_dt, story))
+
+    eligible_stories.sort(key=lambda pair: pair[0], reverse=True)
+    stories = [pair[1] for pair in eligible_stories[:5]]
+    if not stories:
+        return []
+
+    norm_msg = _normalize_match_text(message)
+    raw_msg_lower = (message or "").lower()
+
+    faulty_candidates: List[Tuple[int, int, int, Dict[str, Any]]] = []
+    valid_candidates: List[Tuple[int, int, int, Dict[str, Any]]] = []
+
+    for story_idx, story in enumerate(stories):
+        video_story_id = str(story.get("story_id") or story.get("video_story_id") or story.get("_id") or "").strip()
+        video_url = str(story.get("video_url") or "").strip()
+        exercise_slug = str(story.get("exercise_slug") or "").strip()
+        pretty_name = _pretty_exercise_name(exercise_slug)
+        norm_slug = _normalize_match_text(exercise_slug)
+        matches_ex = bool(
+            norm_slug and (norm_slug in norm_msg or exercise_slug.lower() in raw_msg_lower)
+        )
+        ex_rank = 0 if matches_ex else 1
+
+        rep_timeline = story.get("rep_timeline") or story.get("repTimeline") or []
+        if not isinstance(rep_timeline, list):
+            continue
+
+        for rep in rep_timeline:
+            if not isinstance(rep, dict):
+                continue
+            raw_vis = (
+                rep.get("visibility_confidence")
+                if rep.get("visibility_confidence") is not None
+                else rep.get("visibilityConfidence", 0.0)
+            )
+            try:
+                vis = float(raw_vis)
+            except (TypeError, ValueError):
+                vis = 0.0
+            if vis < 0.6:
+                continue
+
+            raw_start = (
+                rep.get("start_sec")
+                if rep.get("start_sec") is not None
+                else rep.get("startSec", 0.0)
+            )
+            try:
+                seek_sec = round(max(0.0, float(raw_start or 0.0)), 2)
+            except (TypeError, ValueError):
+                seek_sec = 0.0
+
+            raw_rep_idx = (
+                rep.get("rep_index")
+                if rep.get("rep_index") is not None
+                else rep.get("repIndex", 1)
+            )
+            try:
+                rep_index = int(raw_rep_idx or 1)
+            except (TypeError, ValueError):
+                rep_index = 1
+
+            issue_type = str(rep.get("issue_type") or rep.get("issueType") or "none").strip() or "none"
+            is_valid_flag = rep.get("is_valid") if rep.get("is_valid") is not None else rep.get("isValid")
+            is_faulty = (is_valid_flag is False) or (issue_type.lower() not in {"", "none"})
+
+            label = f"Xem {pretty_name} — Rep {rep_index} ({int(seek_sec // 60)}:{int(seek_sec % 60):02d})"
+            citation = {
+                "video_story_id": video_story_id,
+                "video_url": video_url,
+                "seek_sec": seek_sec,
+                "exercise_slug": exercise_slug,
+                "rep_index": rep_index,
+                "issue_type": issue_type,
+                "label": label,
+            }
+            if is_faulty:
+                faulty_candidates.append((ex_rank, story_idx, rep_index, citation))
+            else:
+                valid_candidates.append((ex_rank, story_idx, rep_index, citation))
+
+    pool = faulty_candidates if faulty_candidates else valid_candidates
+    pool.sort(key=lambda item: (item[0], item[1], item[2]))
+
+    deduped: List[Dict[str, Any]] = []
+    seen_keys: Set[Tuple[str, int]] = set()
+    limit = max(1, int(max_citations or 3))
+    for _, _, _, item in pool:
+        dedup_key = (item["video_story_id"], item["rep_index"])
+        if dedup_key in seen_keys:
+            continue
+        seen_keys.add(dedup_key)
+        deduped.append(item)
+        if len(deduped) >= limit:
+            break
+
+    return deduped
+
+
 def _build_chat_operation_service(service_cls, db):
     return service_cls(
         **_supported_kwargs(
@@ -3436,6 +3697,9 @@ def _build_chat_operation_service(service_cls, db):
                 ),
                 "supplements": _get_optional_collection("supplements_collection", "supplement_logs", db),
                 "recipes": _get_optional_collection("recipes_collection", "recipes", db),
+                "video_stories": _get_optional_collection(
+                    "workout_video_stories_collection", "workout_video_stories", db
+                ),
                 "action_detector": _detect_pending_action_for_core3,
             },
         )
@@ -3559,6 +3823,28 @@ async def chat_with_ai(
     user_id = str(current_user.get("_id")) if current_user.get("_id") is not None else None
 
     ai_mode = request.ai_mode or "core3"
+    intent_route = classify_chat_intent(
+        trimmed_message,
+        ai_mode=ai_mode,
+        has_workout_payload=bool(request.workout),
+        has_meal_payload=bool(request.meal),
+    )
+    account_id, membership_tier = _resolve_account_and_membership_tier(
+        current_user,
+        _db_mod.db,
+        ai_mode,
+    )
+    video_stories_col = _get_optional_collection(
+        "workout_video_stories_collection", "workout_video_stories", _db_mod.db
+    )
+    video_citations = _resolve_verified_video_citations(
+        video_stories_col,
+        account_id=account_id,
+        membership_tier=membership_tier,
+        message=trimmed_message,
+        intent_route=intent_route,
+    )
+
     paywall_ctx: Optional[Tuple[str, str, str, int]] = None
     if is_ai_paywall_enabled():
         paywall_ctx = _resolve_chat_quota_context(current_user, ai_mode, _db_mod.db)
@@ -3686,7 +3972,14 @@ async def chat_with_ai(
                 conversation_id=request.conversation_id,
                 history=request.history,
                 ai_mode=ai_mode,
+                request_obj=request,
+                intent_route=intent_route,
+                membership_tier=membership_tier,
+                account_id=account_id,
+                video_citations=video_citations,
             )
+            if isinstance(op_result, dict) and "video_citations" not in op_result:
+                op_result["video_citations"] = video_citations
             if (
                 core3_q_svc is not None
                 and core3_quota_res is not None
@@ -4128,6 +4421,7 @@ async def chat_with_ai(
         user_id,
         conv,
         query_or,
+        video_citations=video_citations,
     )
 
     status_str = "success" if not (isinstance(reply, str) and reply.startswith("Lỗi:")) else "error"
@@ -4136,6 +4430,7 @@ async def chat_with_ai(
         "status": status_str,
         "conversation_id": conv_id_str,
         "action": None,
+        "video_citations": video_citations,
     }
 
     if retrieval_meta:
@@ -5098,6 +5393,28 @@ async def chat_stream(
 
     user_id = str(current_user.get("_id")) if current_user.get("_id") is not None else None
     ai_mode = request.ai_mode or "core3"
+    intent_route = classify_chat_intent(
+        trimmed_message,
+        ai_mode=ai_mode,
+        has_workout_payload=bool(request.workout),
+        has_meal_payload=bool(request.meal),
+    )
+    account_id, membership_tier = _resolve_account_and_membership_tier(
+        current_user,
+        _db_mod.db,
+        ai_mode,
+    )
+    video_stories_col = _get_optional_collection(
+        "workout_video_stories_collection", "workout_video_stories", _db_mod.db
+    )
+    video_citations = _resolve_verified_video_citations(
+        video_stories_col,
+        account_id=account_id,
+        membership_tier=membership_tier,
+        message=trimmed_message,
+        intent_route=intent_route,
+    )
+
     paywall_ctx: Optional[Tuple[str, str, str, int]] = None
     if is_ai_paywall_enabled():
         paywall_ctx = _resolve_chat_quota_context(current_user, ai_mode, _db_mod.db)
@@ -5156,6 +5473,11 @@ async def chat_stream(
             "conversation_id": request.conversation_id,
             "history": request.history,
             "ai_mode": ai_mode,
+            "request_obj": request,
+            "intent_route": intent_route,
+            "membership_tier": membership_tier,
+            "account_id": account_id,
+            "video_citations": video_citations,
         },
     )
 

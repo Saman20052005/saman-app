@@ -21,8 +21,9 @@ from backend.app.database import (
     workout_history_collection,
     custom_plans_collection,
     exercises_collection,
-    workout_video_stories_collection,
 )
+workout_video_stories_collection = getattr(_db_mod, "workout_video_stories_collection", None)
+from backend.app.services.workout_recovery_helper import calculate_muscle_recovery_load
 from backend.app.services.context_utils import (
     build_user_query,
     get_vn_date_str,
@@ -1874,106 +1875,56 @@ async def get_workout_muscle_recovery(
             limit=100,
         )
 
-        set_type_multiplier = {
-            "warmup": 0.3,
-            "normal": 1.0,
-            "drop": 1.15,
-            "failure": 1.25,
-        }
-        base_points_per_set = 10.5
-        fatigue_scale = 85.0
-        decay_exponent = 1.45
-
-        muscle_fatigue_load: Dict[str, float] = {m: 0.0 for m in _CANONICAL_MUSCLE_GROUPS}
-        muscle_last_trained: Dict[str, Optional[datetime]] = {m: None for m in _CANONICAL_MUSCLE_GROUPS}
-        muscle_recent_sets: Dict[str, int] = {m: 0 for m in _CANONICAL_MUSCLE_GROUPS}
-        exercise_muscle_cache: Dict[Tuple[str, str], Dict[str, float]] = {}
-
-        for session_doc in sessions:
-            session_dt = (
-                _parse_utc_datetime(session_doc.get("finished_at"))
-                or _parse_utc_datetime(session_doc.get("end_time"))
-                or _parse_utc_datetime(session_doc.get("started_at"))
-                or _parse_utc_datetime(session_doc.get("start_time"))
-                or _parse_utc_datetime(session_doc.get("created_at"))
-            )
-            if session_dt is None:
-                continue
-
-            hours_ago = (now_utc - session_dt).total_seconds() / 3600.0
-            if hours_ago < 0.0:
-                hours_ago = 0.0
-            if hours_ago > 72.0:
-                continue
-
-            time_decay = max(0.0, 1.0 - hours_ago / 72.0) ** decay_exponent
-            raw_logs = session_doc.get("exercise_logs") or session_doc.get("completed_exercises") or []
-
-            for item in raw_logs:
-                if not isinstance(item, dict) or not _is_set_completed(item):
-                    continue
-                ex_id = str(item.get("exercise_id") or item.get("exerciseId") or "").strip()
-                ex_slug = str(item.get("exercise_slug") or item.get("exerciseSlug") or "").strip()
-                muscles = _resolve_exercise_muscles(ex_id, ex_slug, exercise_muscle_cache)
-                if not muscles:
-                    continue
-
-                set_type = _normalize_set_type(
-                    item.get("set_type") if item.get("set_type") is not None else item.get("setType")
-                )
-                type_mult = set_type_multiplier.get(set_type, 1.0)
-
-                raw_rpe = item.get("rpe")
-                if raw_rpe is not None:
-                    try:
-                        rpe_mult = max(0.7, min(1.3, float(raw_rpe) / 8.0))
-                    except (ValueError, TypeError):
-                        rpe_mult = 1.0
-                else:
-                    rpe_mult = 1.0
-
-                set_load = base_points_per_set * type_mult * rpe_mult * time_decay
-
-                for muscle_name, muscle_factor in muscles.items():
-                    if muscle_name not in muscle_fatigue_load:
+        exercise_muscle_cache: Dict[str, Tuple[List[str], List[str]]] = {}
+        if exercises_collection is not None:
+            for session_doc in sessions:
+                raw_logs = session_doc.get("exercise_logs") or session_doc.get("completed_exercises") or []
+                for item in raw_logs:
+                    if not isinstance(item, dict):
                         continue
-                    muscle_fatigue_load[muscle_name] += set_load * muscle_factor
-                    muscle_recent_sets[muscle_name] += 1
-                    prev_dt = muscle_last_trained[muscle_name]
-                    if prev_dt is None or session_dt > prev_dt:
-                        muscle_last_trained[muscle_name] = session_dt
+                    ex_id = str(item.get("exercise_id") or item.get("exerciseId") or "").strip()
+                    ex_slug = str(item.get("exercise_slug") or item.get("exerciseSlug") or "").strip()
+                    cache_key = ex_id or ex_slug
+                    if not cache_key or cache_key in exercise_muscle_cache:
+                        continue
+                    or_clauses: List[dict] = []
+                    if ex_slug:
+                        or_clauses.append({"slug": ex_slug})
+                    if ex_id:
+                        or_clauses.append({"id": ex_id})
+                        if ex_id != ex_slug:
+                            or_clauses.append({"slug": ex_id})
+                        if ObjectId.is_valid(ex_id):
+                            or_clauses.append({"_id": ObjectId(ex_id)})
+                    try:
+                        ex_doc = exercises_collection.find_one({"$or": or_clauses}) if or_clauses else None
+                    except Exception:
+                        ex_doc = None
+                    if isinstance(ex_doc, dict):
+                        target_list: List[str] = []
+                        primary_raw = ex_doc.get("muscleGroup") or ex_doc.get("muscle_group")
+                        if isinstance(primary_raw, str) and primary_raw.strip():
+                            target_list.append(primary_raw)
+                        raw_targets = ex_doc.get("targetMuscles") or ex_doc.get("target_muscles") or []
+                        if isinstance(raw_targets, list):
+                            target_list.extend(str(tm) for tm in raw_targets if isinstance(tm, str))
+                        raw_secondary = ex_doc.get("secondaryMuscles") or ex_doc.get("secondary_muscles") or []
+                        secondary_list = (
+                            [str(sm) for sm in raw_secondary if isinstance(sm, str)]
+                            if isinstance(raw_secondary, list)
+                            else []
+                        )
+                        exercise_muscle_cache[cache_key] = (target_list, secondary_list)
 
-        muscles_out: List[dict] = []
-        for muscle_name in _CANONICAL_MUSCLE_GROUPS:
-            raw_load = muscle_fatigue_load[muscle_name]
-            fatigue = 100.0 * (1.0 - math.exp(-raw_load / fatigue_scale)) if raw_load > 0.0 else 0.0
-            recovery_percent = int(round(max(0.0, min(100.0, 100.0 - fatigue))))
-            if recovery_percent >= 80:
-                status = "ready"
-            elif recovery_percent >= 50:
-                status = "recovering"
-            else:
-                status = "fatigued"
-
-            last_dt = muscle_last_trained[muscle_name]
-            hours_since = (
-                round(max(0.0, (now_utc - last_dt).total_seconds() / 3600.0), 1)
-                if last_dt is not None
-                else None
-            )
-
-            muscles_out.append({
-                "muscleGroup": muscle_name,
-                "recoveryPercent": recovery_percent,
-                "status": status,
-                "lastTrainedAt": _format_utc_iso(last_dt),
-                "hoursSinceLastTrained": hours_since,
-                "recentSets": muscle_recent_sets[muscle_name],
-            })
+        recovery_result = calculate_muscle_recovery_load(
+            sessions,
+            now_utc,
+            exercise_muscle_cache=exercise_muscle_cache or None,
+        )
 
         return {
-            "muscles": muscles_out,
-            "generatedAt": _format_utc_iso(now_utc),
+            "muscles": recovery_result["muscles"],
+            "generatedAt": recovery_result["generatedAt"],
         }
     except HTTPException:
         raise

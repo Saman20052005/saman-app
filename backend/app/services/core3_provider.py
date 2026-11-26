@@ -1,13 +1,17 @@
 """Gemini-only bounded prompt adapter for Core 3."""
 
 import asyncio
+from collections import OrderedDict
 import copy
 import json
 import os
 import logging
+import re
+import socket
 import threading
+import time
 from abc import ABC, abstractmethod
-from typing import Any, AsyncGenerator, Dict, List, Optional
+from typing import Any, AsyncGenerator, Dict, List, Optional, Tuple
 from urllib.error import HTTPError, URLError
 from urllib.parse import urlencode
 from urllib.request import Request, urlopen
@@ -22,12 +26,20 @@ DEFAULT_GEMINI_SWIFT_MODEL = "gemini-2.5-flash-lite"
 DEFAULT_GEMINI_CORE_MODEL = "gemini-2.5-flash"
 DEFAULT_GEMINI_PRO_MODEL = "gemini-2.5-pro"
 
+DEFAULT_CONTEXT_CACHE_TTL_SEC = 1800
+DEFAULT_CONTEXT_CACHE_MIN_CHARS = 4000
+DEFAULT_CONTEXT_CACHE_MAX_ENTRIES = 256
+_CONTEXT_CACHE_SAFETY_MARGIN_SEC = 60.0
+
 _THINKING_CONFIG_ERROR_MARKERS = (
     "thinkingconfig",
     "thinkinglevel",
     "thinking_level",
     "thinking_config",
 )
+
+_KEY_QUERY_RE = re.compile(r"([?&]key=)[^&\s'\"\\]+", re.IGNORECASE)
+_GOOGLE_API_KEY_RE = re.compile(r"AIza[0-9A-Za-z_\-]{10,}")
 
 DEFAULT_SYSTEM_INSTRUCTION = (
     "Bạn là Saman Coach, trợ lý dinh dưỡng và luyện tập chỉ đưa ra lời khuyên. "
@@ -81,6 +93,143 @@ def _strip_thinking_config(payload: dict) -> dict:
     return cloned
 
 
+def _strip_cached_content(payload: dict) -> dict:
+    cloned = copy.deepcopy(payload)
+    cloned.pop("cachedContent", None)
+    return cloned
+
+
+def _is_smart_routing_enabled() -> bool:
+    setting = (os.getenv("GEMINI_SMART_ROUTING") or "true").strip().lower()
+    return setting not in ("false", "0", "no")
+
+
+def resolve_effective_tier(
+    requested_tier: str,
+    *,
+    intent: Optional[str] = None,
+    prefer_lightweight_model: bool = False,
+) -> str:
+    """Resolve the effective Gemini tier based on intent and lightweight routing."""
+    normalized_tier = (requested_tier or "core3").strip().lower()
+    if normalized_tier not in TIER_CONFIGS:
+        normalized_tier = "core3"
+
+    if not _is_smart_routing_enabled():
+        return normalized_tier
+
+    normalized_intent = (intent or "").strip().lower() if intent is not None else ""
+
+    if prefer_lightweight_model or normalized_intent == "general_chat":
+        return "swift3"
+
+    if normalized_tier == "pro3" and normalized_intent in {"nutrition", "recovery"}:
+        return "core3"
+
+    return normalized_tier
+
+
+def _is_context_cache_enabled() -> bool:
+    setting = (os.getenv("GEMINI_ENABLE_CONTEXT_CACHE") or "false").strip().lower()
+    return setting in ("true", "1", "yes")
+
+
+def _get_context_cache_ttl_sec() -> int:
+    raw = (os.getenv("GEMINI_CONTEXT_CACHE_TTL_SEC") or "").strip()
+    if not raw:
+        return DEFAULT_CONTEXT_CACHE_TTL_SEC
+    try:
+        parsed = int(raw)
+        return parsed if parsed > 0 else DEFAULT_CONTEXT_CACHE_TTL_SEC
+    except ValueError:
+        return DEFAULT_CONTEXT_CACHE_TTL_SEC
+
+
+def _get_context_cache_min_chars() -> int:
+    raw = (os.getenv("GEMINI_CONTEXT_CACHE_MIN_CHARS") or "").strip()
+    if not raw:
+        return DEFAULT_CONTEXT_CACHE_MIN_CHARS
+    try:
+        parsed = int(raw)
+        return parsed if parsed >= 0 else DEFAULT_CONTEXT_CACHE_MIN_CHARS
+    except ValueError:
+        return DEFAULT_CONTEXT_CACHE_MIN_CHARS
+
+
+def _sanitize_log_text(text: str, *, max_len: int = 300) -> str:
+    """Redact API keys and query credentials from log text and cap length."""
+    sanitized = str(text or "")
+    sanitized = _KEY_QUERY_RE.sub(r"\1[REDACTED]", sanitized)
+    sanitized = _GOOGLE_API_KEY_RE.sub("[REDACTED_API_KEY]", sanitized)
+    for env_name in ("GEMINI_API_KEY", "STAGING_GEMINI_API_KEY"):
+        secret_val = (os.getenv(env_name) or "").strip()
+        if secret_val:
+            sanitized = sanitized.replace(secret_val, "[REDACTED_API_KEY]")
+    sanitized = " ".join(sanitized.split())
+    if len(sanitized) > max_len:
+        if max_len > 3:
+            sanitized = sanitized[: max_len - 3] + "..."
+        else:
+            sanitized = sanitized[:max_len]
+    return sanitized
+
+
+def _classify_gemini_error(
+    status_code: Optional[int],
+    body_text: str,
+    exc: Optional[Exception] = None,
+) -> str:
+    """Classify Gemini HTTP/network failures into production diagnostic categories."""
+    lowered = (body_text or "").lower()
+    exc_text = str(exc or "").lower()
+
+    if status_code is None and exc is None and "missing_api_key" in lowered:
+        return "missing_api_key"
+
+    if isinstance(exc, (TimeoutError, socket.timeout)):
+        return "timeout"
+    if isinstance(exc, URLError) and isinstance(getattr(exc, "reason", None), (TimeoutError, socket.timeout)):
+        return "timeout"
+    if "timed out" in exc_text or "timeout" in exc_text:
+        return "timeout"
+
+    if (
+        status_code in (401, 403)
+        or "api key not valid" in lowered
+        or "api_key_invalid" in lowered
+        or "invalid api key" in lowered
+        or "unauthenticated" in lowered
+        or "permission_denied" in lowered
+    ):
+        return "invalid_api_key"
+
+    if (
+        status_code == 404
+        or "model is not found" in lowered
+        or "not found for api version" in lowered
+    ):
+        return "model_not_found"
+
+    if (
+        status_code == 429
+        or "resource_exhausted" in lowered
+        or "rate limit" in lowered
+        or "quota" in lowered
+    ):
+        return "quota_or_rate_limit"
+
+    if status_code == 400:
+        return "bad_request"
+
+    if status_code is not None and 500 <= status_code < 600:
+        return "server_error"
+
+    if status_code is not None and 400 <= status_code < 500:
+        return "bad_request"
+
+    return "network_error"
+
+
 def _read_http_error_body(exc: HTTPError) -> str:
     try:
         if hasattr(exc, "read"):
@@ -96,17 +245,181 @@ def _read_http_error_body(exc: HTTPError) -> str:
     return str(exc)
 
 
-def _build_gemini_payload(prompt: str, cfg: dict) -> dict:
+def _build_gemini_payload(
+    prompt: str,
+    cfg: dict,
+    *,
+    cached_content_name: Optional[str] = None,
+) -> dict:
     generation_config: Dict[str, Any] = {
         "maxOutputTokens": cfg["max_output_tokens"],
         "temperature": cfg["temperature"],
     }
     if _should_include_thinking_config(cfg):
         generation_config["thinkingConfig"] = {"thinkingLevel": cfg["thinking_level"]}
-    return {
+    payload: Dict[str, Any] = {
         "contents": [{"role": "user", "parts": [{"text": prompt}]}],
         "generationConfig": generation_config,
     }
+    cleaned_cache_name = (cached_content_name or "").strip() if cached_content_name else ""
+    if cleaned_cache_name:
+        payload["cachedContent"] = cleaned_cache_name
+    return payload
+
+
+class GeminiContextCacheManager:
+    """Thread-safe bounded in-memory manager for Gemini cachedContents."""
+
+    def __init__(
+        self,
+        *,
+        max_entries: int = DEFAULT_CONTEXT_CACHE_MAX_ENTRIES,
+        timeout_seconds: float = 15.0,
+    ):
+        self._lock = threading.Lock()
+        self._entries: "OrderedDict[str, Tuple[str, float]]" = OrderedDict()
+        self.max_entries = max(1, int(max_entries))
+        self.timeout_seconds = float(timeout_seconds)
+
+    def _prune_expired_locked(self, now: float) -> None:
+        expired_keys = [
+            key
+            for key, (_, expires_at) in self._entries.items()
+            if expires_at - now <= _CONTEXT_CACHE_SAFETY_MARGIN_SEC
+        ]
+        for key in expired_keys:
+            self._entries.pop(key, None)
+
+    def invalidate(self, cache_key: str) -> None:
+        if not cache_key:
+            return
+        with self._lock:
+            self._entries.pop(cache_key, None)
+
+    def invalidate_by_name(self, cached_content_name: str) -> None:
+        target = (cached_content_name or "").strip()
+        if not target:
+            return
+        with self._lock:
+            keys_to_remove = [
+                key for key, (name, _) in self._entries.items() if name == target
+            ]
+            for key in keys_to_remove:
+                self._entries.pop(key, None)
+
+    def clear(self) -> None:
+        with self._lock:
+            self._entries.clear()
+
+    def get_or_create_cache(
+        self,
+        api_key: str,
+        model: str,
+        static_prefix: str,
+        *,
+        cache_key: str,
+        system_instruction: Optional[str] = None,
+        tier: Optional[str] = None,
+    ) -> Optional[str]:
+        if not _is_context_cache_enabled():
+            return None
+
+        cleaned_key = (api_key or "").strip()
+        cleaned_model = (model or "").strip()
+        cleaned_cache_key = (cache_key or "").strip()
+        if not cleaned_key or not cleaned_model or not cleaned_cache_key or not static_prefix:
+            return None
+
+        normalized_tier = (tier or "").strip().lower()
+        swift_model = _resolve_tier_model("swift3").strip().lower()
+        if normalized_tier == "swift3" or (
+            not normalized_tier and cleaned_model.lower() == swift_model
+        ):
+            return None
+
+        min_chars = _get_context_cache_min_chars()
+        if len(static_prefix) < min_chars:
+            return None
+
+        now = time.monotonic()
+        with self._lock:
+            entry = self._entries.get(cleaned_cache_key)
+            if entry is not None:
+                cached_name, expires_at = entry
+                if expires_at - now > _CONTEXT_CACHE_SAFETY_MARGIN_SEC:
+                    self._entries.move_to_end(cleaned_cache_key)
+                    return cached_name
+                self._entries.pop(cleaned_cache_key, None)
+
+        ttl_sec = _get_context_cache_ttl_sec()
+        normalized_model = (
+            cleaned_model if cleaned_model.startswith("models/") else f"models/{cleaned_model}"
+        )
+        request_body: Dict[str, Any] = {
+            "model": normalized_model,
+            "contents": [{"role": "user", "parts": [{"text": static_prefix}]}],
+            "ttl": f"{ttl_sec}s",
+        }
+        cleaned_sys = (system_instruction or "").strip() if system_instruction else ""
+        if cleaned_sys:
+            request_body["systemInstruction"] = {"parts": [{"text": cleaned_sys}]}
+
+        endpoint_url = (
+            f"https://generativelanguage.googleapis.com/v1beta/cachedContents"
+            f"?{urlencode({'key': cleaned_key})}"
+        )
+        request = Request(
+            endpoint_url,
+            data=json.dumps(request_body, ensure_ascii=False).encode("utf-8"),
+            headers={"Content-Type": "application/json"},
+            method="POST",
+        )
+
+        try:
+            with urlopen(request, timeout=self.timeout_seconds) as response:
+                raw_response = response.read().decode("utf-8")
+            parsed = json.loads(raw_response)
+            cached_name = (parsed.get("name") or "").strip()
+            if not cached_name:
+                logger.warning(
+                    "gemini_context_cache_failed model=%s http_status=200 reason=empty_name detail=%s",
+                    cleaned_model,
+                    _sanitize_log_text(raw_response),
+                )
+                return None
+        except HTTPError as exc:
+            err_body = _read_http_error_body(exc)
+            reason = _classify_gemini_error(exc.code, err_body, exc)
+            logger.warning(
+                "gemini_context_cache_failed model=%s http_status=%s reason=%s detail=%s",
+                cleaned_model,
+                exc.code,
+                reason,
+                _sanitize_log_text(err_body),
+            )
+            return None
+        except Exception as exc:
+            reason = _classify_gemini_error(None, str(exc), exc)
+            logger.warning(
+                "gemini_context_cache_failed model=%s http_status=none reason=%s detail=%s",
+                cleaned_model,
+                reason,
+                _sanitize_log_text(str(exc)),
+            )
+            return None
+
+        expires_at = time.monotonic() + float(ttl_sec)
+        with self._lock:
+            self._prune_expired_locked(time.monotonic())
+            self._entries[cleaned_cache_key] = (cached_name, expires_at)
+            self._entries.move_to_end(cleaned_cache_key)
+            while len(self._entries) > self.max_entries:
+                self._entries.popitem(last=False)
+
+        return cached_name
+
+
+default_context_cache_manager = GeminiContextCacheManager()
 
 
 TIER_CONFIGS = {
@@ -272,16 +585,42 @@ def _stream_sse_lines(request, queue, loop):
 class BaseLLMProvider(ABC):
     provider_name: str = "base"
     last_usage: Optional[Dict[str, Any]] = None
+    last_error: Optional[Dict[str, Any]] = None
 
     def resolve_model_name(self, ai_mode: str = "core3") -> str:
         return get_tier_config(ai_mode)["model"]
 
     @abstractmethod
-    async def generate(self, prompt: str, *, ai_mode: str = "core3") -> str:
+    async def generate(
+        self,
+        prompt: str,
+        *,
+        ai_mode: str = "core3",
+        cached_content_name: Optional[str] = None,
+        intent: Optional[str] = None,
+        prefer_lightweight_model: bool = False,
+    ) -> str:
         raise NotImplementedError
 
-    async def generate_stream(self, prompt: str, *, ai_mode: str = "core3") -> AsyncGenerator[str, None]:
-        full_text = await self.generate(prompt, ai_mode=ai_mode)
+    async def generate_stream(
+        self,
+        prompt: str,
+        *,
+        ai_mode: str = "core3",
+        cached_content_name: Optional[str] = None,
+        intent: Optional[str] = None,
+        prefer_lightweight_model: bool = False,
+    ) -> AsyncGenerator[str, None]:
+        if cached_content_name is not None or intent is not None or prefer_lightweight_model:
+            full_text = await self.generate(
+                prompt,
+                ai_mode=ai_mode,
+                cached_content_name=cached_content_name,
+                intent=intent,
+                prefer_lightweight_model=prefer_lightweight_model,
+            )
+        else:
+            full_text = await self.generate(prompt, ai_mode=ai_mode)
         chunk_size = 64
         text = full_text or ""
         for i in range(0, len(text), chunk_size):
@@ -296,8 +635,9 @@ class BaseLLMProvider(ABC):
         question: str,
         config: dict,
     ) -> str:
-        ai_mode = str((config or {}).get("ai_mode") or "core3")
-        max_input = (config or {}).get("max_input_tokens")
+        cfg = config or {}
+        ai_mode = str(cfg.get("ai_mode") or "core3")
+        max_input = cfg.get("max_input_tokens")
         prompt = render_prompt(
             question,
             history,
@@ -306,29 +646,117 @@ class BaseLLMProvider(ABC):
             max_input_tokens=max_input,
             ai_mode=ai_mode,
         )
+        cached_content_name = cfg.get("cached_content_name")
+        intent = cfg.get("intent")
+        prefer_lightweight_model = bool(cfg.get("prefer_lightweight_model", False))
+        if cached_content_name is not None or intent is not None or prefer_lightweight_model:
+            return await self.generate(
+                prompt,
+                ai_mode=ai_mode,
+                cached_content_name=cached_content_name,
+                intent=intent,
+                prefer_lightweight_model=prefer_lightweight_model,
+            )
         return await self.generate(prompt, ai_mode=ai_mode)
+
+
+def _should_retry_without_cache(status_code: int, body_text: str) -> bool:
+    if status_code == 404:
+        return True
+    if status_code == 400:
+        if _is_thinking_config_error(status_code, body_text):
+            return False
+        if _classify_gemini_error(status_code, body_text) == "invalid_api_key":
+            return False
+        return True
+    return False
 
 
 class GeminiCore3Provider(BaseLLMProvider):
     provider_name = "gemini"
 
-    def __init__(self, engine=None):
+    def __init__(self, engine=None, *, cache_manager: Optional[GeminiContextCacheManager] = None):
         self.engine = engine
         self.last_usage = None
+        self.last_error: Optional[Dict[str, Any]] = None
+        self.last_effective_tier: Optional[str] = None
+        self.last_model: Optional[str] = None
+        self.cache_manager = cache_manager or default_context_cache_manager
 
-    async def generate(self, prompt, *, ai_mode: str = "core3"):
-        cfg = get_tier_config(ai_mode)
+    def _record_failure(
+        self,
+        *,
+        tier: str,
+        effective_tier: str,
+        model: str,
+        http_status: Optional[int],
+        reason: str,
+        detail: str,
+    ) -> None:
+        safe_detail = _sanitize_log_text(detail)
+        self.last_error = {
+            "provider": self.provider_name,
+            "tier": tier,
+            "effective_tier": effective_tier,
+            "model": model,
+            "http_status": http_status,
+            "reason": reason,
+            "detail": safe_detail,
+        }
+        logger.error(
+            "gemini_request_failed provider=gemini tier=%s effective_tier=%s model=%s http_status=%s reason=%s detail=%s",
+            tier,
+            effective_tier,
+            model,
+            http_status if http_status is not None else "none",
+            reason,
+            safe_detail,
+        )
+
+    async def generate(
+        self,
+        prompt,
+        *,
+        ai_mode: str = "core3",
+        cached_content_name: Optional[str] = None,
+        intent: Optional[str] = None,
+        prefer_lightweight_model: bool = False,
+    ):
+        requested_tier = (ai_mode or "core3").strip().lower()
+        if requested_tier not in TIER_CONFIGS:
+            requested_tier = "core3"
+        effective_tier = resolve_effective_tier(
+            requested_tier,
+            intent=intent,
+            prefer_lightweight_model=prefer_lightweight_model,
+        )
+        cfg = get_tier_config(effective_tier)
+        self.last_error = None
+        self.last_effective_tier = effective_tier
+        self.last_model = cfg["model"]
+
         if _estimate_tokens(prompt) > cfg["max_input_tokens"]:
             raise Core3PromptTooLarge("Prompt exceeds input token budget")
         if self.engine is not None:
-            result = self.engine.generate_content(prompt, generation_config={"max_output_tokens": cfg["max_output_tokens"]})
+            result = self.engine.generate_content(
+                prompt,
+                generation_config={"max_output_tokens": cfg["max_output_tokens"]},
+            )
             if asyncio.iscoroutine(result):
                 result = await result
             return getattr(result, "text", result)
         key = (os.getenv("GEMINI_API_KEY") or os.getenv("STAGING_GEMINI_API_KEY") or "").strip()
-        if not key:
-            return AI_FALLBACK_REPLY
         model = cfg["model"]
+        if not key:
+            self._record_failure(
+                tier=requested_tier,
+                effective_tier=effective_tier,
+                model=model,
+                http_status=None,
+                reason="missing_api_key",
+                detail="GEMINI_API_KEY is not configured",
+            )
+            return AI_FALLBACK_REPLY
         try:
             import google.generativeai as genai
             genai.configure(api_key=key)
@@ -337,41 +765,80 @@ class GeminiCore3Provider(BaseLLMProvider):
             pass
         url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
         endpoint_url = f"{url}?{urlencode({'key': key})}"
-        payload = _build_gemini_payload(prompt, cfg)
-        has_thinking_config = isinstance(payload.get("generationConfig"), dict) and "thinkingConfig" in payload["generationConfig"]
-        request = Request(
-            endpoint_url,
-            data=json.dumps(payload, ensure_ascii=False).encode("utf-8"),
-            headers={"Content-Type": "application/json"},
-            method="POST",
+        current_payload = _build_gemini_payload(
+            prompt,
+            cfg,
+            cached_content_name=cached_content_name,
         )
-        try:
-            response_body = await asyncio.to_thread(_post_json, request)
-        except HTTPError as exc:
-            if has_thinking_config and _is_thinking_config_error(exc.code, _read_http_error_body(exc)):
-                logger.warning(
-                    "Gemini model '%s' rejected thinkingConfig (HTTP 400); retrying once without thinkingConfig",
-                    model,
+        retried_without_cache = False
+        retried_without_thinking = False
+        response_body = None
+
+        while True:
+            request = Request(
+                endpoint_url,
+                data=json.dumps(current_payload, ensure_ascii=False).encode("utf-8"),
+                headers={"Content-Type": "application/json"},
+                method="POST",
+            )
+            try:
+                response_body = await asyncio.to_thread(_post_json, request)
+                break
+            except HTTPError as exc:
+                err_body = _read_http_error_body(exc)
+                has_cached_content = bool(current_payload.get("cachedContent"))
+                has_thinking_config = (
+                    isinstance(current_payload.get("generationConfig"), dict)
+                    and "thinkingConfig" in current_payload["generationConfig"]
                 )
-                retry_payload = _strip_thinking_config(payload)
-                retry_request = Request(
-                    endpoint_url,
-                    data=json.dumps(retry_payload, ensure_ascii=False).encode("utf-8"),
-                    headers={"Content-Type": "application/json"},
-                    method="POST",
+                if (
+                    not retried_without_cache
+                    and has_cached_content
+                    and _should_retry_without_cache(exc.code, err_body)
+                ):
+                    self.cache_manager.invalidate_by_name(str(current_payload.get("cachedContent") or ""))
+                    logger.warning(
+                        "Gemini model '%s' rejected cachedContent (HTTP %s); retrying once without cachedContent",
+                        model,
+                        exc.code,
+                    )
+                    retried_without_cache = True
+                    current_payload = _strip_cached_content(current_payload)
+                    continue
+                if (
+                    not retried_without_thinking
+                    and has_thinking_config
+                    and _is_thinking_config_error(exc.code, err_body)
+                ):
+                    logger.warning(
+                        "Gemini model '%s' rejected thinkingConfig (HTTP 400); retrying once without thinkingConfig",
+                        model,
+                    )
+                    retried_without_thinking = True
+                    current_payload = _strip_thinking_config(current_payload)
+                    continue
+                reason = _classify_gemini_error(exc.code, err_body, exc)
+                self._record_failure(
+                    tier=requested_tier,
+                    effective_tier=effective_tier,
+                    model=model,
+                    http_status=exc.code,
+                    reason=reason,
+                    detail=err_body,
                 )
-                try:
-                    response_body = await asyncio.to_thread(_post_json, retry_request)
-                except (TimeoutError, HTTPError, URLError, Exception):
-                    return AI_FALLBACK_REPLY
-            else:
                 return AI_FALLBACK_REPLY
-        except TimeoutError:
-            return AI_FALLBACK_REPLY
-        except URLError:
-            return AI_FALLBACK_REPLY
-        except Exception:
-            return AI_FALLBACK_REPLY
+            except Exception as exc:
+                reason = _classify_gemini_error(None, str(exc), exc)
+                self._record_failure(
+                    tier=requested_tier,
+                    effective_tier=effective_tier,
+                    model=model,
+                    http_status=None,
+                    reason=reason,
+                    detail=str(exc),
+                )
+                return AI_FALLBACK_REPLY
+
         try:
             result = json.loads(response_body)
             candidates = result.get("candidates") or []
@@ -392,14 +859,40 @@ class GeminiCore3Provider(BaseLLMProvider):
         }
         return text
 
-    async def generate_stream(self, prompt, *, ai_mode: str = "core3") -> AsyncGenerator[str, None]:
-        cfg = get_tier_config(ai_mode)
+    async def generate_stream(
+        self,
+        prompt,
+        *,
+        ai_mode: str = "core3",
+        cached_content_name: Optional[str] = None,
+        intent: Optional[str] = None,
+        prefer_lightweight_model: bool = False,
+    ) -> AsyncGenerator[str, None]:
+        requested_tier = (ai_mode or "core3").strip().lower()
+        if requested_tier not in TIER_CONFIGS:
+            requested_tier = "core3"
+        effective_tier = resolve_effective_tier(
+            requested_tier,
+            intent=intent,
+            prefer_lightweight_model=prefer_lightweight_model,
+        )
+        cfg = get_tier_config(effective_tier)
+        self.last_error = None
+        self.last_effective_tier = effective_tier
+        self.last_model = cfg["model"]
+
         if _estimate_tokens(prompt) > cfg["max_input_tokens"]:
             raise Core3PromptTooLarge("Prompt exceeds input token budget")
 
         key = (os.getenv("GEMINI_API_KEY") or os.getenv("STAGING_GEMINI_API_KEY") or "").strip()
         if self.engine is not None or not key:
-            full_text = await self.generate(prompt, ai_mode=ai_mode)
+            full_text = await self.generate(
+                prompt,
+                ai_mode=ai_mode,
+                cached_content_name=cached_content_name,
+                intent=intent,
+                prefer_lightweight_model=prefer_lightweight_model,
+            )
             if not full_text:
                 yield AI_FALLBACK_REPLY
                 return
@@ -414,11 +907,14 @@ class GeminiCore3Provider(BaseLLMProvider):
         model = cfg["model"]
         url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:streamGenerateContent"
         stream_url = f"{url}?{urlencode({'alt': 'sse', 'key': key})}"
-        payload = _build_gemini_payload(prompt, cfg)
-        has_thinking_config = isinstance(payload.get("generationConfig"), dict) and "thinkingConfig" in payload["generationConfig"]
+        current_payload = _build_gemini_payload(
+            prompt,
+            cfg,
+            cached_content_name=cached_content_name,
+        )
         request = Request(
             stream_url,
-            data=json.dumps(payload, ensure_ascii=False).encode("utf-8"),
+            data=json.dumps(current_payload, ensure_ascii=False).encode("utf-8"),
             headers={"Content-Type": "application/json"},
             method="POST",
         )
@@ -433,6 +929,7 @@ class GeminiCore3Provider(BaseLLMProvider):
         thread.start()
 
         yielded_any = False
+        retried_without_cache = False
         retried_without_thinking = False
         try:
             while True:
@@ -465,33 +962,89 @@ class GeminiCore3Provider(BaseLLMProvider):
                     except Exception:
                         continue
                 elif msg_type == "error":
-                    if (
-                        not yielded_any
-                        and not retried_without_thinking
-                        and has_thinking_config
-                        and isinstance(val, HTTPError)
-                        and _is_thinking_config_error(val.code, _read_http_error_body(val))
-                    ):
-                        logger.warning(
-                            "Gemini model '%s' rejected thinkingConfig on stream (HTTP 400); retrying once without thinkingConfig",
-                            model,
+                    if isinstance(val, HTTPError):
+                        err_body = _read_http_error_body(val)
+                        has_cached_content = bool(current_payload.get("cachedContent"))
+                        has_thinking_config = (
+                            isinstance(current_payload.get("generationConfig"), dict)
+                            and "thinkingConfig" in current_payload["generationConfig"]
                         )
-                        retried_without_thinking = True
-                        retry_payload = _strip_thinking_config(payload)
-                        retry_request = Request(
-                            stream_url,
-                            data=json.dumps(retry_payload, ensure_ascii=False).encode("utf-8"),
-                            headers={"Content-Type": "application/json"},
-                            method="POST",
+                        if (
+                            not yielded_any
+                            and not retried_without_cache
+                            and has_cached_content
+                            and _should_retry_without_cache(val.code, err_body)
+                        ):
+                            self.cache_manager.invalidate_by_name(
+                                str(current_payload.get("cachedContent") or "")
+                            )
+                            logger.warning(
+                                "Gemini model '%s' rejected cachedContent on stream (HTTP %s); retrying once without cachedContent",
+                                model,
+                                val.code,
+                            )
+                            retried_without_cache = True
+                            current_payload = _strip_cached_content(current_payload)
+                            retry_request = Request(
+                                stream_url,
+                                data=json.dumps(current_payload, ensure_ascii=False).encode("utf-8"),
+                                headers={"Content-Type": "application/json"},
+                                method="POST",
+                            )
+                            queue = asyncio.Queue()
+                            retry_thread = threading.Thread(
+                                target=_stream_sse_lines,
+                                args=(retry_request, queue, loop),
+                                daemon=True,
+                            )
+                            retry_thread.start()
+                            continue
+                        if (
+                            not yielded_any
+                            and not retried_without_thinking
+                            and has_thinking_config
+                            and _is_thinking_config_error(val.code, err_body)
+                        ):
+                            logger.warning(
+                                "Gemini model '%s' rejected thinkingConfig on stream (HTTP 400); retrying once without thinkingConfig",
+                                model,
+                            )
+                            retried_without_thinking = True
+                            current_payload = _strip_thinking_config(current_payload)
+                            retry_request = Request(
+                                stream_url,
+                                data=json.dumps(current_payload, ensure_ascii=False).encode("utf-8"),
+                                headers={"Content-Type": "application/json"},
+                                method="POST",
+                            )
+                            queue = asyncio.Queue()
+                            retry_thread = threading.Thread(
+                                target=_stream_sse_lines,
+                                args=(retry_request, queue, loop),
+                                daemon=True,
+                            )
+                            retry_thread.start()
+                            continue
+                        reason = _classify_gemini_error(val.code, err_body, val)
+                        self._record_failure(
+                            tier=requested_tier,
+                            effective_tier=effective_tier,
+                            model=model,
+                            http_status=val.code,
+                            reason=reason,
+                            detail=err_body,
                         )
-                        queue = asyncio.Queue()
-                        retry_thread = threading.Thread(
-                            target=_stream_sse_lines,
-                            args=(retry_request, queue, loop),
-                            daemon=True,
+                    else:
+                        exc_obj = val if isinstance(val, Exception) else None
+                        reason = _classify_gemini_error(None, str(val), exc_obj)
+                        self._record_failure(
+                            tier=requested_tier,
+                            effective_tier=effective_tier,
+                            model=model,
+                            http_status=None,
+                            reason=reason,
+                            detail=str(val),
                         )
-                        retry_thread.start()
-                        continue
                     if not yielded_any:
                         yield AI_FALLBACK_REPLY
                     return
@@ -499,7 +1052,16 @@ class GeminiCore3Provider(BaseLLMProvider):
                     break
         except GeneratorExit:
             raise
-        except Exception:
+        except Exception as exc:
+            reason = _classify_gemini_error(None, str(exc), exc)
+            self._record_failure(
+                tier=requested_tier,
+                effective_tier=effective_tier,
+                model=model,
+                http_status=None,
+                reason=reason,
+                detail=str(exc),
+            )
             if not yielded_any:
                 yield AI_FALLBACK_REPLY
             return
@@ -597,7 +1159,15 @@ class SamanCustomLLMProvider(BaseLLMProvider):
                 "output_tokens": usage.get("completion_tokens"),
             }
 
-    async def generate(self, prompt: str, *, ai_mode: str = "core3") -> str:
+    async def generate(
+        self,
+        prompt: str,
+        *,
+        ai_mode: str = "core3",
+        cached_content_name: Optional[str] = None,
+        intent: Optional[str] = None,
+        prefer_lightweight_model: bool = False,
+    ) -> str:
         cfg = get_tier_config(ai_mode)
         if _estimate_tokens(prompt) > cfg["max_input_tokens"]:
             raise Core3PromptTooLarge("Prompt exceeds input token budget")
@@ -621,7 +1191,15 @@ class SamanCustomLLMProvider(BaseLLMProvider):
         self._set_usage(usage)
         return text
 
-    async def generate_stream(self, prompt: str, *, ai_mode: str = "core3") -> AsyncGenerator[str, None]:
+    async def generate_stream(
+        self,
+        prompt: str,
+        *,
+        ai_mode: str = "core3",
+        cached_content_name: Optional[str] = None,
+        intent: Optional[str] = None,
+        prefer_lightweight_model: bool = False,
+    ) -> AsyncGenerator[str, None]:
         cfg = get_tier_config(ai_mode)
         if _estimate_tokens(prompt) > cfg["max_input_tokens"]:
             raise Core3PromptTooLarge("Prompt exceeds input token budget")
@@ -684,7 +1262,15 @@ class FakeCore3Provider(BaseLLMProvider):
     def resolve_model_name(self, ai_mode: str = "core3") -> str:
         return "saman-fake-v1"
 
-    async def generate(self, prompt: str, *, ai_mode: str = "core3") -> str:
+    async def generate(
+        self,
+        prompt: str,
+        *,
+        ai_mode: str = "core3",
+        cached_content_name: Optional[str] = None,
+        intent: Optional[str] = None,
+        prefer_lightweight_model: bool = False,
+    ) -> str:
         cfg = get_tier_config(ai_mode)
         if _estimate_tokens(prompt) > cfg["max_input_tokens"]:
             raise Core3PromptTooLarge("Prompt exceeds input token budget")

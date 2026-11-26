@@ -7,6 +7,7 @@ import 'package:image_picker/image_picker.dart';
 import '../config/api_config.dart';
 import '../models/ai_analysis_result.dart';
 import '../models/saman_nudge.dart';
+import '../models/video_citation.dart';
 import '../services/api_client.dart';
 import '../services/analytics_service.dart';
 import '../services/nutrition_service.dart';
@@ -25,12 +26,50 @@ class ChatMessage {
   final String role;
   final String content;
   final bool isTyping;
+  final List<VideoCitation> videoCitations;
 
   ChatMessage({
     required this.role,
     required this.content,
     this.isTyping = false,
+    this.videoCitations = const [],
   });
+
+  ChatMessage copyWith({
+    String? role,
+    String? content,
+    bool? isTyping,
+    List<VideoCitation>? videoCitations,
+  }) {
+    return ChatMessage(
+      role: role ?? this.role,
+      content: content ?? this.content,
+      isTyping: isTyping ?? this.isTyping,
+      videoCitations: videoCitations ?? this.videoCitations,
+    );
+  }
+}
+
+List<VideoCitation> _mergeVideoCitations(
+  List<VideoCitation> existing,
+  List<VideoCitation> incoming,
+) {
+  if (incoming.isEmpty) return existing;
+  final merged = List<VideoCitation>.from(existing);
+  String dedupKey(VideoCitation c) {
+    final repOrSec = c.repIndex != null
+        ? 'rep_${c.repIndex}'
+        : 'sec_${c.seekSec.toStringAsFixed(2)}_${c.label}';
+    return '${c.videoStoryId}::$repOrSec';
+  }
+
+  final seen = <String>{for (final c in existing) dedupKey(c)};
+  for (final c in incoming) {
+    if (seen.add(dedupKey(c))) {
+      merged.add(c);
+    }
+  }
+  return merged;
 }
 
 // --- 1b. MODEL CONVERSATION SUMMARY ---
@@ -401,6 +440,7 @@ class ChatController extends StateNotifier<ChatState> {
     bool hasReceivedToken = false;
     bool assistantAdded = false;
     String accumulated = '';
+    List<VideoCitation> streamedCitations = const [];
     String? nextActiveId = state.activeConversationId;
 
     try {
@@ -472,8 +512,11 @@ class ChatController extends StateNotifier<ChatState> {
             hasReceivedToken = true;
             accumulated += chunk;
             final updatedMessages = List<ChatMessage>.from(state.messages);
-            final streamingMsg =
-                ChatMessage(role: 'assistant', content: accumulated);
+            final streamingMsg = ChatMessage(
+              role: 'assistant',
+              content: accumulated,
+              videoCitations: streamedCitations,
+            );
             if (!assistantAdded) {
               updatedMessages.add(streamingMsg);
               assistantAdded = true;
@@ -485,6 +528,20 @@ class ChatController extends StateNotifier<ChatState> {
               isLoading: true,
               isStreaming: true,
             );
+          }
+        } else if (eventType == 'citations') {
+          final parsedCitations = VideoCitation.parseList(
+            decoded['video_citations'] ?? decoded['citations'],
+          );
+          if (parsedCitations.isNotEmpty) {
+            streamedCitations =
+                _mergeVideoCitations(streamedCitations, parsedCitations);
+            if (assistantAdded && state.messages.isNotEmpty) {
+              final updatedMessages = List<ChatMessage>.from(state.messages);
+              updatedMessages[updatedMessages.length - 1] = updatedMessages.last
+                  .copyWith(videoCitations: streamedCitations);
+              state = state.copyWith(messages: updatedMessages);
+            }
           }
         } else if (eventType == 'action' || decoded['action'] is Map) {
           final actionMap = decoded['action'] is Map
@@ -499,7 +556,34 @@ class ChatController extends StateNotifier<ChatState> {
           final doneAction = decoded['action'] is Map
               ? Map<String, dynamic>.from(decoded['action'] as Map)
               : null;
+          final doneCitations = VideoCitation.parseList(
+            decoded['video_citations'] ?? decoded['citations'],
+          );
+          if (doneCitations.isNotEmpty) {
+            streamedCitations =
+                _mergeVideoCitations(streamedCitations, doneCitations);
+          }
+          List<ChatMessage>? nextMessages;
+          if (streamedCitations.isNotEmpty) {
+            final updatedMessages = List<ChatMessage>.from(state.messages);
+            if (assistantAdded && updatedMessages.isNotEmpty) {
+              updatedMessages[updatedMessages.length - 1] = updatedMessages.last
+                  .copyWith(videoCitations: streamedCitations);
+              nextMessages = updatedMessages;
+            } else if (!assistantAdded && accumulated.isNotEmpty) {
+              updatedMessages.add(
+                ChatMessage(
+                  role: 'assistant',
+                  content: accumulated,
+                  videoCitations: streamedCitations,
+                ),
+              );
+              assistantAdded = true;
+              nextMessages = updatedMessages;
+            }
+          }
           state = state.copyWith(
+            messages: nextMessages,
             activeConversationId: nextActiveId,
             pendingAction: doneAction ?? state.pendingAction,
             isLoading: false,
@@ -635,8 +719,13 @@ class ChatController extends StateNotifier<ChatState> {
         final returnedAction = data['action'] is Map
             ? Map<String, dynamic>.from(data['action'] as Map)
             : null;
+        final citations = VideoCitation.parseList(data['video_citations']);
 
-        final botMsg = ChatMessage(role: 'assistant', content: aiReply);
+        final botMsg = ChatMessage(
+          role: 'assistant',
+          content: aiReply,
+          videoCitations: citations,
+        );
 
         String? nextActiveId = state.activeConversationId;
         if (returnedConvId != null && returnedConvId.isNotEmpty) {
@@ -978,7 +1067,14 @@ class ChatController extends StateNotifier<ChatState> {
         final loadedMessages = rawMessages.map<ChatMessage>((m) {
           final role = m['role']?.toString() ?? 'user';
           final content = m['content']?.toString() ?? '';
-          return ChatMessage(role: role, content: content);
+          final citations = m is Map
+              ? VideoCitation.parseList(m['video_citations'])
+              : const <VideoCitation>[];
+          return ChatMessage(
+            role: role,
+            content: content,
+            videoCitations: citations,
+          );
         }).toList();
 
         final rawPendingAction = data['pending_action'] is Map

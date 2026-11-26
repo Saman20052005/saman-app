@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 import '../../../controllers/chat_controller.dart';
+import '../../../models/video_citation.dart';
 import '../tokens/saman_chat_tokens.dart';
 import 'saman_monogram.dart';
+import 'video_citation_player_sheet.dart';
 
 /// Approved action model for assistant responses in Saman Chat.
 ///
@@ -32,11 +34,13 @@ class SamanAssistantAction {
 class SamanAssistantResponse extends StatelessWidget {
   final ChatMessage message;
   final List<SamanAssistantAction>? actions;
+  final void Function(VideoCitation citation)? onCitationTap;
 
   const SamanAssistantResponse({
     super.key,
     required this.message,
     this.actions,
+    this.onCitationTap,
   });
 
   @override
@@ -176,6 +180,27 @@ class SamanAssistantResponse extends StatelessWidget {
           ),
         ),
 
+        // 2b. Optional video citation chips
+        if (message.videoCitations.isNotEmpty) ...[
+          const SizedBox(height: 12.0),
+          Wrap(
+            spacing: 8.0,
+            runSpacing: 8.0,
+            children: message.videoCitations.map((citation) {
+              return _VideoCitationChip(
+                citation: citation,
+                onTap: () {
+                  if (onCitationTap != null) {
+                    onCitationTap!(citation);
+                  } else {
+                    showVideoCitationPlayerSheet(context, citation);
+                  }
+                },
+              );
+            }).toList(),
+          ),
+        ],
+
         // 3. Optional contextual action buttons
         if (actions != null && actions!.isNotEmpty) ...[
           const SizedBox(height: 12.0),
@@ -251,6 +276,72 @@ class _ActionPill extends StatelessWidget {
                 color: accentColor,
               ),
             ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _VideoCitationChip extends StatelessWidget {
+  final VideoCitation citation;
+  final VoidCallback onTap;
+
+  const _VideoCitationChip({
+    required this.citation,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final t = SamanChatTokens.of(context);
+    final displayLabel = citation.label.isNotEmpty
+        ? citation.label
+        : 'Xem video (${citation.formattedTimestamp})';
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(999.0),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(minHeight: 40.0),
+          child: Container(
+            padding: const EdgeInsets.symmetric(
+              horizontal: 12.0,
+              vertical: 8.0,
+            ),
+            decoration: BoxDecoration(
+              color: t.surface,
+              borderRadius: BorderRadius.circular(999.0),
+              border: Border.all(
+                color: t.borderSubtle,
+                width: 1.0,
+              ),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  Icons.play_circle_outline_rounded,
+                  size: 17.0,
+                  color: t.greenAccent,
+                ),
+                const SizedBox(width: 6.0),
+                Flexible(
+                  child: Text(
+                    displayLabel,
+                    style: TextStyle(
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.w500,
+                      color: t.textWhite,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),

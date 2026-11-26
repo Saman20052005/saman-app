@@ -46,19 +46,20 @@ class _FakeGemini:
 
 class Core3ContractTests(unittest.TestCase):
     def test_context_queries_are_bounded_and_allowlisted(self):
-        nutrition = _Collection([{"date": "2026-11-04", "total_calories": 100} for _ in range(501)])
+        nutrition = _Collection([{"date": "2026-11-04", "total_calories": 100} for _ in range(1001)])
         workout = _Collection([{"_id": i, "exercise_logs": [{"exercise_slug": "squat"}] * 400} for i in range(12)])
         users = _Collection([])
         principal = {"_id": "user-a", "email": "a@example.test"}
         ctx = build_core3_context(principal=principal, nutrition_collection=nutrition,
             workout_collection=workout, users_collection=users,
             now=datetime(2026, 11, 4, 12, tzinfo=timezone.utc))
-        self.assertEqual(nutrition.calls[0][0]["user_email"], "a@example.test")
+        # build_user_query creates a MongoDB query binding user identity clauses:
+        self.assertIn("a@example.test", str(nutrition.calls[0][0]))
         self.assertEqual(nutrition.calls[0][1]["_id"], 0)
         self.assertTrue(ctx["nutrition"]["coverage_truncated"])
         self.assertLessEqual(len(ctx["nutrition"]["summary"]), 7)
-        self.assertEqual(workout.calls[0][0]["user_id"], "user-a")
-        self.assertEqual(workout.calls[0][1]["exercise_logs"], {"$slice": 400})
+        self.assertIn("user-a", str(workout.calls[0][0]))
+        self.assertEqual(workout.calls[0][1]["exercise_logs"], {"$slice": 200})
         self.assertTrue(ctx["workout"]["coverage_truncated"])
         self.assertNotIn("email", ctx["profile"]["data"])
         self.assertNotIn("full_name", ctx["profile"]["data"])

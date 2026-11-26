@@ -4,10 +4,12 @@ import asyncio
 import hashlib
 import inspect
 import json
+import os
 import re
 import secrets
 import time
 from datetime import datetime, timedelta, timezone
+from typing import Any, Dict, List, Optional
 
 from bson import ObjectId
 from fastapi import HTTPException
@@ -16,20 +18,32 @@ try:
     from backend.app.services.core3_context import build_core3_context
     from backend.app.services.core3_provider import (
         Core3PromptTooLarge,
+        DEFAULT_SYSTEM_INSTRUCTION,
         GeminiCore3Provider,
         create_llm_provider,
+        default_context_cache_manager,
         get_tier_config,
         render_prompt,
+        resolve_effective_tier,
     )
 except ImportError:
     from app.services.core3_context import build_core3_context
     from app.services.core3_provider import (
         Core3PromptTooLarge,
+        DEFAULT_SYSTEM_INSTRUCTION,
         GeminiCore3Provider,
         create_llm_provider,
+        default_context_cache_manager,
         get_tier_config,
         render_prompt,
+        resolve_effective_tier,
     )
+
+_PHASE4_CROSS_CHECK_INSTRUCTION = (
+    "Khi ngữ cảnh có `video_story_evidence`, `muscle_recovery`, hoặc `anomaly_tags`, "
+    "hãy đối chiếu chéo Workout CV Rep Timeline + Muscle Recovery 72h + Nutrition để giải thích nguyên nhân, "
+    "nêu rõ số rep và mốc giây lỗi có thật trong dữ liệu, và tuyệt đối không tự bịa URL video."
+)
 
 try:
     from backend.app.services.training_log_service import record_chat_training_turn
@@ -84,6 +98,7 @@ class ChatOperationService:
         community_follows=None,
         supplements=None,
         recipes=None,
+        video_stories=None,
     ):
         self.operations = db["chat_operations"]
         self.conversations = conversations
@@ -103,6 +118,7 @@ class ChatOperationService:
         self.community_follows = community_follows
         self.supplements = supplements
         self.recipes = recipes
+        self.video_stories = video_stories
         self.provider = provider or create_llm_provider()
         self.context_builder = context_builder
 
@@ -147,7 +163,16 @@ class ChatOperationService:
         except Exception:
             pass
 
-    def _build_context(self, principal, mode: str, question: str | None = None):
+    def _build_context(
+        self,
+        principal,
+        mode: str,
+        question: str | None = None,
+        *,
+        intent_route=None,
+        membership_tier: str = "free",
+        account_id: Optional[str] = None,
+    ):
         base_kwargs = {
             "principal": principal,
             "nutrition_collection": self.nutrition,
@@ -161,6 +186,10 @@ class ChatOperationService:
             "journal_articles_collection": self.journal_articles,
             "question": question,
             "tier": mode,
+            "intent_route": intent_route,
+            "video_stories_collection": self.video_stories,
+            "membership_tier": membership_tier,
+            "account_id": account_id,
         }
         for k, v in (
             ("journeys_collection", self.journeys),
@@ -190,17 +219,75 @@ class ChatOperationService:
             return self.context_builder(**base_kwargs)
 
     @staticmethod
+    def _build_system_instruction(context) -> str:
+        if isinstance(context, dict) and any(
+            context.get(k) for k in ("video_story_evidence", "muscle_recovery", "anomaly_tags")
+        ):
+            return f"{DEFAULT_SYSTEM_INSTRUCTION}\n{_PHASE4_CROSS_CHECK_INSTRUCTION}"
+        return DEFAULT_SYSTEM_INSTRUCTION
+
+    @staticmethod
     def _render_prompt(message, history, context, mode: str):
+        sys_instruction = ChatOperationService._build_system_instruction(context)
         try:
             sig = inspect.signature(render_prompt)
-            if "ai_mode" in sig.parameters or any(
+            has_var_kw = any(
                 p.kind == inspect.Parameter.VAR_KEYWORD
                 for p in sig.parameters.values()
-            ):
-                return render_prompt(message, history, context, ai_mode=mode)
+            )
+            kwargs = {}
+            if has_var_kw or "ai_mode" in sig.parameters:
+                kwargs["ai_mode"] = mode
+            if has_var_kw or "system_instruction" in sig.parameters:
+                kwargs["system_instruction"] = sys_instruction
+            if kwargs:
+                return render_prompt(message, history, context, **kwargs)
         except (TypeError, ValueError):
             pass
         return render_prompt(message, history, context)
+
+    @staticmethod
+    def _resolve_cached_content_name(
+        *,
+        principal: dict,
+        context: Any,
+        mode: str,
+        intent: Optional[str] = None,
+        prefer_lightweight_model: bool = False,
+    ) -> Optional[str]:
+        if (os.getenv("GEMINI_ENABLE_CONTEXT_CACHE") or "false").strip().lower() not in ("true", "1", "yes"):
+            return None
+        try:
+            effective_tier = resolve_effective_tier(
+                mode,
+                intent=intent,
+                prefer_lightweight_model=prefer_lightweight_model,
+            )
+            if effective_tier not in {"core3", "pro3"}:
+                return None
+            api_key = (os.getenv("GEMINI_API_KEY") or os.getenv("STAGING_GEMINI_API_KEY") or "").strip()
+            if not api_key:
+                return None
+            model = str(get_tier_config(effective_tier).get("model") or "")
+            sys_instruction = ChatOperationService._build_system_instruction(context)
+            stable_payload = {
+                "profile": context.get("profile") if isinstance(context, dict) else {},
+                "preferences": context.get("preferences") if isinstance(context, dict) else {},
+            }
+            static_prefix = f"{sys_instruction}\nStaticProfile: {json.dumps(stable_payload, ensure_ascii=False, sort_keys=True)}"
+            principal_id = str(principal.get("account_id") or principal.get("_id") or "anon")
+            prefix_hash = hashlib.sha256(static_prefix.encode("utf-8")).hexdigest()[:16]
+            cache_key = f"saman:{effective_tier}:{principal_id}:{prefix_hash}"
+            return default_context_cache_manager.get_or_create_cache(
+                api_key,
+                model,
+                static_prefix,
+                cache_key=cache_key,
+                system_instruction=sys_instruction,
+                tier=effective_tier,
+            )
+        except Exception:
+            return None
 
     async def _detect_action(self, *, principal, message, conversation_id, request_obj):
         if not callable(self.action_detector):
@@ -218,42 +305,78 @@ class ChatOperationService:
         except Exception:
             return None
 
-    async def _generate(self, prompt: str, mode: str):
+    @staticmethod
+    def _filter_provider_kwargs(fn, kwargs: Dict[str, Any]) -> Dict[str, Any]:
         try:
-            sig = inspect.signature(self.provider.generate)
-            accepts_ai_mode = "ai_mode" in sig.parameters or any(
-                p.kind == inspect.Parameter.VAR_KEYWORD
-                for p in sig.parameters.values()
-            )
+            sig = inspect.signature(fn)
+            if any(p.kind == inspect.Parameter.VAR_KEYWORD for p in sig.parameters.values()):
+                return kwargs
+            return {k: v for k, v in kwargs.items() if k in sig.parameters}
         except (TypeError, ValueError):
-            accepts_ai_mode = True
-        if accepts_ai_mode:
+            return {"ai_mode": kwargs["ai_mode"]} if "ai_mode" in kwargs else {}
+
+    async def _generate(
+        self,
+        prompt: str,
+        mode: str,
+        *,
+        intent: Optional[str] = None,
+        prefer_lightweight_model: bool = False,
+        cached_content_name: Optional[str] = None,
+    ):
+        raw_kwargs: Dict[str, Any] = {
+            "ai_mode": mode,
+            "intent": intent,
+            "prefer_lightweight_model": prefer_lightweight_model,
+            "cached_content_name": cached_content_name,
+        }
+        call_kwargs = self._filter_provider_kwargs(self.provider.generate, raw_kwargs)
+        if call_kwargs:
             try:
-                return await self.provider.generate(prompt, ai_mode=mode)
+                return await self.provider.generate(prompt, **call_kwargs)
             except TypeError:
-                return await self.provider.generate(prompt)
+                try:
+                    return await self.provider.generate(prompt, ai_mode=mode)
+                except TypeError:
+                    return await self.provider.generate(prompt)
         return await self.provider.generate(prompt)
 
-    async def _iter_provider_stream(self, prompt: str, mode: str):
+    async def _iter_provider_stream(
+        self,
+        prompt: str,
+        mode: str,
+        *,
+        intent: Optional[str] = None,
+        prefer_lightweight_model: bool = False,
+        cached_content_name: Optional[str] = None,
+    ):
         if not hasattr(self.provider, "generate_stream"):
-            text = await self._generate(prompt, mode)
+            text = await self._generate(
+                prompt,
+                mode,
+                intent=intent,
+                prefer_lightweight_model=prefer_lightweight_model,
+                cached_content_name=cached_content_name,
+            )
             if text:
                 yield str(text)
             return
         stream_fn = self.provider.generate_stream
-        try:
-            sig = inspect.signature(stream_fn)
-            accepts_ai_mode = "ai_mode" in sig.parameters or any(
-                p.kind == inspect.Parameter.VAR_KEYWORD
-                for p in sig.parameters.values()
-            )
-        except (TypeError, ValueError):
-            accepts_ai_mode = True
-        if accepts_ai_mode:
+        raw_kwargs: Dict[str, Any] = {
+            "ai_mode": mode,
+            "intent": intent,
+            "prefer_lightweight_model": prefer_lightweight_model,
+            "cached_content_name": cached_content_name,
+        }
+        call_kwargs = self._filter_provider_kwargs(stream_fn, raw_kwargs)
+        if call_kwargs:
             try:
-                stream = stream_fn(prompt, ai_mode=mode)
+                stream = stream_fn(prompt, **call_kwargs)
             except TypeError:
-                stream = stream_fn(prompt)
+                try:
+                    stream = stream_fn(prompt, ai_mode=mode)
+                except TypeError:
+                    stream = stream_fn(prompt)
         else:
             stream = stream_fn(prompt)
         if inspect.isawaitable(stream):
@@ -293,6 +416,11 @@ class ChatOperationService:
         history=None,
         ai_mode: str = "core3",
         request_obj=None,
+        intent_route=None,
+        membership_tier: str = "free",
+        account_id: Optional[str] = None,
+        video_citations: Optional[List[Dict[str, Any]]] = None,
+        cached_content_name: Optional[str] = None,
     ):
         principal_id = str(principal.get("_id") or "")
         if not principal_id or not re.fullmatch(r"[0-9a-f]{32}", str(operation_id or "")) or contract_version != "core3-local-v1":
@@ -359,7 +487,14 @@ class ChatOperationService:
                 "user_id": principal_id, "user_email": str(principal.get("email") or ""), "title": message[:40],
                 "messages": [], "created_at": now, "updated_at": now}}, upsert=True)
 
-        context = self._build_context(principal, mode, question=message)
+        context = self._build_context(
+            principal,
+            mode,
+            question=message,
+            intent_route=intent_route,
+            membership_tier=membership_tier,
+            account_id=account_id,
+        )
         try:
             prompt = self._render_prompt(message, history, context, mode)
         except Core3PromptTooLarge as exc:
@@ -370,27 +505,46 @@ class ChatOperationService:
             conversation_id=resolved_id,
             request_obj=request_obj,
         )
+        intent_name = getattr(intent_route, "intent", None) if intent_route is not None else None
+        prefer_lightweight = bool(getattr(intent_route, "prefer_lightweight_model", False)) if intent_route is not None else False
+        effective_cache_name = cached_content_name
+        if effective_cache_name is None:
+            effective_cache_name = self._resolve_cached_content_name(
+                principal=principal,
+                context=context,
+                mode=mode,
+                intent=intent_name,
+                prefer_lightweight_model=prefer_lightweight,
+            )
         dispatch = self.operations.update_one({**key, "state": "prepared", "claim_token": lease_token},
             {"$set": {"state": "dispatched", "dispatched_at": _utcnow(), "ai_mode": mode}})
         if dispatch.modified_count != 1:
             raise HTTPException(status_code=409, detail={"status": "in_progress", "operation_id": operation_id})
         try:
-            response = await self._generate(prompt, mode)
+            response = await self._generate(
+                prompt,
+                mode,
+                intent=intent_name,
+                prefer_lightweight_model=prefer_lightweight,
+                cached_content_name=effective_cache_name,
+            )
         except Exception:
             self.operations.update_one({**key, "state": "dispatched"}, {"$set": {"state": "unknown"}})
             raise HTTPException(status_code=504, detail={"status": "unknown", "operation_id": operation_id})
         response = str(response)
+        citations_list = list(video_citations or [])
         result_hash = hashlib.sha256(response.encode()).hexdigest()
         self.operations.update_one({**key, "state": "dispatched", "claim_token": lease_token}, {"$set": {
             "state": "result_saved",
             "canonical_response": response,
             "canonical_action": pending_action,
+            "canonical_video_citations": citations_list,
             "ai_mode": mode,
             "result_hash": result_hash,
             "result_saved_at": _utcnow(),
         }})
         op = self.operations.find_one(key)
-        result = self._append_and_complete(op, principal_id, message)
+        result = self._append_and_complete(op, principal_id, message, video_citations=citations_list)
         self._record_training_turn(
             principal=principal,
             operation_id=operation_id,
@@ -415,6 +569,11 @@ class ChatOperationService:
         history=None,
         ai_mode="core3",
         request_obj=None,
+        intent_route=None,
+        membership_tier: str = "free",
+        account_id: Optional[str] = None,
+        video_citations: Optional[List[Dict[str, Any]]] = None,
+        cached_content_name: Optional[str] = None,
     ):
         principal_id = str(principal.get("_id") or "")
         if not principal_id or not re.fullmatch(r"[0-9a-f]{32}", str(operation_id or "")) or contract_version != "core3-local-v1":
@@ -469,11 +628,22 @@ class ChatOperationService:
         if op.get("state") == "completed":
             op_mode = op.get("ai_mode", mode)
             saved_action = op.get("canonical_action")
+            saved_citations = list(op.get("canonical_video_citations") or (video_citations or []))
             yield {"event": "meta", "data": {"conversation_id": str(resolved_id), "ai_mode": op_mode, "operation_id": operation_id}}
             yield {"event": "delta", "data": {"text": str(op.get("canonical_response") or "")}}
             if saved_action is not None:
                 yield {"event": "action", "data": saved_action}
-            yield {"event": "done", "data": {"conversation_id": str(resolved_id), "ai_mode": op_mode, "action": saved_action}}
+            if saved_citations:
+                yield {"event": "citations", "data": {"video_citations": saved_citations}}
+            yield {
+                "event": "done",
+                "data": {
+                    "conversation_id": str(resolved_id),
+                    "ai_mode": op_mode,
+                    "action": saved_action,
+                    "video_citations": saved_citations,
+                },
+            }
             return
         if op.get("state") in ("dispatched", "unknown"):
             raise HTTPException(status_code=409, detail={"status": "unknown", "operation_id": operation_id})
@@ -489,7 +659,14 @@ class ChatOperationService:
                 "user_id": principal_id, "user_email": str(principal.get("email") or ""), "title": message[:40],
                 "messages": [], "created_at": now, "updated_at": now}}, upsert=True)
 
-        context = self._build_context(principal, mode, question=message)
+        context = self._build_context(
+            principal,
+            mode,
+            question=message,
+            intent_route=intent_route,
+            membership_tier=membership_tier,
+            account_id=account_id,
+        )
         try:
             prompt = self._render_prompt(message, history, context, mode)
         except Core3PromptTooLarge as exc:
@@ -500,6 +677,17 @@ class ChatOperationService:
             conversation_id=resolved_id,
             request_obj=request_obj,
         )
+        intent_name = getattr(intent_route, "intent", None) if intent_route is not None else None
+        prefer_lightweight = bool(getattr(intent_route, "prefer_lightweight_model", False)) if intent_route is not None else False
+        effective_cache_name = cached_content_name
+        if effective_cache_name is None:
+            effective_cache_name = self._resolve_cached_content_name(
+                principal=principal,
+                context=context,
+                mode=mode,
+                intent=intent_name,
+                prefer_lightweight_model=prefer_lightweight,
+            )
         dispatch = self.operations.update_one({**key, "state": "prepared", "claim_token": lease_token},
             {"$set": {"state": "dispatched", "dispatched_at": _utcnow(), "ai_mode": mode}})
         if dispatch.modified_count != 1:
@@ -508,7 +696,13 @@ class ChatOperationService:
         yield {"event": "meta", "data": {"conversation_id": str(resolved_id), "ai_mode": mode, "operation_id": operation_id}}
         chunks = []
         try:
-            async for chunk in self._iter_provider_stream(prompt, mode):
+            async for chunk in self._iter_provider_stream(
+                prompt,
+                mode,
+                intent=intent_name,
+                prefer_lightweight_model=prefer_lightweight,
+                cached_content_name=effective_cache_name,
+            ):
                 chunks.append(chunk)
                 yield {"event": "delta", "data": {"text": chunk}}
         except Exception:
@@ -516,17 +710,19 @@ class ChatOperationService:
             raise HTTPException(status_code=504, detail={"status": "unknown", "operation_id": operation_id})
 
         response = "".join(chunks)
+        citations_list = list(video_citations or [])
         result_hash = hashlib.sha256(response.encode()).hexdigest()
         self.operations.update_one({**key, "state": "dispatched", "claim_token": lease_token}, {"$set": {
             "state": "result_saved",
             "canonical_response": response,
             "canonical_action": pending_action,
+            "canonical_video_citations": citations_list,
             "ai_mode": mode,
             "result_hash": result_hash,
             "result_saved_at": _utcnow(),
         }})
         op = self.operations.find_one(key)
-        self._append_and_complete(op, principal_id, message)
+        self._append_and_complete(op, principal_id, message, video_citations=citations_list)
         self._record_training_turn(
             principal=principal,
             operation_id=operation_id,
@@ -540,14 +736,41 @@ class ChatOperationService:
         )
         if pending_action is not None:
             yield {"event": "action", "data": pending_action}
-        yield {"event": "done", "data": {"conversation_id": str(resolved_id), "ai_mode": mode, "action": pending_action}}
+        if citations_list:
+            yield {"event": "citations", "data": {"video_citations": citations_list}}
+        yield {
+            "event": "done",
+            "data": {
+                "conversation_id": str(resolved_id),
+                "ai_mode": mode,
+                "action": pending_action,
+                "video_citations": citations_list,
+            },
+        }
 
-    def _append_and_complete(self, op, principal_id, message):
+    def _append_and_complete(
+        self,
+        op,
+        principal_id,
+        message,
+        video_citations: Optional[List[Dict[str, Any]]] = None,
+    ):
         op_id = op["operation_id"]
         conversation_id = op["resolved_conversation_id"]
         timestamp = _utcnow().isoformat()
+        citations_list = (
+            list(video_citations)
+            if video_citations is not None
+            else list(op.get("canonical_video_citations") or [])
+        )
         user_turn = {"role": "user", "content": message, "operation_id": op_id, "created_at": timestamp}
-        assistant_turn = {"role": "assistant", "content": op["canonical_response"], "operation_id": op_id, "created_at": timestamp}
+        assistant_turn = {
+            "role": "assistant",
+            "content": op["canonical_response"],
+            "operation_id": op_id,
+            "created_at": timestamp,
+            "video_citations": citations_list,
+        }
         set_fields = {"updated_at": timestamp}
         pending_action = op.get("canonical_action")
         if pending_action is not None:
@@ -571,4 +794,5 @@ class ChatOperationService:
             "conversation_id": str(op["resolved_conversation_id"]),
             "action": op.get("canonical_action"),
             "ai_mode": op.get("ai_mode", "core3"),
+            "video_citations": list(op.get("canonical_video_citations") or []),
         }

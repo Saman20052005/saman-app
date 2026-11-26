@@ -2,6 +2,7 @@
 
 import json
 from datetime import datetime, timedelta, timezone
+from typing import Any, Dict, List, Optional
 from bson import ObjectId
 
 try:
@@ -41,6 +42,34 @@ try:
     from backend.app.services.recommendations_context import build_recommendations_context
 except ImportError:
     from app.services.recommendations_context import build_recommendations_context
+
+try:
+    from backend.app.services.intent_router import IntentRouteResult
+except ImportError:
+    from app.services.intent_router import IntentRouteResult
+
+try:
+    from backend.app.services.workout_recovery_helper import (
+        calculate_muscle_recovery_load,
+        compact_muscle_recovery_for_ai,
+        compute_rolling_anomaly_tags,
+    )
+except ImportError:
+    from app.services.workout_recovery_helper import (
+        calculate_muscle_recovery_load,
+        compact_muscle_recovery_for_ai,
+        compute_rolling_anomaly_tags,
+    )
+
+try:
+    from backend.app.services.quota_service import get_video_citation_days
+except ImportError:
+    try:
+        from app.services.quota_service import get_video_citation_days
+    except ImportError:
+        def get_video_citation_days(tier: str) -> int:
+            return {"free": 0, "plus": 7, "pro": 14, "ultra": 30}.get((tier or "free").lower(), 0)
+
 
 
 _PROFILE_FIELDS = (
@@ -108,12 +137,40 @@ def _compact_exercises(logs):
             }
         if item.get("reps_summary") is not None:
             entry["reps_summary"] = str(item["reps_summary"])[:120]
+
+        # Extract video_story_id if present
+        v_id = item.get("video_story_id") or item.get("videoStoryId")
+        if v_id and "video_story_id" not in entry:
+            entry["video_story_id"] = str(v_id)
+
+        # Extract compact rep timeline with visibility_confidence >= 0.6
+        rep_tl = item.get("rep_timeline") or item.get("repTimeline")
+        if isinstance(rep_tl, list) and rep_tl:
+            faulty_reps = []
+            for r in rep_tl:
+                if not isinstance(r, dict):
+                    continue
+                vis = float(r.get("visibility_confidence") if r.get("visibility_confidence") is not None else r.get("visibilityConfidence", 1.0))
+                if vis < 0.6:
+                    continue
+                issue = r.get("issue_type") or r.get("issueType")
+                if issue and issue != "none":
+                    faulty_reps.append({
+                        "rep": int(r.get("rep_index", r.get("repIndex", 0)) or 0),
+                        "issue": str(issue),
+                        "vis": round(vis, 2),
+                    })
+            if faulty_reps:
+                entry.setdefault("rep_issues", []).extend(faulty_reps[:5])
+
     exercises = list(grouped.values())
     for exercise in exercises:
         if exercise["total_reps"] == 0:
             exercise.pop("total_reps")
         if exercise["max_weight_kg"] is None:
             exercise.pop("max_weight_kg")
+        if "rep_issues" in exercise and isinstance(exercise["rep_issues"], list):
+            exercise["rep_issues"] = exercise["rep_issues"][:5]
     return exercises[:8], truncated or len(exercises) > 8
 
 
@@ -152,6 +209,10 @@ def build_core3_context(
     supplements_collection=None, recipes_collection=None,
     question=None,
     tier="core3", now=None,
+    intent_route: Optional[IntentRouteResult] = None,
+    video_stories_collection: Any = None,
+    membership_tier: str = "free",
+    account_id: Optional[str] = None,
 ):
     """Read bounded, allowlisted user context using Vietnam calendar-day windows."""
     tier = (tier or "core3").strip().lower()
@@ -167,9 +228,12 @@ def build_core3_context(
     nutrition_start, nutrition_end, _, _ = _date_bounds(now, nutrition_days)
     workout_start_str, workout_end_str, workout_start, workout_end = _date_bounds(now, workout_days)
 
+    # Determine collection filtering based on intent_route
+    allowed_cols = intent_route.collections if intent_route is not None else None
+
     # Nutrition is grouped by local date after a strictly identity- and date-bounded read.
-    nutrition = {"status": "unavailable", "coverage_truncated": False, "coverage_missing": True, "summary": []}
-    if nutrition_collection is not None and (identity_id is not None or email):
+    nutrition = {"status": "skipped" if allowed_cols is not None and "nutrition" not in allowed_cols else "unavailable", "coverage_truncated": False, "coverage_missing": True, "summary": []}
+    if (allowed_cols is None or "nutrition" in allowed_cols) and nutrition_collection is not None and (identity_id is not None or email):
         try:
             rows = list(nutrition_collection.find(
                 _user_and_date_query(identity_query, {"date": {"$gte": nutrition_start, "$lte": nutrition_end}}),
@@ -195,7 +259,7 @@ def build_core3_context(
 
     # Profile lookup never projects email, name, password, or other PII.
     user_doc = None
-    if users_collection is not None and (identity_id is not None or email):
+    if (allowed_cols is None or "profile" in allowed_cols) and users_collection is not None and (identity_id is not None or email):
         try:
             clauses = []
             if identity_id is not None:
@@ -236,9 +300,9 @@ def build_core3_context(
 
     # Water records are daily totals keyed by VN date.
     target_ml = _number(((user_doc or {}).get("health_stats") or {}).get("water_target_ml")) or 2000
-    water = {"status": "unavailable", "coverage_missing": True, "today_ml": 0, "target_ml": target_ml, "daily": []}
+    water = {"status": "skipped" if allowed_cols is not None and "water" not in allowed_cols else "unavailable", "coverage_missing": True, "today_ml": 0, "target_ml": target_ml, "daily": []}
     water_days = {"swift3": 1, "core3": 7, "pro3": 30}[tier]
-    if water_collection is not None and (identity_id is not None or email):
+    if (allowed_cols is None or "water" in allowed_cols) and water_collection is not None and (identity_id is not None or email):
         try:
             water_start, _, _, _ = _date_bounds(now, water_days)
             water_rows = list(water_collection.find(
@@ -263,8 +327,9 @@ def build_core3_context(
             pass
 
     # Workout reads match either UTC timestamps or the persisted VN date string.
-    workout = {"status": "unavailable", "coverage_truncated": False, "coverage_missing": True, "sessions": []}
-    if workout_collection is not None and (identity_id is not None or email):
+    raw_workout_sessions = []
+    workout = {"status": "skipped" if allowed_cols is not None and "workout" not in allowed_cols else "unavailable", "coverage_truncated": False, "coverage_missing": True, "sessions": []}
+    if (allowed_cols is None or "workout" in allowed_cols) and workout_collection is not None and (identity_id is not None or email):
         try:
             sessions = list(workout_collection.find(
                 {"$and": [identity_query, {"$or": [
@@ -274,6 +339,7 @@ def build_core3_context(
                 {"_id": 1, "started_at": 1, "date": 1, "plan_name": 1, "total_volume_kg": 1,
                  "duration_minutes": 1, "total_duration_minutes": 1, "exercise_logs": {"$slice": 200}},
             ).sort([("started_at", -1), ("date", -1), ("_id", -1)]).limit(workout_limit + 1))
+            raw_workout_sessions = sessions[:workout_limit]
             result_truncated = len(sessions) > workout_limit
             summary = []
             for session in sessions[:workout_limit]:
@@ -294,9 +360,111 @@ def build_core3_context(
         except Exception:
             pass
 
+    # Muscle recovery calculation (72h) from workout_sessions
+    muscle_recovery = None
+    if allowed_cols is None or "recovery" in allowed_cols:
+        try:
+            # If workout was queried, use raw_workout_sessions, otherwise query if needed
+            rec_sessions = raw_workout_sessions
+            if not rec_sessions and workout_collection is not None and (identity_id is not None or email):
+                rec_sessions = list(workout_collection.find(
+                    identity_query,
+                    {"_id": 1, "started_at": 1, "date": 1, "finished_at": 1, "exercise_logs": {"$slice": 100}},
+                ).sort([("started_at", -1)]).limit(20))
+            if rec_sessions:
+                full_rec = calculate_muscle_recovery_load(rec_sessions, now)
+                muscle_recovery = compact_muscle_recovery_for_ai(full_rec)
+        except Exception:
+            muscle_recovery = None
+
+    # Rolling anomaly tags computation
+    anomaly_tags = []
+    try:
+        if raw_workout_sessions:
+            anomaly_tags = compute_rolling_anomaly_tags(
+                raw_workout_sessions,
+                recovery_compact=muscle_recovery,
+                min_visibility=0.6,
+            )
+    except Exception:
+        anomaly_tags = []
+
+    # Video story evidence query
+    video_story_evidence = []
+    citation_days = get_video_citation_days(membership_tier)
+    should_query_video_stories = (
+        citation_days > 0
+        and (allowed_cols is None or "video_stories" in allowed_cols)
+        and video_stories_collection is not None
+        and bool(account_id or identity_id or email)
+    )
+    if should_query_video_stories:
+        try:
+            # Query video stories bounded by citation_days
+            story_owner_clauses = []
+            if account_id:
+                story_owner_clauses.append({"account_id": str(account_id).strip()})
+            if identity_id:
+                story_owner_clauses.append({"user_id": str(identity_id).strip()})
+                if ObjectId.is_valid(str(identity_id)):
+                    story_owner_clauses.append({"user_id": ObjectId(str(identity_id))})
+            if email:
+                story_owner_clauses.append({"email": email})
+            story_owner_query = story_owner_clauses[0] if len(story_owner_clauses) == 1 else {"$or": story_owner_clauses}
+
+            v_start_str, v_end_str, v_start_dt, v_end_dt = _date_bounds(now, citation_days)
+            story_query = {
+                "$and": [
+                    story_owner_query,
+                    {"$or": [
+                        {"created_at": {"$gte": v_start_dt, "$lte": v_end_dt}},
+                        {"date": {"$gte": v_start_str, "$lte": v_end_str}},
+                    ]},
+                ]
+            }
+            v_stories = list(video_stories_collection.find(
+                story_query,
+                {
+                    "_id": 1, "video_story_id": 1, "exercise_slug": 1, "date": 1, "created_at": 1,
+                    "rep_timeline": 1,
+                }
+            ).sort([("created_at", -1), ("_id", -1)]).limit(5))
+
+            for st in v_stories:
+                vs_id = str(st.get("video_story_id") or st.get("_id") or "")
+                slug = str(st.get("exercise_slug") or "")
+                dt_str = str(st.get("date") or "")
+                if not dt_str and st.get("created_at"):
+                    dt_str = str(st.get("created_at"))[:10]
+                rep_tl = st.get("rep_timeline") or []
+                if isinstance(rep_tl, list):
+                    for r in rep_tl:
+                        if not isinstance(r, dict):
+                            continue
+                        vis = float(r.get("visibility_confidence") if r.get("visibility_confidence") is not None else r.get("visibilityConfidence", 1.0))
+                        if vis < 0.6:
+                            continue
+                        issue = r.get("issue_type") or r.get("issueType")
+                        if issue and issue != "none":
+                            video_story_evidence.append({
+                                "video_story_id": vs_id,
+                                "exercise_slug": slug,
+                                "date": dt_str,
+                                "rep_index": int(r.get("rep_index", r.get("repIndex", 0)) or 0),
+                                "start_sec": _number(r.get("start_sec", r.get("startSec"))),
+                                "end_sec": _number(r.get("end_sec", r.get("endSec"))),
+                                "issue_type": str(issue),
+                                "metric_angle_deg": _number(r.get("metric_angle_deg", r.get("metricAngleDeg"))),
+                                "visibility_confidence": round(vis, 3),
+                            })
+            # Bound evidence count to at most 10 items
+            video_story_evidence = video_story_evidence[:10]
+        except Exception:
+            video_story_evidence = []
+
     # Swift omits historical weight reads entirely; other tiers use bounded date queries.
-    weight_history = {"status": "skipped" if tier == "swift3" else "unavailable", "entries": []}
-    if tier != "swift3" and weight_history_collection is not None and (identity_id is not None or email):
+    weight_history = {"status": "skipped" if (tier == "swift3" or (allowed_cols is not None and "weight" not in allowed_cols)) else "unavailable", "entries": []}
+    if tier != "swift3" and (allowed_cols is None or "weight" in allowed_cols) and weight_history_collection is not None and (identity_id is not None or email):
         try:
             weight_days = 14 if tier == "core3" else 30
             weight_start, _, _, _ = _date_bounds(now, weight_days)
@@ -324,13 +492,15 @@ def build_core3_context(
         except Exception:
             pass
 
-    journey = build_journey_context(
+    journey = {"status": "skipped"} if (allowed_cols is not None and "journey" not in allowed_cols) else build_journey_context(
         principal=principal,
         journeys_collection=journeys_collection,
         tier=tier,
         now=now,
     )
     if (
+        allowed_cols is None or "journey" in allowed_cols
+    ) and (
         isinstance(journey, dict)
         and journey.get("status") == "unavailable"
         and journeys_collection is not None
@@ -345,13 +515,15 @@ def build_core3_context(
             now=now,
         )
 
-    story_logs = build_story_logs_context(
+    story_logs = {"status": "skipped"} if (allowed_cols is not None and "story_logs" not in allowed_cols) else build_story_logs_context(
         principal=principal,
         story_logs_collection=story_logs_collection,
         tier=tier,
         now=now,
     )
     if (
+        allowed_cols is None or "story_logs" in allowed_cols
+    ) and (
         isinstance(story_logs, dict)
         and story_logs.get("status") == "unavailable"
         and story_logs_collection is not None
@@ -366,7 +538,7 @@ def build_core3_context(
             now=now,
         )
 
-    community = build_community_context(
+    community = {"status": "skipped"} if (allowed_cols is not None and "community" not in allowed_cols) else build_community_context(
         principal=principal,
         community_posts_collection=community_posts_collection,
         community_interactions_collection=community_interactions_collection,
@@ -374,6 +546,8 @@ def build_core3_context(
         tier=tier,
     )
     if (
+        allowed_cols is None or "community" in allowed_cols
+    ) and (
         isinstance(community, dict)
         and community.get("status") == "unavailable"
         and any(
@@ -397,8 +571,8 @@ def build_core3_context(
         )
 
     # Supplements reading by tier: swift3 = 1 day, core3 = 7 days, pro3 = 30 days
-    supplements = {"status": "unavailable", "coverage_missing": True, "coverage_truncated": False, "entries": []}
-    if supplements_collection is not None and (identity_id is not None or email):
+    supplements = {"status": "skipped" if (allowed_cols is not None and "supplements" not in allowed_cols) else "unavailable", "coverage_missing": True, "coverage_truncated": False, "entries": []}
+    if (allowed_cols is None or "supplements" in allowed_cols) and supplements_collection is not None and (identity_id is not None or email):
         try:
             sup_days = {"swift3": 1, "core3": 7, "pro3": 30}[tier]
             sup_limit = 5 if tier == "swift3" else 20
@@ -443,7 +617,7 @@ def build_core3_context(
             pass
 
     # Recipes reading by tier: core3/pro3 only, skipped for swift3
-    if tier == "swift3":
+    if tier == "swift3" or (allowed_cols is not None and "recipes" not in allowed_cols):
         recipes = {"status": "skipped", "recipes": []}
     else:
         recipes = {"status": "unavailable", "coverage_missing": True, "coverage_truncated": False, "recipes": []}
@@ -498,14 +672,22 @@ def build_core3_context(
         "supplements": supplements,
         "recipes": recipes,
     }
-    recommendations = build_recommendations_context(
-        question=question,
-        base_context=context,
-        shop_products_collection=shop_products_collection,
-        journal_articles_collection=journal_articles_collection,
-        tier=tier,
-    )
-    context["recommendations"] = recommendations
+    if muscle_recovery is not None:
+        context["muscle_recovery"] = muscle_recovery
+    if anomaly_tags:
+        context["anomaly_tags"] = anomaly_tags
+    if video_story_evidence:
+        context["video_story_evidence"] = video_story_evidence
+
+    if allowed_cols is None or "recommendations" in allowed_cols:
+        recommendations = build_recommendations_context(
+            question=question,
+            base_context=context,
+            shop_products_collection=shop_products_collection,
+            journal_articles_collection=journal_articles_collection,
+            tier=tier,
+        )
+        context["recommendations"] = recommendations
 
     # The prompt adapter counts UTF-8 bytes as its conservative token bound.
     def context_size():
@@ -518,6 +700,15 @@ def build_core3_context(
                     context.pop(skipped_key)
                     break
             else:
+                if "video_story_evidence" in context:
+                    context.pop("video_story_evidence")
+                    continue
+                if "anomaly_tags" in context:
+                    context.pop("anomaly_tags")
+                    continue
+                if "muscle_recovery" in context:
+                    context.pop("muscle_recovery")
+                    continue
                 if context.get("preferences", {}).get("notes"):
                     context["preferences"].pop("notes")
                     continue
@@ -634,6 +825,10 @@ def build_core3_context(
             if "supplements" in context:
                 context.pop("supplements")
                 continue
+            v_ev = context.get("video_story_evidence")
+            if isinstance(v_ev, list) and len(v_ev) > 2:
+                v_ev.pop()
+                continue
             sessions = context["workout"].get("sessions", [])
             if sessions and sessions[-1].get("exercises"):
                 sessions[-1]["exercises"].pop()
@@ -642,6 +837,18 @@ def build_core3_context(
             if len(sessions) > 1:
                 sessions.pop()
                 context["workout"]["coverage_truncated"] = True
+                continue
+            if isinstance(v_ev, list) and v_ev:
+                v_ev.pop()
+                continue
+            if "video_story_evidence" in context:
+                context.pop("video_story_evidence")
+                continue
+            if "anomaly_tags" in context:
+                context.pop("anomaly_tags")
+                continue
+            if "muscle_recovery" in context:
+                context.pop("muscle_recovery")
                 continue
             break
     elif tier == "pro3":
@@ -740,6 +947,19 @@ def build_core3_context(
             if len(sessions) > 1:
                 sessions.pop()
                 context["workout"]["coverage_truncated"] = True
+                continue
+            v_ev = context.get("video_story_evidence")
+            if isinstance(v_ev, list) and v_ev:
+                v_ev.pop()
+                continue
+            if "video_story_evidence" in context:
+                context.pop("video_story_evidence")
+                continue
+            if "anomaly_tags" in context:
+                context.pop("anomaly_tags")
+                continue
+            if "muscle_recovery" in context:
+                context.pop("muscle_recovery")
                 continue
             break
     return context
