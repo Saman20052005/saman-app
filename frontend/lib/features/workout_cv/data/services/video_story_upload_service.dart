@@ -293,6 +293,12 @@ class VideoStoryUploadService {
     final storageKey = (presignData['storage_key'] as String?) ??
         (presignData['storageKey'] as String?) ??
         '';
+    final storyId = (presignData['story_id'] as String?) ??
+        (presignData['storyId'] as String?) ??
+        '';
+    final publicUrl = (presignData['public_url'] as String?) ??
+        (presignData['publicUrl'] as String?) ??
+        '';
     final rawPresignHeaders = presignData['headers'];
 
     if (uploadUrl.isEmpty || storageKey.isEmpty) {
@@ -369,7 +375,9 @@ class VideoStoryUploadService {
       final completeResponse = await _backendDio.post<dynamic>(
         ApiConfig.workoutVideoStoryCompleteEndpoint,
         data: <String, dynamic>{
+          if (storyId.isNotEmpty) 'story_id': storyId,
           'storage_key': storageKey,
+          if (publicUrl.isNotEmpty) 'video_url': publicUrl,
           'exercise_slug': exerciseSlug,
           'size_bytes': effectiveSizeBytes,
           'duration_sec': compressed.durationSec,
@@ -402,22 +410,34 @@ class VideoStoryUploadService {
 
     final videoStoryId = (storyMap['id']?.toString()) ??
         (completeData['video_story_id']?.toString()) ??
+        (completeData['videoStoryId']?.toString()) ??
         (completeData['id']?.toString());
     final videoUrl = (storyMap['video_url'] as String?) ??
+        (storyMap['videoUrl'] as String?) ??
         (storyMap['playback_url'] as String?) ??
         (completeData['video_url'] as String?) ??
+        (completeData['videoUrl'] as String?) ??
         (completeData['playback_url'] as String?);
-    final finalStorageKey =
-        (storyMap['storage_key'] as String?) ?? storageKey;
+    final finalStorageKey = (storyMap['storage_key'] as String?) ??
+        (storyMap['storageKey'] as String?) ??
+        storageKey;
     final usedBytes = _toInt(completeData['used_bytes']) ??
+        _toInt(completeData['usedBytes']) ??
         _toInt(storyMap['used_bytes']) ??
-        _toInt(presignData['used_bytes']);
+        _toInt(storyMap['usedBytes']) ??
+        _toInt(presignData['used_bytes']) ??
+        _toInt(presignData['usedBytes']);
     final limitMb = _toInt(completeData['limit_mb']) ??
+        _toInt(completeData['limitMb']) ??
         _toInt(storyMap['limit_mb']) ??
-        _toInt(presignData['limit_mb']);
+        _toInt(storyMap['limitMb']) ??
+        _toInt(presignData['limit_mb']) ??
+        _toInt(presignData['limitMb']);
     final retentionExpiresAt =
         (storyMap['retention_expires_at'] as String?) ??
+            (storyMap['retentionExpiresAt'] as String?) ??
             (completeData['retention_expires_at'] as String?) ??
+            (completeData['retentionExpiresAt'] as String?) ??
             (presignData['retention_expires_at'] as String?);
 
     return VideoStoryUploadResult(

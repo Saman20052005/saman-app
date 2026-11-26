@@ -105,8 +105,10 @@ void main() {
           expect(decodedBody['size_bytes'], 65536);
 
           return _jsonResponse(<String, dynamic>{
+            'story_id': 'vs_999',
             'upload_url': presignedR2Url,
             'storage_key': storageKey,
+            'public_url': 'https://cdn.saman.app/stories/user_42/story_123.mp4',
             'headers': <String, String>{
               'Content-Type': 'video/mp4',
               'x-amz-meta-exercise': 'squat',
@@ -120,7 +122,12 @@ void main() {
             ApiConfig.workoutVideoStoryCompleteEndpoint) {
           expect(options.method, 'POST');
           expect(options.headers['Authorization'], 'Bearer test-jwt-token');
+          expect(decodedBody['story_id'], 'vs_999');
           expect(decodedBody['storage_key'], storageKey);
+          expect(
+            decodedBody['video_url'],
+            'https://cdn.saman.app/stories/user_42/story_123.mp4',
+          );
           expect(decodedBody['exercise_slug'], 'squat');
           expect(decodedBody['cv_form_summary'], isA<Map<String, dynamic>>());
           expect(
