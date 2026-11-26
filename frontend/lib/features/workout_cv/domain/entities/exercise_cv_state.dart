@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/foundation.dart';
 
 import 'pose_landmark.dart';
@@ -43,6 +45,10 @@ class RepRecord {
   final bool isValid;
   final RepIssueType issueType;
   final CameraViewAngle viewAngle;
+  final double? startSec;
+  final double? bottomSec;
+  final double? endSec;
+  final double visibilityConfidence;
 
   const RepRecord({
     required this.repIndex,
@@ -52,7 +58,62 @@ class RepRecord {
     required this.isValid,
     this.issueType = RepIssueType.none,
     this.viewAngle = CameraViewAngle.unknown,
+    this.startSec,
+    this.bottomSec,
+    this.endSec,
+    this.visibilityConfidence = 1.0,
   });
+
+  double get effectiveStartSec =>
+      startSec ?? math.max(0.0, timestampSec - durationSec);
+
+  double get effectiveBottomSec =>
+      bottomSec ?? (effectiveStartSec + durationSec / 2.0);
+
+  double get effectiveEndSec => endSec ?? timestampSec;
+
+  RepRecord copyWith({
+    int? repIndex,
+    double? timestampSec,
+    double? durationSec,
+    double? metricAngleDeg,
+    bool? isValid,
+    RepIssueType? issueType,
+    CameraViewAngle? viewAngle,
+    double? startSec,
+    double? bottomSec,
+    double? endSec,
+    double? visibilityConfidence,
+  }) {
+    return RepRecord(
+      repIndex: repIndex ?? this.repIndex,
+      timestampSec: timestampSec ?? this.timestampSec,
+      durationSec: durationSec ?? this.durationSec,
+      metricAngleDeg: metricAngleDeg ?? this.metricAngleDeg,
+      isValid: isValid ?? this.isValid,
+      issueType: issueType ?? this.issueType,
+      viewAngle: viewAngle ?? this.viewAngle,
+      startSec: startSec ?? this.startSec,
+      bottomSec: bottomSec ?? this.bottomSec,
+      endSec: endSec ?? this.endSec,
+      visibilityConfidence: visibilityConfidence ?? this.visibilityConfidence,
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+        'rep_index': repIndex,
+        'start_sec': double.parse(effectiveStartSec.toStringAsFixed(3)),
+        'bottom_sec': double.parse(effectiveBottomSec.toStringAsFixed(3)),
+        'end_sec': double.parse(effectiveEndSec.toStringAsFixed(3)),
+        'duration_sec': double.parse(durationSec.toStringAsFixed(3)),
+        'metric_angle_deg': metricAngleDeg,
+        'is_valid': isValid,
+        'issue_type': issueType.name,
+        'view_angle': viewAngle.name,
+        'visibility_confidence': double.parse(
+          visibilityConfidence.clamp(0.0, 1.0).toStringAsFixed(3),
+        ),
+      };
 
   String localizedIssueLabel({required bool isVietnamese}) {
     switch (issueType) {
@@ -107,7 +168,11 @@ class RepRecord {
           metricAngleDeg == other.metricAngleDeg &&
           isValid == other.isValid &&
           issueType == other.issueType &&
-          viewAngle == other.viewAngle;
+          viewAngle == other.viewAngle &&
+          startSec == other.startSec &&
+          bottomSec == other.bottomSec &&
+          endSec == other.endSec &&
+          visibilityConfidence == other.visibilityConfidence;
 
   @override
   int get hashCode => Object.hash(
@@ -118,13 +183,19 @@ class RepRecord {
         isValid,
         issueType,
         viewAngle,
+        startSec,
+        bottomSec,
+        endSec,
+        visibilityConfidence,
       );
 
   @override
   String toString() {
     return 'RepRecord(repIndex: $repIndex, timestampSec: $timestampSec, '
         'durationSec: $durationSec, metricAngleDeg: $metricAngleDeg, '
-        'isValid: $isValid, issueType: $issueType, viewAngle: $viewAngle)';
+        'isValid: $isValid, issueType: $issueType, viewAngle: $viewAngle, '
+        'startSec: $startSec, bottomSec: $bottomSec, endSec: $endSec, '
+        'visibilityConfidence: $visibilityConfidence)';
   }
 }
 

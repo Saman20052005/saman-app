@@ -266,6 +266,8 @@ class CvFormSummary {
   final double avgElbowAngleDeg;
   final double avgTempoSec;
   final int abortCount;
+  final List<Map<String, dynamic>>? repTimeline;
+  final String? videoStoryId;
 
   const CvFormSummary({
     this.validReps = 0,
@@ -274,6 +276,8 @@ class CvFormSummary {
     this.avgElbowAngleDeg = 0.0,
     this.avgTempoSec = 0.0,
     this.abortCount = 0,
+    this.repTimeline,
+    this.videoStoryId,
   });
 
   /// Serializes to the backend CP0.3 schema.
@@ -307,6 +311,8 @@ class CvFormSummary {
     double? avgElbowAngleDeg,
     double? avgTempoSec,
     int? abortCount,
+    List<Map<String, dynamic>>? repTimeline,
+    String? videoStoryId,
   }) {
     return CvFormSummary(
       validReps: validReps ?? this.validReps,
@@ -315,6 +321,8 @@ class CvFormSummary {
       avgElbowAngleDeg: avgElbowAngleDeg ?? this.avgElbowAngleDeg,
       avgTempoSec: avgTempoSec ?? this.avgTempoSec,
       abortCount: abortCount ?? this.abortCount,
+      repTimeline: repTimeline ?? this.repTimeline,
+      videoStoryId: videoStoryId ?? this.videoStoryId,
     );
   }
 

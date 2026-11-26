@@ -52,6 +52,7 @@ shop_products_collection = None
 journal_articles_collection = None
 chat_training_logs_collection = None
 food_barcodes_collection = None
+workout_video_stories_collection = None
 
 
 def _bind_collections(database):
@@ -62,7 +63,7 @@ def _bind_collections(database):
     global weight_history_collection
     global journeys_collection, community_posts_collection, community_interactions_collection, community_follows_collection
     global shop_products_collection, journal_articles_collection, chat_training_logs_collection
-    global food_barcodes_collection
+    global food_barcodes_collection, workout_video_stories_collection
 
     users_collection              = database["users"]
     foods_collection              = database["foods"]
@@ -86,6 +87,7 @@ def _bind_collections(database):
     journal_articles_collection   = database["journal_articles"]
     chat_training_logs_collection = database["chat_training_logs"]
     food_barcodes_collection      = database["food_barcodes"]
+    workout_video_stories_collection = database["workout_video_stories"]
 
 
 def connect_db():
@@ -149,6 +151,7 @@ def connect_db():
         journal_articles_collection = None
         chat_training_logs_collection = None
         food_barcodes_collection = None
+        workout_video_stories_collection = None
         return None
 
 
@@ -209,3 +212,36 @@ def ensure_water_logs_unique_index(col=None) -> str:
         unique=True,
         name="uniq_water_user_email_date",
     )
+
+
+def ensure_workout_video_stories_indexes(col=None) -> list[str]:
+    """Create indexes for workout_video_stories collection:
+
+    1. story_id unique ('uniq_workout_video_story_id')
+    2. (account_id, created_at DESC) ('idx_video_story_account_created')
+    3. (user_id, date DESC) ('idx_video_story_user_date')
+    4. workout_session_id ('idx_video_story_session_id')
+    """
+    target = col if col is not None else workout_video_stories_collection
+    if target is None:
+        raise RuntimeError("workout_video_stories collection is unavailable")
+
+    idx1 = target.create_index(
+        [("story_id", 1)],
+        unique=True,
+        name="uniq_workout_video_story_id",
+    )
+    idx2 = target.create_index(
+        [("account_id", 1), ("created_at", -1)],
+        name="idx_video_story_account_created",
+    )
+    idx3 = target.create_index(
+        [("user_id", 1), ("date", -1)],
+        name="idx_video_story_user_date",
+    )
+    idx4 = target.create_index(
+        [("workout_session_id", 1)],
+        name="idx_video_story_session_id",
+    )
+    return [idx1, idx2, idx3, idx4]
+

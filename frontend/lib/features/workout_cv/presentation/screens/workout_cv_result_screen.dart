@@ -12,7 +12,11 @@ import '../../../community/domain/models/post_attachment_snapshot.dart';
 import '../../../community/presentation/providers/community_composer_provider.dart';
 import '../../../community/presentation/screens/compose/post_compose_publish_screen.dart';
 import '../../../community/presentation/widgets/community_create_story_sheet.dart';
+import '../../../membership/domain/models/membership_plan.dart';
+import '../../../membership/presentation/screens/plan_detail_screen.dart';
+import '../../../membership/presentation/widgets/upgrade_bottom_sheet.dart';
 import '../../data/datasources/workout_cv_replay_source.dart';
+import '../../data/services/video_story_upload_service.dart';
 import '../../domain/entities/exercise_cv_state.dart';
 import '../../domain/services/cv_form_summary_calculator.dart';
 import '../../domain/services/lat_pulldown_baseline.dart';
@@ -164,6 +168,7 @@ class WorkoutCvResultScreen extends ConsumerStatefulWidget {
   final WorkoutCvReplaySource? replaySource;
   final VoidCallback? onDone;
   final CvFormSummary? formSummary;
+  final VideoStoryUploadService? uploadService;
 
   const WorkoutCvResultScreen({
     super.key,
@@ -176,6 +181,7 @@ class WorkoutCvResultScreen extends ConsumerStatefulWidget {
     this.replaySource,
     this.onDone,
     this.formSummary,
+    this.uploadService,
   });
 
   static bool isRepStandardMet(
@@ -206,6 +212,11 @@ class _WorkoutCvResultScreenState extends ConsumerState<WorkoutCvResultScreen>
   late final bool _hasScope;
   WorkoutCvNotifier? _notifier;
   Timer? _controlsTimer;
+  bool _isUploadingStory = false;
+  double _uploadProgress = 0.0;
+  String _uploadStageLabel = '';
+  String? _savedVideoStoryId;
+  String? _uploadErrorMessage;
 
   bool get _supportsNativeVideoView =>
       !kIsWeb && defaultTargetPlatform == TargetPlatform.android;
@@ -506,6 +517,175 @@ class _WorkoutCvResultScreenState extends ConsumerState<WorkoutCvResultScreen>
     await _notifier?.stop();
   }
 
+  CvFormSummary _buildBaseSummary({
+    required CvExerciseModule? module,
+    required List<LatPulldownRepEvent> effectiveReps,
+    required List<RepRecord> effectiveRecords,
+  }) {
+    return widget.formSummary ??
+        (effectiveReps.isNotEmpty
+            ? CvFormSummaryCalculator.compute(
+                reps: effectiveReps,
+                module: module,
+              )
+            : _computeSummaryFromRecords(effectiveRecords));
+  }
+
+  List<Map<String, dynamic>>? _buildRepTimelineJson(
+    List<RepRecord> effectiveRecords,
+  ) {
+    final records = (widget.repRecords != null && widget.repRecords!.isNotEmpty)
+        ? widget.repRecords!
+        : effectiveRecords;
+    if (records.isEmpty) return null;
+    return records.map((r) => r.toJson()).toList(growable: false);
+  }
+
+  VideoStoryUploadService _resolveUploadService() {
+    if (widget.uploadService != null) return widget.uploadService!;
+    if (_hasScope) return ref.read(videoStoryUploadServiceProvider);
+    return VideoStoryUploadService();
+  }
+
+  String _localizeUploadStage(String stage, {required bool isVi}) {
+    switch (stage) {
+      case 'compressing':
+        return isVi ? 'Đang nén video...' : 'Compressing video...';
+      case 'presigning':
+        return isVi ? 'Đang chuẩn bị tải lên...' : 'Preparing upload...';
+      case 'uploading':
+        return isVi ? 'Đang tải lên Cloud...' : 'Uploading to Cloud...';
+      case 'completing':
+        return isVi ? 'Đang hoàn tất...' : 'Finalizing...';
+      case 'completed':
+        return isVi ? 'Đã lưu Video Story' : 'Video Story saved';
+      default:
+        return stage;
+    }
+  }
+
+  Future<void> _saveVideoStory() async {
+    final videoPath = widget.replayVideoPath;
+    if (videoPath == null ||
+        videoPath.isEmpty ||
+        _isUploadingStory ||
+        _savedVideoStoryId != null) {
+      return;
+    }
+
+    final isVi = _isVietnameseLocale(context);
+    final cvState = _currentCvState();
+    final module = _resolveModule(cvState);
+    final criteria = ExerciseFormCriteria.forModule(module);
+    final effectiveReps = widget.repHistory.isNotEmpty
+        ? widget.repHistory
+        : cvState.replayRepEvents;
+    final effectiveRecords =
+        _resolveEffectiveRecords(cvState, effectiveReps, module, criteria);
+    final summaryBase = _buildBaseSummary(
+      module: module,
+      effectiveReps: effectiveReps,
+      effectiveRecords: effectiveRecords,
+    );
+    final repTimelineJson = _buildRepTimelineJson(effectiveRecords);
+    final slug = widget.exerciseSlug.isNotEmpty
+        ? widget.exerciseSlug
+        : (widget.exerciseId.isNotEmpty
+            ? widget.exerciseId
+            : cvState.exerciseSlug);
+
+    setState(() {
+      _isUploadingStory = true;
+      _uploadProgress = 0.0;
+      _uploadStageLabel = _localizeUploadStage('compressing', isVi: isVi);
+      _uploadErrorMessage = null;
+    });
+
+    final service = _resolveUploadService();
+    final result = await service.uploadVideoStory(
+      videoPath: videoPath,
+      exerciseSlug: slug.isNotEmpty ? slug : 'workout-cv',
+      cvFormSummary: summaryBase.toJson(),
+      repTimeline: repTimelineJson,
+      onProgress: (progress, stage) {
+        if (!mounted) return;
+        setState(() {
+          _uploadProgress = progress.clamp(0.0, 1.0);
+          _uploadStageLabel = _localizeUploadStage(stage, isVi: isVi);
+        });
+      },
+    );
+
+    if (!mounted) return;
+
+    if (result.success) {
+      setState(() {
+        _isUploadingStory = false;
+        _uploadProgress = 1.0;
+        _uploadStageLabel = _localizeUploadStage('completed', isVi: isVi);
+        _savedVideoStoryId = result.videoStoryId;
+        _uploadErrorMessage = null;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            isVi
+                ? 'Đã lưu Video Story lên Cloud thành công.'
+                : 'Video Story saved to Cloud.',
+          ),
+        ),
+      );
+      return;
+    }
+
+    setState(() {
+      _isUploadingStory = false;
+    });
+
+    if (result.isUpgradeRequired || result.isStorageQuotaExceeded) {
+      final message = result.errorMessage?.trim().isNotEmpty == true
+          ? result.errorMessage!
+          : (result.isStorageQuotaExceeded
+              ? (isVi
+                  ? 'Dung lượng lưu trữ Video Story đã đầy. Vui lòng nâng cấp gói.'
+                  : 'Video Story storage quota exceeded. Please upgrade.')
+              : (isVi
+                  ? 'Tính năng Lưu Video Story dành cho hội viên Plus trở lên.'
+                  : 'Video Story cloud save requires Plus or higher.'));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(message)),
+      );
+      if (_hasScope) {
+        final targetTier = result.isStorageQuotaExceeded
+            ? MembershipTier.pro
+            : MembershipTier.plus;
+        final selectedTier = await showUpgradeBottomSheet(
+          context,
+          tier: targetTier,
+        );
+        if (mounted && selectedTier != null) {
+          await Navigator.of(context).push(
+            MaterialPageRoute(
+              settings: RouteSettings(
+                name: '/membership/detail/${selectedTier.name}',
+              ),
+              builder: (_) => PlanDetailScreen(tier: selectedTier),
+            ),
+          );
+        }
+      }
+      return;
+    }
+
+    setState(() {
+      _uploadErrorMessage = result.errorMessage?.trim().isNotEmpty == true
+          ? result.errorMessage!
+          : (isVi
+              ? 'Không thể lưu Video Story. Vui lòng thử lại.'
+              : 'Could not save Video Story. Please try again.');
+    });
+  }
+
   void _handleExit() {
     _stopReplay();
     final cvState = _currentCvState();
@@ -516,13 +696,16 @@ class _WorkoutCvResultScreenState extends ConsumerState<WorkoutCvResultScreen>
         : cvState.replayRepEvents;
     final effectiveRecords =
         _resolveEffectiveRecords(cvState, effectiveReps, module, criteria);
-    final summaryToReturn = widget.formSummary ??
-        (effectiveReps.isNotEmpty
-            ? CvFormSummaryCalculator.compute(
-                reps: effectiveReps,
-                module: module,
-              )
-            : _computeSummaryFromRecords(effectiveRecords));
+    final summaryBase = _buildBaseSummary(
+      module: module,
+      effectiveReps: effectiveReps,
+      effectiveRecords: effectiveRecords,
+    );
+    final repTimelineJson = _buildRepTimelineJson(effectiveRecords);
+    final summaryToReturn = summaryBase.copyWith(
+      repTimeline: repTimelineJson,
+      videoStoryId: _savedVideoStoryId,
+    );
     if (widget.onDone != null) {
       widget.onDone!();
     } else {
@@ -763,6 +946,19 @@ class _WorkoutCvResultScreenState extends ConsumerState<WorkoutCvResultScreen>
                       });
                     },
                   ),
+                  if (widget.replayVideoPath != null &&
+                      widget.replayVideoPath!.isNotEmpty) ...[
+                    const SizedBox(height: 12),
+                    _VideoStoryUploadCard(
+                      key: const ValueKey('workout_cv_result_video_story_card'),
+                      isUploading: _isUploadingStory,
+                      progress: _uploadProgress,
+                      stageLabel: _uploadStageLabel,
+                      savedVideoStoryId: _savedVideoStoryId,
+                      errorMessage: _uploadErrorMessage,
+                      onSavePressed: _saveVideoStory,
+                    ),
+                  ],
                   const SizedBox(height: 16),
                   _HeroSummaryCard(
                     totalReps: totalReps,
@@ -2190,6 +2386,140 @@ class _EmptyRepHistoryCard extends StatelessWidget {
               color: t.textSecondary,
             ),
           ),
+        ],
+      ),
+    );
+  }
+}
+
+class _VideoStoryUploadCard extends StatelessWidget {
+  final bool isUploading;
+  final double progress;
+  final String stageLabel;
+  final String? savedVideoStoryId;
+  final String? errorMessage;
+  final VoidCallback onSavePressed;
+
+  const _VideoStoryUploadCard({
+    super.key,
+    required this.isUploading,
+    required this.progress,
+    required this.stageLabel,
+    required this.savedVideoStoryId,
+    required this.errorMessage,
+    required this.onSavePressed,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final t = _CalmAthleticismReportTokens.of(context);
+    final isVi = _isVietnameseLocale(context);
+    final isSaved = savedVideoStoryId != null && savedVideoStoryId!.isNotEmpty;
+
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: t.cardSurface,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: isSaved ? t.statusValid.withOpacity(0.5) : t.border,
+          width: 1,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (isSaved)
+            Row(
+              key: const ValueKey('workout_cv_result_video_story_saved_badge'),
+              children: [
+                Icon(
+                  Icons.cloud_done_outlined,
+                  size: 20,
+                  color: t.statusValid,
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    isVi
+                        ? 'Đã lưu Video Story lên Cloud'
+                        : 'Saved Video Story to Cloud',
+                    style: _CalmAthleticismReportTokens.body(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: t.statusValid,
+                    ),
+                  ),
+                ),
+              ],
+            )
+          else ...[
+            SizedBox(
+              height: 44,
+              child: OutlinedButton.icon(
+                key: const ValueKey(
+                  'workout_cv_result_save_video_story_button',
+                ),
+                onPressed: isUploading ? null : onSavePressed,
+                icon: Icon(
+                  isUploading
+                      ? Icons.cloud_upload_outlined
+                      : Icons.cloud_upload_rounded,
+                  size: 18,
+                  color: isUploading ? t.textSecondary : t.statusValid,
+                ),
+                label: Text(
+                  isVi
+                      ? 'Lưu Video Story lên Cloud'
+                      : 'Save Video Story to Cloud',
+                  style: _CalmAthleticismReportTokens.body(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: isUploading ? t.textSecondary : t.textPrimary,
+                  ),
+                ),
+                style: OutlinedButton.styleFrom(
+                  backgroundColor: t.cardHover,
+                  side: BorderSide(color: t.border),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+              ),
+            ),
+            if (isUploading) ...[
+              const SizedBox(height: 10),
+              LinearProgressIndicator(
+                value: progress.clamp(0.0, 1.0),
+                backgroundColor: t.iconContainer,
+                valueColor: AlwaysStoppedAnimation<Color>(t.statusValid),
+                borderRadius: BorderRadius.circular(4),
+              ),
+              if (stageLabel.isNotEmpty) ...[
+                const SizedBox(height: 6),
+                Text(
+                  stageLabel,
+                  style: _CalmAthleticismReportTokens.body(
+                    fontSize: 12,
+                    color: t.textSecondary,
+                  ),
+                ),
+              ],
+            ],
+            if (!isUploading &&
+                errorMessage != null &&
+                errorMessage!.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              Text(
+                errorMessage!,
+                style: _CalmAthleticismReportTokens.body(
+                  fontSize: 12,
+                  color: t.statusWarning,
+                ),
+              ),
+            ],
+          ],
         ],
       ),
     );

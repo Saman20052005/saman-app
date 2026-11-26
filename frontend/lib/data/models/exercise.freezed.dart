@@ -608,6 +608,9 @@ mixin _$ExerciseSetLog {
   int? get restTakenSeconds => throw _privateConstructorUsedError;
   bool get cvDetected => throw _privateConstructorUsedError;
   Map<String, dynamic>? get cvFormSummary => throw _privateConstructorUsedError;
+  List<Map<String, dynamic>>? get repTimeline =>
+      throw _privateConstructorUsedError;
+  String? get videoStoryId => throw _privateConstructorUsedError;
   SetType get setType => throw _privateConstructorUsedError;
   double? get rpe => throw _privateConstructorUsedError;
   String? get note => throw _privateConstructorUsedError;
@@ -637,6 +640,8 @@ abstract class $ExerciseSetLogCopyWith<$Res> {
       int? restTakenSeconds,
       bool cvDetected,
       Map<String, dynamic>? cvFormSummary,
+      List<Map<String, dynamic>>? repTimeline,
+      String? videoStoryId,
       SetType setType,
       double? rpe,
       String? note,
@@ -668,6 +673,8 @@ class _$ExerciseSetLogCopyWithImpl<$Res, $Val extends ExerciseSetLog>
     Object? restTakenSeconds = freezed,
     Object? cvDetected = null,
     Object? cvFormSummary = freezed,
+    Object? repTimeline = freezed,
+    Object? videoStoryId = freezed,
     Object? setType = null,
     Object? rpe = freezed,
     Object? note = freezed,
@@ -719,6 +726,14 @@ class _$ExerciseSetLogCopyWithImpl<$Res, $Val extends ExerciseSetLog>
           ? _value.cvFormSummary
           : cvFormSummary // ignore: cast_nullable_to_non_nullable
               as Map<String, dynamic>?,
+      repTimeline: freezed == repTimeline
+          ? _value.repTimeline
+          : repTimeline // ignore: cast_nullable_to_non_nullable
+              as List<Map<String, dynamic>>?,
+      videoStoryId: freezed == videoStoryId
+          ? _value.videoStoryId
+          : videoStoryId // ignore: cast_nullable_to_non_nullable
+              as String?,
       setType: null == setType
           ? _value.setType
           : setType // ignore: cast_nullable_to_non_nullable
@@ -763,6 +778,8 @@ abstract class _$$ExerciseSetLogImplCopyWith<$Res>
       int? restTakenSeconds,
       bool cvDetected,
       Map<String, dynamic>? cvFormSummary,
+      List<Map<String, dynamic>>? repTimeline,
+      String? videoStoryId,
       SetType setType,
       double? rpe,
       String? note,
@@ -792,6 +809,8 @@ class __$$ExerciseSetLogImplCopyWithImpl<$Res>
     Object? restTakenSeconds = freezed,
     Object? cvDetected = null,
     Object? cvFormSummary = freezed,
+    Object? repTimeline = freezed,
+    Object? videoStoryId = freezed,
     Object? setType = null,
     Object? rpe = freezed,
     Object? note = freezed,
@@ -843,6 +862,14 @@ class __$$ExerciseSetLogImplCopyWithImpl<$Res>
           ? _value._cvFormSummary
           : cvFormSummary // ignore: cast_nullable_to_non_nullable
               as Map<String, dynamic>?,
+      repTimeline: freezed == repTimeline
+          ? _value._repTimeline
+          : repTimeline // ignore: cast_nullable_to_non_nullable
+              as List<Map<String, dynamic>>?,
+      videoStoryId: freezed == videoStoryId
+          ? _value.videoStoryId
+          : videoStoryId // ignore: cast_nullable_to_non_nullable
+              as String?,
       setType: null == setType
           ? _value.setType
           : setType // ignore: cast_nullable_to_non_nullable
@@ -882,12 +909,15 @@ class _$ExerciseSetLogImpl extends _ExerciseSetLog {
       this.restTakenSeconds,
       this.cvDetected = false,
       final Map<String, dynamic>? cvFormSummary,
+      final List<Map<String, dynamic>>? repTimeline,
+      this.videoStoryId,
       this.setType = SetType.normal,
       this.rpe,
       this.note,
       this.supersetGroupId,
       this.isPr = false})
       : _cvFormSummary = cvFormSummary,
+        _repTimeline = repTimeline,
         super._();
 
   factory _$ExerciseSetLogImpl.fromJson(Map<String, dynamic> json) =>
@@ -925,6 +955,18 @@ class _$ExerciseSetLogImpl extends _ExerciseSetLog {
     return EqualUnmodifiableMapView(value);
   }
 
+  final List<Map<String, dynamic>>? _repTimeline;
+  @override
+  List<Map<String, dynamic>>? get repTimeline {
+    final value = _repTimeline;
+    if (value == null) return null;
+    if (_repTimeline is EqualUnmodifiableListView) return _repTimeline;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableListView(value);
+  }
+
+  @override
+  final String? videoStoryId;
   @override
   @JsonKey()
   final SetType setType;
@@ -940,7 +982,7 @@ class _$ExerciseSetLogImpl extends _ExerciseSetLog {
 
   @override
   String toString() {
-    return 'ExerciseSetLog(exerciseId: $exerciseId, exerciseSlug: $exerciseSlug, setNumber: $setNumber, repsCompleted: $repsCompleted, unit: $unit, secondsCompleted: $secondsCompleted, weightKg: $weightKg, isCompleted: $isCompleted, restTakenSeconds: $restTakenSeconds, cvDetected: $cvDetected, cvFormSummary: $cvFormSummary, setType: $setType, rpe: $rpe, note: $note, supersetGroupId: $supersetGroupId, isPr: $isPr)';
+    return 'ExerciseSetLog(exerciseId: $exerciseId, exerciseSlug: $exerciseSlug, setNumber: $setNumber, repsCompleted: $repsCompleted, unit: $unit, secondsCompleted: $secondsCompleted, weightKg: $weightKg, isCompleted: $isCompleted, restTakenSeconds: $restTakenSeconds, cvDetected: $cvDetected, cvFormSummary: $cvFormSummary, repTimeline: $repTimeline, videoStoryId: $videoStoryId, setType: $setType, rpe: $rpe, note: $note, supersetGroupId: $supersetGroupId, isPr: $isPr)';
   }
 
   @override
@@ -969,6 +1011,10 @@ class _$ExerciseSetLogImpl extends _ExerciseSetLog {
                 other.cvDetected == cvDetected) &&
             const DeepCollectionEquality()
                 .equals(other._cvFormSummary, _cvFormSummary) &&
+            const DeepCollectionEquality()
+                .equals(other._repTimeline, _repTimeline) &&
+            (identical(other.videoStoryId, videoStoryId) ||
+                other.videoStoryId == videoStoryId) &&
             (identical(other.setType, setType) || other.setType == setType) &&
             (identical(other.rpe, rpe) || other.rpe == rpe) &&
             (identical(other.note, note) || other.note == note) &&
@@ -992,6 +1038,8 @@ class _$ExerciseSetLogImpl extends _ExerciseSetLog {
       restTakenSeconds,
       cvDetected,
       const DeepCollectionEquality().hash(_cvFormSummary),
+      const DeepCollectionEquality().hash(_repTimeline),
+      videoStoryId,
       setType,
       rpe,
       note,
@@ -1019,6 +1067,8 @@ abstract class _ExerciseSetLog extends ExerciseSetLog {
       final int? restTakenSeconds,
       final bool cvDetected,
       final Map<String, dynamic>? cvFormSummary,
+      final List<Map<String, dynamic>>? repTimeline,
+      final String? videoStoryId,
       final SetType setType,
       final double? rpe,
       final String? note,
@@ -1051,6 +1101,10 @@ abstract class _ExerciseSetLog extends ExerciseSetLog {
   bool get cvDetected;
   @override
   Map<String, dynamic>? get cvFormSummary;
+  @override
+  List<Map<String, dynamic>>? get repTimeline;
+  @override
+  String? get videoStoryId;
   @override
   SetType get setType;
   @override

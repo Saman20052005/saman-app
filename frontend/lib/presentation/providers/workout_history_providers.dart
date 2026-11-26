@@ -82,6 +82,8 @@ class ActiveSessionSaver extends _$ActiveSessionSaver {
             isCompleted: true,
             cvDetected: exercise.cvFormSummary != null,
             cvFormSummary: exercise.cvFormSummary,
+            repTimeline: exercise.repTimeline,
+            videoStoryId: exercise.videoStoryId,
             setType: set.setType,
             rpe: set.rpe,
             note: (set.note != null && set.note!.trim().isNotEmpty)

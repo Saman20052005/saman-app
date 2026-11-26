@@ -17,13 +17,37 @@ from pymongo.errors import DuplicateKeyError
 from backend.auth_utils import verify_token, get_current_user
 from backend.app.repositories.user_repository import UserRepository
 import backend.app.database as _db_mod
-from backend.app.database import workout_history_collection, custom_plans_collection, exercises_collection
+from backend.app.database import (
+    workout_history_collection,
+    custom_plans_collection,
+    exercises_collection,
+    workout_video_stories_collection,
+)
 from backend.app.services.context_utils import (
     build_user_query,
     get_vn_date_str,
     get_vn_day_range_utc,
     normalize_email,
     utc_to_vn_date_str,
+)
+from backend.app.models.workout_video_story import (
+    ALLOWED_VIDEO_CONTENT_TYPES,
+    MAX_VIDEO_STORY_BYTES,
+    RepTimelineItem,
+    VideoStoryCompleteRequest,
+    VideoStoryCompleteResponse,
+    VideoStoryDetailResponse,
+    VideoStoryPresignRequest,
+    VideoStoryPresignResponse,
+)
+from backend.app.services.media_storage_service import (
+    ALLOWED_STORAGE_PREFIXES,
+    MediaStorageConfigError,
+    get_media_storage_service,
+)
+from backend.app.services.quota_service import (
+    get_video_citation_days,
+    get_video_story_storage_limit_mb,
 )
 
 try:
@@ -451,6 +475,8 @@ class ExerciseSetLogIn(pd.BaseModel):
     note: Optional[str] = pd.Field(None, max_length=300)
     superset_group_id: Optional[str] = pd.Field(None, alias="supersetGroupId")
     is_pr: bool = pd.Field(False, alias="isPr")
+    rep_timeline: Optional[List[RepTimelineItem]] = pd.Field(default=None, alias="repTimeline")
+    video_story_id: Optional[str] = pd.Field(default=None, alias="videoStoryId")
 
     model_config = pd.ConfigDict(populate_by_name=True)
 
@@ -960,6 +986,23 @@ def _resolve_exercise_muscles(
 def _normalize_log_for_fingerprint(item: Any) -> tuple:
     if not isinstance(item, dict):
         return ()
+    rep_tl = item.get("rep_timeline") or item.get("repTimeline")
+    tl_fingerprint = ()
+    if isinstance(rep_tl, list):
+        tl_fingerprint = tuple(
+            (
+                r.get("rep_index", r.get("repIndex")),
+                r.get("start_sec", r.get("startSec")),
+                r.get("bottom_sec", r.get("bottomSec")),
+                r.get("end_sec", r.get("endSec")),
+                r.get("duration_sec", r.get("durationSec")),
+                r.get("metric_angle_deg", r.get("metricAngleDeg")),
+                r.get("is_valid", r.get("isValid")),
+                r.get("issue_type", r.get("issueType")),
+            )
+            for r in rep_tl
+            if isinstance(r, dict)
+        )
     return (
         item.get("exercise_id"),
         item.get("exercise_slug"),
@@ -976,6 +1019,8 @@ def _normalize_log_for_fingerprint(item: Any) -> tuple:
         item.get("rpe"),
         item.get("note"),
         item.get("superset_group_id"),
+        tl_fingerprint,
+        item.get("video_story_id") or item.get("videoStoryId"),
     )
 
 
@@ -1013,6 +1058,37 @@ def _serialize_workout_session(doc: dict) -> dict:
         superset_val = str(superset_raw) if superset_raw is not None else None
         is_pr_raw = item.get("is_pr") if item.get("is_pr") is not None else item.get("isPr", False)
 
+        rep_tl_raw = item.get("rep_timeline") if item.get("rep_timeline") is not None else item.get("repTimeline")
+        rep_timeline_out = None
+        if isinstance(rep_tl_raw, list):
+            rep_timeline_out = []
+            for r in rep_tl_raw:
+                if isinstance(r, RepTimelineItem):
+                    rep_timeline_out.append(r.model_dump(by_alias=True))
+                elif isinstance(r, dict):
+                    rep_timeline_out.append({
+                        "repIndex": int(r.get("rep_index", r.get("repIndex", 1))),
+                        "startSec": float(r.get("start_sec", r.get("startSec", 0.0))),
+                        "bottomSec": float(r.get("bottom_sec", r.get("bottomSec", 0.0))),
+                        "endSec": float(r.get("end_sec", r.get("endSec", 0.0))),
+                        "durationSec": float(r.get("duration_sec", r.get("durationSec", 0.0))),
+                        "metricAngleDeg": (
+                            float(r["metric_angle_deg"])
+                            if r.get("metric_angle_deg") is not None
+                            else (float(r["metricAngleDeg"]) if r.get("metricAngleDeg") is not None else None)
+                        ),
+                        "isValid": bool(r.get("is_valid", r.get("isValid", True))),
+                        "issueType": str(r.get("issue_type", r.get("issueType", "none"))),
+                        "viewAngle": str(r.get("view_angle", r.get("viewAngle", "unknown"))),
+                        "visibilityConfidence": float(r.get("visibility_confidence", r.get("visibilityConfidence", 1.0))),
+                    })
+
+        video_story_id_out = (
+            str(item["video_story_id"])
+            if item.get("video_story_id") is not None
+            else (str(item["videoStoryId"]) if item.get("videoStoryId") is not None else None)
+        )
+
         exercise_logs.append({
             "exerciseId": str(item.get("exercise_id") or item.get("exerciseId") or ""),
             "exerciseSlug": str(item.get("exercise_slug") or item.get("exerciseSlug") or ""),
@@ -1030,6 +1106,8 @@ def _serialize_workout_session(doc: dict) -> dict:
             "note": note_val,
             "supersetGroupId": superset_val,
             "isPr": bool(is_pr_raw),
+            "repTimeline": rep_timeline_out,
+            "videoStoryId": video_story_id_out,
         })
 
     started_at = _format_utc_iso(doc.get("started_at") or doc.get("start_time") or doc.get("created_at"))
@@ -1314,9 +1392,20 @@ async def log_workout_session(
 
         # Normalize exercise logs
         logs_data = []
+        linked_story_ids = set()
         if session.exercise_logs:
             for item in session.exercise_logs:
                 cv_summary = item.cv_form_summary if isinstance(item.cv_form_summary, dict) else None
+                rep_tl_dump = None
+                if item.rep_timeline:
+                    rep_tl_dump = [
+                        r.model_dump(by_alias=False) if hasattr(r, "model_dump") else dict(r)
+                        for r in item.rep_timeline
+                    ]
+                v_story_id = (item.video_story_id or "").strip() or None
+                if v_story_id:
+                    linked_story_ids.add(v_story_id)
+
                 logs_data.append({
                     "exercise_id": item.exercise_id,
                     "exercise_slug": item.exercise_slug,
@@ -1334,6 +1423,8 @@ async def log_workout_session(
                     "note": item.note,
                     "superset_group_id": item.superset_group_id,
                     "is_pr": False,
+                    "rep_timeline": rep_tl_dump,
+                    "video_story_id": v_story_id,
                 })
         elif session.completed_exercises:
             for e in session.completed_exercises:
@@ -1353,6 +1444,23 @@ async def log_workout_session(
                     else raw_item.get("supersetGroupId")
                 )
                 raw_item["is_pr"] = False
+                raw_rep_tl = raw_item.get("rep_timeline") if raw_item.get("rep_timeline") is not None else raw_item.get("repTimeline")
+                if isinstance(raw_rep_tl, list):
+                    raw_item["rep_timeline"] = [
+                        r.model_dump(by_alias=False) if hasattr(r, "model_dump") else dict(r)
+                        for r in raw_rep_tl
+                    ]
+                else:
+                    raw_item["rep_timeline"] = None
+                raw_story_id = (
+                    raw_item.get("video_story_id")
+                    if raw_item.get("video_story_id") is not None
+                    else raw_item.get("videoStoryId")
+                )
+                v_story_id = str(raw_story_id).strip() if raw_story_id else None
+                raw_item["video_story_id"] = v_story_id
+                if v_story_id:
+                    linked_story_ids.add(v_story_id)
                 logs_data.append(raw_item)
 
         idempotent_id = _idempotent_session_object_id(user_id, session.id)
@@ -1404,6 +1512,44 @@ async def log_workout_session(
                     )
                 doc = existing
                 logged_at = _utc_ms(existing.get("created_at")) or now_utc
+
+        # Link workout_session_id in workout_video_stories fail-safely
+        if linked_story_ids:
+            try:
+                db_target = _db_mod.db
+                story_col = getattr(_db_mod, "workout_video_stories_collection", None)
+                if story_col is None and db_target is not None:
+                    story_col = db_target["workout_video_stories"]
+                if story_col is not None:
+                    session_id_str = str(doc["_id"])
+                    raw_acc_id = current_user.get("account_id")
+                    user_acc_or_id = (
+                        raw_acc_id.strip()
+                        if isinstance(raw_acc_id, str) and raw_acc_id.strip()
+                        else user_id
+                    )
+                    story_col.update_many(
+                        {
+                            "story_id": {"$in": list(linked_story_ids)},
+                            "$and": [
+                                {
+                                    "$or": [
+                                        {"account_id": user_acc_or_id},
+                                        {"user_id": user_id},
+                                    ]
+                                },
+                                {
+                                    "$or": [
+                                        {"workout_session_id": None},
+                                        {"workout_session_id": {"$exists": False}},
+                                    ]
+                                },
+                            ],
+                        },
+                        {"$set": {"workout_session_id": session_id_str}},
+                    )
+            except Exception as exc:
+                logger.warning("Fail-safe linking of video stories to session failed: %s", exc)
 
         serialized = _serialize_workout_session(doc)
         return {
@@ -2177,3 +2323,364 @@ async def authorize_workout_cv(
             )
 
     _raise_cv_storage_unavailable()
+
+
+# ─── WORKOUT VIDEO STORIES & CLOUD STORAGE (PHASE 3) ─────────────────────────
+
+def _get_user_video_story_used_bytes(col, account_id: str) -> int:
+    """Calculate cumulative size_bytes of Video Stories owned by account_id.
+
+    Compatible with both real MongoDB aggregate and in-memory mock collections.
+    """
+    if col is None or not account_id:
+        return 0
+    try:
+        if hasattr(col, "aggregate"):
+            pipeline = [
+                {"$match": {"account_id": account_id}},
+                {"$group": {"_id": None, "total_bytes": {"$sum": "$size_bytes"}}},
+            ]
+            res = list(col.aggregate(pipeline))
+            if res and isinstance(res[0], dict):
+                return int(res[0].get("total_bytes", 0) or 0)
+    except Exception as exc:
+        logger.debug("Mongo aggregate for video story bytes failed: %s, falling back to find", exc)
+
+    try:
+        cursor = col.find({"account_id": account_id})
+        return sum(int(doc.get("size_bytes", 0) or 0) for doc in cursor if isinstance(doc, dict))
+    except Exception as exc:
+        logger.warning("Failed to calculate used video story bytes for account %s: %s", account_id, exc)
+        return 0
+
+
+def _resolve_account_id_and_tier_for_workout(current_user: dict) -> Tuple[str, str]:
+    """Helper to resolve normalized account_id and effective membership tier."""
+    raw_email = current_user.get("email")
+    email = raw_email.strip().lower() if isinstance(raw_email, str) and raw_email.strip() else ""
+    raw_user_id = str(current_user.get("_id")) if current_user.get("_id") is not None else ""
+    raw_account_id = current_user.get("account_id")
+    account_id_hint = (
+        raw_account_id.strip()
+        if isinstance(raw_account_id, str) and raw_account_id.strip()
+        else ""
+    )
+
+    db = _db_mod.db
+    auth_ref = account_id_hint or email or raw_user_id
+    if not auth_ref:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Unauthorized",
+        )
+
+    account_id = auth_ref
+    if db is not None and resolve_or_create_account_id is not None:
+        try:
+            account_id = resolve_or_create_account_id(db, auth_ref)
+        except Exception as exc:
+            logger.warning("Account ID resolution failed: %s", exc)
+
+    tier_str = "free"
+    if db is not None and resolve_user_tier_and_quota is not None:
+        try:
+            eff_tier, _, _ = resolve_user_tier_and_quota(
+                db,
+                user_id=account_id,
+                email=email or None,
+                benefit_id=WORKOUT_CV_BENEFIT_ID,
+            )
+            tier_str = eff_tier.value if hasattr(eff_tier, "value") else str(eff_tier or "free")
+        except Exception as exc:
+            logger.warning("Tier resolution failed: %s", exc)
+
+    return account_id, tier_str.lower()
+
+
+@router.post("/video-stories/presign", response_model=VideoStoryPresignResponse)
+async def presign_video_story(
+    req: VideoStoryPresignRequest,
+    current_user: dict = Depends(get_current_user),
+):
+    """Generate a presigned upload slot for Workout Video Story based on membership cloud quota."""
+    if req.content_type not in ALLOWED_VIDEO_CONTENT_TYPES:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Unsupported content_type: {req.content_type}. Allowed: {sorted(ALLOWED_VIDEO_CONTENT_TYPES)}",
+        )
+
+    if req.size_bytes > MAX_VIDEO_STORY_BYTES:
+        raise HTTPException(
+            status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+            detail=f"Video file exceeds maximum allowed size of {MAX_VIDEO_STORY_BYTES // (1024 * 1024)} MB.",
+        )
+
+    account_id, tier = _resolve_account_id_and_tier_for_workout(current_user)
+    limit_mb = get_video_story_storage_limit_mb(tier)
+
+    story_col = getattr(_db_mod, "workout_video_stories_collection", None)
+    if story_col is None and _db_mod.db is not None:
+        story_col = _db_mod.db["workout_video_stories"]
+
+    used_bytes = _get_user_video_story_used_bytes(story_col, account_id)
+
+    if limit_mb <= 0:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail={
+                "code": "entitlement_required",
+                "benefit_id": "workout.video_story.cloud_mb",
+                "limit_mb": 0,
+                "used_bytes": used_bytes,
+                "message": "Gói Free chỉ lưu chỉ số JSON. Nâng cấp Plus/Pro/Ultra để lưu Video Workout Story lên Cloud.",
+            },
+        )
+
+    limit_bytes = limit_mb * 1024 * 1024
+    if used_bytes + req.size_bytes > limit_bytes:
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail={
+                "code": "storage_quota_exceeded",
+                "benefit_id": "workout.video_story.cloud_mb",
+                "limit_mb": limit_mb,
+                "used_bytes": used_bytes,
+                "message": "Bạn đã dùng hết dung lượng Cloud Video Story của gói hiện tại.",
+            },
+        )
+
+    story_id = uuid4().hex
+    ext = "mov" if req.content_type == "video/quicktime" else "mp4"
+    storage_key = f"saman/workouts/{account_id}/{story_id}.{ext}"
+
+    try:
+        storage_svc = get_media_storage_service()
+        presigned = storage_svc.generate_presigned_upload_url(
+            storage_key=storage_key,
+            content_type=req.content_type,
+            max_bytes=req.size_bytes,
+            expires_in=900,
+        )
+    except MediaStorageConfigError as exc:
+        logger.error("Media storage configuration error: %s", exc)
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Media storage is not configured or unavailable.",
+        )
+    except Exception as exc:
+        logger.error("Failed to generate presigned upload url: %s", exc)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to generate presigned upload URL: {exc}",
+        )
+
+    return VideoStoryPresignResponse(
+        story_id=story_id,
+        storage_key=storage_key,
+        upload_url=presigned.upload_url,
+        public_url=presigned.public_url,
+        headers=presigned.headers,
+        expires_in=presigned.expires_in,
+        limit_mb=limit_mb,
+        used_bytes=used_bytes,
+    )
+
+
+@router.post("/video-stories/complete", response_model=VideoStoryCompleteResponse)
+async def complete_video_story(
+    req: VideoStoryCompleteRequest,
+    current_user: dict = Depends(get_current_user),
+):
+    """Complete upload and record metadata for Workout Video Story with retention policy."""
+    if req.size_bytes > MAX_VIDEO_STORY_BYTES:
+        raise HTTPException(
+            status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+            detail=f"Video file exceeds maximum allowed size of {MAX_VIDEO_STORY_BYTES // (1024 * 1024)} MB.",
+        )
+
+    account_id, tier = _resolve_account_id_and_tier_for_workout(current_user)
+    raw_user_id = str(current_user.get("_id")) if current_user.get("_id") is not None else account_id
+
+    # Anti-tampering check: storage_key MUST strictly belong to this account
+    expected_prefix = f"saman/workouts/{account_id}/"
+    if not req.storage_key.startswith(expected_prefix) or ".." in req.storage_key:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Access denied to storage_key: invalid prefix or traversal sequence.",
+        )
+
+    story_col = getattr(_db_mod, "workout_video_stories_collection", None)
+    if story_col is None and _db_mod.db is not None:
+        story_col = _db_mod.db["workout_video_stories"]
+    if story_col is None:
+        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="Database unavailable")
+
+    limit_mb = get_video_story_storage_limit_mb(tier)
+    if limit_mb <= 0:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail={
+                "code": "entitlement_required",
+                "benefit_id": "workout.video_story.cloud_mb",
+                "limit_mb": 0,
+                "used_bytes": 0,
+                "message": "Gói Free chỉ lưu chỉ số JSON. Nâng cấp Plus/Pro/Ultra để lưu Video Workout Story lên Cloud.",
+            },
+        )
+
+    # Check if this exact story already exists for idempotent replay
+    existing_story = story_col.find_one({"story_id": req.story_id, "account_id": account_id})
+    used_bytes = _get_user_video_story_used_bytes(story_col, account_id)
+    limit_bytes = limit_mb * 1024 * 1024
+
+    if existing_story:
+        old_size = int(existing_story.get("size_bytes", 0) or 0)
+        net_addition = req.size_bytes - old_size
+        if used_bytes + net_addition > limit_bytes:
+            raise HTTPException(
+                status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                detail={
+                    "code": "storage_quota_exceeded",
+                    "benefit_id": "workout.video_story.cloud_mb",
+                    "limit_mb": limit_mb,
+                    "used_bytes": used_bytes,
+                    "message": "Bạn đã dùng hết dung lượng Cloud Video Story của gói hiện tại.",
+                },
+            )
+    else:
+        if used_bytes + req.size_bytes > limit_bytes:
+            raise HTTPException(
+                status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                detail={
+                    "code": "storage_quota_exceeded",
+                    "benefit_id": "workout.video_story.cloud_mb",
+                    "limit_mb": limit_mb,
+                    "used_bytes": used_bytes,
+                    "message": "Bạn đã dùng hết dung lượng Cloud Video Story của gói hiện tại.",
+                },
+            )
+
+    now_utc = datetime.now(timezone.utc)
+    vn_date = now_utc.astimezone(ICT_ZONE).strftime("%Y-%m-%d")
+    citation_days = get_video_citation_days(tier)
+    retention_expires_at = (
+        (now_utc + timedelta(days=citation_days)).isoformat().replace("+00:00", "Z")
+        if citation_days > 0
+        else None
+    )
+
+    timeline_data = [
+        item.model_dump(by_alias=False) if hasattr(item, "model_dump") else dict(item)
+        for item in req.rep_timeline
+    ]
+
+    doc = {
+        "story_id": req.story_id,
+        "video_story_id": req.story_id,
+        "account_id": account_id,
+        "user_id": raw_user_id,
+        "workout_session_id": req.workout_session_id,
+        "exercise_slug": req.exercise_slug,
+        "date": vn_date,
+        "created_at": now_utc.isoformat().replace("+00:00", "Z"),
+        "storage_key": req.storage_key,
+        "video_url": req.video_url,
+        "thumbnail_url": req.thumbnail_url,
+        "duration_sec": req.duration_sec,
+        "size_bytes": req.size_bytes,
+        "resolution": req.resolution,
+        "retention_expires_at": retention_expires_at,
+        "cv_form_summary": req.cv_form_summary,
+        "rep_timeline": timeline_data,
+    }
+
+    try:
+        story_col.update_one(
+            {"story_id": req.story_id, "account_id": account_id},
+            {"$set": doc},
+            upsert=True,
+        )
+    except Exception as exc:
+        logger.error("Failed to persist video story document: %s", exc)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to record video story: {exc}",
+        )
+
+    updated_used_bytes = _get_user_video_story_used_bytes(story_col, account_id)
+    return VideoStoryCompleteResponse(
+        video_story_id=req.story_id,
+        video_url=req.video_url,
+        storage_key=req.storage_key,
+        size_bytes=req.size_bytes,
+        used_bytes=updated_used_bytes,
+        limit_mb=limit_mb,
+        retention_expires_at=retention_expires_at,
+    )
+
+
+@router.get("/video-stories/{story_id}", response_model=VideoStoryDetailResponse)
+async def get_video_story_detail(
+    story_id: str,
+    current_user: dict = Depends(get_current_user),
+):
+    """Retrieve full detail of a Video Story isolated by account_id."""
+    account_id, _ = _resolve_account_id_and_tier_for_workout(current_user)
+
+    story_col = getattr(_db_mod, "workout_video_stories_collection", None)
+    if story_col is None and _db_mod.db is not None:
+        story_col = _db_mod.db["workout_video_stories"]
+    if story_col is None:
+        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="Database unavailable")
+
+    doc = story_col.find_one({"story_id": story_id, "account_id": account_id})
+    if not doc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Video story not found")
+
+    tl_raw = doc.get("rep_timeline") or []
+    rep_timeline_out = []
+    for r in tl_raw:
+        if isinstance(r, dict):
+            rep_timeline_out.append(
+                RepTimelineItem(
+                    rep_index=int(r.get("rep_index", r.get("repIndex", 1))),
+                    start_sec=float(r.get("start_sec", r.get("startSec", 0.0))),
+                    bottom_sec=float(r.get("bottom_sec", r.get("bottomSec", 0.0))),
+                    end_sec=float(r.get("end_sec", r.get("endSec", 0.0))),
+                    duration_sec=float(r.get("duration_sec", r.get("durationSec", 0.0))),
+                    metric_angle_deg=(
+                        float(r["metric_angle_deg"])
+                        if r.get("metric_angle_deg") is not None
+                        else (float(r["metricAngleDeg"]) if r.get("metricAngleDeg") is not None else None)
+                    ),
+                    is_valid=bool(r.get("is_valid", r.get("isValid", True))),
+                    issue_type=str(r.get("issue_type", r.get("issueType", "none"))),
+                    view_angle=str(r.get("view_angle", r.get("viewAngle", "unknown"))),
+                    visibility_confidence=float(r.get("visibility_confidence", r.get("visibilityConfidence", 1.0))),
+                )
+            )
+
+    created_at_val = doc.get("created_at")
+    if isinstance(created_at_val, datetime):
+        created_at_str = created_at_val.isoformat().replace("+00:00", "Z")
+    else:
+        created_at_str = str(created_at_val or "")
+
+    return VideoStoryDetailResponse(
+        video_story_id=str(doc.get("video_story_id") or doc.get("story_id") or ""),
+        account_id=str(doc.get("account_id") or ""),
+        user_id=str(doc.get("user_id") or ""),
+        workout_session_id=str(doc["workout_session_id"]) if doc.get("workout_session_id") else None,
+        exercise_slug=str(doc.get("exercise_slug") or ""),
+        date=str(doc.get("date") or ""),
+        created_at=created_at_str,
+        storage_key=str(doc.get("storage_key") or ""),
+        video_url=str(doc.get("video_url") or ""),
+        thumbnail_url=str(doc["thumbnail_url"]) if doc.get("thumbnail_url") else None,
+        duration_sec=float(doc.get("duration_sec", 0.0)),
+        size_bytes=int(doc.get("size_bytes", 0)),
+        resolution=str(doc["resolution"]) if doc.get("resolution") else None,
+        retention_expires_at=str(doc["retention_expires_at"]) if doc.get("retention_expires_at") else None,
+        cv_form_summary=doc.get("cv_form_summary"),
+        rep_timeline=rep_timeline_out,
+    )

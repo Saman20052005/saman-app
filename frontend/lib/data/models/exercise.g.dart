@@ -79,6 +79,10 @@ _$ExerciseSetLogImpl _$$ExerciseSetLogImplFromJson(Map<String, dynamic> json) =>
       restTakenSeconds: (json['restTakenSeconds'] as num?)?.toInt(),
       cvDetected: json['cvDetected'] as bool? ?? false,
       cvFormSummary: json['cvFormSummary'] as Map<String, dynamic>?,
+      repTimeline: (json['repTimeline'] as List<dynamic>?)
+          ?.map((e) => e as Map<String, dynamic>)
+          .toList(),
+      videoStoryId: json['videoStoryId'] as String?,
       setType: $enumDecodeNullable(_$SetTypeEnumMap, json['setType']) ??
           SetType.normal,
       rpe: (json['rpe'] as num?)?.toDouble(),

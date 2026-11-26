@@ -57,6 +57,10 @@ class ApiConfig {
   static const String getSessionEndpoint = '$baseUrl/api/workouts/sessions';
   static const String workoutCvAuthorizeEndpoint =
       '$baseUrl/api/workouts/cv/authorize';
+  static const String workoutVideoStoryPresignEndpoint =
+      '$baseUrl/api/workouts/video-stories/presign';
+  static const String workoutVideoStoryCompleteEndpoint =
+      '$baseUrl/api/workouts/video-stories/complete';
 
   // ==================== EXERCISE ENDPOINTS ====================
   static const String muscleGroupsEndpoint =

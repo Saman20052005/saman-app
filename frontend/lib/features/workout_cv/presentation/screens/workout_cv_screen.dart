@@ -696,6 +696,7 @@ class _WorkoutCvScreenState extends ConsumerState<WorkoutCvScreen>
                     exerciseName: widget.exerciseName,
                     exerciseId: widget.exerciseId,
                     exerciseSlug: widget.exerciseSlug,
+                    replayVideoPath: widget.videoPath,
                     formSummary: summary,
                   ),
                 ),

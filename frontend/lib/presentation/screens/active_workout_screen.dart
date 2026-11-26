@@ -3148,7 +3148,12 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
     if (result != null &&
         result.totalReps > 0 &&
         sessionNotifier.sessionId == currentSessionId) {
-      sessionNotifier.attachCvFormSummary(currentEx.id, result.toJson());
+      sessionNotifier.attachCvFormSummary(
+        currentEx.id,
+        result.toJson(),
+        repTimeline: result.repTimeline,
+        videoStoryId: result.videoStoryId,
+      );
     }
 
     // 6. Resume ONLY if workout was active before opening and remains in the same unfinished session

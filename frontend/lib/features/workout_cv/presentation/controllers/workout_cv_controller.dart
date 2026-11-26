@@ -34,6 +34,18 @@ final workoutCvControllerProvider =
 });
 
 class WorkoutCvNotifier extends StateNotifier<ExerciseCvState> {
+  static const List<int> _upperBodyVisibilityLandmarkIndices = [
+    11,
+    12,
+    13,
+    14,
+    15,
+    16,
+    23,
+    24,
+  ];
+  static const int _maxVisibilitySamples = 5000;
+
   final WorkoutCvNativeSource _nativeSource;
   StreamSubscription<Map<String, dynamic>>? _subscription;
   int _lastFpsWindowCount = 0;
@@ -44,6 +56,8 @@ class WorkoutCvNotifier extends StateNotifier<ExerciseCvState> {
   bool _isStopped = false;
   dynamic _repTracker = LatPulldownBaseline();
   final ViewAngleDetector _viewAngleDetector = ViewAngleDetector();
+  final List<({int timestampMs, double confidence})> _frameVisibilitySamples =
+      [];
   int? _repSessionGen;
   int? _lastRepPtsMs;
   bool _analysisClosed = false;
@@ -540,6 +554,7 @@ class WorkoutCvNotifier extends StateNotifier<ExerciseCvState> {
   void _resetRepAnalysis() {
     _repTracker.reset();
     _viewAngleDetector.reset();
+    _frameVisibilitySamples.clear();
     _repSessionGen = null;
     _lastRepPtsMs = null;
     _analysisClosed = false;
@@ -598,6 +613,16 @@ class WorkoutCvNotifier extends StateNotifier<ExerciseCvState> {
     }
     if (_lastRepPtsMs != null && ptsMs <= _lastRepPtsMs!) return;
     _lastRepPtsMs = ptsMs;
+    if (state.landmarks.isNotEmpty) {
+      final frameConfidence = computeFrameVisibilityConfidence(state.landmarks);
+      if (_frameVisibilitySamples.length >= _maxVisibilitySamples) {
+        _frameVisibilitySamples.removeAt(0);
+      }
+      _frameVisibilitySamples.add((
+        timestampMs: ptsMs,
+        confidence: frameConfidence,
+      ));
+    }
 
     final imageWidth = (event['inputImageWidth'] as num?)?.toDouble() ?? 0;
     final imageHeight = (event['inputImageHeight'] as num?)?.toDouble() ?? 0;
@@ -767,6 +792,45 @@ class WorkoutCvNotifier extends StateNotifier<ExerciseCvState> {
     );
   }
 
+  static double computeFrameVisibilityConfidence(List<PoseLandmark> landmarks) {
+    if (landmarks.isEmpty) return 0.0;
+    var sum = 0.0;
+    var count = 0;
+    for (final idx in _upperBodyVisibilityLandmarkIndices) {
+      PoseLandmark? lm;
+      if (idx < landmarks.length && landmarks[idx].index == idx) {
+        lm = landmarks[idx];
+      } else {
+        for (final candidate in landmarks) {
+          if (candidate.index == idx) {
+            lm = candidate;
+            break;
+          }
+        }
+      }
+      if (lm != null) {
+        sum += lm.visibility.clamp(0.0, 1.0);
+        count++;
+      }
+    }
+    if (count == 0) return 0.0;
+    return sum / count;
+  }
+
+  double _computeRepVisibilityConfidence(int startMs, int endMs) {
+    if (_frameVisibilitySamples.isEmpty) return 1.0;
+    var sum = 0.0;
+    var count = 0;
+    for (final sample in _frameVisibilitySamples) {
+      if (sample.timestampMs >= startMs && sample.timestampMs <= endMs) {
+        sum += sample.confidence;
+        count++;
+      }
+    }
+    if (count == 0) return 1.0;
+    return (sum / count).clamp(0.0, 1.0);
+  }
+
   List<RepRecord> _buildRepRecords(
     List<LatPulldownRepEvent> reps,
     CvExerciseModule module,
@@ -795,6 +859,13 @@ class WorkoutCvNotifier extends StateNotifier<ExerciseCvState> {
         isValid: isStandardMet && issueType == RepIssueType.none,
         issueType: issueType,
         viewAngle: effectiveViewAngle,
+        startSec: rep.startTimestampMs / 1000.0,
+        bottomSec: rep.bottomTimestampMs / 1000.0,
+        endSec: rep.endTimestampMs / 1000.0,
+        visibilityConfidence: _computeRepVisibilityConfidence(
+          rep.startTimestampMs,
+          rep.endTimestampMs,
+        ),
       );
     }).toList(growable: false);
   }

@@ -35,6 +35,12 @@ import java.util.LinkedHashMap
 import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.atomic.AtomicLong
 import kotlin.math.abs
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class WorkoutCvPlugin(private val activity: Activity) :
     MethodChannel.MethodCallHandler,
@@ -144,6 +150,7 @@ class WorkoutCvPlugin(private val activity: Activity) :
 
     private var eventSink: EventChannel.EventSink? = null
     private val mainHandler = Handler(Looper.getMainLooper())
+    private val ioScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private var pendingPermissionResult: MethodChannel.Result? = null
     private val audioManager: AudioManager? =
         activity.getSystemService(Context.AUDIO_SERVICE) as? AudioManager
@@ -417,6 +424,7 @@ class WorkoutCvPlugin(private val activity: Activity) :
         val view = activeCameraView
         activeCameraView = null
         view?.dispose()
+        ioScope.cancel()
         mainHandler.removeCallbacksAndMessages(null)
         eventSink = null
         methodChannel?.setMethodCallHandler(null)
@@ -505,6 +513,49 @@ class WorkoutCvPlugin(private val activity: Activity) :
             }
             "abandonAudioFocus" -> {
                 result.success(abandonAudioFocusInternal())
+            }
+            "compressVideoForStory" -> {
+                val inputPath = call.argument<String>("inputPath")
+                if (inputPath.isNullOrBlank()) {
+                    result.error("INVALID_ARGUMENT", "inputPath is required", null)
+                    return
+                }
+                val maxBytes = call.argument<Number>("maxBytes")?.toLong()
+                    ?: WorkoutVideoCompressor.MAX_FAST_PATH_BYTES
+                val timeoutMs = call.argument<Number>("timeoutMs")?.toLong()
+                    ?: WorkoutVideoCompressor.DEFAULT_TIMEOUT_MS
+                val appContext = activity.applicationContext
+
+                ioScope.launch {
+                    try {
+                        val compressed = WorkoutVideoCompressor(appContext).compress(
+                            inputPath = inputPath,
+                            maxBytes = maxBytes,
+                            timeoutMs = timeoutMs
+                        )
+                        withContext(Dispatchers.Main) {
+                            if (!isDisposed) {
+                                result.success(compressed.toMap())
+                            }
+                        }
+                    } catch (e: VideoCompressionException) {
+                        withContext(Dispatchers.Main) {
+                            if (!isDisposed) {
+                                result.error(e.code, e.message, null)
+                            }
+                        }
+                    } catch (e: Exception) {
+                        withContext(Dispatchers.Main) {
+                            if (!isDisposed) {
+                                result.error(
+                                    "COMPRESSION_FAILED",
+                                    e.message ?: "Video compression failed",
+                                    null
+                                )
+                            }
+                        }
+                    }
+                }
             }
             else -> result.notImplemented()
         }

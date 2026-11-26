@@ -140,6 +140,8 @@ class ActiveExerciseInfo {
   final SetUnit unit;
   final int? draftSeconds;
   final Map<String, dynamic>? cvFormSummary;
+  final List<Map<String, dynamic>>? repTimeline;
+  final String? videoStoryId;
   final LastExercisePerformance? lastPerformance;
   final String note;
   final String? supersetGroupId;
@@ -157,6 +159,8 @@ class ActiveExerciseInfo {
     this.unit = SetUnit.reps,
     this.draftSeconds,
     this.cvFormSummary,
+    this.repTimeline,
+    this.videoStoryId,
     this.lastPerformance,
     this.note = '',
     this.supersetGroupId,
@@ -192,6 +196,8 @@ class ActiveExerciseInfo {
     int? draftSeconds,
     bool clearDraftSeconds = false,
     Map<String, dynamic>? cvFormSummary,
+    List<Map<String, dynamic>>? repTimeline,
+    String? videoStoryId,
     LastExercisePerformance? lastPerformance,
     String? note,
     bool clearNote = false,
@@ -212,6 +218,8 @@ class ActiveExerciseInfo {
       draftSeconds:
           clearDraftSeconds ? null : draftSeconds ?? this.draftSeconds,
       cvFormSummary: cvFormSummary ?? this.cvFormSummary,
+      repTimeline: repTimeline ?? this.repTimeline,
+      videoStoryId: videoStoryId ?? this.videoStoryId,
       lastPerformance: lastPerformance ?? this.lastPerformance,
       note: clearNote ? '' : (note ?? this.note),
       supersetGroupId:

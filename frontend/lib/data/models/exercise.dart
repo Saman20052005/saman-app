@@ -92,6 +92,8 @@ class ExerciseSetLog with _$ExerciseSetLog {
     int? restTakenSeconds,
     @Default(false) bool cvDetected,
     Map<String, dynamic>? cvFormSummary,
+    List<Map<String, dynamic>>? repTimeline,
+    String? videoStoryId,
     @Default(SetType.normal) SetType setType,
     double? rpe,
     String? note,
@@ -115,6 +117,8 @@ class ExerciseSetLog with _$ExerciseSetLog {
         'restTakenSeconds': restTakenSeconds,
         'cvDetected': cvDetected,
         if (cvFormSummary != null) 'cvFormSummary': cvFormSummary,
+        if (repTimeline != null) 'repTimeline': repTimeline,
+        if (videoStoryId != null) 'videoStoryId': videoStoryId,
         if (setType != SetType.normal) 'setType': setType.name,
         if (rpe != null) 'rpe': rpe,
         if (note != null && note!.isNotEmpty) 'note': note,
@@ -125,6 +129,10 @@ class ExerciseSetLog with _$ExerciseSetLog {
   static Map<String, dynamic> _validateJson(Map<String, dynamic> json) {
     final needsCv =
         json['cvFormSummary'] == null && json['cv_form_summary'] is Map;
+    final needsRepTimeline =
+        json['repTimeline'] == null && json['rep_timeline'] is List;
+    final needsVideoStoryId =
+        json['videoStoryId'] == null && json['video_story_id'] is String;
     final needsSetType = json['setType'] == null && json['set_type'] != null;
     final rawSetType = needsSetType ? json['set_type'] : json['setType'];
     final needsSetTypeNormalization = rawSetType != null &&
@@ -137,6 +145,8 @@ class ExerciseSetLog with _$ExerciseSetLog {
     final needsIsPrNormalization = rawIsPr != null && rawIsPr is! bool;
 
     final normalized = (needsCv ||
+            needsRepTimeline ||
+            needsVideoStoryId ||
             needsSetType ||
             needsSetTypeNormalization ||
             needsSuperset ||
@@ -146,6 +156,12 @@ class ExerciseSetLog with _$ExerciseSetLog {
         : json;
     if (needsCv) {
       normalized['cvFormSummary'] = normalized['cv_form_summary'];
+    }
+    if (needsRepTimeline) {
+      normalized['repTimeline'] = normalized['rep_timeline'];
+    }
+    if (needsVideoStoryId) {
+      normalized['videoStoryId'] = normalized['video_story_id'];
     }
     if (needsSetType || needsSetTypeNormalization) {
       normalized['setType'] = parseSetType(rawSetType).name;

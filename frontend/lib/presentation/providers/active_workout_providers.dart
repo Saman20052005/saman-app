@@ -646,10 +646,23 @@ class ActiveWorkoutSessionNotifier
         currentExerciseIndex: index, isResting: false, restSecondsLeft: 0);
   }
 
-  void attachCvFormSummary(String exerciseId, Map<String, dynamic> summary) {
+  void attachCvFormSummary(
+    String exerciseId,
+    Map<String, dynamic> summary, {
+    List<Map<String, dynamic>>? repTimeline,
+    String? videoStoryId,
+  }) {
     final updatedExercises = state.exercises.map((e) {
       if (e.id == exerciseId || (e.slug.isNotEmpty && e.slug == exerciseId)) {
-        return e.copyWith(cvFormSummary: Map<String, dynamic>.from(summary));
+        return e.copyWith(
+          cvFormSummary: Map<String, dynamic>.from(summary),
+          repTimeline: repTimeline == null
+              ? e.repTimeline
+              : repTimeline
+                  .map((item) => Map<String, dynamic>.from(item))
+                  .toList(growable: false),
+          videoStoryId: videoStoryId ?? e.videoStoryId,
+        );
       }
       return e;
     }).toList();
