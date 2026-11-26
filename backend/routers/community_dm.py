@@ -24,6 +24,7 @@ import uuid
 import weakref
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
+from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional, Set, Tuple
 
 import jwt
@@ -62,6 +63,12 @@ from backend.app.models.community_dm import (
     DmSharedPostPreviewModel,
     DmUnreadCountResponse,
     SendDmMessageRequest,
+)
+from backend.app.services.media_storage_service import (
+    MediaStorageConfig,
+    MediaStorageConfigError,
+    MediaStorageUploadError,
+    get_media_storage_service,
 )
 from backend.auth.config import JWT_ALGORITHM, JWT_SECRET
 
@@ -1141,7 +1148,14 @@ def _build_range_file_response(request: Request, filepath: str, media_type: str)
     )
 
 
+def _assert_local_static_serving_allowed() -> None:
+    cfg = MediaStorageConfig.from_env()
+    if cfg.is_production and not cfg.allow_local_media_storage:
+        raise HTTPException(status_code=404, detail="Not found")
+
+
 async def serve_static_community_dm_file(request: Request) -> Response:
+    _assert_local_static_serving_allowed()
     filename = request.path_params.get("filename", "")
     filepath, media_type = _resolve_safe_media_path(filename)
     return _build_range_file_response(request, filepath, media_type)
@@ -1158,6 +1172,7 @@ router.routes.append(
 
 @router.get("/media/{filename}")
 async def get_dm_media(filename: str, request: Request):
+    _assert_local_static_serving_allowed()
     filepath, media_type = _resolve_safe_media_path(filename)
     return _build_range_file_response(request, filepath, media_type)
 
@@ -1233,22 +1248,38 @@ async def upload_dm_media(
                 detail="File video không khớp định dạng (magic bytes không hợp lệ).",
             )
 
-    stored_filename = f"{uuid.uuid4().hex}.{stored_ext}"
-    filepath = os.path.join(COMMUNITY_DM_STATIC_DIR, stored_filename)
-    os.makedirs(COMMUNITY_DM_STATIC_DIR, exist_ok=True)
-
-    def _write_file() -> None:
-        with open(filepath, "wb") as f:
-            f.write(raw_bytes)
-
-    await asyncio.to_thread(_write_file)
-
+    generated_filename = f"{uuid.uuid4().hex}.{stored_ext}"
     resolved_content_type = MEDIA_CONTENT_TYPES.get(f".{stored_ext}", "application/octet-stream")
+
+    def _upload() -> Any:
+        storage = get_media_storage_service()
+        return storage.upload_bytes(
+            data=raw_bytes,
+            key_prefix="saman/community_dm",
+            filename=generated_filename,
+            content_type=resolved_content_type,
+            local_dir=Path(COMMUNITY_DM_STATIC_DIR),
+            local_url_prefix="/static/community_dm",
+        )
+
+    try:
+        upload_result = await asyncio.to_thread(_upload)
+    except MediaStorageConfigError:
+        raise HTTPException(
+            status_code=503,
+            detail="Media storage is not configured",
+        )
+    except MediaStorageUploadError:
+        raise HTTPException(
+            status_code=502,
+            detail="Failed to upload media",
+        )
+
     return DmMediaUploadResponse(
-        media_url=f"/static/community_dm/{stored_filename}",
+        media_url=upload_result.url,
         media_kind=media_kind,
         content_type=resolved_content_type,
-        file_name=safe_orig_name or stored_filename,
+        file_name=safe_orig_name or generated_filename,
         size_bytes=len(raw_bytes),
     )
 

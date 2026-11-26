@@ -24,6 +24,30 @@ services:
         value: normal
       - key: DB_NAME
         value: saman_fitness
+      - key: GEMINI_SWIFT_MODEL
+        value: "gemini-2.5-flash-lite"
+      - key: GEMINI_CORE_MODEL
+        value: "gemini-2.5-flash"
+      - key: GEMINI_PRO_MODEL
+        value: "gemini-2.5-pro"
+      - key: GEMINI_ENABLE_THINKING_CONFIG
+        value: "auto"
+      - key: MEDIA_STORAGE_PROVIDER
+        value: "s3"
+      - key: ALLOW_LOCAL_MEDIA_STORAGE
+        value: "false"
+      - key: S3_REGION
+        value: "auto"
+      - key: S3_ENDPOINT_URL
+        sync: false
+      - key: S3_BUCKET
+        sync: false
+      - key: S3_ACCESS_KEY_ID
+        sync: false
+      - key: S3_SECRET_ACCESS_KEY
+        sync: false
+      - key: S3_PUBLIC_BASE_URL
+        sync: false
       - key: MONGO_URI
         sync: false
       - key: JWT_SECRET

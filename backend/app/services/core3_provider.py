@@ -1,6 +1,7 @@
 """Gemini-only bounded prompt adapter for Core 3."""
 
 import asyncio
+import copy
 import json
 import os
 import logging
@@ -11,9 +12,22 @@ from urllib.error import HTTPError, URLError
 from urllib.parse import urlencode
 from urllib.request import Request, urlopen
 
+logger = logging.getLogger(__name__)
+
 MAX_INPUT_TOKENS = 4096
 MAX_OUTPUT_TOKENS = 512
 AI_FALLBACK_REPLY = "Xin lỗi, trợ lý AI hiện đang bảo trì, vui lòng thử lại sau."
+
+DEFAULT_GEMINI_SWIFT_MODEL = "gemini-2.5-flash-lite"
+DEFAULT_GEMINI_CORE_MODEL = "gemini-2.5-flash"
+DEFAULT_GEMINI_PRO_MODEL = "gemini-2.5-pro"
+
+_THINKING_CONFIG_ERROR_MARKERS = (
+    "thinkingconfig",
+    "thinkinglevel",
+    "thinking_level",
+    "thinking_config",
+)
 
 DEFAULT_SYSTEM_INSTRUCTION = (
     "Bạn là Saman Coach, trợ lý dinh dưỡng và luyện tập chỉ đưa ra lời khuyên. "
@@ -27,23 +41,91 @@ DEFAULT_SYSTEM_INSTRUCTION = (
     "Nếu `recommendations` có `shop_products`/`journal_articles`, chỉ gợi ý 1-2 mục hợp nhất đúng tên và giá trong ngữ cảnh; không bịa."
 )
 
+def _resolve_tier_model(mode: str) -> str:
+    if mode == "swift3":
+        return (os.getenv("GEMINI_SWIFT_MODEL") or "").strip() or DEFAULT_GEMINI_SWIFT_MODEL
+    if mode == "pro3":
+        return (
+            (os.getenv("GEMINI_PRO_MODEL") or os.getenv("GEMINI_MODEL") or "").strip()
+            or DEFAULT_GEMINI_PRO_MODEL
+        )
+    return (
+        (os.getenv("GEMINI_CORE_MODEL") or os.getenv("GEMINI_MODEL") or "").strip()
+        or DEFAULT_GEMINI_CORE_MODEL
+    )
+
+
+def _should_include_thinking_config(cfg: dict) -> bool:
+    setting = (os.getenv("GEMINI_ENABLE_THINKING_CONFIG") or "auto").strip().lower()
+    if setting in ("false", "0", "no"):
+        return False
+    if setting in ("true", "1", "yes"):
+        return bool(cfg.get("thinking_level"))
+    # Default "auto": include thinkingConfig when tier specifies thinking_level
+    # and rely on HTTP 400 retry fallback if unsupported by the target model.
+    return bool(cfg.get("thinking_level"))
+
+
+def _is_thinking_config_error(status_code: int, body_text: str) -> bool:
+    if status_code != 400:
+        return False
+    lowered = (body_text or "").lower()
+    return any(marker in lowered for marker in _THINKING_CONFIG_ERROR_MARKERS)
+
+
+def _strip_thinking_config(payload: dict) -> dict:
+    cloned = copy.deepcopy(payload)
+    gen_cfg = cloned.get("generationConfig")
+    if isinstance(gen_cfg, dict):
+        gen_cfg.pop("thinkingConfig", None)
+    return cloned
+
+
+def _read_http_error_body(exc: HTTPError) -> str:
+    try:
+        if hasattr(exc, "read"):
+            raw = exc.read()
+            if isinstance(raw, bytes):
+                decoded = raw.decode("utf-8", errors="replace")
+                if decoded:
+                    return decoded
+            elif raw:
+                return str(raw)
+    except Exception:
+        pass
+    return str(exc)
+
+
+def _build_gemini_payload(prompt: str, cfg: dict) -> dict:
+    generation_config: Dict[str, Any] = {
+        "maxOutputTokens": cfg["max_output_tokens"],
+        "temperature": cfg["temperature"],
+    }
+    if _should_include_thinking_config(cfg):
+        generation_config["thinkingConfig"] = {"thinkingLevel": cfg["thinking_level"]}
+    return {
+        "contents": [{"role": "user", "parts": [{"text": prompt}]}],
+        "generationConfig": generation_config,
+    }
+
+
 TIER_CONFIGS = {
     "swift3": {
-        "model": os.getenv("GEMINI_SWIFT_MODEL", "gemini-3.5-flash-lite"),
+        "model": _resolve_tier_model("swift3"),
         "thinking_level": "minimal",
         "temperature": 0.3,
         "max_input_tokens": 3072,
         "max_output_tokens": 256,
     },
     "core3": {
-        "model": os.getenv("GEMINI_CORE_MODEL", os.getenv("GEMINI_MODEL", "gemini-3.6-flash")),
+        "model": _resolve_tier_model("core3"),
         "thinking_level": "low",
         "temperature": 0.4,
         "max_input_tokens": 4096,
         "max_output_tokens": 512,
     },
     "pro3": {
-        "model": os.getenv("GEMINI_PRO_MODEL", os.getenv("GEMINI_MODEL", "gemini-3.6-flash")),
+        "model": _resolve_tier_model("pro3"),
         "thinking_level": "high",
         "temperature": 0.5,
         "max_input_tokens": 8192,
@@ -59,7 +141,7 @@ def get_tier_config(ai_mode: Optional[str] = "core3") -> dict:
 
     if mode == "swift3":
         return {
-            "model": os.getenv("GEMINI_SWIFT_MODEL", "gemini-3.5-flash-lite"),
+            "model": _resolve_tier_model("swift3"),
             "thinking_level": "minimal",
             "temperature": 0.3,
             "max_input_tokens": 3072,
@@ -67,7 +149,7 @@ def get_tier_config(ai_mode: Optional[str] = "core3") -> dict:
         }
     elif mode == "pro3":
         return {
-            "model": os.getenv("GEMINI_PRO_MODEL", os.getenv("GEMINI_MODEL", "gemini-3.6-flash")),
+            "model": _resolve_tier_model("pro3"),
             "thinking_level": "high",
             "temperature": 0.5,
             "max_input_tokens": 8192,
@@ -75,7 +157,7 @@ def get_tier_config(ai_mode: Optional[str] = "core3") -> dict:
         }
     else:  # core3 fallback
         return {
-            "model": os.getenv("GEMINI_CORE_MODEL", os.getenv("GEMINI_MODEL", "gemini-3.6-flash")),
+            "model": _resolve_tier_model("core3"),
             "thinking_level": "low",
             "temperature": 0.4,
             "max_input_tokens": 4096,
@@ -254,25 +336,37 @@ class GeminiCore3Provider(BaseLLMProvider):
         except Exception:
             pass
         url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
-        payload = {
-            "contents": [{"role": "user", "parts": [{"text": prompt}]}],
-            "generationConfig": {
-                "maxOutputTokens": cfg["max_output_tokens"],
-                "temperature": cfg["temperature"],
-                "thinkingConfig": {"thinkingLevel": cfg["thinking_level"]},
-            },
-        }
+        endpoint_url = f"{url}?{urlencode({'key': key})}"
+        payload = _build_gemini_payload(prompt, cfg)
+        has_thinking_config = isinstance(payload.get("generationConfig"), dict) and "thinkingConfig" in payload["generationConfig"]
         request = Request(
-            f"{url}?{urlencode({'key': key})}",
+            endpoint_url,
             data=json.dumps(payload, ensure_ascii=False).encode("utf-8"),
             headers={"Content-Type": "application/json"},
             method="POST",
         )
         try:
             response_body = await asyncio.to_thread(_post_json, request)
+        except HTTPError as exc:
+            if has_thinking_config and _is_thinking_config_error(exc.code, _read_http_error_body(exc)):
+                logger.warning(
+                    "Gemini model '%s' rejected thinkingConfig (HTTP 400); retrying once without thinkingConfig",
+                    model,
+                )
+                retry_payload = _strip_thinking_config(payload)
+                retry_request = Request(
+                    endpoint_url,
+                    data=json.dumps(retry_payload, ensure_ascii=False).encode("utf-8"),
+                    headers={"Content-Type": "application/json"},
+                    method="POST",
+                )
+                try:
+                    response_body = await asyncio.to_thread(_post_json, retry_request)
+                except (TimeoutError, HTTPError, URLError, Exception):
+                    return AI_FALLBACK_REPLY
+            else:
+                return AI_FALLBACK_REPLY
         except TimeoutError:
-            return AI_FALLBACK_REPLY
-        except HTTPError:
             return AI_FALLBACK_REPLY
         except URLError:
             return AI_FALLBACK_REPLY
@@ -317,16 +411,11 @@ class GeminiCore3Provider(BaseLLMProvider):
                     yield full_text[i:i + chunk_size]
             return
 
-        url = f"https://generativelanguage.googleapis.com/v1beta/models/{cfg['model']}:streamGenerateContent"
+        model = cfg["model"]
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:streamGenerateContent"
         stream_url = f"{url}?{urlencode({'alt': 'sse', 'key': key})}"
-        payload = {
-            "contents": [{"role": "user", "parts": [{"text": prompt}]}],
-            "generationConfig": {
-                "maxOutputTokens": cfg["max_output_tokens"],
-                "temperature": cfg["temperature"],
-                "thinkingConfig": {"thinkingLevel": cfg["thinking_level"]},
-            },
-        }
+        payload = _build_gemini_payload(prompt, cfg)
+        has_thinking_config = isinstance(payload.get("generationConfig"), dict) and "thinkingConfig" in payload["generationConfig"]
         request = Request(
             stream_url,
             data=json.dumps(payload, ensure_ascii=False).encode("utf-8"),
@@ -344,6 +433,7 @@ class GeminiCore3Provider(BaseLLMProvider):
         thread.start()
 
         yielded_any = False
+        retried_without_thinking = False
         try:
             while True:
                 msg_type, val = await queue.get()
@@ -375,6 +465,33 @@ class GeminiCore3Provider(BaseLLMProvider):
                     except Exception:
                         continue
                 elif msg_type == "error":
+                    if (
+                        not yielded_any
+                        and not retried_without_thinking
+                        and has_thinking_config
+                        and isinstance(val, HTTPError)
+                        and _is_thinking_config_error(val.code, _read_http_error_body(val))
+                    ):
+                        logger.warning(
+                            "Gemini model '%s' rejected thinkingConfig on stream (HTTP 400); retrying once without thinkingConfig",
+                            model,
+                        )
+                        retried_without_thinking = True
+                        retry_payload = _strip_thinking_config(payload)
+                        retry_request = Request(
+                            stream_url,
+                            data=json.dumps(retry_payload, ensure_ascii=False).encode("utf-8"),
+                            headers={"Content-Type": "application/json"},
+                            method="POST",
+                        )
+                        queue = asyncio.Queue()
+                        retry_thread = threading.Thread(
+                            target=_stream_sse_lines,
+                            args=(retry_request, queue, loop),
+                            daemon=True,
+                        )
+                        retry_thread.start()
+                        continue
                     if not yielded_any:
                         yield AI_FALLBACK_REPLY
                     return

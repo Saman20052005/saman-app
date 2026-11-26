@@ -16,12 +16,14 @@ Invariants:
 - Stable cursor pagination with tie-breaker (_id).
 """
 
+import asyncio
 import base64
 import io
 import os
 import re
 import uuid
 from datetime import datetime, timedelta, timezone
+from pathlib import Path
 from typing import Any, Dict, List, Literal, Optional, Union
 from fastapi import Request, APIRouter, Depends, Header, HTTPException, Query, File, UploadFile
 from starlette.routing import Route
@@ -87,6 +89,12 @@ from backend.app.models.community import (
     UpdateCommunitySettingsRequest,
 )
 
+from backend.app.services.media_storage_service import (
+    MediaStorageConfig,
+    MediaStorageConfigError,
+    MediaStorageUploadError,
+    get_media_storage_service,
+)
 from backend.auth.config import JWT_ALGORITHM, JWT_SECRET
 
 router = APIRouter(prefix="/api/community", tags=["Community"])
@@ -458,7 +466,14 @@ COMMUNITY_STATIC_DIR = os.path.join(
 os.makedirs(COMMUNITY_STATIC_DIR, exist_ok=True)
 
 
+def _assert_local_static_serving_allowed() -> None:
+    cfg = MediaStorageConfig.from_env()
+    if cfg.is_production and not cfg.allow_local_media_storage:
+        raise HTTPException(status_code=404, detail="Not found")
+
+
 async def serve_static_community_file(request):
+    _assert_local_static_serving_allowed()
     filename = request.path_params.get("filename", "")
     clean_name = os.path.basename(filename)
     if clean_name != filename or not clean_name:
@@ -476,6 +491,7 @@ router.routes.append(Route("/static/community/{filename}", endpoint=serve_static
 
 @router.get("/media/{filename}")
 async def get_community_media(filename: str):
+    _assert_local_static_serving_allowed()
     clean_name = os.path.basename(filename)
     if clean_name != filename or not clean_name:
         raise HTTPException(status_code=404, detail="File not found")
@@ -525,16 +541,37 @@ async def upload_community_media(
         raise HTTPException(status_code=400, detail="File không phải định dạng ảnh hợp lệ.")
 
     ext = "jpg" if img_format == "JPEG" else img_format.lower()
-    filename = f"{uuid.uuid4().hex}.{ext}"
-    filepath = os.path.join(COMMUNITY_STATIC_DIR, filename)
+    generated_filename = f"{uuid.uuid4().hex}.{ext}"
+    resolved_content_type = file.content_type or ("image/jpeg" if ext == "jpg" else f"image/{ext}")
+    content = bytes(content_buf)
 
-    with open(filepath, "wb") as f:
-        f.write(content_buf)
+    def _upload() -> Any:
+        storage = get_media_storage_service()
+        return storage.upload_bytes(
+            data=content,
+            key_prefix="saman/community",
+            filename=generated_filename,
+            content_type=resolved_content_type,
+            local_dir=Path(COMMUNITY_STATIC_DIR),
+            local_url_prefix="/static/community",
+        )
 
-    media_url = f"/static/community/{filename}"
+    try:
+        upload_result = await asyncio.to_thread(_upload)
+    except MediaStorageConfigError:
+        raise HTTPException(
+            status_code=503,
+            detail="Media storage is not configured",
+        )
+    except MediaStorageUploadError:
+        raise HTTPException(
+            status_code=502,
+            detail="Failed to upload media",
+        )
+
     return MediaUploadResponse(
-        media_url=media_url,
-        content_type=file.content_type or f"image/{ext}",
+        media_url=upload_result.url,
+        content_type=resolved_content_type,
         file_name=file.filename,
     )
 
