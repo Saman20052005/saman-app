@@ -516,3 +516,88 @@ def test_general_chat_routes_lightweight_model_with_no_citations(monkeypatch):
     assert len(provider.calls) == 1
     assert provider.calls[0]["intent"] == "general_chat"
     assert provider.calls[0]["prefer_lightweight_model"] is True
+
+
+@pytest.mark.parametrize(
+    ("message", "ai_mode", "expected_retrieving_label"),
+    [
+        (
+            "Kiểm tra form bài Lat Pulldown hôm qua",
+            "core3",
+            "Retrieving workout & form data...",
+        ),
+        (
+            "Hôm nay tôi ăn bao nhiêu calo và protein rồi?",
+            "core3",
+            "Retrieving nutrition & meal logs...",
+        ),
+        (
+            "Nhóm cơ lưng của tôi đã phục hồi chưa hay còn mỏi?",
+            "core3",
+            "Checking muscle recovery & fatigue...",
+        ),
+        (
+            "Phân tích điểm yếu buổi Lat Pulldown gần nhất và lý do",
+            "pro3",
+            "Synthesizing 30-day training & recovery data...",
+        ),
+        (
+            "Xin chào Saman",
+            "core3",
+            "Gathering your context...",
+        ),
+    ],
+)
+def test_stream_emits_live_sse_status_events_before_first_delta(
+    monkeypatch,
+    message: str,
+    ai_mode: str,
+    expected_retrieving_label: str,
+):
+    user_a = {
+        "_id": ObjectId(),
+        "account_id": "acc_status_a",
+        "email": "status_a@saman.test",
+        "membership_tier": "ultra",
+    }
+    client, _, _ = _setup_test_app(monkeypatch, current_user=user_a)
+
+    resp = client.post(
+        "/api/chat/stream",
+        json={
+            "message": message,
+            "ai_mode": ai_mode,
+            "contract_version": "core3-local-v1",
+            "operation_id": secrets.token_hex(16),
+        },
+    )
+    assert resp.status_code == 200
+    events = _parse_sse(resp.text)
+
+    first_delta_idx = next(i for i, e in enumerate(events) if e["event"] == "delta")
+    status_events = [(i, e["data"]) for i, e in enumerate(events) if e["event"] == "status"]
+
+    assert len(status_events) == 3
+    assert all(idx < first_delta_idx for idx, _ in status_events)
+
+    assert status_events[0][1] == {
+        "stage": "routing",
+        "label": "Analyzing your request...",
+    }
+    assert status_events[1][1] == {
+        "stage": "retrieving",
+        "label": expected_retrieving_label,
+    }
+    assert status_events[2][1] == {
+        "stage": "generating",
+        "label": "Generating personalized insights...",
+    }
+
+
+def test_core3_and_swift3_max_output_tokens_expanded():
+    from backend.app.services.core3_provider import TIER_CONFIGS, get_tier_config
+
+    assert TIER_CONFIGS["swift3"]["max_output_tokens"] == 512
+    assert TIER_CONFIGS["core3"]["max_output_tokens"] == 1024
+    assert get_tier_config("swift3")["max_output_tokens"] == 512
+    assert get_tier_config("core3")["max_output_tokens"] == 1024

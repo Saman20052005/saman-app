@@ -19,7 +19,7 @@ from urllib.request import Request, urlopen
 logger = logging.getLogger(__name__)
 
 MAX_INPUT_TOKENS = 4096
-MAX_OUTPUT_TOKENS = 512
+MAX_OUTPUT_TOKENS = 1024
 AI_FALLBACK_REPLY = "Xin lỗi, trợ lý AI hiện đang bảo trì, vui lòng thử lại sau."
 
 DEFAULT_GEMINI_SWIFT_MODEL = "gemini-2.5-flash-lite"
@@ -428,14 +428,14 @@ TIER_CONFIGS = {
         "thinking_level": "minimal",
         "temperature": 0.3,
         "max_input_tokens": 3072,
-        "max_output_tokens": 256,
+        "max_output_tokens": 512,
     },
     "core3": {
         "model": _resolve_tier_model("core3"),
         "thinking_level": "low",
         "temperature": 0.4,
         "max_input_tokens": 4096,
-        "max_output_tokens": 512,
+        "max_output_tokens": 1024,
     },
     "pro3": {
         "model": _resolve_tier_model("pro3"),
@@ -458,7 +458,7 @@ def get_tier_config(ai_mode: Optional[str] = "core3") -> dict:
             "thinking_level": "minimal",
             "temperature": 0.3,
             "max_input_tokens": 3072,
-            "max_output_tokens": 256,
+            "max_output_tokens": 512,
         }
     elif mode == "pro3":
         return {
@@ -474,7 +474,7 @@ def get_tier_config(ai_mode: Optional[str] = "core3") -> dict:
             "thinking_level": "low",
             "temperature": 0.4,
             "max_input_tokens": 4096,
-            "max_output_tokens": 512,
+            "max_output_tokens": 1024,
         }
 
 

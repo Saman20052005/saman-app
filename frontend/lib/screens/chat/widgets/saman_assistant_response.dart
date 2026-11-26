@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 import '../../../controllers/chat_controller.dart';
@@ -46,6 +47,12 @@ class SamanAssistantResponse extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final t = SamanChatTokens.of(context);
+    final isTypingPlaceholder = message.isTyping && message.content.isEmpty;
+    final activeStatusLabel =
+        (message.statusLabel != null && message.statusLabel!.trim().isNotEmpty)
+            ? message.statusLabel!.trim()
+            : 'Analyzing your request...';
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
@@ -66,8 +73,12 @@ class SamanAssistantResponse extends StatelessWidget {
 
         const SizedBox(height: 8.0),
 
-        // 2. Editorial response rendered directly on canvas
-        MarkdownBody(
+        // 2. Live animated "..." + English status indicator before first delta,
+        //    otherwise editorial Markdown response rendered directly on canvas.
+        if (isTypingPlaceholder)
+          _SamanTypingIndicator(statusLabel: activeStatusLabel)
+        else
+          MarkdownBody(
           data: message.content,
           selectable: true,
           styleSheet: MarkdownStyleSheet(
@@ -345,6 +356,169 @@ class _VideoCitationChip extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+class _SamanTypingIndicator extends StatefulWidget {
+  final String statusLabel;
+
+  const _SamanTypingIndicator({
+    required this.statusLabel,
+  });
+
+  @override
+  State<_SamanTypingIndicator> createState() => _SamanTypingIndicatorState();
+}
+
+class _SamanTypingIndicatorState extends State<_SamanTypingIndicator>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1100),
+    )..repeat();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final t = SamanChatTokens.of(context);
+    final disableAnimations =
+        MediaQuery.maybeOf(context)?.disableAnimations ?? false;
+
+    return Semantics(
+      key: const ValueKey('saman_typing_indicator'),
+      liveRegion: true,
+      label: widget.statusLabel,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Container(
+            padding: const EdgeInsets.symmetric(
+              horizontal: 12.0,
+              vertical: 9.0,
+            ),
+            decoration: BoxDecoration(
+              color: t.surface,
+              borderRadius: BorderRadius.circular(12.0),
+              border: Border.all(
+                color: t.borderSubtle,
+                width: 1.0,
+              ),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _AnimatedTypingDot(
+                  controller: _controller,
+                  phaseOffset: 0.0,
+                  disableAnimations: disableAnimations,
+                ),
+                const SizedBox(width: 5.0),
+                _AnimatedTypingDot(
+                  controller: _controller,
+                  phaseOffset: 0.22,
+                  disableAnimations: disableAnimations,
+                ),
+                const SizedBox(width: 5.0),
+                _AnimatedTypingDot(
+                  controller: _controller,
+                  phaseOffset: 0.44,
+                  disableAnimations: disableAnimations,
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 10.0),
+          Flexible(
+            child: AnimatedSwitcher(
+              duration: disableAnimations
+                  ? Duration.zero
+                  : const Duration(milliseconds: 180),
+              transitionBuilder: (child, animation) {
+                return FadeTransition(opacity: animation, child: child);
+              },
+              child: Text(
+                widget.statusLabel,
+                key: ValueKey<String>(widget.statusLabel),
+                style: TextStyle(
+                  fontFamily: 'Manrope',
+                  fontSize: 13.0,
+                  fontWeight: FontWeight.w500,
+                  color: t.textSecondary,
+                  height: 1.35,
+                  letterSpacing: -0.1,
+                ),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _AnimatedTypingDot extends StatelessWidget {
+  final AnimationController controller;
+  final double phaseOffset;
+  final bool disableAnimations;
+
+  const _AnimatedTypingDot({
+    required this.controller,
+    required this.phaseOffset,
+    required this.disableAnimations,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final t = SamanChatTokens.of(context);
+    final dot = Container(
+      width: 6.0,
+      height: 6.0,
+      decoration: BoxDecoration(
+        color: t.textSecondary,
+        shape: BoxShape.circle,
+      ),
+    );
+
+    if (disableAnimations) {
+      return dot;
+    }
+
+    return AnimatedBuilder(
+      animation: controller,
+      builder: (context, child) {
+        final progress = (controller.value - phaseOffset) % 1.0;
+        final wave =
+            0.5 * (1.0 + math.sin((progress * 2.0 * math.pi) - (math.pi / 2.0)));
+        final opacity = (0.28 + 0.72 * wave).clamp(0.28, 1.0);
+        final offsetY = -2.5 * wave;
+        final scale = 0.88 + 0.18 * wave;
+        return Transform.translate(
+          offset: Offset(0.0, offsetY),
+          child: Transform.scale(
+            scale: scale,
+            child: Opacity(
+              opacity: opacity,
+              child: child,
+            ),
+          ),
+        );
+      },
+      child: dot,
     );
   }
 }

@@ -5491,6 +5491,10 @@ async def chat_stream(
             and stream_quota_res.status == ReservationStatus.RESERVED
         )
         try:
+            yield _sse_chunk(
+                "status",
+                {"stage": "routing", "label": "Analyzing your request..."},
+            )
             async for item in handle_stream(**stream_kwargs):
                 if isinstance(item, (tuple, list)) and len(item) == 2:
                     event_name, payload = item

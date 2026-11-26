@@ -26,12 +26,14 @@ class ChatMessage {
   final String role;
   final String content;
   final bool isTyping;
+  final String? statusLabel;
   final List<VideoCitation> videoCitations;
 
   ChatMessage({
     required this.role,
     required this.content,
     this.isTyping = false,
+    this.statusLabel,
     this.videoCitations = const [],
   });
 
@@ -39,12 +41,15 @@ class ChatMessage {
     String? role,
     String? content,
     bool? isTyping,
+    String? statusLabel,
+    bool clearStatusLabel = false,
     List<VideoCitation>? videoCitations,
   }) {
     return ChatMessage(
       role: role ?? this.role,
       content: content ?? this.content,
       isTyping: isTyping ?? this.isTyping,
+      statusLabel: clearStatusLabel ? null : (statusLabel ?? this.statusLabel),
       videoCitations: videoCitations ?? this.videoCitations,
     );
   }
@@ -407,13 +412,31 @@ class ChatController extends StateNotifier<ChatState> {
     await _sendRequest(trimmed, operationId: opId);
   }
 
+  List<ChatMessage> _withoutTrailingTypingPlaceholder(List<ChatMessage> source) {
+    if (source.isNotEmpty &&
+        source.last.role == 'assistant' &&
+        source.last.isTyping &&
+        source.last.content.isEmpty) {
+      return source.sublist(0, source.length - 1);
+    }
+    return source;
+  }
+
   Future<void> sendMessageStreaming(String text) async {
     final trimmed = text.trim();
     if (trimmed.isEmpty) return;
 
+    const defaultStatusLabel = 'Analyzing your request...';
+    final history = _getLastMessages(5);
     final userMsg = ChatMessage(role: 'user', content: trimmed);
+    final loadingAssistantMsg = ChatMessage(
+      role: 'assistant',
+      content: '',
+      isTyping: true,
+      statusLabel: defaultStatusLabel,
+    );
     state = state.copyWith(
-      messages: [...state.messages, userMsg],
+      messages: [...state.messages, userMsg, loadingAssistantMsg],
       isLoading: true,
       isStreaming: true,
       clearError: true,
@@ -425,7 +448,7 @@ class ChatController extends StateNotifier<ChatState> {
     _failedOperationId = opId;
     final payload = <String, dynamic>{
       "message": trimmed,
-      "history": _getLastMessages(5, excludeLatestUser: true),
+      "history": history,
       "contract_version": "core3-local-v1",
       "operation_id": opId,
       "ai_mode": state.selectedAIMode.name,
@@ -438,7 +461,7 @@ class ChatController extends StateNotifier<ChatState> {
 
     final epoch = ++_requestEpoch;
     bool hasReceivedToken = false;
-    bool assistantAdded = false;
+    bool assistantAdded = true;
     String accumulated = '';
     List<VideoCitation> streamedCitations = const [];
     String? nextActiveId = state.activeConversationId;
@@ -498,7 +521,26 @@ class ChatController extends StateNotifier<ChatState> {
                 '')
             .toLowerCase();
 
-        if (eventType == 'delta' ||
+        if (eventType == 'status') {
+          if (!hasReceivedToken) {
+            final label = (decoded['label'] ?? decoded['message'] ?? '')
+                .toString()
+                .trim();
+            if (label.isNotEmpty && state.messages.isNotEmpty) {
+              final updatedMessages = List<ChatMessage>.from(state.messages);
+              final last = updatedMessages.last;
+              if (last.role == 'assistant' && last.isTyping) {
+                updatedMessages[updatedMessages.length - 1] =
+                    last.copyWith(statusLabel: label);
+                state = state.copyWith(
+                  messages: updatedMessages,
+                  isLoading: true,
+                  isStreaming: true,
+                );
+              }
+            }
+          }
+        } else if (eventType == 'delta' ||
             (eventType.isEmpty &&
                 (decoded.containsKey('delta') ||
                     decoded.containsKey('token')))) {
@@ -515,9 +557,12 @@ class ChatController extends StateNotifier<ChatState> {
             final streamingMsg = ChatMessage(
               role: 'assistant',
               content: accumulated,
+              isTyping: false,
               videoCitations: streamedCitations,
             );
-            if (!assistantAdded) {
+            if (!assistantAdded ||
+                updatedMessages.isEmpty ||
+                updatedMessages.last.role != 'assistant') {
               updatedMessages.add(streamingMsg);
               assistantAdded = true;
             } else {
@@ -564,11 +609,21 @@ class ChatController extends StateNotifier<ChatState> {
                 _mergeVideoCitations(streamedCitations, doneCitations);
           }
           List<ChatMessage>? nextMessages;
-          if (streamedCitations.isNotEmpty) {
+          if (assistantAdded &&
+              state.messages.isNotEmpty &&
+              state.messages.last.isTyping &&
+              accumulated.isEmpty) {
+            nextMessages = _withoutTrailingTypingPlaceholder(state.messages);
+            assistantAdded = false;
+          } else if (streamedCitations.isNotEmpty) {
             final updatedMessages = List<ChatMessage>.from(state.messages);
             if (assistantAdded && updatedMessages.isNotEmpty) {
               updatedMessages[updatedMessages.length - 1] = updatedMessages.last
-                  .copyWith(videoCitations: streamedCitations);
+                  .copyWith(
+                    isTyping: false,
+                    clearStatusLabel: true,
+                    videoCitations: streamedCitations,
+                  );
               nextMessages = updatedMessages;
             } else if (!assistantAdded && accumulated.isNotEmpty) {
               updatedMessages.add(
@@ -604,11 +659,17 @@ class ChatController extends StateNotifier<ChatState> {
 
       if (_requestEpoch != epoch || !mounted) return;
       if (!hasReceivedToken && state.pendingAction == null) {
+        final cleanedMessages =
+            _withoutTrailingTypingPlaceholder(state.messages);
+        if (!identical(cleanedMessages, state.messages)) {
+          state = state.copyWith(messages: cleanedMessages);
+        }
         await _sendRequest(trimmed, operationId: opId, existingPayload: payload);
         return;
       }
       if (!streamDone || state.isLoading || state.isStreaming) {
         state = state.copyWith(
+          messages: _withoutTrailingTypingPlaceholder(state.messages),
           activeConversationId: nextActiveId,
           isLoading: false,
           isStreaming: false,
@@ -623,9 +684,11 @@ class ChatController extends StateNotifier<ChatState> {
       }
     } catch (e) {
       if (_requestEpoch != epoch || !mounted) return;
+      final cleanedMessages = _withoutTrailingTypingPlaceholder(state.messages);
       final benefitId = _extractEntitlementBenefitId(e);
       if (benefitId != null) {
         state = state.copyWith(
+          messages: cleanedMessages,
           isLoading: false,
           isStreaming: false,
           paywallBenefitId: benefitId,
@@ -634,11 +697,15 @@ class ChatController extends StateNotifier<ChatState> {
         return;
       }
       if (!hasReceivedToken) {
+        if (!identical(cleanedMessages, state.messages)) {
+          state = state.copyWith(messages: cleanedMessages);
+        }
         await _sendRequest(trimmed, operationId: opId, existingPayload: payload);
         return;
       }
       debugPrint("Chat Stream Error: $e");
       state = state.copyWith(
+        messages: cleanedMessages,
         isLoading: false,
         isStreaming: false,
         errorMessage: "I couldn't complete that response.",
@@ -1207,7 +1274,7 @@ class ChatController extends StateNotifier<ChatState> {
 
   List<Map<String, String>> _getLastMessages(int count,
       {bool excludeLatestUser = false}) {
-    final msgs = List<ChatMessage>.from(state.messages);
+    final msgs = state.messages.where((m) => !m.isTyping).toList();
     if (excludeLatestUser && msgs.isNotEmpty && msgs.last.role == 'user') {
       msgs.removeLast();
     }

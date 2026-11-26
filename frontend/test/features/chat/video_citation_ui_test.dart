@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:typed_data';
 
@@ -321,6 +322,206 @@ void main() {
         'Xem Squat — Rep 3 (1:15)',
       );
       expect(state.messages.last.videoCitations.first.seekSec, 75.0);
+    });
+
+    test('updates live SSE status label before first delta and clears on delta',
+        () async {
+      final streamController = StreamController<Uint8List>();
+
+      mockInterceptor = InterceptorsWrapper(
+        onRequest: (options, handler) {
+          if (options.path.contains('/api/chat/stream')) {
+            handler.resolve(
+              Response(
+                requestOptions: options,
+                statusCode: 200,
+                data: ResponseBody(
+                  streamController.stream,
+                  200,
+                  headers: {
+                    Headers.contentTypeHeader: ['text/event-stream'],
+                  },
+                ),
+              ),
+            );
+            return;
+          }
+          if (options.path.endsWith('/api/chat/conversations')) {
+            handler.resolve(
+              Response(
+                requestOptions: options,
+                statusCode: 200,
+                data: {'conversations': []},
+              ),
+            );
+            return;
+          }
+          handler.next(options);
+        },
+      );
+      ApiClient.dio.interceptors.add(mockInterceptor);
+
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+
+      final controller = container.read(chatControllerProvider.notifier);
+      final sendFuture =
+          controller.sendMessageStreaming('Kiểm tra form Lat Pulldown');
+
+      // Immediately after send: user message + typing placeholder with default status
+      var state = container.read(chatControllerProvider);
+      expect(state.messages, hasLength(2));
+      expect(state.messages.last.role, 'assistant');
+      expect(state.messages.last.isTyping, isTrue);
+      expect(state.messages.last.content, isEmpty);
+      expect(state.messages.last.statusLabel, 'Analyzing your request...');
+
+      // Emit retrieving status event
+      streamController.add(
+        Uint8List.fromList(
+          utf8.encode(
+            'event: status\n'
+            'data: ${jsonEncode({'stage': 'retrieving', 'label': 'Retrieving workout & form data...'})}\n\n',
+          ),
+        ),
+      );
+      await Future<void>.delayed(const Duration(milliseconds: 20));
+      state = container.read(chatControllerProvider);
+      expect(state.messages.last.isTyping, isTrue);
+      expect(
+        state.messages.last.statusLabel,
+        'Retrieving workout & form data...',
+      );
+
+      // Emit generating status event
+      streamController.add(
+        Uint8List.fromList(
+          utf8.encode(
+            'event: status\n'
+            'data: ${jsonEncode({'stage': 'generating', 'label': 'Generating personalized insights...'})}\n\n',
+          ),
+        ),
+      );
+      await Future<void>.delayed(const Duration(milliseconds: 20));
+      state = container.read(chatControllerProvider);
+      expect(state.messages.last.isTyping, isTrue);
+      expect(
+        state.messages.last.statusLabel,
+        'Generating personalized insights...',
+      );
+
+      // Emit first delta + done -> typing indicator and statusLabel clear immediately
+      streamController.add(
+        Uint8List.fromList(
+          utf8.encode(
+            'event: delta\n'
+            'data: ${jsonEncode({'text': 'Rep 7 hơi nhanh.'})}\n\n'
+            'event: done\n'
+            'data: ${jsonEncode({'conversation_id': 'conv_status_1'})}\n\n',
+          ),
+        ),
+      );
+      await streamController.close();
+      await sendFuture;
+
+      state = container.read(chatControllerProvider);
+      expect(state.messages, hasLength(2));
+      expect(state.messages.last.isTyping, isFalse);
+      expect(state.messages.last.statusLabel, isNull);
+      expect(state.messages.last.content, 'Rep 7 hơi nhanh.');
+    });
+  });
+
+  group('SamanAssistantResponse loading dots & status label UI', () {
+    Widget wrapWidget(Widget child, {Brightness brightness = Brightness.dark}) {
+      return MaterialApp(
+        theme: brightness == Brightness.dark
+            ? ThemeData.dark()
+            : ThemeData.light(),
+        home: Scaffold(
+          body: SingleChildScrollView(
+            padding: const EdgeInsets.all(16.0),
+            child: child,
+          ),
+        ),
+      );
+    }
+
+    testWidgets(
+        'shows animated typing dots with default English status and hides when delta arrives',
+        (tester) async {
+      final loadingMsg = ChatMessage(
+        role: 'assistant',
+        content: '',
+        isTyping: true,
+      );
+
+      await tester.pumpWidget(
+        wrapWidget(SamanAssistantResponse(message: loadingMsg)),
+      );
+
+      expect(find.byKey(const ValueKey('saman_typing_indicator')), findsOneWidget);
+      expect(find.text('Analyzing your request...'), findsOneWidget);
+
+      // Update status label live
+      await tester.pumpWidget(
+        wrapWidget(
+          SamanAssistantResponse(
+            message: loadingMsg.copyWith(
+              statusLabel: 'Retrieving workout & form data...',
+            ),
+          ),
+        ),
+      );
+      await tester.pump(const Duration(milliseconds: 200));
+
+      expect(find.byKey(const ValueKey('saman_typing_indicator')), findsOneWidget);
+      expect(find.text('Retrieving workout & form data...'), findsOneWidget);
+
+      // First text delta arrives -> hides typing indicator, renders content + citations
+      final streamedMsg = ChatMessage(
+        role: 'assistant',
+        content: 'Rep 7 bài Lat Pulldown hơi nhanh.',
+        isTyping: false,
+        videoCitations: const [
+          VideoCitation(
+            videoStoryId: 'story_lat',
+            videoUrl: 'https://cdn.example.com/lat.mp4',
+            label: 'Xem Lat Pulldown — Rep 7 (0:19)',
+            seekSec: 19.5,
+          ),
+        ],
+      );
+
+      await tester.pumpWidget(
+        wrapWidget(SamanAssistantResponse(message: streamedMsg)),
+      );
+      await tester.pump();
+
+      expect(find.byKey(const ValueKey('saman_typing_indicator')), findsNothing);
+      expect(find.text('Retrieving workout & form data...'), findsNothing);
+      expect(find.text('Rep 7 bài Lat Pulldown hơi nhanh.'), findsOneWidget);
+      expect(find.text('Xem Lat Pulldown — Rep 7 (0:19)'), findsOneWidget);
+    });
+
+    testWidgets('renders typing indicator cleanly in light theme',
+        (tester) async {
+      final loadingMsg = ChatMessage(
+        role: 'assistant',
+        content: '',
+        isTyping: true,
+        statusLabel: 'Checking muscle recovery & fatigue...',
+      );
+
+      await tester.pumpWidget(
+        wrapWidget(
+          SamanAssistantResponse(message: loadingMsg),
+          brightness: Brightness.light,
+        ),
+      );
+
+      expect(find.byKey(const ValueKey('saman_typing_indicator')), findsOneWidget);
+      expect(find.text('Checking muscle recovery & fatigue...'), findsOneWidget);
     });
   });
 }

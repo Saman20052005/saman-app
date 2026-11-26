@@ -55,6 +55,18 @@ except ImportError:
 
 VALID_AI_MODES = ("swift3", "core3", "pro3")
 
+_INTENT_STATUS_LABELS: Dict[str, str] = {
+    "workout_form": "Retrieving workout & form data...",
+    "nutrition": "Retrieving nutrition & meal logs...",
+    "recovery": "Checking muscle recovery & fatigue...",
+    "full_audit": "Synthesizing 30-day training & recovery data...",
+}
+
+
+def _status_label_for_intent(intent: Optional[str]) -> str:
+    key = (intent or "").strip().lower()
+    return _INTENT_STATUS_LABELS.get(key, "Gathering your context...")
+
 
 def _utcnow():
     return datetime.now(timezone.utc)
@@ -659,6 +671,14 @@ class ChatOperationService:
                 "user_id": principal_id, "user_email": str(principal.get("email") or ""), "title": message[:40],
                 "messages": [], "created_at": now, "updated_at": now}}, upsert=True)
 
+        intent_name = getattr(intent_route, "intent", None) if intent_route is not None else None
+        yield {
+            "event": "status",
+            "data": {
+                "stage": "retrieving",
+                "label": _status_label_for_intent(intent_name),
+            },
+        }
         context = self._build_context(
             principal,
             mode,
@@ -677,7 +697,6 @@ class ChatOperationService:
             conversation_id=resolved_id,
             request_obj=request_obj,
         )
-        intent_name = getattr(intent_route, "intent", None) if intent_route is not None else None
         prefer_lightweight = bool(getattr(intent_route, "prefer_lightweight_model", False)) if intent_route is not None else False
         effective_cache_name = cached_content_name
         if effective_cache_name is None:
@@ -694,6 +713,13 @@ class ChatOperationService:
             raise HTTPException(status_code=409, detail={"status": "in_progress", "operation_id": operation_id})
 
         yield {"event": "meta", "data": {"conversation_id": str(resolved_id), "ai_mode": mode, "operation_id": operation_id}}
+        yield {
+            "event": "status",
+            "data": {
+                "stage": "generating",
+                "label": "Generating personalized insights...",
+            },
+        }
         chunks = []
         try:
             async for chunk in self._iter_provider_stream(
