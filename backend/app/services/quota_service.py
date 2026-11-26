@@ -53,7 +53,7 @@ TIER_QUOTA_LIMITS: Dict[str, Dict[str, Tuple[str, int]]] = {
         "ai.chat.core3": ("daily", 10),
         "ai.chat.pro3": ("daily", 0),
         "ai.nutrition_gemini": ("daily", 5),
-        "workout.cv.ai": ("weekly", 2),
+        "workout.cv.ai": ("weekly", 5),
     },
     "pro": {
         "ai.chat.swift3": ("daily", 50),
@@ -70,6 +70,32 @@ TIER_QUOTA_LIMITS: Dict[str, Dict[str, Tuple[str, int]]] = {
         "workout.cv.ai": ("weekly", -1),
     },
 }
+
+TIER_STORAGE_LIMITS_MB: dict[str, int] = {
+    "free": 0,
+    "plus": 500,
+    "pro": 5000,
+    "ultra": 20000,
+}
+
+TIER_VIDEO_CITATION_DAYS: dict[str, int] = {
+    "free": 0,
+    "plus": 7,
+    "pro": 14,
+    "ultra": 30,
+}
+
+
+def get_video_story_storage_limit_mb(tier: str) -> int:
+    """Returns cumulative video story storage quota (MB) for the given membership tier."""
+    normalized = (tier or "free").strip().lower()
+    return TIER_STORAGE_LIMITS_MB.get(normalized, 0)
+
+
+def get_video_citation_days(tier: str) -> int:
+    """Returns video citation retention window (days) for the given membership tier."""
+    normalized = (tier or "free").strip().lower()
+    return TIER_VIDEO_CITATION_DAYS.get(normalized, 0)
 
 _TIER_RANK: Dict[MembershipTier, int] = {
     MembershipTier.FREE: 0,

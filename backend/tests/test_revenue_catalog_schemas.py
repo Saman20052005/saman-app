@@ -265,13 +265,26 @@ class TestCatalogEngine(unittest.TestCase):
         self.assertEqual(log_feat.status_for(MembershipTier.PLUS), InclusionStatus.INCLUDED)
 
         gemini_feat = next(f for f in catalog.matrix_features if f.id == "gemini_food_analysis")
-        self.assertEqual(gemini_feat.status_for(MembershipTier.FREE), InclusionStatus.NOT_INCLUDED)
+        self.assertEqual(gemini_feat.status_for(MembershipTier.FREE), InclusionStatus.INCLUDED)
         self.assertEqual(gemini_feat.status_for(MembershipTier.PLUS), InclusionStatus.INCLUDED)
 
         cv_feat = next(f for f in catalog.matrix_features if f.id == "workout_cv_ai")
-        self.assertEqual(cv_feat.status_for(MembershipTier.FREE), InclusionStatus.NOT_INCLUDED)
-        self.assertEqual(cv_feat.status_for(MembershipTier.PLUS), InclusionStatus.NOT_INCLUDED)
+        self.assertEqual(cv_feat.status_for(MembershipTier.FREE), InclusionStatus.INCLUDED)
+        self.assertEqual(cv_feat.status_for(MembershipTier.PLUS), InclusionStatus.INCLUDED)
         self.assertEqual(cv_feat.status_for(MembershipTier.PRO), InclusionStatus.INCLUDED)
+
+        unlimited_cv_feat = next(f for f in catalog.matrix_features if f.id == "separate_cv_allowance")
+        self.assertEqual(unlimited_cv_feat.status_for(MembershipTier.FREE), InclusionStatus.NOT_INCLUDED)
+        self.assertEqual(unlimited_cv_feat.status_for(MembershipTier.PLUS), InclusionStatus.NOT_INCLUDED)
+        self.assertEqual(unlimited_cv_feat.status_for(MembershipTier.PRO), InclusionStatus.INCLUDED)
+
+        video_story_feat = next(f for f in catalog.matrix_features if f.id == "video_story_cloud_storage")
+        self.assertEqual(video_story_feat.status_for(MembershipTier.FREE), InclusionStatus.NOT_INCLUDED)
+        self.assertEqual(video_story_feat.status_for(MembershipTier.PLUS), InclusionStatus.INCLUDED)
+
+        citation_feat = next(f for f in catalog.matrix_features if f.id == "ai_video_citation")
+        self.assertEqual(citation_feat.status_for(MembershipTier.FREE), InclusionStatus.NOT_INCLUDED)
+        self.assertEqual(citation_feat.status_for(MembershipTier.PLUS), InclusionStatus.INCLUDED)
 
     def test_catalog_immutability_rejection(self):
         modified_catalog = _build_v1_preview_catalog()

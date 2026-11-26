@@ -483,7 +483,11 @@ def _build_v1_vn_commercial_catalog() -> CatalogVersion:
             tier=MembershipTier.FREE,
             name="Free",
             subtitle="Core essentials",
-            hero_description="Ghi nhận dinh dưỡng, lịch tập thủ công và 1 ảnh món ăn mỗi ngày.",
+            hero_description=(
+                "Ghi nhận dinh dưỡng, lịch tập thủ công, 1 ảnh món ăn Gemini/ngày, "
+                "5 lượt Swift 3/ngày, 2 lượt Workout CV/tuần và 0 MB Cloud Video Story "
+                "(chỉ lưu chỉ số JSON, giữ video local)."
+            ),
             is_recommended=False,
             is_current=True,
             icon_name="check_circle_outline",
@@ -492,16 +496,27 @@ def _build_v1_vn_commercial_catalog() -> CatalogVersion:
                 "core.manual_workouts",
                 "core.basic_health_metrics",
                 "ai.food_classifier.free",
+                "ai.nutrition_gemini",
+                "ai.chat.swift3",
+                "workout.cv.ai",
             ],
             prices=prices_by_plan.get("plan_free", []),
-            availability_notice="Đã bao gồm trong tài khoản Saman miễn phí (1 ảnh món ăn/ngày, 5 lượt Swift 3/ngày).",
+            availability_notice=(
+                "Đã bao gồm trong tài khoản Saman miễn phí "
+                "(1 ảnh Gemini/ngày, 5 Swift 3/ngày, 2 Workout CV/tuần, "
+                "0 MB Cloud Video Story · chỉ lưu chỉ số JSON)."
+            ),
         ),
         Plan(
             plan_id="plan_plus",
             tier=MembershipTier.PLUS,
             name="Plus",
             subtitle="Nutrition AI",
-            hero_description="Mở khóa phân tích ảnh món ăn bằng Gemini (5 ảnh/ngày), Swift 3 (30/ngày) và Core 3 (10/ngày).",
+            hero_description=(
+                "5 ảnh món ăn Gemini/ngày, 30 Swift 3 + 10 Core 3/ngày, "
+                "5 lượt Workout CV/tuần, 500 MB Cloud Video Story và "
+                "AI dẫn chứng video Cơ bản (7 ngày)."
+            ),
             is_recommended=False,
             is_current=False,
             icon_name="restaurant",
@@ -513,16 +528,26 @@ def _build_v1_vn_commercial_catalog() -> CatalogVersion:
                 "ai.nutrition_gemini",
                 "ai.chat.swift3",
                 "ai.chat.core3",
+                "workout.cv.ai",
+                "workout.video_story_cloud",
+                "ai.video_citation",
             ],
             prices=prices_by_plan.get("plan_plus", []),
-            availability_notice="Kích hoạt ngay sau khi thanh toán VietQR · Nutrition AI & Saman Coach.",
+            availability_notice=(
+                "Kích hoạt ngay sau khi thanh toán VietQR · Nutrition AI, "
+                "5 Workout CV/tuần, 500 MB Cloud Video Story & AI dẫn chứng video 7 ngày."
+            ),
         ),
         Plan(
             plan_id="plan_pro",
             tier=MembershipTier.PRO,
             name="Pro",
             subtitle="Workout Intelligence",
-            hero_description="Workout CV AI đếm rep không giới hạn cùng Nutrition AI (10 ảnh/ngày) và Core 3 (30/ngày).",
+            hero_description=(
+                "Workout CV AI không giới hạn, 10 ảnh món ăn Gemini/ngày, "
+                "50 Swift 3 + 30 Core 3/ngày, 5 GB Cloud Video Story và "
+                "AI dẫn chứng video Đầy đủ (14 ngày)."
+            ),
             is_recommended=True,
             is_current=False,
             icon_name="fitness_center",
@@ -537,16 +562,25 @@ def _build_v1_vn_commercial_catalog() -> CatalogVersion:
                 "workout.cv.ai",
                 "workout.cv.lat_pulldown",
                 "workout.movement_rep_counting",
+                "workout.video_story_cloud",
+                "ai.video_citation",
             ],
             prices=prices_by_plan.get("plan_pro", []),
-            availability_notice="Gói khuyên dùng · Mở khóa không giới hạn Workout CV AI & Nutrition AI.",
+            availability_notice=(
+                "Gói khuyên dùng · Workout CV không giới hạn, "
+                "5 GB Cloud Video Story & AI dẫn chứng video Đầy đủ (14 ngày)."
+            ),
         ),
         Plan(
             plan_id="plan_ultra",
             tier=MembershipTier.ULTRA,
             name="Ultra",
             subtitle="Personalized Intelligence",
-            hero_description="Mở khóa Pro 3 (15 lượt/ngày), Suy luận nâng cao, Bộ nhớ dài hạn và 20 ảnh món ăn/ngày.",
+            hero_description=(
+                "20 ảnh món ăn Gemini/ngày, 50 Swift 3 + 30 Core 3 + 15 Pro 3 (Deep Audit)/ngày, "
+                "Workout CV không giới hạn, 20 GB Cloud Video Story và "
+                "AI dẫn chứng video Chuyên sâu (30 ngày + Deep Audit)."
+            ),
             is_recommended=False,
             is_current=False,
             icon_name="psychology_outlined",
@@ -561,12 +595,17 @@ def _build_v1_vn_commercial_catalog() -> CatalogVersion:
                 "workout.cv.ai",
                 "workout.cv.lat_pulldown",
                 "workout.movement_rep_counting",
+                "workout.video_story_cloud",
                 "ai.chat.pro3",
                 "ai.advanced_thinking",
                 "ai.extended_memory",
+                "ai.video_citation",
             ],
             prices=prices_by_plan.get("plan_ultra", []),
-            availability_notice="Gói cao cấp nhất · Mở khóa Pro 3, Suy luận nâng cao và Bộ nhớ dài hạn.",
+            availability_notice=(
+                "Gói cao cấp nhất · Pro 3 Deep Audit (15/ngày), "
+                "20 GB Cloud Video Story & AI dẫn chứng video Chuyên sâu (30 ngày + Deep Audit)."
+            ),
         ),
     ]
 
@@ -622,7 +661,7 @@ def _build_v1_vn_commercial_catalog() -> CatalogVersion:
             title="Gemini food analysis",
             group="NUTRITION AI",
             status_map={
-                MembershipTier.FREE: InclusionStatus.NOT_INCLUDED,
+                MembershipTier.FREE: InclusionStatus.INCLUDED,
                 MembershipTier.PLUS: InclusionStatus.INCLUDED,
                 MembershipTier.PRO: InclusionStatus.INCLUDED,
                 MembershipTier.ULTRA: InclusionStatus.INCLUDED,
@@ -633,7 +672,7 @@ def _build_v1_vn_commercial_catalog() -> CatalogVersion:
             title="Daily AI allowance",
             group="NUTRITION AI",
             status_map={
-                MembershipTier.FREE: InclusionStatus.NOT_INCLUDED,
+                MembershipTier.FREE: InclusionStatus.INCLUDED,
                 MembershipTier.PLUS: InclusionStatus.INCLUDED,
                 MembershipTier.PRO: InclusionStatus.INCLUDED,
                 MembershipTier.ULTRA: InclusionStatus.INCLUDED,
@@ -645,8 +684,8 @@ def _build_v1_vn_commercial_catalog() -> CatalogVersion:
             title="Workout CV AI",
             group="WORKOUT CV INTELLIGENCE",
             status_map={
-                MembershipTier.FREE: InclusionStatus.NOT_INCLUDED,
-                MembershipTier.PLUS: InclusionStatus.NOT_INCLUDED,
+                MembershipTier.FREE: InclusionStatus.INCLUDED,
+                MembershipTier.PLUS: InclusionStatus.INCLUDED,
                 MembershipTier.PRO: InclusionStatus.INCLUDED,
                 MembershipTier.ULTRA: InclusionStatus.INCLUDED,
             },
@@ -656,8 +695,8 @@ def _build_v1_vn_commercial_catalog() -> CatalogVersion:
             title="Movement analysis & rep counting",
             group="WORKOUT CV INTELLIGENCE",
             status_map={
-                MembershipTier.FREE: InclusionStatus.NOT_INCLUDED,
-                MembershipTier.PLUS: InclusionStatus.NOT_INCLUDED,
+                MembershipTier.FREE: InclusionStatus.INCLUDED,
+                MembershipTier.PLUS: InclusionStatus.INCLUDED,
                 MembershipTier.PRO: InclusionStatus.INCLUDED,
                 MembershipTier.ULTRA: InclusionStatus.INCLUDED,
             },
@@ -669,6 +708,17 @@ def _build_v1_vn_commercial_catalog() -> CatalogVersion:
             status_map={
                 MembershipTier.FREE: InclusionStatus.NOT_INCLUDED,
                 MembershipTier.PLUS: InclusionStatus.NOT_INCLUDED,
+                MembershipTier.PRO: InclusionStatus.INCLUDED,
+                MembershipTier.ULTRA: InclusionStatus.INCLUDED,
+            },
+        ),
+        MatrixFeatureDefinition(
+            id="video_story_cloud_storage",
+            title="Cloud Video Story",
+            group="WORKOUT CV INTELLIGENCE",
+            status_map={
+                MembershipTier.FREE: InclusionStatus.NOT_INCLUDED,
+                MembershipTier.PLUS: InclusionStatus.INCLUDED,
                 MembershipTier.PRO: InclusionStatus.INCLUDED,
                 MembershipTier.ULTRA: InclusionStatus.INCLUDED,
             },
@@ -693,6 +743,17 @@ def _build_v1_vn_commercial_catalog() -> CatalogVersion:
                 MembershipTier.FREE: InclusionStatus.NOT_INCLUDED,
                 MembershipTier.PLUS: InclusionStatus.NOT_INCLUDED,
                 MembershipTier.PRO: InclusionStatus.NOT_INCLUDED,
+                MembershipTier.ULTRA: InclusionStatus.INCLUDED,
+            },
+        ),
+        MatrixFeatureDefinition(
+            id="ai_video_citation",
+            title="AI video citation",
+            group="ADVANCED INTELLIGENCE",
+            status_map={
+                MembershipTier.FREE: InclusionStatus.NOT_INCLUDED,
+                MembershipTier.PLUS: InclusionStatus.INCLUDED,
+                MembershipTier.PRO: InclusionStatus.INCLUDED,
                 MembershipTier.ULTRA: InclusionStatus.INCLUDED,
             },
         ),

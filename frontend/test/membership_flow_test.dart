@@ -338,9 +338,9 @@ void main() {
       expect(plus.yearlyEquivalentMonthlyPrice, 49000);
       expect(plus.purchasable, isTrue);
       expect(plus.isRecommended, isFalse);
-      expect(plus.plannedBenefits.length, 2);
+      expect(plus.plannedBenefits.length, 4);
       expect(plus.aiAllowanceText, '5 ảnh/ngày · 30 Swift 3 · 10 Core 3');
-      expect(plus.workoutCvAllowanceText, isNull);
+      expect(plus.workoutCvAllowanceText, '5 lượt/tuần · 500 MB · 7 ngày');
 
       // Pro Plan
       final pro = plans.firstWhere((p) => p.tier == MembershipTier.pro);
@@ -349,9 +349,9 @@ void main() {
       expect(pro.yearlyEquivalentMonthlyPrice, 99000);
       expect(pro.purchasable, isTrue);
       expect(pro.isRecommended, isTrue);
-      expect(pro.plannedBenefits.length, 3);
+      expect(pro.plannedBenefits.length, 4);
       expect(pro.aiAllowanceText, '10 ảnh/ngày · 50 Swift 3 · 30 Core 3');
-      expect(pro.workoutCvAllowanceText, 'Không giới hạn');
+      expect(pro.workoutCvAllowanceText, 'Không giới hạn · 5 GB · 14 ngày');
 
       // Ultra Plan
       final ultra = plans.firstWhere((p) => p.tier == MembershipTier.ultra);
@@ -361,13 +361,17 @@ void main() {
       expect(ultra.purchasable, isTrue);
       expect(ultra.isRecommended, isFalse);
       expect(ultra.plannedBenefits.length, 3);
-      expect(ultra.aiAllowanceText, '20 ảnh/ngày · 15 Pro 3/ngày');
-      expect(ultra.workoutCvAllowanceText, 'Không giới hạn');
+      expect(ultra.aiAllowanceText,
+          '20 ảnh/ngày · 50 Swift 3 · 30 Core 3 · 15 Pro 3');
+      expect(ultra.workoutCvAllowanceText, 'Không giới hạn · 20 GB · 30 ngày');
     });
 
     test('Comparison Matrix features are correctly grouped and mapped', () {
       const features = MembershipCatalog.matrixFeatures;
-      expect(features.length, 11);
+      expect(features.length, 13);
+      expect(
+          features.any((f) => f.id == 'video_story_cloud_storage'), isTrue);
+      expect(features.any((f) => f.id == 'ai_video_citation'), isTrue);
 
       // Group 1: Core Essentials (4 items)
       final core =
@@ -385,32 +389,68 @@ void main() {
           features.where((f) => f.group == FeatureGroup.nutritionAi);
       expect(nutrition.length, 2);
       for (final f in nutrition) {
-        expect(f.statusFor(MembershipTier.free), InclusionStatus.notIncluded);
+        expect(f.statusFor(MembershipTier.free), InclusionStatus.included);
         expect(f.statusFor(MembershipTier.plus), InclusionStatus.included);
         expect(f.statusFor(MembershipTier.pro), InclusionStatus.included);
         expect(f.statusFor(MembershipTier.ultra), InclusionStatus.included);
       }
 
-      // Group 3: Workout CV (3 items)
+      // Group 3: Workout CV (4 items)
       final workout = features.where((f) => f.group == FeatureGroup.workoutCv);
-      expect(workout.length, 3);
-      for (final f in workout) {
-        expect(f.statusFor(MembershipTier.free), InclusionStatus.notIncluded);
-        expect(f.statusFor(MembershipTier.plus), InclusionStatus.notIncluded);
-        expect(f.statusFor(MembershipTier.pro), InclusionStatus.included);
-        expect(f.statusFor(MembershipTier.ultra), InclusionStatus.included);
-      }
+      expect(workout.length, 4);
+      final workoutCvAi =
+          workout.firstWhere((f) => f.id == 'workout_cv_ai');
+      expect(workoutCvAi.statusFor(MembershipTier.free),
+          InclusionStatus.included);
+      expect(workoutCvAi.statusFor(MembershipTier.plus),
+          InclusionStatus.included);
+      expect(workoutCvAi.statusFor(MembershipTier.pro),
+          InclusionStatus.included);
+      expect(workoutCvAi.statusFor(MembershipTier.ultra),
+          InclusionStatus.included);
 
-      // Group 4: Advanced Intelligence (2 items)
+      final separateCv =
+          workout.firstWhere((f) => f.id == 'separate_cv_allowance');
+      expect(separateCv.statusFor(MembershipTier.free),
+          InclusionStatus.notIncluded);
+      expect(separateCv.statusFor(MembershipTier.plus),
+          InclusionStatus.notIncluded);
+      expect(separateCv.statusFor(MembershipTier.pro),
+          InclusionStatus.included);
+      expect(separateCv.statusFor(MembershipTier.ultra),
+          InclusionStatus.included);
+
+      final videoStory =
+          workout.firstWhere((f) => f.id == 'video_story_cloud_storage');
+      expect(videoStory.statusFor(MembershipTier.free),
+          InclusionStatus.notIncluded);
+      expect(videoStory.statusFor(MembershipTier.plus),
+          InclusionStatus.included);
+      expect(videoStory.statusFor(MembershipTier.pro),
+          InclusionStatus.included);
+      expect(videoStory.statusFor(MembershipTier.ultra),
+          InclusionStatus.included);
+
+      // Group 4: Advanced Intelligence (3 items)
       final advanced =
           features.where((f) => f.group == FeatureGroup.advancedIntelligence);
-      expect(advanced.length, 2);
-      for (final f in advanced) {
+      expect(advanced.length, 3);
+      for (final f in advanced.where((f) => f.id != 'ai_video_citation')) {
         expect(f.statusFor(MembershipTier.free), InclusionStatus.notIncluded);
         expect(f.statusFor(MembershipTier.plus), InclusionStatus.notIncluded);
         expect(f.statusFor(MembershipTier.pro), InclusionStatus.notIncluded);
         expect(f.statusFor(MembershipTier.ultra), InclusionStatus.included);
       }
+      final aiVideoCitation =
+          advanced.firstWhere((f) => f.id == 'ai_video_citation');
+      expect(aiVideoCitation.statusFor(MembershipTier.free),
+          InclusionStatus.notIncluded);
+      expect(aiVideoCitation.statusFor(MembershipTier.plus),
+          InclusionStatus.included);
+      expect(aiVideoCitation.statusFor(MembershipTier.pro),
+          InclusionStatus.included);
+      expect(aiVideoCitation.statusFor(MembershipTier.ultra),
+          InclusionStatus.included);
     });
 
     test('Account remains Free demo entitlement', () {
@@ -585,6 +625,7 @@ void main() {
       // Find banner card
       final bannerFinder =
           find.byKey(const Key('profile_membership_banner_card'));
+      await tester.scrollUntilVisible(bannerFinder, 200);
       expect(bannerFinder, findsOneWidget);
       expect(find.text('Saman Membership'), findsOneWidget);
 
@@ -908,11 +949,15 @@ void main() {
       // Verify Ultra Screen details
       expect(find.text('Ultra'), findsWidgets);
       expect(find.text('PERSONALIZED INTELLIGENCE'), findsOneWidget);
-      expect(find.text('Pro 3 & 20 ảnh Nutrition AI/ngày'), findsOneWidget);
-      expect(find.text('Advanced Thinking'), findsOneWidget);
-      expect(find.text('Extended history and personalized memory'),
+      expect(find.text('Pro 3 (Deep Audit) & 20 ảnh Nutrition AI/ngày'),
           findsOneWidget);
-      expect(find.text('20 ảnh/ngày · 15 Pro 3/ngày'), findsOneWidget);
+      expect(find.text('Advanced Thinking'), findsOneWidget);
+      expect(
+          find.text('20 GB Cloud Video Story & AI dẫn chứng (30 ngày + Deep Audit)'),
+          findsOneWidget);
+      expect(
+          find.text('20 ảnh/ngày · 50 Swift 3 · 30 Core 3 · 15 Pro 3'),
+          findsOneWidget);
     });
   });
 
@@ -1951,6 +1996,23 @@ void main() {
 
         await tester.pumpWidget(
           _buildTestApp(
+            profileState: ProfileState(
+              status: ProfileStatus.ready,
+              profile: const ProfileEntity(
+                age: 28,
+                gender: Gender.male,
+                height: 178,
+                weight: 75,
+                activityLevel: ActivityLevel.medium,
+                goal: Goal.gain_muscle,
+              ),
+              targetCalories: 2500,
+              targetProtein: 160,
+              targetCarbs: 240,
+              targetFat: 65,
+              waterTargetMl: 2500,
+              isLoading: false,
+            ),
             child: const WorkoutHomeScreen(),
           ),
         );

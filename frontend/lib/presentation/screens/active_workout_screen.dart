@@ -16,8 +16,12 @@ import '../providers/active_workout_state.dart';
 import '../tokens/saman_workout_tokens.dart';
 import '../providers/exercise_providers.dart';
 import '../providers/workout_history_providers.dart';
+import '../../features/workout_cv/data/services/workout_cv_quota_client.dart';
 import '../../features/workout_cv/domain/services/cv_form_summary_calculator.dart';
 import '../../features/workout_cv/domain/services/workout_cv_exercise_registry.dart';
+import '../../features/membership/domain/models/membership_plan.dart';
+import '../../features/membership/presentation/screens/plan_detail_screen.dart';
+import '../../features/membership/presentation/widgets/upgrade_bottom_sheet.dart';
 import '../widgets/exercise_thumbnail.dart';
 import '../widgets/plate_calculator_sheet.dart';
 import 'workout_review_screen.dart';
@@ -3017,6 +3021,21 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
     );
   }
 
+  Future<void> _openWorkoutCvPaywall(BuildContext context) async {
+    final selectedTier = await showUpgradeBottomSheet(
+      context,
+      tier: MembershipTier.pro,
+    );
+    if (!context.mounted || selectedTier == null) return;
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        settings:
+            RouteSettings(name: '/membership/detail/${selectedTier.name}'),
+        builder: (_) => PlanDetailScreen(tier: selectedTier),
+      ),
+    );
+  }
+
   Future<void> _handleFormCheckTap(
     BuildContext context,
     ActiveExerciseInfo currentEx,
@@ -3069,6 +3088,39 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
     }
 
     if (!context.mounted) return;
+
+    final authResult = await ref.read(workoutCvQuotaClientProvider).authorize(
+          exerciseSlug:
+              currentEx.slug.isNotEmpty ? currentEx.slug : currentEx.id,
+          sourceMode: mode == 'upload' ? 'video_upload' : 'realtime',
+        );
+    if (!context.mounted) return;
+
+    if (!authResult.allowed) {
+      if (authResult.isQuotaExhausted || authResult.isUpgradeRequired) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              authResult.message ??
+                  'Bạn đã dùng hết lượt Form Check AI trong tuần. Nâng cấp Pro để dùng không giới hạn.',
+            ),
+            backgroundColor: t.surfaceElevated,
+          ),
+        );
+        await _openWorkoutCvPaywall(context);
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              authResult.message ??
+                  'Không thể kiểm tra hạn mức Form Check AI lúc này. Vui lòng thử lại.',
+            ),
+            backgroundColor: t.surfaceElevated,
+          ),
+        );
+      }
+      return;
+    }
 
     // 3. Capture wasPaused and sessionId before opening CV
     final sessionNotifier = ref.read(activeWorkoutSessionProvider.notifier);

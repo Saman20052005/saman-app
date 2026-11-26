@@ -107,6 +107,34 @@ async def list_catalog_versions() -> Dict[str, Any]:
     }
 
 
+def _resolve_operation_account_id(db: Any, email: str) -> str:
+    """
+    Resolves canonical account_id for authenticated operation lookup endpoints.
+    Fails closed with 503 when DB is unavailable or errors, and 409 on legacy R02 migration blocker.
+    """
+    if db is None:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Revenue database connection is unavailable.",
+        )
+    try:
+        return resolve_or_create_account_id(db, email)
+    except LegacyR02IdentityMigrationRequiredError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail={
+                "code": exc.code,
+                "message": exc.message,
+            },
+        )
+    except Exception as exc:
+        logger.error("Database error resolving account_id for %s: %s", email, exc)
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=f"Database error resolving account identity: {exc}",
+        )
+
+
 @router.get(
     "/operations/lookup",
     summary="Lookup operation status and cached result by idempotency key",
@@ -119,12 +147,19 @@ async def lookup_operation(
 ) -> Dict[str, Any]:
     from backend.app.services.quota_service import QuotaService, StorageUnavailableException
     quota_svc = QuotaService()
+    account_id = _resolve_operation_account_id(quota_svc._get_db(), email)
     try:
         op = quota_svc.query_operation_by_idempotency_key(
-            user_id=email,
+            user_id=account_id,
             benefit_id=benefit_id,
             idempotency_key=idempotency_key,
         )
+        if not op and email and email != account_id:
+            op = quota_svc.query_operation_by_idempotency_key(
+                user_id=email,
+                benefit_id=benefit_id,
+                idempotency_key=idempotency_key,
+            )
     except StorageUnavailableException as exc:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
@@ -155,8 +190,11 @@ async def get_operation_status(
     """
     from backend.app.services.quota_service import QuotaService, StorageUnavailableException
     quota_svc = QuotaService()
+    account_id = _resolve_operation_account_id(quota_svc._get_db(), email)
     try:
-        op = quota_svc.query_operation(user_id=email, operation_id=operation_id)
+        op = quota_svc.query_operation(user_id=account_id, operation_id=operation_id)
+        if not op and email and email != account_id:
+            op = quota_svc.query_operation(user_id=email, operation_id=operation_id)
     except StorageUnavailableException as exc:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,

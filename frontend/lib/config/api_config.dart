@@ -55,6 +55,8 @@ class ApiConfig {
   static const String historyEndpoint = '$baseUrl/api/workouts/history';
   static const String myPlansEndpoint = '$baseUrl/api/workouts/plans';
   static const String getSessionEndpoint = '$baseUrl/api/workouts/sessions';
+  static const String workoutCvAuthorizeEndpoint =
+      '$baseUrl/api/workouts/cv/authorize';
 
   // ==================== EXERCISE ENDPOINTS ====================
   static const String muscleGroupsEndpoint =

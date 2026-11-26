@@ -1,11 +1,14 @@
 # [File: routers/workout.py]
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Body, Depends, HTTPException, Query, status
 from datetime import datetime, date, timedelta, timezone
 from zoneinfo import ZoneInfo
 from typing import Optional, List, Dict, Any, Literal, Tuple
 import hashlib
+import logging
 import math
+import os
 import re
+from uuid import uuid4
 import pydantic as pd
 from bson import ObjectId
 from pymongo.errors import DuplicateKeyError
@@ -13,6 +16,7 @@ from pymongo.errors import DuplicateKeyError
 # Import dependencies
 from backend.auth_utils import verify_token, get_current_user
 from backend.app.repositories.user_repository import UserRepository
+import backend.app.database as _db_mod
 from backend.app.database import workout_history_collection, custom_plans_collection, exercises_collection
 from backend.app.services.context_utils import (
     build_user_query,
@@ -21,6 +25,55 @@ from backend.app.services.context_utils import (
     normalize_email,
     utc_to_vn_date_str,
 )
+
+try:
+    from backend.app.services.revenue_guard import is_ai_paywall_enabled
+except ImportError:
+    try:
+        from app.services.revenue_guard import is_ai_paywall_enabled
+    except ImportError:  # pragma: no cover
+        is_ai_paywall_enabled = None
+
+if not callable(is_ai_paywall_enabled):
+    def is_ai_paywall_enabled() -> bool:
+        return os.getenv("ENABLE_AI_PAYWALL", "false").strip().lower() in ("1", "true", "yes", "on")
+
+try:
+    from backend.app.services.entitlement_service import EntitlementService
+    from backend.app.models.revenue import EntitlementDecisionStatus, ReservationStatus
+    from backend.app.database_revenue import COLL_USAGE_BUCKETS
+    from backend.app.services.quota_service import (
+        TIER_QUOTA_LIMITS,
+        QuotaService,
+        StorageUnavailableException as QuotaStorageUnavailableException,
+        resolve_user_tier_and_quota,
+    )
+    from backend.app.services.revenuecat_adapter import resolve_or_create_account_id
+except ImportError:
+    try:
+        from app.services.entitlement_service import EntitlementService
+        from app.models.revenue import EntitlementDecisionStatus, ReservationStatus
+        from app.database_revenue import COLL_USAGE_BUCKETS
+        from app.services.quota_service import (
+            TIER_QUOTA_LIMITS,
+            QuotaService,
+            StorageUnavailableException as QuotaStorageUnavailableException,
+            resolve_user_tier_and_quota,
+        )
+        from app.services.revenuecat_adapter import resolve_or_create_account_id
+    except ImportError:  # pragma: no cover
+        EntitlementService = None
+        EntitlementDecisionStatus = None
+        ReservationStatus = None
+        COLL_USAGE_BUCKETS = "revenue_usage_buckets"
+        TIER_QUOTA_LIMITS = {}
+        QuotaService = None
+        QuotaStorageUnavailableException = None
+        resolve_user_tier_and_quota = None
+        resolve_or_create_account_id = None
+
+logger = logging.getLogger(__name__)
+WORKOUT_CV_BENEFIT_ID = "workout.cv.ai"
 
 try:
     from zoneinfo import ZoneInfo
@@ -1846,3 +1899,281 @@ async def get_muscle_group_detail(slug: str):
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+# ─── WORKOUT CV AI QUOTA AUTHORIZATION ────────────────────────────────────────
+
+class WorkoutCvAuthorizeRequest(pd.BaseModel):
+    exercise_slug: Optional[str] = None
+    source_mode: str = "realtime"
+    idempotency_key: Optional[str] = None
+
+
+class WorkoutCvAuthorizeResponse(pd.BaseModel):
+    allowed: bool
+    paywall_enforced: bool = True
+    tier: str
+    benefit_id: str = WORKOUT_CV_BENEFIT_ID
+    limit_units: int
+    remaining_units: int
+    operation_id: Optional[str] = None
+
+
+def _raise_cv_storage_unavailable() -> None:
+    raise HTTPException(
+        status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+        detail={
+            "code": "storage_unavailable",
+            "benefit_id": WORKOUT_CV_BENEFIT_ID,
+            "message": "Hệ thống kiểm tra hạn mức tạm thời gián đoạn. Vui lòng thử lại sau.",
+        },
+    )
+
+
+def _compute_cv_bucket_remaining(
+    db: Any,
+    q_svc: Any,
+    account_id: str,
+    period_type: str,
+    limit_units: int,
+) -> Tuple[int, int]:
+    """Reads current (effective_limit, remaining_units) from usage bucket for idempotent replays."""
+    if limit_units < 0:
+        return -1, -1
+    try:
+        now_utc = datetime.now(timezone.utc)
+        window_start, _, bucket_key = q_svc._get_window_bounds(
+            now_utc,
+            period_type=period_type,
+            benefit_id=WORKOUT_CV_BENEFIT_ID,
+        )
+        bucket_doc = db[COLL_USAGE_BUCKETS].find_one({
+            "user_id": account_id,
+            "bucket_key": bucket_key,
+            "window_start": window_start,
+        })
+        if bucket_doc:
+            consumed = int(bucket_doc.get("consumed_units", 0) or 0)
+            reserved = int(bucket_doc.get("reserved_units", 0) or 0)
+            lim = int(bucket_doc.get("limit_units", limit_units))
+            bonus = int(bucket_doc.get("bonus_units", 0) or 0)
+            effective_lim = lim + bonus if lim >= 0 else lim
+            remaining = -1 if effective_lim < 0 else max(0, effective_lim - (consumed + reserved))
+            return effective_lim, remaining
+    except Exception as exc:
+        logger.warning("Failed to read workout CV bucket remaining: %s", type(exc).__name__)
+    return limit_units, max(0, limit_units)
+
+
+@router.post("/cv/authorize", response_model=WorkoutCvAuthorizeResponse)
+async def authorize_workout_cv(
+    payload: Optional[WorkoutCvAuthorizeRequest] = Body(default=None),
+    current_user: dict = Depends(get_current_user),
+):
+    """
+    Authorizes and consumes 1 weekly unit of `workout.cv.ai` (Form Check AI)
+    when ENABLE_AI_PAYWALL is enabled.
+    """
+    req = payload or WorkoutCvAuthorizeRequest()
+    raw_email = current_user.get("email")
+    email = raw_email.strip().lower() if isinstance(raw_email, str) and raw_email.strip() else ""
+    raw_user_id = str(current_user.get("_id")) if current_user.get("_id") is not None else ""
+    raw_account_id = current_user.get("account_id")
+    account_id_hint = (
+        raw_account_id.strip()
+        if isinstance(raw_account_id, str) and raw_account_id.strip()
+        else ""
+    )
+
+    if not is_ai_paywall_enabled():
+        tier_str = "free"
+        free_limits = TIER_QUOTA_LIMITS.get(tier_str, {})
+        _, default_limit = free_limits.get(WORKOUT_CV_BENEFIT_ID, ("weekly", 0))
+        return WorkoutCvAuthorizeResponse(
+            allowed=True,
+            paywall_enforced=False,
+            tier=tier_str,
+            benefit_id=WORKOUT_CV_BENEFIT_ID,
+            limit_units=default_limit,
+            remaining_units=default_limit,
+            operation_id=None,
+        )
+
+    db = _db_mod.db
+    if (
+        db is None
+        or QuotaService is None
+        or EntitlementService is None
+        or resolve_or_create_account_id is None
+        or resolve_user_tier_and_quota is None
+    ):
+        _raise_cv_storage_unavailable()
+
+    auth_ref = account_id_hint or email or raw_user_id
+    if not auth_ref:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Unauthorized",
+        )
+
+    try:
+        account_id = resolve_or_create_account_id(db, auth_ref)
+    except Exception as exc:
+        logger.warning("Workout CV account resolution failed: %s", type(exc).__name__)
+        _raise_cv_storage_unavailable()
+
+    # Evaluate entitlement via EntitlementService (detects storage outage / explicit revocation)
+    try:
+        ent_decision = EntitlementService(db=db).evaluate_entitlement(
+            account_id,
+            WORKOUT_CV_BENEFIT_ID,
+        )
+    except Exception as exc:
+        logger.warning("Workout CV entitlement evaluation failed: %s", type(exc).__name__)
+        _raise_cv_storage_unavailable()
+
+    if EntitlementDecisionStatus is not None:
+        if ent_decision.status == EntitlementDecisionStatus.STORAGE_UNAVAILABLE:
+            _raise_cv_storage_unavailable()
+        if ent_decision.status == EntitlementDecisionStatus.REVOKED:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail={
+                    "code": "entitlement_required",
+                    "benefit_id": WORKOUT_CV_BENEFIT_ID,
+                    "message": "Gói hiện tại chưa bao gồm tính năng Form Check AI. Nâng cấp Pro để sử dụng.",
+                },
+            )
+
+    # Resolve effective tier & dynamic quota limit from TIER_QUOTA_LIMITS (plus active grants)
+    try:
+        effective_tier, period_type, limit_units = resolve_user_tier_and_quota(
+            db,
+            user_id=account_id,
+            email=email or None,
+            benefit_id=WORKOUT_CV_BENEFIT_ID,
+        )
+    except Exception as exc:
+        if QuotaStorageUnavailableException is not None and isinstance(exc, QuotaStorageUnavailableException):
+            _raise_cv_storage_unavailable()
+        logger.warning("Workout CV tier/quota resolution failed: %s", type(exc).__name__)
+        _raise_cv_storage_unavailable()
+
+    tier_str = effective_tier.value if hasattr(effective_tier, "value") else str(effective_tier or "free")
+    if ent_decision.tier is not None and tier_str == "free":
+        tier_str = ent_decision.tier.value
+        tier_limits = TIER_QUOTA_LIMITS.get(tier_str, TIER_QUOTA_LIMITS.get("free", {}))
+        period_type, limit_units = tier_limits.get(WORKOUT_CV_BENEFIT_ID, (period_type, limit_units))
+
+    q_svc = QuotaService(db=db)
+
+    if limit_units == 0:
+        has_bonus_quota = False
+        try:
+            now_utc = datetime.now(timezone.utc)
+            window_start, _, bucket_key = q_svc._get_window_bounds(
+                now_utc,
+                period_type=period_type,
+                benefit_id=WORKOUT_CV_BENEFIT_ID,
+            )
+            bucket_doc = db[COLL_USAGE_BUCKETS].find_one({
+                "user_id": account_id,
+                "bucket_key": bucket_key,
+                "window_start": window_start,
+            })
+            if bucket_doc:
+                b_bonus = int(bucket_doc.get("bonus_units", 0) or 0)
+                b_consumed = int(bucket_doc.get("consumed_units", 0) or 0)
+                b_reserved = int(bucket_doc.get("reserved_units", 0) or 0)
+                if (limit_units + b_bonus) > (b_consumed + b_reserved):
+                    has_bonus_quota = True
+        except Exception as exc:
+            logger.warning("Failed to inspect workout CV bonus bucket: %s", type(exc).__name__)
+
+        if not has_bonus_quota:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail={
+                    "code": "entitlement_required",
+                    "benefit_id": WORKOUT_CV_BENEFIT_ID,
+                    "message": "Gói hiện tại chưa bao gồm tính năng Form Check AI. Nâng cấp Pro để sử dụng.",
+                },
+            )
+
+    idem_key = (
+        req.idempotency_key.strip()
+        if isinstance(req.idempotency_key, str) and req.idempotency_key.strip()
+        else f"cv:{uuid4().hex}"
+    )
+
+    res = q_svc.reserve_quota(
+        user_id=account_id,
+        benefit_id=WORKOUT_CV_BENEFIT_ID,
+        units=1,
+        limit_units=limit_units,
+        period_type=period_type,
+        idempotency_key=idem_key,
+    )
+
+    if ReservationStatus is not None:
+        if res.status == ReservationStatus.STORAGE_UNAVAILABLE:
+            _raise_cv_storage_unavailable()
+        if res.status == ReservationStatus.QUOTA_EXHAUSTED:
+            raise HTTPException(
+                status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                detail={
+                    "code": "quota_exceeded",
+                    "benefit_id": WORKOUT_CV_BENEFIT_ID,
+                    "limit_units": res.limit_units if res.limit_units is not None else limit_units,
+                    "remaining_units": 0,
+                    "message": "Bạn đã dùng hết lượt Form Check AI trong tuần. Nâng cấp Pro để dùng không giới hạn.",
+                },
+            )
+        if res.status == ReservationStatus.OPERATION_CONFLICT:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail={
+                    "code": "operation_conflict",
+                    "benefit_id": WORKOUT_CV_BENEFIT_ID,
+                    "message": res.error_message or "Yêu cầu xung đột với thao tác trước đó.",
+                },
+            )
+        if res.status == ReservationStatus.RESERVED and res.operation_id:
+            q_svc.commit_quota(
+                res.operation_id,
+                lease_token=res.lease_token,
+            )
+            eff_limit = res.limit_units if res.limit_units is not None else limit_units
+            rem_units = (
+                -1
+                if eff_limit < 0
+                else (res.remaining_units if res.remaining_units is not None else max(0, eff_limit - 1))
+            )
+            return WorkoutCvAuthorizeResponse(
+                allowed=True,
+                paywall_enforced=True,
+                tier=tier_str,
+                benefit_id=WORKOUT_CV_BENEFIT_ID,
+                limit_units=eff_limit,
+                remaining_units=rem_units,
+                operation_id=res.operation_id,
+            )
+        if res.status in (ReservationStatus.ALREADY_COMPLETED, ReservationStatus.IN_PROGRESS):
+            eff_limit, rem_units = _compute_cv_bucket_remaining(
+                db=db,
+                q_svc=q_svc,
+                account_id=account_id,
+                period_type=period_type,
+                limit_units=limit_units,
+            )
+            return WorkoutCvAuthorizeResponse(
+                allowed=True,
+                paywall_enforced=True,
+                tier=tier_str,
+                benefit_id=WORKOUT_CV_BENEFIT_ID,
+                limit_units=eff_limit,
+                remaining_units=rem_units,
+                operation_id=res.operation_id,
+            )
+
+    _raise_cv_storage_unavailable()
