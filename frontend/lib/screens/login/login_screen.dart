@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
@@ -15,6 +16,14 @@ import 'login_controller.dart';
 import 'widgets/forgot_password_sheet.dart';
 import 'widgets/login_form.dart';
 import 'widgets/social_login_row.dart';
+
+const bool kEnableGuestMode = bool.fromEnvironment(
+  'ENABLE_GUEST_MODE',
+  defaultValue: false,
+);
+
+bool isGuestModeAllowed({bool? debugOverride}) =>
+    (debugOverride ?? kDebugMode) || kEnableGuestMode;
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -64,6 +73,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   }
 
   Future<void> _handleGuestLogin(LoginController controller) async {
+    if (!isGuestModeAllowed()) return;
     try {
       await controller.signInAsGuest();
     } catch (e) {
@@ -154,7 +164,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           if (_hasNavigatedToMain) return;
           _hasNavigatedToMain = true;
           ref.read(profileProvider.notifier).resetSession();
-          if (next.isGuestLogin) {
+          if (next.isGuestLogin && isGuestModeAllowed()) {
             _seedGuestProfileSession();
           }
           Navigator.pushReplacementNamed(context, AppRoutes.main);
@@ -227,12 +237,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   onFacebookTap: () =>
                       _handleSocialLogin(controller.signInWithFacebook),
                 ),
-                const SizedBox(height: AppSpacing.lg),
-                _GuestModeButton(
-                  isLoading: loginState.isLoading,
-                  palette: palette,
-                  onTap: () => _handleGuestLogin(controller),
-                ),
+                if (isGuestModeAllowed()) ...[
+                  const SizedBox(height: AppSpacing.lg),
+                  _GuestModeButton(
+                    isLoading: loginState.isLoading,
+                    palette: palette,
+                    onTap: () => _handleGuestLogin(controller),
+                  ),
+                ],
                 const SizedBox(height: 20),
               ],
             ),

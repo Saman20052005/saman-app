@@ -10,6 +10,7 @@ import 'config/app_translations.dart';
 import 'config/theme_provider.dart';
 import 'config/routes.dart';
 import 'config/app_theme.dart';
+import 'core/services/client_error_reporter.dart';
 import 'utils/auth_helper.dart';
 
 import 'features/workout_cv/presentation/screens/workout_cv_screen.dart';
@@ -20,6 +21,7 @@ import 'providers/profile_provider.dart';
 void main() async {
   // ➕ Đổi thành async
   WidgetsFlutterBinding.ensureInitialized();
+  ClientErrorReporter.installGlobalHandlers();
 
   // 1. Cấu hình UI System
   SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(

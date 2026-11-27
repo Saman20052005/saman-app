@@ -114,3 +114,8 @@ qa_artifacts/ui_audit/before/
 qa_artifacts/ui_audit/after/
 qa_artifacts/ui_audit/.ui_guard_baseline.json
 
+# Android release signing secrets
+**/android/key.properties
+*.jks
+*.keystore
+

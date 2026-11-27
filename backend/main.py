@@ -28,6 +28,8 @@ from backend.routers.community_dm import (
     router as community_dm_router,
     ws_router as community_dm_ws_router,
 )
+from backend.routers.privacy import privacy_router
+from backend.routers.maintenance import maintenance_router
 
 # Configure logging
 logging.basicConfig(
@@ -281,6 +283,8 @@ app.include_router(community_dm_ws_router)
 if "payment_router" in globals() and payment_router:
     app.include_router(payment_router)
 app.include_router(analytics_router)
+app.include_router(privacy_router)
+app.include_router(maintenance_router)
 
 # DEBUG: Print all registered routes
 print("\n=== REGISTERED ROUTES ===")

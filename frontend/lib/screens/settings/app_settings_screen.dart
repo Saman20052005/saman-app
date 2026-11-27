@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -5,9 +7,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../config/app_metadata.dart';
 import '../../config/app_theme.dart';
 import '../../config/app_translations.dart';
+import '../../config/routes.dart';
 import '../../config/theme_provider.dart';
+import '../../features/privacy/data/privacy_service.dart';
+import '../../features/privacy/presentation/screens/health_consent_screen.dart';
 import '../../features/workout_cv/data/services/cv_telemetry_service.dart';
+import '../../providers/profile_provider.dart';
 import '../../services/unit_converter.dart';
+import '../../utils/auth_helper.dart';
 
 class AppSettingsScreen extends ConsumerWidget {
   const AppSettingsScreen({super.key});
@@ -259,6 +266,59 @@ class AppSettingsScreen extends ConsumerWidget {
 
                     const SizedBox(height: 24),
 
+                    // SECTION 2.5: PRIVACY & DATA (VN 2026)
+                    _buildSectionHeader(
+                      context,
+                      locale.languageCode == 'vi'
+                          ? 'Quyền riêng tư & Dữ liệu'
+                          : 'PRIVACY & DATA',
+                    ),
+                    _buildCardGroup(
+                      context,
+                      children: [
+                        _buildSettingsRow(
+                          context: context,
+                          key: const Key('setting_row_health_consent'),
+                          icon: Icons.verified_user_outlined,
+                          title: 'Chính sách dữ liệu sức khỏe & AI',
+                          showChevron: true,
+                          onTap: () {
+                            final userId = ref.read(profileProvider).userId;
+                            Navigator.of(context).push(
+                              MaterialPageRoute<void>(
+                                builder: (_) => HealthConsentScreen(
+                                  userId: userId,
+                                  readOnlyReview: true,
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                        _buildDivider(context),
+                        _buildSettingsRow(
+                          context: context,
+                          key: const Key('setting_row_export_data'),
+                          icon: Icons.download_outlined,
+                          title: 'Xuất dữ liệu cá nhân (JSON)',
+                          showChevron: true,
+                          onTap: () => _handleExportData(context, ref),
+                        ),
+                        _buildDivider(context),
+                        _buildSettingsRow(
+                          context: context,
+                          key: const Key('setting_row_delete_account'),
+                          icon: Icons.delete_forever_outlined,
+                          iconColor: Colors.redAccent,
+                          title: 'Xóa tài khoản vĩnh viễn',
+                          titleColor: Colors.redAccent,
+                          showChevron: true,
+                          onTap: () => _showDeleteAccountDialog(context, ref),
+                        ),
+                      ],
+                    ),
+
+                    const SizedBox(height: 24),
+
                     // SECTION 3: APP INFORMATION
                     _buildSectionHeader(
                       context,
@@ -403,7 +463,9 @@ class AppSettingsScreen extends ConsumerWidget {
     required BuildContext context,
     Key? key,
     required IconData icon,
+    Color? iconColor,
     required String title,
+    Color? titleColor,
     String? subtitle,
     String? value,
     Widget? trailing,
@@ -412,9 +474,11 @@ class AppSettingsScreen extends ConsumerWidget {
     VoidCallback? onTap,
   }) {
     final palette = context.samanColors;
-    final textPrimary = palette.isDark ? Colors.white : palette.textPrimary;
+    final textPrimary =
+        titleColor ?? (palette.isDark ? Colors.white : palette.textPrimary);
     final mutedColor =
         palette.isDark ? const Color(0xFF8E8E93) : palette.textSecondary;
+    final resolvedIconColor = iconColor ?? mutedColor;
     final chevronColor =
         palette.isDark ? const Color(0xFF9CA3AF) : palette.textMuted;
     final valueColor = palette.isDark
@@ -440,7 +504,7 @@ class AppSettingsScreen extends ConsumerWidget {
               Icon(
                 icon,
                 size: 20,
-                color: mutedColor,
+                color: resolvedIconColor,
               ),
               const SizedBox(width: 14),
 
@@ -891,6 +955,307 @@ class AppSettingsScreen extends ConsumerWidget {
           ],
         );
       },
+    );
+  }
+
+  Future<void> _handleExportData(BuildContext context, WidgetRef ref) async {
+    final navigator = Navigator.of(context, rootNavigator: true);
+    showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const Center(child: CircularProgressIndicator()),
+    );
+
+    try {
+      final exportMap =
+          await ref.read(privacyServiceProvider).exportUserData();
+      if (navigator.canPop()) {
+        navigator.pop();
+      }
+      if (!context.mounted) return;
+
+      final prettyJson = const JsonEncoder.withIndent('  ').convert(exportMap);
+      final collections = exportMap['collections'];
+      final collectionCount = collections is Map ? collections.length : 0;
+      final exportedAt = exportMap['exported_at']?.toString() ?? 'N/A';
+
+      final palette = context.samanColors;
+      final dialogBg =
+          palette.isDark ? const Color(0xFF151518) : palette.surface;
+      final textPrimary = palette.isDark ? Colors.white : palette.textPrimary;
+      final mutedColor =
+          palette.isDark ? const Color(0xFF8E8E93) : palette.textSecondary;
+
+      await showDialog<void>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          backgroundColor: dialogBg,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          title: Text(
+            'Xuất dữ liệu cá nhân (JSON)',
+            style: TextStyle(
+              fontSize: 17,
+              fontWeight: FontWeight.w700,
+              color: textPrimary,
+            ),
+          ),
+          content: SizedBox(
+            width: double.maxFinite,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Thời điểm xuất: $exportedAt\nSố nhóm dữ liệu: $collectionCount',
+                  style: TextStyle(fontSize: 13, color: mutedColor, height: 1.4),
+                ),
+                const SizedBox(height: 12),
+                ConstrainedBox(
+                  constraints: const BoxConstraints(maxHeight: 220),
+                  child: SingleChildScrollView(
+                    child: Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: palette.isDark
+                            ? const Color(0xFF0A0A0C)
+                            : palette.canvas,
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: SelectableText(
+                        prettyJson,
+                        style: TextStyle(
+                          fontFamily: 'monospace',
+                          fontSize: 11,
+                          color: textPrimary,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(),
+              child: const Text('Đóng'),
+            ),
+            ElevatedButton.icon(
+              key: const Key('export_copy_json_button'),
+              onPressed: () async {
+                await Clipboard.setData(ClipboardData(text: prettyJson));
+                if (!context.mounted) return;
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Đã sao chép JSON vào bộ nhớ tạm'),
+                  ),
+                );
+              },
+              icon: const Icon(Icons.copy_rounded, size: 16),
+              label: const Text('Sao chép JSON'),
+            ),
+          ],
+        ),
+      );
+    } catch (_) {
+      if (navigator.canPop()) {
+        navigator.pop();
+      }
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Không thể xuất dữ liệu. Vui lòng thử lại sau.'),
+          backgroundColor: Colors.redAccent,
+        ),
+      );
+    }
+  }
+
+  Future<void> _showDeleteAccountDialog(
+    BuildContext context,
+    WidgetRef ref,
+  ) async {
+    await showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => _DeleteAccountConfirmDialog(rootContext: context, ref: ref),
+    );
+  }
+}
+
+class _DeleteAccountConfirmDialog extends StatefulWidget {
+  const _DeleteAccountConfirmDialog({
+    required this.rootContext,
+    required this.ref,
+  });
+
+  final BuildContext rootContext;
+  final WidgetRef ref;
+
+  @override
+  State<_DeleteAccountConfirmDialog> createState() =>
+      _DeleteAccountConfirmDialogState();
+}
+
+class _DeleteAccountConfirmDialogState
+    extends State<_DeleteAccountConfirmDialog> {
+  final TextEditingController _controller = TextEditingController();
+  bool _isDeleting = false;
+  String? _errorText;
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = context.samanColors;
+    final dialogBg =
+        palette.isDark ? const Color(0xFF151518) : palette.surface;
+    final textPrimary = palette.isDark ? Colors.white : palette.textPrimary;
+    final mutedColor =
+        palette.isDark ? const Color(0xFF8E8E93) : palette.textSecondary;
+
+    final normalized = _controller.text.trim().toUpperCase();
+    final isConfirmValid = normalized == 'XOA' || normalized == 'DELETE';
+
+    return AlertDialog(
+      backgroundColor: dialogBg,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(20),
+        side: BorderSide(
+          color: Colors.redAccent.withOpacity(0.4),
+        ),
+      ),
+      title: const Row(
+        children: [
+          Icon(Icons.warning_amber_rounded, color: Colors.redAccent),
+          SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              'Xóa tài khoản vĩnh viễn',
+              style: TextStyle(
+                fontSize: 17,
+                fontWeight: FontWeight.w700,
+                color: Colors.redAccent,
+              ),
+            ),
+          ),
+        ],
+      ),
+      content: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Hành động này sẽ xóa vĩnh viễn toàn bộ dữ liệu tập luyện, dinh dưỡng, hội thoại AI và video Cloud. Dữ liệu không thể khôi phục.',
+              style: TextStyle(
+                fontSize: 13.5,
+                height: 1.4,
+                color: mutedColor,
+              ),
+            ),
+            const SizedBox(height: 14),
+            Text(
+              'Nhập "XOA" hoặc "DELETE" để xác nhận:',
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: textPrimary,
+              ),
+            ),
+            const SizedBox(height: 8),
+            TextField(
+              key: const Key('delete_account_confirm_input'),
+              controller: _controller,
+              enabled: !_isDeleting,
+              style: TextStyle(color: textPrimary),
+              decoration: const InputDecoration(
+                hintText: 'XOA hoặc DELETE',
+                border: OutlineInputBorder(),
+                isDense: true,
+              ),
+              onChanged: (_) => setState(() {
+                _errorText = null;
+              }),
+            ),
+            if (_errorText != null) ...[
+              const SizedBox(height: 8),
+              Text(
+                _errorText!,
+                style: const TextStyle(
+                  fontSize: 12.5,
+                  color: Colors.redAccent,
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: _isDeleting ? null : () => Navigator.of(context).pop(),
+          child: const Text('Hủy'),
+        ),
+        ElevatedButton(
+          key: const Key('delete_account_confirm_button'),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Colors.redAccent,
+            foregroundColor: Colors.white,
+          ),
+          onPressed: (!isConfirmValid || _isDeleting)
+              ? null
+              : () async {
+                  setState(() {
+                    _isDeleting = true;
+                    _errorText = null;
+                  });
+                  final dialogNavigator = Navigator.of(context);
+                  final rootNavigator = Navigator.of(widget.rootContext);
+                  try {
+                    final userId = widget.ref.read(profileProvider).userId;
+                    await widget.ref
+                        .read(privacyServiceProvider)
+                        .deleteAccount(
+                          confirmText: _controller.text.trim(),
+                          userId: userId,
+                        );
+                    await AuthHelper.logout(widget.ref);
+                    if (mounted) {
+                      dialogNavigator.pop();
+                    }
+                    rootNavigator.pushNamedAndRemoveUntil(
+                      AppRoutes.login,
+                      (route) => false,
+                    );
+                  } catch (_) {
+                    if (mounted) {
+                      setState(() {
+                        _isDeleting = false;
+                        _errorText =
+                            'Xóa tài khoản thất bại. Vui lòng thử lại.';
+                      });
+                    }
+                  }
+                },
+          child: _isDeleting
+              ? const SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: Colors.white,
+                  ),
+                )
+              : const Text('Xóa vĩnh viễn'),
+        ),
+      ],
     );
   }
 }

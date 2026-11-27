@@ -87,6 +87,13 @@ class ApiConfig {
   static const String analyzeImageEndpoint = '$baseUrl/api/analyze_image';
   static const String analyzeFileEndpoint = '$baseUrl/api/analyze_file';
 
+  // ==================== STAGE 3 PRIVACY & TELEMETRY ENDPOINTS ====================
+  static const String userConsentEndpoint = '$baseUrl/api/user/consent';
+  static const String userExportEndpoint = '$baseUrl/api/user/export';
+  static const String userDeleteAccountEndpoint = '$baseUrl/api/user/account';
+  static const String clientErrorTelemetryEndpoint =
+      '$baseUrl/api/telemetry/client-error';
+
   // ==================== CONFIG ====================
   static const Duration requestTimeout = Duration(seconds: 120);
   static const bool isDebug = kDebugMode;

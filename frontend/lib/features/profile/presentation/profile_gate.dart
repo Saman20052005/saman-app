@@ -1,7 +1,10 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:health_ai_app/config/routes.dart';
+import 'package:health_ai_app/features/privacy/data/privacy_service.dart';
+import 'package:health_ai_app/features/privacy/presentation/screens/health_consent_screen.dart';
 import 'package:health_ai_app/providers/profile_provider.dart';
 import 'package:health_ai_app/screens/home/tokens/saman_home_tokens.dart';
 import 'package:health_ai_app/screens/main_screen.dart';
@@ -24,6 +27,11 @@ import 'package:health_ai_app/features/profile/presentation/onboarding/onboardin
 class ProfileGate extends ConsumerStatefulWidget {
   const ProfileGate({super.key});
 
+  /// Test-only escape hatch for legacy entry-point tests that do not mock
+  /// `/api/user/consent`. Must remain `false` in production.
+  @visibleForTesting
+  static bool bypassConsentGateForTests = false;
+
   @override
   ConsumerState<ProfileGate> createState() => _ProfileGateState();
 }
@@ -36,6 +44,13 @@ class _ProfileGateState extends ConsumerState<ProfileGate> {
   ProfileNotifier? _enteredNotifier;
   int _entrySerial = 0;
   bool _isHandlingUnauthorized = false;
+
+  /// Consent gate state (VN 2026 v1.0-vn-2026) scoped to [_consentCheckedUserId].
+  String? _consentCheckedUserId;
+  bool _isCheckingConsent = false;
+  bool _hasConsented = false;
+  String? _consentCheckError;
+  int _consentRequestId = 0;
 
   /// A 401 or user-initiated logout arrived while Main was admitted: MainScreen
   /// performs the logout and the navigation, so it must stay mounted until it
@@ -75,7 +90,12 @@ class _ProfileGateState extends ConsumerState<ProfileGate> {
     }
     // Transient states (loading/error) carry no identity: same session keeps Main.
     final current = state.userId;
-    if (owner == 'guest_dev_user' && current != null && current.isNotEmpty) {
+    const allowGuestMode = kDebugMode ||
+        bool.fromEnvironment('ENABLE_GUEST_MODE', defaultValue: false);
+    if (allowGuestMode &&
+        owner == 'guest_dev_user' &&
+        current != null &&
+        current.isNotEmpty) {
       return true;
     }
     return current == null || current == owner;
@@ -86,6 +106,56 @@ class _ProfileGateState extends ConsumerState<ProfileGate> {
     _enteredEpoch = null;
     _enteredNotifier = null;
     _mainOwnsLogout = false;
+    _consentCheckedUserId = null;
+    _isCheckingConsent = false;
+    _hasConsented = false;
+    _consentCheckError = null;
+    _consentRequestId++;
+  }
+
+  Future<void> _ensureConsentChecked(String userId) async {
+    if (!mounted || userId.isEmpty) return;
+    if (_consentCheckedUserId == userId &&
+        (_isCheckingConsent || _hasConsented || _consentCheckError != null)) {
+      return;
+    }
+
+    final reqId = ++_consentRequestId;
+    setState(() {
+      _consentCheckedUserId = userId;
+      _isCheckingConsent = true;
+      _hasConsented = false;
+      _consentCheckError = null;
+    });
+
+    try {
+      final privacyService = ref.read(privacyServiceProvider);
+      final cached = await privacyService.hasCachedConsent(userId);
+      if (!mounted || reqId != _consentRequestId) return;
+      if (cached) {
+        setState(() {
+          _hasConsented = true;
+          _isCheckingConsent = false;
+          _consentCheckError = null;
+        });
+        return;
+      }
+
+      final status = await privacyService.fetchConsentStatus(userId: userId);
+      if (!mounted || reqId != _consentRequestId) return;
+      setState(() {
+        _hasConsented = status.hasConsented;
+        _isCheckingConsent = false;
+        _consentCheckError = null;
+      });
+    } catch (e) {
+      if (!mounted || reqId != _consentRequestId) return;
+      setState(() {
+        _isCheckingConsent = false;
+        _consentCheckError =
+            'Không thể kiểm tra trạng thái đồng ý dữ liệu sức khỏe.';
+      });
+    }
   }
 
   Future<void> _handleUnauthorized() async {
@@ -148,7 +218,7 @@ class _ProfileGateState extends ConsumerState<ProfileGate> {
     // Entry granted earlier is revoked by a reset/invalidation (epoch or
     // notifier instance) or by an owner change.
     final retained = _isMainRetained(profileState, notifier);
-    if (!retained) _revokeEntry();
+    if (!retained && _enteredOwner != null) _revokeEntry();
 
     // 1. Unauthorized session -> logout once, by a single owner.
     if (profileState.isUnauthorized) {
@@ -166,8 +236,51 @@ class _ProfileGateState extends ConsumerState<ProfileGate> {
     // down MainScreen or reset active forms.
     if (retained) return _buildMain(ignoring: isLoggingOut);
 
-    // 3. Complete and network-confirmed -> admit Main for this owner/session.
+    // 3. Complete and network-confirmed -> check VN 2026 Consent Gate before admitting Main.
     if (profileState.isCompleteAndConfirmed) {
+      final userId = profileState.userId ?? '';
+      final shouldBypassConsent = ProfileGate.bypassConsentGateForTests ||
+          userId.isEmpty ||
+          userId == 'guest_dev_user';
+
+      if (!shouldBypassConsent) {
+        if (_consentCheckedUserId != userId) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            _ensureConsentChecked(userId);
+          });
+          return const _GateLoadingView();
+        }
+        if (_isCheckingConsent) {
+          return const _GateLoadingView();
+        }
+        if (_consentCheckError != null) {
+          return _GateErrorView(
+            onRetry: () {
+              setState(() {
+                _consentCheckedUserId = null;
+                _consentCheckError = null;
+              });
+              _ensureConsentChecked(userId);
+            },
+            onLogout: _handleUnauthorized,
+          );
+        }
+        if (!_hasConsented) {
+          return HealthConsentScreen(
+            key: ValueKey('health_consent_$userId'),
+            userId: userId,
+            onAccepted: () {
+              if (!mounted) return;
+              setState(() {
+                _hasConsented = true;
+                _isCheckingConsent = false;
+                _consentCheckError = null;
+              });
+            },
+          );
+        }
+      }
+
       _enteredOwner = profileState.userId;
       _enteredEpoch = notifier.sessionEpoch;
       _enteredNotifier = notifier;

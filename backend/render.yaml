@@ -70,6 +70,8 @@ services:
         sync: false
       - key: CORS_ORIGINS
         sync: false
+      - key: MAINTENANCE_CRON_SECRET
+        sync: false
 
     # Auto-deploy configuration
     autoDeploy: true
