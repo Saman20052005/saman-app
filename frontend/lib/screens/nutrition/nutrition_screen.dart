@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -5,6 +7,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
 
+
+import '../../core/widgets/coach_marks/coach_tour_service.dart';
+
+import '../../core/widgets/coach_marks/coach_tour_step.dart';
+
+import '../../core/widgets/coach_marks/saman_coach_overlay.dart';
 
 import '../../../models/nutrition_model.dart';
 
@@ -103,6 +111,11 @@ class _NutritionScreenState extends ConsumerState<NutritionScreen> {
 
   final Set<String> _loadedSupplementDates = <String>{};
 
+  final GlobalKey _coachQuickActionsKey = GlobalKey();
+  final GlobalKey _coachLoggedMealsKey = GlobalKey();
+  final GlobalKey _coachSummaryKey = GlobalKey();
+  Timer? _coachTourTimer;
+
 
 
   @override
@@ -113,10 +126,57 @@ class _NutritionScreenState extends ConsumerState<NutritionScreen> {
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
 
+      if (!mounted) return;
+
       _loadDataIfProfileReady();
+
+      if (ref.read(mainNavIndexProvider) == 3) {
+        _scheduleCoachTour();
+      }
 
     });
 
+  }
+
+  @override
+  void dispose() {
+    _coachTourTimer?.cancel();
+    super.dispose();
+  }
+
+  void _scheduleCoachTour() {
+    if (CoachTourService.isTestBypassEnabled) return;
+    _coachTourTimer?.cancel();
+    _coachTourTimer = Timer(const Duration(milliseconds: 450), () async {
+      if (!mounted) return;
+      if (ref.read(mainNavIndexProvider) != 3) return;
+      if (SamanCoachOverlay.isShowing) return;
+      await SamanCoachOverlay.showIfNeeded(
+        context: context,
+        screenId: CoachTourService.nutritionScreenId,
+        service: ref.read(coachTourServiceProvider),
+        steps: [
+          CoachTourStep(
+            targetKey: _coachQuickActionsKey,
+            title: 'Chụp ảnh AI & Quét Barcode',
+            description:
+                'Chụp món ăn hoặc quét mã vạch để AI tự tính Calo và Protein trong vài giây.',
+          ),
+          CoachTourStep(
+            targetKey: _coachLoggedMealsKey,
+            title: 'Quản lý bữa đã ghi',
+            description:
+                'Chạm vào từng bữa ăn đã lưu để chỉnh sửa khẩu phần hoặc xóa nhanh.',
+          ),
+          CoachTourStep(
+            targetKey: _coachSummaryKey,
+            title: 'Tổng Calo & Protein',
+            description:
+                'Theo dõi vòng tròn Calo và tiến độ Protein trong ngày theo giờ Việt Nam.',
+          ),
+        ],
+      );
+    });
   }
 
 
@@ -1004,6 +1064,12 @@ class _NutritionScreenState extends ConsumerState<NutritionScreen> {
 
   Widget build(BuildContext context) {
 
+    ref.listen<int>(mainNavIndexProvider, (prev, next) {
+      if (next == 3 && prev != next) {
+        _scheduleCoachTour();
+      }
+    });
+
     final planState = ref.watch(nutritionProvider);
 
     final profileState = ref.watch(profileProvider);
@@ -1464,7 +1530,10 @@ class _NutritionScreenState extends ConsumerState<NutritionScreen> {
 
         // 3. Today's Intake Card (Intake headline + progress + macros)
 
-        NutritionSummary(plan: effectivePlan, profile: profile),
+        KeyedSubtree(
+          key: _coachSummaryKey,
+          child: NutritionSummary(plan: effectivePlan, profile: profile),
+        ),
 
         const SizedBox(height: 12),
 
@@ -1472,12 +1541,15 @@ class _NutritionScreenState extends ConsumerState<NutritionScreen> {
 
         // 4. Fast Actions (Log meal + Scan food)
 
-        NutritionQuickActions(
+        KeyedSubtree(
+          key: _coachQuickActionsKey,
+          child: NutritionQuickActions(
 
-          onLogMeal: _openLogMeal,
+            onLogMeal: _openLogMeal,
 
-          onScanFood: _openScanFood,
+            onScanFood: _openScanFood,
 
+          ),
         ),
 
         const SizedBox(height: 18),
@@ -1486,7 +1558,13 @@ class _NutritionScreenState extends ConsumerState<NutritionScreen> {
 
         // 5. Logged Meals Section
 
-        _buildLoggedMealsSection(entries, effectivePlan.totalCaloriesConsumed),
+        KeyedSubtree(
+          key: _coachLoggedMealsKey,
+          child: _buildLoggedMealsSection(
+            entries,
+            effectivePlan.totalCaloriesConsumed,
+          ),
+        ),
 
         const SizedBox(height: 16),
 

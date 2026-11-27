@@ -2,11 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../config/app_translations.dart';
+import '../../../config/routes.dart';
 import '../../../controllers/chat_controller.dart';
 import '../../../providers/profile_provider.dart';
 import '../../../widgets/saman_avatar.dart';
 import '../../../widgets/saman_feedback_snackbar.dart';
 import '../../profile_screen.dart';
+import '../../settings/app_settings_screen.dart';
 import '../tokens/saman_chat_tokens.dart';
 import '../../../providers/coach_persona_provider.dart';
 import 'saman_account_popup_menu.dart';
@@ -33,6 +35,7 @@ class SamanChatDrawer extends ConsumerStatefulWidget {
   final bool isDesktop;
   final bool isExpanded;
   final VoidCallback? onToggleExpand;
+  final VoidCallback? onResetCoachTour;
 
   const SamanChatDrawer({
     super.key,
@@ -49,6 +52,7 @@ class SamanChatDrawer extends ConsumerStatefulWidget {
     this.isDesktop = false,
     this.isExpanded = true,
     this.onToggleExpand,
+    this.onResetCoachTour,
   });
 
   static String maskEmail(String email) {
@@ -169,36 +173,114 @@ class _SamanChatDrawerState extends ConsumerState<SamanChatDrawer> {
     }
   }
 
-  void _handleRecentPlaceholder(BuildContext context) {
+  void _showAllConversationsSheet(BuildContext context) {
     final t = SamanChatTokens.of(context);
-    _closeDrawerIfNeeded(context);
-    ScaffoldMessenger.of(context).hideCurrentSnackBar();
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          context.tr('history_placeholder_msg'),
-          style: TextStyle(color: t.textWhite, fontSize: 13),
-        ),
-        backgroundColor: t.surfaceElevated,
-        duration: const Duration(seconds: 2),
-        behavior: SnackBarBehavior.floating,
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: t.menuSurface,
+      isScrollControlled: true,
+      shape: RoundedRectangleBorder(
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(20.0)),
+        side: BorderSide(color: t.menuBorder),
       ),
+      builder: (sheetContext) {
+        final maxHeight = MediaQuery.sizeOf(sheetContext).height * 0.65;
+        return SafeArea(
+          child: ConstrainedBox(
+            constraints: BoxConstraints(maxHeight: maxHeight),
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16.0, 12.0, 16.0, 16.0),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Center(
+                    child: Container(
+                      width: 36,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: t.borderSubtle,
+                        borderRadius: BorderRadius.circular(2.0),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 12.0),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          sheetContext.tr('view_all_conversations'),
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                            color: t.textWhite,
+                          ),
+                        ),
+                      ),
+                      IconButton(
+                        visualDensity: VisualDensity.compact,
+                        icon: Icon(
+                          Icons.close_rounded,
+                          size: 20,
+                          color: t.textSecondary,
+                        ),
+                        onPressed: () => Navigator.of(sheetContext).pop(),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8.0),
+                  if (recentConversations.isEmpty)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 24.0),
+                      child: Center(
+                        child: Text(
+                          sheetContext.tr('no_recent_conversations'),
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: t.textMuted,
+                          ),
+                        ),
+                      ),
+                    )
+                  else
+                    Flexible(
+                      child: ListView.builder(
+                        shrinkWrap: true,
+                        itemCount: recentConversations.length,
+                        itemBuilder: (itemContext, index) {
+                          final conv = recentConversations[index];
+                          return _RecentConversationRow(
+                            title: conv.title,
+                            timestamp:
+                                _formatTimestamp(sheetContext, conv.updatedAt),
+                            isSelected: conv.id == activeConversationId,
+                            onTap: () {
+                              Navigator.of(sheetContext).pop();
+                              if (context.mounted) {
+                                _closeDrawerIfNeeded(context);
+                              }
+                              onSelectConversation?.call(conv.id);
+                            },
+                          );
+                        },
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 
-  void _handleRemindersPlaceholder(BuildContext context) {
-    final t = SamanChatTokens.of(context);
+  void _openRemindersSettings(BuildContext context) {
+    final navigator = Navigator.of(context);
     _closeDrawerIfNeeded(context);
-    ScaffoldMessenger.of(context).hideCurrentSnackBar();
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          context.tr('reminders_placeholder_msg'),
-          style: TextStyle(color: t.textWhite, fontSize: 13),
-        ),
-        backgroundColor: t.surfaceElevated,
-        duration: const Duration(seconds: 2),
-        behavior: SnackBarBehavior.floating,
+    navigator.push(
+      MaterialPageRoute(
+        builder: (_) => const AppSettingsScreen(),
+        settings: const RouteSettings(name: AppRoutes.appSettings),
       ),
     );
   }
@@ -521,7 +603,7 @@ class _SamanChatDrawerState extends ConsumerState<SamanChatDrawer> {
                     const SizedBox(height: 4.0),
                     InkWell(
                       borderRadius: BorderRadius.circular(8.0),
-                      onTap: () => _handleRecentPlaceholder(context),
+                      onTap: () => _showAllConversationsSheet(context),
                       child: Padding(
                         padding: const EdgeInsets.symmetric(
                             horizontal: 8.0, vertical: 6.0),
@@ -563,7 +645,7 @@ class _SamanChatDrawerState extends ConsumerState<SamanChatDrawer> {
                       icon: Icons.access_time_rounded,
                       title: context.tr('reminders_label'),
                       hasActiveDot: hasActiveReminders,
-                      onTap: () => _handleRemindersPlaceholder(context),
+                      onTap: () => _openRemindersSettings(context),
                     ),
                     const SizedBox(height: 2.0),
                     _DrawerUtilityRow(
@@ -673,12 +755,13 @@ class _SamanChatDrawerState extends ConsumerState<SamanChatDrawer> {
               },
               onOpenReminders: () {
                 _closeAccountMenu();
-                _handleRemindersPlaceholder(context);
+                _openRemindersSettings(context);
               },
               onOpenHistory: () {
                 _closeAccountMenu();
-                _handleRecentPlaceholder(context);
+                _showAllConversationsSheet(context);
               },
+              onResetCoachTour: widget.onResetCoachTour,
               onOpenPlans: () {
                 _closeAccountMenu();
                 _closeDrawerIfNeeded(context);

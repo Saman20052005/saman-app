@@ -128,7 +128,11 @@ class _QuickActionButton extends StatelessWidget {
     );
 
     if (tooltip != null) {
-      return Tooltip(message: tooltip!, child: button);
+      return Semantics(
+        label: tooltip,
+        button: true,
+        child: button,
+      );
     }
     return button;
   }

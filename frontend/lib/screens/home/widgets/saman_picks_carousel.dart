@@ -3,6 +3,9 @@ import '../../../config/app_translations.dart';
 import '../../../config/routes.dart';
 import '../tokens/saman_home_tokens.dart';
 
+/// Feature flag hiding frozen V1 ecosystem modules (Journal & Shop) on Home.
+const bool kEnableFrozenModulesV1 = false;
+
 /// Data class representing a curated pick card (Journal guide or Shop essential).
 class SamanPickItem {
   const SamanPickItem({
@@ -113,7 +116,21 @@ class SamanPicksCarousel extends StatelessWidget {
         imageAssetPath: 'assets/images/home_shop_essentials.jpg',
       ),
     ];
-    final items = (picks != null && picks!.isNotEmpty) ? picks! : defaultPicks;
+    final rawItems =
+        (picks != null && picks!.isNotEmpty) ? picks! : defaultPicks;
+    final visibleItems = kEnableFrozenModulesV1
+        ? rawItems
+        : rawItems
+            .where(
+              (item) =>
+                  item.id != 'journal_recovery' &&
+                  item.id != 'shop_recovery',
+            )
+            .toList();
+
+    if (visibleItems.isEmpty) {
+      return const SizedBox.shrink();
+    }
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -188,10 +205,10 @@ class SamanPicksCarousel extends StatelessWidget {
               horizontal: SamanHomeTokens.spacingLg,
             ),
             scrollDirection: Axis.horizontal,
-            itemCount: items.length,
+            itemCount: visibleItems.length,
             separatorBuilder: (_, __) => const SizedBox(width: 12),
             itemBuilder: (context, index) {
-              final item = items[index];
+              final item = visibleItems[index];
               return _SamanPickCard(
                 item: item,
                 onJournalTap: onJournalTap,

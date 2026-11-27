@@ -2,6 +2,8 @@
 // UI REDESIGN: Saman Home — Obsidian Athletic Precision
 // Preserves 100% of existing architecture, auth, providers, and business logic.
 
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -9,6 +11,9 @@ import 'package:intl/intl.dart';
 
 import '../config/app_translations.dart';
 import '../core/utils/vn_date_utils.dart';
+import '../core/widgets/coach_marks/coach_tour_service.dart';
+import '../core/widgets/coach_marks/coach_tour_step.dart';
+import '../core/widgets/coach_marks/saman_coach_overlay.dart';
 import '../config/routes.dart';
 import '../config/theme_provider.dart';
 import '../controllers/chat_controller.dart';
@@ -33,8 +38,11 @@ import '../features/journey/presentation/screens/create_journey_screen.dart';
 // Destination Screens
 import 'chat_screen.dart';
 import 'food_log_screen.dart';
+import 'main_screen.dart';
 import 'nutrition/nutrition_screen.dart';
-import 'profile_screen.dart';
+import 'settings/app_settings_screen.dart';
+import '../features/community/presentation/providers/community_providers.dart';
+import '../features/community/presentation/screens/notifications/community_notifications_screen.dart';
 import '../presentation/screens/active_workout_screen.dart';
 import '../presentation/screens/workout_home_screen.dart';
 
@@ -52,6 +60,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   bool _isLoading = false;
   String? _pendingWaterRetryKey;
   String? _pendingWaterRetryDate;
+  final GlobalKey _coachTargetsKey = GlobalKey();
+  final GlobalKey _coachQuickActionsKey = GlobalKey();
+  final GlobalKey _coachWorkoutOrCompanionKey = GlobalKey();
+  Timer? _coachTourTimer;
 
   @override
   void initState() {
@@ -65,6 +77,50 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       ref.read(nutritionProvider.notifier).loadDailyPlan(vnToday);
       ref.read(chatControllerProvider.notifier).loadDailyBrief();
       _checkPostOnboardingJourneyInvitation();
+      if (ref.read(mainNavIndexProvider) == 0) {
+        _scheduleCoachTour();
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _coachTourTimer?.cancel();
+    super.dispose();
+  }
+
+  void _scheduleCoachTour() {
+    if (CoachTourService.isTestBypassEnabled) return;
+    _coachTourTimer?.cancel();
+    _coachTourTimer = Timer(const Duration(milliseconds: 450), () async {
+      if (!mounted) return;
+      if (ref.read(mainNavIndexProvider) != 0) return;
+      if (SamanCoachOverlay.isShowing) return;
+      await SamanCoachOverlay.showIfNeeded(
+        context: context,
+        screenId: CoachTourService.homeScreenId,
+        service: ref.read(coachTourServiceProvider),
+        steps: [
+          CoachTourStep(
+            targetKey: _coachTargetsKey,
+            title: 'Mục tiêu hôm nay',
+            description:
+                'Theo dõi lượng Calo, Macro và nước uống thực tế của bạn trong ngày.',
+          ),
+          CoachTourStep(
+            targetKey: _coachQuickActionsKey,
+            title: 'Ghi nhanh 1 chạm',
+            description:
+                'Chạm Log meal để ghi bữa ăn hoặc Add water để cộng nhanh +250ml nước.',
+          ),
+          CoachTourStep(
+            targetKey: _coachWorkoutOrCompanionKey,
+            title: 'Bắt đầu tập & Hỏi Saman',
+            description:
+                'Bắt đầu buổi tập đề xuất hoặc trò chuyện cùng Saman AI Coach bất cứ lúc nào.',
+          ),
+        ],
+      );
     });
   }
 
@@ -126,173 +182,22 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     return AppTranslations.text(key, locale);
   }
 
-  bool _isLoggingOut = false;
-
-  Future<void> _logout() async {
-    if (_isLoggingOut) return;
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) {
-        final tokens = SamanHomeTokens.of(context);
-        return AlertDialog(
-          backgroundColor: tokens.cardSurface,
-          title: Text(
-            context.tr('logout_confirm_title'),
-            style: TextStyle(
-              color: tokens.textWhite,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          content: Text(
-            context.tr('logout_confirm_msg'),
-            style: TextStyle(color: tokens.textSecondary),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context, false),
-              child: Text(
-                context.tr('cancel'),
-                style: TextStyle(color: tokens.textSecondary),
-              ),
-            ),
-            ElevatedButton(
-              onPressed: () => Navigator.pop(context, true),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: tokens.actionButtonSurface,
-                foregroundColor: tokens.textWhite,
-              ),
-              child: Text(context.tr('logout')),
-            ),
-          ],
-        );
-      },
-    );
-
-    if (confirmed == true && mounted) {
-      _isLoggingOut = true;
-      try {
-        await AuthHelper.logout(ref);
-        if (mounted) {
-          Navigator.pushNamedAndRemoveUntil(
-            context,
-            AppRoutes.login,
-            (route) => false,
-          );
-        }
-      } catch (e) {
-        _isLoggingOut = false;
-        debugPrint('[AUTH] Logout failed: $e');
-        if (mounted) {
-          if (e is LogoutException &&
-              (e.tokenState == AuthTokenState.confirmedLost ||
-               e.tokenState == AuthTokenState.indeterminate)) {
-            // Credentials lost or indeterminate: do not reopen protected UI on MainScreen.
-            // Navigate away to Login and display explanatory warning SnackBar.
-            Navigator.pushNamedAndRemoveUntil(
-              context,
-              AppRoutes.login,
-              (route) => false,
-            );
-            SamanFeedbackSnackBar.show(
-              context,
-              message: 'Đã đăng xuất (lỗi xóa dữ liệu phụ: $e)',
-              type: FeedbackType.warning,
-            );
-          } else {
-            // Token confirmed still intact: remain on screen and offer retry
-            SamanFeedbackSnackBar.show(
-              context,
-              message: 'Đăng xuất thất bại: $e',
-              type: FeedbackType.error,
-              action: SnackBarAction(
-                label: 'Thử lại',
-                textColor: SamanHomeTokens.of(context).isDark
-                    ? const Color(0xFF10B981)
-                    : SamanHomeTokens.of(context).greenAccent,
-                onPressed: _logout,
-              ),
-            );
-          }
-        }
-      }
-    }
-  }
-
   // ─── Navigation & Action Handlers ───────────────────────────────
   void _handleNotificationTap() {
-    ScaffoldMessenger.of(context).hideCurrentSnackBar();
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(context.tr('no_notifications')),
-        duration: const Duration(seconds: 2),
-        behavior: SnackBarBehavior.floating,
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        settings: const RouteSettings(name: AppRoutes.communityNotifications),
+        builder: (_) => const CommunityNotificationsScreen(),
       ),
     );
   }
 
   void _handleSettingsTap() {
-    final tokens = SamanHomeTokens.of(context);
-    showModalBottomSheet<void>(
-      context: context,
-      backgroundColor: tokens.cardSurface,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        settings: const RouteSettings(name: AppRoutes.appSettings),
+        builder: (_) => const AppSettingsScreen(),
       ),
-      builder: (ctx) {
-        final sheetTokens = SamanHomeTokens.of(ctx);
-        final logoutColor =
-            sheetTokens.isDark ? Colors.redAccent : const Color(0xFFDC2626);
-        return SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 16),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                ListTile(
-                  leading: Icon(
-                    Icons.person_outline_rounded,
-                    color: sheetTokens.textWhite,
-                  ),
-                  title: Text(
-                    context.tr('profile_health_details'),
-                    style: TextStyle(color: sheetTokens.textWhite),
-                  ),
-                  trailing: Icon(
-                    Icons.chevron_right,
-                    color: sheetTokens.textSecondary,
-                  ),
-                  onTap: () {
-                    Navigator.pop(ctx);
-                    if (widget.onOpenProfile != null) {
-                      widget.onOpenProfile!();
-                    } else {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (_) => const ProfileScreen()),
-                      );
-                    }
-                  },
-                ),
-                Divider(color: sheetTokens.borderSubtle),
-                ListTile(
-                  leading: Icon(
-                    Icons.logout_rounded,
-                    color: logoutColor,
-                  ),
-                  title: Text(
-                    context.tr('logout'),
-                    style: TextStyle(color: logoutColor),
-                  ),
-                  onTap: () {
-                    Navigator.pop(ctx);
-                    _logout();
-                  },
-                ),
-              ],
-            ),
-          ),
-        );
-      },
     );
   }
 
@@ -397,11 +302,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   }
 
   void _navigateToProgress() {
-    SamanFeedbackSnackBar.show(
-      context,
-      message: 'T?nh n?ng ?ang ho?n thi?n, s? s?m ra m?t!',
-      type: FeedbackType.info,
-    );
+    ref.read(mainNavIndexProvider.notifier).state = 1;
   }
 
   void _navigateToWorkoutHome() {
@@ -416,6 +317,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   Widget build(BuildContext context) {
     ref.watch(languageProvider);
     ref.watch(themeProvider);
+    ref.listen<int>(mainNavIndexProvider, (prev, next) {
+      if (next == 0 && prev != next) {
+        _scheduleCoachTour();
+      }
+    });
 
     // Watch providers for real live data
     final profileState = ref.watch(profileProvider);
@@ -437,50 +343,51 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     // 2. Nutrition & Water Metrics
     final dynamicTarget = plan?.dynamicTarget;
     final hasDynamicTarget = dynamicTarget != null && dynamicTarget.calories > 0;
+    final hasDailyPlan = plan != null;
 
-    final caloriesConsumed = plan?.totalCaloriesConsumed ?? 1850;
+    final caloriesConsumed = plan?.totalCaloriesConsumed ?? 0;
     final caloriesTarget = hasDynamicTarget
         ? dynamicTarget.calories
         : ((macroTargets?.calories != null && macroTargets!.calories > 0)
             ? macroTargets.calories
             : (profileState.targetCalories > 0
                 ? profileState.targetCalories
-                : 2500));
+                : 0));
 
-    final proteinConsumed = (plan?.totalProteinConsumed ?? 120).toDouble();
+    final proteinConsumed = (plan?.totalProteinConsumed ?? 0).toDouble();
     final proteinTarget = (hasDynamicTarget && dynamicTarget.protein > 0)
         ? dynamicTarget.protein.toDouble()
         : ((macroTargets?.protein != null && macroTargets!.protein > 0)
             ? macroTargets.protein
             : (profileState.targetProtein > 0
                 ? profileState.targetProtein.toDouble()
-                : 160.0));
+                : 0.0));
 
-    final carbsConsumed = (plan?.totalCarbsConsumed ?? 210).toDouble();
+    final carbsConsumed = (plan?.totalCarbsConsumed ?? 0).toDouble();
     final carbsTarget = (hasDynamicTarget && dynamicTarget.carbs > 0)
         ? dynamicTarget.carbs.toDouble()
         : ((macroTargets?.carbs != null && macroTargets!.carbs > 0)
             ? macroTargets.carbs
             : (profileState.targetCarbs > 0
                 ? profileState.targetCarbs.toDouble()
-                : 260.0));
+                : 0.0));
 
-    final fatConsumed = (plan?.totalFatConsumed ?? 55).toDouble();
+    final fatConsumed = (plan?.totalFatConsumed ?? 0).toDouble();
     final fatTarget = (hasDynamicTarget && dynamicTarget.fat > 0)
         ? dynamicTarget.fat.toDouble()
         : ((macroTargets?.fat != null && macroTargets!.fat > 0)
             ? macroTargets.fat
             : (profileState.targetFat > 0
                 ? profileState.targetFat.toDouble()
-                : 70.0));
+                : 0.0));
 
-    final waterConsumedLiters = (plan?.currentWater ?? 1800) / 1000.0;
+    final waterConsumedLiters = (plan?.currentWater ?? 0) / 1000.0;
     final targetWaterVal = plan?.targetWater;
     final waterTargetLiters = (targetWaterVal != null && targetWaterVal > 0
             ? targetWaterVal
             : (profileState.waterTargetMl > 0
                 ? profileState.waterTargetMl
-                : 2500)) /
+                : 0)) /
         1000.0;
 
     int onTrackCount = 0;
@@ -493,9 +400,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     if (fatTarget > 0 && (fatConsumed / fatTarget) >= 0.7) {
       onTrackCount++;
     }
-    final onTrackBadgeText = onTrackCount > 0
-        ? '$onTrackCount ${context.tr('on_track')}'
-        : '2 ${context.tr('on_track')}';
+    final onTrackBadgeText = '$onTrackCount ${context.tr('on_track')}';
 
     // 3. Weekly Consistency Metrics
     final completedSessions = weeklyGoal.where((d) => d).length;
@@ -605,7 +510,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                       child: HomeHeader(
                         userName: userName,
                         dateSubtitle: dateSubtitle,
-                        hasUnreadNotifications: true,
+                        hasUnreadNotifications: ref.watch(
+                          communityNotificationsProvider.select(
+                            (s) => s.unreadCount > 0,
+                          ),
+                        ),
                         onNotificationTap: _handleNotificationTap,
                         onSettingsTap: _handleSettingsTap,
                       ),
@@ -626,10 +535,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
                   // 3. Workout Recommendation Carousel (Hero Track)
                   SliverToBoxAdapter(
-                    child: WorkoutRecommendationCarousel(
-                      onStartWorkout: _handleStartWorkout,
-                      onViewWorkout: _handleViewWorkout,
-                    ).animate().fadeIn(delay: 60.ms, duration: 400.ms),
+                    child: KeyedSubtree(
+                      key: _coachWorkoutOrCompanionKey,
+                      child: WorkoutRecommendationCarousel(
+                        onStartWorkout: _handleStartWorkout,
+                        onViewWorkout: _handleViewWorkout,
+                      ).animate().fadeIn(delay: 60.ms, duration: 400.ms),
+                    ),
                   ),
                   const SliverToBoxAdapter(
                     child: SizedBox(height: SamanHomeTokens.spacingSection),
@@ -637,29 +549,104 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
                   // 4. Daily Targets (Nutrition & Hydration Module)
                   SliverToBoxAdapter(
-                    child: DailyTargetsCard(
-                      caloriesConsumed: caloriesConsumed,
-                      caloriesTarget: caloriesTarget,
-                      proteinConsumed: proteinConsumed,
-                      proteinTarget: proteinTarget,
-                      carbsConsumed: carbsConsumed,
-                      carbsTarget: carbsTarget,
-                      fatConsumed: fatConsumed,
-                      fatTarget: fatTarget,
-                      waterConsumedLiters: waterConsumedLiters,
-                      waterTargetLiters: waterTargetLiters,
-                      onTrackBadgeText: onTrackBadgeText,
-                      onNutritionDetailsTap: _navigateToNutrition,
-                    ).animate().fadeIn(delay: 100.ms, duration: 400.ms),
+                    child: Column(
+                      children: [
+                        KeyedSubtree(
+                          key: _coachTargetsKey,
+                          child: DailyTargetsCard(
+                            caloriesConsumed: caloriesConsumed,
+                            caloriesTarget: caloriesTarget,
+                            proteinConsumed: proteinConsumed,
+                            proteinTarget: proteinTarget,
+                            carbsConsumed: carbsConsumed,
+                            carbsTarget: carbsTarget,
+                            fatConsumed: fatConsumed,
+                            fatTarget: fatTarget,
+                            waterConsumedLiters: waterConsumedLiters,
+                            waterTargetLiters: waterTargetLiters,
+                            onTrackBadgeText: onTrackBadgeText,
+                            onNutritionDetailsTap: _navigateToNutrition,
+                          ).animate().fadeIn(delay: 100.ms, duration: 400.ms),
+                        ),
+                        if (!hasDailyPlan)
+                          Padding(
+                            padding: const EdgeInsets.fromLTRB(
+                              SamanHomeTokens.spacingLg,
+                              8,
+                              SamanHomeTokens.spacingLg,
+                              0,
+                            ),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 14,
+                                vertical: 10,
+                              ),
+                              decoration: BoxDecoration(
+                                color: tokens.cardSurface,
+                                borderRadius: BorderRadius.circular(
+                                  SamanHomeTokens.radiusMd,
+                                ),
+                                border: Border.all(color: tokens.border),
+                              ),
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    Icons.track_changes_rounded,
+                                    size: 18,
+                                    color: tokens.greenAccent,
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: Text(
+                                      'Chưa thiết lập mục tiêu hôm nay',
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        color: tokens.textSecondary,
+                                      ),
+                                    ),
+                                  ),
+                                  TextButton(
+                                    onPressed: () {
+                                      ref
+                                          .read(mainNavIndexProvider.notifier)
+                                          .state = 3;
+                                    },
+                                    style: TextButton.styleFrom(
+                                      foregroundColor: tokens.greenAccent,
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 10,
+                                        vertical: 4,
+                                      ),
+                                      minimumSize: Size.zero,
+                                      tapTargetSize:
+                                          MaterialTapTargetSize.shrinkWrap,
+                                    ),
+                                    child: const Text(
+                                      'Thiết lập mục tiêu',
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
                   ),
                   const SliverToBoxAdapter(child: SizedBox(height: 10)),
 
                   // 5. Quick Action Dock (2-Column Grid)
                   SliverToBoxAdapter(
-                    child: QuickActionDock(
-                      onLogMealTap: _handleLogMeal,
-                      onAddWaterTap: _handleAddWater,
-                    ).animate().fadeIn(delay: 140.ms, duration: 400.ms),
+                    child: KeyedSubtree(
+                      key: _coachQuickActionsKey,
+                      child: QuickActionDock(
+                        onLogMealTap: _handleLogMeal,
+                        onAddWaterTap: _handleAddWater,
+                      ).animate().fadeIn(delay: 140.ms, duration: 400.ms),
+                    ),
                   ),
                   const SliverToBoxAdapter(
                     child: SizedBox(height: SamanHomeTokens.spacingSection),
@@ -692,11 +679,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   ),
 
                   // 7. Saman Picks (Contextual Editorial & Ecosystem)
-                  SliverToBoxAdapter(
-                    child: SamanPicksCarousel(
-                      onExploreTap: _navigateToWorkoutHome,
-                    ).animate().fadeIn(delay: 220.ms, duration: 400.ms),
-                  ),
+                  if (kEnableFrozenModulesV1)
+                    SliverToBoxAdapter(
+                      child: SamanPicksCarousel(
+                        onExploreTap: _navigateToWorkoutHome,
+                      ).animate().fadeIn(delay: 220.ms, duration: 400.ms),
+                    ),
 
                   // Safe bottom padding
                   const SliverToBoxAdapter(child: SizedBox(height: 32)),

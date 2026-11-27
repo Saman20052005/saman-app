@@ -1,4 +1,9 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+import '../../core/widgets/coach_marks/coach_tour_service.dart';
+import '../../core/widgets/coach_marks/coach_tour_step.dart';
+import '../../core/widgets/coach_marks/saman_coach_overlay.dart';
 import '../../data/models/exercise.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cached_network_image/cached_network_image.dart';
@@ -27,6 +32,63 @@ class WorkoutHomeScreen extends ConsumerStatefulWidget {
 }
 
 class _WorkoutHomeScreenState extends ConsumerState<WorkoutHomeScreen> {
+  final GlobalKey _coachScheduledHeroKey = GlobalKey();
+  final GlobalKey _coachQuickActionsKey = GlobalKey();
+  final GlobalKey _coachRecoveryCardKey = GlobalKey();
+  Timer? _coachTourTimer;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      if (ref.read(mainNavIndexProvider) == 1) {
+        _scheduleCoachTour();
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _coachTourTimer?.cancel();
+    super.dispose();
+  }
+
+  void _scheduleCoachTour() {
+    if (CoachTourService.isTestBypassEnabled) return;
+    _coachTourTimer?.cancel();
+    _coachTourTimer = Timer(const Duration(milliseconds: 450), () async {
+      if (!mounted) return;
+      if (ref.read(mainNavIndexProvider) != 1) return;
+      if (SamanCoachOverlay.isShowing) return;
+      await SamanCoachOverlay.showIfNeeded(
+        context: context,
+        screenId: CoachTourService.workoutScreenId,
+        service: ref.read(coachTourServiceProvider),
+        steps: [
+          CoachTourStep(
+            targetKey: _coachScheduledHeroKey,
+            title: 'Chọn buổi tập nhanh',
+            description:
+                'Bắt đầu ngay buổi tập đề xuất hôm nay hoặc tạo lịch tập riêng của bạn.',
+          ),
+          CoachTourStep(
+            targetKey: _coachQuickActionsKey,
+            title: 'Form Check AI & Thư viện bài',
+            description:
+                'Dùng Form Check AI đếm rep tự động và kiểm tra kỹ thuật tập chuẩn xác.',
+          ),
+          CoachTourStep(
+            targetKey: _coachRecoveryCardKey,
+            title: 'Phục hồi cơ & Video Story',
+            description:
+                'Theo dõi mức hồi phục 6 nhóm cơ 72h và lưu Video Story để Saman Coach dẫn chứng lỗi form.',
+          ),
+        ],
+      );
+    });
+  }
+
   void _navigateToLibrary([String category = 'All']) {
     Navigator.push(
       context,
@@ -106,6 +168,11 @@ class _WorkoutHomeScreenState extends ConsumerState<WorkoutHomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    ref.listen<int>(mainNavIndexProvider, (prev, next) {
+      if (next == 1 && prev != next) {
+        _scheduleCoachTour();
+      }
+    });
     final t = SamanWorkoutTokens.of(context);
     final profileState = ref.watch(profileProvider);
 
@@ -256,15 +323,24 @@ class _WorkoutHomeScreenState extends ConsumerState<WorkoutHomeScreen> {
               const SizedBox(height: SamanWorkoutTokens.spacingLg),
 
               // 2. Today's Scheduled Session Hero Card
-              _buildScheduledSessionHero(scheduled, t),
+              KeyedSubtree(
+                key: _coachScheduledHeroKey,
+                child: _buildScheduledSessionHero(scheduled, t),
+              ),
               const SizedBox(height: SamanWorkoutTokens.spacingLg),
 
               // 2.5 Muscle Recovery Card
-              const MuscleRecoveryCard(),
+              KeyedSubtree(
+                key: _coachRecoveryCardKey,
+                child: const MuscleRecoveryCard(),
+              ),
               const SizedBox(height: SamanWorkoutTokens.spacingLg),
 
               // 3. Quick Action Row
-              _buildQuickActionRow(t),
+              KeyedSubtree(
+                key: _coachQuickActionsKey,
+                child: _buildQuickActionRow(t),
+              ),
               const SizedBox(height: SamanWorkoutTokens.spacingXl),
 
               // 4. Train by Focus

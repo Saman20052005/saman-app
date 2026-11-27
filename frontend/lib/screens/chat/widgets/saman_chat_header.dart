@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../../../config/routes.dart';
+import '../../../features/community/presentation/screens/notifications/community_notifications_screen.dart';
 import '../tokens/saman_chat_tokens.dart';
 import 'saman_monogram.dart';
 
@@ -109,15 +111,12 @@ class SamanChatHeader extends StatelessWidget implements PreferredSizeWidget {
                   if (onNotificationsTap != null) {
                     onNotificationsTap!();
                   } else {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(
-                          'No active coach reminders right now.',
-                          style: TextStyle(color: t.textWhite),
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => const CommunityNotificationsScreen(),
+                        settings: const RouteSettings(
+                          name: AppRoutes.communityNotifications,
                         ),
-                        backgroundColor: t.surfaceElevated,
-                        duration: const Duration(seconds: 2),
-                        behavior: SnackBarBehavior.floating,
                       ),
                     );
                   }
