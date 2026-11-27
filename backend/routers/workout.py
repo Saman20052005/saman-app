@@ -8,6 +8,9 @@ import logging
 import math
 import os
 import re
+import base64
+import gzip
+import json
 from uuid import uuid4
 import pydantic as pd
 from bson import ObjectId
@@ -23,6 +26,14 @@ from backend.app.database import (
     exercises_collection,
 )
 workout_video_stories_collection = getattr(_db_mod, "workout_video_stories_collection", None)
+workout_cv_telemetry_collection = getattr(_db_mod, "workout_cv_telemetry_collection", None)
+from backend.app.models.workout_cv_telemetry import (
+    MAX_CV_TELEMETRY_PAYLOAD_BYTES,
+    ALLOWED_TELEMETRY_ENCODINGS,
+    WorkoutCvTelemetryIn,
+    WorkoutCvTelemetryOut,
+    WorkoutCvTelemetryStatsOut,
+)
 from backend.app.services.workout_recovery_helper import calculate_muscle_recovery_load
 from backend.app.services.context_utils import (
     build_user_query,
@@ -2635,3 +2646,246 @@ async def get_video_story_detail(
         cv_form_summary=doc.get("cv_form_summary"),
         rep_timeline=rep_timeline_out,
     )
+
+
+# ---------------------------------------------------------------------------
+# CV Telemetry (Opt-in Data Flywheel)
+# ---------------------------------------------------------------------------
+def _is_user_cv_telemetry_opted_in(user_doc: dict) -> bool:
+    """Check if the user has explicitly opted in to CV telemetry.
+
+    Looks into top-level preferences.cv_telemetry_opt_in and profile.preferences.cv_telemetry_opt_in.
+    Only returns True if explicitly boolean True.
+    """
+    if not isinstance(user_doc, dict):
+        return False
+    top_prefs = user_doc.get("preferences")
+    if isinstance(top_prefs, dict) and top_prefs.get("cv_telemetry_opt_in") is True:
+        return True
+    prof = user_doc.get("profile")
+    if isinstance(prof, dict):
+        prof_prefs = prof.get("preferences")
+        if isinstance(prof_prefs, dict) and prof_prefs.get("cv_telemetry_opt_in") is True:
+            return True
+    return False
+
+
+def _compute_anonymous_subject_hash(account_id_or_uid: str) -> str:
+    """One-way anonymous hash for CV telemetry."""
+    salt = os.getenv("CV_TELEMETRY_HASH_SALT", "saman-ultra-p5-anon-v1")
+    raw = f"{salt}:{account_id_or_uid}".encode("utf-8")
+    return hashlib.sha256(raw).hexdigest()[:16]
+
+
+@router.post("/cv/telemetry", response_model=WorkoutCvTelemetryOut, status_code=status.HTTP_201_CREATED)
+async def submit_workout_cv_telemetry(
+    payload: WorkoutCvTelemetryIn,
+    current_user: dict = Depends(get_current_user),
+):
+    """Receive anonymous 33-landmark coordinate sequence (Opt-in Data Flywheel).
+
+    - Strictly verifies opt-in before accepting telemetry.
+    - Anonymizes subject via one-way hash (no PII, no video/images stored).
+    - Validates gzip base64 payload size <= 256 KB.
+    """
+    users_col = getattr(_db_mod, "users_collection", None)
+    if users_col is None and _db_mod.db is not None:
+        users_col = _db_mod.db["users"]
+
+    fresh_user = None
+    if users_col is not None and current_user.get("_id") is not None:
+        try:
+            fresh_user = users_col.find_one({"_id": current_user["_id"]})
+        except Exception:
+            fresh_user = None
+
+    eval_user = fresh_user if isinstance(fresh_user, dict) else current_user
+    if not _is_user_cv_telemetry_opted_in(eval_user):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail={
+                "code": "telemetry_opt_in_required",
+                "message": "Bạn cần bật tùy chọn chia sẻ dữ liệu xương ẩn danh trong Cài đặt trước khi gửi.",
+            },
+        )
+
+    if payload.payload_encoding not in ALLOWED_TELEMETRY_ENCODINGS:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Unsupported payloadEncoding: {payload.payload_encoding}. Allowed: {sorted(ALLOWED_TELEMETRY_ENCODINGS)}",
+        )
+
+    try:
+        raw_bytes = base64.b64decode(payload.compressed_payload_b64, validate=True)
+    except Exception as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Invalid base64 in compressedPayloadB64: {exc}",
+        )
+
+    payload_bytes_len = len(raw_bytes)
+    if payload_bytes_len < 1:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Payload cannot be empty",
+        )
+
+    if payload_bytes_len > MAX_CV_TELEMETRY_PAYLOAD_BYTES:
+        raise HTTPException(
+            status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+            detail=f"Payload size ({payload_bytes_len} bytes) exceeds maximum limit of {MAX_CV_TELEMETRY_PAYLOAD_BYTES} bytes (256 KB).",
+        )
+
+    # Decompress / inspect payload to verify it is valid JSON and contains NO PII/video keys
+    FORBIDDEN_KEYS = {"email", "user_email", "password", "image_base64", "video_url", "full_name", "phone"}
+    if payload.payload_encoding == "gzip_json_b64":
+        if not raw_bytes.startswith(b"\x1f\x8b"):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid gzip header for gzip_json_b64 payload.",
+            )
+        try:
+            decompressed = gzip.decompress(raw_bytes)
+            if len(decompressed) > 2 * 1024 * 1024:  # 2 MB limit
+                raise HTTPException(
+                    status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+                    detail="Decompressed payload exceeds safety limit (2 MB).",
+                )
+            decompressed_text = decompressed.decode("utf-8")
+            parsed_json = json.loads(decompressed_text)
+            if isinstance(parsed_json, dict):
+                found_keys = FORBIDDEN_KEYS.intersection(set(parsed_json.keys()))
+                if found_keys:
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail=f"Payload contains sensitive/forbidden key(s): {sorted(found_keys)}",
+                    )
+        except HTTPException:
+            raise
+        except Exception as exc:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Failed to decompress and parse gzip JSON payload: {exc}",
+            )
+    elif payload.payload_encoding == "json_compact":
+        try:
+            parsed_json = json.loads(raw_bytes.decode("utf-8"))
+            if isinstance(parsed_json, dict):
+                found_keys = FORBIDDEN_KEYS.intersection(set(parsed_json.keys()))
+                if found_keys:
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail=f"Payload contains sensitive/forbidden key(s): {sorted(found_keys)}",
+                    )
+        except HTTPException:
+            raise
+        except Exception as exc:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Failed to parse JSON compact payload: {exc}",
+            )
+
+    account_id, _ = _resolve_account_id_and_tier_for_workout(current_user)
+    subject_hash = _compute_anonymous_subject_hash(account_id)
+
+    effective_adjusted = bool(
+        payload.user_adjusted_reps
+        or (payload.final_logged_reps is not None and payload.final_logged_reps != payload.cv_reps)
+    )
+    priority_bucket = "high_rep_correction" if effective_adjusted else "standard"
+
+    telemetry_col = getattr(_db_mod, "workout_cv_telemetry_collection", None)
+    if telemetry_col is None and _db_mod.db is not None:
+        telemetry_col = _db_mod.db["workout_cv_telemetry"]
+
+    telemetry_id = f"tel_{uuid4().hex}"
+    now_utc = datetime.now(timezone.utc)
+    created_at_str = now_utc.isoformat().replace("+00:00", "Z")
+
+    telemetry_doc = {
+        "telemetry_id": telemetry_id,
+        "subject_hash": subject_hash,
+        "exercise_slug": payload.exercise_slug,
+        "view_angle": payload.view_angle,
+        "fps": payload.fps,
+        "frame_count": payload.frame_count,
+        "cv_reps": payload.cv_reps,
+        "final_logged_reps": payload.final_logged_reps,
+        "user_adjusted_reps": effective_adjusted,
+        "priority_bucket": priority_bucket,
+        "ml_mode": payload.ml_mode,
+        "payload_encoding": payload.payload_encoding,
+        "compressed_payload_b64": payload.compressed_payload_b64,
+        "payload_bytes": payload_bytes_len,
+        "client_schema_version": payload.client_schema_version,
+        "created_at": created_at_str,
+    }
+
+    if telemetry_col is not None:
+        try:
+            telemetry_col.insert_one(telemetry_doc)
+        except Exception as exc:
+            logger.error("Failed to insert telemetry document: %s", exc)
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"Failed to store telemetry data: {exc}",
+            )
+
+    return WorkoutCvTelemetryOut(
+        telemetry_id=telemetry_id,
+        subject_hash=subject_hash,
+        exercise_slug=payload.exercise_slug,
+        frame_count=payload.frame_count,
+        payload_bytes=payload_bytes_len,
+        user_adjusted_reps=effective_adjusted,
+        priority_bucket=priority_bucket,
+        created_at=created_at_str,
+    )
+
+
+@router.get("/cv/telemetry/stats", response_model=WorkoutCvTelemetryStatsOut)
+async def get_workout_cv_telemetry_stats(
+    current_user: dict = Depends(get_current_user),
+):
+    """Retrieve anonymous telemetry stats for the current user."""
+    users_col = getattr(_db_mod, "users_collection", None)
+    if users_col is None and _db_mod.db is not None:
+        users_col = _db_mod.db["users"]
+
+    fresh_user = None
+    if users_col is not None and current_user.get("_id") is not None:
+        try:
+            fresh_user = users_col.find_one({"_id": current_user["_id"]})
+        except Exception:
+            fresh_user = None
+
+    eval_user = fresh_user if isinstance(fresh_user, dict) else current_user
+    opt_in = _is_user_cv_telemetry_opted_in(eval_user)
+
+    account_id, _ = _resolve_account_id_and_tier_for_workout(current_user)
+    subject_hash = _compute_anonymous_subject_hash(account_id)
+
+    telemetry_col = getattr(_db_mod, "workout_cv_telemetry_collection", None)
+    if telemetry_col is None and _db_mod.db is not None:
+        telemetry_col = _db_mod.db["workout_cv_telemetry"]
+
+    total_clips = 0
+    rep_correction_clips = 0
+
+    if telemetry_col is not None:
+        try:
+            total_clips = telemetry_col.count_documents({"subject_hash": subject_hash})
+            rep_correction_clips = telemetry_col.count_documents({
+                "subject_hash": subject_hash,
+                "user_adjusted_reps": True,
+            })
+        except Exception as exc:
+            logger.warning("Failed to count telemetry documents: %s", exc)
+
+    return WorkoutCvTelemetryStatsOut(
+        cv_telemetry_opt_in=opt_in,
+        total_clips_contributed=total_clips,
+        rep_correction_clips=rep_correction_clips,
+        subject_hash=subject_hash,
+    )
+

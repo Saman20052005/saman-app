@@ -6,6 +6,7 @@ import '../../config/app_metadata.dart';
 import '../../config/app_theme.dart';
 import '../../config/app_translations.dart';
 import '../../config/theme_provider.dart';
+import '../../features/workout_cv/data/services/cv_telemetry_service.dart';
 import '../../services/unit_converter.dart';
 
 class AppSettingsScreen extends ConsumerWidget {
@@ -20,6 +21,7 @@ class AppSettingsScreen extends ConsumerWidget {
     final languageMode = ref.watch(languageModeProvider);
     final unitSystem = ref.watch(unitProvider);
     final isDarkMode = ref.watch(themeProvider) == ThemeMode.dark;
+    final isTelemetryOptIn = ref.watch(cvTelemetryOptInProvider);
     final appVersion = ref.watch(appVersionProvider);
 
     // Resolve displayed language label
@@ -114,6 +116,48 @@ class AppSettingsScreen extends ConsumerWidget {
                             value: isDarkMode,
                             onChanged: (_) =>
                                 ref.read(themeProvider.notifier).toggleTheme(),
+                            materialTapTargetSize:
+                                MaterialTapTargetSize.shrinkWrap,
+                            activeColor: palette.onAccent,
+                            activeTrackColor: palette.accent,
+                            inactiveThumbColor: palette.isDark
+                                ? const Color(0xFF8E8E93)
+                                : palette.textMuted,
+                            inactiveTrackColor: palette.isDark
+                                ? const Color(0xFF27272A)
+                                : palette.surfaceElevated,
+                            trackOutlineColor:
+                                WidgetStateProperty.resolveWith<Color?>(
+                              (states) => states.contains(WidgetState.selected)
+                                  ? Colors.transparent
+                                  : (palette.isDark
+                                      ? const Color(0x14FFFFFF)
+                                      : palette.border),
+                            ),
+                          ),
+                        ),
+                        _buildDivider(context),
+                        // Row: Anonymous AI Skeleton Sharing (Opt-in)
+                        _buildSettingsRow(
+                          context: context,
+                          key: const Key('setting_row_cv_telemetry'),
+                          icon: Icons.analytics_outlined,
+                          title: locale.languageCode == 'vi'
+                              ? 'Chia sẻ tọa độ AI ẩn danh'
+                              : 'Anonymous AI Skeleton Sharing',
+                          subtitle: locale.languageCode == 'vi'
+                              ? 'Chỉ gửi 33 điểm khớp ẩn danh (~30 KB), không ảnh/video'
+                              : '33 anonymous joints only (~30 KB), no photo/video',
+                          showChevron: false,
+                          onTap: () => ref
+                              .read(cvTelemetryOptInProvider.notifier)
+                              .setOptIn(!isTelemetryOptIn),
+                          trailing: Switch(
+                            key: const Key('setting_switch_cv_telemetry'),
+                            value: isTelemetryOptIn,
+                            onChanged: (val) => ref
+                                .read(cvTelemetryOptInProvider.notifier)
+                                .setOptIn(val),
                             materialTapTargetSize:
                                 MaterialTapTargetSize.shrinkWrap,
                             activeColor: palette.onAccent,

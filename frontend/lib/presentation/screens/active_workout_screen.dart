@@ -16,7 +16,9 @@ import '../providers/active_workout_state.dart';
 import '../tokens/saman_workout_tokens.dart';
 import '../providers/exercise_providers.dart';
 import '../providers/workout_history_providers.dart';
+import '../../features/workout_cv/data/services/cv_telemetry_service.dart';
 import '../../features/workout_cv/data/services/workout_cv_quota_client.dart';
+import '../../features/workout_cv/domain/entities/ml_mode.dart';
 import '../../features/workout_cv/domain/services/cv_form_summary_calculator.dart';
 import '../../features/workout_cv/domain/services/workout_cv_exercise_registry.dart';
 import '../../features/membership/domain/models/membership_plan.dart';
@@ -67,6 +69,43 @@ class ActiveWorkoutScreen extends ConsumerStatefulWidget {
 
 class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
   Timer? _autoTickTimer;
+  PendingCvTelemetrySnapshot? _lastUploadedCvTelemetry;
+
+  void _flushPendingCvTelemetryIfNeeded({
+    required String exerciseId,
+    required int loggedReps,
+    bool fromEditSheet = false,
+  }) {
+    final optIn = ref.read(cvTelemetryOptInProvider);
+    if (!optIn) return;
+
+    final pending = ref.read(pendingCvTelemetryProvider);
+    final PendingCvTelemetrySnapshot snapshot;
+    if (pending != null && pending.exerciseId == exerciseId) {
+      snapshot = pending;
+      ref.read(pendingCvTelemetryProvider.notifier).state = null;
+      _lastUploadedCvTelemetry = pending;
+    } else if (fromEditSheet &&
+        _lastUploadedCvTelemetry != null &&
+        _lastUploadedCvTelemetry!.exerciseId == exerciseId &&
+        loggedReps != _lastUploadedCvTelemetry!.cvReps) {
+      snapshot = _lastUploadedCvTelemetry!;
+    } else {
+      return;
+    }
+
+    unawaited(
+      ref.read(cvTelemetryServiceProvider).uploadAnonymousSession(
+            exerciseSlug: snapshot.exerciseSlug,
+            viewAngle: snapshot.viewAngle,
+            fps: snapshot.fps,
+            frames: snapshot.frames,
+            cvReps: snapshot.cvReps,
+            finalLoggedReps: loggedReps,
+            mlMode: snapshot.mlMode,
+          ),
+    );
+  }
 
   @override
   void initState() {
@@ -2098,7 +2137,16 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
             child: ElevatedButton.icon(
               key: const ValueKey('active_workout_log_set_button'),
               onPressed: currentEx.activeSet != null
-                  ? ((currentEx.canLogSet && !notifier.isSavePendingConfirmation) ? notifier.logActiveSet : null)
+                  ? ((currentEx.canLogSet && !notifier.isSavePendingConfirmation)
+                      ? () {
+                          final loggedReps = currentEx.draftReps;
+                          notifier.logActiveSet();
+                          _flushPendingCvTelemetryIfNeeded(
+                            exerciseId: currentEx.id,
+                            loggedReps: loggedReps,
+                          );
+                        }
+                      : null)
                   : session.nextExercise != null
                       ? notifier.nextExercise
                       : () => _showReviewScreen(context),
@@ -2840,6 +2888,14 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
             rpe: rpe,
             setType: setType,
           );
+          final exercises = ref.read(activeWorkoutSessionProvider).exercises;
+          if (exIdx >= 0 && exIdx < exercises.length) {
+            _flushPendingCvTelemetryIfNeeded(
+              exerciseId: exercises[exIdx].id,
+              loggedReps: reps,
+              fromEditSheet: true,
+            );
+          }
         },
       ),
     );

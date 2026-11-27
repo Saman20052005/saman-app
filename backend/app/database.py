@@ -53,6 +53,7 @@ journal_articles_collection = None
 chat_training_logs_collection = None
 food_barcodes_collection = None
 workout_video_stories_collection = None
+workout_cv_telemetry_collection = None
 
 
 def _bind_collections(database):
@@ -63,7 +64,7 @@ def _bind_collections(database):
     global weight_history_collection
     global journeys_collection, community_posts_collection, community_interactions_collection, community_follows_collection
     global shop_products_collection, journal_articles_collection, chat_training_logs_collection
-    global food_barcodes_collection, workout_video_stories_collection
+    global food_barcodes_collection, workout_video_stories_collection, workout_cv_telemetry_collection
 
     users_collection              = database["users"]
     foods_collection              = database["foods"]
@@ -88,6 +89,7 @@ def _bind_collections(database):
     chat_training_logs_collection = database["chat_training_logs"]
     food_barcodes_collection      = database["food_barcodes"]
     workout_video_stories_collection = database["workout_video_stories"]
+    workout_cv_telemetry_collection = database["workout_cv_telemetry"]
 
 
 def connect_db():
@@ -152,6 +154,7 @@ def connect_db():
         chat_training_logs_collection = None
         food_barcodes_collection = None
         workout_video_stories_collection = None
+        workout_cv_telemetry_collection = None
         return None
 
 
@@ -244,4 +247,32 @@ def ensure_workout_video_stories_indexes(col=None) -> list[str]:
         name="idx_video_story_session_id",
     )
     return [idx1, idx2, idx3, idx4]
+
+
+def ensure_workout_cv_telemetry_indexes(col=None) -> list[str]:
+    """Create indexes for workout_cv_telemetry collection:
+
+    1. telemetry_id unique ('uniq_cv_telemetry_id')
+    2. (exercise_slug, user_adjusted_reps, created_at DESC) ('idx_cv_telemetry_exercise_priority')
+    3. (subject_hash, created_at DESC) ('idx_cv_telemetry_subject_created')
+    """
+    target = col if col is not None else workout_cv_telemetry_collection
+    if target is None:
+        raise RuntimeError("workout_cv_telemetry collection is unavailable")
+
+    idx1 = target.create_index(
+        [("telemetry_id", 1)],
+        unique=True,
+        name="uniq_cv_telemetry_id",
+    )
+    idx2 = target.create_index(
+        [("exercise_slug", 1), ("user_adjusted_reps", 1), ("created_at", -1)],
+        name="idx_cv_telemetry_exercise_priority",
+    )
+    idx3 = target.create_index(
+        [("subject_hash", 1), ("created_at", -1)],
+        name="idx_cv_telemetry_subject_created",
+    )
+    return [idx1, idx2, idx3]
+
 

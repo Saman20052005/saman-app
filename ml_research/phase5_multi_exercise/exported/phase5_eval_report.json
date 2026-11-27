@@ -1,0 +1,718 @@
+{
+  "schema_version": "saman_p5_ml_v1",
+  "seed": 42,
+  "anti_leakage_protocol": {
+    "cv_strategy": "GroupKFold(n_splits=5) on subject_id",
+    "augmentation_scope": "X_train_only_inside_each_fold",
+    "test_fold_augmented": false,
+    "disjoint_subject_assertion": true
+  },
+  "data_provenance": {
+    "real_data_dir": "ml_research/data/ (Read-Only)",
+    "real_files_stats": {
+      "full_fps_rows_read": 3076,
+      "mobile_4_5fps_rows_read": 400,
+      "frames_labeled_rows_read": 3076,
+      "real_records_loaded": 925,
+      "real_outside_active_window_excluded_from_phase": 198
+    },
+    "real_video_mapping": {
+      "pullup": {
+        "exercise": "pull-up",
+        "view_angle": "frontal"
+      },
+      "pullup_45": {
+        "exercise": "pull-up",
+        "view_angle": "oblique45"
+      },
+      "lat_pulldown": {
+        "exercise": "lat-pulldown",
+        "view_angle": "frontal"
+      },
+      "blindspot": {
+        "exercise": null,
+        "view_angle": "side90"
+      }
+    },
+    "synthetic_generator": {
+      "type": "3D biomechanical multi-body-type kinematics",
+      "subjects_per_exercise": 15,
+      "samples_per_phase_per_view": 4,
+      "total_synthetic_records": 2700
+    }
+  },
+  "weights_artifact": {
+    "path": "ml_research/phase5_multi_exercise/exported/phase5_ml_weights.json",
+    "size_bytes": 23699,
+    "size_kb": 23.14
+  },
+  "view_angle_model": {
+    "labels": [
+      "frontal",
+      "oblique45",
+      "side90"
+    ],
+    "n_splits": 5,
+    "total_raw_samples": 3625,
+    "distinct_subjects": 79,
+    "source_breakdown": {
+      "real": 925,
+      "biomechanical_synthetic": 2700
+    },
+    "macro_f1": 0.904018,
+    "accuracy": 0.911172,
+    "confusion_matrix": [
+      [
+        1442,
+        9,
+        1
+      ],
+      [
+        72,
+        963,
+        57
+      ],
+      [
+        15,
+        168,
+        898
+      ]
+    ],
+    "folds": [
+      {
+        "fold": 0,
+        "train_raw_samples": 2907,
+        "train_augmented_samples": 11628,
+        "test_raw_samples": 718,
+        "test_subjects": [
+          "real_lat_pulldown",
+          "synth_bicep-curl_subj_04",
+          "synth_bicep-curl_subj_09",
+          "synth_bicep-curl_subj_14",
+          "synth_lat-pulldown_subj_04",
+          "synth_lat-pulldown_subj_09",
+          "synth_lat-pulldown_subj_14",
+          "synth_pull-up_subj_04",
+          "synth_pull-up_subj_09",
+          "synth_pull-up_subj_14",
+          "synth_push-up_subj_04",
+          "synth_push-up_subj_09",
+          "synth_push-up_subj_14"
+        ],
+        "macro_f1": 0.993082,
+        "accuracy": 0.994429
+      },
+      {
+        "fold": 1,
+        "train_raw_samples": 2891,
+        "train_augmented_samples": 11564,
+        "test_raw_samples": 734,
+        "test_subjects": [
+          "real_pullup",
+          "synth_bicep-curl_subj_00",
+          "synth_bicep-curl_subj_05",
+          "synth_bicep-curl_subj_10",
+          "synth_lat-pulldown_subj_00",
+          "synth_lat-pulldown_subj_05",
+          "synth_lat-pulldown_subj_10",
+          "synth_pull-up_subj_00",
+          "synth_pull-up_subj_05",
+          "synth_pull-up_subj_10",
+          "synth_push-up_subj_00",
+          "synth_push-up_subj_05",
+          "synth_push-up_subj_10",
+          "synth_squat_subj_00"
+        ],
+        "macro_f1": 0.98487,
+        "accuracy": 0.986376
+      },
+      {
+        "fold": 2,
+        "train_raw_samples": 2893,
+        "train_augmented_samples": 11572,
+        "test_raw_samples": 732,
+        "test_subjects": [
+          "real_pullup_45",
+          "synth_bicep-curl_subj_01",
+          "synth_bicep-curl_subj_06",
+          "synth_bicep-curl_subj_11",
+          "synth_lat-pulldown_subj_01",
+          "synth_lat-pulldown_subj_06",
+          "synth_lat-pulldown_subj_11",
+          "synth_pull-up_subj_01",
+          "synth_pull-up_subj_06",
+          "synth_pull-up_subj_11",
+          "synth_push-up_subj_01",
+          "synth_push-up_subj_06",
+          "synth_push-up_subj_11",
+          "synth_squat_subj_01",
+          "synth_squat_subj_04",
+          "synth_squat_subj_07"
+        ],
+        "macro_f1": 0.856453,
+        "accuracy": 0.852459
+      },
+      {
+        "fold": 3,
+        "train_raw_samples": 2904,
+        "train_augmented_samples": 11616,
+        "test_raw_samples": 721,
+        "test_subjects": [
+          "real_blindspot",
+          "synth_bicep-curl_subj_02",
+          "synth_bicep-curl_subj_07",
+          "synth_bicep-curl_subj_12",
+          "synth_lat-pulldown_subj_02",
+          "synth_lat-pulldown_subj_07",
+          "synth_lat-pulldown_subj_12",
+          "synth_pull-up_subj_02",
+          "synth_pull-up_subj_07",
+          "synth_pull-up_subj_12",
+          "synth_push-up_subj_02",
+          "synth_push-up_subj_07",
+          "synth_push-up_subj_12",
+          "synth_squat_subj_02",
+          "synth_squat_subj_05",
+          "synth_squat_subj_08"
+        ],
+        "macro_f1": 0.746441,
+        "accuracy": 0.729542
+      },
+      {
+        "fold": 4,
+        "train_raw_samples": 2905,
+        "train_augmented_samples": 11620,
+        "test_raw_samples": 720,
+        "test_subjects": [
+          "synth_bicep-curl_subj_03",
+          "synth_bicep-curl_subj_08",
+          "synth_bicep-curl_subj_13",
+          "synth_lat-pulldown_subj_03",
+          "synth_lat-pulldown_subj_08",
+          "synth_lat-pulldown_subj_13",
+          "synth_pull-up_subj_03",
+          "synth_pull-up_subj_08",
+          "synth_pull-up_subj_13",
+          "synth_push-up_subj_03",
+          "synth_push-up_subj_08",
+          "synth_push-up_subj_13",
+          "synth_squat_subj_03",
+          "synth_squat_subj_06",
+          "synth_squat_subj_09",
+          "synth_squat_subj_10",
+          "synth_squat_subj_11",
+          "synth_squat_subj_12",
+          "synth_squat_subj_13",
+          "synth_squat_subj_14"
+        ],
+        "macro_f1": 0.993043,
+        "accuracy": 0.993056
+      }
+    ]
+  },
+  "exercise_phase_models": {
+    "pull-up": {
+      "labels": [
+        "top_idle",
+        "transition",
+        "bottom_peak"
+      ],
+      "n_splits": 5,
+      "total_raw_samples": 817,
+      "distinct_subjects": 17,
+      "source_breakdown": {
+        "real": 277,
+        "biomechanical_synthetic": 540
+      },
+      "macro_f1": 0.900962,
+      "accuracy": 0.903305,
+      "confusion_matrix": [
+        [
+          260,
+          5,
+          6
+        ],
+        [
+          29,
+          209,
+          16
+        ],
+        [
+          2,
+          21,
+          269
+        ]
+      ],
+      "folds": [
+        {
+          "fold": 0,
+          "train_raw_samples": 618,
+          "train_augmented_samples": 2472,
+          "test_raw_samples": 199,
+          "test_subjects": [
+            "real_pullup"
+          ],
+          "macro_f1": 0.892357,
+          "accuracy": 0.904523
+        },
+        {
+          "fold": 1,
+          "train_raw_samples": 667,
+          "train_augmented_samples": 2668,
+          "test_raw_samples": 150,
+          "test_subjects": [
+            "real_pullup_45",
+            "synth_pull-up_subj_01",
+            "synth_pull-up_subj_05"
+          ],
+          "macro_f1": 0.744992,
+          "accuracy": 0.746667
+        },
+        {
+          "fold": 2,
+          "train_raw_samples": 637,
+          "train_augmented_samples": 2548,
+          "test_raw_samples": 180,
+          "test_subjects": [
+            "synth_pull-up_subj_00",
+            "synth_pull-up_subj_04",
+            "synth_pull-up_subj_08",
+            "synth_pull-up_subj_11",
+            "synth_pull-up_subj_14"
+          ],
+          "macro_f1": 0.949711,
+          "accuracy": 0.95
+        },
+        {
+          "fold": 3,
+          "train_raw_samples": 673,
+          "train_augmented_samples": 2692,
+          "test_raw_samples": 144,
+          "test_subjects": [
+            "synth_pull-up_subj_03",
+            "synth_pull-up_subj_07",
+            "synth_pull-up_subj_10",
+            "synth_pull-up_subj_13"
+          ],
+          "macro_f1": 0.950348,
+          "accuracy": 0.951389
+        },
+        {
+          "fold": 4,
+          "train_raw_samples": 673,
+          "train_augmented_samples": 2692,
+          "test_raw_samples": 144,
+          "test_subjects": [
+            "synth_pull-up_subj_02",
+            "synth_pull-up_subj_06",
+            "synth_pull-up_subj_09",
+            "synth_pull-up_subj_12"
+          ],
+          "macro_f1": 0.958333,
+          "accuracy": 0.958333
+        }
+      ]
+    },
+    "lat-pulldown": {
+      "labels": [
+        "top_idle",
+        "transition",
+        "bottom_peak"
+      ],
+      "n_splits": 5,
+      "total_raw_samples": 809,
+      "distinct_subjects": 16,
+      "source_breakdown": {
+        "real": 269,
+        "biomechanical_synthetic": 540
+      },
+      "macro_f1": 0.938981,
+      "accuracy": 0.939431,
+      "confusion_matrix": [
+        [
+          275,
+          3,
+          0
+        ],
+        [
+          31,
+          230,
+          8
+        ],
+        [
+          0,
+          7,
+          255
+        ]
+      ],
+      "folds": [
+        {
+          "fold": 0,
+          "train_raw_samples": 540,
+          "train_augmented_samples": 2160,
+          "test_raw_samples": 269,
+          "test_subjects": [
+            "real_lat_pulldown"
+          ],
+          "macro_f1": 0.872134,
+          "accuracy": 0.873606
+        },
+        {
+          "fold": 1,
+          "train_raw_samples": 665,
+          "train_augmented_samples": 2660,
+          "test_raw_samples": 144,
+          "test_subjects": [
+            "synth_lat-pulldown_subj_02",
+            "synth_lat-pulldown_subj_06",
+            "synth_lat-pulldown_subj_10",
+            "synth_lat-pulldown_subj_14"
+          ],
+          "macro_f1": 0.993055,
+          "accuracy": 0.993056
+        },
+        {
+          "fold": 2,
+          "train_raw_samples": 665,
+          "train_augmented_samples": 2660,
+          "test_raw_samples": 144,
+          "test_subjects": [
+            "synth_lat-pulldown_subj_01",
+            "synth_lat-pulldown_subj_05",
+            "synth_lat-pulldown_subj_09",
+            "synth_lat-pulldown_subj_13"
+          ],
+          "macro_f1": 0.965033,
+          "accuracy": 0.965278
+        },
+        {
+          "fold": 3,
+          "train_raw_samples": 665,
+          "train_augmented_samples": 2660,
+          "test_raw_samples": 144,
+          "test_subjects": [
+            "synth_lat-pulldown_subj_00",
+            "synth_lat-pulldown_subj_04",
+            "synth_lat-pulldown_subj_08",
+            "synth_lat-pulldown_subj_12"
+          ],
+          "macro_f1": 0.979093,
+          "accuracy": 0.979167
+        },
+        {
+          "fold": 4,
+          "train_raw_samples": 701,
+          "train_augmented_samples": 2804,
+          "test_raw_samples": 108,
+          "test_subjects": [
+            "synth_lat-pulldown_subj_03",
+            "synth_lat-pulldown_subj_07",
+            "synth_lat-pulldown_subj_11"
+          ],
+          "macro_f1": 0.944151,
+          "accuracy": 0.944444
+        }
+      ]
+    },
+    "squat": {
+      "labels": [
+        "top_idle",
+        "transition",
+        "bottom_peak"
+      ],
+      "n_splits": 5,
+      "total_raw_samples": 540,
+      "distinct_subjects": 15,
+      "source_breakdown": {
+        "real": 0,
+        "biomechanical_synthetic": 540
+      },
+      "macro_f1": 0.947914,
+      "accuracy": 0.948148,
+      "confusion_matrix": [
+        [
+          176,
+          4,
+          0
+        ],
+        [
+          17,
+          160,
+          3
+        ],
+        [
+          0,
+          4,
+          176
+        ]
+      ],
+      "folds": [
+        {
+          "fold": 0,
+          "train_raw_samples": 432,
+          "train_augmented_samples": 1728,
+          "test_raw_samples": 108,
+          "test_subjects": [
+            "synth_squat_subj_04",
+            "synth_squat_subj_09",
+            "synth_squat_subj_14"
+          ],
+          "macro_f1": 0.98148,
+          "accuracy": 0.981481
+        },
+        {
+          "fold": 1,
+          "train_raw_samples": 432,
+          "train_augmented_samples": 1728,
+          "test_raw_samples": 108,
+          "test_subjects": [
+            "synth_squat_subj_03",
+            "synth_squat_subj_08",
+            "synth_squat_subj_13"
+          ],
+          "macro_f1": 0.944151,
+          "accuracy": 0.944444
+        },
+        {
+          "fold": 2,
+          "train_raw_samples": 432,
+          "train_augmented_samples": 1728,
+          "test_raw_samples": 108,
+          "test_subjects": [
+            "synth_squat_subj_02",
+            "synth_squat_subj_07",
+            "synth_squat_subj_12"
+          ],
+          "macro_f1": 0.972212,
+          "accuracy": 0.972222
+        },
+        {
+          "fold": 3,
+          "train_raw_samples": 432,
+          "train_augmented_samples": 1728,
+          "test_raw_samples": 108,
+          "test_subjects": [
+            "synth_squat_subj_01",
+            "synth_squat_subj_06",
+            "synth_squat_subj_11"
+          ],
+          "macro_f1": 0.897228,
+          "accuracy": 0.898148
+        },
+        {
+          "fold": 4,
+          "train_raw_samples": 432,
+          "train_augmented_samples": 1728,
+          "test_raw_samples": 108,
+          "test_subjects": [
+            "synth_squat_subj_00",
+            "synth_squat_subj_05",
+            "synth_squat_subj_10"
+          ],
+          "macro_f1": 0.944151,
+          "accuracy": 0.944444
+        }
+      ]
+    },
+    "push-up": {
+      "labels": [
+        "top_idle",
+        "transition",
+        "bottom_peak"
+      ],
+      "n_splits": 5,
+      "total_raw_samples": 540,
+      "distinct_subjects": 15,
+      "source_breakdown": {
+        "real": 0,
+        "biomechanical_synthetic": 540
+      },
+      "macro_f1": 0.875909,
+      "accuracy": 0.875926,
+      "confusion_matrix": [
+        [
+          166,
+          14,
+          0
+        ],
+        [
+          22,
+          146,
+          12
+        ],
+        [
+          0,
+          19,
+          161
+        ]
+      ],
+      "folds": [
+        {
+          "fold": 0,
+          "train_raw_samples": 432,
+          "train_augmented_samples": 1728,
+          "test_raw_samples": 108,
+          "test_subjects": [
+            "synth_push-up_subj_04",
+            "synth_push-up_subj_09",
+            "synth_push-up_subj_14"
+          ],
+          "macro_f1": 0.844096,
+          "accuracy": 0.842593
+        },
+        {
+          "fold": 1,
+          "train_raw_samples": 432,
+          "train_augmented_samples": 1728,
+          "test_raw_samples": 108,
+          "test_subjects": [
+            "synth_push-up_subj_03",
+            "synth_push-up_subj_08",
+            "synth_push-up_subj_13"
+          ],
+          "macro_f1": 0.880787,
+          "accuracy": 0.87963
+        },
+        {
+          "fold": 2,
+          "train_raw_samples": 432,
+          "train_augmented_samples": 1728,
+          "test_raw_samples": 108,
+          "test_subjects": [
+            "synth_push-up_subj_02",
+            "synth_push-up_subj_07",
+            "synth_push-up_subj_12"
+          ],
+          "macro_f1": 0.924722,
+          "accuracy": 0.925926
+        },
+        {
+          "fold": 3,
+          "train_raw_samples": 432,
+          "train_augmented_samples": 1728,
+          "test_raw_samples": 108,
+          "test_subjects": [
+            "synth_push-up_subj_01",
+            "synth_push-up_subj_06",
+            "synth_push-up_subj_11"
+          ],
+          "macro_f1": 0.86153,
+          "accuracy": 0.861111
+        },
+        {
+          "fold": 4,
+          "train_raw_samples": 432,
+          "train_augmented_samples": 1728,
+          "test_raw_samples": 108,
+          "test_subjects": [
+            "synth_push-up_subj_00",
+            "synth_push-up_subj_05",
+            "synth_push-up_subj_10"
+          ],
+          "macro_f1": 0.868579,
+          "accuracy": 0.87037
+        }
+      ]
+    },
+    "bicep-curl": {
+      "labels": [
+        "top_idle",
+        "transition",
+        "bottom_peak"
+      ],
+      "n_splits": 5,
+      "total_raw_samples": 540,
+      "distinct_subjects": 15,
+      "source_breakdown": {
+        "real": 0,
+        "biomechanical_synthetic": 540
+      },
+      "macro_f1": 0.964783,
+      "accuracy": 0.964815,
+      "confusion_matrix": [
+        [
+          177,
+          3,
+          0
+        ],
+        [
+          6,
+          170,
+          4
+        ],
+        [
+          0,
+          6,
+          174
+        ]
+      ],
+      "folds": [
+        {
+          "fold": 0,
+          "train_raw_samples": 432,
+          "train_augmented_samples": 1728,
+          "test_raw_samples": 108,
+          "test_subjects": [
+            "synth_bicep-curl_subj_04",
+            "synth_bicep-curl_subj_09",
+            "synth_bicep-curl_subj_14"
+          ],
+          "macro_f1": 0.952782,
+          "accuracy": 0.953704
+        },
+        {
+          "fold": 1,
+          "train_raw_samples": 432,
+          "train_augmented_samples": 1728,
+          "test_raw_samples": 108,
+          "test_subjects": [
+            "synth_bicep-curl_subj_03",
+            "synth_bicep-curl_subj_08",
+            "synth_bicep-curl_subj_13"
+          ],
+          "macro_f1": 0.972347,
+          "accuracy": 0.972222
+        },
+        {
+          "fold": 2,
+          "train_raw_samples": 432,
+          "train_augmented_samples": 1728,
+          "test_raw_samples": 108,
+          "test_subjects": [
+            "synth_bicep-curl_subj_02",
+            "synth_bicep-curl_subj_07",
+            "synth_bicep-curl_subj_12"
+          ],
+          "macro_f1": 0.963088,
+          "accuracy": 0.962963
+        },
+        {
+          "fold": 3,
+          "train_raw_samples": 432,
+          "train_augmented_samples": 1728,
+          "test_raw_samples": 108,
+          "test_subjects": [
+            "synth_bicep-curl_subj_01",
+            "synth_bicep-curl_subj_06",
+            "synth_bicep-curl_subj_11"
+          ],
+          "macro_f1": 0.972217,
+          "accuracy": 0.972222
+        },
+        {
+          "fold": 4,
+          "train_raw_samples": 432,
+          "train_augmented_samples": 1728,
+          "test_raw_samples": 108,
+          "test_subjects": [
+            "synth_bicep-curl_subj_00",
+            "synth_bicep-curl_subj_05",
+            "synth_bicep-curl_subj_10"
+          ],
+          "macro_f1": 0.963199,
+          "accuracy": 0.962963
+        }
+      ]
+    }
+  }
+}

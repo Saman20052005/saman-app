@@ -3,7 +3,9 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../data/datasources/workout_cv_native_source.dart';
+import '../../data/services/cv_telemetry_service.dart';
 import '../../domain/entities/exercise_cv_state.dart';
+import '../../domain/entities/ml_mode.dart';
 import '../../domain/entities/pose_landmark.dart';
 import '../../domain/services/bicep_curl_baseline.dart';
 import '../../domain/services/cv_form_summary_calculator.dart';
@@ -12,6 +14,7 @@ import '../../domain/services/hip_hinge_baseline.dart';
 import '../../domain/services/lat_pulldown_baseline.dart';
 import '../../domain/services/lateral_raise_baseline.dart';
 import '../../domain/services/leg_machine_baseline.dart';
+import '../../domain/services/ml_pose_classifier.dart';
 import '../../domain/services/overhead_press_baseline.dart';
 import '../../domain/services/plank_hold_baseline.dart';
 import '../../domain/services/pull_up_baseline.dart';
@@ -30,7 +33,7 @@ final workoutCvControllerProvider =
     StateNotifierProvider.autoDispose<WorkoutCvNotifier, ExerciseCvState>(
         (ref) {
   final source = ref.watch(workoutCvNativeSourceProvider);
-  return WorkoutCvNotifier(source);
+  return WorkoutCvNotifier(source, ref: ref);
 });
 
 class WorkoutCvNotifier extends StateNotifier<ExerciseCvState> {
@@ -45,8 +48,16 @@ class WorkoutCvNotifier extends StateNotifier<ExerciseCvState> {
     24,
   ];
   static const int _maxVisibilitySamples = 5000;
+  static const int _maxTelemetryFrames = 600;
+  static const double _mlViewAngleConfidenceThreshold = 0.75;
+  static const int _mlViewAngleStabilityFrames = 3;
 
   final WorkoutCvNativeSource _nativeSource;
+  final Ref? _ref;
+  final MlPoseClassifier _mlClassifier;
+  final MlMode Function()? _mlModeReader;
+  final bool Function()? _telemetryOptInReader;
+  final void Function(PendingCvTelemetrySnapshot)? _onPendingTelemetrySnapshot;
   StreamSubscription<Map<String, dynamic>>? _subscription;
   int _lastFpsWindowCount = 0;
   DateTime _lastFpsWindowTime = DateTime.now();
@@ -58,12 +69,60 @@ class WorkoutCvNotifier extends StateNotifier<ExerciseCvState> {
   final ViewAngleDetector _viewAngleDetector = ViewAngleDetector();
   final List<({int timestampMs, double confidence})> _frameVisibilitySamples =
       [];
+  final List<SkeletonFrameSample> _telemetryFrames = [];
+  bool _telemetrySnapshotPublished = false;
+  CameraViewAngle? _lastMlViewAngle;
+  String? _lastMlPhase;
+  double? _lastMlConfidence;
+  int? _lastMlInferenceMicros;
+  CameraViewAngle? _mlConsecutiveViewAngle;
+  int _mlConsecutiveViewCount = 0;
   int? _repSessionGen;
   int? _lastRepPtsMs;
   bool _analysisClosed = false;
   String? _replayVideoPath;
 
-  WorkoutCvNotifier(this._nativeSource) : super(const ExerciseCvState());
+  WorkoutCvNotifier(
+    this._nativeSource, {
+    Ref? ref,
+    MlPoseClassifier mlClassifier = const MlPoseClassifier(),
+    MlMode Function()? mlModeReader,
+    bool Function()? telemetryOptInReader,
+    void Function(PendingCvTelemetrySnapshot)? onPendingTelemetrySnapshot,
+  })  : _ref = ref,
+        _mlClassifier = mlClassifier,
+        _mlModeReader = mlModeReader,
+        _telemetryOptInReader = telemetryOptInReader,
+        _onPendingTelemetrySnapshot = onPendingTelemetrySnapshot,
+        super(const ExerciseCvState());
+
+  CameraViewAngle? get lastMlViewAngle => _lastMlViewAngle;
+  String? get lastMlPhase => _lastMlPhase;
+  double? get lastMlConfidence => _lastMlConfidence;
+  int? get lastMlInferenceMicros => _lastMlInferenceMicros;
+  int get bufferedTelemetryFrameCount => _telemetryFrames.length;
+
+  MlMode get _currentMlMode {
+    if (_mlModeReader != null) return _mlModeReader();
+    final r = _ref;
+    if (r == null) return MlMode.ruleBased;
+    try {
+      return r.read(mlModeProvider);
+    } catch (_) {
+      return MlMode.ruleBased;
+    }
+  }
+
+  bool get _isTelemetryOptIn {
+    if (_telemetryOptInReader != null) return _telemetryOptInReader();
+    final r = _ref;
+    if (r == null) return false;
+    try {
+      return r.read(cvTelemetryOptInProvider);
+    } catch (_) {
+      return false;
+    }
+  }
 
   Future<void> initialize({
     required String exerciseId,
@@ -555,6 +614,14 @@ class WorkoutCvNotifier extends StateNotifier<ExerciseCvState> {
     _repTracker.reset();
     _viewAngleDetector.reset();
     _frameVisibilitySamples.clear();
+    _telemetryFrames.clear();
+    _telemetrySnapshotPublished = false;
+    _lastMlViewAngle = null;
+    _lastMlPhase = null;
+    _lastMlConfidence = null;
+    _lastMlInferenceMicros = null;
+    _mlConsecutiveViewAngle = null;
+    _mlConsecutiveViewCount = 0;
     _repSessionGen = null;
     _lastRepPtsMs = null;
     _analysisClosed = false;
@@ -568,8 +635,50 @@ class WorkoutCvNotifier extends StateNotifier<ExerciseCvState> {
     );
   }
 
+  void _publishPendingTelemetrySnapshot() {
+    if (_telemetrySnapshotPublished) return;
+    if (!_isTelemetryOptIn || _telemetryFrames.isEmpty) return;
+    if (state.exerciseId.isEmpty) return;
+
+    _telemetrySnapshotPublished = true;
+    final sampled = CvTelemetryEncoder.downsampleFrames(
+      List<SkeletonFrameSample>.unmodifiable(_telemetryFrames),
+      maxFrames: _maxTelemetryFrames,
+    );
+    final effectiveFps = state.fps > 0
+        ? state.fps
+        : (state.sourceFps > 0 ? state.sourceFps : 30.0);
+    final snapshot = PendingCvTelemetrySnapshot(
+      exerciseId: state.exerciseId,
+      exerciseSlug: state.exerciseSlug.isNotEmpty
+          ? state.exerciseSlug
+          : state.exerciseId,
+      viewAngle: state.detectedViewAngle.name,
+      fps: effectiveFps,
+      frames: sampled,
+      cvReps: state.completedReps,
+      mlMode: _currentMlMode.wireName,
+      capturedAt: DateTime.now(),
+    );
+
+    if (_onPendingTelemetrySnapshot != null) {
+      _onPendingTelemetrySnapshot(snapshot);
+      return;
+    }
+    final r = _ref;
+    if (r == null) return;
+    try {
+      r.read(pendingCvTelemetryProvider.notifier).state = snapshot;
+    } catch (_) {
+      // Fail-silent if provider scope is already disposed.
+    }
+  }
+
   void _closeRepAnalysis({bool failed = false}) {
     _analysisClosed = true;
+    if (!failed) {
+      _publishPendingTelemetrySnapshot();
+    }
     // Drop any incomplete cycle, preserving only completed events in UI state.
     _repTracker.reset();
     state = state.copyWith(
@@ -622,13 +731,30 @@ class WorkoutCvNotifier extends StateNotifier<ExerciseCvState> {
         timestampMs: ptsMs,
         confidence: frameConfidence,
       ));
+      if (_isTelemetryOptIn) {
+        _telemetryFrames.add(
+          SkeletonFrameSample(
+            timestampMs: ptsMs,
+            landmarks: state.landmarks,
+          ),
+        );
+        if (_telemetryFrames.length > _maxTelemetryFrames * 2) {
+          final compacted = CvTelemetryEncoder.downsampleFrames(
+            _telemetryFrames,
+            maxFrames: _maxTelemetryFrames,
+          );
+          _telemetryFrames
+            ..clear()
+            ..addAll(compacted);
+        }
+      }
     }
 
     final imageWidth = (event['inputImageWidth'] as num?)?.toDouble() ?? 0;
     final imageHeight = (event['inputImageHeight'] as num?)?.toDouble() ?? 0;
     final isGateDetecting =
         state.trackingStatus == TrackingStatus.detecting && state.isSyncValid;
-    final CameraViewAngle detectedAngle;
+    CameraViewAngle detectedAngle;
     if (isGateDetecting && imageWidth > 0 && imageHeight > 0) {
       detectedAngle = _viewAngleDetector.update(
         landmarks: state.landmarks,
@@ -637,6 +763,47 @@ class WorkoutCvNotifier extends StateNotifier<ExerciseCvState> {
       );
     } else {
       detectedAngle = state.detectedViewAngle;
+    }
+
+    // Optional on-device pure-Dart ML path behind MlMode feature flag.
+    // Default MlMode.ruleBased skips ML entirely (0 overhead).
+    final mlMode = _currentMlMode;
+    if (mlMode != MlMode.ruleBased &&
+        isGateDetecting &&
+        state.landmarks.isNotEmpty) {
+      final features = MlPoseClassifier.extractFeatures(state.landmarks);
+      final viewPred = _mlClassifier.predictViewAngleFromFeatures(features);
+      final slugForMl = state.exerciseSlug.isNotEmpty
+          ? state.exerciseSlug
+          : state.exerciseId;
+      final phasePred = _mlClassifier.predictExercisePhaseFromFeatures(
+        slugForMl,
+        features,
+      );
+      _lastMlViewAngle = viewPred?.cameraViewAngle;
+      _lastMlPhase = phasePred?.label;
+      _lastMlConfidence = phasePred?.confidence ?? viewPred?.confidence;
+      _lastMlInferenceMicros =
+          (viewPred?.inferenceMicros ?? 0) + (phasePred?.inferenceMicros ?? 0);
+
+      if (mlMode == MlMode.mlAssisted &&
+          viewPred != null &&
+          viewPred.confidence >= _mlViewAngleConfidenceThreshold &&
+          viewPred.cameraViewAngle != CameraViewAngle.unknown) {
+        if (_mlConsecutiveViewAngle == viewPred.cameraViewAngle) {
+          _mlConsecutiveViewCount++;
+        } else {
+          _mlConsecutiveViewAngle = viewPred.cameraViewAngle;
+          _mlConsecutiveViewCount = 1;
+        }
+        if (detectedAngle == CameraViewAngle.unknown ||
+            _mlConsecutiveViewCount >= _mlViewAngleStabilityFrames) {
+          detectedAngle = viewPred.cameraViewAngle;
+        }
+      } else {
+        _mlConsecutiveViewAngle = null;
+        _mlConsecutiveViewCount = 0;
+      }
     }
 
     // Invalid/lost samples must reach the baseline to interrupt holds/cycles.
@@ -1188,6 +1355,7 @@ class WorkoutCvNotifier extends StateNotifier<ExerciseCvState> {
   Future<void> stop() async {
     ++_initGeneration;
     _isStopped = true;
+    _publishPendingTelemetrySnapshot();
     _repTracker.reset();
     _analysisClosed = true;
     _subscription?.cancel();
