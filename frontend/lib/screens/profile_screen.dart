@@ -97,7 +97,17 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     super.initState();
     ref.listenManual(profileProvider, (_, __) => _onAvatarSessionChanged());
     ref.listenManual(authLoggingOutProvider, (_, __) => _onAvatarSessionChanged());
-    WidgetsBinding.instance.addPostFrameCallback((_) => _checkLostAvatarData());
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _checkLostAvatarData();
+      if (!mounted) return;
+      final mState = ref.read(accountMembershipProvider);
+      if (!mState.isKnown && !mState.isLoading) {
+        final userId = ref.read(profileProvider).confirmedUserId;
+        ref
+            .read(accountMembershipProvider.notifier)
+            .loadMembership(accountId: userId);
+      }
+    });
   }
 
   Future<void> _clearAvatarMarker(SharedPreferences prefs, int operation) async {

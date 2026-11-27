@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../config/app_translations.dart';
 import '../../../config/routes.dart';
 import '../../../controllers/chat_controller.dart';
+import '../../../features/membership/presentation/providers/membership_providers.dart';
 import '../../../providers/profile_provider.dart';
 import '../../../core/widgets/saman_tier_avatar.dart';
 import '../../../widgets/saman_feedback_snackbar.dart';
@@ -76,6 +77,21 @@ class _SamanChatDrawerState extends ConsumerState<SamanChatDrawer> {
   final FocusNode _triggerFocusNode = FocusNode();
   final GlobalKey _personaRowKey = GlobalKey();
   final GlobalKey _railPersonaKey = GlobalKey();
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final mState = ref.read(accountMembershipProvider);
+      if (!mState.isKnown && !mState.isLoading) {
+        final userId = ref.read(profileProvider).confirmedUserId;
+        ref
+            .read(accountMembershipProvider.notifier)
+            .loadMembership(accountId: userId);
+      }
+    });
+  }
 
   Rect _calculateAnchorRect(GlobalKey key) {
     final renderBox = key.currentContext?.findRenderObject() as RenderBox?;
