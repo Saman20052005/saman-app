@@ -179,6 +179,84 @@ void main() {
         expect(savedFoods![0]['protein'], 37.5);
       },
     );
+
+    testWidgets(
+      'opens inside showModalBottomSheet in root Overlay without NutritionHomeTheme ancestor, edits, and saves with 0 exceptions',
+      (tester) async {
+        final entry = buildSampleEntry();
+        String? savedMealType;
+        List<Map<String, dynamic>>? savedFoods;
+
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: Builder(
+                builder: (context) {
+                  return ElevatedButton(
+                    key: const ValueKey('open_edit_sheet_btn'),
+                    onPressed: () {
+                      final style =
+                          Theme.of(context).extension<NutritionHomeStyle>() ??
+                              NutritionHomeStyle(
+                                brightness: Theme.of(context).brightness,
+                              );
+                      showModalBottomSheet<void>(
+                        context: context,
+                        isScrollControlled: true,
+                        backgroundColor: style.surface,
+                        builder: (sheetCtx) => Padding(
+                          padding: EdgeInsets.only(
+                            bottom: MediaQuery.of(sheetCtx).viewInsets.bottom,
+                          ),
+                          child: NutritionEditLoggedMealSheet(
+                            entry: entry,
+                            onSave: ({
+                              required String mealType,
+                              List<Map<String, dynamic>>? foods,
+                              double? portionMultiplier,
+                            }) async {
+                              savedMealType = mealType;
+                              savedFoods = foods;
+                              return true;
+                            },
+                          ),
+                        ),
+                      );
+                    },
+                    child: const Text('Sửa'),
+                  );
+                },
+              ),
+            ),
+          ),
+        );
+
+        await tester.tap(find.byKey(const ValueKey('open_edit_sheet_btn')));
+        await tester.pumpAndSettle();
+
+        expect(tester.takeException(), isNull);
+        expect(find.text('Sửa bữa ăn'), findsOneWidget);
+        expect(find.text('400 kcal'), findsOneWidget);
+
+        await tester.tap(find.byKey(const ValueKey('edit_meal_type_snack')));
+        await tester.pump();
+        await tester.tap(find.byKey(const ValueKey('edit_food_inc_0')));
+        await tester.pump();
+
+        expect(find.text('450 kcal'), findsOneWidget);
+
+        final saveBtn = find.byKey(const ValueKey('edit_meal_save_btn'));
+        await tester.ensureVisible(saveBtn);
+        await tester.tap(saveBtn);
+        await tester.pumpAndSettle();
+
+        expect(tester.takeException(), isNull);
+        expect(savedMealType, 'snack');
+        expect(savedFoods, isNotNull);
+        expect(savedFoods![0]['grams'], 125);
+        expect(find.text('Sửa bữa ăn'), findsNothing);
+      },
+    );
   });
 
   group('Delete meal confirmation flow', () {

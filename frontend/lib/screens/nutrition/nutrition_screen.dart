@@ -374,38 +374,48 @@ class _NutritionScreenState extends ConsumerState<NutritionScreen> {
   }
 
   Future<void> _openEditLoggedMeal(NutritionLogEntry entry) async {
+    final style = Theme.of(context).extension<NutritionHomeStyle>() ??
+        NutritionHomeStyle(brightness: Theme.of(context).brightness);
     await showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
-      backgroundColor: NutritionHomeStyle.of(context).surface,
-      builder: (_) => NutritionEditLoggedMealSheet(
-        entry: entry,
-        onSave: ({
-          required String mealType,
-          List<Map<String, dynamic>>? foods,
-          double? portionMultiplier,
-        }) async {
-          final ok = await ref.read(nutritionProvider.notifier).updateLoggedMeal(
-                date: _selectedDate,
-                logId: entry.logId,
-                mealType: mealType,
-                foods: foods,
-                portionMultiplier: portionMultiplier,
-              );
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SamanFeedbackSnackBar.build(
-                context: context,
-                message: ok
-                    ? 'Đã cập nhật bữa ăn'
-                    : 'Không thể cập nhật bữa ăn. Vui lòng thử lại.',
-                type: ok ? FeedbackType.success : FeedbackType.error,
-                duration: const Duration(seconds: 2),
-              ),
-            );
-          }
-          return ok;
-        },
+      backgroundColor: style.surface,
+      builder: (sheetCtx) => NutritionHomeTheme(
+        child: Padding(
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(sheetCtx).viewInsets.bottom,
+          ),
+          child: NutritionEditLoggedMealSheet(
+            entry: entry,
+            onSave: ({
+              required String mealType,
+              List<Map<String, dynamic>>? foods,
+              double? portionMultiplier,
+            }) async {
+              final ok =
+                  await ref.read(nutritionProvider.notifier).updateLoggedMeal(
+                        date: _selectedDate,
+                        logId: entry.logId,
+                        mealType: mealType,
+                        foods: foods,
+                        portionMultiplier: portionMultiplier,
+                      );
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SamanFeedbackSnackBar.build(
+                    context: context,
+                    message: ok
+                        ? 'Đã cập nhật bữa ăn'
+                        : 'Không thể cập nhật bữa ăn. Vui lòng thử lại.',
+                    type: ok ? FeedbackType.success : FeedbackType.error,
+                    duration: const Duration(seconds: 2),
+                  ),
+                );
+              }
+              return ok;
+            },
+          ),
+        ),
       ),
     );
   }
