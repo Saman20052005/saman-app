@@ -93,6 +93,22 @@ class SamanPicksCarousel extends StatelessWidget {
     }
   }
 
+  /// Safe navigation helper to Saman Community Feed that prevents duplicate pushes while route is
+  /// transitioning or active, and auto-recovers after pop or error.
+  static Future<void> navigateToCommunity(BuildContext context) async {
+    final now = DateTime.now();
+    if (_isNavigating || now.difference(_lastNavTime).inMilliseconds < 400) {
+      return;
+    }
+    _isNavigating = true;
+    _lastNavTime = now;
+    try {
+      await Navigator.of(context).pushNamed(AppRoutes.communityFeed);
+    } finally {
+      _isNavigating = false;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final tokens = SamanHomeTokens.of(context);
@@ -369,6 +385,167 @@ class _SamanPickCard extends StatelessWidget {
                 ),
               ),
             ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Prominent standalone Saman Community Card for Home screen (Native In-App).
+class SamanCommunityCard extends StatelessWidget {
+  const SamanCommunityCard({
+    super.key,
+    this.onTap,
+  });
+
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final tokens = SamanHomeTokens.of(context);
+    final isDark = tokens.isDark;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: SamanHomeTokens.spacingLg),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          key: const ValueKey('saman_community_card_inkwell'),
+          onTap: onTap ?? () => SamanPicksCarousel.navigateToCommunity(context),
+          borderRadius: BorderRadius.circular(SamanHomeTokens.radiusXl),
+          child: Container(
+            padding: const EdgeInsets.all(SamanHomeTokens.spacingLg),
+            decoration: BoxDecoration(
+              color: tokens.cardSurface,
+              borderRadius: BorderRadius.circular(SamanHomeTokens.radiusXl),
+              border: Border.all(
+                color: isDark ? const Color(0x3310B981) : tokens.borderSubtle,
+                width: 1,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: isDark ? Colors.black.withOpacity(0.3) : const Color(0x08000000),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 7,
+                              vertical: 2.5,
+                            ),
+                            decoration: BoxDecoration(
+                              color: tokens.greenBadgeBg,
+                              borderRadius: BorderRadius.circular(4),
+                              border: Border.all(
+                                color: tokens.greenBadgeBorder,
+                                width: 0.8,
+                              ),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  Icons.people_alt_rounded,
+                                  size: 11,
+                                  color: tokens.greenAccent,
+                                ),
+                                const SizedBox(width: 4),
+                                Text(
+                                  'SAMAN COMMUNITY',
+                                  style: TextStyle(
+                                    fontSize: 9.5,
+                                    fontWeight: FontWeight.w700,
+                                    letterSpacing: 0.8,
+                                    color: tokens.greenAccent,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Cộng đồng Saman',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                          color: tokens.textPrimary,
+                          letterSpacing: -0.2,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'Chia sẻ buổi tập, Form Check & kết nối gymer',
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w400,
+                          color: tokens.textSecondary,
+                          height: 1.3,
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            'Khám phá bảng tin',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              color: tokens.greenAccent,
+                            ),
+                          ),
+                          const SizedBox(width: 4),
+                          Icon(
+                            Icons.arrow_forward_rounded,
+                            size: 13,
+                            color: tokens.greenAccent,
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 14),
+                Container(
+                  width: 54,
+                  height: 54,
+                  decoration: BoxDecoration(
+                    color: tokens.greenBadgeBg,
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: tokens.greenBadgeBorder,
+                      width: 1.2,
+                    ),
+                  ),
+                  child: Center(
+                    child: Icon(
+                      Icons.forum_rounded,
+                      size: 26,
+                      color: tokens.greenAccent,
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),

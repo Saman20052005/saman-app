@@ -678,7 +678,17 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     child: SizedBox(height: SamanHomeTokens.spacingSection),
                   ),
 
-                  // 7. Saman Picks (Contextual Editorial & Ecosystem)
+                  // 7. Saman Community (Native In-App Community Feed Entry)
+                  SliverToBoxAdapter(
+                    child: SamanCommunityCard(
+                      onTap: () => Navigator.of(context).pushNamed(AppRoutes.communityFeed),
+                    ).animate().fadeIn(delay: 200.ms, duration: 400.ms),
+                  ),
+                  const SliverToBoxAdapter(
+                    child: SizedBox(height: SamanHomeTokens.spacingSection),
+                  ),
+
+                  // 8. Saman Picks (Contextual Editorial & Ecosystem)
                   if (kEnableFrozenModulesV1)
                     SliverToBoxAdapter(
                       child: SamanPicksCarousel(

@@ -5,8 +5,10 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:health_ai_app/core/widgets/coach_marks/coach_tour_service.dart';
+import 'package:health_ai_app/config/routes.dart';
 import 'package:health_ai_app/features/community/domain/models/community_notification.dart';
 import 'package:health_ai_app/features/community/presentation/providers/community_providers.dart';
+import 'package:health_ai_app/features/community/presentation/screens/community_feed_screen.dart';
 import 'package:health_ai_app/features/community/presentation/screens/notifications/community_notifications_screen.dart';
 import 'package:health_ai_app/models/nutrition_model.dart';
 import 'package:health_ai_app/providers/nutrition_provider.dart';
@@ -155,8 +157,9 @@ void main() {
       await tester.pumpWidget(
         UncontrolledProviderScope(
           container: container,
-          child: const MaterialApp(
-            home: HomeScreen(),
+          child: MaterialApp(
+            onGenerateRoute: AppRoutes.onGenerateRoute,
+            home: const HomeScreen(),
           ),
         ),
       );
@@ -254,6 +257,37 @@ void main() {
 
         final header = tester.widget<HomeHeader>(find.byType(HomeHeader));
         expect(header.hasUnreadNotifications, isTrue);
+      },
+    );
+
+    testWidgets(
+      'Saman Community card displays on Home and navigates to AppRoutes.communityFeed while Shop and Journal stay hidden',
+      (tester) async {
+        await pumpHomeScreen(tester);
+
+        // Verify Shop and Journal remain 100% hidden
+        expect(find.textContaining('SAMAN JOURNAL'), findsNothing);
+        expect(find.textContaining('SAMAN SHOP'), findsNothing);
+
+        // Scroll down in CustomScrollView to lazily build and reveal SamanCommunityCard
+        await tester.drag(find.byType(CustomScrollView), const Offset(0, -600));
+        await tester.pumpAndSettle();
+
+        // Verify Saman Community card is present
+        final communityCard = find.byType(SamanCommunityCard);
+        expect(communityCard, findsOneWidget);
+        expect(find.text('Cộng đồng Saman'), findsOneWidget);
+        expect(
+          find.text('Chia sẻ buổi tập, Form Check & kết nối gymer'),
+          findsOneWidget,
+        );
+
+        await tester.ensureVisible(communityCard);
+        await tester.tap(communityCard);
+        await tester.pumpAndSettle();
+
+        // Destination screen is CommunityFeedScreen
+        expect(find.byType(CommunityFeedScreen), findsOneWidget);
       },
     );
   });
