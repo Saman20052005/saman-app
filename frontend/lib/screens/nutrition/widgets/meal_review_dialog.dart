@@ -1,5 +1,6 @@
 // lib/screens/nutrition/widgets/meal_review_dialog.dart
 import 'dart:io';
+import 'dart:math' as math;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
@@ -163,10 +164,51 @@ class _MealReviewColors {
   }
 }
 
+class _IngredientBaseline {
+  final double calPerG;
+  final double proPerG;
+  final double carbPerG;
+  final double fatPerG;
+
+  const _IngredientBaseline({
+    required this.calPerG,
+    required this.proPerG,
+    required this.carbPerG,
+    required this.fatPerG,
+  });
+
+  factory _IngredientBaseline.fromItem(IngredientItem item) {
+    final g = item.portionGrams;
+    if (g <= 0) {
+      return const _IngredientBaseline(
+        calPerG: 0,
+        proPerG: 0,
+        carbPerG: 0,
+        fatPerG: 0,
+      );
+    }
+    return _IngredientBaseline(
+      calPerG: item.calories / g,
+      proPerG: item.protein / g,
+      carbPerG: item.carbs / g,
+      fatPerG: item.fat / g,
+    );
+  }
+}
+
+class _IngredientEntry {
+  IngredientItem item;
+  final _IngredientBaseline baseline;
+
+  _IngredientEntry(this.item, this.baseline);
+}
+
 class _MealReviewDialogState extends State<MealReviewDialog> {
 
   late AIAnalysisResult _current;
   late double _grams;
+  late List<_IngredientEntry> _ingredientEntries;
+  final List<_IngredientEntry> _removedEntries = [];
   MealType _mealType = MealType.lunch;
   String? _selectedLabel;
   bool _saving = false;
@@ -178,12 +220,16 @@ class _MealReviewDialogState extends State<MealReviewDialog> {
   bool get _isAdvanced =>
       _current.nutritionSource.toLowerCase().contains('gemini');
 
+  List<IngredientItem> get _ingredients =>
+      _ingredientEntries.map((e) => e.item).toList(growable: false);
+
   @override
   void initState() {
     super.initState();
     _current = widget.result;
     _grams = widget.result.grams;
     _selectedLabel = widget.result.foodLabel;
+    _initIngredientsFrom(_current);
 
     final hour = DateTime.now().hour;
     _mealType = hour < 10
@@ -195,17 +241,139 @@ class _MealReviewDialogState extends State<MealReviewDialog> {
                 : MealType.snack;
   }
 
+  void _initIngredientsFrom(AIAnalysisResult result) {
+    _ingredientEntries = result.ingredients
+        .map((item) => _IngredientEntry(item, _IngredientBaseline.fromItem(item)))
+        .toList();
+    _removedEntries.clear();
+  }
+
+  void _recalculateFromIngredients() {
+    if (_ingredientEntries.isEmpty) return;
+    final oldGrams = _grams;
+    double totalGrams = 0;
+    double totalCalories = 0;
+    double totalProtein = 0;
+    double totalCarbs = 0;
+    double totalFat = 0;
+
+    for (final entry in _ingredientEntries) {
+      final item = entry.item;
+      totalGrams += item.portionGrams;
+      totalCalories += item.calories;
+      totalProtein += item.protein;
+      totalCarbs += item.carbs;
+      totalFat += item.fat;
+    }
+
+    final double? updatedFiber = _current.fiber == null
+        ? null
+        : (oldGrams > 0 ? _current.fiber! * (totalGrams / oldGrams) : _current.fiber);
+
+    _grams = totalGrams;
+    _current = _current.copyWith(
+      grams: totalGrams,
+      calories: totalCalories,
+      protein: totalProtein,
+      carbs: totalCarbs,
+      fat: totalFat,
+      fiber: updatedFiber,
+      ingredients: _ingredients,
+    );
+  }
+
   void _onGramsChanged(double newGrams) {
     setState(() {
+      _confirmedData = null;
+      if (_ingredientEntries.isNotEmpty) {
+        final oldTotalGrams = _ingredientEntries.fold<double>(
+          0,
+          (sum, entry) => sum + entry.item.portionGrams,
+        );
+        if (oldTotalGrams > 0) {
+          final scale = newGrams / oldTotalGrams;
+          for (final entry in _ingredientEntries) {
+            final scaledGrams = (entry.item.portionGrams * scale).clamp(1.0, 5000.0);
+            final b = entry.baseline;
+            entry.item = IngredientItem(
+              name: entry.item.name,
+              portionGrams: scaledGrams,
+              calories: b.calPerG * scaledGrams,
+              protein: b.proPerG * scaledGrams,
+              carbs: b.carbPerG * scaledGrams,
+              fat: b.fatPerG * scaledGrams,
+              confidence: entry.item.confidence,
+            );
+          }
+          _recalculateFromIngredients();
+          return;
+        }
+      }
       _grams = newGrams;
       _current = _current.withGrams(newGrams);
     });
   }
 
+  void _onUpdateIngredientGrams(int index, double newGrams) {
+    if (index < 0 || index >= _ingredientEntries.length) return;
+    final clampedGrams = newGrams.clamp(5.0, 1500.0);
+    setState(() {
+      _confirmedData = null;
+      final entry = _ingredientEntries[index];
+      final oldItem = entry.item;
+      final b = entry.baseline;
+      if (oldItem.portionGrams > 0) {
+        entry.item = IngredientItem(
+          name: oldItem.name,
+          portionGrams: clampedGrams,
+          calories: b.calPerG * clampedGrams,
+          protein: b.proPerG * clampedGrams,
+          carbs: b.carbPerG * clampedGrams,
+          fat: b.fatPerG * clampedGrams,
+          confidence: oldItem.confidence,
+        );
+      } else {
+        entry.item = IngredientItem(
+          name: oldItem.name,
+          portionGrams: clampedGrams,
+          calories: oldItem.calories,
+          protein: oldItem.protein,
+          carbs: oldItem.carbs,
+          fat: oldItem.fat,
+          confidence: oldItem.confidence,
+        );
+      }
+      _recalculateFromIngredients();
+    });
+  }
+
+  void _onRemoveIngredient(int index) {
+    if (_ingredientEntries.length <= 1) return;
+    if (index < 0 || index >= _ingredientEntries.length) return;
+    setState(() {
+      _confirmedData = null;
+      final removed = _ingredientEntries.removeAt(index);
+      _removedEntries.add(removed);
+      _recalculateFromIngredients();
+    });
+  }
+
+  void _onUndoRemoveIngredient() {
+    if (_removedEntries.isEmpty) return;
+    setState(() {
+      _confirmedData = null;
+      final restored = _removedEntries.removeLast();
+      _ingredientEntries.add(restored);
+      _recalculateFromIngredients();
+    });
+  }
+
   void _onRelabel(FoodPrediction selected) {
     setState(() {
+      _confirmedData = null;
       _selectedLabel = selected.label;
       _current = _current.withLabel(selected).withGrams(_grams);
+      _initIngredientsFrom(_current);
     });
   }
 
@@ -221,6 +389,7 @@ class _MealReviewDialogState extends State<MealReviewDialog> {
       carbs: _current.carbs,
       fat: _current.fat,
       loggedAt: DateTime.now().toIso8601String(),
+      ingredients: List.unmodifiable(_ingredients),
     );
     if (widget.onConfirm == null) {
       Navigator.of(context).pop(data);
@@ -539,7 +708,7 @@ class _MealReviewDialogState extends State<MealReviewDialog> {
                             (_selectedLabel == null && pred.label == _current.foodLabel));
                         return InkWell(
                           borderRadius: BorderRadius.circular(12),
-                          onTap: _confirmedData != null ? null : () => _onRelabel(pred),
+                          onTap: _saving ? null : () => _onRelabel(pred),
                           child: Container(
                             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                             decoration: BoxDecoration(
@@ -606,12 +775,19 @@ class _MealReviewDialogState extends State<MealReviewDialog> {
                             trackHeight: 4,
                             thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 8),
                           ),
-                          child: Slider(
-                            value: _grams.clamp(10.0, 500.0),
-                            min: 10,
-                            max: 500,
-                            divisions: 49,
-                            onChanged: _confirmedData == null ? _onGramsChanged : null,
+                          child: Builder(
+                            builder: (context) {
+                              final sliderMax = math.max(500.0, _grams);
+                              final divisions =
+                                  ((sliderMax - 10.0) / 10.0).round().clamp(1, 200);
+                              return Slider(
+                                value: _grams.clamp(10.0, sliderMax),
+                                min: 10,
+                                max: sliderMax,
+                                divisions: divisions,
+                                onChanged: _saving ? null : _onGramsChanged,
+                              );
+                            },
                           ),
                         ),
                         Padding(
@@ -621,7 +797,10 @@ class _MealReviewDialogState extends State<MealReviewDialog> {
                             children: [
                               Text('10g', style: TextStyle(fontSize: 10, color: c.textMuted)),
                               Text('250g', style: TextStyle(fontSize: 10, color: c.textMuted)),
-                              Text('500g', style: TextStyle(fontSize: 10, color: c.textMuted)),
+                              Text(
+                                '${math.max(500.0, _grams).toStringAsFixed(0)}g',
+                                style: TextStyle(fontSize: 10, color: c.textMuted),
+                              ),
                             ],
                           ),
                         ),
@@ -802,9 +981,16 @@ class _MealReviewDialogState extends State<MealReviewDialog> {
                       ),
                     ),
                   ],
-                  if (_current.ingredients.isNotEmpty) ...[
+                  if (_ingredientEntries.isNotEmpty) ...[
                     const SizedBox(height: 14),
-                    IngredientReviewSection(ingredients: _current.ingredients),
+                    IngredientReviewSection(
+                      ingredients: _ingredients,
+                      onRemove: _saving ? null : _onRemoveIngredient,
+                      onUpdateGrams: _saving ? null : _onUpdateIngredientGrams,
+                      onUndo: _saving ? null : _onUndoRemoveIngredient,
+                      canUndo: _removedEntries.isNotEmpty,
+                    ),
+                    const SizedBox(height: 12),
                   ],
 
                   // Provenance Transparency Bar & Explanation
@@ -900,9 +1086,12 @@ class _MealReviewDialogState extends State<MealReviewDialog> {
                           padding: const EdgeInsets.symmetric(horizontal: 3),
                           child: InkWell(
                             borderRadius: BorderRadius.circular(8),
-                            onTap: _confirmedData == null
-                                ? () => setState(() => _mealType = type)
-                                : null,
+                            onTap: _saving
+                                ? null
+                                : () => setState(() {
+                                      _confirmedData = null;
+                                      _mealType = type;
+                                    }),
                             child: Container(
                               padding: const EdgeInsets.symmetric(vertical: 8),
                               decoration: BoxDecoration(
@@ -993,67 +1182,391 @@ class _MealReviewDialogState extends State<MealReviewDialog> {
 
 class IngredientReviewSection extends StatelessWidget {
   final List<IngredientItem> ingredients;
+  final ValueChanged<int>? onRemove;
+  final void Function(int index, double newGrams)? onUpdateGrams;
+  final VoidCallback? onUndo;
+  final bool canUndo;
 
   const IngredientReviewSection({
     super.key,
     required this.ingredients,
+    this.onRemove,
+    this.onUpdateGrams,
+    this.onUndo,
+    this.canUndo = false,
   });
+
+  Future<void> _showEditGramsDialog(
+    BuildContext context,
+    int index,
+    IngredientItem ingredient,
+  ) async {
+    final result = await showDialog<double>(
+      context: context,
+      builder: (_) => _EditGramsDialog(
+        ingredientName: ingredient.name,
+        initialGrams: ingredient.portionGrams,
+      ),
+    );
+    if (result != null) {
+      onUpdateGrams?.call(index, result.clamp(5.0, 1500.0));
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final c = _MealReviewColors.of(context);
+    final canRemove = ingredients.length > 1 && onRemove != null;
+
     return Container(
-        width: double.infinity,
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: c.isDark ? const Color(0xFF242424) : c.bgCard,
-          border: Border.all(
-            color: c.isDark ? const Color(0xFF2A2A2A) : c.borderSubtle,
-          ),
-          borderRadius: BorderRadius.circular(12),
+      width: double.infinity,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: c.isDark ? const Color(0xFF242424) : c.bgCard,
+        border: Border.all(
+          color: c.isDark ? const Color(0xFF2A2A2A) : c.borderSubtle,
         ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Thành phần ước tính',
-              style: TextStyle(
-                color: c.isDark ? const Color(0xFFF0F0F0) : c.textPrimary,
-                fontSize: 14,
-                fontWeight: FontWeight.w700,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  'Thành phần ước tính',
+                  style: TextStyle(
+                    color: c.isDark ? const Color(0xFFF0F0F0) : c.textPrimary,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
               ),
-            ),
-            const SizedBox(height: 8),
-            for (final ingredient in ingredients)
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 4),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        ingredient.name,
-                        style: TextStyle(
-                          color: c.isDark
-                              ? const Color(0xFFF0F0F0)
-                              : c.textPrimary,
+              if (canUndo && onUndo != null)
+                InkWell(
+                  key: const ValueKey('ingredient_undo_btn'),
+                  onTap: onUndo,
+                  borderRadius: BorderRadius.circular(8),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: c.brandPrimaryLight,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: c.brandPrimary.withOpacity(0.4)),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.undo_rounded, size: 13, color: c.brandPrimary),
+                        const SizedBox(width: 4),
+                        Text(
+                          'Hoàn tác',
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                            color: c.brandPrimary,
+                          ),
                         ),
+                      ],
+                    ),
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          for (var i = 0; i < ingredients.length; i++) ...[
+            if (i > 0)
+              Divider(
+                height: 12,
+                thickness: 0.8,
+                color: c.borderSubtle,
+              ),
+            _IngredientRow(
+              index: i,
+              ingredient: ingredients[i],
+              colors: c,
+              canRemove: canRemove,
+              onRemove: canRemove ? () => onRemove!(i) : null,
+              onDecrement: onUpdateGrams != null && ingredients[i].portionGrams > 5.0
+                  ? () => onUpdateGrams!(
+                        i,
+                        (ingredients[i].portionGrams - 25.0).clamp(5.0, 1500.0),
+                      )
+                  : null,
+              onIncrement: onUpdateGrams != null && ingredients[i].portionGrams < 1500.0
+                  ? () => onUpdateGrams!(
+                        i,
+                        (ingredients[i].portionGrams + 25.0).clamp(5.0, 1500.0),
+                      )
+                  : null,
+              onEditGrams: onUpdateGrams != null
+                  ? () => _showEditGramsDialog(context, i, ingredients[i])
+                  : null,
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _IngredientRow extends StatelessWidget {
+  final int index;
+  final IngredientItem ingredient;
+  final _MealReviewColors colors;
+  final bool canRemove;
+  final VoidCallback? onRemove;
+  final VoidCallback? onDecrement;
+  final VoidCallback? onIncrement;
+  final VoidCallback? onEditGrams;
+
+  const _IngredientRow({
+    required this.index,
+    required this.ingredient,
+    required this.colors,
+    required this.canRemove,
+    this.onRemove,
+    this.onDecrement,
+    this.onIncrement,
+    this.onEditGrams,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final c = colors;
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      ingredient.name,
+                      style: TextStyle(
+                        color: c.isDark ? const Color(0xFFF0F0F0) : c.textPrimary,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
+                    const SizedBox(height: 2),
                     Text(
                       '${ingredient.portionGrams.toStringAsFixed(0)}g · ${ingredient.calories.toStringAsFixed(0)} kcal',
                       style: TextStyle(
-                        color: c.isDark
-                            ? const Color(0xFFAAAAAA)
-                            : c.textSecondary,
+                        color: c.isDark ? const Color(0xFFAAAAAA) : c.textSecondary,
                         fontSize: 12,
                       ),
                     ),
                   ],
                 ),
               ),
+              IconButton(
+                key: ValueKey('ingredient_remove_$index'),
+                tooltip: canRemove ? 'Xóa nguyên liệu' : 'Cần ít nhất 1 nguyên liệu',
+                icon: Icon(
+                  Icons.close_rounded,
+                  size: 18,
+                  color: canRemove
+                      ? c.textSecondary
+                      : c.textSecondary.withOpacity(0.3),
+                ),
+                onPressed: onRemove,
+                visualDensity: VisualDensity.compact,
+                padding: const EdgeInsets.all(4),
+                constraints: const BoxConstraints(minWidth: 30, minHeight: 30),
+              ),
+            ],
+          ),
+          if (onDecrement != null || onIncrement != null || onEditGrams != null) ...[
+            const SizedBox(height: 6),
+            Row(
+              children: [
+                _StepChip(
+                  key: ValueKey('ingredient_dec_$index'),
+                  label: '-25g',
+                  colors: c,
+                  onTap: onDecrement,
+                ),
+                const SizedBox(width: 6),
+                InkWell(
+                  key: ValueKey('ingredient_grams_$index'),
+                  onTap: onEditGrams,
+                  borderRadius: BorderRadius.circular(8),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: c.bgSurface,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: c.borderStrong),
+                    ),
+                    child: Text(
+                      '${ingredient.portionGrams.toStringAsFixed(0)}g',
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                        color: c.brandPrimary,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 6),
+                _StepChip(
+                  key: ValueKey('ingredient_inc_$index'),
+                  label: '+25g',
+                  colors: c,
+                  onTap: onIncrement,
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'Đ ${ingredient.protein.toStringAsFixed(1)} · C ${ingredient.carbs.toStringAsFixed(1)} · B ${ingredient.fat.toStringAsFixed(1)}',
+                    textAlign: TextAlign.end,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 10,
+                      color: c.textMuted,
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ],
+        ],
+      ),
+    );
+  }
+}
+
+class _StepChip extends StatelessWidget {
+  final String label;
+  final _MealReviewColors colors;
+  final VoidCallback? onTap;
+
+  const _StepChip({
+    super.key,
+    required this.label,
+    required this.colors,
+    this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final enabled = onTap != null;
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(8),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        decoration: BoxDecoration(
+          color: enabled ? colors.bgSurface : colors.bgSurface.withOpacity(0.5),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(
+            color: enabled ? colors.borderSubtle : colors.borderSubtle.withOpacity(0.4),
+          ),
         ),
-      );
+        child: Text(
+          label,
+          style: TextStyle(
+            fontSize: 11,
+            fontWeight: FontWeight.w600,
+            color: enabled ? colors.textPrimary : colors.textMuted.withOpacity(0.4),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _EditGramsDialog extends StatefulWidget {
+  final String ingredientName;
+  final double initialGrams;
+
+  const _EditGramsDialog({
+    required this.ingredientName,
+    required this.initialGrams,
+  });
+
+  @override
+  State<_EditGramsDialog> createState() => _EditGramsDialogState();
+}
+
+class _EditGramsDialogState extends State<_EditGramsDialog> {
+  late final TextEditingController _controller;
+  String? _errorText;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(
+      text: widget.initialGrams.toStringAsFixed(0),
+    );
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _submit() {
+    final parsed = double.tryParse(_controller.text.trim().replaceAll(',', '.'));
+    if (parsed == null || parsed <= 0) {
+      setState(() {
+        _errorText = 'Vui lòng nhập số gram > 0';
+      });
+      return;
+    }
+    Navigator.of(context).pop(parsed);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text(
+        'Chỉnh khối lượng',
+        style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+      ),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            widget.ingredientName,
+            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+          ),
+          const SizedBox(height: 10),
+          TextField(
+            key: const ValueKey('ingredient_grams_input'),
+            controller: _controller,
+            autofocus: true,
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            onSubmitted: (_) => _submit(),
+            decoration: InputDecoration(
+              labelText: 'Số gram (g)',
+              suffixText: 'g',
+              errorText: _errorText,
+              border: const OutlineInputBorder(),
+            ),
+          ),
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Huỷ'),
+        ),
+        FilledButton(
+          key: const ValueKey('ingredient_grams_confirm_btn'),
+          onPressed: _submit,
+          child: const Text('Xong'),
+        ),
+      ],
+    );
   }
 }
 
@@ -1067,6 +1580,7 @@ class MealLogData {
   final double carbs;
   final double fat;
   final String loggedAt;
+  final List<IngredientItem> ingredients;
 
   const MealLogData({
     required this.foodName,
@@ -1078,5 +1592,6 @@ class MealLogData {
     required this.carbs,
     required this.fat,
     required this.loggedAt,
+    this.ingredients = const [],
   });
 }

@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:intl/intl.dart';
 import '../config/app_theme.dart';
 import '../config/app_translations.dart';
+import '../core/utils/vn_date_utils.dart';
 import '../controllers/chat_controller.dart';
 import '../providers/daily_story_provider.dart';
 import '../services/nutrition_service.dart';
@@ -1172,7 +1172,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     final foodState = ref.read(chatControllerProvider).foodAnalysisState;
     if (foodState?.result == null || foodState!.isMealLogged) return;
     _isLoggingMeal = true;
-    final todayStr = DateFormat('yyyy-MM-dd').format(DateTime.now());
+    final todayStr = vnTodayIsoDate();
     // Keep the originating autoDispose provider alive while its dialog is open.
     final subscription = ProviderScope.containerOf(context, listen: false)
         .listen(dailyStoryControllerProvider(todayStr), (_, __) {});

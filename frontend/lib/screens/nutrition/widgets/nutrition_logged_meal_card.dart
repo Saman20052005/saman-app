@@ -8,11 +8,15 @@ import '../../../../theme/nutrition_home_theme.dart';
 class NutritionLoggedMealCard extends StatelessWidget {
   final NutritionLogEntry entry;
   final VoidCallback? onTap;
+  final VoidCallback? onEdit;
+  final VoidCallback? onDelete;
 
   const NutritionLoggedMealCard({
     super.key,
     required this.entry,
     this.onTap,
+    this.onEdit,
+    this.onDelete,
   });
 
   String _formatMealHeader() {
@@ -56,21 +60,28 @@ class NutritionLoggedMealCard extends StatelessWidget {
       headerLabel: headerLabel,
       timeStr: timeStr,
       onTap: onTap,
+      onEdit: onEdit,
+      onDelete: onDelete,
     ));
   }
 }
 
 class _LoggedMealPresentation extends StatelessWidget {
-  const _LoggedMealPresentation(
-      {required this.entry,
-      required this.imageUrl,
-      required this.headerLabel,
-      required this.timeStr,
-      required this.onTap});
+  const _LoggedMealPresentation({
+    required this.entry,
+    required this.imageUrl,
+    required this.headerLabel,
+    required this.timeStr,
+    required this.onTap,
+    this.onEdit,
+    this.onDelete,
+  });
   final NutritionLogEntry entry;
   final String? imageUrl, timeStr;
   final String headerLabel;
   final VoidCallback? onTap;
+  final VoidCallback? onEdit;
+  final VoidCallback? onDelete;
   @override
   Widget build(BuildContext context) {
     final s = NutritionHomeStyle.of(context);
@@ -121,6 +132,38 @@ class _LoggedMealPresentation extends StatelessWidget {
                           '${entry.protein.toInt()}g pro · ${entry.carbs.toInt()}g carb · ${entry.fat.toInt()}g fat',
                           style: s.caption),
                     ])),
+                if (onEdit != null || onDelete != null) ...[
+                  const SizedBox(width: 4),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (onEdit != null)
+                        IconButton(
+                          key: ValueKey('meal_card_edit_${entry.logId}'),
+                          tooltip: 'Sửa bữa ăn',
+                          onPressed: onEdit,
+                          icon: Icon(Icons.edit_outlined,
+                              size: 20, color: s.muted),
+                          visualDensity: VisualDensity.compact,
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(
+                              minWidth: 34, minHeight: 34),
+                        ),
+                      if (onDelete != null)
+                        IconButton(
+                          key: ValueKey('meal_card_delete_${entry.logId}'),
+                          tooltip: 'Xóa bữa ăn',
+                          onPressed: onDelete,
+                          icon: Icon(Icons.delete_outline,
+                              size: 20, color: s.fat),
+                          visualDensity: VisualDensity.compact,
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(
+                              minWidth: 34, minHeight: 34),
+                        ),
+                    ],
+                  ),
+                ],
               ],
             )),
       ),

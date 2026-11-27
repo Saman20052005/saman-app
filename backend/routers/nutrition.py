@@ -403,6 +403,26 @@ async def _resolve_food_data(foods: list, user_email: str, db, user_id: str = ""
     return resolved
 
 
+def _recalculate_nutrition_totals(
+    resolved_foods: List[Dict[str, Any]],
+    fallback_calories: Optional[int] = None,
+) -> Dict[str, Any]:
+    """Server-side Single Source of Truth for meal calorie & macro totals."""
+    t_pro = round(sum(float(f.get("protein") or 0) for f in resolved_foods), 1)
+    t_carb = round(sum(float(f.get("carbs") or 0) for f in resolved_foods), 1)
+    t_fat = round(sum(float(f.get("fat") or 0) for f in resolved_foods), 1)
+    if resolved_foods and any(f.get("calories") is not None for f in resolved_foods):
+        t_cal = int(round(sum(float(f.get("calories") or 0) for f in resolved_foods)))
+    else:
+        t_cal = int(fallback_calories or 0)
+    return {
+        "total_calories": t_cal,
+        "total_protein": t_pro,
+        "total_carbs": t_carb,
+        "total_fat": t_fat,
+    }
+
+
 # ===== SCHEMAS =====
 class FoodSearchResult(pd.BaseModel):
     id: str
@@ -481,6 +501,14 @@ class QuickRelogRequest(pd.BaseModel):
     meal_type: Optional[str] = None
     foods: Optional[List[Dict[str, Any]]] = None
     date: Optional[str] = None
+
+
+class NutritionLogUpdate(pd.BaseModel):
+    meal_type: Optional[str] = None
+    foods: Optional[List[Dict[str, Any]]] = None
+    portion_multiplier: Optional[float] = None
+    total_grams: Optional[float] = None
+    notes: Optional[str] = None
 
 
 # ─────────────────────────────────────────
@@ -707,36 +735,46 @@ async def create_nutrition_log(
 
         # Resolve food data before saving
         resolved_foods = await _resolve_food_data(log.foods, user_email, db, user_id=user_id)
-        
-        # Single source of truth for macro calculations – frontend must not recalculate
-        t_pro = sum(float(f.get("protein", 0)) for f in resolved_foods)
-        t_carb = sum(float(f.get("carbs", 0)) for f in resolved_foods)
-        t_fat = sum(float(f.get("fat", 0)) for f in resolved_foods)
-        
+
+        # Single source of truth for calorie & macro calculations – server-side recalculation
+        totals = _recalculate_nutrition_totals(
+            resolved_foods,
+            fallback_calories=log.total_calories,
+        )
+        now_utc = datetime.utcnow()
+
         doc = {
             "user_id":        user_id,
             "user_email":     user_email,
             "date":           target_date,
             "meal_type":      log.meal_type,
             "foods":          resolved_foods,
-            "total_calories": log.total_calories,
-            "total_protein":  round(t_pro, 1),
-            "total_carbs":    round(t_carb, 1),
-            "total_fat":      round(t_fat, 1),
+            "total_calories": totals["total_calories"],
+            "total_protein":  totals["total_protein"],
+            "total_carbs":    totals["total_carbs"],
+            "total_fat":      totals["total_fat"],
             "notes":          log.notes,
             "story_id":       log.story_id,
-            "created_at":     datetime.utcnow(),
-            "updated_at":     datetime.utcnow(),
+            "created_at":     now_utc,
+            "updated_at":     now_utc,
         }
         result = nutrition_collection.insert_one(doc)
         log_payload = log.model_dump() if hasattr(log, "model_dump") else log.dict()
+        log_payload["date"] = target_date
+        log_payload["foods"] = resolved_foods
+        log_payload["total_calories"] = totals["total_calories"]
+        log_payload["total_protein"] = totals["total_protein"]
+        log_payload["total_carbs"] = totals["total_carbs"]
+        log_payload["total_fat"] = totals["total_fat"]
         return {
             "id":         str(result.inserted_id),
             "message":    "Nutrition log created successfully",
             "log":        log_payload,
-            "created_at": datetime.utcnow().isoformat(),
+            "created_at": now_utc.isoformat(),
             "status":     "saved",
         }
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -871,17 +909,157 @@ async def swap_meal(
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@router.patch("/logs/{log_id}")
+async def update_nutrition_log(
+    log_id: str,
+    payload: NutritionLogUpdate,
+    user: dict = Depends(get_current_user),
+):
+    """Update an existing user-owned nutrition log and recalculate totals server-side."""
+    try:
+        if nutrition_collection is None:
+            raise HTTPException(status_code=503, detail="Database not available")
+
+        from bson.errors import InvalidId
+        try:
+            obj_id = ObjectId(log_id)
+        except (InvalidId, TypeError, ValueError):
+            raise HTTPException(status_code=404, detail="Log not found or not authorized")
+
+        user_id, user_email = _resolve_user_identity(user)
+        existing_doc = _find_one_user_doc(
+            nutrition_collection,
+            user_id,
+            user_email,
+            {"_id": obj_id},
+        )
+        if not existing_doc:
+            raise HTTPException(status_code=404, detail="Log not found or not authorized")
+
+        if payload.foods is not None:
+            if len(payload.foods) == 0:
+                raise HTTPException(
+                    status_code=400,
+                    detail="foods cannot be empty; use DELETE to remove log",
+                )
+            final_foods: List[Dict[str, Any]] = []
+            for raw_item in payload.foods:
+                item = dict(raw_item)
+                has_explicit_macros = all(
+                    item.get(k) is not None for k in ("calories", "protein", "carbs", "fat")
+                )
+                item_name = str(item.get("name") or "").strip()
+                if has_explicit_macros and item_name and item_name.lower() != "unknown":
+                    if item.get("food_id"):
+                        item["food_id"] = str(item["food_id"])
+                    final_foods.append(item)
+                else:
+                    resolved = await _resolve_food_data([item], user_email, db, user_id=user_id)
+                    final_foods.extend(resolved)
+        elif payload.portion_multiplier is not None or payload.total_grams is not None:
+            if payload.portion_multiplier is not None and payload.portion_multiplier <= 0:
+                raise HTTPException(status_code=400, detail="portion_multiplier must be greater than 0")
+            if payload.total_grams is not None and payload.total_grams <= 0:
+                raise HTTPException(status_code=400, detail="total_grams must be greater than 0")
+
+            existing_foods = [dict(f) for f in (existing_doc.get("foods") or [])]
+            if payload.portion_multiplier is not None:
+                multiplier = float(payload.portion_multiplier)
+            else:
+                current_total_grams = 0.0
+                for food_item in existing_foods:
+                    for gram_key in ("grams", "weight_grams", "portion_grams", "amount"):
+                        val = food_item.get(gram_key)
+                        if val is not None:
+                            try:
+                                g_val = float(val)
+                                if g_val > 0:
+                                    current_total_grams += g_val
+                                    break
+                            except (TypeError, ValueError):
+                                pass
+                if current_total_grams <= 0:
+                    raise HTTPException(
+                        status_code=400,
+                        detail="Cannot scale by total_grams when existing foods have no positive gram values",
+                    )
+                multiplier = float(payload.total_grams) / current_total_grams
+
+            final_foods = []
+            for food_item in existing_foods:
+                scaled = dict(food_item)
+                if "calories" in scaled and scaled["calories"] is not None:
+                    scaled["calories"] = int(round(float(scaled["calories"]) * multiplier))
+                for macro_key in ("protein", "carbs", "fat"):
+                    if macro_key in scaled and scaled[macro_key] is not None:
+                        scaled[macro_key] = round(float(scaled[macro_key]) * multiplier, 1)
+                for gram_key in ("grams", "weight_grams", "portion_grams", "amount"):
+                    if gram_key in scaled and scaled[gram_key] is not None:
+                        scaled[gram_key] = round(float(scaled[gram_key]) * multiplier, 1)
+                final_foods.append(scaled)
+        else:
+            final_foods = [dict(f) for f in (existing_doc.get("foods") or [])]
+
+        totals = _recalculate_nutrition_totals(
+            final_foods,
+            fallback_calories=existing_doc.get("total_calories"),
+        )
+        now_utc = datetime.utcnow()
+        new_meal_type = payload.meal_type if payload.meal_type is not None else existing_doc.get("meal_type", "")
+        new_notes = payload.notes if payload.notes is not None else existing_doc.get("notes")
+
+        update_fields: Dict[str, Any] = {
+            "meal_type": new_meal_type,
+            "foods": final_foods,
+            "total_calories": totals["total_calories"],
+            "total_protein": totals["total_protein"],
+            "total_carbs": totals["total_carbs"],
+            "total_fat": totals["total_fat"],
+            "notes": new_notes,
+            "updated_at": now_utc,
+        }
+        if user_id and not existing_doc.get("user_id"):
+            update_fields["user_id"] = user_id
+
+        nutrition_collection.update_one(
+            {"_id": existing_doc["_id"]},
+            {"$set": update_fields},
+        )
+        return {
+            "id": str(existing_doc["_id"]),
+            "date": existing_doc.get("date", ""),
+            "meal_type": new_meal_type,
+            "foods": final_foods,
+            "total_calories": totals["total_calories"],
+            "total_protein": totals["total_protein"],
+            "total_carbs": totals["total_carbs"],
+            "total_fat": totals["total_fat"],
+            "notes": new_notes,
+            "updated_at": now_utc.isoformat(),
+            "status": "updated",
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @router.delete("/logs/{log_id}")
 async def delete_nutrition_log(log_id: str, user: dict = Depends(get_current_user)):
     try:
         if nutrition_collection is None:
             raise HTTPException(status_code=503, detail="Database not available")
+        from bson.errors import InvalidId
+        try:
+            obj_id = ObjectId(log_id)
+        except (InvalidId, TypeError, ValueError):
+            raise HTTPException(status_code=404, detail="Log not found or not authorized")
         user_id, user_email = _resolve_user_identity(user)
         result = _delete_one_user_doc(
             nutrition_collection,
             user_id,
             user_email,
-            {"_id": ObjectId(log_id)},
+            {"_id": obj_id},
         )
         if not result or result.deleted_count == 0:
             raise HTTPException(status_code=404, detail="Log not found or not authorized")

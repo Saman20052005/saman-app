@@ -198,7 +198,9 @@ class GeminiFoodAnalyzer:
 
     @property
     def model(self) -> Optional[str]:
-        return self._model or os.getenv("GEMINI_FOOD_MODEL") or "gemini-3.6-flash"
+        if self._model:
+            return self._model
+        return os.getenv("GEMINI_FOOD_MODEL", "gemini-3.5-flash-lite").strip() or "gemini-3.5-flash-lite"
 
     @property
     def fallback_model(self) -> Optional[str]:
@@ -293,12 +295,16 @@ class GeminiFoodAnalyzer:
             "x-goog-api-key": self.api_key,
             "Content-Type": "application/json",
         }
-        models_to_try = [self.model]
+        models_to_try = []
         fb_model = self.fallback_model
-        if fb_model and fb_model not in models_to_try:
-            models_to_try.append(fb_model)
-        if fb_model and self.SECONDARY_FALLBACK_MODEL not in models_to_try:
-            models_to_try.append(self.SECONDARY_FALLBACK_MODEL)
+        candidate_models = [self.model]
+        if fb_model:
+            candidate_models.append(fb_model)
+            candidate_models.append(self.SECONDARY_FALLBACK_MODEL)
+        for candidate in candidate_models:
+            cleaned = (candidate or "").strip()
+            if cleaned and cleaned not in models_to_try:
+                models_to_try.append(cleaned)
 
         last_error: Optional[GeminiAnalysisError] = None
         client_timeout = max(self.timeout, self.FALLBACK_MAX_TIMEOUT_SECONDS)

@@ -41,6 +41,19 @@ abstract class INutritionRemoteDataSource {
   });
   Future<bool> swapLoggedMealSimple(String dateStr, String logId);
   Future<bool> resetDay(String dateStr, {NutritionRequestContext? session});
+  Future<bool> updateNutritionLog({
+    required String logId,
+    String? mealType,
+    List<Map<String, dynamic>>? foods,
+    double? portionMultiplier,
+    double? totalGrams,
+    String? notes,
+    NutritionRequestContext? session,
+  });
+  Future<bool> deleteNutritionLog(
+    String logId, {
+    NutritionRequestContext? session,
+  });
   Future<bool> uploadLogStory({
     required XFile? imageFile,
     required String mealType,
@@ -263,6 +276,49 @@ class NutritionRemoteDataSourceImpl implements INutritionRemoteDataSource {
     );
     await session?.validate();
     return response.statusCode == 200;
+  }
+
+  @override
+  Future<bool> updateNutritionLog({
+    required String logId,
+    String? mealType,
+    List<Map<String, dynamic>>? foods,
+    double? portionMultiplier,
+    double? totalGrams,
+    String? notes,
+    NutritionRequestContext? session,
+  }) async {
+    final Map<String, dynamic> data = {};
+    if (mealType != null) data['meal_type'] = mealType;
+    if (foods != null) data['foods'] = foods;
+    if (portionMultiplier != null) {
+      data['portion_multiplier'] = portionMultiplier;
+    }
+    if (totalGrams != null) data['total_grams'] = totalGrams;
+    if (notes != null) data['notes'] = notes;
+
+    final response = await _dio.patch(
+      '${ApiConfig.baseUrl}/api/nutrition/logs/$logId',
+      data: data,
+      options:
+          Options(extra: {if (session != null) 'nutritionSession': session}),
+    );
+    await session?.validate();
+    return response.statusCode == 200;
+  }
+
+  @override
+  Future<bool> deleteNutritionLog(
+    String logId, {
+    NutritionRequestContext? session,
+  }) async {
+    final response = await _dio.delete(
+      '${ApiConfig.baseUrl}/api/nutrition/logs/$logId',
+      options:
+          Options(extra: {if (session != null) 'nutritionSession': session}),
+    );
+    await session?.validate();
+    return response.statusCode == 200 || response.statusCode == 204;
   }
 
   @override

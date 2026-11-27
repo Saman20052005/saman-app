@@ -737,6 +737,80 @@ class NutritionNotifier extends StateNotifier<AsyncValue<NutritionPlan?>> {
     }
   }
 
+  Future<bool> updateLoggedMeal({
+    required DateTime date,
+    required String logId,
+    String? mealType,
+    List<Map<String, dynamic>>? foods,
+    double? portionMultiplier,
+    double? totalGrams,
+    String? notes,
+  }) async {
+    final dateStr = DateFormat('yyyy-MM-dd').format(date);
+    NutritionRequestContext? owner;
+    try {
+      owner = await _captureOwner();
+      _dateEpoch[dateStr] = (_dateEpoch[dateStr] ?? 0) + 1;
+      final ok = await _repository.updateNutritionLog(
+        logId: logId,
+        mealType: mealType,
+        foods: foods,
+        portionMultiplier: portionMultiplier,
+        totalGrams: totalGrams,
+        notes: notes,
+        session: owner,
+      );
+      await _validateOwner(owner);
+      if (ok) {
+        _localCache.remove(dateStr);
+        await loadDailyPlan(date, forceRefresh: true);
+        return true;
+      }
+      return false;
+    } catch (e, st) {
+      if (!mounted) return false;
+      try {
+        await _validateOwner(owner);
+      } catch (_) {
+        return false;
+      }
+      debugPrint("❌ Error updating logged meal: $e\n$st");
+      return false;
+    }
+  }
+
+  Future<bool> deleteLoggedMeal({
+    required DateTime date,
+    required String logId,
+  }) async {
+    final dateStr = DateFormat('yyyy-MM-dd').format(date);
+    NutritionRequestContext? owner;
+    try {
+      owner = await _captureOwner();
+      _dateEpoch[dateStr] = (_dateEpoch[dateStr] ?? 0) + 1;
+      final ok = await _repository.deleteNutritionLog(
+        logId,
+        session: owner,
+      );
+      await _validateOwner(owner);
+      if (ok) {
+        _localCache.remove(dateStr);
+        await loadDailyPlan(date, forceRefresh: true);
+        return true;
+      }
+      return false;
+    } catch (e, st) {
+      if (!mounted) return false;
+      try {
+        await _validateOwner(owner);
+      } catch (_) {
+        return false;
+      }
+      debugPrint("❌ Error deleting logged meal: $e\n$st");
+      return false;
+    }
+  }
+
   void clearCache() {
     _localCache.clear();
     _inFlightLoads.clear();

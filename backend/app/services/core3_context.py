@@ -113,6 +113,46 @@ def _user_and_date_query(identity_query, date_query):
     return {"$and": [identity_query, date_query]}
 
 
+def _parse_utc_naive(value) -> Optional[datetime]:
+    """Parse datetime or ISO string into a UTC-naive datetime for safe comparison."""
+    if value is None:
+        return None
+    if isinstance(value, str):
+        raw = value.strip()
+        if not raw:
+            return None
+        try:
+            value = datetime.fromisoformat(raw.replace("Z", "+00:00"))
+        except (ValueError, TypeError):
+            return None
+    if not isinstance(value, datetime):
+        return None
+    if value.tzinfo is not None:
+        return value.astimezone(timezone.utc).replace(tzinfo=None)
+    return value
+
+
+def _is_after_day_reset(created_at, reset_at) -> bool:
+    """Return True iff created_at is a valid timestamp strictly after reset_at."""
+    created_dt = _parse_utc_naive(created_at)
+    reset_dt = _parse_utc_naive(reset_at)
+    if created_dt is None or reset_dt is None:
+        return False
+    return created_dt > reset_dt
+
+
+def _resolve_day_resets_collection(nutrition_collection, day_resets_collection=None):
+    if day_resets_collection is not None:
+        return day_resets_collection
+    try:
+        col_db = getattr(nutrition_collection, "database", None)
+        if col_db is not None:
+            return col_db["day_resets"]
+    except Exception:
+        pass
+    return None
+
+
 def _compact_exercises(logs):
     grouped = {}
     truncated = len(logs) >= 200
@@ -207,6 +247,7 @@ def build_core3_context(
     community_follows_collection=None,
     shop_products_collection=None, journal_articles_collection=None,
     supplements_collection=None, recipes_collection=None,
+    day_resets_collection=None,
     question=None,
     tier="core3", now=None,
     intent_route: Optional[IntentRouteResult] = None,
@@ -235,22 +276,94 @@ def build_core3_context(
     nutrition = {"status": "skipped" if allowed_cols is not None and "nutrition" not in allowed_cols else "unavailable", "coverage_truncated": False, "coverage_missing": True, "summary": []}
     if (allowed_cols is None or "nutrition" in allowed_cols) and nutrition_collection is not None and (identity_id is not None or email):
         try:
-            rows = list(nutrition_collection.find(
+            raw_rows = list(nutrition_collection.find(
                 _user_and_date_query(identity_query, {"date": {"$gte": nutrition_start, "$lte": nutrition_end}}),
-                {"_id": 0, "date": 1, "total_calories": 1, "total_protein": 1, "total_carbs": 1, "total_fat": 1},
+                {
+                    "_id": 0,
+                    "date": 1,
+                    "created_at": 1,
+                    "meal_type": 1,
+                    "foods": 1,
+                    "total_calories": 1,
+                    "total_protein": 1,
+                    "total_carbs": 1,
+                    "total_fat": 1,
+                },
             ).limit(1001))
-            truncated = len(rows) > 1000
-            daily = {}
-            for row in rows[:1000]:
+            truncated = len(raw_rows) > 1000
+
+            reset_by_day: Dict[str, datetime] = {}
+            resets_col = _resolve_day_resets_collection(nutrition_collection, day_resets_collection)
+            if resets_col is not None:
+                try:
+                    reset_cursor = resets_col.find(
+                        _user_and_date_query(identity_query, {"date": {"$gte": nutrition_start, "$lte": nutrition_end}}),
+                        {"_id": 0, "date": 1, "reset_at": 1},
+                    )
+                    reset_rows = list(reset_cursor.limit(100)) if hasattr(reset_cursor, "limit") else list(reset_cursor)
+                    for reset_doc in reset_rows:
+                        if not isinstance(reset_doc, dict):
+                            continue
+                        reset_day = str(reset_doc.get("date") or "")[:10]
+                        reset_dt = _parse_utc_naive(reset_doc.get("reset_at"))
+                        if reset_day and reset_dt is not None:
+                            if reset_day not in reset_by_day or reset_dt > reset_by_day[reset_day]:
+                                reset_by_day[reset_day] = reset_dt
+                except Exception:
+                    reset_by_day = {}
+
+            rows = []
+            for row in raw_rows[:1000]:
+                if not isinstance(row, dict):
+                    continue
                 day = str(row.get("date") or "")[:10]
                 if not day:
                     continue
+                reset_at = reset_by_day.get(day)
+                if reset_at is not None and not _is_after_day_reset(row.get("created_at"), reset_at):
+                    continue
+                rows.append(row)
+
+            daily = {}
+            meals_by_day: Dict[str, List[Dict[str, Any]]] = {}
+            for row in rows:
+                day = str(row.get("date") or "")[:10]
                 totals = daily.setdefault(day, [0.0, 0.0, 0.0, 0.0])
                 for index, field in enumerate(("total_calories", "total_protein", "total_carbs", "total_fat")):
                     totals[index] += _number(row.get(field)) or 0.0
+
+                day_meals = meals_by_day.setdefault(day, [])
+                if len(day_meals) < 8:
+                    raw_foods = row.get("foods")
+                    food_names: List[str] = []
+                    if isinstance(raw_foods, list):
+                        for item in raw_foods:
+                            if isinstance(item, dict):
+                                name = str(item.get("name") or item.get("food_name") or item.get("title") or "").strip()
+                            elif isinstance(item, str):
+                                name = item.strip()
+                            else:
+                                name = ""
+                            if name:
+                                food_names.append(name[:60])
+                            if len(food_names) >= 4:
+                                break
+                    day_meals.append({
+                        "meal_type": str(row.get("meal_type") or "meal"),
+                        "foods": food_names[:4],
+                        "calories": round(_number(row.get("total_calories")) or 0),
+                        "protein_g": round(_number(row.get("total_protein")) or 0, 1),
+                    })
+
             summary = [
-                {"date": day, "calories": round(values[0]), "protein_g": round(values[1], 1),
-                 "carbs_g": round(values[2], 1), "fat_g": round(values[3], 1)}
+                {
+                    "date": day,
+                    "calories": round(values[0]),
+                    "protein_g": round(values[1], 1),
+                    "carbs_g": round(values[2], 1),
+                    "fat_g": round(values[3], 1),
+                    "meals": meals_by_day.get(day, [])[:8],
+                }
                 for day, values in sorted(daily.items())[-nutrition_days:]
             ]
             nutrition = {**_status(rows, truncated), "summary": summary}

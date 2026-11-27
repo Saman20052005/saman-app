@@ -35,6 +35,19 @@ abstract class INutritionRepository {
     required String replacementFoodId,
   });
   Future<bool> resetDay(String dateStr, {NutritionRequestContext? session});
+  Future<bool> updateNutritionLog({
+    required String logId,
+    String? mealType,
+    List<Map<String, dynamic>>? foods,
+    double? portionMultiplier,
+    double? totalGrams,
+    String? notes,
+    NutritionRequestContext? session,
+  });
+  Future<bool> deleteNutritionLog(
+    String logId, {
+    NutritionRequestContext? session,
+  });
   Future<bool> uploadLogStory({
     required XFile? imageFile,
     required String mealType,

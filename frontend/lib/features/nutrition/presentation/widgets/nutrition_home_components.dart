@@ -375,38 +375,531 @@ class NutritionEmptyMeals extends StatelessWidget {
 
 /// Read-only details from the selected logged entry, never a planned meal.
 class NutritionLoggedMealDetails extends StatelessWidget {
-  const NutritionLoggedMealDetails({required this.entry, super.key});
+  const NutritionLoggedMealDetails({
+    required this.entry,
+    this.onEdit,
+    this.onDelete,
+    super.key,
+  });
+
   final NutritionLogEntry entry;
+  final VoidCallback? onEdit;
+  final VoidCallback? onDelete;
+
   @override
   Widget build(BuildContext context) {
     final s = Theme.of(context).extension<NutritionHomeStyle>() ??
         NutritionHomeStyle(brightness: Theme.of(context).brightness);
     return DefaultTextStyle(
-        style: s.body,
-        child: SafeArea(
-            child: SingleChildScrollView(
+      style: s.body,
+      child: SafeArea(
+        child: SingleChildScrollView(
           padding: const EdgeInsets.all(24),
           child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Align(
-                    alignment: AlignmentDirectional.centerEnd,
-                    child: IconButton(
-                        tooltip: 'Close meal details',
-                        onPressed: () => Navigator.pop(context),
-                        icon: Icon(Icons.close, color: s.muted))),
-                Text(entry.foodName, style: s.section),
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Align(
+                alignment: AlignmentDirectional.centerEnd,
+                child: IconButton(
+                  tooltip: 'Close meal details',
+                  onPressed: () => Navigator.pop(context),
+                  icon: Icon(Icons.close, color: s.muted),
+                ),
+              ),
+              Text(entry.foodName, style: s.section),
+              const SizedBox(height: 12),
+              Text('${entry.totalCalories} kcal'),
+              Text(
+                '${entry.protein.toInt()}g pro · ${entry.carbs.toInt()}g carb · ${entry.fat.toInt()}g fat',
+              ),
+              for (final food in entry.foods)
+                if (food['name'] != null)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 12),
+                    child: _FoodDetailRow(food: food, style: s),
+                  ),
+              if (onEdit != null || onDelete != null) ...[
+                const SizedBox(height: 20),
+                Row(
+                  children: [
+                    if (onEdit != null)
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          key: const ValueKey('meal_detail_edit_btn'),
+                          onPressed: onEdit,
+                          style: s.secondaryAction,
+                          icon: const Icon(Icons.edit_outlined, size: 18),
+                          label: const Text('Sửa'),
+                        ),
+                      ),
+                    if (onEdit != null && onDelete != null)
+                      const SizedBox(width: 12),
+                    if (onDelete != null)
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          key: const ValueKey('meal_detail_delete_btn'),
+                          onPressed: onDelete,
+                          style: s.secondaryAction.copyWith(
+                            foregroundColor: WidgetStatePropertyAll(s.fat),
+                            side: WidgetStatePropertyAll(
+                              BorderSide(color: s.fat.withOpacity(0.5)),
+                            ),
+                          ),
+                          icon: Icon(Icons.delete_outline,
+                              size: 18, color: s.fat),
+                          label: const Text('Xóa'),
+                        ),
+                      ),
+                  ],
+                ),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _FoodDetailRow extends StatelessWidget {
+  const _FoodDetailRow({required this.food, required this.style});
+
+  final Map<String, dynamic> food;
+  final NutritionHomeStyle style;
+
+  @override
+  Widget build(BuildContext context) {
+    final name = food['name']?.toString() ?? '';
+    final grams =
+        (food['grams'] ?? food['portion_grams'] ?? food['amount']) as num?;
+    final calories = (food['calories'] as num?)?.round();
+    final parts = <String>[
+      if (grams != null && grams > 0) '${grams.round()}g',
+      if (calories != null) '$calories kcal',
+    ];
+    return Row(
+      children: [
+        Expanded(child: Text(name, style: style.body)),
+        if (parts.isNotEmpty)
+          Text(parts.join(' · '), style: style.caption),
+      ],
+    );
+  }
+}
+
+class _EditableFoodItem {
+  _EditableFoodItem({
+    required this.raw,
+    required this.gramsKey,
+    required this.baseGrams,
+    required this.baseCalories,
+    required this.baseProtein,
+    required this.baseCarbs,
+    required this.baseFat,
+    required this.currentGrams,
+    required this.multiplier,
+  });
+
+  final Map<String, dynamic> raw;
+  final String? gramsKey;
+  final double baseGrams;
+  final double baseCalories;
+  final double baseProtein;
+  final double baseCarbs;
+  final double baseFat;
+  double currentGrams;
+  double multiplier;
+
+  bool get hasGrams => gramsKey != null && baseGrams > 0;
+
+  double get ratio => hasGrams ? (currentGrams / baseGrams) : multiplier;
+
+  int get scaledCalories => (baseCalories * ratio).round();
+  double get scaledProtein =>
+      double.parse((baseProtein * ratio).toStringAsFixed(1));
+  double get scaledCarbs =>
+      double.parse((baseCarbs * ratio).toStringAsFixed(1));
+  double get scaledFat => double.parse((baseFat * ratio).toStringAsFixed(1));
+
+  Map<String, dynamic> toPayload() {
+    final updated = Map<String, dynamic>.from(raw);
+    if (hasGrams && gramsKey != null) {
+      updated[gramsKey!] =
+          currentGrams == currentGrams.roundToDouble()
+              ? currentGrams.round()
+              : double.parse(currentGrams.toStringAsFixed(1));
+    }
+    updated['calories'] = scaledCalories;
+    updated['protein'] = scaledProtein;
+    updated['carbs'] = scaledCarbs;
+    updated['fat'] = scaledFat;
+    return updated;
+  }
+
+  factory _EditableFoodItem.fromMap(Map<String, dynamic> food) {
+    String? gramsKey;
+    double baseGrams = 0;
+    for (final key in const ['grams', 'portion_grams', 'amount']) {
+      final val = food[key];
+      if (val is num && val > 0) {
+        gramsKey = key;
+        baseGrams = val.toDouble();
+        break;
+      }
+    }
+    return _EditableFoodItem(
+      raw: Map<String, dynamic>.from(food),
+      gramsKey: gramsKey,
+      baseGrams: baseGrams,
+      baseCalories: (food['calories'] as num?)?.toDouble() ?? 0,
+      baseProtein: (food['protein'] as num?)?.toDouble() ?? 0,
+      baseCarbs: (food['carbs'] as num?)?.toDouble() ?? 0,
+      baseFat: (food['fat'] as num?)?.toDouble() ?? 0,
+      currentGrams: baseGrams,
+      multiplier: 1.0,
+    );
+  }
+}
+
+class NutritionEditLoggedMealSheet extends StatefulWidget {
+  const NutritionEditLoggedMealSheet({
+    required this.entry,
+    required this.onSave,
+    super.key,
+  });
+
+  final NutritionLogEntry entry;
+  final Future<bool> Function({
+    required String mealType,
+    List<Map<String, dynamic>>? foods,
+    double? portionMultiplier,
+  }) onSave;
+
+  @override
+  State<NutritionEditLoggedMealSheet> createState() =>
+      _NutritionEditLoggedMealSheetState();
+}
+
+class _NutritionEditLoggedMealSheetState
+    extends State<NutritionEditLoggedMealSheet> {
+  static const _mealTypes = <({String value, String label})>[
+    (value: 'breakfast', label: 'Sáng'),
+    (value: 'lunch', label: 'Trưa'),
+    (value: 'dinner', label: 'Tối'),
+    (value: 'snack', label: 'Phụ'),
+  ];
+  static const _multipliers = <double>[0.5, 0.75, 1.0, 1.25, 1.5, 2.0];
+
+  late String _mealType;
+  late List<_EditableFoodItem> _items;
+  double _portionMultiplier = 1.0;
+  bool _isSaving = false;
+  String? _errorMessage;
+
+  @override
+  void initState() {
+    super.initState();
+    final initialType = widget.entry.mealType.trim().toLowerCase();
+    _mealType = _mealTypes.any((t) => t.value == initialType)
+        ? initialType
+        : 'breakfast';
+    _items = widget.entry.foods
+        .map((f) => _EditableFoodItem.fromMap(f))
+        .toList();
+  }
+
+  int get _previewCalories {
+    if (_items.isNotEmpty) {
+      return _items.fold<int>(0, (sum, item) => sum + item.scaledCalories);
+    }
+    return (widget.entry.totalCalories * _portionMultiplier).round();
+  }
+
+  double get _previewProtein {
+    if (_items.isNotEmpty) {
+      return _items.fold<double>(0, (sum, item) => sum + item.scaledProtein);
+    }
+    return widget.entry.protein * _portionMultiplier;
+  }
+
+  double get _previewCarbs {
+    if (_items.isNotEmpty) {
+      return _items.fold<double>(0, (sum, item) => sum + item.scaledCarbs);
+    }
+    return widget.entry.carbs * _portionMultiplier;
+  }
+
+  double get _previewFat {
+    if (_items.isNotEmpty) {
+      return _items.fold<double>(0, (sum, item) => sum + item.scaledFat);
+    }
+    return widget.entry.fat * _portionMultiplier;
+  }
+
+  Future<void> _handleSave() async {
+    if (_isSaving) return;
+    setState(() {
+      _isSaving = true;
+      _errorMessage = null;
+    });
+
+    try {
+      final ok = await widget.onSave(
+        mealType: _mealType,
+        foods: _items.isNotEmpty
+            ? _items.map((e) => e.toPayload()).toList()
+            : null,
+        portionMultiplier: _items.isEmpty ? _portionMultiplier : null,
+      );
+      if (!mounted) return;
+      if (ok) {
+        Navigator.of(context).pop();
+      } else {
+        setState(() {
+          _isSaving = false;
+          _errorMessage = 'Không thể lưu thay đổi. Vui lòng thử lại.';
+        });
+      }
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _isSaving = false;
+        _errorMessage = 'Đã xảy ra lỗi kết nối. Vui lòng thử lại.';
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final s = Theme.of(context).extension<NutritionHomeStyle>() ??
+        NutritionHomeStyle(brightness: Theme.of(context).brightness);
+    final bottomInset = MediaQuery.viewInsetsOf(context).bottom;
+
+    return DefaultTextStyle(
+      style: s.body,
+      child: SafeArea(
+        child: SingleChildScrollView(
+          padding: EdgeInsets.fromLTRB(20, 16, 20, 20 + bottomInset),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      'Sửa bữa ăn',
+                      style: s.section,
+                    ),
+                  ),
+                  IconButton(
+                    tooltip: 'Đóng',
+                    onPressed: _isSaving ? null : () => Navigator.pop(context),
+                    icon: Icon(Icons.close, color: s.muted),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 4),
+              Text(widget.entry.foodName, style: s.strong),
+              const SizedBox(height: 16),
+              Text('Bữa ăn', style: s.caption),
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  for (final option in _mealTypes)
+                    ChoiceChip(
+                      key: ValueKey('edit_meal_type_${option.value}'),
+                      label: Text(option.label),
+                      selected: _mealType == option.value,
+                      onSelected: _isSaving
+                          ? null
+                          : (_) => setState(() => _mealType = option.value),
+                    ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              if (_items.isNotEmpty) ...[
+                Text('Khẩu phần từng món', style: s.caption),
+                const SizedBox(height: 8),
+                for (var i = 0; i < _items.length; i++)
+                  _buildFoodEditorRow(i, _items[i], s),
+              ] else ...[
+                Text('Hệ số khẩu phần', style: s.caption),
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    for (final mult in _multipliers)
+                      ChoiceChip(
+                        label: Text('${mult}x'),
+                        selected: _portionMultiplier == mult,
+                        onSelected: _isSaving
+                            ? null
+                            : (_) => setState(() => _portionMultiplier = mult),
+                      ),
+                  ],
+                ),
+              ],
+              const SizedBox(height: 16),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: s.canvas,
+                  borderRadius: s.cardRadius,
+                  border: Border.all(color: s.border),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Dự kiến dinh dưỡng', style: s.caption),
+                    const SizedBox(height: 6),
+                    Text(
+                      '$_previewCalories kcal',
+                      key: const ValueKey('edit_meal_preview_calories'),
+                      style: s.strong,
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      '${_previewProtein.round()}g pro · ${_previewCarbs.round()}g carb · ${_previewFat.round()}g fat',
+                      key: const ValueKey('edit_meal_preview_macros'),
+                      style: s.caption,
+                    ),
+                  ],
+                ),
+              ),
+              if (_errorMessage != null) ...[
                 const SizedBox(height: 12),
-                Text('${entry.totalCalories} kcal'),
                 Text(
-                    '${entry.protein.toInt()}g pro · ${entry.carbs.toInt()}g carb · ${entry.fat.toInt()}g fat'),
-                for (final food in entry.foods)
-                  if (food['name'] != null)
-                    Padding(
-                        padding: const EdgeInsets.only(top: 12),
-                        child: Text(food['name'].toString())),
-              ]),
-        )));
+                  _errorMessage!,
+                  style: s.caption.copyWith(color: s.fat),
+                ),
+              ],
+              const SizedBox(height: 20),
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton(
+                  key: const ValueKey('edit_meal_save_btn'),
+                  style: s.primaryAction,
+                  onPressed: _isSaving ? null : _handleSave,
+                  child: _isSaving
+                      ? SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: s.onAccent,
+                          ),
+                        )
+                      : const Text('Lưu thay đổi'),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFoodEditorRow(
+    int index,
+    _EditableFoodItem item,
+    NutritionHomeStyle s,
+  ) {
+    final name = item.raw['name']?.toString() ?? 'Món ${index + 1}';
+    final portionLabel = item.hasGrams
+        ? '${item.currentGrams.round()}g'
+        : '${item.multiplier.toStringAsFixed(2)}x';
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: s.surface,
+        borderRadius: s.imageRadius,
+        border: Border.all(color: s.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(name, style: s.strong),
+              ),
+              if (_items.length > 1)
+                IconButton(
+                  key: ValueKey('edit_food_remove_$index'),
+                  tooltip: 'Xóa món',
+                  onPressed: _isSaving
+                      ? null
+                      : () => setState(() => _items.removeAt(index)),
+                  icon: Icon(Icons.close, size: 18, color: s.muted),
+                  visualDensity: VisualDensity.compact,
+                  padding: EdgeInsets.zero,
+                  constraints:
+                      const BoxConstraints(minWidth: 32, minHeight: 32),
+                ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  '$portionLabel · ${item.scaledCalories} kcal · ${item.scaledProtein.round()}g pro',
+                  style: s.caption,
+                ),
+              ),
+              OutlinedButton(
+                key: ValueKey('edit_food_dec_$index'),
+                onPressed: _isSaving
+                    ? null
+                    : () => setState(() {
+                          if (item.hasGrams) {
+                            item.currentGrams =
+                                (item.currentGrams - 25).clamp(25, 5000);
+                          } else {
+                            item.multiplier =
+                                (item.multiplier - 0.25).clamp(0.25, 10.0);
+                          }
+                        }),
+                style: OutlinedButton.styleFrom(
+                  minimumSize: const Size(44, 34),
+                  padding: const EdgeInsets.symmetric(horizontal: 10),
+                  side: BorderSide(color: s.border),
+                ),
+                child: Text(item.hasGrams ? '-25g' : '-0.25x'),
+              ),
+              const SizedBox(width: 8),
+              OutlinedButton(
+                key: ValueKey('edit_food_inc_$index'),
+                onPressed: _isSaving
+                    ? null
+                    : () => setState(() {
+                          if (item.hasGrams) {
+                            item.currentGrams =
+                                (item.currentGrams + 25).clamp(25, 5000);
+                          } else {
+                            item.multiplier =
+                                (item.multiplier + 0.25).clamp(0.25, 10.0);
+                          }
+                        }),
+                style: OutlinedButton.styleFrom(
+                  minimumSize: const Size(44, 34),
+                  padding: const EdgeInsets.symmetric(horizontal: 10),
+                  side: BorderSide(color: s.border),
+                ),
+                child: Text(item.hasGrams ? '+25g' : '+0.25x'),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
   }
 }

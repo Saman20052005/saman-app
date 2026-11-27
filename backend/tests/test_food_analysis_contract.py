@@ -119,7 +119,7 @@ def test_advanced_gemini_result_normalizes_fiber_ingredients_and_insights():
 def test_gemini_request_uses_configured_default_and_minimal_thinking():
     with patch.dict(os.environ, {"GEMINI_FOOD_MODEL": ""}, clear=False):
         analyzer = GeminiFoodAnalyzer(api_key="test")
-        assert analyzer.model == "gemini-3.6-flash"
+        assert analyzer.model == "gemini-3.5-flash-lite"
     captured = {}
 
     class Response:

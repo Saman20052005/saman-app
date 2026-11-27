@@ -142,6 +142,40 @@ class NutritionRepositoryImpl implements INutritionRepository {
   }
 
   @override
+  Future<bool> updateNutritionLog({
+    required String logId,
+    String? mealType,
+    List<Map<String, dynamic>>? foods,
+    double? portionMultiplier,
+    double? totalGrams,
+    String? notes,
+    NutritionRequestContext? session,
+  }) async {
+    await session?.validate();
+    return await _remoteDataSource.updateNutritionLog(
+      logId: logId,
+      mealType: mealType,
+      foods: foods,
+      portionMultiplier: portionMultiplier,
+      totalGrams: totalGrams,
+      notes: notes,
+      session: session,
+    );
+  }
+
+  @override
+  Future<bool> deleteNutritionLog(
+    String logId, {
+    NutritionRequestContext? session,
+  }) async {
+    await session?.validate();
+    return await _remoteDataSource.deleteNutritionLog(
+      logId,
+      session: session,
+    );
+  }
+
+  @override
   Future<bool> uploadLogStory({
     required XFile? imageFile,
     required String mealType,

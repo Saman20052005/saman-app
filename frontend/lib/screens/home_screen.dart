@@ -8,6 +8,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
 import '../config/app_translations.dart';
+import '../core/utils/vn_date_utils.dart';
 import '../config/routes.dart';
 import '../config/theme_provider.dart';
 import '../controllers/chat_controller.dart';
@@ -313,14 +314,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => FoodLogScreen(selectedDate: DateTime.now()),
+        builder: (_) => FoodLogScreen(selectedDate: vnTodayDate()),
       ),
     );
   }
 
   Future<void> _handleAddWater({String? retryKey, String? retryDate}) async {
-    final now = DateTime.now();
-    final todayStr = DateFormat('yyyy-MM-dd').format(now);
+    final todayStr = vnTodayIsoDate();
     final dateToUse = retryDate ?? todayStr;
     final keyToUse = retryKey;
 

@@ -468,7 +468,7 @@ class GeminiFoodAnalyzerTests(unittest.TestCase):
         """When model config is absent, use the approved Gemini Flash default."""
         with patch.dict(os.environ, {"GEMINI_FOOD_MODEL": ""}):
             analyzer = GeminiFoodAnalyzer(api_key="test-key")
-            self.assertEqual(analyzer.model, "gemini-3.6-flash")
+            self.assertEqual(analyzer.model, "gemini-3.5-flash-lite")
 
     # -------------------------------------------------------------------------
     # 3. SCHEMA PRESERVATION & SUCCESS RESPONSE
