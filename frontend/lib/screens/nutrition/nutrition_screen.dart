@@ -373,6 +373,82 @@ class _NutritionScreenState extends ConsumerState<NutritionScreen> {
     );
   }
 
+  Future<void> _openEditLoggedMeal(NutritionLogEntry entry) async {
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: NutritionHomeStyle.of(context).surface,
+      builder: (_) => NutritionEditLoggedMealSheet(
+        entry: entry,
+        onSave: ({
+          required String mealType,
+          List<Map<String, dynamic>>? foods,
+          double? portionMultiplier,
+        }) async {
+          final ok = await ref.read(nutritionProvider.notifier).updateLoggedMeal(
+                date: _selectedDate,
+                logId: entry.logId,
+                mealType: mealType,
+                foods: foods,
+                portionMultiplier: portionMultiplier,
+              );
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SamanFeedbackSnackBar.build(
+                context: context,
+                message: ok
+                    ? 'Đã cập nhật bữa ăn'
+                    : 'Không thể cập nhật bữa ăn. Vui lòng thử lại.',
+                type: ok ? FeedbackType.success : FeedbackType.error,
+                duration: const Duration(seconds: 2),
+              ),
+            );
+          }
+          return ok;
+        },
+      ),
+    );
+  }
+
+  Future<void> _confirmDeleteLoggedMeal(NutritionLogEntry entry) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogCtx) => AlertDialog(
+        title: const Text('Xóa bữa ăn?'),
+        content: Text(
+          'Bạn có chắc muốn xóa "${entry.foodName}" khỏi nhật ký?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogCtx, false),
+            child: const Text('Hủy'),
+          ),
+          TextButton(
+            key: const ValueKey('confirm_delete_meal_btn'),
+            onPressed: () => Navigator.pop(dialogCtx, true),
+            child: const Text('Xóa'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    final ok = await ref.read(nutritionProvider.notifier).deleteLoggedMeal(
+          date: _selectedDate,
+          logId: entry.logId,
+        );
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SamanFeedbackSnackBar.build(
+        context: context,
+        message: ok
+            ? 'Đã xóa bữa ăn'
+            : 'Không thể xóa bữa ăn. Vui lòng thử lại.',
+        type: ok ? FeedbackType.success : FeedbackType.error,
+        duration: const Duration(seconds: 2),
+      ),
+    );
+  }
+
 
 
   void _openScanFood() async {
@@ -1653,29 +1729,29 @@ class _NutritionScreenState extends ConsumerState<NutritionScreen> {
         separatorBuilder: (_, __) => const SizedBox(height: 10),
 
         itemBuilder: (context, index) {
-
+          final entry = entries[index];
           return NutritionLoggedMealCard(
-
-            key: ValueKey(entries[index].logId),
-
-            entry: entries[index],
-
+            key: ValueKey(entry.logId),
+            entry: entry,
+            onEdit: () => _openEditLoggedMeal(entry),
+            onDelete: () => _confirmDeleteLoggedMeal(entry),
             onTap: () => showModalBottomSheet<void>(
-
               context: context,
-
               isScrollControlled: true,
-
               backgroundColor: NutritionHomeStyle.of(context).surface,
-
-              builder: (_) =>
-
-                  NutritionLoggedMealDetails(entry: entries[index]),
-
+              builder: (sheetContext) => NutritionLoggedMealDetails(
+                entry: entry,
+                onEdit: () {
+                  Navigator.of(sheetContext).pop();
+                  _openEditLoggedMeal(entry);
+                },
+                onDelete: () {
+                  Navigator.of(sheetContext).pop();
+                  _confirmDeleteLoggedMeal(entry);
+                },
+              ),
             ),
-
           );
-
         },
 
       );
