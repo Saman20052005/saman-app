@@ -5,7 +5,7 @@ import '../../../config/app_translations.dart';
 import '../../../config/routes.dart';
 import '../../../controllers/chat_controller.dart';
 import '../../../providers/profile_provider.dart';
-import '../../../widgets/saman_avatar.dart';
+import '../../../core/widgets/saman_tier_avatar.dart';
 import '../../../widgets/saman_feedback_snackbar.dart';
 import '../../profile_screen.dart';
 import '../../settings/app_settings_screen.dart';
@@ -679,7 +679,7 @@ class _SamanChatDrawerState extends ConsumerState<SamanChatDrawer> {
                           horizontal: 6.0, vertical: 6.0),
                       child: Row(
                         children: [
-                          SamanAvatar(
+                          SamanTierAvatar(
                             name: athleteName,
                             avatarUrl: avatarUrl,
                             size: 34.0,
@@ -899,7 +899,7 @@ class _SamanChatDrawerState extends ConsumerState<SamanChatDrawer> {
             child: InkWell(
               borderRadius: BorderRadius.circular(16.0),
               onTap: () => _handleProfileNavigation(context),
-              child: SamanAvatar(
+              child: SamanTierAvatar(
                 name: athleteName,
                 avatarUrl: avatarUrl,
                 size: 32.0,

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../../config/app_translations.dart';
 import '../../../../../config/routes.dart';
+import '../../../../../core/widgets/saman_tier_avatar.dart';
 import '../../../../../providers/profile_provider.dart';
 import '../../../../../widgets/saman_feedback_snackbar.dart';
 import '../../../domain/models/community_author.dart';
@@ -669,23 +670,40 @@ class _CommunityProfileScreenState
         children: [
           Row(
             children: [
-              Container(
-                width: 80,
-                height: 80,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  border: Border.all(
-                    color: ig.border,
-                    width: 1,
+              if (_isMe)
+                SamanTierAvatar(
+                  name: author.name,
+                  avatarUrl: author.avatarUrl,
+                  size: 80,
+                )
+              else
+                Container(
+                  width: 80,
+                  height: 80,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: ig.border,
+                      width: 1,
+                    ),
+                    color: ig.surfaceElevated,
                   ),
-                  color: ig.surfaceElevated,
-                ),
-                clipBehavior: Clip.antiAlias,
-                child: author.avatarUrl != null && author.avatarUrl!.isNotEmpty
-                    ? Image.network(
-                        author.avatarUrl!,
-                        fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => Center(
+                  clipBehavior: Clip.antiAlias,
+                  child: author.avatarUrl != null && author.avatarUrl!.isNotEmpty
+                      ? Image.network(
+                          author.avatarUrl!,
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, __, ___) => Center(
+                            child: Text(
+                              initial,
+                              style: ig.displayTitle(
+                                fontSize: 28,
+                                color: ig.textPrimary,
+                              ),
+                            ),
+                          ),
+                        )
+                      : Center(
                           child: Text(
                             initial,
                             style: ig.displayTitle(
@@ -694,17 +712,7 @@ class _CommunityProfileScreenState
                             ),
                           ),
                         ),
-                      )
-                    : Center(
-                        child: Text(
-                          initial,
-                          style: ig.displayTitle(
-                            fontSize: 28,
-                            color: ig.textPrimary,
-                          ),
-                        ),
-                      ),
-              ),
+                ),
               const SizedBox(width: 16),
               Expanded(
                 child: Row(

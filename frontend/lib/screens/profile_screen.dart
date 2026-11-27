@@ -6,7 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'dart:io';
 import 'package:image_picker/image_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import '../widgets/saman_avatar.dart';
+import '../core/widgets/saman_tier_avatar.dart';
 import '../config/app_theme.dart';
 import '../config/routes.dart';
 import '../features/profile/domain/entities/onboarding_activity_choice.dart';
@@ -766,10 +766,11 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                               child: Stack(
                                 clipBehavior: Clip.none,
                                 children: [
-                                  SamanAvatar(
+                                  SamanTierAvatar(
                                     name: profileState.snapshot?.fullName ?? 'Athlete',
                                     avatarUrl: profileState.avatar,
                                     size: 52,
+                                    badgePosition: SamanTierBadgePosition.topCenter,
                                   ),
                                   Positioned(
                                     right: -2,

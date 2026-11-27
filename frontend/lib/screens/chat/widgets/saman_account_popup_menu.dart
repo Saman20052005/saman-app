@@ -5,6 +5,8 @@ import '../../../config/routes.dart';
 import '../../../config/theme_provider.dart';
 import '../../../controllers/chat_controller.dart';
 import '../../../core/widgets/coach_marks/coach_tour_service.dart';
+import '../../../core/widgets/saman_tier_avatar.dart';
+import '../../../providers/profile_provider.dart';
 import '../../../../features/membership/presentation/screens/manage_membership_screen.dart';
 import '../../settings/app_settings_screen.dart';
 import '../tokens/saman_chat_tokens.dart';
@@ -468,10 +470,16 @@ class _SamanAccountPopupMenuState extends ConsumerState<SamanAccountPopupMenu>
   @override
   Widget build(BuildContext context) {
     final t = SamanChatTokens.of(context);
+    final profileState = ref.watch(profileProvider);
+    final athleteName = (profileState.snapshot?.fullName ?? '').trim().isNotEmpty
+        ? profileState.snapshot!.fullName!.trim()
+        : 'Athlete';
+    final avatarUrl = profileState.avatar;
+    final email = (profileState.snapshot?.email ?? '').trim();
     final reduceMotion = MediaQuery.of(context).disableAnimations;
     final rowHeight = widget.isDesktop ? 40.0 : 44.0;
     final screenHeight = MediaQuery.sizeOf(context).height;
-    final maxMenuHeight = (screenHeight * 0.72).clamp(320.0, 520.0);
+    final maxMenuHeight = (screenHeight * 0.82).clamp(320.0, 560.0);
 
     return AnimatedBuilder(
       animation: _animController,
@@ -515,6 +523,51 @@ class _SamanAccountPopupMenuState extends ConsumerState<SamanAccountPopupMenu>
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                // ─── COMPACT ACCOUNT HEADER WITH TIER AVATAR ───
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(8.0, 2.0, 8.0, 4.0),
+                  child: Row(
+                    children: [
+                      SamanTierAvatar(
+                        name: athleteName,
+                        avatarUrl: avatarUrl,
+                        size: 30.0,
+                      ),
+                      const SizedBox(width: 10.0),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              athleteName,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                fontSize: 13.0,
+                                fontWeight: FontWeight.w600,
+                                color: t.textWhite,
+                              ),
+                            ),
+                            if (email.isNotEmpty) ...[
+                              const SizedBox(height: 1.0),
+                              Text(
+                                email,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  fontSize: 11.0,
+                                  color: t.textMuted,
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                _buildDivider(t),
                 // ─── NHÓM 1: TÀI KHOẢN ───
                 _buildGroupHeader(t, 'Tài khoản'),
                 _buildRow(
