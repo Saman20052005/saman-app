@@ -102,10 +102,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       if (!mounted) return;
       final mState = ref.read(accountMembershipProvider);
       if (!mState.isKnown && !mState.isLoading) {
-        final userId = ref.read(profileProvider).confirmedUserId;
-        ref
-            .read(accountMembershipProvider.notifier)
-            .loadMembership(accountId: userId);
+        ref.read(accountMembershipProvider.notifier).loadMembership();
       }
     });
   }
